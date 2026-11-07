@@ -150,7 +150,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
   return out;
 }
 
-function factText(state: GameState, text: string): string {
+export function factText(state: GameState, text: string): string {
   return text.replace(/\{(npc|place):([^}]+)\}/g, (_, k: string, id: string) =>
     k === 'place' ? (state.places.find((p) => p.id === id)?.names.current ?? 'somewhere') : callName(state, state.player.id, id));
 }
