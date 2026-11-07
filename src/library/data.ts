@@ -91,7 +91,8 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
 export const CREATURES: Record<string, CreatureType> = {
   humanoid: {
     id: 'humanoid', hpMultiplier: 1, general: { name: 'torso', size: 'normal' },
-    naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' }],
+    naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' },
+      { id: 'grapple', tree: 'unarmed', class: 'grapple', skill: 'unarmed_grapple', reach: 0, hands: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: ['sense'], adjacent: ['general', 'neck'] },
       { id: 'left_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
