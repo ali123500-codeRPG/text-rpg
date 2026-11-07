@@ -11,13 +11,13 @@ describe('96 Armor pool', () => {
     // aimed head: 100 → Strong + 2 = 6; guard block 10 + 15 − 63.5 → Failure (1): gap −5, 2×
     const r = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', targetPart: 'head', aimed: true }, s, forcedRng([100, 10]));
     expect(r.location).toBe('head');
-    expect(r.damage).toBe(Math.round((50 - 6) * 0.55)); // 24
+    expect(r.damage).toBeCloseTo((50 - 6) * 0.55, 9); // 24.2, not rounded (OQ-25)
     ruleset.applyEffects(r, s);
     const plate = g.core.inventory.find((i) => i.id === 'plate')!;
     expect(plate.pools!.head).toBe(0); // the 20-point helm pool is drained
-    // the other 4 reach the head: guard HP 50, head pool 10 → 60% left
-    expect(g.core.condition.parts.head).toBeCloseTo(60);
-    // health track: 4 × 1.5 (essential) of 50 HP = 12%
-    expect(g.core.condition.hpLostPct).toBeCloseTo(12);
+    // the other 4.2 reach the head: guard HP 50, head pool 10 → 58% left
+    expect(g.core.condition.parts.head).toBeCloseTo(58);
+    // health track: 4.2 × 1.5 (essential) of 50 HP = 12.6%
+    expect(g.core.condition.hpLostPct).toBeCloseTo(12.6);
   });
 });

@@ -15,6 +15,6 @@ describe('94 Uncovered part', () => {
     // torso: 65 + 37.5 − 63.5 = 39 → Strong; location roll 80 → general
     const torso = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false }, s, forcedRng([65, 40, 80]));
     expect(torso.location).toBe('general');
-    expect(torso.damage).toBe(Math.round((25 - 4) * 0.65));
+    expect(torso.damage).toBeCloseTo((25 - 4) * 0.65, 9); // 13.65, not rounded (OQ-25)
   });
 });

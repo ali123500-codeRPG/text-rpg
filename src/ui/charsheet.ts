@@ -47,7 +47,7 @@ export function trees(s: GameState, p: Actor, withZero: boolean) {
 const tag = () => h('span', { class: 'tag', title: 'Tagged skill' }, '✦');
 const bar = (raw: number) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (raw / BAR_SCALE) * 100)}%` }));
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
-const whole = (n: number | null) => (n === null ? '—' : String(Math.round(n)));
+const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
 
 export function charCard(s: GameState, p: Actor): HTMLElement {
   const { hp } = hpLeft(s, p);
