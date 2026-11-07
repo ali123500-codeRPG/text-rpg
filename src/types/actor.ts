@@ -24,7 +24,13 @@ export type Actor = {
   progression?: Progression;
   mind?: Mind;
   journal?: Journal;
+  engagement?: Engagement; // E1: the actor's current engagement; absent when it is in none
 };
+
+/** E1 (Ali, 07/11/2026): one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
+ * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
+export type EngagementKind = 'talk' | 'fight';
+export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number> };
 
 export type SkillState = 'tagged' | 'normal' | 'flawed';
 export type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };
