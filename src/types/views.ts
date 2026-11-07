@@ -40,6 +40,7 @@ export type SeenActor = {
   level: Perception; activityLook?: string;
   health?: HealthLevel; // others: only from Wounded down
   crippled?: string[]; destroyed?: string[];
+  damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
   gear: SeenGearView[];
 };
 

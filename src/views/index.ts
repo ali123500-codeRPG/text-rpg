@@ -7,15 +7,20 @@ import type { Tier, TierRoll,
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
-import { actorById, allActors, atLeast, bandById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, isActive, hostile, shortestPath, wary, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { healthLevel, partStates, tierName } from '../ruleset';
+import { hasPerk, healthLevel, partStates, tierName } from '../ruleset';
 import { isComm } from '../perception';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
-const VISIBLE_HEALTH: HealthLevel[] = ['Wounded', 'Mauled', 'Critical', 'Incapacitated'];
 const VISIBLE_PART = ['Crippled', 'Destroyed'];
+/** others' health shows from CONFIG.HEALTH_SHOWN_FROM down (Voyage C2); Read Wounds (A13) shows it one step earlier on
+ * the health track, by position, against a foe (an actor either side is opposed or hostile to) */
+const LEVEL_POS = (l: string) => CONFIG.HEALTH_TRACK.findIndex(([x]) => x === l);
+const foe = (state: GameState, a: Actor, b: Actor) => wary(state, a, b) || wary(state, b, a);
+const reads = (state: GameState, viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && hasPerk(viewer, 'read_wounds') && foe(state, viewer, other);
+const healthShows = (level: string, sharp: boolean) => LEVEL_POS(level) >= LEVEL_POS(CONFIG.HEALTH_SHOWN_FROM) - (sharp ? 1 : 0);
 
 // ---------- shared helpers ----------
 const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneById(state, id)).filter((z): z is Zone => !!z);
@@ -110,12 +115,14 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const parts = partStates(state, a);
     const crippled = parts.filter((p) => p.state === 'Crippled').map((p) => p.id);
     const destroyed = parts.filter((p) => p.state === 'Destroyed').map((p) => p.id);
+    const damaged = parts.filter((p) => p.state === 'Damaged').map((p) => p.id);
     const look = lookOf(events, viewer.id, a.id);
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(look ? { activityLook: look } : {}),
-      ...(VISIBLE_HEALTH.includes(h) ? { health: h } : {}),
+      ...(healthShows(h, reads(state, viewer, a)) ? { health: h } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
+      ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
     });
   }
@@ -146,8 +153,9 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     const own = f.actorId === viewerId;
     const to = String(f.data.to ?? '');
     const who = callName(state, viewerId, f.actorId);
-    if (f.kind === 'threshold_crossed' && (own || VISIBLE_HEALTH.includes(to as HealthLevel))) out.push(`${who} is ${to}`);
-    if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
+    const sharp = reads(state, actorById(state, viewerId), actorById(state, f.actorId));
+    if (f.kind === 'threshold_crossed' && (own || healthShows(to, sharp))) out.push(`${who} is ${to}`);
+    if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
 }
