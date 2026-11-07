@@ -101,6 +101,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
   const el = h('main', { class: 'playmain' }, title, who, h('div', { class: 'play-wrap' }, body, sheet), fell);
 
+  let offered: LogLine | null = null;
   const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
 
   async function submit() {
@@ -164,6 +165,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       a.health ? h('span', { class: a.health === 'Incapacitated' ? 'st down' : 'st warn' }, a.health === 'Incapacitated' ? 'Down' : a.health)
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null)));
     const lines = api.lines();
+    // Q16: what the player put off last turn fills an empty action box once (nothing is sent until Send)
+    const nextLine = lines.at(-1);
+    if (nextLine?.next && nextLine !== offered && !input.value && !api.busy()) { input.value = nextLine.next; offered = nextLine; }
     const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     log.replaceChildren(...lines.flatMap(lineEl).filter((x): x is HTMLElement => !!x), api.busy() ? workingRow() : '');
 

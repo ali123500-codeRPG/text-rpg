@@ -23,6 +23,15 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
   if (run.value.clarify) return { intent: null, clarify: run.value.clarify, run };
   const leg = checkParserLegality(run.value, view, opts.bandIds);
   if (leg.gearErrors.length) run.log.errors.push('invalid_gear');
+  // Q16 (Ali, 07/11/2026): walking over to someone out of sight moves now; what was meant for them waits for arrival
+  const outOfSight = (x: string) => x.startsWith('addressee') || x.startsWith('action.target');
+  if (leg.illegal.length && leg.intent.move && leg.illegal.every(outOfSight)) {
+    const i = leg.intent;
+    const later = i.spoken ?? '';
+    leg.intent = { ...i, action: null, spoken: null, addressees: null, deferred: [...(later ? [later] : []), ...(i.deferred ?? [])] };
+    run.log.errors.push('deferred_to_arrival', ...leg.illegal);
+    leg.illegal = [];
+  }
   if (leg.illegal.length) {
     run.log.errors.push('illegal_intent', ...leg.illegal);
     return { intent: null, clarify: illegalClarify(leg.illegal, view) ?? GENERIC_CLARIFY, run };

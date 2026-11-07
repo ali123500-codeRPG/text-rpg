@@ -331,7 +331,7 @@ export function createGame(deps: GameDeps): Game {
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
-      ...lineExtras(s, events, nv, narr.output.text) });
+      ...lineExtras(s, events, nv, narr.output.text), ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
   }

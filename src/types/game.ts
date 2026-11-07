@@ -15,6 +15,7 @@ export type LogLine = {
   check?: LineCheck; // the player's own roll this turn
   speech?: { speaker: string; volume: Volume; text: string }[]; // lines the character heard, word for word
   changes?: { kind: 'combat' | 'condition' | 'health'; text: string }[]; // what changed this turn
+  next?: string; // Q16: what the player put off this turn (the Parser's deferred), offered in the action box
 };
 
 export type LineCheck = {

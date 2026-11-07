@@ -559,6 +559,8 @@ Rules:
 10. If the player fights with an object from the scene that is not in PLAYER_VIEW (a chair, a
    bottle), set "improvised": the base by its size (improvised_light, improvised_medium,
    improvised_heavy) and a short name for the object. Leave "item" null.
+11. If the player goes to someone who is not in PLAYER_VIEW to talk to them or act on them, give only
+   the move toward where they are and put what they meant to say or do in "deferred". Do not ask who they mean.
 
 Return only JSON matching the schema.
 ```
@@ -1238,7 +1240,7 @@ Every model output is checked before it touches state or the screen, and every f
 | Check | What it catches | On failure |
 | --- | --- | --- |
 | JSON schema on Parser, Planner, Responder, Voice, Narrator, Weaver | Malformed or missing fields | One repair retry with the error; then the fallback for that agent |
-| Legality on the Parser | Targets, items or skills not in PlayerView (a speech action's skill is set by code from its type, so the Parser's is dropped) | Turn stops; ask the Parser's clarify question, else a question about the failed part ("Who do you mean? I can see …", "Which item do you mean?", "Where do you want to go?"), else a generic "What do you do?" (provisional, see D-21) |
+| Legality on the Parser | Targets, items or skills not in PlayerView (a speech action's skill is set by code from its type, so the Parser's is dropped) | Turn stops; ask the Parser's clarify question, else a question about the failed part ("Who do you mean? I can see …", "Which item do you mean?", "Where do you want to go?"), else a generic "What do you do?" (provisional, see D-21) Exception (Q16, Ali 07/11/2026): when the intent has a legal move and only its addressees or action target are out of sight, the move resolves this turn, the action and words are dropped into deferred (logged deferred\_to\_arrival), and the Play screen offers them in the empty action box after the turn |
 | Legality on Planner, Responder, Voice | An order targeting something the actor has no belief about | Drop the order: the Planner's actor uses its combat list; a Responder or Voice uses the fallback reply. Log view\_leak if the id is real but outside the view; log invalid\_target if it doesn't exist |
 | Gear legality on Parser, Planner, Responder, Voice | An item the actor doesn't hold or can't see, a mode the item lacks, a gear op on an item out of reach | Drop that op or field; the action stands if still legal; log invalid\_gear |
 | Planner timing | A Planner call not back by BACKGROUND\_WINDOW | Combat list this turn; discard the whole output; log planner\_late |
@@ -2530,7 +2532,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-100 | Command buttons | 2 | Built | Decided by Ali (07/11/2026, Voyage A3): plan buttons on the Play screen that show the available commands (Part 1 §7). Built 07/11/2026 as the Commands panel |
 | D-101 | Game clock | 2, 4 | Deferred | Voyage playtest (07/11/2026): E1, a trade took a day while 31 km of travel took no time; E2, NPCs said "yesterday" on day 1. Covers turn and command durations, travel time and a calendar NPCs can read. Related: D-13, D-49 |
 | D-102 | Resource costs | 1 | Deferred | Voyage playtest (07/11/2026): B12, a failed spell still charged mana. There is no mana or other resource; when one exists, decide whether a failed action still pays |
-| D-103 | NPC self-interest in exchanges | 2 | Deferred | Voyage playtest (07/11/2026): D1, NPCs refused tips and bonuses. Whether Agent Responder and Agent Voice are told to keep their own interests in deals |
+| D-103 | NPC self-interest in exchanges | 2 | Dropped | Dropped by Ali (07/11/2026, easy open questions Q15). Voyage playtest (07/11/2026): D1, NPCs refused tips and bonuses. Whether Agent Responder and Agent Voice are told to keep their own interests in deals |
 | D-104 | Attitude toward the player | 2, 4 | Deferred | Voyage playtest (07/11/2026): D4, a relationship score per NPC with labels; D5, threatening an NPC raised it. A Belief tracks awareness only and stance comes from bands (Part 2, Opposition); threats short of an attack have no lasting effect |
 | D-105 | Quests | 2, 4 | Deferred | Voyage playtest (07/11/2026): D8, a duplicate quest for a job already taken; G2, quest text revealed secrets. Who creates quests and writes their text, a leak check on that text, and de-duplication. Quests are only {id, state, text} for now (Part 4 §9) |
 | D-106 | Narration against NPC lines | 2 | Deferred | Voyage playtest (07/11/2026): D7, the narration contradicted an NPC line. A check that the narration agrees with the NPC lines it quotes |
