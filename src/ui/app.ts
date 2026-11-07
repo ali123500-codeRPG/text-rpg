@@ -33,6 +33,8 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   const view = h('div', { style: 'min-width:0' });
   const panel = h('aside', { class: 'hs-panel', hidden: true, 'aria-label': 'Details' });
   setPanelHost(panel);
+  // The artifact host may wrap this page so its <style> lands in <body>: keep styles when replacing the body.
+  root.querySelectorAll('style').forEach((st) => document.head.append(st));
   root.replaceChildren(rail, view, panel);
 
   const play = playScreen(api, (p) => go(p));
