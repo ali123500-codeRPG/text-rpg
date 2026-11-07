@@ -14,7 +14,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Hidden Strike (Light weapons) · A1
 
-*Story:* A short blade finds its mark best when the victim never sees it coming. Strike someone who doesn't know you're there and the blow lands truer.
+*Story:* A short blade is deadliest when the victim never sees it coming. Your light-weapon attacks against someone who hasn't noticed you land one outcome better.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a melee attack.
@@ -24,7 +24,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Turn the Blade (Medium weapons) · A2
 
-*Story:* You meet their swing on your own blade and turn it aside, leaving them open. Your next cut comes in before they recover.
+*Story:* You catch their swing on your own blade and turn it aside. When you block a melee attack cleanly with a medium weapon (not a shield), the attacker is left open: your next melee attack on it, before the end of your next turn, lands one outcome better.
 
 - **Kind:** Always on
 - **Trigger:** The owner blocks a melee attack.
@@ -34,7 +34,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Shield Breaker (Heavy weapons) · A3
 
-*Story:* Your heavy weapon has no patience for shields. When a foe hides behind one, you hammer the shield itself to splinters.
+*Story:* Your heavy weapon has no patience for shields. When a foe blocks your heavy weapon with a shield, the shield takes double damage and soon splinters.
 
 - **Kind:** Always on
 - **Trigger:** The owner's melee attack is resolved.
@@ -44,7 +44,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Point Blank (Light ranged) · A4
 
-*Story:* Most archers panic when a foe closes in. You keep your nerve and shoot as calmly at arm's length as across a field.
+*Story:* Most archers panic when a foe closes in. You keep your nerve: with a light ranged weapon you take no penalty for shooting while a hostile is in your zone.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
@@ -54,7 +54,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Hunter's Mark (Medium ranged) · A5
 
-*Story:* Once your arrow has found a foe, you have its measure. Your next shot at it flies truer.
+*Story:* Once your arrow has found a foe, you have its measure. After a medium ranged hit, your next shot at that foe lands one outcome better, as long as it comes in the same fight.
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits (outcome grazed, blocked, full, heavy or crushing hit).
@@ -65,7 +65,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Leg Bolt (Heavy ranged) · A6
 
-*Story:* A bolt in the leg tears through muscle and bone. The leg suffers worse than the rest of them, and for a moment they can barely move.
+*Story:* Your crossbow bolts go for the legs. A bolt that wounds a leg hurts the leg one and a half times as much as usual, and the target is slowed: it can move only one zone link until the end of its next turn.
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits a part with the Move role (a leg) and deals damage.
@@ -76,7 +76,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Open-Hand Guard (Strike) · A7
 
-*Story:* You catch and turn blows on your hands and forearms. Even empty-handed, you can block.
+*Story:* You catch and turn blows on your hands and forearms. With empty hands and no weapon or shield, you can still block.
 
 - **Kind:** Always on
 - **Trigger:** The owner defends with block.
@@ -87,7 +87,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Hold (Grapple) · A8
 
-*Story:* When your grip lands cleanly, you lock on. Your foe can't get away from you or swing a two-handed weapon until it wrestles free.
+*Story:* When your grapple lands with a Great Success or better, you lock on. The target is held: it can't leave your zone or use a two-handed weapon until it breaks free, you go down, or you leave the zone.
 
 - **Kind:** Always on
 - **Trigger:** The owner's grapple attack is resolved.
@@ -99,7 +99,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Dirt in the Eyes (Improvisation) · A9
 
-*Story:* A fistful of dirt, a splash of ale, whatever is close. Once in a fight you can throw it in a foe's face, and if it lands, the foe is half-blind for a moment.
+*Story:* A fistful of dirt, a splash of ale, whatever is close. Once per fight, with a free hand, you throw it in the face of a foe in your zone. It tries to dodge; if it fails, its next roll that needs sight is two outcomes worse.
 
 - **Kind:** Move, once per engagement
 - **Trigger:** The owner uses the move on a foe in the owner's zone.
@@ -111,7 +111,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Make Them Stumble (Dodge) · A10
 
-*Story:* Slip a blow cleanly and the attacker lurches past you, off balance. Its next defense is clumsy.
+*Story:* Slip a melee blow cleanly and the attacker lurches past you, off balance. Its next defense, before the end of its next turn, is one outcome worse.
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges a melee attack.
@@ -121,7 +121,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Cover Ally (Block) · A11
 
-*Story:* You step in front of a friend and take the blow on your own guard.
+*Story:* You step in front of a friend. While you stand ready to block, you can block an attack aimed at an ally in your zone, using your own block. It counts as one of your defenses that turn.
 
 - **Kind:** Always on
 - **Trigger:** An attack targets an actor friendly to the owner in the owner's zone.
@@ -132,7 +132,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Iron Frame (Endurance) · A12
 
-*Story:* A bruised arm or a twisted ankle doesn't slow you. Only a truly ruined limb holds you back.
+*Story:* Bruises and sprains don't slow you. A Damaged body part gives you no penalty; only Crippled or Destroyed parts still hold you back.
 
 - **Kind:** Always on
 - **Trigger:** Any roll by the owner.
@@ -142,7 +142,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Read Wounds (Sight) · A13
 
-*Story:* You notice a limp, a favoured arm, a bleeding hand. You see which of a foe's limbs are hurt, though not how close it is to falling.
+*Story:* You notice a limp, a favoured arm, a bleeding hand. You can see which of a foe's body parts are Damaged, though not how close it is to falling.
 
 - **Kind:** Always on
 - **Trigger:** The owner perceives a foe by sight.
@@ -152,7 +152,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Keen Ear (Hearing) · A14
 
-*Story:* You hear footsteps and voices from farther away than most.
+*Story:* You hear footsteps and voices from farther away than most. Your hearing reaches one zone link further.
 
 - **Kind:** Always on
 - **Trigger:** A perception check for the owner by sound.
@@ -161,7 +161,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Quick Word (Persuasion) · A15
 
-*Story:* In the heat of a fight, you can call out a short line without losing a moment.
+*Story:* In the heat of a fight, a short line costs you nothing. Once a turn, a one-sentence remark is spoken without using up your action.
 
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner both speaks and acts.
@@ -171,7 +171,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Threaten for Answers (Intimidation) · A16
 
-*Story:* When someone won't help you willingly, fear works as well as charm. Your threats pry loose what they know.
+*Story:* When someone won't help you willingly, fear works as well as charm. Asking an unfriendly or hostile person for information, your intimidation counts at its full value instead of half.
 
 - **Kind:** Always on
 - **Trigger:** The owner tries to get information from an NPC.
@@ -181,7 +181,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Haggler (Barter) · A17
 
-*Story:* Merchants sigh when they see you coming. You buy a little cheaper and sell a little dearer.
+*Story:* Merchants sigh when they see you coming. You buy for 10% less and sell for 10% more.
 
 - **Kind:** Always on
 - **Trigger:** The owner buys or sells.
@@ -193,7 +193,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Precise (Light weapons) · B1
 
-*Story:* With a light blade you pick your spot, and a small target is less trouble to hit.
+*Story:* With a light blade you pick your spot. Aiming at a small body part costs you only half the usual penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an aimed melee attack.
@@ -203,7 +203,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Disarming Cut (Medium weapons) · B2
 
-*Story:* A cut to the arm makes the hand open, and whatever it held falls to the ground.
+*Story:* A cut to the arm makes the hand open. When your medium weapon wounds an arm, the target drops whatever that hand holds.
 
 - **Kind:** Always on
 - **Trigger:** The owner's melee attack hits a part with the Grip role (an arm) and deals damage.
@@ -214,7 +214,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Cleave (Heavy weapons) · B3
 
-*Story:* When your swing fells a foe, it carries on into the next one.
+*Story:* When your heavy swing fells a foe, it carries on. Once a turn, you get a free attack at another foe in reach in your zone.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy melee attack downs its target.
@@ -224,7 +224,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Shoot and Move (Light ranged) · B4
 
-*Story:* You loose an arrow and change position in the same breath.
+*Story:* You loose an arrow and change position in the same breath. On a turn you shoot a light ranged weapon, you can also move one zone link.
 
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner's order is a light ranged attack.
@@ -234,7 +234,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Pinning Shot (Medium ranged) · B5
 
-*Story:* An arrow through the leg keeps a foe where it stands for a while.
+*Story:* An arrow through the leg keeps a foe where it stands. When your medium ranged shot wounds a leg, the target can't leave its zone until the end of its next turn.
 
 - **Kind:** Always on
 - **Trigger:** The owner's medium ranged attack hits a part with the Move role and deals damage.
@@ -244,7 +244,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Human Shield (Grapple) · B6
 
-*Story:* While you hold someone, you turn them into the path of incoming arrows.
+*Story:* While you hold someone, you turn them into the path of incoming arrows. A ranged attack at you that doesn't beat your defense hits the person you hold instead.
 
 - **Kind:** Always on
 - **Trigger:** A ranged attack targets the owner.
@@ -255,7 +255,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Anything Goes (Improvisation) · B7
 
-*Story:* A chair leg or a bottle serves you as well as a proper weapon.
+*Story:* A chair leg or a bottle serves you as well as a proper weapon. Improvised weapons lose their hit penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner attacks with an improvised weapon.
@@ -264,7 +264,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Untouchable (Dodge) · B8
 
-*Story:* Surrounded, you slip every blow as if you faced only one foe.
+*Story:* Surrounded, you slip blows as if you faced only one foe. Your dodge never takes the outnumbered penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges.
@@ -273,7 +273,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Shield Wall (Block) · B9
 
-*Story:* Behind your shield, being outnumbered doesn't weaken your guard.
+*Story:* Behind your shield, numbers don't matter. Your shield blocks never take the outnumbered penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner blocks.
@@ -284,7 +284,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Refuse to Fall (Endurance) · B10
 
-*Story:* Once a fight, when a blow should drop you, you stay on your feet, barely.
+*Story:* Once per fight, when a blow should drop you, you stay on your feet at the last health level before going down, unless the blow destroyed your head or neck.
 
 - **Kind:** Always on, once per engagement
 - **Trigger:** Damage would down the owner.
@@ -295,7 +295,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Calm Words (Persuasion) · B11
 
-*Story:* Talk well enough and a foe who wanted you dead lowers its weapon and only watches you warily.
+*Story:* Talk well enough and a foe who wanted you dead lowers its weapon. Winning a persuasion contest by two outcomes or more against someone hostile makes it only wary of you: it stops attacking on sight.
 
 - **Kind:** Always on
 - **Trigger:** The owner wins a persuasion contest against an NPC hostile to the owner.
@@ -305,7 +305,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Plead (Persuasion) · B12
 
-*Story:* Beaten and close to falling, you beg for mercy, and you may be spared.
+*Story:* Beaten and about to fall, you beg for mercy. At the last health level before going down, you can plead with a hostile foe; win a persuasion contest and it stops attacking you for the rest of the fight.
 
 - **Kind:** Move
 - **Trigger:** The owner pleads for mercy with a foe.
@@ -316,7 +316,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Menace (Intimidation) · B13
 
-*Story:* When you cut a foe down, those who see it lose heart.
+*Story:* When you cut a foe down, those who see it lose heart. Every other foe that sees it makes a morale check at once.
 
 - **Kind:** Always on
 - **Trigger:** The owner's attack downs a foe.
@@ -328,7 +328,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Never Surprised (Hearing) · C1
 
-*Story:* If you could hear it coming, it can't catch you off guard.
+*Story:* If you could hear it coming, it can't catch you off guard. An attacker within your hearing range never counts as unseen: you lose no initiative or defense for being unaware.
 
 - **Kind:** Always on
 - **Trigger:** An attack on the owner while the owner is unaware of the attacker.
@@ -338,7 +338,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar shakes the nerve of every foe close by.
+*Story:* Your roar shakes the nerve of every foe close by. Once per fight, every hostile in your zone that hears it makes a morale check.
 
 - **Kind:** Move
 - **Trigger:** The owner uses the move.
@@ -349,7 +349,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Buy Them Off (Barter) · C3
 
-*Story:* In the middle of a fight you offer coin. Win the haggle and the foe takes it and stands down.
+*Story:* In the middle of a fight you offer coin. Win a barter contest and the foe takes the coin and stops attacking you for the rest of the fight.
 
 - **Kind:** Move
 - **Trigger:** The owner offers coin to a foe in a fight.
@@ -363,7 +363,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Held Shot (Medium ranged) · D8
 
-*Story:* You hold your bow drawn and wait. The first foe to step close takes an arrow before it can act.
+*Story:* You hold your bow drawn and wait. Instead of acting, you ready a medium ranged weapon: the first hostile to enter your zone before the end of your next turn takes a shot before it can act.
 
 - **Kind:** Move
 - **Trigger:** The owner readies a medium ranged weapon instead of acting.
@@ -373,7 +373,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Crushing Blow (Heavy weapons) · D1
 
-*Story:* Your heavy blows drive through a block harder than anyone else's.
+*Story:* Your heavy blows drive through a block harder than anyone else's. Against a block, your heavy weapon pushes the outcome two steps your way instead of one.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy melee attack is blocked.
@@ -382,7 +382,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Punch Through (Heavy ranged) · D2
 
-*Story:* Your bolt hits a shield so hard that the arm behind it is hurt too.
+*Story:* Your bolt hits a shield so hard that the arm behind it is hurt too. The shield arm takes half the damage the shield took.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy ranged attack is blocked with a shield.
@@ -391,7 +391,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Staggering Bolt (Heavy ranged) · D3
 
-*Story:* A solid hit from your bolt knocks a foe back, so it acts last.
+*Story:* A solid hit from your bolt knocks a foe back. On a full hit or better, the target acts last on its next turn.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy ranged attack is a full hit or better.
@@ -400,7 +400,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Flurry (Strike) · D4
 
-*Story:* With both hands free, you throw two quick punches a turn, each a little less sure.
+*Story:* With both hands free, you throw two quick punches a turn, each one outcome less sure.
 
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner's order is an unarmed strike.
@@ -420,7 +420,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Tough It Out (Endurance) · D6
 
-*Story:* Pain slows you later than it slows others.
+*Story:* Pain slows you later than it slows others. Your wound penalty is taken as if you were one health level less hurt.
 
 - **Kind:** Always on
 - **Trigger:** Any roll by the owner.
@@ -429,7 +429,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Night Eyes (Sight) · D7
 
-*Story:* Darkness doesn't hinder your eyes. You see as well at night as by day.
+*Story:* Darkness doesn't hinder your eyes. Dim light and darkness give you no penalty to anything that needs sight.
 
 - **Kind:** Always on
 - **Trigger:** A roll by the owner that needs sight.
