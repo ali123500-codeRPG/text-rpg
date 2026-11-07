@@ -87,7 +87,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
 function writeup(d: PerkDef) {
   const r = d.rules;
   if (ui.text === 'rules' && r) {
-    const rows: [string, string][] = [['Kind', r.kind], ['Trigger', r.trigger], ...(r.conditions.length ? [['Conditions', r.conditions.join(' ')] as [string, string]] : []), ['Effect', r.effect], ['Lasts', r.lasts]];
+    const rows: [string, string][] = [['Kind', r.kind], ['Trigger', r.trigger], ...(r.conditions.length ? [['Conditions', r.conditions.join(' ')] as [string, string]] : []), ['Effect', r.effect], ['Lasts', r.lasts], ...(r.cooldown ? [['Cooldown', r.cooldown] as [string, string]] : [])];
     return [h('dl', { class: 'pk-rules' }, rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]))];
   }
   const t = d.story ?? d.text;

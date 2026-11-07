@@ -28,6 +28,16 @@ describe('ruleset maths', () => {
     const c = ruleset.check({ actorId: 'player', skill: 'intimidation', modifiers: [{ source: 'x', value: 20 }] }, s, createRng(1));
     expect(c).toMatchObject({ skill: 'persuasion', target: 50, passed: true });
   });
+  it('grapple substitutes: other unarmed 0.4×, melee 0.2× (Ali, 07/11/2026)', () => {
+    const s = makeVillage();
+    const sk = s.player.core.skills;
+    for (const id of Object.keys(sk)) delete sk[id];
+    sk.melee_heavy = { raw: 100, state: 'normal' };
+    expect(effectiveSkill(s, s.player, 'unarmed_grapple')).toMatchObject({ skill: 'melee_heavy', value: 20 });
+    sk.unarmed_strike = { raw: 60, state: 'normal' };
+    expect(effectiveSkill(s, s.player, 'unarmed_grapple')).toMatchObject({ skill: 'unarmed_strike', value: 24 });
+    expect(effectiveSkill(s, s.player, 'unarmed_improvised')).toMatchObject({ skill: 'unarmed_strike', value: 30 }); // flat 0.5 elsewhere
+  });
   it('kit pieces share one +25', () => {
     const s = makeVillage();
     s.blueprints.push({ storyId: 'test', id: 'kit_belt', kind: 'item', data: {

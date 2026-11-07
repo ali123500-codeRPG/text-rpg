@@ -21,6 +21,7 @@ export function perksMarkdown(): string {
         `- **Kind:** ${r.kind}`, `- **Trigger:** ${r.trigger}`);
       if (r.conditions.length) out.push(`- **Conditions:** ${r.conditions.join(' ')}`);
       out.push(`- **Effect:** ${r.effect}`, `- **Lasts:** ${r.lasts}`);
+      if (r.cooldown) out.push(`- **Cooldown:** ${r.cooldown}`);
       if (r.needs) out.push(`- **Needs first:** ${r.needs}`);
       if (r.open) out.push(`- **Open:** ${r.open}`);
       out.push('');
