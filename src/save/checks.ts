@@ -165,7 +165,7 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
   const fix = (key: string, msg: string) => { r.repairs.push(`reference: ${key} ${msg}`); r.changed.add(key); };
   const keep = <T>(key: string, list: T[], ok: (x: T) => boolean, what: string): T[] => {
     const bad = list.filter((x) => !ok(x));
-    if (bad.length) fix(key, `dropped ${what} ${bad.join(', ')}`);
+    if (bad.length) fix(key, `dropped ${what} ${bad.map((x) => (typeof x === 'object' && x && 'itemId' in x ? (x as { itemId: string }).itemId : String(x))).join(', ')}`);
     return list.filter(ok);
   };
   for (const k of keys) {
@@ -174,6 +174,8 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       const p = page as Place;
       if (p.parentId !== null && !placeIds.has(p.parentId)) { fix(k, `dropped parent ${p.parentId}`); p.parentId = null; }
       p.headlines = keep(k, p.headlines, (f) => factIds.has(f), 'headlines');
+      // an item the library no longer has would make every zone view throw: drop it, as for inventories
+      for (const z of p.zones) z.groundItems = keep(k, z.groundItems ?? [], (it) => L.hasItem(it.itemId), `unknown ground items in ${z.id}`);
     } else if (k.startsWith('facts.')) {
       for (const f of (page as FactsPage).facts) f.promotedTo = keep(k, f.promotedTo, (p) => placeIds.has(p), `promotions of ${f.id}`);
     } else if (k.startsWith('actor.')) {
@@ -185,6 +187,9 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       if (a.mind) {
         for (const id of Object.keys(a.mind.knowledge)) if (id !== a.id && !actorIds.has(id)) { delete a.mind.knowledge[id]; fix(k, `dropped belief about ${id}`); }
         for (const id of Object.keys(a.mind.overrides ?? {})) if (!actorIds.has(id)) { delete a.mind.overrides![id]; fix(k, `dropped stance toward ${id}`); }
+        // a routine the library no longer has would make every view of this actor throw: drop it
+        if (a.mind.routines) a.mind.routines = keep(k, a.mind.routines, (id) => !!lib.routines[id], 'unknown routines');
+        if (a.mind.routine && !lib.routines[a.mind.routine.id]) { fix(k, `dropped current routine ${a.mind.routine.id}`); delete a.mind.routine; }
       }
       a.core.inventory = keep(k, a.core.inventory, (it) => L.hasItem(it.itemId), 'unknown items');
       if (a.core.templateId && !L.hasTemplate(a.core.templateId)) r.warnings.push(`${a.id} template ${a.core.templateId} unknown`);

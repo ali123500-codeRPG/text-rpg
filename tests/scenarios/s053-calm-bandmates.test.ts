@@ -19,7 +19,7 @@ it('53 Calm bandmates: one who heard follows the new routine next turn; one who 
     id: 'ev_1', turn: s.turn, actorId: 'patron_1', kind: 'speak', zone: 'tav_common', effects: [], noise: 1, visibility: 2,
     line: { text: "I'm off home.", volume: 'normal' }, perception: { patron_2: { level: 'full', cue: 'sight' }, player: { level: 'full', cue: 'sight' } },
   };
-  calmBandmatesSwitch(s, 'patron_1', 'leave_by_exit', exchange);
+  calmBandmatesSwitch(s, 'patron_1', 'leave_by_exit', (id) => !!exchange.perception[id]);
   s.turn += 1;
   expect(actor(s, 'patron_2').mind!.routine!.id).toBe('leave_by_exit');
   expect(routineOrder(buildActorView(s, 'patron_2'))).toMatchObject({ type: 'move', target: 'street_door', source: 'routine' });

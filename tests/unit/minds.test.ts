@@ -181,7 +181,7 @@ describe('install and switch', () => {
     s.actors.push(p2);
     switchRoutine(s, actor(s, 'patron_1'), 'leave_by_exit', 'agent');
     const e = ev(s, 'speak', 'patron_1', 'tav_common', ['patron_2', 'trader']);
-    expect(calmBandmatesSwitch(s, 'patron_1', 'leave_by_exit', e)).toEqual(['patron_2']);
+    expect(calmBandmatesSwitch(s, 'patron_1', 'leave_by_exit', (id) => !!e.perception[id])).toEqual(['patron_2']);
     expect(actor(s, 'trader').mind!.routine!.id).toBe('tend_bar');
     expect(s.log.map((l) => l.code)).toEqual(['routine_skip']);
   });

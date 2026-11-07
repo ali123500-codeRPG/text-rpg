@@ -117,6 +117,29 @@ describe('save and load', () => {
     expect((await loadStory(st, 'test', lib())).report).toEqual(['warning: player raw melee_medium 104 above 100']); // repair was saved
   });
 
+  it('drops ground items the library no longer has, so zone views cannot throw', async () => {
+    const s = makeVillage();
+    s.zones[0].groundItems.push({ id: 'gi1', itemId: 'retired_item' });
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    const { state, report } = await loadStory(st, 'test', lib());
+    expect(state.zones[0].groundItems.map((i) => i.id)).not.toContain('gi1');
+    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/unknown ground items/)]));
+  });
+
+  it('keeps NPC view history (recentEvents) through a save; drops unknown routines', async () => {
+    const s = makeVillage();
+    s.recentEvents = [{ id: 't0.1', turn: 0, actorId: 'player', kind: 'speak', zone: 'tav_common', effects: [], noise: 1, visibility: 2, perception: { patron_1: { level: 'full', cue: 'sound' } } } as never];
+    const g = actor(s, 'guard_1').mind!;
+    const real = [...g.routines!];
+    g.routines = [...real, 'retired_routine'];
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    const { state } = await loadStory(st, 'test', lib());
+    expect(state.recentEvents?.map((e) => e.id)).toEqual(['t0.1']);
+    expect(actor(state, 'guard_1').mind!.routines).toEqual(real);
+  });
+
   it('splits a busy place into several facts pages', async () => {
     const s = makeVillage();
     const text = 'x'.repeat(1000);

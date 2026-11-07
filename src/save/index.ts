@@ -49,7 +49,7 @@ async function guard<T>(fn: () => Promise<T>, committed = false): Promise<T> {
   } catch (e) {
     if (e instanceof SaveError || e instanceof LoadRefusedError) throw e;
     const code = (e as { code?: string })?.code ?? 'store_error';
-    const msg = code === 'quota_exceeded' ? 'The save is full: the last good save is kept. Nothing was dropped.' : String((e as Error)?.message ?? e);
+    const msg = code === 'quota_exceeded' ? 'The save is full: this turn was not saved, and the last good save is kept.' : String((e as Error)?.message ?? e);
     throw new SaveError(code, msg, committed);
   }
 }
