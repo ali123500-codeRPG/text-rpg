@@ -19,6 +19,7 @@ import { defaultStandingDefense, healthLevel } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
+import { isComm } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 
@@ -168,12 +169,7 @@ export function createGame(deps: GameDeps): Game {
     s.turn = p.turn;
     s.pending = p;
     s.mode = p.mode;
-    // keep what each actor last perceived for its views (spec: OppositionView holds the events it perceived)
-    const all = [...(s.recentEvents ?? []), ...s.events];
-    const keep = new Set<GameEvent>();
-    for (const a of [s.player, ...s.actors]) for (const e of all.filter((x) => x.perception[a.id]).slice(-CONFIG.RECENT_EVENTS)) keep.add(e);
-    s.recentEvents = all.filter((e) => keep.has(e));
-    s.events = [];
+    s.events = []; // this turn's events already went into recentEvents before the save (finishTurn)
     s.agentLog = [];
     s.log = [];
     turnLog = [];
@@ -257,6 +253,8 @@ export function createGame(deps: GameDeps): Game {
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
   async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
+    // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
+    s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
     s.agentLog = [...turnLog];
     const record: TurnRecord = {
       storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
@@ -534,6 +532,24 @@ function seenName(pv: ReturnType<typeof views.buildPlayerView>, id: string): str
   return twin && zone ? `${base} at ${zone}` : base;
 }
 const orList = (xs: string[]) => (xs.length < 3 ? xs.join(' or ') : `${xs.slice(0, -1).join(', ')} or ${xs.at(-1)}`);
+
+/**
+ * Events kept for NPC views (spec: OppositionView holds the events it perceived, incl. the last few exchanges heard):
+ * per actor, its last RECENT_EVENTS perceived non-bark events, its last RECENT_EVENTS communication events, and the
+ * last hit on it. Bounded by actors × 2 × RECENT_EVENTS.
+ */
+export function pruneRecent(s: GameState, all: GameEvent[]): GameEvent[] {
+  const keep = new Set<GameEvent>();
+  const n = CONFIG.RECENT_EVENTS;
+  for (const a of [s.player, ...s.actors]) {
+    const seen = all.filter((e) => e.perception[a.id]);
+    for (const e of seen.filter((e) => !e.bark).slice(-n)) keep.add(e);
+    for (const e of seen.filter(isComm).slice(-n)) keep.add(e);
+    const hit = [...seen].reverse().find((e) => e.kind === 'attack' && e.target === a.id);
+    if (hit) keep.add(hit);
+  }
+  return all.filter((e) => keep.has(e));
+}
 
 function knownNames(s: GameState): string[] {
   return [s.player, ...s.actors].flatMap((a) => [a.names.current, ...a.names.past.map((p) => p.name)])
