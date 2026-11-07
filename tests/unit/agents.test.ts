@@ -164,6 +164,21 @@ describe('Parser legality', () => {
     expect(r.intent!.move).toBeNull();
     expect(r.run.log.errors).toEqual([]);
   });
+  it('hide and sneak say that stealth isn\'t in the game yet (runs 11–13)', async () => {
+    const { claude, ctx } = setup();
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }))
+      .push('parser', intentOf({ action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }));
+    const r = await callParser('I creep up the stairs', playerView(), ctx);
+    expect(r.clarify).toMatch(/aren't in the game yet/);
+  });
+  it('a sneak with a move just moves, openly', async () => {
+    const { claude, ctx } = setup();
+    claude.push('parser', intentOf({ move: { toZone: 'tav_counter' }, action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }));
+    const r = await callParser('I creep over to the counter', playerView(), ctx);
+    expect(r.clarify).toBeNull();
+    expect(r.intent!.move).toEqual({ toZone: 'tav_counter' });
+    expect(r.intent!.action).toBeNull();
+  });
   it('the Parser\'s own clarify is passed on', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ action: null, clarify: 'Which mug?' }));
