@@ -47,7 +47,8 @@ export type Zone = {
   look: string; // public text
   links: ZoneLink[];
   cover: Cover;
-  light: Light;
+  light: Light; // the zone's own light (lamps, hearths); outdoors the sky can brighten it (src/time.ts zoneLight)
+  outdoor?: true; // T3a: under the sky
   groundItems: import('./items').ItemInstance[];
 };
 

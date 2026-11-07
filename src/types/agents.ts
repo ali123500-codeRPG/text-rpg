@@ -1,6 +1,7 @@
 // Agent I/O (Part 2: Parser, Planner, Responder, Voice, Narrator, Weaver) and the Claude-call boundary.
 import type { Cover, Grade, Light, Stance, Tactics } from './core';
 import type { GearOp } from './items';
+import type { TimeOfDay } from '../scales';
 import type { Plan, Secret, Trigger } from './hidden';
 
 export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator' | 'weaver';
@@ -8,7 +9,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
   | 'attack' | 'hide' | 'sneak' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
-  | 'use_item' | 'equip' | 'give' | 'observe' | 'interact' | 'other' | 'rest';
+  | 'use_item' | 'equip' | 'give' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
@@ -79,10 +80,12 @@ export type NarratorOutput = { text: string; narrated: string[] };
 // ---- Agent Weaver: the stage plan ----
 export type StagePlan = {
   event: { summary: string; challenge: Grade; gain: Grade };
+  /** T8: when the story opens; after that, only the current time of day */
+  timeOfDay?: TimeOfDay;
   places: { key: string; name: string; kind: string; parent: string }[];
   zones: {
     key: string; place: string; name: string; look: string;
-    cover: Cover; light: Light;
+    cover: Cover; light: Light; outdoor?: boolean;
     links: { to: string; label: string; sight: boolean }[];
   }[];
   frontiers: { key: string; label: string }[];

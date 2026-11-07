@@ -3,7 +3,8 @@ import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
 import { GRADES, ORDER_TYPES } from '../types';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, STANCES, TACTICS, TIERS } from '../scales';
+import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY } from '../scales';
+import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { creatureType, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
@@ -98,6 +99,11 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 
   const P = CONFIG.PLAN_CAPS;
   const cap = CONFIG.TEXT_CAP;
+  // T8: the Weaver picks the time only when the story's clock is not set yet; after that it must match the clock
+  const current = timeOfDay(now(state));
+  if (plan.timeOfDay !== undefined && !TIME_OF_DAY.has(plan.timeOfDay)) err('bad_time', `timeOfDay is ${TIME_OF_DAY.list()}`);
+  else if (plan.timeOfDay !== undefined && clockSet(state) && plan.timeOfDay !== current) err('bad_time', `timeOfDay: it is ${TIME_OF_DAY.name(current)} now; leave timeOfDay out`);
+  const tod = !clockSet(state) && TIME_OF_DAY.has(plan.timeOfDay) ? plan.timeOfDay : current;
   const arr = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
   const places = arr(plan.places), zones = arr(plan.zones), frontiers = arr(plan.frontiers), bands = arr(plan.bands);
   const cast = arr(plan.cast);
@@ -258,6 +264,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     const set = routineSet(c.routineSetId);
     const slots = c.slots ?? {};
     if (!set) { rerr('unresolved_set', `cast ${k}: routine set ${c.routineSetId} unknown`); continue; }
+    // T3b: the set's time tags must fit the time of day (sleepers at night)
+    const tags: string[] = set.tags.time?.length ? set.tags.time : ['any'];
+    if (!tags.includes('any') && !tags.some((t) => CONFIG.TIME_TAGS[tod]?.includes(t))) rerr('wrong_time', `cast ${k}: routine set ${c.routineSetId} is for ${tags.join('/')}; it is ${TIME_OF_DAY.name(tod)}`);
     if (c.band === playerBand) {
       // GAP: a player-band entry with the wrong set or bound slots is read as a routine error (it degrades to idle_here).
       if (c.routineSetId !== 'companion') rerr('companion_set', `cast ${k}: a player-band entry uses the companion set`);

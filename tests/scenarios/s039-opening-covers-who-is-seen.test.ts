@@ -6,6 +6,7 @@ import { ScriptedClaude } from '../harness';
 
 const opening: NarrationView = {
   style: { tone: 'grounded low fantasy', length: '2 to 4 short paragraphs' },
+  time: { day: 1, timeOfDay: 'Day' },
   events: [
     { id: 'ev_arrive', kind: 'arrival', level: 'full', cue: 'sight', actor: 'player', where: 'common room' },
     { id: 'ev_p1', kind: 'presence', level: 'full', cue: 'sight', actor: 'a tavern patron', activityLook: 'nursing a mug' },

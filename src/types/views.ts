@@ -64,8 +64,12 @@ export type PlayerView = {
 };
 
 // ---------- ActorView: code minds ----------
+/** T4/T5: the day number and time of day; never minutes */
+export type TimeView = { day: number; timeOfDay: string };
+
 export type ActorView = {
   turn: number;
+  time: TimeView;
   self: {
     id: ActorId; label: string; name: string; kind: 'npc';
     zone: string; placeId: string; bandId: string;
@@ -136,6 +140,7 @@ export type NarrationEvent = {
 
 export type NarrationView = {
   style: { tone: string; length: string };
+  time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
   player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string };
@@ -150,6 +155,8 @@ export type NarrationView = {
 // ---------- WeaverView: Agent Weaver ----------
 export type WeaverView = {
   tier: TierName;
+  /** null at story start: the Weaver picks the opening time of day (T8) */
+  time: TimeView | null;
   stakes: string;
   target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string };
   headlines: string[];

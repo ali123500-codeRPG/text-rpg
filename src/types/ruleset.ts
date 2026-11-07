@@ -111,10 +111,10 @@ export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine'
 
 /** every order type the engine knows (trigger orders are checked against it) */
 export const ORDER_TYPES = ['attack', 'move', 'search', 'hide', 'sneak', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
-  'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'rest', 'idle', 'other'] as const;
+  'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'other'] as const;
 export type Order = {
   actorId: string;
-  type: string; // attack | move | search | hide | sneak | hold | call_help | alarm | flee | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | rest | idle | other
+  type: string; // attack | move | search | hide | sneak | hold | call_help | alarm | flee | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | rest | wait | sleep | idle | other
   target: string | null;
   skill: string | null;
   intent: string;
