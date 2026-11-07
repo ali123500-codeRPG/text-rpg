@@ -25,7 +25,11 @@ export type Actor = {
   mind?: Mind;
   journal?: Journal;
   engagement?: Engagement; // E1: the actor's current engagement; absent when it is in none
+  perkMarks?: PerkMark[]; // short-lived perk effects this actor carries (src/engine/perkMarks.ts)
 };
+
+/** a perk's lasting effect: target is the actor it names (an opening on that foe); until is the last turn it holds */
+export type PerkMark = { perk: string; target?: string; until?: number };
 
 /** E1 (Ali, 07/11/2026): one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
@@ -46,6 +50,7 @@ export type Core = {
   condition: SavedCondition;
   inventory: ItemInstance[];
   standingDefense: 'dodge' | 'block';
+  perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
 };
 
 export type ClassEntry = {
