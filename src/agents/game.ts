@@ -64,6 +64,7 @@ export function createGame(deps: GameDeps): Game {
   const owner = `window_${clock.now().toString(36)}`;
   let state: GameState | null = null;
   let lines: LogLine[] = [];
+  let savedLines = 0; // Q18: lines[0..savedLines) are in the story's saved history
   let notices: Notice[] = [];
   let busy = false;
   let stopped = false;
@@ -334,6 +335,18 @@ export function createGame(deps: GameDeps): Game {
       ...lineExtras(s, events, nv, narr.output.text), ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
+    await storeHistory(s.storyId);
+  }
+
+  /** Q18: save the story column after each turn; a failure keeps play going and only costs text. */
+  async function storeHistory(storyId: string): Promise<void> {
+    const upTo = lines.length;
+    try {
+      await save.saveHistory(store, storyId, lines, savedLines);
+      savedLines = upTo;
+    } catch (e) {
+      console.warn('story text not saved', e);
+    }
   }
 
   // ---------------- commands (code only, no Claude call, no time passes) ----------------
@@ -429,6 +442,7 @@ export function createGame(deps: GameDeps): Game {
     state = newState(storyId, seed, buildPlayer(storyId, build), new Date(now).toISOString());
     state.player.core.standingDefense = defaultStandingDefense(state, state.player); // same rule as the creation preview
     lines = [];
+    savedLines = 0;
     notices = [];
     turnLog = [];
     busy = true;
@@ -459,7 +473,8 @@ export function createGame(deps: GameDeps): Game {
       notice({ kind: 'load_refused', text: `The story could not be loaded: ${(e as Error).message}` });
       return false;
     }
-    lines = [];
+    lines = await save.loadHistory(store, storyId).catch(() => []);
+    savedLines = lines.length;
     turnLog = [];
     advance();
     lastDisplayAt = clock.now();
@@ -490,6 +505,7 @@ export function createGame(deps: GameDeps): Game {
       if (state) await store.releaseLease(`stories/${state.storyId}/control/lock`, owner).catch(() => {});
       state = null;
       lines = [];
+      savedLines = 0;
       notices = notices.filter((n) => n.kind === 'stop_play');
       turnLog = [];
       lastLog = [];

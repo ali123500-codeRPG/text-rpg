@@ -1,5 +1,5 @@
 // W1 — Save, load, undo, backups (Part 4 §6–8, §10–11).
-import type { Bookmark, EnginePage, GameState, Head, PageRef, StoryMeta, TurnRecord } from '../types';
+import type { Bookmark, EnginePage, GameState, Head, LogLine, PageRef, StoryMeta, TurnRecord } from '../types';
 import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
@@ -40,6 +40,7 @@ export const lockPath = (id: string) => `${story(id)}/control/lock`;
 const pagePath = (id: string, key: string, v: number) => `${story(id)}/pages/${key}@${v}`;
 const turnPath = (id: string, t: number) => `${story(id)}/turns/${t}`;
 const backupPath = (id: string, t: number) => `${story(id)}/backups/${t}`;
+const historyPath = (id: string, n: number) => `${story(id)}/history/${n}`;
 const tail = (p: string) => p.slice(p.lastIndexOf('/') + 1);
 const bookmarkOf = (h: Head): Bookmark => ({ turn: h.turn, pages: h.pages });
 
@@ -218,6 +219,32 @@ export async function undoTurn(store: Store, storyId: string): Promise<void> {
 
 export async function readTurnRecord(store: Store, storyId: string, turn: number): Promise<TurnRecord | null> {
   return guard(() => store.get<TurnRecord>(turnPath(storyId, turn)));
+}
+
+// ---------- story text (Q18) ----------
+type HistoryDoc = { storyId: string; chunk: number; lines: LogLine[] };
+export const historyChunk = (turn: number) => Math.floor(Math.max(0, turn) / CONFIG.HISTORY_CHUNK_TURNS);
+
+/**
+ * Save the story column: every chunk that the new lines touch is rewritten whole from `lines` (chunk n holds turns
+ * n×HISTORY_CHUNK_TURNS onward). Not part of the turn commit: a failure loses only text, never game state.
+ * A chunk over 256 KiB drops its lines' code-built extras (mechanics, speech, changes), keeping the text.
+ */
+export async function saveHistory(store: Store, storyId: string, lines: LogLine[], fromIndex: number): Promise<void> {
+  const chunks = [...new Set(lines.slice(fromIndex).map((l) => historyChunk(l.turn)))];
+  for (const n of chunks) {
+    let doc: HistoryDoc = { storyId, chunk: n, lines: lines.filter((l) => historyChunk(l.turn) === n) };
+    if (byteLength(doc) > PAGE_LIMIT) doc = { ...doc, lines: doc.lines.map(({ turn, kind, text }) => ({ turn, kind, text })) };
+    if (byteLength(doc) > PAGE_LIMIT) throw new SaveError('page_too_large', `story text for chunk ${n} is over 256 KiB`, true);
+    await guard(() => store.set(historyPath(storyId, n), doc), true);
+  }
+}
+
+/** The whole saved story column, oldest first. */
+export async function loadHistory(store: Store, storyId: string): Promise<LogLine[]> {
+  const paths = (await guard(() => store.list(`${story(storyId)}/history`))).sort((a, b) => +tail(a) - +tail(b));
+  const docs = await Promise.all(paths.map((p) => guard(() => store.get<HistoryDoc>(p))));
+  return docs.flatMap((d) => d?.lines ?? []);
 }
 
 // ---------- turn lock ----------
