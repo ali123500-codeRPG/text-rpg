@@ -1,5 +1,6 @@
 // Agent side effects, applied when the turn resolves. Every model output is a request; the engine decides.
-import type { Actor, GameState, Stance, Trigger } from '../types';
+import type { Actor, GameState, Trigger } from '../types';
+import { STANCES } from '../scales';
 import { CONFIG } from '../config';
 import { calmBandmatesSwitch, switchRoutine } from '../minds';
 import { actorById, isActive, isEngaged, stance } from './relations';
@@ -7,7 +8,6 @@ import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
 import type { TurnInput } from './types';
 
-const STANCES: Stance[] = ['opposed', 'neutral', 'friendly'];
 const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
 
 export function logCode(state: GameState, code: string, detail?: Record<string, unknown>): void {
@@ -48,8 +48,8 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
       const other = actorById(state, st.toward);
       if (!other || !ctx.heardSpeech(a.id, st.toward)) logCode(state, 'invalid_stance', { actorId: a.id, toward: st.toward });
       else {
-        const i = STANCES.indexOf(stance(state, a, other)) + (st.step === 'friendlier' ? 1 : -1);
-        a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [other.id]: STANCES[Math.max(0, Math.min(2, i))] };
+        const i = STANCES.pos(stance(state, a, other)) + (st.step === 'friendlier' ? 1 : -1);
+        a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [other.id]: STANCES.at(i) };
       }
     }
     let routineId: string | null = null;

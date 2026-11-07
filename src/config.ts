@@ -62,7 +62,7 @@ const DEFAULTS = {
   BACKUP_EVERY: 10, // Q2
   BACKUPS_KEPT: 3, // Q2
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 4, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs
+  SCHEMA_VERSION: 5, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
   ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,

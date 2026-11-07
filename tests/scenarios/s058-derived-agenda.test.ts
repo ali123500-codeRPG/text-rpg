@@ -8,7 +8,7 @@ import { act, play, plannerOut } from './w4-kit';
 it('58 Derived agenda', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   expect(hasAgenda(s, 'trader')).toBe(false); // Voice
-  actor(s, 'trader').mind!.overrides = { player: 'opposed' };
+  actor(s, 'trader').mind!.overrides = { player: 'hostile' };
   actor(s, 'trader').mind!.knowledge.player = { status: 'aware', lastKnownZone: 'tav_counter', lastSeenTurn: 1, source: 'seen', revealed: [] };
   play(s, { agentOutputs: [plannerOut('trader', act('hold'), { planUpdate: { goal: 'get rid of the swordsman', steps: ['wait'], triggers: [], memoryNote: 'he asked about the cellar', routine: null } })] });
   expect(s.hidden.plans.trader).toMatchObject({ goal: 'get rid of the swordsman' });

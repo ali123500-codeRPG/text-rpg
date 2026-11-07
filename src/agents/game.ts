@@ -286,7 +286,7 @@ export function createGame(deps: GameDeps): Game {
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
     s.agentLog = [...turnLog];
     const record: TurnRecord = {
-      storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
+      storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, schemaVersion: CONFIG.SCHEMA_VERSION, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
       agentLog: s.agentLog, events, factsAdded: [], log: s.log, aimed: rec.aimed,
       ...(s.scratch?.situation ? { situation: s.scratch.situation as TurnRecord['situation'] } : {}),
     };

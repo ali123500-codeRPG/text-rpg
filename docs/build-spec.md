@@ -113,7 +113,7 @@ SKILL_WEIGHT = 0.5, ROLL_NEEDED = 63.5 (placeholders); d100 runs 1–100 (00 = 1
 
 Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to −1 Near Miss; 0 to 24 Success; 25 to 74 Great Success; 75+ Critical Success. Margins may end in .5; compare exact values.
 
-**Scale keys.** Every ordered scale (tiers, band tactics, zone light and cover, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load).
+**Scale keys.** Every ordered scale (tiers, band tactics, zone light and cover, stance, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load). Schema v5 split hostile from opposed: older saves' opposed becomes hostile, so they play as before, and a logged more\_opposed step becomes colder.
 
 Modifier types (each type diminishes within itself; values per type are deferred):
 
@@ -306,7 +306,7 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   id: string; name: string; goals: string; temperament: string;
   tactics: 'simple' | 'competent' | 'cunning';   // TACTICS keys
   lethal: boolean;   // set when the band is made, default true; an existing band keeps it (Part 2, Agent Weaver)
-  relations: Record<string, 'opposed' | 'neutral' | 'friendly'>;  // default stance toward other bands
+  relations: Record<string, 'hostile' | 'opposed' | 'neutral' | 'friendly'>;  // default stance toward other bands
 };
 
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
@@ -432,7 +432,7 @@ Each actor knows only what it perceived itself, plus what reached it through a c
 
 **Belief decay.** Code lowers a belief one step when lastSeenTurn is older than a config value: tracking → aware → suspicious → unaware. The step lengths are engine config (DECAY\_TURNS), not ruleset numbers. Without decay, actors never calm down and the game never leaves Tactical.
 
-**Opposition.** opposed(a, b) = a's override for b if it has one, else the relation of a's band to b's band. Code sets a's override to opposed toward an attacker when a perceives an attack on itself or a bandmate. The Planner, Responder or Voice may request a one-step change of its override toward an actor whose speech it perceived since its last call; the engine applies it.
+**Stance.** stance(a, b) = a's override for b if it has one, else the relation of a's band to b's band; same band is friendly. The stance scale, coldest first: hostile, opposed, neutral, friendly (Ali, 07/11/2026). **Hostile** attacks on sight: it engages, attacks, chases, blocks rest and counts for the crowded-zone modifier. **Opposed** is at odds but never strikes first: an opposed actor is wary, so its onAlert fires when it notices the other, but it does not engage, attack or chase. Code sets a's override to hostile toward an attacker when a perceives an attack on itself or a bandmate. The Planner, Responder or Voice may request a one-step change of its override toward an actor whose speech it perceived since its last call; the engine applies it (friendlier or colder, one step on the stance scale).
 
 ### Who thinks for each actor
 
@@ -443,10 +443,10 @@ Every actor gets exactly one order per turn, from the first controller in this o
 | Inactive (incapacitated) | Nothing | No order, trigger, routine or reply; a revived actor is active again next turn |
 | A trigger it owns fired | The trigger's order | Overrides everything below; when several fire, the first in plan order wins |
 | Addressed spokesperson | Its dialogue call: Responder if it has an agenda, else Voice | Its Planner or combat-list order is discarded this turn |
-| Significant and engaged | One Planner call | Engaged = active, and believes (suspicious or higher) in an active actor it is opposed to |
+| Significant and engaged | One Planner call | Engaged = active, and believes (suspicious or higher) in an active actor it is hostile to |
 | Minor and engaged | Its type's combat list (Fallback behavior) | \[Proposed\] |
 | Over the call cap | Its type's combat list | \[Proposed\] |
-| First leaving unaware of an opposed actor, or first perceiving an attack or alarm | Its routine's onAlert order, once | Then the alert variant of the routine it was following, until DECAY\_TURNS pass with no attack or alarm perceived; then it returns to the routine saved in returnTo. |
+| First leaving unaware of a wary actor (opposed or hostile toward it), or first perceiving an attack or alarm | Its routine's onAlert order, once | Then the alert variant of the routine it was following, until DECAY\_TURNS pass with no attack or alarm perceived; then it returns to the routine saved in returnTo. |
 | Not engaged | Its routine's desired state | Even during a Tactical turn; companions default to follow |
 | No valid order | Engaged: its type's combat list. Not engaged: its routine's desired state | Failed or late calls, dropped orders |
 
@@ -463,7 +463,7 @@ Every code mind, combat lists included, reads only its actor's ActorView, never 
 | Minor actor (control: code) | Routine | onAlert once, then its alert routine | Combat list, at resolution (Fallback behavior) | Responder or Voice, as above; its combat-list order is discarded | Inert |
 | Companion (player-band member) | Follow or wait routine | onAlert once, then its alert routine | Planner or combat list, by significance | Dialogue call, as above: you command a companion by talking to it | Inert |
 | Guarded NPC (agenda, not engaged) | Routine plus its own triggers | onAlert once, then its alert routine | As significant or minor | Responder | Inert |
-| Ordinary NPC or bystander | Routine | onAlert once, then its alert routine | Only once opposed (attacked, or persuaded into it): Planner or combat list | Voice | Inert |
+| Ordinary NPC or bystander | Routine | onAlert once, then its alert routine | Only once hostile (attacked, or persuaded into it): Planner or combat list | Voice | Inert |
 
 In both tables, "its alert routine" means the alert variant of the routine the actor was following (Routine.alert). An actor whose routine has none keeps that routine.
 
@@ -477,10 +477,10 @@ An engaged actor with no agent order this turn gets one order from its type's co
 
 Code checks the combat list top to bottom; the first rule that matches gives the order:
 
-1. **Flee:** the actor is broken (the ruleset's morale check). A broken actor takes this move whoever controls it, Planner included, and its Planner call is skipped. It moves one link toward its exit slot, else its refuge slot, else into a linked zone away from the nearest opposed actor it believes in. Once there, it holds. A surrendered actor (Part 3, Morale) skips the move and holds.
-2. **Attack:** an active opposed actor it believes in (aware or tracking) is in its zone. It attacks with its type's attackSkill, targetPart null, aimed false. Target: the actor that last hit it, else the player, else an rng pick.
-3. **Close in:** it moves one link, by the shortest path, toward the lastKnownZone of its most recent belief about an opposed actor. Never into a frontier.
-4. **Search:** it is already in that zone and no opposed actor is there.
+1. **Flee:** the actor is broken (the ruleset's morale check). A broken actor takes this move whoever controls it, Planner included, and its Planner call is skipped. It moves one link toward its exit slot, else its refuge slot, else into a linked zone away from the nearest hostile actor it believes in. Once there, it holds. A surrendered actor (Part 3, Morale) skips the move and holds.
+2. **Attack:** an active hostile actor it believes in (aware or tracking) is in its zone. It attacks with its type's attackSkill, targetPart null, aimed false. Target: the actor that last hit it, else the player, else an rng pick.
+3. **Close in:** it moves one link, by the shortest path, toward the lastKnownZone of its most recent belief about a hostile actor. Never into a frontier.
+4. **Search:** it is already in that zone and no hostile actor is there.
 5. **Hold.**
 
 Like every code mind, it reads only its ActorView. The rng pick uses the turn's seeded rng, so replay stays exact. Its orders carry source 'fallback'.
@@ -575,7 +575,7 @@ Output shape:
   dialogue: { line, volume: whisper | normal | shout, introduces?: [actor_id] } | null,
             // the words if action.type is talk; otherwise a bark
   gear:     [ { op, item, from? } ] | null,   // as the Parser: free gear ops, before the action
-  stance:   { toward: actor_id, step: friendlier | more_opposed } | null,
+  stance:   { toward: actor_id, step: friendlier | colder } | null,
   planUpdate: { goal, steps, triggers, memoryNote,
                 routine: routine_id | null } | null   // routine: next turn; null = keep the current plan
 }
@@ -917,7 +917,7 @@ Per turn:
 6. **Secrets.** A secret becomes player knowledge only when a resolved event meets revealWhen: minTier is a tier key and the check must reach at least that tier (the Weaver writes the tier's name; code keeps the key), and a check\_passed reveal needs the check aimed at againstActorId. A secret is also revealed when its holder's Responder lists it in reveals; code accepts only secrets that actor holds **\[Proposed\]**. When the player's speech check against a spokesperson meets one of its check\_passed reveals, its Responder is told so (SLIPS) before it answers **\[Proposed\]**. A revealed secret is added to the player's Journal (secretsKnown); only then can it appear in NarrationView.
 7. **Save.** After resolution, the story is saved as described in Part 4 §10. Hidden fields are saved but shown only in the GM debug view.
 
-**onAlert** is not a trigger. Code fires a routine's onAlert order once, when its owner first leaves unaware of an opposed actor or first perceives an attack or alarm: this turn if the owner hasn't acted and has no agent order, otherwise next turn unless an agent order exists by then. An armed flag resets when the owner is calm again: unaware of every opposed actor, and DECAY\_TURNS turns with no attack or alarm perceived.
+**onAlert** is not a trigger. Code fires a routine's onAlert order once, when its owner first leaves unaware of a wary actor or first perceives an attack or alarm: this turn if the owner hasn't acted and has no agent order, otherwise next turn unless an agent order exists by then. An armed flag resets when the owner is calm again: unaware of every wary actor, and DECAY\_TURNS turns with no attack or alarm perceived.
 
 ### Encounter modes
 
@@ -929,7 +929,7 @@ Code picks the mode each turn; agents run only when someone needs a mind. Ordina
 | Dialogue | The Parser's main action is speech addressed to NPCs | Parser → speech check → one Responder or Voice call per spokesperson, in parallel → engine → Narrator | 2 plus one per spokesperson (at most MAX\_SPOKESPEOPLE), plus background Planners for engaged actors |
 | Tactical | At least one engaged actor | Background Planner per engaged significant actor; Parser → engine → Narrator | 2 plus one per engaged significant actor, capped by MAX\_PLANNER\_CALLS |
 
-Engaged is side-neutral: an actor is engaged when it believes in an active actor it is opposed to, so allies fighting bandits make a turn Tactical too.
+Engaged is side-neutral: an actor is engaged when it believes in an active actor it is hostile to, so allies fighting bandits make a turn Tactical too.
 
 Modes are chosen per turn inside a scene (Scenes); a scene can open in any mode.
 
@@ -1011,7 +1011,7 @@ Output shape (notation, not literal JSON):
   frontiers:   [ { key, label } ],
   bands:       [ { key, name: public text, goals: hidden text, temperament: hidden text,
                    tactics: 'simple' | 'competent' | 'cunning', lethal: true | false,   // keys of TACTICS (src/scales.ts)
-                   relations: { [bandKey | bandId]: opposed | neutral | friendly } } ],
+                   relations: { [bandKey | bandId]: hostile | opposed | neutral | friendly } } ],
                                     // new bands only; may also set relations toward existing bands
   cast:        [ { template: templateId | actor: actorId,
                    label: public text, name, appearance: public text,
@@ -1023,7 +1023,7 @@ Output shape (notation, not literal JSON):
                    awarenessOfPlayer: unaware | suspicious | aware,      // what this actor knows of the player
                    awarenessOfBands?: [ { band: bandKey | bandId, awareness: unaware | suspicious | aware } ],
                                                                          // about every member of that band
-                   overrides?: [ { actor: castKey | actorId, stance: opposed | neutral | friendly } ],
+                   overrides?: [ { actor: castKey | actorId, stance: hostile | opposed | neutral | friendly } ],
                    motive: hidden text } ],   // agenda is derived from seeded plans and secrets
   seeds:       { plans: [Plan], triggers: [Trigger], secrets: [Secret] },
   rewards:     [ { item: itemId | { base: libraryItemId, quality: 1 | 2 | 3 | 4, boosts: string,
@@ -1053,7 +1053,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 **Validation.** Code checks every stage plan before it touches state:
 
 - every id resolves (story blueprints first, then the library); an unknown creature type fails (Part 3);
-- caps on cast size, zones and frontiers (placeholders); every cast entry names a band, every band reference resolves (the plan's new bands, then the story), and relations and stances use only opposed, neutral or friendly;
+- caps on cast size, zones and frontiers (placeholders); every cast entry names a band, every band reference resolves (the plan's new bands, then the story), and relations and stances use only hostile, opposed, neutral or friendly;
 - every zone link points to a zone in the plan, on the stage, or a frontier;
 - triggers use the trigger vocabulary and hold one order each, of a type the engine knows (ORDER_TYPES); every secret has leakTerms; a check\_passed secret names a library skill;
 - the grades fit the tier;
@@ -1169,7 +1169,7 @@ When the player attacks an actor that is unaware of them, code resolves the ambu
 1. The player makes one ambush roll, contested separately against the perception roll of the target and of every other observer who could perceive the attack. Which skill makes the ambush roll is a ruleset matter (stub).
 2. **Player beats the target: surprise.** The target keeps its routine order this turn. The target's defense roll takes the unaware situational modifier (value placeholder). The ruleset may also apply an unaware tag to its initiative.
 3. **Target wins: failed ambush.** The target becomes aware before the blow and defends normally. Its onAlert fires: this turn if it hasn't acted, otherwise next turn unless it then has an agent order. It is engaged from the next turn, and a significant target's Planner order outranks onAlert. Running a Planner for failed ambushes in the same turn is deferred (D-36).
-4. **A witness wins.** It becomes aware and its onAlert fires the same way. If it is opposed to the player it is engaged from the next turn; otherwise it is alarmed.
+4. **A witness wins.** It becomes aware and its onAlert fires the same way. If it is hostile to the player it is engaged from the next turn; otherwise it is alarmed.
 5. **Nobody wins, or nobody perceives the attack.** Observers stay unaware. A kill nobody perceives leaves the game in Explore.
 
 #### Alarm
@@ -1279,7 +1279,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 4 | Partial perception | An enemy moves out of sight noisily; the Narrator describes the sound only, with no name |
 | 5 | Plan persistence | A trigger written on turn 3 fires on turn 7 without the Planner ordering it again |
 | 6 | Malformed Planner output | The game continues with combat lists and routines and logs the failure |
-| 7 | Mode switch | Explore turns make no Planner call; the first opposed actor who becomes suspicious switches the next turn to Tactical, and only that actor gets a Planner call |
+| 7 | Mode switch | Explore turns make no Planner call; the first hostile actor who becomes suspicious switches the next turn to Tactical, and only that actor gets a Planner call |
 | 8 | Replay | The same saved state, RNG state and logged agent outputs reproduce the same events, run under the library version the turn record names |
 | 9 | Knowledge isolation | Guard 1 sees the player; guard 2, out of earshot, has no belief about the player until it perceives guard 1's shout, and then holds suspicious with source: 'told' |
 | 10 | NPC hears the question | In a dialogue turn, each spokesperson's logged input contains that turn's spoken words and never the player's action type, move or approach |
@@ -1326,14 +1326,14 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 51 | Impression only | A deceive check reaches the dialogue call as an impression; the logged input contains no action type |
 | 52 | Two bands addressed | Two spokesperson calls run in parallel, each with its own impression; replies resolve in initiative order |
 | 53 | Calm bandmates \[Proposed\] | A Voice spokesperson switches to a leave routine; a calm bandmate who heard follows next turn; one who didn't keeps its routine |
-| 54 | Allies engage | Guards opposed to bandits engage them without the player present; the turn is Tactical and the guards get Planner calls |
+| 54 | Allies engage | Guards hostile to bandits engage them without the player present; the turn is Tactical and the guards get Planner calls |
 | 55 | Companion follows | The player moves two zones; a following companion walks one link per turn toward its believed zone, never jumping |
 | 56 | Back to the post | A guard pulled off its post walks back and takes up the zone and activity its routine gives for the current turn (from its anchorTurn) |
 | 57 | Inert when down | An incapacitated guard gets no order, its ambush trigger doesn't fire, it isn't engaged, and addressing it makes no dialogue call |
 | 58 | Derived agenda | An NPC voiced by the Voice gains a plan; next turn the Responder voices it; no save field holds hasAgenda |
 | 59 | Place facts stay player-side | No OppositionView, DialogueView or ActorView contains a place fact or headline |
 | 60 | Secret slips \[Proposed\] | A persuade check that meets a check\_passed reveal sets SLIPS; the secret is revealed and the Narrator's leak scan passes |
-| 61 | Bands from the plan | A plan creates a smugglers band opposed to the guards' band and sets the guards suspicious of it; each guard gets a suspicious belief about every smuggler on the stage, written through updateBeliefs, and one guard's personal stance overrides its band's relation |
+| 61 | Bands from the plan | A plan creates a smugglers band hostile to the guards' band and sets the guards suspicious of it; each guard gets a suspicious belief about every smuggler on the stage, written through updateBeliefs, and one guard's personal stance overrides its band's relation |
 | 62 | Slots per actor | A gate guard's default routine and its alert variant both read its one post binding; the plan binds post once |
 | 63 | Route expands | A patrol bound to a three-zone route desires each zone in order, each for the step's duration, then loops |
 | 64 | Anchor from startAt | A cast entry with startAt: route places the actor at the first route stop; the logged plan holds no anchorTurn |
@@ -1378,6 +1378,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 103 | Broken flees | A broken engaged actor with an exit slot moves one link toward it and holds once there; a slime never flees |
 | 104 | Improvised weapon | The Parser's improvised chair leg becomes a held improvised\_medium story item with hitAdj IMPROVISED\_HIT\_ADJ and no kit bonus, and the attack uses it |
 | 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScene, marks a break; rest marks a break; a stall marks one only with no live beat left; the director then starts a new scene with one Weaver call |
+| 106 | Opposed standoff | An opposed guard who notices the player is alarmed (its onAlert fires) but not engaged, so the turn stays Explore; made hostile, it engages |
 
 ### Deliverables and acceptance criteria
 
@@ -1456,9 +1457,9 @@ The penalty is a roll modifier of type wounds (Part 1 §4, Layer 2b), diminishin
 
 Bands are 15% wide; Critical takes the remaining 24% so a last stand lasts a little longer. Penalty values are placeholders; they stack by Part 1 §4, Stacking within a type. The health track never modifies the situation roll (Part 1 §4).
 
-**Morale.** An engaged NPC makes a morale check when its health track reaches a new level from Injured onwards, and when it perceives a bandmate become incapacitated. The check is roll() with Mind.morale as the skill and the actor's usual modifiers, with no target number; Failure or worse leaves the actor broken. Two thresholds skip the roll: reaching Critical always breaks the actor, and a fearless actor never makes the check (slimes are fearless). Morale and fearless come from the NPC template's personality; until templates set them, Mind.morale is 50 (placeholder). Broken lasts for the rest of the scene, and a broken actor takes the Flee move (Fallback behavior, rule 1). Broken is a win condition: a broken actor counts on neither side of engagement, so a fight ends when every opposed actor is broken or incapacitated. The player never makes a morale check. Surrender is part of the same check \[Proposed\]: on a Critical Failure, or when a broken actor has nowhere to flee, the actor surrenders instead. A surrendered actor holds, takes no hostile action and, like a broken one, counts on neither side for the rest of the scene. What the player can do with it is deferred (D-98).
+**Morale.** An engaged NPC makes a morale check when its health track reaches a new level from Injured onwards, and when it perceives a bandmate become incapacitated. The check is roll() with Mind.morale as the skill and the actor's usual modifiers, with no target number; Failure or worse leaves the actor broken. Two thresholds skip the roll: reaching Critical always breaks the actor, and a fearless actor never makes the check (slimes are fearless). Morale and fearless come from the NPC template's personality; until templates set them, Mind.morale is 50 (placeholder). Broken lasts for the rest of the scene, and a broken actor takes the Flee move (Fallback behavior, rule 1). Broken is a win condition: a broken actor counts on neither side of engagement, so a fight ends when every hostile actor is broken or incapacitated. The player never makes a morale check. Surrender is part of the same check \[Proposed\]: on a Critical Failure, or when a broken actor has nowhere to flee, the actor surrenders instead. A surrendered actor holds, takes no hostile action and, like a broken one, counts on neither side for the rest of the scene. What the player can do with it is deferred (D-98).
 
-**Rest and clinics \[Proposed\].** A rest action (the turn's main action) in a zone with no active opposed actor restores 25% of total HP to the health track and 25% of each part's pool, at most once every REST\_COOLDOWN turns (placeholder 20). Resting in a clinic or infirmary (a place of that kind) restores HP too, by CLINIC\_HEAL (placeholder: all of it). A Destroyed part stays gone (OQ-6). All other healing stays with D-58.
+**Rest and clinics \[Proposed\].** A rest action (the turn's main action) in a zone with no active hostile actor restores 25% of total HP to the health track and 25% of each part's pool, at most once every REST\_COOLDOWN turns (placeholder 20). Resting in a clinic or infirmary (a place of that kind) restores HP too, by CLINIC\_HEAL (placeholder: all of it). A Destroyed part stays gone (OQ-6). All other healing stays with D-58.
 
 **Visibility:** for other characters, Claude is told the level only from Wounded down; Bruised to Injured stay hidden, though code still applies their penalties.
 
@@ -1671,7 +1672,7 @@ At −4 and −5 the named-part move also applies, anywhere **\[Proposed\]**. A 
 
 An attack reaches targets within its attack mode's reach (Part 5 §5), with sight on every link of the shortest path.
 
-- **Situational roll modifiers (ranged):** an opposed actor in the shooter's zone −10; 2 links −5; 3 links −10; 4 links −15 \[Proposed\].
+- **Situational roll modifiers (ranged):** a hostile actor in the shooter's zone −10; 2 links −5; 3 links −10; 4 links −15 \[Proposed\].
 - **Light** (any roll that needs sight): dim −5; dark −10. The attacker uses the target's zone; a defender uses the attacker's zone.
 - **Cover** (ranged attacks only): the target's zone cover 1 → gap +1, cover 2 → gap +2.
 
@@ -2150,7 +2151,7 @@ type Mind = {
   morale?: number;
   moraleState?: 'broken' | 'surrendered';   // set by the morale check (Part 3, Morale); cleared when the scene ends
   knowledge: Record<ActorId, Belief>;
-  overrides?: Record<ActorId, 'opposed' | 'neutral' | 'friendly'>;  // sparse; else band relations
+  overrides?: Record<ActorId, 'hostile' | 'opposed' | 'neutral' | 'friendly'>;  // sparse; else band relations
   knows: Fact[];
   routine?: { id: string; anchorTurn: Turn };            // anchor set by code (Part 2, Anchors); zone removed
   routines?: string[];                                   // the routine set's routines; player band: the companion set
@@ -2505,7 +2506,7 @@ Decisions built as written for the first build, to be checked once the game is p
 
 | Item | Part | Rule for now | What to check |
 | --- | --- | --- | --- |
-| Where engagement applies | 2 | No place limit: an actor is engaged when it believes (suspicious or higher) in an active actor it is opposed to, wherever either one is | Whether distant actors make turns Tactical or spend Planner calls too often; if so, limit engagement to the stage or to the same place |
+| Where engagement applies | 2 | No place limit: an actor is engaged when it believes (suspicious or higher) in an active actor it is hostile to, wherever either one is | Whether distant actors make turns Tactical or spend Planner calls too often; if so, limit engagement to the stage or to the same place |
 | Free gear ops | 5 | Drawing, stowing, swapping, accessories and picking up cost no action | Whether free accessory swaps (a ring before every check) or free pick up mid-fight feel exploitable |
 
 ## Open questions (answer before sharing)

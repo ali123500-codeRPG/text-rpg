@@ -52,7 +52,7 @@ export type NpcAction = {
   intent: string;
 };
 export type PlanUpdate = { goal: string; steps: string[]; triggers: Trigger[]; memoryNote: string; routine: string | null };
-export type StanceStep = { toward: string; step: 'friendlier' | 'more_opposed' };
+export type StanceStep = { toward: string; step: 'friendlier' | 'colder' };
 
 export type PlannerOutput = {
   action: NpcAction;

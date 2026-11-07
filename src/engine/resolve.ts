@@ -6,7 +6,7 @@ import { defaultMode, healthLevel, moraleCheck, partStates, ruleset, usableModes
 import { applyBeliefDecay, computePerception, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
-import { actorById, allActors, atLeast, isActive, isEngaged, opposed, shortestPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
@@ -82,7 +82,7 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   afterEvent(ctx, ev);
 }
 
-/** a perceives an attack on itself or a bandmate: override toward the attacker becomes opposed. */
+/** a perceives an attack on itself or a bandmate: override toward the attacker becomes hostile. */
 function setAttackOverrides(state: GameState, ev: GameEvent): void {
   const target = actorById(state, ev.target!);
   if (!target) return;
@@ -91,7 +91,7 @@ function setAttackOverrides(state: GameState, ev: GameEvent): void {
     const self = p.id === target.id;
     // GAP: a bandmate must perceive the attack fully (a partial event names no attacker).
     if (!self && (p.bandId !== target.bandId || ev.perception[p.id]?.level !== 'full')) continue;
-    p.mind.overrides = { ...(p.mind.overrides ?? {}), [ev.actorId]: 'opposed' };
+    p.mind.overrides = { ...(p.mind.overrides ?? {}), [ev.actorId]: 'hostile' };
   }
 }
 
@@ -230,15 +230,15 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   }
 }
 
-/** Rest [Proposed]: no active opposed actor in the zone, at most once every REST_COOLDOWN turns. */
+/** Rest [Proposed]: no active hostile actor in the zone, at most once every REST_COOLDOWN turns. */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const key = `rest:${a.id}`;
   const last = state.clocks[key];
-  const threat = allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (opposed(state, a, x) || opposed(state, x, a)));
+  const threat = allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (hostile(state, a, x) || hostile(state, x, a)));
   const ev = bark(mk(ctx, a, 'rest'), o);
   if (threat || (last !== undefined && state.turn - last < CONFIG.REST_COOLDOWN)) {
-    logCode(state, 'rest_blocked', { actorId: a.id, reason: threat ? 'opposed_in_zone' : 'cooldown' });
+    logCode(state, 'rest_blocked', { actorId: a.id, reason: threat ? 'hostile_in_zone' : 'cooldown' });
   } else {
     const kind = state.places.find((p) => p.id === a.placeId)?.kind;
     const pct = kind === 'clinic' || kind === 'infirmary' ? CONFIG.CLINIC_HEAL_PCT : CONFIG.REST_HEAL_PCT;

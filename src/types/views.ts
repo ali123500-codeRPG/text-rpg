@@ -19,7 +19,7 @@ export type BeliefView = {
   lastSeenTurn?: number;
   source: 'seen' | 'heard' | 'told';
   revealed: string[];
-  opposed: boolean; // opposed(self, about)
+  hostile: boolean; // hostile(self, about): attacks on sight
   active: boolean;
   label: string; // public label or known name
 };

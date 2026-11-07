@@ -13,7 +13,7 @@ export const GRADES: readonly Grade[] = ['none', 'minor', 'moderate', 'major', '
 /** a tier's display name, only in text for people and for Claude */
 export type TierName = string;
 
-import type { COVER, LIGHT, TACTICS, TIERS } from '../scales';
+import type { COVER, LIGHT, STANCES, TACTICS, TIERS } from '../scales';
 /** keys of the ordered scales in src/scales.ts (code and saves use only keys) */
 export type Light = (typeof LIGHT.keys)[number];
 export type Cover = (typeof COVER.keys)[number];
@@ -25,7 +25,7 @@ export type Tactics = (typeof TACTICS.keys)[number];
 export type Mode = 'explore' | 'dialogue' | 'tactical';
 export type Perception = 'full' | 'partial';
 export type Cue = 'sight' | 'sound' | 'smell' | 'touch';
-export type Stance = 'opposed' | 'neutral' | 'friendly';
+export type Stance = (typeof STANCES.keys)[number];
 export type BeliefStatus = 'unaware' | 'suspicious' | 'aware' | 'tracking';
 export const BELIEF_ORDER: readonly BeliefStatus[] = ['unaware', 'suspicious', 'aware', 'tracking'];
 

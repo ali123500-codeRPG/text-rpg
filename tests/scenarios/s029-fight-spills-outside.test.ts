@@ -9,7 +9,7 @@ describe('29 The fight spills outside', () => {
     const s = makeVillage({ playerZone: 'street_door' });
     s.mode = 'tactical';
     const wim = actor(s, 'patron_1');
-    wim.mind!.overrides = { player: 'opposed' };
+    wim.mind!.overrides = { player: 'hostile' };
     wim.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'street_door', lastSeenTurn: 1, source: 'seen', revealed: [] };
     expect(wim.placeId).toBe('tavern');
     resolveTurn(s, { intent: null, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(s.rngState));

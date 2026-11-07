@@ -6,7 +6,7 @@ import { buildActorView } from '../../src/views';
 it('103 Broken flees: toward the exit slot one link, holds once there; a slime never flees', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
   const p = place(s, 'patron_1', 'tav_counter');
-  p.mind!.overrides = { player: 'opposed' };
+  p.mind!.overrides = { player: 'hostile' };
   p.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
   p.mind!.moraleState = 'broken';
   expect(brokenOrder(buildActorView(s, 'patron_1'))).toMatchObject({ type: 'flee', target: 'tav_common', source: 'broken' });

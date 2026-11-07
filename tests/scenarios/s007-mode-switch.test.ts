@@ -7,7 +7,7 @@ import { intent, play } from './w4-kit';
 
 it('7 Mode switch', () => {
   const s = makeVillage({ playerZone: 'street_square', without: ['slime_1', 'slime_2'] });
-  actor(s, 'guard_1').mind!.overrides = { player: 'opposed' };
+  actor(s, 'guard_1').mind!.overrides = { player: 'hostile' };
   s.turn = 0;
   expect(computePending(s)).toMatchObject({ turn: 1, mode: 'explore', engaged: [] });
   play(s, { intent: intent({ move: { toZone: 'gate_inner' } }) }); // an open player walks into the guard's view

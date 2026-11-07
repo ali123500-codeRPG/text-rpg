@@ -81,7 +81,7 @@ describe('validateStagePlan', () => {
     const p = villageStagePlan();
     p.cast[0].band = '';
     p.cast[1].band = 'pirates';
-    p.bands[0].relations = { ghosts: 'hostile' as never };
+    p.bands[0].relations = { ghosts: 'furious' as never };
     p.cast[2].overrides = [{ actor: 'nobody', stance: 'friendly' }];
     expect(codes(fresh(), p)).toEqual(expect.arrayContaining(['missing_band', 'unresolved_band', 'bad_stance', 'unresolved_actor']));
   });
@@ -273,7 +273,7 @@ describe('applyStagePlan', () => {
   it('keys that collide with existing ids get fresh ids; existing bands keep lethal', () => {
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
-      bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tactics: 'simple', lethal: undefined as never, relations: { player_band: 'opposed' } }],
+      bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tactics: 'simple', lethal: undefined as never, relations: { player_band: 'hostile' } }],
       zones: [{ key: 'field_mid', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }],
       cast: [{ template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));

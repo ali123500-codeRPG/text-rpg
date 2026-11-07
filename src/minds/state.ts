@@ -2,7 +2,7 @@
 import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
 import { routine as getRoutine, routineSet, creatureType, npcTemplate } from '../library';
-import { actorById, atLeast, isActive, isEngaged, opposed } from '../engine/relations';
+import { actorById, atLeast, isActive, isEngaged, wary } from '../engine/relations';
 import { computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { ruleset, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { bindTemplate, expandSteps, slotsRead } from './routines';
@@ -95,11 +95,11 @@ export function updateAlarms(state: GameState, events: GameEvent[]): void {
   for (const a of state.actors) {
     if (!a.mind || !isActive(a)) continue;
     const perceivedAlarm = events.some((e) => e.actorId !== a.id && ALARM_KINDS.has(e.kind) && !!e.perception[a.id]);
-    const opposedKnown = Object.entries(a.mind.knowledge).filter(([id]) => {
+    const waryKnown = Object.entries(a.mind.knowledge).filter(([id]) => {
       const o = actorById(state, id);
-      return !!o && opposed(state, a, o);
+      return !!o && wary(state, a, o);
     });
-    const leftUnaware = opposedKnown.some(([, b]) => atLeast(b.status, 'suspicious'));
+    const leftUnaware = waryKnown.some(([, b]) => atLeast(b.status, 'suspicious'));
     if (perceivedAlarm || (leftUnaware && !a.mind.alarm?.armed)) {
       raiseAlarm(state, a);
       continue;
@@ -111,7 +111,7 @@ export function updateAlarms(state: GameState, events: GameEvent[]): void {
       a.mind.routine = { ...alarm.returnTo };
       delete alarm.returnTo;
     }
-    // GAP: the armed flag also needs "unaware of every opposed actor" (Hidden state persistence); the routine return uses the timer only (Alarm).
+    // GAP: the armed flag also needs "unaware of every wary actor" (Hidden state persistence); the routine return uses the timer only (Alarm).
     if (!leftUnaware) {
       alarm.armed = false;
       delete alarm.onAlertDue;
