@@ -67,7 +67,12 @@ export type Progression = {
   xp: number;
   unspentPerkPoints: number;
   marks: LibraryRef[];
+  xpLog?: XpAward[]; // source trail (B8); every award, in order
+  achievements?: { id: string; name: string; turn: Turn }[]; // earned, each once (B4, X6)
+  nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
 };
+
+export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } };
 
 export type Mind = {
   control: 'agent' | 'code';
@@ -75,6 +80,8 @@ export type Mind = {
   morale?: number;
   fearless?: boolean; // from the template's personality
   moraleState?: 'broken' | 'surrendered';
+  hitByPlayer?: true; // X5: the player has hit it
+  xpPaid?: true; // its defeat has paid XP (B4)
   knowledge: Record<ActorId, Belief>;
   overrides?: Record<ActorId, Stance>;
   knows: Fact[];
@@ -98,6 +105,7 @@ export type NpcTemplate = {
   personality: 'fearless' | 'bold' | 'steady' | 'timid';
   loadout?: LibraryRef[];
   potential?: number;
+  xp?: number; // hand-set kill XP, overrides the computed value (X13)
   control: 'agent' | 'code';
   label: string;
   fallback?: { attackSkill: LibraryRef }; // overrides the creature type's (Fallback behavior)
