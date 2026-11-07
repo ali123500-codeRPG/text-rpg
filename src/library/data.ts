@@ -1,5 +1,6 @@
 // The prototype library: skills (Part 1 §3), creatures (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
+import { CONFIG } from '../config';
 import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SkillDef } from '../types';
 
 const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], playerOpen = true, cue?: 'sight' | 'sound'): SkillDef =>
@@ -34,6 +35,8 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
+/** armor numbers come from CONFIG (one source, Part 5 armor table) */
+const ARMOR = (w: 'light' | 'medium' | 'heavy') => ({ reduction: CONFIG.ARMOR_PROTECTION[w][0], multiplier: CONFIG.ARMOR_PROTECTION[w][1], weight: w });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: 'dodge', value: v, active: 'worn', scope: 'any' });
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
@@ -53,12 +56,12 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
   { id: 'hidden_blade', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
     weapon: { modes: [mode({ id: 'stab', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
-  { id: 'gambeson', kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(-5)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'legs'], reduction: 2, multiplier: 0.8, weight: 'light' } },
-  { id: 'mail_hauberk', kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(-10)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], reduction: 4, multiplier: 0.65, weight: 'medium' } },
-  { id: 'plate_harness', kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(-20)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'legs', 'head', 'neck'], reduction: 6, multiplier: 0.55, weight: 'heavy', pools: { head: 20 } } },
+  { id: 'gambeson', kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+    armor: { covers: ['general', 'left_arm', 'right_arm', 'legs'], ...ARMOR('light') } },
+  { id: 'mail_hauberk', kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium') } },
+  { id: 'plate_harness', kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+    armor: { covers: ['general', 'left_arm', 'right_arm', 'legs', 'head', 'neck'], ...ARMOR('heavy'), pools: { head: 20 } } },
   { id: 'round_shield', kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT('block')], shield: { pool: 30 } },
   { id: 'signet_ring', kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: 'lucky_charm', kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,

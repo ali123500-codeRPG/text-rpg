@@ -24,7 +24,9 @@ export function createDirector(clock: Clock): SceneDirector {
   return {
     async startStory(state: GameState, rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
       ctx = c;
-      return (await d.storyStart(state, rng)).events;
+      const r = await d.storyStart(state, rng);
+      (state.scratch ??= {}).situation = r.situation; // put on the turn record by the pipeline (spec: record holds the situation roll)
+      return r.events;
     },
     async afterResolve(state: GameState, _events: GameEvent[], rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
       const key = state.scratch?.frontierCrossed as string | undefined;

@@ -168,6 +168,11 @@ export function createGame(deps: GameDeps): Game {
     s.turn = p.turn;
     s.pending = p;
     s.mode = p.mode;
+    // keep what each actor last perceived for its views (spec: OppositionView holds the events it perceived)
+    const all = [...(s.recentEvents ?? []), ...s.events];
+    const keep = new Set<GameEvent>();
+    for (const a of [s.player, ...s.actors]) for (const e of all.filter((x) => x.perception[a.id]).slice(-CONFIG.RECENT_EVENTS)) keep.add(e);
+    s.recentEvents = all.filter((e) => keep.has(e));
     s.events = [];
     s.agentLog = [];
     s.log = [];
@@ -256,11 +261,22 @@ export function createGame(deps: GameDeps): Game {
     const record: TurnRecord = {
       storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
       agentLog: s.agentLog, events, factsAdded: [], log: s.log, aimed: rec.aimed,
+      ...(s.scratch?.situation ? { situation: s.scratch.situation as TurnRecord['situation'] } : {}),
     };
+    if (s.scratch) delete s.scratch.situation;
     try {
       await save.saveTurn(store, s, record);
     } catch (e) {
-      notice({ kind: 'save_failed', text: `The turn could not be saved (${(e as Error).message}); the last good save is kept.` });
+      const err = e as { code?: string; message: string; committed?: boolean };
+      if (err.code === 'quota_exceeded' && !err.committed) {
+        // spec save flow: on quota_exceeded stop, keep the last good head, and tell the player
+        stopped = true;
+        for (const bg of background.values()) bg.controller.abort();
+        notice({ kind: 'stop_play', text: err.message });
+        return;
+      }
+      // committed: the head was written and only cleanup or backups failed, so the turn is saved
+      if (!err.committed) notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` });
     }
     const nv = views.buildNarrationView(s, events, rec.intent);
     const leak = buildLeakContext(s);

@@ -205,9 +205,10 @@ function baseView(state: GameState, actorId: string): BaseView {
   const ct = creatureType(state, a.core.creatureTypeId);
   const attackSkill = (a.core.templateId ? npcTemplate(state, a.core.templateId).fallback?.attackSkill : undefined) ?? ct.fallback.attackSkill;
   // never copy bark events into an NPC view (Leak prevention)
-  const perceived = state.events.filter((e) => e.perception[a.id] && !e.bark).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
-  const told = state.events.filter((e) => e.perception[a.id] && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
-  const hit = [...state.events].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged'].includes(e.attack.outcome));
+  const history = [...(state.recentEvents ?? []), ...state.events];
+  const perceived = history.filter((e) => e.perception[a.id] && !e.bark).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
+  const told = history.filter((e) => e.perception[a.id] && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
+  const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged'].includes(e.attack.outcome));
   const scratchHits = state.scratch?.[a.id];
   const lastHitBy = hit?.actorId ?? (Array.isArray(scratchHits) ? (scratchHits.at(-1) as string | undefined) : undefined);
   const beliefs: BeliefView[] = [];
