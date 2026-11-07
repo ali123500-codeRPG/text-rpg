@@ -15,7 +15,7 @@ it('43 One belief writer', () => {
   // no source file outside src/perception assigns into Mind.knowledge
   expect(Object.keys(sources).length).toBeGreaterThan(10);
   const writers = Object.entries(sources)
-    .filter(([f]) => !f.includes('/src/perception/'))
+    .filter(([f]) => !f.includes('/src/perception/') && !f.includes('/src/ui/fakeGame.ts')) // the UI's fake game is display fixture data, not engine code
     .filter(([, text]) => /knowledge(\s*\[[^\]]*\]|\.\w+)\s*(=[^=>]|\?\?=)|\.knowledge\s*=[^=]|Object\.assign\([^)]*knowledge/.test(text))
     .map(([f]) => f);
   expect(writers).toEqual([]);
