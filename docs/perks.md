@@ -48,7 +48,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
-- **Conditions:** Any ranged attack mode (light, medium or heavy, thrown included). A hostile actor is in the owner's zone.
+- **Conditions:** Any ranged attack, thrown included. A hostile actor is in the owner's zone.
 - **Effect:** The −10 ranged modifier for a hostile in the shooter's zone is not applied.
 - **Lasts:** That attack.
 
@@ -58,7 +58,7 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits (outcome grazed, blocked, full, heavy or crushing hit).
-- **Conditions:** Any ranged attack mode (light, medium or heavy).
+- **Conditions:** Any ranged attack.
 - **Effect:** The target is marked. The owner's next ranged attack on that target gets tier shift +1, and the mark clears.
 - **Lasts:** Until it is used or the engagement ends.
 
