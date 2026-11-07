@@ -93,8 +93,9 @@ export type DialogueResult<T> = { output: T; run: RunResult<T> };
 export async function callResponder(
   view: OppositionView, dialogue: DialogueInput, ctx: AgentCtx,
   opts: { world: Set<string>; committed?: string | null; slips?: string[]; signal?: AbortSignal },
-): Promise<DialogueResult<ResponderOutput>> {
+): Promise<DialogueResult<ResponderOutput> & { unlisted: string[] }> {
   let extra: string[] = [];
+  let unlisted: string[] = [];
   const accept = (v: ResponderOutput): Attempt<ResponderOutput> => {
     const leg = npcAccept(view, opts.world, v, (x) => x.dialogue?.introduces, (x, ids) => x.dialogue && (x.dialogue.introduces = ids), ['player']); // a spokesperson answers the speaker it just heard
     if (leg.orderError) return { kind: 'fail', errors: [leg.orderError, ...leg.errors] };
@@ -102,6 +103,13 @@ export async function callResponder(
     const own = new Set(view.secrets.map((s) => s.id));
     if (v.reveals.some((id) => !own.has(id))) extra.push('invalid_reveal');
     v.reveals = v.reveals.filter((id) => own.has(id));
+    // Q3: a line that says an own secret's leak terms reveals it even when unlisted (slips are revealed by code anyway)
+    const line = v.dialogue?.line ?? '';
+    unlisted = view.secrets.filter((x) => !v.reveals.includes(x.id) && !(opts.slips ?? []).includes(x.id) && x.leakTerms.some((t) => mentions(line, t))).map((x) => x.id);
+    if (unlisted.length) {
+      extra.push('unlisted_reveal');
+      v.reveals = [...v.reveals, ...unlisted];
+    }
     if (v.planUpdate) {
       if (!routineAllowed(view, v.planUpdate.routine)) {
         extra.push('invalid_routine');
@@ -118,11 +126,11 @@ export async function callResponder(
   });
   if (run.value) {
     run.log.errors.push(...extra);
-    return { output: run.value, run };
+    return { output: run.value, run, unlisted };
   }
   const output = fallbackResponder(view);
   run.log.output = output;
-  return { output, run };
+  return { output, run, unlisted: [] };
 }
 
 /**

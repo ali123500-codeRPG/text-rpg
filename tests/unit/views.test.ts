@@ -148,6 +148,33 @@ describe('NarrationView and the packet', () => {
     });
     expect(JSON.stringify(pk)).not.toMatch(/\d/);
   });
+  it("packet: the other side's deciding keeps only what the player can see (F1)", () => {
+    const s = makeVillage();
+    place(s, 'guard_1', 'tav_common');
+    const shown = ['fumble', 'light', 'Gear (held): arming sword'];
+    const hidden = ['health: Hurt', 'torso wounds', 'Iron Will', 'Gear (worn): hidden blade'];
+    const def: RollResult = { ...roll('success', 42, 7, -1), modifiers: [
+      { source: 'light', type: 'situational', value: -10 }, { source: 'health: Hurt', type: 'wounds', value: -5 },
+      { source: 'torso wounds', type: 'wounds', value: -5 }, { source: 'Iron Will', type: 'roll_perk', value: 10 },
+    ] };
+    const result: AttackResult = {
+      attack: roll('great_success', 87, 13.5), defense: def, defenseType: 'block', gap: -1, gapShifts: [],
+      outcome: 'full_hit', location: 'general', locationHow: 'rolled', multiplier: 0.8, damage: 17,
+      deciding: { attack: ['aim'], defense: [...shown, ...hidden], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', modeId: 'cut',
+    };
+    const e = run(s, ev({ id: 'evt_b', actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', attack: result }));
+    expect(buildCombatPacket(s, e, 'player').defense!.deciding).toEqual(shown);
+    expect(buildCombatPacket(s, e, 'guard_1').defense!.deciding).toEqual([...shown, ...hidden]); // its own roll stays whole
+  });
+  it("actors carry the health the player can see: Wounded or worse (F11)", () => {
+    const s = makeVillage();
+    place(s, 'trader', 'tav_common');
+    actor(s, 'trader').core.condition.hpLostPct = 40; // Injured: hidden
+    const health = () => buildNarrationView(s, [], null).actors.find((a) => a.label === actor(s, 'trader').label)!.health;
+    expect(health()).toBeUndefined();
+    actor(s, 'trader').core.condition.hpLostPct = 100;
+    expect(health()).toBe('Incapacitated');
+  });
 });
 
 describe('place facts and headlines', () => {

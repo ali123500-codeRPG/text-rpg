@@ -10,11 +10,13 @@ export function formatPlayerView(text: string, view: PlayerView): string {
 }
 
 /** CHARACTER: who the actor is (name, role, band, band goals, temperament, tactics word), from its own view */
-function character(view: OppositionView | DialogueView) {
-  return {
-    id: view.self.id, name: view.self.name, role: view.self.label,
-    band: view.band.name, bandGoals: view.band.goals, temperament: view.band.temperament, tactics: TACTICS.name(view.band.tactics),
-  };
+function character(view: OppositionView) {
+  return { ...voiceCharacter(view), bandGoals: view.band.goals, temperament: view.band.temperament, tactics: TACTICS.name(view.band.tactics) };
+}
+
+/** the Voice is player-side: goals and temperament are the Weaver's hidden text, so only id, name, role and band name (Q1) */
+function voiceCharacter(view: OppositionView | DialogueView) {
+  return { id: view.self.id, name: view.self.name, role: view.self.label, band: view.band.name };
 }
 
 /** OppositionView minus the band block (it is in CHARACTER); fired triggers are shown as "already happened" */
@@ -40,7 +42,7 @@ export function formatResponderInput(view: OppositionView, dialogue: DialogueInp
 export function formatDialogueView(view: DialogueView): string {
   const { band: _band, knows, dialogue, ...rest } = view;
   return join(
-    block('CHARACTER', character(view)),
+    block('CHARACTER', voiceCharacter(view)),
     block('DIALOGUE_VIEW', rest),
     block('KNOWS', knows),
     block('PLAYER_SAID', dialogue.map((d) => d.spoken)),
