@@ -339,6 +339,9 @@ describe('browser client', () => {
     expect(parseTolerant('Sure:\n```json\n{"a":2}\n```')).toEqual({ ok: true, value: { a: 2 } });
     expect(parseTolerant('Here it is {"a":3} done')).toEqual({ ok: true, value: { a: 3 } });
     expect(parseTolerant('no json')).toEqual({ ok: false });
+    // the schema's "|null" copied into a value (run 16); a "|null" inside a string is left alone
+    expect(parseTolerant('{"move":{"toZone":"bar"}|null,"action":{"t":"x|null"}|null,"n":1 | null}'))
+      .toEqual({ ok: true, value: { move: { toZone: 'bar' }, action: { t: 'x|null' }, n: 1 } });
   });
   it('maps runtime codes and passes tier, model, effort, signal', async () => {
     expect(mapCode('capability_removed')).toBe('not_granted');
