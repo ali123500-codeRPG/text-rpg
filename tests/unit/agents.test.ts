@@ -36,6 +36,12 @@ describe('schemas', () => {
     expect(r.value.move).toBeNull();
     expect(r.value.deferred).toEqual([]);
   });
+  it('intent: improvised takes only an improvised base (loot L3)', () => {
+    const ok = checkIntent({ action: { type: 'attack', skill: 'melee_light', target: 'slime_1', improvised: { base: 'improvised_light', name: 'a bottle' } } });
+    expect(ok.errors).toEqual([]);
+    expect(ok.value.action!.improvised).toEqual({ base: 'improvised_light', name: 'a bottle' });
+    expect(checkIntent({ action: { type: 'attack', skill: 'melee_light', target: 'slime_1', improvised: { base: 'greataxe', name: 'x' } } }).errors.join()).toContain('improvised.base');
+  });
   it('planner: wrong enum and missing action are errors', () => {
     expect(checkPlanner({ action: { type: 'dance' } }).errors.join()).toContain('$.action.type');
     expect(checkPlanner({}).errors.join()).toContain('$.action: expected object');

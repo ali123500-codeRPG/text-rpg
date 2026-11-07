@@ -10,7 +10,7 @@ import { actorById, allActors, atLeast, isActive, isEngaged, opposed, shortestPa
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { applyGearOps, dropToGround, equipArmor, giveItem } from './gear';
+import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import type { TurnInput } from './types';
@@ -316,6 +316,12 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const fired = input.fired ?? firedOrders(state);
   const orders = mergeOrders(state, input, views, fired, rng);
   const playerOrder = fromIntent(state, input.intent, input.aimed);
+  const imp = input.intent?.action?.improvised;
+  if (imp && playerOrder.type === 'attack' && !playerOrder.item && isActive(state.player)) {
+    // loot L3: the grabbed object is minted and drawn (swap stows held weapons) before the attack
+    playerOrder.item = improvise(state, state.player, imp);
+    playerOrder.gear = [{ op: 'swap', item: playerOrder.item }, ...(playerOrder.gear ?? [])];
+  }
   if (isActive(state.player)) orders.set(state.player.id, playerOrder);
   const ctx: Ctx = {
     state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [],
