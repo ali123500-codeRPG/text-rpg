@@ -44,6 +44,9 @@ vi.mock('../../src/save', () => ({
   loadHistory: vi.fn(async () => []),
   loadStory: vi.fn(),
   undoTurn: vi.fn(),
+  acquireTurnLock: (st: Store, id: string, owner: string) => st.acquireLease(`stories/${id}/control/lock`, owner, 1),
+  releaseTurnLock: (st: Store, id: string, owner: string) => st.releaseLease(`stories/${id}/control/lock`, owner),
+  listStories: vi.fn(async () => []),
 }));
 
 const store: Store = {
