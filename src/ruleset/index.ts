@@ -12,6 +12,8 @@ import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMod
 import { blockItem, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
+export { RUNGS, MASTERY_STEPS, trueSkill, rungPerk, rungState, canTake, takePerk, canUndo, undoPerk } from './perks';
+export type { RungState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool } from './gear';
 
 // Tiers are keys of the TIERS table (src/scales.ts). Arithmetic (shifts, gaps) works on a tier's level: its row

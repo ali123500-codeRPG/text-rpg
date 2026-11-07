@@ -5,6 +5,7 @@ import { itemDef } from '../library';
 import { buildPlayerView, factText } from '../views';
 import { groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
+import { perksSection, refreshPerks } from './perks';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -62,13 +63,16 @@ const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return n
 
 export function characterPage(api: GameApi) {
   const el = h('main');
+  const perks = perksSection(api);
   function update() {
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
       h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s, s.player)),
-      h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'));
+      h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'),
+      perks);
+    refreshPerks();
   }
   return { el, update };
 }

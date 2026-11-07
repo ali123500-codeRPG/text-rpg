@@ -2,6 +2,7 @@
 import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
+import { takePerk, undoPerk } from '../ruleset';
 import { spawnNpc } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 
@@ -90,5 +91,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     working: () => [],
     gm(): GmSnapshot { return { state, agentLog: state?.agentLog ?? [], log: state?.log ?? [], fallbackBanner: !!state?.stage.fallback, backups: state ? [{ turn: 0, path: 'stories/fake/backups/0' }] : [] }; },
     async restoreBackup() { emit(); },
+    takePerk(id) { if (state) { takePerk(state, state.player, id); emit(); } },
+    undoPerk(id) { if (state) { undoPerk(state, state.player, id); emit(); } },
   };
 }

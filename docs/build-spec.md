@@ -66,7 +66,13 @@ A Flaw is something the character functionally struggles to improve. Near 100 a 
 - 100 is the mortal limit for raw skill. Above 99, improvement happens only on a 99+ roll. Workaround mechanics come later.
 - Soft cap on raw skill and hard cap on effective skill. Values and behaviour are *placeholders*.
 
-**Effective skill** (computed for every check and roll, in order): raw skill → + gear → + combined-check perks → + skill perks → apply hard cap → apply conditions.
+**Three skill values** (Ali, 07/11/2026):
+
+- **Raw skill:** what training gave. Burden, Total and skill improvement use raw skill only.
+- **True skill:** raw skill + perks that raise that one skill by a flat amount and are always on (e.g. a ladder's Training rung, +5). Ladder rungs and mastery perks read true skill. It has no cap of its own, so a ladder's boosts can carry a skill past the mortal limit of 100 toward the 120 and 140 rungs.
+- **Effective skill** (computed for every check and roll, in order): true skill → + gear → + combined-check perks → + situational skill perks → apply hard cap → apply conditions.
+
+Derived, never saved; the Character page shows true skill, with raw skill beside it when they differ.
 
 Gear is a flat bonus to effective skill unless an item says otherwise. Standard kit (an average fighter's minimum equipment) gives one +25 per roll, shared by all kit pieces: pieces never stack (*placeholder*).
 
@@ -117,7 +123,7 @@ Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to 
 
 Modifier types (each type diminishes within itself; values per type are deferred):
 
-- Gear and skill perks: inside effective skill (§3).
+- Gear and situational skill perks: inside effective skill; flat skill perks: inside true skill (§3).
 - Roll perks: flat roll points.
 - Gear roll modifiers: rare noted modifiers from items, such as the weapon hit adjustment, at full value (Part 5 §3).
 - Wounds: health-track level plus body-part role penalties, in roll points.
@@ -145,9 +151,10 @@ XP drives levels and perks only. Skills grow separately, through skill improveme
   - **Achievements**, each with an id and a name, each earned once. Library achievements are a data table that only code awards: the first defeat of each creature type (100 XP, id first\_defeat:<type>, e.g. "Slimebane") and of each race (100 XP, id first\_defeat\_race:<race>, "Bane of Elfkind"); 10 defeats of one creature type (100 XP, id defeats\_10:<type>, "Scourge of the Slime Hordes"); 10, 100 and 1000 defeats in all (100, 250 and 1000 XP: "Tenfold Reaper", "Calamity of a Hundred Blades", "Thousand-Slayer, Herald of Ruin"); and each mastery perk (250 XP, once mastery perks exist). Names are grand and name what was defeated (Ali, 07/11/2026). Progression keeps defeat counts per creature type and race. New achievements come only from Ali-approved proposals (D-108); Weaver-seeded scene achievements (X7) are dropped (Ali, 07/11/2026). The character sheet lists earned achievements.
   - **Quests** pay on completion by gain: 25/50/100/200. Held until quests exist (X8).
 - **Levels.** From level n to n+1 takes LEVEL\_XP × n XP (LEVEL\_XP 100). There is one XP bar. A level goes to the class picked on the sheet ("Next level goes to", shown when more than one class is current or unlocked), or else to the current class, with no waiting (X9; settles OQ-8). With mechanics shown, the turn lists "+n XP (source)" and "Level n!".
-- **Level perks:** one perk point on every even level, spent on perks. Some perks are trade-offs (e.g. give up a skill for a higher cap, faster training and bonuses to class skills).
+- **Level perks:** one perk point on every even level, spent on perks. Some perks are trade-offs (e.g. give up a skill for a higher cap, faster training and bonuses to class skills); these come later, on their own tab (S6).
+- **Skill ladders** (Ali, 07/11/2026, perk page S1–S9): every skill has a perk at each 20 points of true skill: rungs 20, 40, 60, 80, 100, 120 and 140. Reaching a rung unlocks its perk; taking it costs one perk point (S2). Rungs 20, 60, 100 and 140 give a new trick; rungs 40, 80 and 120 give a number boost, such as +5/+10/+15 true skill (S5). A perk is kept if the skill later drops below its rung (S4). Ladder perks are level perks (OwnedPerk source 'level'). Their content is not written yet.
 - **Mastery perks:** granted instantly, at no point cost, when all three skills in a tree reach 50, 100 and 150. Once granted they are never removed. They replace the LLtQ category bonus.
-- **Mastery check:** runs only when a skill crosses a threshold upward, and checks whether the other two skills in its tree already meet it. Uses raw skill **\[Proposed\]**.
+- **Mastery check:** runs only when a skill crosses a threshold upward, and checks whether the other two skills in its tree already meet it. Uses true skill (S9, Ali, 07/11/2026).
 
 With 100 as the mortal limit, the 150 mastery tier is unreachable through training alone until workaround mechanics are designed.
 
@@ -552,6 +559,8 @@ Rules:
 10. If the player fights with an object from the scene that is not in PLAYER_VIEW (a chair, a
    bottle), set "improvised": the base by its size (improvised_light, improvised_medium,
    improvised_heavy) and a short name for the object. Leave "item" null.
+11. If the player goes to someone who is not in PLAYER_VIEW to talk to them or act on them, give only
+   the move toward where they are and put what they meant to say or do in "deferred". Do not ask who they mean.
 
 Return only JSON matching the schema.
 ```
@@ -1231,7 +1240,7 @@ Every model output is checked before it touches state or the screen, and every f
 | Check | What it catches | On failure |
 | --- | --- | --- |
 | JSON schema on Parser, Planner, Responder, Voice, Narrator, Weaver | Malformed or missing fields | One repair retry with the error; then the fallback for that agent |
-| Legality on the Parser | Targets, items or skills not in PlayerView (a speech action's skill is set by code from its type, so the Parser's is dropped) | Turn stops; ask the Parser's clarify question, else a question about the failed part ("Who do you mean? I can see …", "Which item do you mean?", "Where do you want to go?"), else a generic "What do you do?" (provisional, see D-21) |
+| Legality on the Parser | Targets, items or skills not in PlayerView (a speech action's skill is set by code from its type, so the Parser's is dropped) | Turn stops; ask the Parser's clarify question, else a question about the failed part ("Who do you mean? I can see …", "Which item do you mean?", "Where do you want to go?"), else a generic "What do you do?" (provisional, see D-21) Exception (Q16, Ali 07/11/2026): when the intent has a legal move and only its addressees or action target are out of sight, the move resolves this turn, the action and words are dropped into deferred (logged deferred\_to\_arrival), and the Play screen offers them in the empty action box after the turn |
 | Legality on Planner, Responder, Voice | An order targeting something the actor has no belief about | Drop the order: the Planner's actor uses its combat list; a Responder or Voice uses the fallback reply. Log view\_leak if the id is real but outside the view; log invalid\_target if it doesn't exist |
 | Gear legality on Parser, Planner, Responder, Voice | An item the actor doesn't hold or can't see, a mode the item lacks, a gear op on an item out of reach | Drop that op or field; the action stands if still legal; log invalid\_gear |
 | Planner timing | A Planner call not back by BACKGROUND\_WINDOW | Combat list this turn; discard the whole output; log planner\_late |
@@ -1285,6 +1294,7 @@ Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns
 * **Aim toggle:** marks this turn's attack as aimed (Part 1 §7).
 * **Mechanics panel:** under the narration while SHOW\_MECHANICS is on; dice, modifiers and damage from code.
 * **Out-of-character notices:** the scene-planning failure marker (Agent Weaver), the rate-limit notice and the stop-play message (Leak prevention, validation and failure handling).
+* **Perks (Character page)** (Ali, 07/11/2026, K1–K4, S1, S7): a perk point is spent any time on the Character page; the rail shows a dot while one is unspent, and the level-up line on Play links there (K2). A taken perk can be undone until the next turn is played, then it is permanent (K3). Two views behind a "By tree / By effect" switch. By tree: a tab per skill tree, each skill a ladder of its seven rungs on a gold line showing true skill, the mastery steps 50/100/150 as dotted lines across the tree; on narrow screens the ladders become horizontal tracks. By effect: tracks in the same style grouped by what the perks do (Attack, Defense, Health, Speed, Senses, Speech); each group folds when its name is tapped. Rungs not yet reached are sealed and show only their number; the page never hints at what comes next (K4). Tapping a taken or open rung shows a small card beside it with the perk's text and, when open, "Take · 1 point". Mock-ups: https://claude.ai/artifact/TVfF7qs3WnDdDZzzM6Yjf5
 * **Journal page:** People (actors seen clearly now, or whose name is known; a label until the name is known; health only from Wounded down), Places (the current place and those above it, plus places of facts the character witnessed, folded under their parent place, no drawn map) and a Timeline (turns played since the page was opened). Built from PlayerView, the Journal and the story log only, never the hidden store (Voyage U26, U28; Ali, 07/11/2026).
 * **Side sheet health:** the health bar marks the health-track thresholds and names the current level; clicking it opens each body part with its pool and state (Ali, 07/11/2026).
 * **"You fell" screen:** shown when a lethal fight incapacitates the player, offering /undo or reset (D-54).
@@ -1781,7 +1791,7 @@ The save stores only what can't be rebuilt. Everything recomputable is derived o
 
 | Kind | Fields | Rule |
 | --- | --- | --- |
-| Derived | Effective skill, Total, Burden, cap in effect, health-track level, part states, hit table, active item effects, gear bonuses, protection per part, hands and slots in use, race perk, class perks, character level, excluded skills | Never saved. Effective skill differs per check, so it can't be cached |
+| Derived | True skill, effective skill, Total, Burden, cap in effect, health-track level, part states, hit table, active item effects, gear bonuses, protection per part, hands and slots in use, race perk, class perks, character level, excluded skills | Never saved. Effective skill differs per check, so it can't be cached |
 | History | Raw skills and their states, StartingTotal, mastery perks, level perks chosen, marks, classes and class levels, race, creature type, part pools, minted item blueprints, item instances, shield and armor pool states | Saved as plain fields |
 | Grey zone | XP, unspent perk points, Potential | Saved, with a source trail where the value can change |
 
@@ -2522,7 +2532,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-100 | Command buttons | 2 | Built | Decided by Ali (07/11/2026, Voyage A3): plan buttons on the Play screen that show the available commands (Part 1 §7). Built 07/11/2026 as the Commands panel |
 | D-101 | Game clock | 2, 4 | Deferred | Voyage playtest (07/11/2026): E1, a trade took a day while 31 km of travel took no time; E2, NPCs said "yesterday" on day 1. Covers turn and command durations, travel time and a calendar NPCs can read. Related: D-13, D-49 |
 | D-102 | Resource costs | 1 | Deferred | Voyage playtest (07/11/2026): B12, a failed spell still charged mana. There is no mana or other resource; when one exists, decide whether a failed action still pays |
-| D-103 | NPC self-interest in exchanges | 2 | Deferred | Voyage playtest (07/11/2026): D1, NPCs refused tips and bonuses. Whether Agent Responder and Agent Voice are told to keep their own interests in deals |
+| D-103 | NPC self-interest in exchanges | 2 | Dropped | Dropped by Ali (07/11/2026, easy open questions Q15). Voyage playtest (07/11/2026): D1, NPCs refused tips and bonuses. Whether Agent Responder and Agent Voice are told to keep their own interests in deals |
 | D-104 | Attitude toward the player | 2, 4 | Deferred | Voyage playtest (07/11/2026): D4, a relationship score per NPC with labels; D5, threatening an NPC raised it. A Belief tracks awareness only and stance comes from bands (Part 2, Opposition); threats short of an attack have no lasting effect |
 | D-105 | Quests | 2, 4 | Deferred | Voyage playtest (07/11/2026): D8, a duplicate quest for a job already taken; G2, quest text revealed secrets. Who creates quests and writes their text, a leak check on that text, and de-duplication. Quests are only {id, state, text} for now (Part 4 §9) |
 | D-106 | Narration against NPC lines | 2 | Deferred | Voyage playtest (07/11/2026): D7, the narration contradicted an NPC line. A check that the narration agrees with the NPC lines it quotes |

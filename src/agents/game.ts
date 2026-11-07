@@ -15,7 +15,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
 import { equipLoadout, fullParts } from '../library/spawn';
-import { defaultStandingDefense, healthLevel, tierLevel, tierName, tierPart } from '../ruleset';
+import { defaultStandingDefense, healthLevel, takePerk, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
@@ -331,7 +331,7 @@ export function createGame(deps: GameDeps): Game {
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
-      ...lineExtras(s, events, nv, narr.output.text) });
+      ...lineExtras(s, events, nv, narr.output.text), ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
   }
@@ -507,6 +507,9 @@ export function createGame(deps: GameDeps): Game {
     async restoreBackup() {
       throw new Error('restore is not available: the save module exposes no restore yet'); // GAP (W1)
     },
+    // GAP: a pick lives in memory until the next turn is played and saved; a reload before then drops it (K3 keeps it undoable till then)
+    takePerk(id) { if (state && !busy) { takePerk(state, state.player, id); emit(); } },
+    undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;
