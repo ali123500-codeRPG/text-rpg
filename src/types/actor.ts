@@ -2,6 +2,9 @@
 import type { ActorId, Belief, Fact, FactId, LibraryRef, PlaceId, SlotKey, StoryId, Turn, Stance } from './core';
 import type { ItemInstance } from './items';
 
+export const PRONOUNS = ['he', 'she', 'they', 'it'] as const;
+export type Pronouns = (typeof PRONOUNS)[number];
+
 export type NameHistory = { current: string; past: { name: string; untilTurn: Turn }[] };
 
 export type Actor = {
@@ -11,6 +14,7 @@ export type Actor = {
   names: NameHistory;
   label: string; // public stranger label
   appearance?: string; // public text from the stage plan (W6)
+  pronouns?: Pronouns; // public, from the stage plan (run 14 Q3: agents keep each NPC's pronouns)
   knownOnSight?: boolean;
   placeId: PlaceId; // always the place of `zone`
   zone: string;
