@@ -156,6 +156,14 @@ describe('Parser legality', () => {
     expect(r.clarify).toBeNull();
     expect(r.intent!.action!.skill).toBe('');
   });
+  it('a move to the zone the player already stands in is dropped, not a clarify (runs 11–13)', async () => {
+    const { claude, ctx } = setup();
+    claude.push('parser', intentOf({ move: { toZone: 'tav_common' } }));
+    const r = await callParser('I sit by the fire and wait', playerView(), ctx);
+    expect(r.clarify).toBeNull();
+    expect(r.intent!.move).toBeNull();
+    expect(r.run.log.errors).toEqual([]);
+  });
   it('the Parser\'s own clarify is passed on', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ action: null, clarify: 'Which mug?' }));

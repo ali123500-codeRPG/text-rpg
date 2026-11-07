@@ -31,6 +31,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const gearErrors: string[] = [];
   const out: Intent = { ...intent, action: intent.action ? { ...intent.action } : null };
 
+  // a move to the zone the player already stands in is no move (runs 11–13: it was the most common clarify)
+  if (out.move?.toZone === view.zone.id) out.move = null;
   if (out.move && !view.zone.links.some((l) => l.to === out.move!.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
   const a = out.action;
   if (a) {
