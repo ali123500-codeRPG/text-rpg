@@ -24,6 +24,8 @@ import type { SceneDirector } from '../src/agents';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 const TURNS = Number(arg('turns', '50'));
+/** --max N: after --turns, keep going 10 turns at a time until a level-up and a perk have happened, or N turns (Ali, 07/11/2026) */
+const MAX = Number(arg('max', String(TURNS)));
 const OUT = arg('out', 'playtest-out');
 // GAP: the artifact's `sample` picks the model per tier on claude.ai; this mapping is ours.
 const TIER_MODEL: Record<string, string> = { quick: 'claude-haiku-5-5', default: 'claude-sonnet-5-5', complex: 'claude-opus-5-5' };
@@ -73,6 +75,9 @@ const PERSONAS: Record<string, string> = {
   eager: `You are an over-enthusiastic adventurer. Never wait for the story to come to you: chase every lead, follow anyone
 who leaves, go through every door, ask about rumours and jobs, pick fights you think are just, and when a place goes quiet,
 move on to somewhere new at once.`,
+  bloodthirsty: `You are a violent, bloodthirsty brute (a test of combat, XP and level-ups). You settle everything with your sword:
+insult people, threaten them, and attack anyone who looks at you wrong, starting within your first few turns. Keep fighting
+until your foes are down or flee, then look for the next fight. Use /aim now and then. Never talk your way out of a fight.`,
 };
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
 
@@ -98,7 +103,12 @@ async function main() {
   console.log(`story ${storyId} started (in-memory save)`);
   const agentLog = join(OUT, 'agent-log.jsonl');
   writeFileSync(agentLog, '');
-  for (let t = 1; t <= TURNS; t++) {
+  const tested = () => progress.some((x) => x.includes('level up')) && progress.some((x) => x.includes('took perk'));
+  for (let t = 1; t <= MAX; t++) {
+    if (t > TURNS && (t - TURNS - 1) % 10 === 0) {
+      if (tested()) { console.log(`level-up and perk seen by turn ${t - 1}; stopping`); break; }
+      console.log(`turn ${t - 1}: no level-up and perk yet, playing 10 more`);
+    }
     if (game.fell()) { console.log('player fell'); break; }
     const stop = game.notices().find((n) => n.kind === 'stop_play');
     if (stop) { console.log('stop_play:', stop.text); break; }

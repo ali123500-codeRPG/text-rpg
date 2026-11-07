@@ -231,6 +231,7 @@ describe('applyStagePlan', () => {
     const mags = s.actors[1];
     expect(mags.names.current).toBe('Mags');
     expect(mags.knownOnSight).toBe(true);
+    expect(mags.pronouns).toBe('she'); // run 14 Q3: pronouns are kept on the actor
     expect(mags.mind!.knows).toHaveLength(1);
     expect(mags.core.inventory.find((i) => i.itemId === 'coin')!.qty).toBe(5);
     expect(s.hidden.stage).toEqual({ eventSummary: villageStagePlan().event.summary, challenge: 'moderate', gain: 'moderate', hiddenTerms: ['nest'] });

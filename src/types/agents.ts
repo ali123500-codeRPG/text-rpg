@@ -92,7 +92,7 @@ export type StagePlan = {
   }[];
   cast: {
     template?: string; actor?: string;
-    label: string; name: string; appearance: string;
+    label: string; name: string; appearance: string; pronouns?: 'he' | 'she' | 'they' | 'it';
     knownOnSight?: boolean; knows?: { id: string; text: string }[];
     key: string; band: string; routineSetId: string;
     slots: Record<string, string | string[]>;

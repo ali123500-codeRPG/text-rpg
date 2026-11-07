@@ -122,6 +122,14 @@ describe('NarrationView and the packet', () => {
     const v = buildNarrationView(s, s.events, null);
     expect(v.events).toEqual([{ id: s.events[0].id, kind: 'move', level: 'partial', cue: 'sound', where: 'inside the tavern' }]);
   });
+  it('an NPC\'s stored pronouns reach the Narrator and the Parser (run 14 Q3)', () => {
+    const s = makeVillage();
+    place(s, 'trader', 'tav_common');
+    s.actors.find((a) => a.id === 'trader')!.pronouns = 'she';
+    const trader = s.actors.find((x) => x.id === 'trader')!;
+    expect(buildNarrationView(s, s.events, null).actors.find((a) => a.label === trader.label)?.pronouns).toBe('she');
+    expect(buildPlayerView(s).actors.find((a) => a.id === 'trader')?.pronouns).toBe('she');
+  });
   it("hides others' minor condition changes, shows the player's own", () => {
     const s = makeVillage();
     place(s, 'trader', 'tav_common');
