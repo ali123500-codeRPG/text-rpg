@@ -72,6 +72,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     input.disabled = stopped || api.busy();
     send.disabled = stopped || api.busy();
     aimBtn.disabled = stopped;
+    // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
+    if (!input.disabled && !el.hidden && el.isConnected && (document.activeElement === document.body || document.activeElement === send)) input.focus();
     aimBtn.setAttribute('aria-pressed', String(aimed));
     aimBtn.title = aimed ? 'This turn’s attack is aimed. Click to stop aiming' : 'Click to aim this turn’s attack (same as /aim)';
     aimBtn.textContent = aimed ? 'Aimed' : 'Aim';

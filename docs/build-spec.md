@@ -1232,6 +1232,7 @@ Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns
 * **Creation screen:** the approved layout at https://claude.ai/artifact/HW45ivigqwZ5VDo4PWPv9u (Part 4 §4, Player creation). The story starts from it.
 * **Narration log:** checked narration, newest last, with the "…" waiting indicator (Latency and cost).
 * **Input:** one free-text box; a line starting with / is a command (Part 1 §7).
+* **Input keys:** the action box keeps focus; what it sends is trimmed, and an empty line sends nothing. If narration is ever paced (D-24), skipping uses a click on the narration or Esc, never a key that types (Voyage A7, decided by Ali 07/11/2026; was OQ-24).
 * **Aim toggle:** marks this turn's attack as aimed (Part 1 §7).
 * **Mechanics panel:** under the narration while SHOW\_MECHANICS is on; dice, modifiers and damage from code.
 * **Out-of-character notices:** the scene-planning failure marker (Agent Weaver), the rate-limit notice and the stop-play message (Leak prevention, validation and failure handling).
@@ -2459,6 +2460,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-104 | Attitude toward the player | 2, 4 | Deferred | Voyage playtest (07/11/2026): D4, a relationship score per NPC with labels; D5, threatening an NPC raised it. A Belief tracks awareness only and stance comes from bands (Part 2, Opposition); threats short of an attack have no lasting effect |
 | D-105 | Quests | 2, 4 | Deferred | Voyage playtest (07/11/2026): D8, a duplicate quest for a job already taken; G2, quest text revealed secrets. Who creates quests and writes their text, a leak check on that text, and de-duplication. Quests are only {id, state, text} for now (Part 4 §9) |
 | D-106 | Narration against NPC lines | 2 | Deferred | Voyage playtest (07/11/2026): D7, the narration contradicted an NPC line. A check that the narration agrees with the NPC lines it quotes |
+| D-107 | Action ideas on request | 2 | Planned | Decided by Ali (07/11/2026, Voyage A4; was OQ-23): a code-built list from PlayerView, shown when the player asks: people in view to talk to, exits, items held, actors in reach, grouped by tab (Talk, Move, Fight, Use) and refreshed each turn. No Claude call, so nothing can leak. Narrator rule 7 ("Do not list options") stays for the narration. Not in the first build; design with D-100 |
 
 ## Check on release
 
@@ -2471,7 +2473,7 @@ Decisions built as written for the first build, to be checked once the game is p
 
 ## Open questions (answer before sharing)
 
-These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review; OQ-23 to OQ-27 from the Voyage playtest (07/11/2026). A question with a build default is built that way until it is answered.
+These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review; OQ-25 to OQ-27 from the Voyage playtest (07/11/2026). A question with a build default is built that way until it is answered.
 
 - OQ-4: Does every attack on an unaware actor make an ambush roll, or only an attack made while sneaking?
   - Build default: every attack on an unaware actor.
@@ -2497,10 +2499,6 @@ These must be answered before the spec goes to a build agent. Each question has 
   - Build default: placeholder ids, renamed through library aliases later.
 - OQ-22: Changing objects and places. In the first build a check or a contest only changes beliefs and reveals secrets (Part 2, Resolution engine). How one changes an object or a place, such as a forced door, a picked lock or a stolen item, is not designed yet.
   - Build default: nothing changes; the attempt is only narrated.
-- OQ-23: Action ideas on request (Voyage A4). Ali likes optional ideas shown when the player asks for them. Narrator rule 7 ("Do not list options") stays for the narration itself. Recommendation: a code-built list from PlayerView (people in view to talk to, exits, items held, actors in reach), grouped by tab (Talk, Move, Fight, Use) and refreshed each turn. It adds no Claude call and can't leak. A Claude-written list would add a call and needs a separate decision.
-  - Build default: no ideas list in the first build.
-- OQ-24: Stray keys in the action box (Voyage A7). In the playtest, pressing Space to skip paced narration typed spaces into the action box, because the box had focus. This build has no pacing and no skip key, and the box trims what it sends. Recommendation: if pacing comes (D-24), skip with a click on the narration or Esc, never a key that types; keep trimming input; send nothing when the box is empty.
-  - Build default: as built (focus stays in the box, input trimmed, empty input ignored).
 - OQ-25: Fractional values (Voyage B7). Ali decided HP, part pools and damage may be fractional (D-77). Open: does armor reduction still round (scenario test 95), and how many decimals does the player see? Recommendation: no rounding in the engine; show whole numbers and round only for display.
   - Build default: as written until answered (test 95 rounds armor reduction).
 - OQ-26: The Narrator speaking for the player (Voyage D6). The Narrator wrote the player's words ("Deal.") and choices, and code can't catch an invented line. Recommendation: add an Agent Narrator rule: never write the player character's speech or decisions beyond the resolved action.
