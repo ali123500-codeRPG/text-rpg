@@ -27,12 +27,16 @@ function trackBar(n: HealNote): HTMLElement {
     lv.map((_, i) => h('i', { class: i <= to ? `lv${i}${i === to && from > to ? ' new' : ''}` : i <= from ? 'lost' : '' })));
 }
 
+/** healing rows that show as a quiet line instead of a card (T3 b, Ali 07/11/2026): healing the player didn't choose */
+const QUIET = new Set(['passive']);
+
 export function healCard(n: HealNote): HTMLElement {
   const name = getLibrary().healing?.[n.source]?.name ?? cap(n.source);
   const bits: (HTMLElement | string)[] = [h('span', { class: 'src' }, name)];
   if (n.from !== n.to) bits.push(lvTag(n.from), arrow(), lvTag(n.to));
   for (const p of n.parts) bits.push(h('span', { class: 'pt' }, `· ${partName(p.id).toLowerCase()}`), psTag(p.from), arrow(), psTag(p.to));
   if (n.from === n.to && !n.parts.length) bits.push(h('span', { class: 'pt' }, '· no change'));
+  if (QUIET.has(n.source)) return h('p', { class: 'hquiet', role: 'status' }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✚'), bits);
   return h('div', { class: 'hcard', role: 'status' }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✚'),
     h('div', {}, TITLE[n.source] ?? 'Patched up', h('p', { class: 'hl' }, bits)), trackBar(n));
 }
