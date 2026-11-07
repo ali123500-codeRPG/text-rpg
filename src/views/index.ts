@@ -101,7 +101,8 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (a.id === state.player.id && !atLeast(viewer.mind?.knowledge[a.id]?.status, 'aware')) continue;
     // P3: in a dark zone someone is half seen, unless they share the viewer's zone and the viewer perceived them
     // fully this scene (spoke face to face, say): then they stay seen
-    const level = zoneById(state, a.zone)?.light === 'dark' && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
+    const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
+    const level = zoneById(state, a.zone)?.light === 'dark' && !keptSight && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
     // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [] }); continue; }
     const name = viewer.id === state.player.id ? (nameKnown(state, a) ? a.names.current : undefined) : viewer.bandId === a.bandId ? a.names.current : undefined;

@@ -27,8 +27,8 @@ const COMMANDS: [string, string][] = [
 ];
 
 // check line: an icon for the kind of roll, and each tier as a chip tinted good (Success and up) or bad (below)
-const ICON_PATH = { attack: 'M14.5 4H20v5.5L9 20.5 3.5 15zM6 13l5 5M4 20l2.5-2.5', contest: 'M4 5h16v11H9l-5 4z' };
-function checkIcon(kind: 'attack' | 'contest'): SVGSVGElement {
+const ICON_PATH = { attack: 'M14.5 4H20v5.5L9 20.5 3.5 15zM6 13l5 5M4 20l2.5-2.5', contest: 'M4 5h16v11H9l-5 4z', roll: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z' };
+function checkIcon(kind: 'attack' | 'contest' | 'roll'): SVGSVGElement {
   const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   s.setAttribute('class', 'hs-i ci'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
   const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');

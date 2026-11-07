@@ -2,8 +2,8 @@
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
 import { activity } from '../library';
-import { defaultMode, healthLevel, moraleCheck, partStates, ruleset, usableModes } from '../ruleset';
-import { applyBeliefDecay, computePerception, updateBeliefs } from '../perception';
+import { defaultMode, healthLevel, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
+import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
@@ -73,6 +73,7 @@ function initiativeOrder(state: GameState, ids: string[], rng: Rng): string[] {
 function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | AttackResult, perceived = false): void {
   const { state, rng } = ctx;
   if (!perceived) ev.perception = computePerception(ev, state, rng);
+  noteSightings(ev, state);
   updateBeliefs(state, { kind: 'event', event: ev, result });
   if (ev.actorId === state.player.id && isMajorAction(ev)) detectPlayer(state, ev, rng);
   if (ev.kind === 'attack' && ev.target) setAttackOverrides(state, ev);
@@ -258,7 +259,20 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const kind = o.type === 'idle' ? 'idle' : o.type;
   const ev = bark(withActivity(mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   let result: CheckResult | undefined;
-  if (o.skill && CHECK_TYPES.has(o.type)) {
+  if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
+    // Q17 (Ali, 07/11/2026): looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
+    const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
+    const light = CONFIG.LIGHT_MODS[zoneById(state, a.zone)?.light ?? 'bright'] ?? 0;
+    const modifiers = [
+      ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
+      ...(light ? [{ source: 'light', type: 'situational' as const, value: light }] : []),
+    ];
+    const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [] }, state, rng);
+    ev.roll = r;
+    ev.tier = r.tier;
+    if (tierAtLeast(r.tier, 'success')) lookAround(state);
+    ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
+  } else if (o.skill && CHECK_TYPES.has(o.type)) {
     result = ruleset.check({ actorId: a.id, skill: o.skill, target: o.target ?? undefined, modifiers: [] }, state, rng);
     ev.check = result;
     ev.effects = ruleset.applyEffects(result, state);

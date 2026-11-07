@@ -3,7 +3,7 @@ import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackRes
 import { BELIEF_ORDER } from '../types';
 import { CONFIG } from '../config';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
-import { itemDef } from '../library';
+import { getLibrary, itemDef, resolveAlias } from '../library';
 
 export type BeliefUpdate =
   | { kind: 'event'; event: GameEvent; result?: CheckResult | ContestResult | AttackResult }
@@ -46,12 +46,46 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   let sight: Seen | null = null;
   const sl = sightReach(event.visibility, dist(state, observer.zone, event.zone, true));
   if (sl) sight = { level: zone?.light === 'dark' ? 'partial' : sl, cue: 'sight' };
+  // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see)
+  if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone) {
+    const d = dist(state, observer.zone, event.zone, true);
+    if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
+  }
   const nl = soundReach(event.noise, dist(state, observer.zone, event.zone, false));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.
   if (event.target === observer.id) best = better(best, { level: 'partial', cue: 'touch' });
   return best;
+}
+
+/** Q17: the player's clear sightings. A full sight of an actor records its zone; a move the player did not see clearly forgets it. */
+export function noteSightings(event: GameEvent, state: GameState): void {
+  const p = state.player;
+  if (!p.journal || event.actorId === p.id) return;
+  const per = event.perception[p.id];
+  const cs = (p.journal.clearSight ??= {});
+  if (per?.level === 'full' && per.cue === 'sight') cs[event.actorId] = event.zone;
+  else if (event.kind === 'move' || event.kind === 'flee') delete cs[event.actorId];
+}
+
+/** Q17: is this a notice skill read by sight or sound (sight, hearing) */
+export function noticeCue(skill: string): 'sight' | 'sound' | undefined {
+  return getLibrary().skills[resolveAlias(skill)]?.cue;
+}
+
+/** Q17: a successful look shows everyone in the player's zone and the zones in sight of it clearly. */
+export function lookAround(state: GameState): string[] {
+  const p = state.player;
+  if (!p.journal) return [];
+  const cs = (p.journal.clearSight ??= {});
+  const shown: string[] = [];
+  for (const a of allActors(state)) {
+    if (a.id === p.id) continue;
+    const d = dist(state, p.zone, a.zone, true);
+    if (d !== null && d <= 1) { cs[a.id] = a.zone; shown.push(a.id); }
+  }
+  return shown;
 }
 
 /** who perceives `event`, at the moment it happens (level and cue). The player's own events reach observers unaware of the player only through detection. */
