@@ -1,0 +1,129 @@
+// Narrator leak scan, fact check and the templated fallback narration (D-23: plain templates until decided).
+// The scan itself is code and may read GameState; nothing here is ever sent to an agent.
+import type { GameState, NarrationEvent, NarrationView, NarratorOutput } from '../types';
+import { itemDef } from '../library';
+
+/** what must not appear in the text unless the view itself holds it */
+export type LeakContext = {
+  terms: string[]; // leakTerms of unrevealed secrets + the active stage's hiddenTerms
+  names: string[]; // names of actors not in namesKnown, names of items outside the player's own gear
+  ids: string[]; // actor, zone, item instance and secret ids
+};
+
+export function buildLeakContext(state: GameState): LeakContext {
+  const known = new Set(state.player.journal?.secretsKnown ?? []);
+  const namesKnown = new Set(state.player.journal?.namesKnown ?? []);
+  const terms = [
+    ...state.hidden.secrets.filter((s) => !known.has(s.id)).flatMap((s) => s.leakTerms),
+    ...state.hidden.stage.hiddenTerms,
+  ];
+  const names: string[] = [];
+  for (const a of state.actors) {
+    if (!namesKnown.has(a.id) && !a.knownOnSight) names.push(a.names.current, ...a.names.past.map((p) => p.name));
+  }
+  const itemName = (itemId: string) => {
+    try {
+      return itemDef(state, itemId).name;
+    } catch {
+      return null;
+    }
+  };
+  const ownNames = new Set(state.player.core.inventory.map((i) => itemName(i.itemId)));
+  for (const i of [...state.actors.flatMap((a) => a.core.inventory), ...state.zones.flatMap((z) => z.groundItems)]) {
+    const n = itemName(i.itemId);
+    if (n && !ownNames.has(n)) names.push(n);
+  }
+  const ids = [
+    ...state.actors.map((a) => a.id),
+    ...state.zones.map((z) => z.id),
+    ...state.actors.flatMap((a) => a.core.inventory.map((i) => i.id)),
+    ...state.player.core.inventory.map((i) => i.id),
+    ...state.hidden.secrets.map((s) => s.id),
+  ];
+  return { terms: uniq(terms), names: uniq(names), ids: uniq(ids) };
+}
+
+const uniq = (xs: string[]) => [...new Set(xs.filter((x) => x && x.trim()))];
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** whole-word, case-insensitive phrase match */
+export function mentions(text: string, phrase: string): boolean {
+  const p = esc(phrase.trim());
+  const pre = /^\w/.test(phrase.trim()) ? '\\b' : '';
+  const post = /\w$/.test(phrase.trim()) ? '\\b' : '';
+  return new RegExp(`${pre}${p}${post}`, 'i').test(text);
+}
+
+/** every forbidden name, id or term found in `text` that the view (or other allowed text) does not itself hold */
+export function leakScan(text: string, allowedText: string, ctx: LeakContext): string[] {
+  const hits: string[] = [];
+  for (const [kind, list] of [['term', ctx.terms], ['name', ctx.names], ['id', ctx.ids]] as const) {
+    for (const x of list) if (mentions(text, x) && !mentions(allowedText, x)) hits.push(`${kind}:${x}`);
+  }
+  return hits;
+}
+
+const POSITION = new Set(['move', 'arrival', 'flee', 'sneak']);
+const INVENTORY = new Set(['give', 'pick_up', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen']);
+
+/** full events that must be narrated: presence, and anything changing the player's condition, inventory or position */
+export function mustNarrate(e: NarrationEvent, view: NarrationView): boolean {
+  if (e.level !== 'full') return false;
+  if (e.kind === 'presence' || e.kind === 'arrival') return true;
+  const isPlayer = (x?: string) => x === 'player' || x === view.player.name;
+  const byPlayer = isPlayer(e.actor) || isPlayer(e.packet?.actor);
+  const onPlayer = isPlayer(e.target) || isPlayer(e.packet?.target);
+  if (byPlayer && POSITION.has(e.kind)) return true;
+  if ((byPlayer || onPlayer) && INVENTORY.has(e.kind)) return true;
+  if (onPlayer && ((e.changes?.length ?? 0) > 0 || (e.packet?.changes.length ?? 0) > 0)) return true;
+  return false;
+}
+
+/** narrated ids must be in the view; required events must be listed */
+export function factCheck(out: NarratorOutput, view: NarrationView): string[] {
+  const ids = new Set(view.events.map((e) => e.id));
+  const errs = out.narrated.filter((id) => !ids.has(id)).map((id) => `unknown_event:${id}`);
+  const listed = new Set(out.narrated);
+  for (const e of view.events) if (mustNarrate(e, view) && !listed.has(e.id)) errs.push(`missing_event:${e.id}`);
+  return errs;
+}
+
+// ---------------- fallback narration ----------------
+
+const who = (x?: string) => (!x ? 'someone' : x === 'player' ? 'you' : x);
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const SAYS = { whisper: 'whispers', normal: 'says', shout: 'shouts' } as const;
+const PARTIAL: Record<string, string> = {
+  sound: 'You hear something',
+  sight: 'You glimpse movement',
+  smell: 'You catch a smell',
+  touch: 'You feel something',
+};
+
+function eventLine(e: NarrationEvent): string {
+  if (e.level === 'partial') return `${PARTIAL[e.cue] ?? 'Something stirs'}${e.where ? ` ${e.where}` : ''}.`;
+  if (e.line) return `${cap(who(e.line.speaker ?? e.actor))} ${SAYS[e.line.volume]}: "${e.line.text}"`;
+  if (e.packet) {
+    const p = e.packet;
+    const loc = p.location ? ` (${p.location.part})` : '';
+    const ch = p.changes.length ? ` ${p.changes.join('; ')}.` : '';
+    return `${cap(who(p.actor))} ${p.action.replace(/_/g, ' ')}s ${who(p.target)}: ${p.outcome.replace(/_/g, ' ')}${loc}.${ch}`;
+  }
+  switch (e.kind) {
+    case 'presence':
+      return `${cap(who(e.actor))} is here${e.activityLook ? `, ${e.activityLook}` : ''}.`;
+    case 'arrival':
+      return `${cap(who(e.actor))} ${e.actor === 'player' ? 'arrive' : 'arrives'}${e.where ? ` at ${e.where}` : ''}.`;
+    case 'move':
+      return `${cap(who(e.actor))} ${e.actor === 'player' ? 'move' : 'moves'}${e.where ? ` to ${e.where}` : ''}.`;
+  }
+  const changes = e.changes?.length ? `: ${e.changes.join('; ')}` : '';
+  return `${cap(who(e.actor))} ${e.kind.replace(/_/g, ' ')}${e.target ? ` ${who(e.target)}` : ''}${e.item ? ` (${e.item})` : ''}${changes}.`;
+}
+
+/** plain template text from the view only, so it can never leak */
+export function fallbackNarration(view: NarrationView): NarratorOutput {
+  const lines = view.events.map(eventLine);
+  const here = view.surroundings.find((z) => z.id === view.player.zone) ?? view.surroundings[0];
+  if (here) lines.push(`You are in ${here.name}.`);
+  return { text: lines.join(' '), narrated: view.events.map((e) => e.id) };
+}
