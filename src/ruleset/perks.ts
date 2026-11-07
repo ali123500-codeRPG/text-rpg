@@ -11,6 +11,8 @@ export const ALL_STEPS = [50, 100, 150] as const;
 export const PERKS_NEEDED: Record<number, number> = { 20: 0, 40: 0, 60: 1, 80: 1, 100: 2, 120: 2, 140: 3 };
 
 const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
+/** the actor owns this perk and it is not dormant: every coded perk checks this */
+export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks.some((p) => p.perkId === perkId && !p.dormant);
 
 export function trueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];

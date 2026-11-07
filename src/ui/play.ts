@@ -173,7 +173,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     who.hidden = !seen.length;
     who.replaceChildren(h('span', { class: 'hs-label' }, 'Who’s here'), ...seen.map((a) => h('span', { class: 'pp' }, h('b', {}, cap(a.name ?? a.label)),
       a.health ? h('span', { class: a.health === 'Incapacitated' ? 'st down' : 'st warn' }, a.health === 'Incapacitated' ? 'Down' : a.health)
-        : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null)));
+        : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
+      // A13 Read Wounds: a foe's Damaged parts
+      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${pt.replace(/_/g, ' ')} damaged`)))));
     const lines = api.lines();
     // Q16: what the player put off last turn fills an empty action box once (nothing is sent until Send)
     const nextLine = lines.at(-1);
