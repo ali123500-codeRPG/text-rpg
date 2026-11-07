@@ -312,3 +312,18 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-mini .r { display: grid; grid-template-columns: minmax(0, 1fr) 70px 28px; gap: 8px; align-items: center; font-size: 13px; }
 .cs-mini .r .cs-bar { height: 6px; }
 .cs-mini .r b { text-align: right; }
+
+/* body figure (Ali, 07/11/2026) */
+.bf { display: grid; justify-items: center; gap: 4px; }
+.bf-svg svg { width: 140px; height: auto; display: block; cursor: pointer; }
+.cs-card .bf-svg svg { width: 120px; }
+.bf-svg path { stroke: var(--bg); stroke-width: 2; fill-opacity: .8; }
+.bf-svg path:hover, .bf-svg path.on { fill-opacity: 1; stroke: var(--text); }
+.bf-healthy { fill: var(--ok); background: var(--ok); }
+.bf-damaged { fill: var(--warn); background: var(--warn); }
+.bf-crippled { fill: var(--danger); background: var(--danger); }
+.bf-destroyed { fill: url(#bf-hatch); background: repeating-linear-gradient(45deg, #5a6488 0 2px, var(--bg) 2px 4px); }
+.bf-out { margin: 0; min-height: 18px; font-size: 13px; text-align: center; }
+.bf-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin: 0; font-size: 12px; color: var(--muted); }
+.bf-key span { display: inline-flex; align-items: center; gap: 4px; }
+.bf-key i { width: 10px; height: 10px; border-radius: 2px; }

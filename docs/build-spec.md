@@ -1351,7 +1351,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 76 | Gap ladder | With forced dice, gap +1 against dodge gives 0.8×, and gap 0 against block lands on a Non-essential part or the general area |
 | 77 | No clamp | Great Success plus a natural 00 gives Critical Success with beyond 1; the packet shows Critical Success+ |
 | 78 | Ladder ends | A gap of +6 or −6 uses the ±5 entry |
-| 79 | Named part | At gap −2 a hit rolled on the general area moves to the named legs; one rolled on an arm stays |
+| 79 | Named part | At gap −2 a hit rolled on the general area moves to the named left leg; one rolled on an arm stays |
 | 80 | Aim is code-set | The Parser output never carries aimed; /aim sets it for one turn only |
 | 81 | Forbidden part | An aimed head attack against a dodge tie lands in the general area |
 | 82 | Shield routing | A block with a shield at gap 0 damages the shield's pool and not the health track |
@@ -1476,7 +1476,7 @@ Every part carries a size, an impact and one or more roles, all stored in code. 
 
 Role penalties (Damaged and Crippled columns of the role table) are roll modifiers of type wounds.
 
-At reference HP 100: head 20, each arm 30, legs 30, neck 15. A medium blow (25) Cripples a head and a second Destroys it; a limb goes Damaged, Crippled, Destroyed over three blows.
+At reference HP 100: head 20, each arm 30, each leg 30, neck 15. A medium blow (25) Cripples a head and a second Destroys it; a limb goes Damaged, Crippled, Destroyed over three blows.
 
 **States**
 
@@ -1542,12 +1542,15 @@ On/off effects of shared roles (no running, can't fly) switch on when Crippled a
 
 | Part | Size | Impact | Roles | Location roll |
 | --- | --- | --- | --- | --- |
-| Head | Small | Essential | Sense | 01–09 |
-| Left arm | Normal | Normal | Grip | 10–28 |
-| Right arm | Normal | Normal | Grip | 29–47 |
-| Legs | Normal | Normal | Move | 48–66 |
-| Neck | Extra small | Essential | — | 67–70 |
+| Head | Small | Essential | Sense | 01–07 |
+| Left arm | Normal | Normal | Grip | 08–22 |
+| Right arm | Normal | Normal | Grip | 23–37 |
+| Left leg | Normal | Normal | Move | 38–52 |
+| Right leg | Normal | Normal | Move | 53–67 |
+| Neck | Extra small | Essential | — | 68–70 |
 | General (torso) | — | Normal | — | 71–00 |
+
+Humanoids have a left and a right leg, each with its own pool (Ali, 07/11/2026). Move is a shared role, so one Damaged leg gives half the Move penalty; one Crippled leg (50% of the role's parts) does not stop running, one Destroyed leg (counted twice) does. Saves from schema v3 are converted: both legs start from the old legs pool, and armor that covered legs covers both.
 
 The neck is adjacent to the head and the general area. Head and neck are separate in every calculation.
 
@@ -1587,7 +1590,8 @@ Code keeps every creature type, its parts and the role table. Agent Weaver names
         {"id": "head", "size": "small", "impact": "essential", "roles": ["sense"], "adjacent": ["general", "neck"]},
         {"id": "left_arm", "size": "normal", "impact": "normal", "roles": ["grip"]},
         {"id": "right_arm", "size": "normal", "impact": "normal", "roles": ["grip"]},
-        {"id": "legs", "size": "normal", "impact": "normal", "roles": ["move"]},
+        {"id": "left_leg", "size": "normal", "impact": "normal", "roles": ["move"]},
+        {"id": "right_leg", "size": "normal", "impact": "normal", "roles": ["move"]},
         {"id": "neck", "size": "extra_small", "impact": "essential", "roles": [], "adjacent": ["head", "general"]}
       ]
     },
@@ -1704,13 +1708,13 @@ Visibility rules apply only to other characters: the player's own character is a
   "attack":  { "tier": "Great Success",  "natural": null, "deciding": [] },
   "defense": { "type": "dodge", "tier": "Success", "natural": null, "deciding": [] },
   "outcome": "full hit",
-  "location": { "part": "legs", "how": "aimed" },
+  "location": { "part": "left_leg", "how": "aimed" },
   "changes": [],
   "events": []
 }
 ```
 
-Outcome labels: missed, dodged, grazed, blocked, full hit, heavy hit (gap −4), crushing hit (gap −5). Location how: rolled, aimed, redirected, restricted, shield. The packet carries no numbers: no d100, margin, skill, needed number, damage, multiplier, pool or HP. Here changes is empty because the bandit's legs only went Healthy → Damaged and he is only Hurt; both are hidden for anyone but the player. The packet also has armor and shield beside weapon. All three hold public item names only: the item used (a natural attack gives its mode's name), the worn armor covering the struck part, and the shield when the hit went to it; null when there is none (Part 5 §8).
+Outcome labels: missed, dodged, grazed, blocked, full hit, heavy hit (gap −4), crushing hit (gap −5). Location how: rolled, aimed, redirected, restricted, shield. The packet carries no numbers: no d100, margin, skill, needed number, damage, multiplier, pool or HP. Here changes is empty because the bandit's left leg only went Healthy → Damaged and he is only Hurt; both are hidden for anyone but the player. The packet also has armor and shield beside weapon. All three hold public item names only: the item used (a natural attack gives its mode's name), the worn armor covering the struck part, and the shield when the hit went to it; null when there is none (Part 5 §8).
 
 ## Part 4 — Save data model
 
@@ -2624,9 +2628,9 @@ Seventeen library items for the first build, approved as placeholders (Nov 2026)
 | longbow | weapon | shoot: ranged medium, reach 4 | Kit +25 | 2 | 3 | 35 |
 | crossbow | weapon | shoot: ranged heavy, reach 4 | Kit +25 | 2 | 3 | 40 |
 | hidden\_blade | weapon, concealed | stab: melee light, reach 0 | Kit +25 | 1 | 1 | 30 |
-| gambeson | armor, light | covers general, arms, legs · 2, ×0.8 | Dodge −5 | — | 2 | 15 |
+| gambeson | armor, light | covers general, arms, both legs · 2, ×0.8 | Dodge −5 | — | 2 | 15 |
 | mail\_hauberk | armor, medium | covers general, arms · 4, ×0.65 | Dodge −10 | — | 3 | 60 |
-| plate\_harness | armor, heavy | covers general, arms, legs, head, neck · 6, ×0.55 · head pool: 20 | Dodge −20 | — | 3 | 200 |
+| plate\_harness | armor, heavy | covers general, arms, both legs, head, neck · 6, ×0.55 · head pool: 20 | Dodge −20 | — | 3 | 200 |
 | round\_shield | shield | shield part, pool 30 | Kit +25 (Block) | 1 | 2 | 10 |
 | signet\_ring | accessory, visible | — | none; shows the visible tag | — | 0 | 40 |
 | lucky\_charm | misc | — | Situation roll +5, carried, any (noted roll modifier) | — | 0 | 50 |

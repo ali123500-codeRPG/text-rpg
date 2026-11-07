@@ -30,6 +30,8 @@ export type CreatureType = {
   naturalArmor?: NaturalArmor;
   parts: PartDef[];
   fallback: { attackSkill: string };
+  /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
+  figure?: { viewBox: string; parts: Record<string, string> };
 };
 
 export type Library = {
