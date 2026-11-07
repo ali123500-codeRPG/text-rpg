@@ -14,4 +14,7 @@ export const BUILT_PERKS = new Set<string>([
   'open_hand_guard', // A7: src/ruleset/gear.ts openHandArm(), attack() and applyEffects()
   'threaten_for_answers', // A16: src/engine/speech.ts resolveSpeech()
   'hold', // A8: src/engine/held.ts, the grapple mode in src/library/data.ts
+  'leg_bolt', // A6: attack(), applyEffects(), src/engine/perkMarks.ts slowed()
+  'dirt_in_the_eyes', // A9: src/engine/perkMoves.ts, the Parser's perkMove
+  'quick_word', // A15 (trial): src/engine/speech.ts quickWord(), the exchange slot in resolveTurn()
 ]);

@@ -96,6 +96,7 @@ export type AttackResult = {
   modeId: string;
   shieldItemId?: string;
   shieldMult?: number; // A3 Shield Breaker: the shield pool takes this multiple of the damage
+  legBolt?: boolean; // A6 Leg Bolt: the leg's pool takes CONFIG.LEG_BOLT_PART_MULT× the damage, and the target is slowed
   /** A7 Open-Hand Guard: of `damage`, this much goes to the general area; the rest lands on the blocking arm (location) */
   generalShare?: number;
 };
@@ -124,6 +125,8 @@ export type Order = {
   intent: string;
   source: OrderSource;
   move?: string | null; // player: the turn's one move (toZone), resolved before the main action
+  moveAfter?: boolean; // AE3: the player's move comes after the main action
+  perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;
   aimed?: boolean;
   defense?: 'dodge' | 'block' | null;

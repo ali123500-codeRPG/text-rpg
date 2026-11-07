@@ -52,7 +52,7 @@ const GEAR = nul(arr(gearOp));
 const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
 
 const intent = obj<Intent>({
-  move: nul(obj<{ toZone: string }>({ toZone: str })),
+  move: nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after'])),
   action: nul(obj<NonNullable<Intent['action']>>({
     type: oneOf(['attack', 'hide', 'sneak', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : str(v, p, e)),
@@ -65,12 +65,13 @@ const intent = obj<Intent>({
     improvised: (v, p, e) => (v === null || v === undefined ? null
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
   })),
+  perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   gear: GEAR,
   spoken: nul(str),
   addressees: nul(arr(str)),
   deferred: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
   clarify: nul(str),
-});
+}, ['perkMove']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(['attack', 'move', 'search', 'hide', 'hold', 'call_help', 'flee', 'talk', 'use_item', 'equip', 'give', 'other'] as const),

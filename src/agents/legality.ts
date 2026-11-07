@@ -65,6 +65,11 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
       }
     }
   }
+  // AE8: a perk move the player doesn't own, or aimed at no one in view, is dropped (the rest of the turn stands)
+  if (out.perkMove && (!view.player.perkMoves?.includes(out.perkMove.perk) || (out.perkMove.target !== null && !actors.has(out.perkMove.target)))) {
+    gearErrors.push(`perkMove ${out.perkMove.perk}`);
+    out.perkMove = null;
+  }
   if (out.addressees) {
     const okAddr = (x: string) => x === 'everyone' || actors.has(x) || bandIds.includes(x);
     for (const x of out.addressees) if (!okAddr(x)) illegal.push(`addressee ${x}`);

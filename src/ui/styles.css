@@ -419,6 +419,17 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .hseg i.new { box-shadow: 0 0 0 1.5px #fff8, 0 0 10px var(--c); }
 .hseg i.lost { background: transparent; outline: 1px dashed color-mix(in oklch, var(--warn) 60%, transparent); outline-offset: -1px; }
 @media (max-width: 560px) { .hcard { flex-wrap: wrap; } .hseg { margin-left: 30px; } }
+.hquiet { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 6px 0; font-size: 13px; color: #a9dcb9; }
+.hquiet .x { color: var(--ok); font-size: 15px; }
+.hquiet .src { color: inherit; }
+.hquiet .ar, .hquiet .pt { color: var(--faint); }
+/* Time of day (Ali, 07/11/2026): T1 coloured icon by the title, T2 divider when time passes; colours keyed by TIME_OF_DAY key */
+.tod-dawn { --tod: #f0a8a0; } .tod-day { --tod: #f2d36b; } .tod-dusk { --tod: #e59a6b; } .tod-night { --tod: #9db4ff; }
+.tod-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tod { display: inline-flex; vertical-align: middle; margin-left: 12px; position: relative; top: -2px; color: var(--tod); cursor: default; }
+.tod .tod-i { width: 22px; height: 22px; filter: drop-shadow(0 0 6px color-mix(in oklch, var(--tod) 45%, transparent)); }
+.tpass { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--tod); font-size: 14px; font-weight: 600; }
+.tpass::before, .tpass::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--tod) 55%, transparent), transparent); }
 .bf-svg path.bf-healed { stroke: #9ff0bd; stroke-width: 2.5; filter: drop-shadow(0 0 5px #5fd38a); fill-opacity: 1; }
 .inbar button.itm { display: inline-flex; align-items: center; gap: 5px; padding-left: 10px; padding-right: 12px; }
 .inbar button.itm[hidden] { display: none; }

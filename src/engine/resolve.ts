@@ -1,15 +1,16 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
-import { activity, getLibrary, itemDef } from '../library';
+import { activity, creatureType, getLibrary, itemDef } from '../library';
 import { applyHealing, passiveHealing } from './heal';
 import { defaultMode, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
 import { updateEngagements } from './engagement';
-import { afterAttack, coverFor, expireMarks } from './perkMarks';
+import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
 import { applyHold, breakFree, releaseHolds } from './held';
+import { perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -416,9 +417,56 @@ function step(ctx: Ctx, id: string): void {
   const g = applyGearOps(state, a, o.gear); // free, before the action
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
-  if (o.move && !doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+  // AE1: a ranged attack and a move don't share a turn: the attack stands if it reaches from here, else the move does
+  if (o.move && o.type === 'attack' && rangedHere(state, a, o)) {
+    if (inReach(state, a, o)) { logCode(state, 'move_dropped', { actorId: id, to: o.move, reason: 'ranged_attack' }); o.move = null; }
+    else { logCode(state, 'order_dropped', { actorId: id, type: o.type, target: o.target, reason: 'ranged_after_move' }); o.type = 'hold'; o.target = null; }
+  }
+  const move = () => {
+    if (o.move && !doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+  };
+  const from = a.zone;
+  if (!o.moveAfter) move();
+  // AE2: dash: a player with no main action who moved and is still short of the move's zone spends the action on a second link
+  if (!o.moveAfter && o.move && a === state.player && o.type === 'hold' && a.zone !== from && a.zone !== o.move && !ctx.mainDone.has(id)) {
+    ctx.mainDone.add(id);
+    if (lame(state, a)) logCode(state, 'dash_blocked', { actorId: id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' });
+    else if (!doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+  }
+  if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
   if (!ctx.mainDone.has(id)) doMain(ctx, a, o);
+  if (o.moveAfter) move(); // AE3: act, then move
 }
+
+/** AE5/AE8: a perk move; a free one resolves beside the main action, just before it */
+function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): void {
+  const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
+  if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
+  const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
+  emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
+}
+
+/** the attack mode the actor would use from a zone (as doAttack picks it) and the distance to the target */
+function attackMode(state: GameState, a: Actor, o: Order, from = a.zone) {
+  const t = o.target ? actorById(state, o.target) : undefined;
+  const dist = t ? shortestPath(state, from, t.zone, true)?.length ?? Infinity : Infinity;
+  const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
+  return { m: named ?? defaultMode(state, a, dist), dist };
+}
+const inReach = (state: GameState, a: Actor, o: Order, from = a.zone) => { const { m, dist } = attackMode(state, a, o, from); return !!m && dist <= m.mode.reach; };
+/** AE1: the attack would be ranged from here, or (out of reach here) from where the move leads */
+const rangedHere = (state: GameState, a: Actor, o: Order) => {
+  const here = attackMode(state, a, o);
+  const there = o.move ? shortestPath(state, a.zone, o.move)?.[0] : undefined;
+  const m = here.m && here.dist <= here.m.mode.reach ? here.m : there ? attackMode(state, a, o, there).m : here.m;
+  return m?.mode.tree === 'ranged';
+};
+/** AE2: a Crippled or Destroyed part with the move role stops a dash, and so does Leg Bolt's slow (A6) */
+const lame = (state: GameState, a: Actor) => {
+  if (slowed(state, a)) return true;
+  const parts = new Map(partStates(state, a).map((p) => [p.id, p.state]));
+  return creatureType(state, a.core.creatureTypeId).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
+};
 
 // ---------- the turn ----------
 
@@ -443,21 +491,29 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
 
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order
   const ex = input.exchange;
-  if (ex && isActive(state.player) && isSpeech(playerOrder.type)) {
+  if (ex && isActive(state.player) && (isSpeech(playerOrder.type) || input.quickWord)) {
     const ev = mk(ctx, state.player, 'speak', {
       line: { text: input.intent?.spoken ?? '', volume: 'normal' }, tier: ex.playerTier,
       speech: { skill: ex.skill, impression: ex.impression ?? undefined, addressees: input.spokespeople },
     });
     emit(ctx, ev);
     ctx.exchangeEvents.push(ev);
-    ctx.mainDone.add(state.player.id);
+    if (input.quickWord) playerOrder.line = null; // A15: the line was said; the action follows in turn order
+    else ctx.mainDone.add(state.player.id);
     const spokes = new Set(input.spokespeople);
     for (const id of ordered) {
       const o = orders.get(id);
       const a = actorById(state, id);
-      if (!spokes.has(id) || !o || !a || !isActive(a) || o.source !== 'agent' || !isSpeech(o.type)) continue;
-      ctx.acted.add(id);
-      doSpeak(ctx, a, o);
+      if (!spokes.has(id) || !o || !a || !isActive(a) || o.source !== 'agent') continue;
+      if (!isSpeech(o.type)) {
+        // A15 Quick Word: a spoken reply is free; the reply's action still comes in turn order
+        if (!input.quickWord || !o.line) continue;
+        doSpeak(ctx, a, { ...o, type: 'talk', target: state.player.id });
+        o.line = null;
+      } else {
+        ctx.acted.add(id);
+        doSpeak(ctx, a, o);
+      }
       ctx.exchangeEvents.push(ctx.events[ctx.events.length - 1]);
     }
   }
@@ -465,7 +521,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const id of ordered) if (!ctx.acted.has(id)) step(ctx, id);
 
   applyBeliefDecay(state);
-  const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : undefined;
+  const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
   updateAlarms(state, ctx.events);
   applyAgentEffects(state, input, {

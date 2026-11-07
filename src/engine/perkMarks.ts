@@ -3,7 +3,10 @@
 //   Turn the Blade (A2): a clean block (gap +2 or better) with a melee weapon opens the attacker to the owner's next melee attack.
 //   Hunter's Mark (A5): a ranged hit marks the target for the owner's next ranged attack.
 //   Make Them Stumble (A10): a clean dodge of a melee attack makes the attacker's next defense one tier worse.
-// The two openings last until used or the owner's engagement ends; the stumble until the end of the attacker's next turn.
+//   Leg Bolt (A6): a medium or heavy ranged hit that wounds a leg slows the target (no dash) until the end of its next turn.
+//   Dirt in the Eyes (A9): the foe's next attack or defense roll (they need sight) is two tiers worse (perkMoves.ts makes it).
+// The two openings last until used or the owner's engagement ends; the stumble, slow and dirt until the end of the
+// marked actor's next turn.
 import type { Actor, AttackResult, GameState } from '../types';
 import { itemDef } from '../library';
 import { hasPerk } from '../ruleset/perks';
@@ -11,7 +14,7 @@ import { blockItem, canBlock, effectiveSkill } from '../ruleset/gear';
 import { allActors, isActive, stance } from './relations';
 
 const HITS = new Set(['grazed', 'blocked', 'full_hit', 'heavy_hit', 'crushing_hit']);
-export const MARK_SOURCE: Record<string, string> = { turn_the_blade: 'Turn the Blade', hunters_mark: 'Hunter’s Mark', make_them_stumble: 'Make Them Stumble' };
+export const MARK_SOURCE: Record<string, string> = { turn_the_blade: 'Turn the Blade', hunters_mark: 'Hunter’s Mark', make_them_stumble: 'Make Them Stumble', leg_bolt: 'Leg Bolt', dirt_in_the_eyes: 'Dirt in the Eyes' };
 
 const drop = (a: Actor, f: (m: NonNullable<Actor['perkMarks']>[number]) => boolean) => {
   if (!a.perkMarks) return;
@@ -27,10 +30,19 @@ const add = (a: Actor, m: NonNullable<Actor['perkMarks']>[number]) => {
 export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean) {
   const has = (a: Actor, perk: string, target?: string) => !!a.perkMarks?.some((m) => m.perk === perk && m.target === target && (m.until === undefined || m.until >= state.turn));
   const open = ranged ? 'hunters_mark' : 'turn_the_blade';
+  const dirt = [{ source: MARK_SOURCE.dirt_in_the_eyes, value: -2 }];
   return {
-    attack: has(A, open, D.id) ? [{ source: MARK_SOURCE[open], value: 1 }] : [],
-    defense: has(D, 'make_them_stumble') ? [{ source: MARK_SOURCE.make_them_stumble, value: -1 }] : [],
+    attack: [...(has(A, open, D.id) ? [{ source: MARK_SOURCE[open], value: 1 }] : []), ...(has(A, 'dirt_in_the_eyes') ? dirt : [])],
+    defense: [...(has(D, 'make_them_stumble') ? [{ source: MARK_SOURCE.make_them_stumble, value: -1 }] : []), ...(has(D, 'dirt_in_the_eyes') ? dirt : [])],
   };
+}
+
+/** A6 Leg Bolt: slowed actors can't dash */
+export const slowed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === 'leg_bolt' && (m.until === undefined || m.until >= state.turn));
+
+/** a mark that runs out at the end of the marked actor's next turn */
+export function markUntilNextTurn(state: GameState, a: Actor, perk: string): void {
+  add(a, { perk, until: state.turn + 1 });
 }
 
 /** after an attack resolves: spend the marks it used, then make the ones it earned */
@@ -38,6 +50,9 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
   const used = (src: string, shifts?: { source: string }[]) => !!shifts?.some((x) => x.source === src);
   for (const perk of ['turn_the_blade', 'hunters_mark']) if (used(MARK_SOURCE[perk], r.attack.tierShifts)) drop(A, (m) => m.perk === perk && m.target === D.id);
   if (used(MARK_SOURCE.make_them_stumble, r.defense?.tierShifts)) drop(D, (m) => m.perk === 'make_them_stumble');
+  if (used(MARK_SOURCE.dirt_in_the_eyes, r.attack.tierShifts)) drop(A, (m) => m.perk === 'dirt_in_the_eyes');
+  if (used(MARK_SOURCE.dirt_in_the_eyes, r.defense?.tierShifts)) drop(D, (m) => m.perk === 'dirt_in_the_eyes');
+  if (r.legBolt && hasPerk(A, 'leg_bolt')) markUntilNextTurn(state, D, 'leg_bolt');
   const clean = r.gap !== null && r.gap >= 2;
   if (!ranged && clean && r.defenseType === 'block' && hasPerk(D, 'turn_the_blade')) {
     const blocker = blockItem(state, D); // what the block was made with

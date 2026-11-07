@@ -8,7 +8,8 @@ import { tierGap } from '../agents/game';
 import { tierAtLeast, tierName } from '../ruleset';
 import type { TierRoll } from '../types';
 import { h } from './kit';
-import { timeView } from '../time';
+import { now, timeOfDay, timeView } from '../time';
+import { timePassedRow, todBadge } from './timeOfDay';
 import { sideSheet } from './charsheet';
 import { skillName } from './creation';
 import { healCard, healIcon, quickHeal } from './healing';
@@ -51,6 +52,11 @@ const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
 
+// AE8: how Ideas offers each perk move against someone in view
+const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
+  dirt_in_the_eyes: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
+};
+
 /** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Three per group. */
 export function ideas(pv: PlayerView): { group: string; items: { text: string; note?: string }[] }[] {
   const people = pv.actors.filter((a) => a.level === 'full' && a.health !== 'Incapacitated');
@@ -64,13 +70,9 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Use', items: [
       ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
       ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },
+    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.flatMap((p) => PERK_IDEA[p]
+      ? people.filter((a) => a.zone === pv.zone.id).map((a) => ({ text: PERK_IDEA[p].text(nm(a)), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ ...g, items: g.items.slice(0, 3) }));
-}
-
-/** T11: "Day 2 · Evening" in the header */
-function dayLine(s: GameState): string {
-  const t = timeView(s);
-  return `Day ${t.day} · ${t.timeOfDay}`;
 }
 
 function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
@@ -139,6 +141,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.speech ?? []).map((sp) => h('div', { class: 'line' },
         h('p', { class: 'who2', style: `color:var(--${colourOf(sp.speaker)})` }, cap(sp.speaker), VOLUME_WORD[sp.volume] ? h('span', { class: 'how' }, VOLUME_WORD[sp.volume]) : null),
         h('p', {}, h('q', { class: sp.volume }, sp.text)))),
+      l.timePassed ? timePassedRow(l.timePassed) : null, // T2 b
       ...(l.heals ?? []).map(healCard),
       // V2a (Ali, 07/11/2026): milestones a skill crossed on this turn; the card never names the perk
       ...(l.unlocks ?? []).map((u) => h('div', { class: 'perk-new', role: 'status' }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
@@ -171,7 +174,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   function update() {
     const s = api.state();
     const pv = s ? safe(() => buildPlayerView(s)) : null;
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play'), h('p', {}, s ? [`Turn ${s.turn} · ${dayLine(s)} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
+    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
       h('p', { class: 'hs-note calls', title: 'Every request this page sent to Claude since it was opened, counted by code. Repairs and background calls count too.' },
         `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`),
       bgNote() ?? '');

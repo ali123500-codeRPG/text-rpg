@@ -7,7 +7,7 @@ import type { AgentName, TierRoll,
 } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { timeView } from '../time';
+import { now, timeOfDay, timeView } from '../time';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
@@ -257,13 +257,14 @@ export function createGame(deps: GameDeps): Game {
     }
     const rngBefore = s.rngState;
     const rng = createRng(s.rngState);
-    const speech = !!intent.action && (SPEECH_ACTIONS as readonly string[]).includes(intent.action.type) && !!intent.addressees?.length;
+    const quick = engine.quickWord(s, intent); // A15: a line beside a fight action, replied to for free
+    const speech = !!intent.action && ((SPEECH_ACTIONS as readonly string[]).includes(intent.action.type) || quick) && !!intent.addressees?.length;
     const spokespeople = speech ? engine.selectSpokespeople(s, intent) : [];
     if (spokespeople.length) s.stage.partner = spokespeople[0]; // OQ-27 (c): sticky partner for the next lines
     const agentOutputs: AcceptedAgentOutput[] = [];
     let exchange: ExchangeSpeech | undefined;
     if (spokespeople.length) {
-      s.mode = 'dialogue';
+      if (!quick) s.mode = 'dialogue';
       for (const id of spokespeople) {
         const bg = background.get(id);
         if (bg && !bg.collected) drop(bg, 'unused');
@@ -279,7 +280,7 @@ export function createGame(deps: GameDeps): Game {
     if (stopped) return;
     agentOutputs.push(...collectPlanners(spokespeople));
     agentOutputs.sort((a, b) => (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0));
-    const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(exchange ? { exchange } : {}) };
+    const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(exchange ? { exchange } : {}), ...(quick && exchange ? { quickWord: true } : {}) };
     const events = engine.resolveTurn(s, input, rng);
     s.rngState = rng.state; // plan updates were applied (with triggers sanitized) inside resolveTurn
     if (director) {
@@ -639,8 +640,9 @@ function nameOf(s: GameState, itemId: string): string {
  */
 /** H11, V1b, V2a: the player's healing, skill gains and milestones from this turn's code log, kept on the story line
  * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. */
-export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains'> {
+export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains' | 'timePassed'> {
   const heals: HealNote[] = [], unlocks: { skill: string; milestone: number }[] = [], gains: Record<string, number> = {};
+  let minutes = 0;
   for (const l of s.log) {
     if (l.turn !== s.turn) continue;
     if (l.code === 'healed') {
@@ -650,9 +652,10 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
       const d = l.detail as { skill: string; from: number; to: number; milestone?: number };
       gains[d.skill] = (gains[d.skill] ?? 0) + d.to - d.from;
       if (d.milestone) unlocks.push({ skill: d.skill, milestone: d.milestone });
-    }
+    } else if (l.code === 'time_passed') minutes += (l.detail as { minutes: number }).minutes;
   }
-  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}) };
+  const timePassed = minutes > 0 ? { minutes: Math.round(minutes), day: timeView(s).day, timeOfDay: timeOfDay(now(s)) } : undefined;
+  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}) };
 }
 
 export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes'> {

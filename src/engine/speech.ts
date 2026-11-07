@@ -33,8 +33,16 @@ export function isSpeech(type: string | undefined | null): boolean {
  * player last spoke with this scene) answers if it is an active member in reach; else the nearest member.
  * GAP: "everyone in earshot" read as NPCs in the player's zone or one link away.
  */
+/** A15 Quick Word: in a fight, a one-sentence line said beside a non-speech action resolves as talk without using the
+ * action, and the NPCs' spoken replies to it are free too */
+export function quickWord(state: GameState, intent: Intent): boolean {
+  const line = intent.spoken?.trim() ?? '';
+  return hasPerk(state.player, 'quick_word') && state.mode === 'tactical' && !!intent.action && !isSpeech(intent.action.type)
+    && !!line && !/[.!?]["”’)]*\s+\S/.test(line) && !!intent.addressees?.length;
+}
+
 export function selectSpokespeople(state: GameState, intent: Intent): string[] {
-  if (!isSpeech(intent.action?.type) || !intent.addressees?.length) return [];
+  if ((!isSpeech(intent.action?.type) && !quickWord(state, intent)) || !intent.addressees?.length) return [];
   const dist = (a: Actor) => shortestPath(state, state.player.zone, a.zone)?.length ?? Infinity;
   const live = state.actors.filter(isActive);
   const nearest = (members: Actor[]) =>
@@ -98,7 +106,7 @@ export function slipsFor(state: GameState, sp: string, skills: string[], contest
 
 /** Exchange slot part 1: one player roll, contested separately against each spokesperson's roll with the same skill. */
 export function resolveSpeech(state: GameState, intent: Intent, spokespeople: string[], rng: Rng): ExchangeSpeech {
-  const type = intent.action?.type ?? 'talk';
+  const type = isSpeech(intent.action?.type) ? intent.action!.type : 'talk'; // A15 Quick Word: the line is talk
   const named = SPEECH_SKILL[type] ?? 'persuasion';
   const req = (actorId: string) => ({ actorId, skill: named, modifiers: [], tierShifts: [] });
   const p = state.player;
