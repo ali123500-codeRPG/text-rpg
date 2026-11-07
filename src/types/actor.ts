@@ -105,7 +105,6 @@ export type NpcTemplate = {
   personality: 'fearless' | 'bold' | 'steady' | 'timid';
   loadout?: LibraryRef[];
   potential?: number;
-  xp?: number; // hand-set kill XP, overrides the computed value (X13)
   control: 'agent' | 'code';
   label: string;
   fallback?: { attackSkill: LibraryRef }; // overrides the creature type's (Fallback behavior)
