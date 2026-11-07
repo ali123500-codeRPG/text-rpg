@@ -139,9 +139,13 @@ export function validateBuild(build: CreationBuild): string[] {
   return errs;
 }
 
-/** The player's sheet from a valid build. zone and placeId stay empty until the story-start setup places the player. */
-export function createPlayer(build: CreationBuild, storyId: string): Actor {
-  const errs = validateBuild(build);
+/**
+ * The player's sheet from a build: the one builder for the game and the creation preview. zone and placeId stay empty
+ * until the story-start setup places the player. `preview` skips the build check (the creation screen previews
+ * unfinished builds).
+ */
+export function createPlayer(build: CreationBuild, storyId: string, opts: { preview?: boolean } = {}): Actor {
+  const errs = opts.preview ? [] : validateBuild(build);
   if (errs.length) throw new Error(`invalid build: ${errs.join('; ')}`);
   const skills = Object.fromEntries(Object.entries(build.skills).filter(([k, v]) => v > 0 || build.tagged.includes(k))
     .map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }]));

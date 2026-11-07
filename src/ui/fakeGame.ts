@@ -3,7 +3,7 @@ import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice } f
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
-import { spawnNpc } from '../library/spawn';
+import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 
 const NARRATION = [
@@ -12,19 +12,7 @@ const NARRATION = [
   'The slime lurches at you. You bring the round shield across, and the blow slaps wetly against the boards; your counter cuts a long furrow through its body.',
 ];
 
-export function validateBuildLocal(b: CreationBuild): string[] {
-  const errs: string[] = [];
-  const lib = getLibrary(), floors = lib.classes.swordsman?.floors ?? {};
-  const sum = Object.values(b.skills).reduce((a, v) => a + v, 0);
-  if (sum !== CONFIG.CREATION_POINTS) errs.push(`Spend exactly ${CONFIG.CREATION_POINTS} points (now ${sum}).`);
-  for (const [k, v] of Object.entries(b.skills)) {
-    if (!lib.skills[k]?.playerOpen) errs.push(`${k} is not open to you.`);
-    if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${k} is above ${CONFIG.CREATION_MAX_SKILL}.`);
-  }
-  for (const [k, f] of Object.entries(floors)) if ((b.skills[k] ?? 0) < f) errs.push(`${k} is below its class floor ${f}.`);
-  if (new Set(b.tagged).size !== CONFIG.CREATION_TAGS) errs.push(`Tag exactly ${CONFIG.CREATION_TAGS} skills.`);
-  return errs;
-}
+export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);
 
 export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
   let state: GameState | null = null;

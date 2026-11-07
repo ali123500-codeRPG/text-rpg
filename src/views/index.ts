@@ -326,7 +326,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   const me = p.id;
   const out: NarrationEvent[] = [];
   const heard: NarrationView['heard'] = [];
-  const seenIds = new Set(seenActors(state, p, events).filter((x) => x.level === 'full').map((x) => x.id));
+  const seen = seenActors(state, p, events);
+  const seenIds = new Set(seen.filter((x) => x.level === 'full').map((x) => x.id));
   for (const e of events) {
     const per = e.perception[me];
     if (!per) continue;
@@ -352,7 +353,6 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(changes.length && e.kind !== 'attack' ? { changes } : {}),
     });
   }
-  const seen = seenActors(state, p, events);
   const a = intent?.action;
   return {
     style: { tone: state.settings.tone || CONFIG.STYLE.tone, length: CONFIG.STYLE.length },
