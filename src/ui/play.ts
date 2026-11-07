@@ -10,6 +10,7 @@ import type { TierRoll } from '../types';
 import { h } from './kit';
 import { sideSheet } from './charsheet';
 import { skillName } from './creation';
+import { healCard, healIcon, quickHeal } from './healing';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scene_fallback: 'Scene planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -86,7 +87,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const aimBtn = h('button', { type: 'button' });
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', placeholder: 'What do you do? A line starting with / is a command (/help)', 'aria-label': 'What do you do' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
-  const aimPicker = h('div', { class: 'hs-picker' }, aimBtn);
+  const healBtn = h('button', { type: 'button', class: 'itm' });
+  const aimPicker = h('div', { class: 'hs-picker' }, aimBtn, healBtn);
   let open: 'commands' | 'ideas' | null = null;
   const helpBtn = (id: 'commands' | 'ideas', label: string) => h('button', { type: 'button', onclick: () => { open = open === id ? null : id; update(); } }, label);
   const cmdBtn = helpBtn('commands', 'Commands'), ideaBtn = helpBtn('ideas', 'Ideas');
@@ -116,10 +118,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     await api.submit(text, { aimed: wasAimed });
   }
 
-  /** V2a (Ali, 07/11/2026): milestones a skill crossed on this turn; the card never names the perk */
-  const unlocks = (turn: number) => (api.state()?.log ?? []).filter((x) => x.code === 'skill_improved' && x.turn === turn && (x.detail as { milestone?: number }).milestone)
-    .map((x) => x.detail as { skill: string; milestone: number });
-
   /** opens the Character page at its Perks section */
   const seePerks = () => { nav('stats'); setTimeout(() => document.querySelector('.pk')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
 
@@ -134,7 +132,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.speech ?? []).map((sp) => h('div', { class: 'line' },
         h('p', { class: 'who2', style: `color:var(--${colourOf(sp.speaker)})` }, cap(sp.speaker), VOLUME_WORD[sp.volume] ? h('span', { class: 'how' }, VOLUME_WORD[sp.volume]) : null),
         h('p', {}, h('q', { class: sp.volume }, sp.text)))),
-      ...unlocks(l.turn).map((u) => h('div', { class: 'perk-new', role: 'status' }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
+      ...(l.heals ?? []).map(healCard),
+      // V2a (Ali, 07/11/2026): milestones a skill crossed on this turn; the card never names the perk
+      ...(l.unlocks ?? []).map((u) => h('div', { class: 'perk-new', role: 'status' }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
         h('div', {}, 'New perk unlocked', h('small', {}, `${skillName(u.skill)} reached ${u.milestone}`)),
         h('button', { type: 'button', class: 'hs-btn-text', onclick: seePerks }, 'See perks'))),
       l.changes?.length ? h('details', { class: 'changes' },
@@ -213,11 +213,22 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     aimBtn.setAttribute('aria-pressed', String(aimed));
     aimBtn.title = aimed ? 'This turn’s attack is aimed. Click to stop aiming' : 'Click to aim this turn’s attack (same as /aim)';
     aimBtn.textContent = aimed ? 'Aimed' : 'Aim';
+    // H3 b: one quick slot for a healing item; it fills the box, nothing is sent until Send
+    const qh = s ? quickHeal(s, s.player) : null;
+    healBtn.hidden = !qh;
+    healBtn.disabled = stopped;
+    if (qh) {
+      const use = `use a ${qh.name}`;
+      healBtn.title = `${cap(qh.name)} ×${qh.count}: fills the box with “${use}”. Pick which healing item shows here in the Inventory.`;
+      healBtn.setAttribute('aria-label', `Use a ${qh.name}, ${qh.count} left`);
+      healBtn.replaceChildren(healIcon(qh), h('b', {}, `×${qh.count}`));
+      healBtn.onclick = () => pick(use);
+    }
 
     const fold = h('button', { class: 'hs-btn-text cs-fold', type: 'button', 'aria-expanded': String(!folded),
       onclick: () => { folded = !folded; try { localStorage.setItem('sheetFolded', folded ? '1' : '0'); } catch { /* not saved */ } update(); } }, folded ? 'Sheet ‹' : 'Hide ›');
     sheet.classList.toggle('folded', folded);
-    sheet.replaceChildren(h('div', { class: 'cs-side-h' }, folded ? null : h('p', { class: 'hs-section' }, 'Your sheet'), fold), ...(s && !folded ? sideSheet(s, s.player) : []));
+    sheet.replaceChildren(h('div', { class: 'cs-side-h' }, folded ? null : h('p', { class: 'hs-section' }, 'Your sheet'), fold), ...(s && !folded ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration')) : []));
 
     const fallen = api.fell();
     body.hidden = fallen;

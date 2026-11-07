@@ -77,6 +77,7 @@ export type Progression = {
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn }[];
   defeats?: Record<string, number>; // defeat counts: 'all', 'creature:<type>', 'race:<race>'
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
+  quickHeal?: LibraryRef; // H3 (Ali, 07/11/2026): the healing item (item def id) the quick slot shows; absent = the strongest
 };
 
 export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } };
