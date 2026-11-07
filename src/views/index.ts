@@ -286,6 +286,18 @@ export function buildDialogueView(state: GameState, actorId: string, input: Dial
 }
 
 // ---------- NarrationView ----------
+/**
+ * What the player calls an event's target. Run 15: a zone target ("observe the cellar") came out as "someone", and the
+ * Narrator invented a person. Actors only when the player perceives them fully; zones and items by name; else nothing.
+ */
+function eventTarget(state: GameState, me: string, target: string, seenIds: Set<string>): string | undefined {
+  if (target === me) return 'player';
+  if (actorById(state, target)) return seenIds.has(target) ? callName(state, me, target) : undefined;
+  const z = zoneById(state, target);
+  if (z) return z.name;
+  return itemName(state, target);
+}
+
 function itemName(state: GameState, instanceId: string): string | undefined {
   for (const a of allActors(state)) {
     const i = a.core.inventory.find((x) => x.id === instanceId);
@@ -304,6 +316,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   const me = p.id;
   const out: NarrationEvent[] = [];
   const heard: NarrationView['heard'] = [];
+  const seenIds = new Set(seenActors(state, p, events).filter((x) => x.level === 'full').map((x) => x.id));
   for (const e of events) {
     const per = e.perception[me];
     if (!per) continue;
@@ -315,10 +328,12 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;
     const item = full && e.itemId && e.kind !== 'attack' ? itemName(state, e.itemId) : undefined;
+    // a fully seen attack shows both sides; any other target only if the player sees it (run 15)
+    const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds) : undefined;
     out.push({
       id: e.id, kind: e.kind, level: per.level, cue: per.cue,
       ...(full ? { actor: callName(state, me, e.actorId) } : {}),
-      ...(full && e.target ? { target: callName(state, me, e.target) } : {}),
+      ...(target ? { target } : {}),
       where: full ? zoneById(state, e.zone)?.name : whereLabel(state, p.zone, e.zone),
       ...(hears ? { line: { text: e.line!.text, volume: e.line!.volume, ...(speaker ? { speaker } : {}) } } : {}),
       ...(look ? { activityLook: look } : {}),
