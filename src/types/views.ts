@@ -84,6 +84,7 @@ export type ActorView = {
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
   told: EventView[]; // communication events it perceived
+  said: string[]; // its own last spoken lines, latest last (P5)
   plan?: Plan;
   memory?: string;
   secrets: Secret[]; // its own

@@ -87,6 +87,7 @@ const DEFAULTS = {
   SCENE_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 1, short: 3, medium: 6, long: 12 } as Record<string, number>,
   RECENT_EVENTS: 8, // compact views: last few relevant events
+  SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
   SHOW_MECHANICS: true,
   WEAVER_MODEL: 'claude-opus-5-5',
