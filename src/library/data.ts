@@ -1,10 +1,14 @@
 // The prototype library: skills (Part 1 §3), creatures (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
-import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SkillDef } from '../types';
+import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SkillDef, XpCategory } from '../types';
 
-const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], playerOpen = true, cue?: 'sight' | 'sound'): SkillDef =>
-  ({ id, treeId, functions, roles, playerOpen, ...(cue ? { cue } : {}) });
+/** XP category from the skill's function (X21); a skill with no deciding function names its own. */
+const CATEGORY_OF: Partial<Record<SkillDef['functions'][number], XpCategory>> = {
+  melee_attack: 'offensive', ranged_attack: 'offensive', unarmed_attack: 'offensive', defense: 'defensive', hp: 'endurance', notice: 'notice', influence: 'influence',
+};
+const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], playerOpen = true, cue?: 'sight' | 'sound', xpCategory?: XpCategory): SkillDef =>
+  ({ id, treeId, functions, roles, playerOpen, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[functions[0]] ?? 'misc' });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('melee_light', 'melee', ['melee_attack'], ['grip']),
@@ -19,15 +23,15 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('unarmed_natural', 'unarmed', ['unarmed_attack'], ['strike'], false), // creatures only, in no player tree (Ali, 07/11/2026)
   sk('dodge', 'defense', ['defense'], ['move']),
   sk('block', 'defense', ['defense'], ['grip']),
-  sk('endurance', 'defense', [], []),
+  sk('endurance', 'defense', ['hp'], []), // hp: endurance sets total HP
   sk('sight', 'perception', ['notice'], ['sense'], true, 'sight'),
   sk('hearing', 'perception', ['notice'], ['sense'], true, 'sound'),
   sk('persuasion', 'speech', ['influence'], []),
   sk('intimidation', 'speech', ['influence'], []),
   sk('barter', 'speech', ['influence'], []),
-  sk('feint', 'swordsman', [], ['grip']),
-  sk('riposte', 'swordsman', [], ['grip']),
-  sk('disarm', 'swordsman', [], ['grip']),
+  sk('feint', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
+  sk('riposte', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
+  sk('disarm', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
   sk('tremor', 'slime_senses', ['notice'], ['sense'], false, 'sound'),
   sk('taste', 'slime_senses', ['notice'], ['sense'], false),
   // OQ-20 build default: placeholder tool skill id, renamed through library aliases later. Not on the creation screen.

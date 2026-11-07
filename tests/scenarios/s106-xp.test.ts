@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { awardXp, danger, killXp, payDefeats, xpToNext } from '../../src/engine/xp';
+import { awardXp, effort, killXp, payDefeats, rating, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import type { GameEvent } from '../../src/types';
 
@@ -11,12 +11,18 @@ const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'playe
   attack: { attackerId: 'player', targetId: target, damage: 5 } as never });
 
 describe('106 XP and levels', () => {
-  it('Danger: a slime barely hurts the swordsman, a guard hurts more (X11)', () => {
+  it('rating: categories ranked 1, ½, ¼, weighted; weak foes taper (X18–X23)', () => {
     const s = makeVillage();
-    const slime = danger(s, actor(s, 'slime_1')), guard = danger(s, actor(s, 'guard_1'));
-    expect(slime).toBeGreaterThanOrEqual(0);
-    expect(guard).toBeGreaterThan(slime);
-    expect(s.player.core.condition.hpLostPct).toBe(0); // the sandbox never touches the game
+    const slime = actor(s, 'slime_1');
+    expect(rating(slime)).toBeCloseTo(effort(30), 5); // one offensive skill
+    const g = actor(s, 'guard_1');
+    expect(rating(g)).toBeGreaterThan(rating(slime));
+    const t = Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / rating(s.player));
+    expect(killXp(s, slime)).toBeCloseTo(rating(slime) * t * CONFIG.KILL_XP_MULT, 1);
+    s.player.core.skills.barter = { raw: 90, state: 'normal' }; // influence counts at 0.25×
+    const before = rating(s.player);
+    s.player.core.skills.lockpicking = { raw: 90, state: 'normal' }; // misc counts 0
+    expect(rating(s.player)).toBe(before);
   });
   it('ten defeats earn the defeats_10 achievement once', () => {
     const s = makeVillage();
@@ -30,12 +36,10 @@ describe('106 XP and levels', () => {
     const ids = s.player.progression!.achievements!.map((a) => a.id);
     expect(ids).toEqual(['first_defeat:slime', 'defeats_10']);
   });
-  it('a slime the player hit and downed pays its Danger XP once, plus a first-defeat achievement', () => {
+  it('a slime the player hit and downed pays its kill XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
     const xp = killXp(s, slime);
-    expect(xp).toBeCloseTo(danger(s, slime) * CONFIG.DANGER_XP, 1);
-    expect(killXp(s, slime)).toBe(xp); // same turn, same foe: same sandbox dice
     payDefeats(s, [hit('slime_1')]);
     expect(s.player.progression!.xp).toBe(0); // still up: nothing yet
     slime.core.condition.hpLostPct = 100;
