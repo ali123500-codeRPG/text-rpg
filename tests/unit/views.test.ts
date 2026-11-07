@@ -36,6 +36,12 @@ const roll = (tier: number, d100: number, margin: number, natural: RollResult['n
   ({ actorId: 'x', skill: 'melee_medium', d100, margin, tier, natural, modifiers: [{ source: 'aim', type: 'aim', value: -20 }], tierShifts: [] });
 
 describe('NPC views', () => {
+  it("P5: list each NPC's own last lines in said, capped at SAID_LINES", () => {
+    const s = makeVillage();
+    for (let i = 1; i <= 8; i++) run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', line: { text: `line ${i}`, volume: 'normal' } }));
+    run(s, ev({ actorId: 'patron_1', kind: 'speak', zone: 'tav_counter', line: { text: 'not mine', volume: 'normal' } }));
+    for (const v of npcViews(s, 'trader')) expect(v.said).toEqual(['line 3', 'line 4', 'line 5', 'line 6', 'line 7', 'line 8']);
+  });
   it('never copy bark events (Leak prevention)', () => {
     const s = makeVillage();
     run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', bark: true, line: { text: 'Get out, you oaf!', volume: 'shout' }, noise: 3 }));

@@ -410,7 +410,7 @@ Six views are built from state:
 | --- | --- | --- | --- |
 | PlayerView | Agent Parser | Player sheet, current zone, zones and actors the player perceives | Hidden store, NPC beliefs, unperceived actors |
 | ActorView | Code minds: routines, combat lists | The same fields as OppositionView, as structured data | The same as OppositionView |
-| OppositionView | Agent Planner and Agent Responder, one per actor | That actor's condition and position, its beliefs, events it perceived (including the last few exchanges it heard), what it was told, its plan and memory note, its own secrets, its band's goals and relations; the brief of each routine in its routines list | This turn's player input (a Responder gets only the dialogue input), other actors' private knowledge, the player's true zone unless perceived, the player sheet beyond revealed, place facts and headlines, barks |
+| OppositionView | Agent Planner and Agent Responder, one per actor | That actor's condition and position, its beliefs, events it perceived (including the last few exchanges it heard), what it was told, its own last few spoken lines (SAID_LINES, so it does not repeat itself), its plan and memory note, its own secrets, its band's goals and relations; the brief of each routine in its routines list | This turn's player input (a Responder gets only the dialogue input), other actors' private knowledge, the player's true zone unless perceived, the player sheet beyond revealed, place facts and headlines, barks |
 | DialogueView | Agent Voice | ActorView minus plan and memory note, plus its knows facts and the dialogue input | Hidden store, other actors' knowledge, place facts and headlines, barks |
 | NarrationView | Agent Narrator | This turn's events the player perceived, with level and cue; player condition; visible surroundings; NPC lines the player heard; public stage text only; a label for each actor whose name the player does not know; the activity look of each actor in a presence event | Hidden store, NPC plans and beliefs, unperceived events, any number from a roll, damage, a pool or HP (code shows them in the mechanics panel); the tier, grades and hidden stage-plan fields; any tone hint from the tier |
 | WeaverView | Agent Weaver | Tier and stakes group; the place or frontier being planned and its ancestors' headlines; the stage's zones; actors on the stage with their plans and secrets; quests, flags, band goals; player level, current class, health-track level; the previous Weaver note; catalog ids, including routine sets with their brief, tags and slot hints | Skill growth, Burden, Potential; this turn's player text |
@@ -639,7 +639,7 @@ Rules:
 3. Protect your secrets as your character would; you may lie. To tell a secret by choice, list it in "reveals".
 4. If SLIPS names a secret, your line or action must let it out: a confession, a blurt or a tell.
 5. If COMMITTED is set, that is your action, and your line becomes a passing remark.
-6. You speak for your own band only.
+6. You speak for your own band only. Your view lists what you already said in "said"; do not say it again, move the talk on.
 7. Play your band's goals and temperament, as given in CHARACTER.
 8. Change the plan only when it should change.
 9. If your line gives your own name or another character's, list them in introduces.
@@ -684,7 +684,7 @@ Rules:
 2. State facts only from KNOWS, and list each one you reveal in "shares". Never invent a specific place, price, name or clue.
 3. Let IMPRESSION shape your reaction; stay in character.
 4. You speak for your own band only. You may switch to one of your routines (follow, wait, or another listed one).
-5. Keep it to one or two sentences unless asked for more.
+5. Keep it to one or two sentences unless asked for more. Your view lists what you already said in "said"; do not say it again, move the talk on.
 6. If your line gives your own name or another character's, list them in introduces.
 
 Return only JSON matching the schema.

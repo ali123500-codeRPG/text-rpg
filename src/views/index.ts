@@ -216,6 +216,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const history = [...(state.recentEvents ?? []), ...state.events];
   const perceived = history.filter((e) => e.perception[a.id] && !e.bark).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const told = history.filter((e) => e.perception[a.id] && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
+  const said = history.filter((e) => e.actorId === a.id && e.line?.text && !e.bark).slice(-CONFIG.SAID_LINES).map((e) => e.line!.text);
   const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged'].includes(e.attack.outcome));
   const scratchHits = state.scratch?.[a.id];
   const lastHitBy = hit?.actorId ?? (Array.isArray(scratchHits) ? (scratchHits.at(-1) as string | undefined) : undefined);
@@ -248,7 +249,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(m.alarm ? { alarm: { armed: m.alarm.armed, ...(m.alarm.lastAlarmTurn !== undefined ? { lastAlarmTurn: m.alarm.lastAlarmTurn } : {}), ...(m.alarm.returnTo ? { returnTo: { id: m.alarm.returnTo.id, anchorTurn: m.alarm.returnTo.anchorTurn } } : {}) } } : {}),
       ...(lastHitBy ? { lastHitBy } : {}),
     },
-    beliefs, perceived, told,
+    beliefs, perceived, told, said,
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tacticsLevel: band.tacticsLevel, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tacticsLevel: 1, relations: {} },
