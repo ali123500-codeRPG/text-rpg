@@ -1,10 +1,9 @@
-// Character (/stats), Inventory (/inv) and Quests (/quests): the same page shape. Visibility tiles on top (one per group),
+// Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group),
 // figures that can't be filtered in a text line under them, then the grouped table.
 import type { Actor, GameApi, GameState } from '../types';
-import { getLibrary, itemDef } from '../library';
-import { totalHp } from '../ruleset';
+import { itemDef } from '../library';
 import { credit, groupedTable, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
-import { skillName, TREE_VIEW } from './creation';
+import { charCard, treeBars } from './charsheet';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -53,33 +52,19 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
 }
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
-const STATE_WORD: Record<string, string> = { tagged: 'Tagged', normal: 'Normal', flawed: 'Flawed' };
 
 export function characterPage(api: GameApi) {
-  return listPage(api, {
-    title: 'Character', intro: 'Your skills by tree. Same as /stats.', noun: ['skill', 'skills'], panelTitle: 'Skill', empty: 'No skills yet.',
-    cols: [{ key: 'name', title: 'Skill' }, { key: 'raw', title: 'Raw', right: true }, { key: 'state', title: 'State' }],
-    groups: (s) => {
-      const lib = getLibrary(), p = s.player;
-      return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => {
-        const rows: TRow[] = lib.trees[t.id].skills.filter((k) => p.core.skills[k]).map((k, i) => {
-          const e = p.core.skills[k];
-          return { id: k, sortKey: i, cells: { name: skillName(k), raw: String(e.raw), state: STATE_WORD[e.state] ?? e.state } };
-        });
-        const sum = rows.reduce((a, r) => a + +r.cells.raw, 0);
-        const states = [...new Set(rows.map((r) => r.cells.state))];
-        const top = [...rows].sort((a, b) => +b.cells.raw - +a.cells.raw)[0];
-        return { id: t.id, title: lib.trees[t.id].name, color: t.c, rows, value: String(sum), unit: 'pts',
-          sub: top ? `${plural(rows.length, 'skill')} · top ${top.cells.name} ${top.cells.raw}` : 'No points here',
-          how: 'The sum of your raw skills in this tree.',
-          combined: { raw: String(sum), state: states.length === 1 ? states[0] : 'Mixed' } };
-      }).filter((g) => g.rows.length);
-    },
-    line: (s) => {
-      const p = s.player, hp = safe(() => totalHp(s, p));
-      return `HP ${hp ?? '—'} · standing defense ${p.core.standingDefense} · Potential ${p.progression?.potential.base ?? '–'} · StartingTotal ${p.progression?.startingTotal ?? '–'}`;
-    },
-  });
+  const el = h('main');
+  function update() {
+    const s = api.state();
+    if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
+    el.replaceChildren(
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
+      h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s, s.player)),
+      h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'),
+      credit());
+  }
+  return { el, update };
 }
 
 const KIND_GROUP: Record<string, [string, string, string]> = {
@@ -109,7 +94,7 @@ export function inventoryPage(api: GameApi) {
         const ws = [...new Set(g.rows.map((r) => r.cells.where))], cs = [...new Set(g.rows.map((r) => r.cells.cond))];
         const equipped = g.rows.filter((r) => r.cells.where !== 'Carried').length;
         return { ...g, value: String(qty), unit: unitOf(qty, 'item'), sub: `${equipped} in use`, combined: { qty: String(qty), where: ws.length === 1 ? ws[0] : 'Mixed', cond: cs.length === 1 ? cs[0] : 'Mixed' } };
-      }).sort((a, b) => natural(a.title, b.title));
+      }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title));
     },
     line: (s) => {
       const coin = s.player.core.inventory.filter((i) => i.itemId === 'coin').reduce((a, i) => a + (i.qty ?? 1), 0);
@@ -124,10 +109,10 @@ export function questsPage(api: GameApi) {
     cols: [{ key: 'text', title: 'Quest' }, { key: 'state', title: 'State' }],
     groups: (s) => {
       const by = new Map<string, TRow[]>();
-      s.quests.forEach((q, i) => { const r = by.get(q.state) ?? []; r.push({ id: q.id, sortKey: i, cells: { text: q.text, state: q.state } }); by.set(q.state, r); });
+      s.quests.forEach((q, i) => { const r = by.get(q.state) ?? []; r.push({ id: q.id, sortKey: i, cells: { text: q.text, state: q.state[0].toUpperCase() + q.state.slice(1) } }); by.set(q.state, r); });
       return [...by.entries()].map(([st, rows]) => ({
         id: st, title: st[0].toUpperCase() + st.slice(1), rows, value: String(rows.length), unit: unitOf(rows.length, 'quest'),
-        sub: `latest: ${rows[rows.length - 1].cells.text}`, how: `Quests whose state is ${st}.`, combined: { state: st },
+        sub: `latest: ${rows[rows.length - 1].cells.text}`, how: `Quests whose state is ${st}.`, combined: { state: st[0].toUpperCase() + st.slice(1) },
       }));
     },
     line: (s) => `Turn ${s.turn}`,

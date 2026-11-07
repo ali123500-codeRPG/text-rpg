@@ -14,7 +14,7 @@ export const SKILL_NAMES: Record<string, string> = {
   tremor: 'Tremor', taste: 'Taste', lockpicking: 'Lockpicking',
 };
 export const skillName = (id: string) => SKILL_NAMES[id] ?? id;
-const SUB: Record<string, string> = { endurance: 'sets HP', feint: 'effect not designed', riposte: 'effect not designed', disarm: 'effect not designed' };
+export const SKILL_SUB: Record<string, string> = { endurance: 'sets HP', feint: 'effect not designed', riposte: 'effect not designed', disarm: 'effect not designed' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 // Skills the approved layout shows as a locked row instead of a slider.
@@ -58,7 +58,7 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
     const sec = h('section', {}, h('div', { class: 'grp-h' }, h('i', { class: 'hs-sq', style: `background:var(--${t.c})` }), h('h2', { class: 'hs-section' }, name),
       def?.classId ? h('span', { class: 'hs-chip' }, 'Class tree') : null, sum));
     for (const k of (def?.skills ?? []).filter((x) => !LOCKED.has(x))) {
-      const nm = h('div', { class: 'nm' }, h('b', {}, skillName(k)), SUB[k] ? h('small', {}, SUB[k]) : null, floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
+      const nm = h('div', { class: 'nm' }, h('b', {}, skillName(k)), SKILL_SUB[k] ? h('small', {}, SKILL_SUB[k]) : null, floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
       const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,
         h('div', { class: 'bar' }, h('div', { class: 'tr' }, h('i', { class: 's' }), h('i', { class: 'f' })),
@@ -104,8 +104,8 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
       { label: 'Vs one slime', value: p.swingsToKill === null ? '—' : '≈ ' + dash(p.swingsToKill, 1), unit: 'swings to kill',
         sub: p.slamsToDown === null ? 'Its slams to down you: —' : `It downs you in about ${Math.round(p.slamsToDown)} slams`,
         how: `Estimated: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, from ${st.swings} practice swings with the game’s attack rules.` },
-      { label: 'Potential', value: String(CONFIG.POTENTIAL), unit: `StartingTotal ${open.filter((k) => !st.tags.has(k)).reduce((a, k) => a + st.v[k], 0)}`,
-        sub: `${st.tags.size} of ${maxTags()} skills tagged`,
+      { label: 'Potential', value: String(CONFIG.POTENTIAL), unit: 'pts',
+        sub: `StartingTotal ${open.filter((k) => !st.tags.has(k)).reduce((a, k) => a + st.v[k], 0)} · ${st.tags.size} of ${maxTags()} tagged`,
         how: `Tagged: ${[...st.tags].map(skillName).join(', ') || 'none yet'}. StartingTotal is the sum of your untagged skills when the story starts. Tagged skills ignore Burden.` },
     ];
     tilesHost.replaceChildren(readouts(tiles, how));
@@ -144,14 +144,16 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
 
   recommended();
   render();
+  const stopped = api.notices().find((n) => n.kind === 'stop_play');
   return h('main', {},
+    stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
       h('div', {}, h('h1', {}, 'Create your swordsman'),
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
       h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { recommended(); render(); } }, 'Use recommended build'),
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { reset(); render(); } }, 'Reset'),
-        h('button', { class: 'hs-btn-main', type: 'button', id: 'btn-go', onclick: go }, 'Begin the story'))),
+        h('button', { class: 'hs-btn-main', type: 'button', id: 'btn-go', onclick: go, disabled: !!stopped, title: stopped ? 'The story can’t start until Claude and the save database are available' : null }, 'Begin the story'))),
     h('div', { class: 'sec' }, tilesHost, src, how),
     msg, groups,
     h('div', { class: 'key', 'aria-label': 'Colour key' },

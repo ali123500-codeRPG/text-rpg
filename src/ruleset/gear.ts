@@ -162,3 +162,11 @@ export function blockItem(state: GameState, actor: Actor): ItemInstance | null {
     null
   );
 }
+
+/** Default standing defense (Part 2, Agent Planner): whichever of dodge and block has the higher effective skill; a tie goes to block. */
+export function defaultStandingDefense(state: GameState, actor: Actor): 'block' | 'dodge' {
+  const shield = blockItem(state, actor);
+  if (!shield) return 'dodge';
+  const block = effectiveSkill(state, actor, 'block', { itemId: shield.id }).value;
+  return block >= effectiveSkill(state, actor, 'dodge').value ? 'block' : 'dodge';
+}

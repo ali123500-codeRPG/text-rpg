@@ -54,9 +54,9 @@ export function visTiles(tiles: VisTile[], picks: Record<string, VisState>, onCh
       h('button', { class: 'box', type: 'button', title: NEXT_TIP[st], 'aria-pressed': st === 'shown' ? 'true' : st === 'out' ? 'mixed' : 'false',
         onclick: () => { picks[t.id] = NEXT[st]; onChange(); } },
         h('div', { class: 'v' }, t.value, h('small', {}, t.unit), st === 'shown' ? h('span', { class: 'st' }, 'Shown') : st === 'out' ? h('span', { class: 'st' }, 'Left out') : null),
-        h('div', { class: 'sub' }, h('span', {}, st === 'out' ? 'left out' : t.sub),
-          h('span', { class: 'hs-ro-i', role: 'button', tabindex: '0', title: `How it’s worked out · ${t.label}`,
-            onclick: (e: Event) => { e.stopPropagation(); howEl.replaceChildren(h('b', {}, `How it’s worked out · ${t.label}: `), t.how); howEl.hidden = false; } }, 'ⓘ'))));
+        h('div', { class: 'sub' }, h('span', {}, st === 'out' ? 'left out' : t.sub))),
+      h('button', { class: 'hs-ro-i vis-i', type: 'button', title: `How it’s worked out · ${t.label}`, 'aria-label': `How it’s worked out · ${t.label}`,
+        onclick: () => { howEl.replaceChildren(h('b', {}, `How it’s worked out · ${t.label}: `), t.how); howEl.hidden = false; } }, 'ⓘ'));
   }));
 }
 

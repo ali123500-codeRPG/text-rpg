@@ -11,7 +11,7 @@ import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMod
 import { blockItem, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
-export { effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool } from './gear';
+export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool } from './gear';
 
 export const TIERS: readonly Tier[] = [...TIER_NAMES].reverse(); // best to worst
 /** 0 = Critical Failure … 5 = Critical Success */

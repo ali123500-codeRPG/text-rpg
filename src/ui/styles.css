@@ -79,7 +79,10 @@ h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spa
 .subline { margin: 0; font-size: 13px; color: var(--muted); }
 
 /* Visibility tiles: big box cycles Shown -> Left out -> off; heading opens the group */
-.vis { padding: 0; }
+.vis { padding: 0; position: relative; }
+.vis .box .sub { padding-right: 22px; }
+.vis .vis-i { position: absolute; right: 24px; bottom: 15px; }
+.inbar .hs-picker button { border: 1px solid var(--border); }
 .vis .hd { display: block; width: 100%; text-align: left; background: none; border: 0; font: inherit; cursor: pointer; padding: 16px 24px 0; }
 .vis:first-child .hd, .vis:first-child .box { padding-left: 0; }
 .vis .hd:hover .hs-label { color: var(--text); }
@@ -191,8 +194,8 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .ln-player::before { content: "› "; color: var(--faint); }
 .ln-narration { color: var(--text); white-space: pre-wrap; }
 .ln-clarify { color: var(--warn); }
-.ln-command, .ln-notice { color: var(--muted); font-size: 13px; }
-.ln-command::before { content: "/ "; color: var(--faint); }
+.ln-command, .ln-notice { color: var(--muted); font-size: 13px; white-space: pre-wrap; }
+.log p { overflow-wrap: anywhere; }
 .wait { color: var(--muted); font-size: 22px; letter-spacing: .2em; line-height: 1; }
 .mech { border-top: 1px solid var(--border); padding-top: var(--space-3); display: grid; gap: var(--space-2); }
 .mech ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 13px; color: var(--muted); }
@@ -208,3 +211,49 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .gm-banner::before { content: "Fallback area on the stage · "; color: var(--danger); }
 .sec { display: grid; gap: var(--space-3); }
 details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
+
+/* Character sheet (charsheet.ts): card, skill bars by tree, Play side sheet */
+.tag { color: var(--scene-mark); font-size: 12px; }
+.cs-split { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
+.cs-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 20px; display: grid; gap: var(--space-4); }
+.cs-who { display: flex; gap: 14px; align-items: center; }
+.cs-who b { font-size: 18px; display: block; }
+.cs-who span { color: var(--muted); font-size: 13px; }
+.cs-sigil { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--scene-mark); display: grid; place-items: center; font-size: 26px; color: var(--scene-mark); flex: none; }
+.cs-track { display: grid; gap: 6px; }
+.cs-row { display: flex; justify-content: space-between; gap: var(--space-3); font-size: 13px; }
+.cs-track .cs-row b { font-size: 15px; }
+.cs-hp { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+.cs-hp i { height: 10px; border-radius: var(--r-sm); background: var(--accent-soft); }
+.cs-hp i.on { background: var(--ok); }
+.cs-steps { display: flex; justify-content: space-between; font-size: 11px; color: var(--faint); }
+.cs-steps .now { color: var(--ok); font-weight: 700; }
+.cs-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; border-top: 1px solid var(--border); padding-top: 14px; }
+.cs-figs div { display: grid; }
+.cs-figs b { font-size: 22px; font-weight: 800; }
+.cs-figs span { font-size: 12px; color: var(--muted); }
+.cs-gear { border-top: 1px solid var(--border); padding-top: 14px; display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.cs-gear b { color: var(--text); font-weight: 600; }
+.cs-trees { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-4) var(--space-8); }
+.cs-tree { display: grid; gap: 10px; padding-top: var(--space-3); border-top: 2px solid var(--t); align-content: start; }
+.cs-tree-h { display: flex; justify-content: space-between; align-items: baseline; }
+.cs-tree-h b { font-size: 15px; }
+.cs-tree-h span { color: var(--muted); font-size: 13px; }
+.cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 40px; gap: var(--space-3); align-items: center; }
+.cs-sk .n { font-weight: 600; }
+.cs-sk .n small { display: block; font-weight: 400; font-size: 12px; color: var(--faint); }
+.cs-sk .num { text-align: right; font-weight: 800; font-size: 16px; }
+.cs-sk.zero .n, .cs-sk.zero .num { color: var(--faint); }
+.cs-bar { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); }
+.cs-bar > b { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--t); }
+.play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6); min-height: 0; }
+.play-wrap:has(.cs-side.folded) { grid-template-columns: minmax(0, 1fr) auto; }
+.cs-side { border-left: 1px solid var(--border); padding-left: var(--space-6); display: grid; gap: 14px; align-content: start; overflow-y: auto; min-height: 0; }
+.cs-side-h { display: flex; justify-content: space-between; align-items: center; }
+.cs-meter { height: 8px; border-radius: 4px; background: var(--accent-soft); overflow: hidden; margin-top: 6px; }
+.cs-meter b { display: block; height: 100%; background: var(--ok); }
+.cs-mini { display: grid; gap: 4px; }
+.cs-mini .th { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--t); text-transform: uppercase; letter-spacing: .06em; }
+.cs-mini .r { display: grid; grid-template-columns: minmax(0, 1fr) 70px 28px; gap: 8px; align-items: center; font-size: 13px; }
+.cs-mini .r .cs-bar { height: 6px; }
+.cs-mini .r b { text-align: right; }

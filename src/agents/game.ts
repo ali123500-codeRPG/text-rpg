@@ -15,7 +15,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
 import { equipLoadout, fullParts } from '../library/spawn';
-import { healthLevel } from '../ruleset';
+import { defaultStandingDefense, healthLevel } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
@@ -354,6 +354,7 @@ export function createGame(deps: GameDeps): Game {
     const storyId = `story_${now.toString(36)}`;
     const seed = (now >>> 0) || 1;
     state = newState(storyId, seed, buildPlayer(storyId, build), new Date(now).toISOString());
+    state.player.core.standingDefense = defaultStandingDefense(state, state.player); // same rule as the creation preview
     lines = [];
     notices = [];
     turnLog = [];
@@ -577,7 +578,7 @@ function buildPlayer(storyId: string, build: CreationBuild): Actor {
       perks: [],
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
       inventory: [...equipLoadout(null, START_KIT, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN }],
-      standingDefense: (sk.block ?? 0) >= (sk.dodge ?? 0) ? 'block' : 'dodge', // GAP: raw skill stands in for effective skill
+      standingDefense: 'block', // set from effective skill once the state exists (newGame)
     },
     progression: {
       startingTotal: Object.entries(sk).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),

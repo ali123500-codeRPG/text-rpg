@@ -85,7 +85,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       perks: [],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
-      standingDefense: (skills.block?.raw ?? 0) > (skills.dodge?.raw ?? 0) ? 'block' : 'dodge',
+      standingDefense: (skills.block?.raw ?? 0) >= (skills.dodge?.raw ?? 0) ? 'block' : 'dodge', // GAP: raw skill; a tie goes to block like the player
     },
     // GAP: unique NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'unique' ? { progression: {

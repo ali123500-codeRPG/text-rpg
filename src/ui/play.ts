@@ -3,11 +3,14 @@
 import type { GameApi, LogLine, Notice } from '../types';
 import { CONFIG } from '../config';
 import { credit, h } from './kit';
+import { sideSheet } from './charsheet';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scene_fallback: 'Scene planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
   read_only: 'Read-only', save_failed: 'Not saved', load_refused: 'Not loaded',
 };
+
+const MODE_WORD: Record<string, string> = { explore: 'Exploring', dialogue: 'Talking', tactical: 'Fighting' };
 
 export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void };
 
@@ -22,13 +25,16 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const notices = h('div', { class: 'notices' });
   const aimBtn = h('button', { type: 'button' });
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', placeholder: 'What do you do? A line starting with / is a command (/help)', 'aria-label': 'What do you do' });
-  const send = h('button', { class: 'hs-btn-main', type: 'button' }, 'Send');
+  const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
   const aimPicker = h('div', { class: 'hs-picker' }, aimBtn);
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, input, aimPicker, send);
   const fell = h('div', { class: 'fell', hidden: true });
   const body = h('div', { class: 'play' }, h('div', { class: 'log-wrap' }, log, mech), h('div', { class: 'sec' }, notices, bar, credit()));
   const title = h('div', { class: 'head' });
-  const el = h('main', { class: 'playmain' }, title, body, fell);
+  let folded = false;
+  try { folded = localStorage.getItem('sheetFolded') === '1'; } catch { /* storage blocked: start open */ }
+  const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
+  const el = h('main', { class: 'playmain' }, title, h('div', { class: 'play-wrap' }, body, sheet), fell);
 
   async function submit() {
     const text = input.value.trim();
@@ -48,7 +54,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   function update() {
     const s = api.state();
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play'), h('p', {}, s ? `Turn ${s.turn} · ${s.mode}` : 'No story yet')));
+    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play'), h('p', {}, s ? `Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}` : 'No story yet')));
     const lines = api.lines();
     const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
     log.replaceChildren(...lines.map(lineEl), api.busy() ? h('p', { class: 'wait', 'aria-label': 'Waiting for the story' }, '…') : '');
@@ -70,8 +76,14 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     aimBtn.title = aimed ? 'This turn’s attack is aimed. Click to stop aiming' : 'Click to aim this turn’s attack (same as /aim)';
     aimBtn.textContent = aimed ? 'Aimed' : 'Aim';
 
+    const fold = h('button', { class: 'hs-btn-text cs-fold', type: 'button', 'aria-expanded': String(!folded),
+      onclick: () => { folded = !folded; try { localStorage.setItem('sheetFolded', folded ? '1' : '0'); } catch { /* not saved */ } update(); } }, folded ? 'Sheet ‹' : 'Hide ›');
+    sheet.classList.toggle('folded', folded);
+    sheet.replaceChildren(h('div', { class: 'cs-side-h' }, folded ? null : h('p', { class: 'hs-section' }, 'Your sheet'), fold), ...(s && !folded ? sideSheet(s, s.player) : []));
+
     const fallen = api.fell();
     body.hidden = fallen;
+    sheet.hidden = fallen;
     fell.hidden = !fallen;
     if (fallen) {
       fell.replaceChildren(
