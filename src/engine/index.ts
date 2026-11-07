@@ -3,7 +3,7 @@ export * from './types';
 export { computePending, engagedActors } from './mode';
 export { selectSpokespeople, unclearAddressee, resolveSpeech, impressionWords, SPEECH_SKILL } from './speech';
 export { resolveTurn, isMajorAction } from './resolve';
-export { awardXp, charLevel, grantAchievement, killXp, xpToNext } from './xp';
+export { achievementName, awardXp, charLevel, grantAchievement, killXp, xpToNext } from './xp';
 export { fromIntent } from './merge';
 export { firedOrders } from './triggers';
 export { checkSecrets } from './secrets';

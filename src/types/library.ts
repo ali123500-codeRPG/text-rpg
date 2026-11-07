@@ -50,12 +50,24 @@ export type Library = {
   activities: Record<string, ActivityDef>;
   routines: Record<string, Routine>;
   routineSets: Record<string, RoutineSet>;
-  perks: Record<string, { id: string; name: string; situation?: number }>;
+  perks: Record<string, PerkDef>;
+  races?: Record<string, RaceDef>; // Part 4 §4: a race sets the creature type; race perks come later
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
+};
+
+/** Perk page S1–S9 (Ali, 07/11/2026): a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
+ * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */
+export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech';
+export type PerkDef = {
+  id: string; name: string; text?: string; situation?: number;
+  ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
 };
 
 /** X6/X11 (Ali, 07/11/2026): a library achievement, each with its own id and name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per creature type or race: the granted id is
- * <id>:<type or race> and {creature}/{race} in the name become what was defeated. 'mastery' once per tree and tier
- * (awarded when mastery perks exist). */
-export type AchievementDef = { id: string; name: string; xp: number; rule: 'defeats' | 'mastery'; count?: number; by?: 'creature' | 'race' };
+ * <id>:<type or race> and {creature}/{race} in the name become what was defeated. 'mastery' once per tree when all three
+ * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
+export type RaceDef = { id: string; name: string; creatureTypeId: string };
+
+/** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */
+export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'creature' | 'race' };

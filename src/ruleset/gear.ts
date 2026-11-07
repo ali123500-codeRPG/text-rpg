@@ -3,6 +3,7 @@ import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, M
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
+import { trueSkill } from './perks';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
@@ -60,7 +61,7 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     const k = id === skill ? 1 : CONFIG.SUBSTITUTE_EFFICIENCY;
     const entry = actor.core.skills[id];
     const gear = gearFor(state, actor, id, ctx).map((g) => ({ ...g, value: g.value * k }));
-    const value = (entry && !entry.dormant ? entry.raw : 0) * k + gear.reduce((s, g) => s + g.value, 0);
+    const value = (entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0); // true skill (S3)
     if (!best || value > best.value) best = { skill: id, value, gear };
   }
   return best!; // GAP: hard cap (D-3) and condition effects not designed yet

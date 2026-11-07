@@ -141,20 +141,20 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     fallback: { attackSkill: 'unarmed_natural' },
   },
   guard: {
-    id: 'guard', creatureTypeId: 'humanoid', generation: 'copy',
+    id: 'guard', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { melee_medium: 40, block: 30, dodge: 20, sight: 30, hearing: 30, intimidation: 30, persuasion: 20 },
     level: 2, bonusPoints: 10,
     focus: [{ treeId: 'melee', skill: 'melee_medium' }, { treeId: 'defense', skill: 'block' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
-    id: 'trader', creatureTypeId: 'humanoid', generation: 'copy',
+    id: 'trader', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { sight: 25, hearing: 25, barter: 40, persuasion: 30 }, level: 1, bonusPoints: 0,
     focus: [{ treeId: 'perception', skill: 'hearing' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
   patron: {
-    id: 'patron', creatureTypeId: 'humanoid', generation: 'copy',
+    id: 'patron', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { unarmed_strike: 20, sight: 20, persuasion: 30 }, level: 1, bonusPoints: 0,
     focus: [{ treeId: 'unarmed', skill: 'unarmed_strike' }, { treeId: 'defense', skill: 'dodge' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'timid', control: 'code', label: 'a tavern patron',
@@ -239,6 +239,8 @@ export function prototypeLibrary(): Library {
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false } },
     creatures: CREATURES,
+    // Ali (07/11/2026): humans and elves for now, identical
+    races: { human: { id: 'human', name: 'Human', creatureTypeId: 'humanoid' }, elf: { id: 'elf', name: 'Elf', creatureTypeId: 'humanoid' } },
     items: ITEMS,
     templates: TEMPLATES,
     activities: ACTIVITIES,
@@ -246,14 +248,20 @@ export function prototypeLibrary(): Library {
     routineSets: ROUTINE_SETS,
     perks: {},
     achievements: {
-      // XP: first defeat and mastery 100 and 250 (X11); the rest are placeholders (X17). Grand names (Ali, 07/11/2026).
-      first_defeat: { id: 'first_defeat', name: '{creature}bane', xp: 100, rule: 'defeats', count: 1, by: 'creature' },
-      first_defeat_race: { id: 'first_defeat_race', name: 'Bane of {race}kind', xp: 100, rule: 'defeats', count: 1, by: 'race' },
-      defeats_10_creature: { id: 'defeats_10', name: 'Scourge of the {creature} Hordes', xp: 100, rule: 'defeats', count: 10, by: 'creature' },
-      defeats_10: { id: 'defeats_10', name: 'Tenfold Reaper', xp: 100, rule: 'defeats', count: 10 },
-      defeats_100: { id: 'defeats_100', name: 'Calamity of a Hundred Blades', xp: 250, rule: 'defeats', count: 100 },
-      defeats_1000: { id: 'defeats_1000', name: 'Thousand-Slayer, Herald of Ruin', xp: 1000, rule: 'defeats', count: 1000 },
-      mastery: { id: 'mastery', name: 'Ascendant of {tree}: {tier}', xp: 250, rule: 'mastery' }, // not awarded until mastery perks exist
+      // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
+      first_defeat: { id: 'first_defeat', name: 'First {creature} Felled', level: 'i', rule: 'defeats', count: 1, by: 'creature' },
+      defeats_10_creature: { id: 'defeats_10', name: '{creature}bane', level: 'ii', rule: 'defeats', count: 10, by: 'creature' },
+      defeats_100_creature: { id: 'defeats_100', name: 'Scourge of the {creature} Hordes', level: 'iii', rule: 'defeats', count: 100, by: 'creature' },
+      first_defeat_race: { id: 'first_defeat_race', name: 'First of {race}kind Felled', level: 'i', rule: 'defeats', count: 1, by: 'race' },
+      defeats_10_race: { id: 'defeats_10_race', name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', count: 10, by: 'race' },
+      defeats_100_race: { id: 'defeats_100_race', name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', count: 100, by: 'race' },
+      defeats_10: { id: 'defeats_10', name: 'Blooded Fighter', level: 'i', rule: 'defeats', count: 10 },
+      defeats_100: { id: 'defeats_100', name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', count: 100 },
+      defeats_1000: { id: 'defeats_1000', name: 'Thousand-Slayer, Herald of Ruin', level: 'iii', rule: 'defeats', count: 1000 },
+      // one per tree and mastery step, id <id>:<tree>; not awarded until mastery perks exist
+      mastery_50: { id: 'mastery_50', name: 'Adept of {tree}', level: 'ii', rule: 'mastery', count: 50 },
+      mastery_100: { id: 'mastery_100', name: 'Ascendant of {tree}', level: 'iii', rule: 'mastery', count: 100 },
+      mastery_150: { id: 'mastery_150', name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', count: 150 },
     },
   });
 }

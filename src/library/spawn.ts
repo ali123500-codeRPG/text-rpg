@@ -78,6 +78,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     bandId: opts.bandId,
     core: {
       creatureTypeId: ct.id,
+      ...(t.raceId ? { raceId: t.raceId } : {}),
       templateId: t.id,
       generation: t.generation,
       skills,
@@ -151,6 +152,7 @@ export function createPlayer(build: CreationBuild, storyId: string): Actor {
     posture: 'open', bandId: 'player_band',
     core: {
       creatureTypeId: 'humanoid',
+      raceId: 'human', // GAP: no race choice at creation yet
       skills,
       classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],
       perks: [],

@@ -3,9 +3,9 @@
 import type { Actor, GameState } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
-import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp } from '../ruleset';
+import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState } from '../ruleset/body';
-import { charLevel, xpToNext } from '../engine/xp';
+import { achievementName, charLevel, xpToNext } from '../engine/xp';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 
@@ -78,7 +78,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
     gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
     h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Achievements'),
       (p.progression?.achievements ?? []).length
-        ? p.progression!.achievements!.map((a) => h('span', {}, a.name, ` · turn ${a.turn}`))
+        ? p.progression!.achievements!.map((a) => h('span', {}, achievementName(s, a), ` · turn ${a.turn}`))
         : h('span', {}, 'None yet')));
 }
 
@@ -107,7 +107,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
       h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', {}, `${t.sum} pts`)),
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw), h('div', { class: 'num' }, String(r.raw)))))));
+        bar(r.raw), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
 }
 
 const partOpen = { on: false }; // body-part list under the health bar, kept open across turns

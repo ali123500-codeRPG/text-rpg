@@ -83,6 +83,8 @@ const DEFAULTS = {
   XP_CATEGORY_WEIGHT: { offensive: 1, defensive: 1, endurance: 1, notice: 0.5, influence: 0.25, misc: 0 } as Record<string, number>,
   KILL_XP_MULT: 1, // X20 (Ali, 07/11/2026): ×1 for now
   KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
+  /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests (Ali, 07/11/2026) */
+  REWARD_XP: { i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)

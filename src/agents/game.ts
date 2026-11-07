@@ -15,7 +15,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
 import { equipLoadout, fullParts } from '../library/spawn';
-import { defaultStandingDefense, healthLevel, tierAtLeast, tierLevel, tierName, tierPart } from '../ruleset';
+import { defaultStandingDefense, healthLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
@@ -507,6 +507,9 @@ export function createGame(deps: GameDeps): Game {
     async restoreBackup() {
       throw new Error('restore is not available: the save module exposes no restore yet'); // GAP (W1)
     },
+    // GAP: a pick lives in memory until the next turn is played and saved; a reload before then drops it (K3 keeps it undoable till then)
+    takePerk(id) { if (state && !busy) { takePerk(state, state.player, id); emit(); } },
+    undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;
@@ -692,7 +695,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     if (x.turn !== turn) continue;
     if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${x.levelUp.classId})`); continue; }
     const [kind, id] = x.source.split(/:(.*)/);
-    const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${ach.find((a) => a.id === id)?.name ?? id}` : x.source;
+    const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
     out.push(`+${x.amount} XP (${what})`);
   }
   return out;
