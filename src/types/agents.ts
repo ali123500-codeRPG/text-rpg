@@ -17,7 +17,7 @@ export const IMPROVISED_BASES = ['improvised_light', 'improvised_medium', 'impro
 export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
 
 export type Intent = {
-  move: { toZone: string } | null;
+  move: { toZone: string; after?: boolean } | null; // after: the action first, then the move (AE3)
   action: {
     type: ParserActionType;
     skill: string;

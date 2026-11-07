@@ -289,6 +289,22 @@ A dialogue call receives, from this turn, only the words the player spoke and on
 
 The tier names are the six tiers of Part 1 §4; the ruleset still owns them.
 
+### Action economy
+
+Settled by Ali 07/11/2026 ("Action economy: options", AE1–AE12; settles D-19, D-60, D-83).
+
+- **Slots (AE1).** A turn is one move (one zone link), one main action, and free things: gear ops, defenses (each after the first in a turn takes the outnumbered modifier) and barks. Perks and class skills change a slot: add one, swap one, or make one free. A fight turn stays 6 seconds whatever it holds (AE12).
+- **Ranged (AE1).** A ranged attack and a move don't share a turn. If the attack reaches from where the actor stands, the move is dropped (move\_dropped, ranged\_attack); otherwise the move stands and the attack is dropped. Shoot and Move (B4) lifts this.
+- **Dash (AE2).** A player with no main action whose move's zone is two links away spends the action on the second link. A Crippled or Destroyed part with the move role stops a dash (dash\_blocked); slowed (Leg Bolt) will too.
+- **Order (AE3).** The move comes first unless the Parser marks it `after` ("strike, then step back"). NPCs keep move first for now (parked: the Planner would need the same field).
+- **Extra attacks (AE4)** come only from perks and class skills (Flurry: a second attack at tier shift −1), never from a high skill alone.
+- **Free actions (AE5)** stay as above; a perk can make one action free a limited number of times per engagement (Dirt in the Eyes).
+- **Readying (AE6)** is a perk move (Held Shot), not something everyone can do; anyone can still hold.
+- **Speech (AE7)** in a fight stays the main action; a free one-line remark is a perk (Quick Word); barks persuade no one.
+- **Perk moves (AE8)** (Plead, Battle Cry, Buy Them Off) are main actions of their own type: the Parser picks an owned one by name, and Commands and Ideas list the ones the player has.
+- **NPCs (AE9)** use the same slots and perks. The Planner still returns one move and one action; an extra slot with no choice in it (Flurry's second attack) is filled by code, and one with a choice gets a Planner field the NPC fills only when it owns the perk.
+- **Armor (AE10):** putting armor on or off stays one main action. **Criticals (AE11):** "lose your next action" means the next main action.
+
 ### Game state model
 
 The save is the set of pages defined in Part 4. On load, the engine builds one in-memory GameState from those pages; it is never saved as one document. Positions are abstract zones. Each zone belongs to one place, and the stage may hold zones from several places. Knowledge lives on the observer: the guard's belief about the player is `guard.mind.knowledge.player`, and it can be wrong.
@@ -1437,6 +1453,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 109 | Skill progression | A use marks a skill only when the opposition is within MARK\_WINDOW of raw or true skill, once, and only for the player; a hit costing ENDURANCE\_MARK\_PCT marks endurance; a marked skill whose roll beats its target gains 1d5 and shows "Sight 38 → 41" plus "New perk unlocked" past a milestone; a failed roll shows nothing; marks clear |
 | 110 | Healing | Rest heals HP and working parts but not a Crippled part; a clinic lifts it; a bandage heals its row in the turn it is used, is used up, and shows "Bandage: Hurt → Bruised" |
 | 111 | Game clock | Each action costs its durations row; waiting until dawn moves the clock to dawn, breaks the scene and shows "Time passes: 11 h (Day 2 · Dawn)"; a hostile in the zone blocks it; outdoor zones are dark at night unless lit; the Narrator sees the day and time of day; the Weaver picks the hour only at story start; a night-only routine set by day is a routine error; rest cools down in game minutes; natural recovery heals 0.5% an hour at endurance 50, never a Crippled part, fights included |
+| 113 | Action economy | A ranged attack in reach drops the move; out of reach the move stands and the attack is dropped; a move two links away with no action is a dash, stopped by a Crippled leg; "after" resolves the action before the move |
 
 ### Deliverables and acceptance criteria
 
@@ -2478,7 +2495,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-16 | One Planner call per actor | 2 | Provisional | Evaluate later against one call per group of actors who can talk to each other, or a commander layer; also decides shared plans, whether a spokesperson's answer can bind its band (commander layer), and coordination between allies, who also commit blind |
 | D-17 | Fallback combat list | 2 | Under review | Which actors count as minor, and how rich their behaviors are. The prototype uses a fixed combat list in code (Fallback behavior). Later: a per-type, data-driven rule order once many creature types fight; tacticsLevel variants, such as level 3 calling for help first |
 | D-18 | Call cap (MAX\_PLANNER\_CALLS) | 2 | Under review | The value, and which actors get calls first. Counts engaged significant actors only. Overflow runs its type's combat list \[Proposed\] |
-| D-19 | Action economy | 2 | Parked | Decided: speech is an action and takes the main action, for everyone; words beside another action are a bark. The rest stays parked: a per-turn action limit is being considered, each action using 0–100% of it by type; covers move plus action and move timing |
+| D-19 | Action economy | 2 | Settled | Settled 07/11/2026 (AE1–AE12, Part 2 Action economy): slots, ranged attacks don't move, dash, act-then-move for the player. Earlier: speech is an action and takes the main action, for everyone; words beside another action are a bark. The rest stays parked: a per-turn action limit is being considered, each action using 0–100% of it by type; covers move plus action and move timing |
 | D-20 | Deferred actions | 2 | Parked | Run next turn unless new input, show as a queue, or drop; queuing many and typing "continue" is an exploit |
 | D-21 | Player names something that doesn't exist | 2 | Parked | A clarify question can reveal what exists in the world. Voyage playtest (07/11/2026): F1, the player liked an impossible action failing inside the story instead of a clarify question |
 | D-22 | What code produces, agents see, player sees | 2 | Parked | Separate document; includes roll numbers for Agent Narrator, SHOW\_MECHANICS and on-screen panels. Part 3's roll packet specifies part of this; Agent Narrator never gets roll numbers (Part 3, The packet). Includes whether the player sees the situation roll. Voyage playtest (07/11/2026): A1 one-line check summary, A2 typed update cards, D9 speaker labels and plain text, E3 location header, G2 quest text, G3 player-facing wording for rules text. Decided by Ali (07/11/2026, Voyage C2): no enemy health bars, by design; characters only know what they perceive |
@@ -2519,7 +2536,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-57 | Damage calculation | 3 | Settled |  Part 3, Damage flow, and Part 5 §6, the damage step; values wait for D-77 |
 | D-58 | Healing | 3 | Partly settled | Settled 07/11/2026 (H1–H15, Part 3 Healing): one healing-source table with a reach on the part-state scale; rest, clinic, bandage, natural recovery from endurance. Still open: first-aid skill, bleeding. Voyage playtest (07/11/2026): B5, healing amounts must be consistent |
 | D-59 | How positive and negative modifiers combine per action | 3 | Settled | Part 1 §4, Stacking within a type; the values per type stay with D-75 |
-| D-60 | Critical: "one action per turn" | 3 | Deferred | Unclear what it removes, since Part 2 already allows one move and one main action; settle with the action economy |
+| D-60 | Critical: "one action per turn" | 3 | Settled | Settled 07/11/2026 (AE11): "lose your next action" means the next main action |
 | D-61 | Recurring NPCs | 4 | Deferred | Stable NPC ids now; promotion adds modules. Voyage playtest (07/11/2026): D2, an NPC remembered a lie 15 turns later |
 | D-62 | Temporary NPC linked to the place last seen | 4 | Deferred |  |
 | D-63 | Telling temporary from recurring NPCs | 4 | Deferred |  |
@@ -2542,7 +2559,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-80 | Tiny parts | 3 | Deferred | Their pool share, when the first Tiny part is used |
 | D-81 | Partial cover by part | 3 | Deferred | Such as a wall hiding the legs |
 | D-82 | Combat skill names | 1 | Deferred | For the melee, ranged and unarmed trees, set per setting |
-| D-83 | Multiple attacks per turn | 2 | Deferred | Part of the action economy; the outnumbered modifier stands in for now |
+| D-83 | Multiple attacks per turn | 2 | Settled | Settled 07/11/2026 (AE4): extra attacks come only from perks and class skills (Flurry) |
 | D-84 | Carry limit and encumbrance | 5 | Deferred | bulk exists on every item; capacity is infinite. Later: a carry limit per creature type, perk and item adjustments, what counts toward load, what happens past it |
 | D-85 | Initiative as a gear target | 5 | Deferred | Heavy armor slowing initiative, and similar |
 | D-86 | Conditional and granted effects | 5 | Deferred | Effects that apply only vs a creature type or in darkness; gear that grants statuses, perks or actions; movement and flight modifiers |
