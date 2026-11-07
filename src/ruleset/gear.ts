@@ -54,11 +54,13 @@ function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string } = {}) {
   const skills = getLibrary().skills;
-  const fns = skills[skill]?.functions ?? [];
-  const cands = [skill, ...Object.values(skills).filter((s) => s.id !== skill && s.functions.some((f) => fns.includes(f))).map((s) => s.id)];
+  // substitutes: skills sharing a function at the flat efficiency, or the skill's own table (CONFIG.SUBSTITUTES)
+  const table = CONFIG.SUBSTITUTES[skill] ?? (skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }));
+  const share = (id: string) => (id === skill ? 1 : Math.max(0, ...table.filter((t) => (skills[id]?.functions as string[] ?? []).includes(t.fn)).map((t) => t.k)));
+  const cands = [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)];
   let best: { skill: string; value: number; gear: { source: string; value: number }[] } | null = null;
   for (const id of cands) {
-    const k = id === skill ? 1 : CONFIG.SUBSTITUTE_EFFICIENCY;
+    const k = share(id);
     const entry = actor.core.skills[id];
     const gear = gearFor(state, actor, id, ctx).map((g) => ({ ...g, value: g.value * k }));
     const value = (entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0); // true skill (S3)

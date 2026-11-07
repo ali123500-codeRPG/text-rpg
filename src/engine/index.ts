@@ -8,3 +8,4 @@ export { fromIntent } from './merge';
 export { firedOrders } from './triggers';
 export { checkSecrets } from './secrets';
 export { applyHealing, healingName } from './heal';
+export { updateEngagements, usableThisEngagement, useThisEngagement, engagedThisTurn } from './engagement';

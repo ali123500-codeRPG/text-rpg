@@ -7,6 +7,7 @@ import { defaultMode, healthLevel, improveMarked, markEndurance, moraleCheck, pa
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
+import { updateEngagements } from './engagement';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -406,8 +407,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
-  // SP3: marked skills roll when an engagement ends, or when the scene breaks
-  if ((state.mode === 'tactical' && !allActors(state).some((x) => isEngaged(state, x))) || state.stage.breakCause) improveMarked(state, rng);
+  // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
+  if (updateEngagements(state, ctx.events) || state.stage.breakCause) improveMarked(state, rng);
   state.events.push(...ctx.events);
   return ctx.events;
 }

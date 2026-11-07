@@ -954,7 +954,7 @@ Per turn:
 
 Code picks the mode each turn; agents run only when someone needs a mind. Ordinary and guarded dialogue now share one pipeline, so the mode no longer shows whether an NPC has a secret.
 
-**Engagement** (Ali, 07/11/2026, E1). An engagement is one fight from an actor's point of view. It starts when any actor becomes engaged with that actor (active, hostile to it, and believing in it at suspicious or higher). It ends once no actor has been engaged with it for ENGAGEMENT\_END\_TURNS turns in a row (config, 2). A scene can hold several engagements. Effects that work once per engagement reset when a new one starts, and other rules may count engagements too. Code keeps the current engagement's start turn per actor.
+**Engagement** (Ali, 07/11/2026, E1). An engagement is one encounter from an actor's point of view: a fight, a negotiation, or both. It starts when any actor becomes engaged with that actor, either in a fight (active, hostile to it, and believing in it at suspicious or higher) or in talk (the two speak to each other in a dialogue exchange). It ends once no actor has been engaged with it, in either way, for ENGAGEMENT\_END\_TURNS turns in a row (config, 2). A negotiation that turns into a fight, or a fight that turns into talk, stays one engagement (Ali, 07/11/2026): once-per-engagement effects and the improvement rolls at its end happen once. A scene can hold several engagements. Effects that work once per engagement reset when a new one starts, and other rules may count engagements too. Code keeps the current engagement's start turn per actor, and which kinds it has held so far (talk, fight).
 
 | Mode | When code enters it | Pipeline | Claude calls per turn |
 | --- | --- | --- | --- |

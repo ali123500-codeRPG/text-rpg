@@ -51,7 +51,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = ['dodge', 'sight']; player.progression.unspentPerkPoints = 1; }
-    player.core.inventory.push({ id: 'player_draught', itemId: 'healing_draught', qty: 2 }, { id: 'player_draught_2', itemId: 'healing_draught', qty: 1 });
+    player.core.inventory.push({ id: 'player_draught', itemId: 'healing_draught', qty: 2 }, { id: 'player_draught_2', itemId: 'healing_draught', qty: 1 }, { id: 'player_bandage', itemId: 'bandage', qty: 2 });
+    player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0] },
       { turn: 2, kind: 'player', text: 'I head out through the gate to the field' },
@@ -60,6 +61,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { turn: 3, kind: 'narration', text: NARRATION[2],
         check: { kind: 'attack', skill: 'melee_medium', tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
+        heals: [{ source: 'bandage', from: 'Hurt', to: 'Bruised', parts: [{ id: 'left_leg', from: 'Damaged', to: 'Healthy' }] }],
+        unlocks: [{ skill: 'block', milestone: 40 }], gains: { block: 3 },
         changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],
         mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Great Success', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Great Success · dodge 0 · full hit · 25 damage to body'] },
     ];

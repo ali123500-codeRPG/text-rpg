@@ -5,6 +5,11 @@
 const DEFAULTS = {
   // ---- Part 1 ----
   SUBSTITUTE_EFFICIENCY: 0.5,
+  /** Per-check substitutes (Ali, 07/11/2026): a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
+   * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
+  SUBSTITUTES: {
+    unarmed_grapple: [{ fn: 'unarmed_attack', k: 0.4 }, { fn: 'melee_attack', k: 0.2 }],
+  } as Record<string, { fn: string; k: number }[]>,
   SITUATION_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
