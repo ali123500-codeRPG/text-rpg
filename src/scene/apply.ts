@@ -1,6 +1,8 @@
 // Applying a stage plan (Scene setup steps 4–8), the fallback stage, opening events.
 import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
+import { TIME_OF_DAY } from '../scales';
+import { clockSet, startClock } from '../time';
 import { activity, itemDef } from '../library';
 import { spawnNpc } from '../library/spawn';
 import { installRoutines, desiredState } from '../minds';
@@ -110,6 +112,8 @@ export function beginScene(state: GameState, tier: Tier): void {
 
 export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext, opts: { entry: 'open' | 'sneaking'; degrade?: PlanError[] }, rng: Rng): void {
   const turn = state.turn;
+  // T8: the story's first plan sets the clock (to the start of day if it names no time)
+  if (!clockSet(state)) startClock(state, TIME_OF_DAY.has(plan.timeOfDay) ? plan.timeOfDay : 'day');
   const allZoneIds = new Set([...state.places.flatMap((p) => p.zones.map((z) => z.id)), ...stageFrontiers(state)]);
 
   // ---- keys -> stable ids (plan keys first, then existing ids) ----
@@ -149,7 +153,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       const fr = frontierMap.get(l.to) ?? (!isZoneRef(l.to) ? l.to : undefined);
       return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight };
     });
-    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), name: z.name, look: z.look, links, cover: z.cover, light: z.light, groundItems: [] };
+    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), name: z.name, look: z.look, links, cover: z.cover, light: z.light, ...(z.outdoor ? { outdoor: true as const } : {}), groundItems: [] };
     state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
     putOnStage(state, zone);
     newZones.push(zone);

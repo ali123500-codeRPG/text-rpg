@@ -54,7 +54,11 @@ const DEFAULTS = {
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   MORALE_DEFAULT: 50,
   PERSONALITY_MORALE: { fearless: null, bold: 70, steady: 50, timid: 30 } as Record<string, number | null>,
-  REST_COOLDOWN: 20,
+  REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
+  // ---- game clock (T1-T8, Ali 07/11/2026); durations per action are the library's durations table ----
+  TIME_OF_DAY_FROM: { dawn: 5 * 60, day: 7 * 60, dusk: 18 * 60, night: 20 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
+  SKY_LIGHT: { dawn: 'dim', day: 'bright', dusk: 'dim', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
+  TIME_TAGS: { dawn: ['day', 'night'], day: ['day'], dusk: ['day', 'night'], night: ['night'] } as Record<string, string[]>, // T3b: routine-set time tags that fit
   REST_HEAL_PCT: 25,
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,

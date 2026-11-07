@@ -3,6 +3,7 @@ import type { AttackMode, ItemDef } from './items';
 import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
+import type { PartStateKey } from '../scales';
 
 export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' | 'defense' | 'notice' | 'influence' | 'hp';
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
@@ -52,6 +53,7 @@ export type Library = {
   routineSets: Record<string, RoutineSet>;
   perks: Record<string, PerkDef>;
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
+  durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the creature type; race perks come later
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
 };
@@ -77,9 +79,17 @@ export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | 
  * defeats (first defeat = count 1). With `by`, it is earned once per creature type or race: the granted id is
  * <id>:<type or race> and {creature}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
-/** A healing source (Ali, 07/11/2026, H1): what it restores, whether it can lift a Crippled part, whether it works
- * in a fight, and what it needs (a place kind; an item names its source with ItemDef.heal). */
-export type HealingDef = { id: string; name: string; hpPct: number; partPct: number; fixesCrippled: boolean; inFight: boolean; placeKinds?: string[] };
+/** How long an action takes on the game clock (T1, Ali 07/11/2026). `orders` lists the order types the row covers;
+ * the row with no `orders` named 'action' is the default; 'fight_turn' is every turn of a fight; 'sleep' is one sleep. */
+export type DurationDef = { id: string; name: string; minutes: number; orders?: string[] };
+
+/** A healing source (Ali, 07/11/2026, H1/H12): what it restores, the worst part state it can heal (`reach`, a
+ * PART_STATES key), whether it works in a fight, and what it needs (a place kind; an item names its source with
+ * ItemDef.heal). `hourly` makes it passive: per game hour it restores skill × pctPerPoint % (H12). */
+export type HealingDef = {
+  id: string; name: string; hpPct: number; partPct: number; reach: PartStateKey; inFight: boolean; placeKinds?: string[];
+  hourly?: { skill: string; pctPerPoint: number };
+};
 
 export type RaceDef = { id: string; name: string; creatureTypeId: string };
 

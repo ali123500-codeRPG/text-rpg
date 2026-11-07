@@ -352,10 +352,10 @@ describe('gear and combat', () => {
   it('rest heals once per cooldown, never beside an opposed actor', () => {
     s.player.core.condition.hpLostPct = 50;
     resolveTurn(s, input({ intent: intent({ action: { type: 'rest' } }) }), createRng(1));
-    expect(s.player.core.condition.hpLostPct).toBe(25);
+    expect(s.player.core.condition.hpLostPct).toBeCloseTo(25, 0); // H12: plus a little natural recovery
     s.turn = 2;
     resolveTurn(s, input({ intent: intent({ action: { type: 'rest' } }) }), createRng(1));
-    expect(s.player.core.condition.hpLostPct).toBe(25);
+    expect(s.player.core.condition.hpLostPct).toBeGreaterThan(20); // blocked: only natural recovery
     expect(s.log.some((l) => l.code === 'rest_blocked')).toBe(true);
   });
 });

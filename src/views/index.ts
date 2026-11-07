@@ -7,6 +7,7 @@ import type { Tier, TierRoll,
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
+import { timeView, zoneLight, clockSet } from '../time';
 import { actorById, allActors, atLeast, bandById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { healthLevel, partStates, tierName } from '../ruleset';
@@ -22,7 +23,7 @@ const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneByI
 
 export function zoneView(state: GameState, z: Zone): ZoneView {
   return {
-    id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(z.light),
+    id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })),
     groundItems: z.groundItems.map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })),
   };
@@ -102,7 +103,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     // P3: in a dark zone someone is half seen, unless they share the viewer's zone and the viewer perceived them
     // fully this scene (spoke face to face, say): then they stay seen
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
-    const level = zoneById(state, a.zone)?.light === 'dark' && !keptSight && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
+    const level = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
     // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [] }); continue; }
     const name = viewer.id === state.player.id ? (nameKnown(state, a) ? a.names.current : undefined) : viewer.bandId === a.bandId ? a.names.current : undefined;
@@ -237,6 +238,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const band = bandById(state, a.bandId);
   return {
     turn: state.turn,
+    time: timeView(state),
     self: {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc',
       zone: a.zone, placeId: a.placeId, bandId: a.bandId,
@@ -331,6 +333,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   const a = intent?.action;
   return {
     style: { tone: state.settings.tone || CONFIG.STYLE.tone, length: CONFIG.STYLE.length },
+    time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
     player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '' },
@@ -366,6 +369,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });
   return {
     tier: tierName(state.stage.tier),
+    time: clockSet(state) ? timeView(state) : null,
     stakes: STAKES[state.stage.tier] ?? '',
     target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}) },
     headlines: headlinesFor(state, target.placeId, true),

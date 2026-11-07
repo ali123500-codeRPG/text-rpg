@@ -8,6 +8,7 @@ import { tierGap } from '../agents/game';
 import { tierAtLeast, tierName } from '../ruleset';
 import type { TierRoll } from '../types';
 import { h } from './kit';
+import { timeView } from '../time';
 import { sideSheet } from './charsheet';
 import { skillName } from './creation';
 
@@ -63,6 +64,12 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
       ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
       ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },
   ].map((g) => ({ ...g, items: g.items.slice(0, 3) }));
+}
+
+/** T11: "Day 2 · Evening" in the header */
+function dayLine(s: GameState): string {
+  const t = timeView(s);
+  return `Day ${t.day} · ${t.timeOfDay}`;
 }
 
 function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
@@ -164,7 +171,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   function update() {
     const s = api.state();
     const pv = s ? safe(() => buildPlayerView(s)) : null;
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play'), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
+    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play'), h('p', {}, s ? [`Turn ${s.turn} · ${dayLine(s)} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
       h('p', { class: 'hs-note calls', title: 'Every request this page sent to Claude since it was opened, counted by code. Repairs and background calls count too.' },
         `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`),
       bgNote() ?? '');

@@ -2,7 +2,7 @@
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
 import { activity, getLibrary, itemDef } from '../library';
-import { applyHealing } from './heal';
+import { applyHealing, passiveHealing } from './heal';
 import { defaultMode, healthLevel, improveMarked, markEndurance, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
@@ -15,6 +15,8 @@ import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './g
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats } from './xp';
+import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
+import { TIME_OF_DAY } from '../scales';
 import type { TurnInput } from './types';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
@@ -234,24 +236,60 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   }
 }
 
-/** Rest [Proposed]: no active hostile actor in the zone, at most once every REST_COOLDOWN turns. */
+/** Rest [Proposed]: no active hostile actor in the zone, at most once every REST_COOLDOWN_MIN game minutes (T7). */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const key = `rest:${a.id}`;
   const last = state.clocks[key];
-  const threat = allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (hostile(state, a, x) || hostile(state, x, a)));
+  const threat = threatHere(state, a);
   const ev = bark(mk(ctx, a, 'rest'), o);
-  if (threat || (last !== undefined && state.turn - last < CONFIG.REST_COOLDOWN)) {
+  if (threat || (last !== undefined && now(state) - last < CONFIG.REST_COOLDOWN_MIN)) {
     logCode(state, 'rest_blocked', { actorId: a.id, reason: threat ? 'hostile_in_zone' : 'cooldown' });
   } else {
     // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, else the rest row
     const kind = state.places.find((p) => p.id === a.placeId)?.kind ?? '';
     const placeRow = Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind));
     applyHealing(state, a, placeRow?.id ?? 'rest');
-    state.clocks[key] = state.turn;
+    state.clocks[key] = now(state);
     ev.effects.push({ kind: 'rested', actorId: a.id, data: {} });
   }
   emit(ctx, ev);
+}
+
+const threatHere = (state: GameState, a: Actor): boolean =>
+  allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (hostile(state, a, x) || hostile(state, x, a)));
+
+/** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
+ * Blocked like rest when a hostile is in the zone; otherwise the clock moves on and the scene breaks (time skip, D-30). */
+function doWait(ctx: Ctx, a: Actor, o: Order): void {
+  const { state } = ctx;
+  if (a !== state.player) return hold(ctx, a, o);
+  const ev = bark(mk(ctx, a, o.type), o);
+  if (threatHere(state, a) || state.mode === 'tactical') {
+    logCode(state, 'wait_blocked', { actorId: a.id, reason: 'hostile_in_zone' });
+  } else {
+    const t = now(state);
+    const until = TIME_OF_DAY.keyOf(o.target) ?? nextTimeOfDay(timeOfDay(t));
+    const minutes = o.type === 'sleep' ? getLibrary().durations?.sleep?.minutes ?? 0 : minutesUntil(t, until);
+    passTime(state, minutes);
+    logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
+    ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } });
+    state.stage.breakCause = 'time_skip';
+  }
+  emit(ctx, ev);
+}
+
+/** the clock moves on; natural recovery runs for that time (H12–H15) */
+function passTime(state: GameState, minutes: number): void {
+  advanceClock(state, minutes);
+  passiveHealing(state, minutes);
+}
+
+/** T1: a fight turn, else the durations row naming the order type, else the default 'action' row */
+function turnMinutes(state: GameState, o: Order): number {
+  const rows = getLibrary().durations ?? {};
+  if (state.mode === 'tactical') return rows.fight_turn?.minutes ?? 0;
+  return (Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows.action)?.minutes ?? 0;
 }
 
 /** H2/H3: using a carried item that names a healing source applies that row and uses one up; works in a fight only
@@ -284,7 +322,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
     // Q17 (Ali, 07/11/2026): looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
-    const light = CONFIG.LIGHT_MODS[zoneById(state, a.zone)?.light ?? 'bright'] ?? 0;
+    const light = CONFIG.LIGHT_MODS[zoneLight(state, zoneById(state, a.zone))] ?? 0;
     const modifiers = [
       ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
       ...(light ? [{ source: 'light', type: 'situational' as const, value: light }] : []),
@@ -317,6 +355,9 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doAttack(ctx, a, o);
     case 'rest':
       return doRest(ctx, a, o);
+    case 'wait':
+    case 'sleep':
+      return doWait(ctx, a, o);
     case 'give': {
       if (!giveItem(state, a, o.item, o.target)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
       return emit(ctx, bark(mk(ctx, a, 'give', { target: o.target ?? undefined, itemId: o.item ?? undefined }), o));
@@ -406,6 +447,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
+  passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   // SP3: marked skills roll when an engagement ends, or when the scene breaks
   if ((state.mode === 'tactical' && !allActors(state).some((x) => isEngaged(state, x))) || state.stage.breakCause) improveMarked(state, rng);
   state.events.push(...ctx.events);

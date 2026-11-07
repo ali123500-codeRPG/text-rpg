@@ -2,6 +2,7 @@
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
 import { BELIEF_ORDER } from '../types';
 import { CONFIG } from '../config';
+import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
 
@@ -45,7 +46,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   const zone = zoneById(state, event.zone);
   let sight: Seen | null = null;
   const sl = sightReach(event.visibility, dist(state, observer.zone, event.zone, true));
-  if (sl) sight = { level: zone?.light === 'dark' ? 'partial' : sl, cue: 'sight' };
+  if (sl) sight = { level: zoneLight(state, zone) === 'dark' ? 'partial' : sl, cue: 'sight' };
   // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see)
   if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone) {
     const d = dist(state, observer.zone, event.zone, true);

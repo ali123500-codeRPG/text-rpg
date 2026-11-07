@@ -3,7 +3,7 @@
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
 import type { Intent, NarratorOutput, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
-import { COVER, LIGHT, STANCES, TACTICS, type Scale } from '../scales';
+import { COVER, LIGHT, STANCES, TACTICS, TIME_OF_DAY, type Scale } from '../scales';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -54,7 +54,7 @@ const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ towa
 const intent = obj<Intent>({
   move: nul(obj<{ toZone: string }>({ toZone: str })),
   action: nul(obj<NonNullable<Intent['action']>>({
-    type: oneOf(['attack', 'hide', 'sneak', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'other', 'rest'] as const),
+    type: oneOf(['attack', 'hide', 'sneak', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : str(v, p, e)),
     target: nul(str),
     targetPart: nul(str),
@@ -130,12 +130,13 @@ const AWARENESS: V<'unaware' | 'suspicious' | 'aware'> = (v, p, e) => (STANCES.h
 type Cast = StagePlan['cast'][number];
 const weaver = obj<StagePlan>({
   event: obj<StagePlan['event']>({ summary: str, challenge: GRADE, gain: GRADE }),
+  timeOfDay: level(TIME_OF_DAY),
   places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)) })), // no parent = top level (V5)
   zones: arr(obj<StagePlan['zones'][number]>({
     key: str, place: str, name: str, look: str,
-    cover: level(COVER), light: level(LIGHT),
+    cover: level(COVER), light: level(LIGHT), outdoor: bool,
     links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool })),
-  })),
+  }, ['outdoor'])),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
@@ -163,7 +164,7 @@ const weaver = obj<StagePlan>({
   }, ['qty'])),
   hiddenTerms: arr(str),
   weaverNote: str,
-});
+}, ['timeOfDay']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);

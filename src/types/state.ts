@@ -15,7 +15,7 @@ export type StageInfo = {
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
-  breakCause?: 'rest' | 'story_beat'; // P7: set by the engine; the director starts a new scene after this turn
+  breakCause?: 'rest' | 'story_beat' | 'time_skip'; // P7: set by the engine; the director starts a new scene after this turn
   /** OQ-27 (c): the NPC the player last spoke with this scene (sticky dialogue partner) */
   partner?: string;
 };
