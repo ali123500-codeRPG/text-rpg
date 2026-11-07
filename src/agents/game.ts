@@ -714,6 +714,14 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
     out.push(`+${x.amount} XP (${what})`);
   }
+  // SP10/SP11: skill gains and newly reached milestones; failed improvement rolls show nothing
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'skill_improved') continue;
+    const d = l.detail as { skill: string; from: number; to: number; milestone?: number };
+    const name = d.skill.replace(/_/g, ' ');
+    out.push(`${name[0].toUpperCase()}${name.slice(1)} ${d.from} → ${d.to}`);
+    if (d.milestone) out.push(`New perk unlocked: ${name} ${d.milestone}`);
+  }
   return out;
 }
 

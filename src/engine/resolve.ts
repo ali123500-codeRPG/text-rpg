@@ -2,7 +2,7 @@
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
 import { activity } from '../library';
-import { defaultMode, healthLevel, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, healthLevel, improveMarked, markEndurance, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
@@ -206,7 +206,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
     surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised;
     if (surprised) ctx.surprised.add(t.id);
   }
-  const before = { level: healthLevel(t), parts: partStates(state, t) };
+  const before = { level: healthLevel(t), parts: partStates(state, t), lost: t.core.condition.hpLostPct };
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
       context: { defenderUnaware: surprised, defensesThisTurn: ctx.defenses.get(t.id) ?? 0 } },
@@ -215,6 +215,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   if (res.defense) ctx.defenses.set(t.id, (ctx.defenses.get(t.id) ?? 0) + 1);
   ev.effects = ruleset.applyEffects(res, state);
   ruleset.recordUse(a, res.attack.skill, res, state);
+  markEndurance(state, t, t.core.condition.hpLostPct - before.lost);
   ev.tier = res.attack.tier;
   ev.attack = res;
   if (m.mode.thrown && dropToGround(state, a, m.itemId, t.zone)) {
@@ -381,6 +382,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
+  // SP3: marked skills roll when an engagement ends, or when the scene breaks
+  if ((state.mode === 'tactical' && !allActors(state).some((x) => isEngaged(state, x))) || state.stage.breakCause) improveMarked(state, rng);
   state.events.push(...ctx.events);
   return ctx.events;
 }
