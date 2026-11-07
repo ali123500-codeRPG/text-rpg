@@ -6,6 +6,7 @@ import type {
 } from '../types';
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
+import { zoneLight } from '../time';
 import { creatureType, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
@@ -168,7 +169,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && hostile(state, A, o));
     if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, 'point_blank')) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
   }
-  const lightA = CONFIG.LIGHT_MODS[zoneD?.light ?? 'bright'];
+  const lightA = CONFIG.LIGHT_MODS[zoneLight(state, zoneD)];
   if (lightA) am.push({ source: 'light', type: 'situational', value: lightA });
   am.push(...(req.context?.attackerMods ?? []));
   const skill = modeSkill(mode);
@@ -193,7 +194,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if ((req.context?.defensesThisTurn ?? 0) >= 1) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
-  const lightD = CONFIG.LIGHT_MODS[zoneA?.light ?? 'bright'];
+  const lightD = CONFIG.LIGHT_MODS[zoneLight(state, zoneA)];
   if (lightD) dm.push({ source: 'light', type: 'situational', value: lightD });
   dm.push(...(req.context?.defenderMods ?? []));
   const def = ruleset.roll({ actorId: D.id, skill: type, modifiers: dm, tierShifts: marks.defense, itemId: blocker?.id, rollKind: type }, state, rng);

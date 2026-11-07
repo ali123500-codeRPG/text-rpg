@@ -9,6 +9,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
   const tpl = a.core.templateId ? getLibrary().templates[a.core.templateId] : undefined;
   return {
     turn: state.turn,
+    time: { day: 1, timeOfDay: 'Day' },
     self: {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc', zone: a.zone, placeId: a.placeId, bandId: a.bandId,
       health: 'Unhurt', parts: [], active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',

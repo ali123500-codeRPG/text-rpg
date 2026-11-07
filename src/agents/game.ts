@@ -7,6 +7,7 @@ import type { AgentName, TierRoll,
 } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
+import { timeView } from '../time';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
@@ -740,6 +741,13 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     if (d.actorId !== s.player.id) continue;
     const bits = [...(d.from !== d.to ? [`${d.from} → ${d.to}`] : []), ...d.parts.map((p) => `${p.id.replace(/_/g, ' ')} ${p.from} → ${p.to}`)];
     out.push(`${engine.healingName(d.source)}: ${bits.length ? bits.join(', ') : 'no change'}`);
+  }
+  // T6: a wait or sleep says how long it took and where the clock is now
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'time_passed') continue;
+    const m = Math.round((l.detail as { minutes: number }).minutes);
+    const t = timeView(s);
+    out.push(`Time passes: ${[Math.floor(m / 60) ? `${Math.floor(m / 60)} h` : '', m % 60 ? `${m % 60} min` : ''].filter(Boolean).join(' ')} (Day ${t.day} · ${t.timeOfDay})`);
   }
   // SP10/SP11: skill gains and newly reached milestones; failed improvement rolls show nothing
   for (const l of s.log) {

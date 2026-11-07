@@ -1,5 +1,6 @@
 // Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group),
 // figures that can't be filtered in a text line under them, then the grouped table.
+import { PART_STATES } from '../scales';
 import type { Actor, GameApi, GameState } from '../types';
 import { itemDef } from '../library';
 import { buildPlayerView, factText } from '../views';
@@ -104,7 +105,7 @@ export function inventoryPage(api: GameApi) {
       const heal = healItems(s, s.player).find((x) => x.itemId === it!.itemId);
       if (heal) {
         const r = heal.row;
-        rows.push({ k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${r.fixesCrippled ? ', mends Crippled parts' : ''}${r.inFight ? ', works in a fight' : ', not in a fight'}` });
+        rows.push({ k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}${r.inFight ? ', works in a fight' : ', not in a fight'}` });
         // H3 b (Ali, 07/11/2026): the player picks which healing item the quick slot beside Aim shows
         const btn = h('button', { type: 'button', class: 'hs-btn-text', style: 'min-height:0;padding:0' });
         const draw = () => {

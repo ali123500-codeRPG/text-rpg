@@ -53,5 +53,11 @@ export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['
 /** XP reward levels for achievements and quests (Ali, 07/11/2026); XP per level is CONFIG.REWARD_XP */
 export const REWARD_LEVELS = scale([['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
+/** time of day, in the order a day runs from dawn (T2, Ali 07/11/2026); each starts at CONFIG.TIME_OF_DAY_FROM */
+export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]);
+export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
+/** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
+export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);
+export type PartStateKey = (typeof PART_STATES.keys)[number];
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
