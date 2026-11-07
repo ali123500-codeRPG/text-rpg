@@ -1,10 +1,10 @@
 // Part 1 §3/§5 (Ali, 07/11/2026, perk page S1–S9): true skill and skill ladders. True skill = raw + flat, always-on
-// skill perks; ladder rungs and mastery read it. A rung unlocks at 20, 40 … 140 true skill; taking its perk costs one
+// skill perks; ladder milestones and mastery read it. A milestone unlocks at 20, 40 … 140 true skill; taking its perk costs one
 // perk point and can be undone until the next turn is played (K3).
 import type { Actor, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 
-export const RUNGS = [20, 40, 60, 80, 100, 120, 140] as const;
+export const MILESTONES = [20, 40, 60, 80, 100, 120, 140] as const;
 export const MASTERY_STEPS = [50, 100, 150] as const;
 
 const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
@@ -19,17 +19,17 @@ export function trueSkill(a: Actor, skill: string): number {
   }, 0);
 }
 
-/** the library perk on one rung of a skill's ladder, if written */
-export function rungPerk(skill: string, rung: number): PerkDef | undefined {
-  return Object.values(getLibrary().perks).find((d) => d.ladder?.skill === skill && d.ladder.rung === rung);
+/** the library perk on one milestone of a skill's ladder, if written */
+export function milestonePerk(skill: string, milestone: number): PerkDef | undefined {
+  return Object.values(getLibrary().perks).find((d) => d.ladder?.skill === skill && d.ladder.milestone === milestone);
 }
 
 /** sealed: not reached (nothing about it is shown); empty: reached, no perk written yet; open: can be taken; own: taken */
-export type RungState = 'sealed' | 'empty' | 'open' | 'own';
-export function rungState(a: Actor, skill: string, rung: number): RungState {
-  const d = rungPerk(skill, rung);
+export type MilestoneState = 'sealed' | 'empty' | 'open' | 'own';
+export function milestoneState(a: Actor, skill: string, milestone: number): MilestoneState {
+  const d = milestonePerk(skill, milestone);
   if (d && a.core.perks.some((p) => p.perkId === d.id)) return 'own'; // kept even if the skill drops (S4)
-  if (trueSkill(a, skill) < rung) return 'sealed';
+  if (trueSkill(a, skill) < milestone) return 'sealed';
   return d ? 'open' : 'empty';
 }
 
@@ -38,7 +38,7 @@ export function canTake(a: Actor, perkId: string): string | null {
   if (!d?.ladder) return 'not a ladder perk';
   if (a.core.perks.some((p) => p.perkId === perkId)) return 'already taken';
   if (!a.progression || a.progression.unspentPerkPoints < 1) return 'no perk point';
-  if (trueSkill(a, d.ladder.skill) < d.ladder.rung) return 'rung not reached';
+  if (trueSkill(a, d.ladder.skill) < d.ladder.milestone) return 'milestone not reached';
   return null;
 }
 
