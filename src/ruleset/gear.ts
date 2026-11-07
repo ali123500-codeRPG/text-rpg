@@ -3,7 +3,7 @@ import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, M
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
-import { trueSkill } from './perks';
+import { hasPerk, trueSkill } from './perks';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
@@ -52,11 +52,11 @@ function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: 
 }
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
-export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string } = {}) {
+export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[] } = {}) {
   const skills = getLibrary().skills;
   // substitutes: skills sharing a function at the flat efficiency, or the skill's own table (CONFIG.SUBSTITUTES)
   const table = CONFIG.SUBSTITUTES[skill] ?? (skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }));
-  const share = (id: string) => (id === skill ? 1 : Math.max(0, ...table.filter((t) => (skills[id]?.functions as string[] ?? []).includes(t.fn)).map((t) => t.k)));
+  const share = (id: string) => (id === skill || (ctx.fullValue?.includes(id) && skills[id]) ? 1 : Math.max(0, ...table.filter((t) => (skills[id]?.functions as string[] ?? []).includes(t.fn)).map((t) => t.k)));
   const cands = [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)];
   let best: { skill: string; value: number; gear: { source: string; value: number }[] } | null = null;
   for (const id of cands) {
@@ -166,10 +166,22 @@ export function blockItem(state: GameState, actor: Actor): ItemInstance | null {
   );
 }
 
+/** A7 Open-Hand Guard: an owner holding no shield or weapon blocks with a working Grip arm whose hand is empty; returns that arm. */
+export function openHandArm(state: GameState, actor: Actor): string | null {
+  if (!hasPerk(actor, 'open_hand_guard')) return null;
+  const held = actor.core.inventory.filter(isHeld);
+  if (held.some((i) => { const d = itemDef(state, i.itemId); return !!d.shield || !!d.weapon; })) return null;
+  const busy = new Set(held.flatMap(handsOf));
+  return usableGrips(state, actor).find((h) => !busy.has(h)) ?? null;
+}
+
+/** whether the actor can block at all: a held shield or melee weapon, or Open-Hand Guard */
+export const canBlock = (state: GameState, actor: Actor) => !!blockItem(state, actor) || !!openHandArm(state, actor);
+
 /** Default standing defense (Part 2, Agent Planner): whichever of dodge and block has the higher effective skill; a tie goes to block. */
 export function defaultStandingDefense(state: GameState, actor: Actor): 'block' | 'dodge' {
   const shield = blockItem(state, actor);
-  if (!shield) return 'dodge';
-  const block = effectiveSkill(state, actor, 'block', { itemId: shield.id }).value;
+  if (!shield && !openHandArm(state, actor)) return 'dodge';
+  const block = effectiveSkill(state, actor, 'block', { itemId: shield?.id }).value;
   return block >= effectiveSkill(state, actor, 'dodge').value ? 'block' : 'dodge';
 }

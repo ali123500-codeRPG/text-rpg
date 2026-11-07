@@ -2,8 +2,9 @@
 import type { Actor, ContestResult, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
-import { isActive, shortestPath } from './relations';
+import { hasPerk, markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
+import { getLibrary } from '../library';
+import { isActive, shortestPath, wary } from './relations';
 import type { ExchangeSpeech } from './types';
 
 export const SPEECH_SKILL: Record<string, string> = {
@@ -100,14 +101,31 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   const type = intent.action?.type ?? 'talk';
   const named = SPEECH_SKILL[type] ?? 'persuasion';
   const req = (actorId: string) => ({ actorId, skill: named, modifiers: [], tierShifts: [] });
-  const a: RollResult = ruleset.roll(req(state.player.id), state, rng);
+  const p = state.player;
+  // A16 Threaten for Answers: against an opposed or hostile listener, intimidation counts as the named skill
+  const threat = (sp: string) => {
+    const b = state.actors.find((x) => x.id === sp);
+    return !!b && hasPerk(p, 'threaten_for_answers') && wary(state, b, p);
+  };
+  const d = rng.d100();
+  const die: Rng = { get state() { return rng.state; }, next: () => rng.next(), int: (lo, hi) => rng.int(lo, hi), d100: () => d };
+  const a: RollResult = ruleset.roll(req(p.id), state, die);
+  const aT: RollResult | null = spokespeople.some(threat) ? ruleset.roll({ ...req(p.id), fullValue: ['intimidation'] }, state, die) : null;
   const perSpokesperson: ExchangeSpeech['perSpokesperson'] = {};
+  let shown = a;
   for (const sp of spokespeople) {
+    const t = aT && threat(sp);
+    const mine = t ? aT : a;
+    if (t && spokespeople.every(threat)) shown = aT;
     const b = ruleset.roll(req(sp), state, rng);
-    const gap = tierLevel(b) - tierLevel(a);
-    const contest: ContestResult = { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
-    perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, [named, a.skill], contest) };
-    markUse(state, state.player, a.skill, contest); // SP2: talking to someone near your level marks the skill
+    const gap = tierLevel(b) - tierLevel(mine);
+    const contest: ContestResult = { a: mine, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
+    const skills = [named, mine.skill, ...(t && mine.skill === 'intimidation' ? INFLUENCE() : [])];
+    perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, skills, contest) };
+    markUse(state, p, mine.skill, contest); // SP2: talking to someone near your level marks the skill
   }
-  return { skill: a.skill, playerTier: a.tier, impression: impressionWords(type, a.tier) ?? null, perSpokesperson };
+  return { skill: shown.skill, playerTier: shown.tier, impression: impressionWords(type, shown.tier) ?? null, perSpokesperson };
 }
+
+/** skills tagged influence (persuasion, intimidation, barter) */
+const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => (k.functions as string[] | undefined)?.includes('influence')).map(([id]) => id);

@@ -12,7 +12,7 @@ import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMod
 import { markUse } from './improve';
 import { hasPerk } from './perks';
 import { markShifts } from '../engine/perkMarks';
-import { blockItem, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
+import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
@@ -105,7 +105,7 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
 
 function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const actor = mustActor(state, req.actorId);
-  const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId });
+  const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId, fullValue: req.fullValue });
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId }));
@@ -188,7 +188,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // 3. defense roll with the standing defense
   let type: 'dodge' | 'block' = D.core.standingDefense;
   const blocker = type === 'block' ? blockItem(state, D) : null;
-  if (!blocker) type = 'dodge'; // GAP: no working arm holding a shield or melee weapon, so the free reaction falls back to dodge
+  const openArm = type === 'block' && !blocker ? openHandArm(state, D) : null; // A7 Open-Hand Guard
+  if (!blocker && !openArm) type = 'dodge'; // GAP: no working arm holding a shield or melee weapon, so the free reaction falls back to dodge
   const dm: Mod[] = [];
   if ((req.context?.defensesThisTurn ?? 0) >= 1) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
@@ -248,15 +249,24 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     }
   }
 
-  // 6. damage step (Part 5 §6); armor pools drain in applyEffects
-  let dmg = (cls.damage + (mode.damageAdj ?? 0)) * multiplier;
-  if (location !== 'shield') {
-    const worn = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
-    const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
-    for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(location)) dmg = (dmg - a.reduction) * a.multiplier;
+  // A7 Open-Hand Guard: a hit through an open-hand block lands split between the blocking arm and the general area
+  if (openArm) {
+    location = openArm;
+    locationHow = 'open_hand';
   }
-  const damage = Math.max(0, dmg); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
-  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, 'shield_breaker') ? { shieldMult: 2 } : {}) } : {}) };
+
+  // 6. damage step (Part 5 §6); armor pools drain in applyEffects
+  const worn = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
+  const afterArmor = (raw: number, at: string) => {
+    let d = raw;
+    for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - a.reduction) * a.multiplier;
+    return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
+  };
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier;
+  const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
+  const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
+  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(openArm ? { generalShare } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, 'shield_breaker') ? { shieldMult: 2 } : {}) } : {}) };
 }
 
 function applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[] {
@@ -266,7 +276,8 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   const changed = (part: string, from: PartState, to: PartState, extra: Record<string, unknown> = {}) => {
     if (from !== to) out.push({ kind: 'part_state_changed', actorId: T.id, data: { part, from, to, ...extra } });
   };
-  let dmg = result.damage;
+  const general = result.generalShare ?? 0; // A7 Open-Hand Guard
+  let dmg = result.damage - general;
 
   if (result.location === 'shield') {
     const inst = T.core.inventory.find((i) => i.id === result.shieldItemId);
@@ -292,7 +303,8 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     dmg -= absorbed;
   }
   // GAP: natural-armor pools have no saved state yet, so they absorb nothing
-  if (dmg <= 0) return out;
+  if (dmg <= 0 && general <= 0) return out;
+  dmg = Math.max(0, dmg);
 
   const part = ct.parts.find((p) => p.id === result.location);
   let destroyedEssential = false;
@@ -315,7 +327,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
       }
     }
   }
-  const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'];
+  const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
   const lost = destroyedEssential ? 100 : T.core.condition.hpLostPct + (counted / hp) * 100;
   T.core.condition.hpLostPct = Math.min(100, lost);
   const levelAfter = healthLevel(T);
