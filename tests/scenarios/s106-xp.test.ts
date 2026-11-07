@@ -35,7 +35,7 @@ describe('106 XP and levels', () => {
     }
     const ids = s.player.progression!.achievements!.map((a) => a.id);
     expect(ids).toEqual(['first_defeat:slime', 'defeats_10:slime', 'defeats_10']);
-    expect(s.player.progression!.achievements!.map((a) => a.name)).toEqual(['Slimebane', 'Scourge of the Slime Hordes', 'Tenfold Reaper']);
+    expect(s.player.progression!.achievements!.map((a) => a.name)).toEqual(['First Slime Felled', 'Slimebane', 'Blooded Fighter']);
   });
   it('a foe with a race also earns the first race defeat', () => {
     const s = makeVillage();
@@ -44,7 +44,7 @@ describe('106 XP and levels', () => {
     a.mind!.moraleState = 'surrendered';
     payDefeats(s, []);
     const got = s.player.progression!.achievements!;
-    expect(got.map((x) => [x.id, x.name])).toEqual([['first_defeat:slime', 'Slimebane'], ['first_defeat_race:elf', 'Bane of Elfkind']]);
+    expect(got.map((x) => [x.id, x.name])).toEqual([['first_defeat:slime', 'First Slime Felled'], ['first_defeat_race:elf', 'First of Elfkind Felled']]);
   });
   it('a slime the player hit and downed pays its kill XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();
