@@ -2,6 +2,7 @@
 // figures that can't be filtered in a text line under them, then the grouped table.
 import type { Actor, GameApi, GameState } from '../types';
 import { itemDef } from '../library';
+import { buildPlayerView, factText } from '../views';
 import { groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
 
@@ -137,4 +138,79 @@ export function questsPage(api: GameApi) {
     },
     line: (s) => `Turn ${s.turn}`,
   });
+}
+
+// ---------- Journal (Voyage U26, U28; Ali 07/11/2026) ----------
+// Built only from what the character knows: people in view or whose name was learned, places the character was in or
+// heard facts about, and the turns played since this page was opened. Never the hidden store.
+
+/** People: whoever the character sees clearly now, and everyone whose name it has learned. */
+export function journalPeople(s: GameState): { id: string; name: string; label: string; where: string; health: string }[] {
+  const pv = safe(() => buildPlayerView(s));
+  const seen = new Map((pv?.actors ?? []).filter((a) => a.level === 'full').map((a) => [a.id, a]));
+  const ids = [...new Set([...seen.keys(), ...(s.player.journal?.namesKnown ?? [])])];
+  return ids.flatMap((id) => {
+    const a = s.actors.find((x) => x.id === id);
+    if (!a) return [];
+    const v = seen.get(id);
+    const zone = v ? pv?.zones.find((z) => z.id === v.zone)?.name : undefined;
+    return [{ id, name: v?.name ?? (s.player.journal?.namesKnown.includes(id) ? a.names.current : '–'), label: a.label,
+      where: v ? (zone ? `In view · ${zone}` : 'In view') : 'Not in view', health: v?.health === 'Incapacitated' ? 'Down' : v?.health ?? '–' }];
+  });
+}
+
+/** Places: the current place and the places above it, and every place the character witnessed a fact about. */
+export function journalPlaces(s: GameState): { id: string; name: string; parent: string; facts: string[] }[] {
+  const byId = new Map(s.places.map((p) => [p.id, p]));
+  const known = new Set<string>();
+  for (let p = byId.get(s.player.placeId); p && !known.has(p.id); p = p.parentId ? byId.get(p.parentId) : undefined) known.add(p.id);
+  const witnessed = new Set(s.player.journal?.factsWitnessed ?? []);
+  const facts = s.facts.filter((f) => witnessed.has(f.id));
+  for (const f of facts) if (byId.has(f.placeId)) known.add(f.placeId);
+  return [...known].map((id) => {
+    const p = byId.get(id)!;
+    return { id, name: p.names.current, parent: p.parentId ? byId.get(p.parentId)?.names.current ?? '–' : '–',
+      facts: facts.filter((f) => f.placeId === id).map((f) => factText(s, f.text)) };
+  });
+}
+
+const firstSentence = (t: string) => (t.match(/^.*?[.!?](\s|$)/)?.[0] ?? t).trim();
+
+export function journalPage(api: GameApi) {
+  const opened = { people: new Set<string>(), places: new Set<string>(), time: new Set<string>() };
+  const sorts = { people: { key: 'name', dir: 0 as 0 | 1 | -1 }, places: { key: 'name', dir: 0 as 0 | 1 | -1 }, time: { key: 'turn', dir: 0 as 0 | 1 | -1 } };
+  const el = h('main');
+  const field = (title: string) => (row: TRow, key: string) => openPanel(title, Object.entries(row.cells).map(([k, v]) => ({ k, v, edit: k === key })), 'Written by the game as you play, so it is read-only here.');
+  function update() {
+    const s = api.state();
+    if (!s) { el.replaceChildren(h('h1', {}, 'Journal'), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
+    const people = journalPeople(s), places = journalPlaces(s);
+    const pGroups: TGroup[] = ['In view', 'Not in view'].map((g) => ({ id: 'p-' + g, title: g,
+      rows: people.filter((p) => p.where.startsWith(g)).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, label: p.label, where: p.where, health: p.health } })),
+      combined: { label: '', where: g, health: '' } })).filter((g) => g.rows.length);
+    const parents = [...new Set(places.map((p) => p.parent))];
+    const plGroups: TGroup[] = parents.map((par) => ({ id: 'pl-' + par, title: par === '–' ? 'Top level' : par,
+      rows: places.filter((p) => p.parent === par).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, parent: p.parent, facts: p.facts.join(' ') || '–' } })),
+      combined: { parent: par, facts: '' } }));
+    const turns = [...new Set(api.lines().map((l) => l.turn))];
+    const tGroups: TGroup[] = turns.map((t) => {
+      const ls = api.lines().filter((l) => l.turn === t);
+      const did = ls.filter((l) => l.kind === 'player').map((l) => l.text).join(' · ');
+      const nar = ls.find((l) => l.kind === 'narration');
+      return { id: 't-' + t, title: String(t), combined: {}, rows: [{ id: 't' + t, sortKey: t, cells: { turn: String(t), did: did || '–', happened: nar ? firstSentence(nar.text) : '–' } }] };
+    }).filter((g) => g.rows[0].cells.did !== '–' || g.rows[0].cells.happened !== '–');
+    const sec = (title: string, note: string, table: HTMLElement) => h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, title), h('p', { class: 'hs-note' }, note)), table);
+    el.replaceChildren(
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Journal'), h('p', {}, 'What your character knows: people, places and what happened. Only what you saw, heard or were told.'))),
+      sec('People', 'A label until you learn the name. Health shows only from Wounded down.',
+        groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
+          groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet.' })),
+      sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The game draws no maps.',
+        groupedTable({ cols: [{ key: 'name', title: 'Place' }, { key: 'parent', title: 'Part of' }, { key: 'facts', title: 'What you know' }],
+          groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet.' })),
+      sec('Timeline', 'Turns played since this page was opened, oldest first.',
+        groupedTable({ cols: [{ key: 'turn', title: 'Turn', right: true }, { key: 'did', title: 'You did' }, { key: 'happened', title: 'What happened' }],
+          groups: tGroups, open: opened.time, sort: sorts.time, onField: field('Turn'), redraw: update, emptyText: 'Nothing yet this session.' })));
+  }
+  return { el, update };
 }
