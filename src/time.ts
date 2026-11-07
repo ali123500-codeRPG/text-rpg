@@ -30,7 +30,8 @@ export function minutesUntil(t: number, k: TimeOfDay): number {
 export const nextTimeOfDay = (k: TimeOfDay): TimeOfDay => TIME_OF_DAY.keys[(TIME_OF_DAY.pos(k) + 1) % TIME_OF_DAY.keys.length];
 
 export function advanceClock(state: GameState, minutes: number): void {
-  state.clocks.time = now(state) + minutes;
+  // rounded to 1/1000 minute so tenth-of-a-minute fight turns don't pile up float noise (run 18: 1202.1999999999998)
+  state.clocks.time = Math.round((now(state) + minutes) * 1000) / 1000;
 }
 
 /** T8: the Weaver's starting time of day sets the clock to its start on day 1 */

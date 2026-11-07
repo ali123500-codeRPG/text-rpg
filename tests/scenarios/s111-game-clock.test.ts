@@ -43,8 +43,12 @@ describe('111 game clock', () => {
     startClock(f, 'day');
     f.player.zone = 'field_mid'; // slime_1 is here
     turn(f, act('sleep'));
+    const fev = f.events.slice(-5);
     expect(f.log.some((l) => l.code === 'wait_blocked')).toBe(true);
+    expect(mechanicsLines(f, fev)).toContain('Wait: not while someone hostile is near you');
     expect(f.stage.breakCause).toBeUndefined();
+    turn(f, act('rest'));
+    expect(mechanicsLines(f, f.events.slice(-5))).toContain('Rest: not while someone hostile is near you');
   });
   it('sleep takes the sleep row and heals a rest per 4 hours; a plain wait runs to the next time of day', () => {
     const s = makeVillage();
