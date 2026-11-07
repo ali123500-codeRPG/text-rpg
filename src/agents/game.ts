@@ -191,12 +191,28 @@ export function createGame(deps: GameDeps): Game {
     if (director && !rateLimited && !stopped) director.afterSave(s, ctxFor(s.turn, turnLog));
   }
 
+  /** COMMITTED: the fired trigger's bound order, as its type and target label (hidden-side, so names are fine) */
+  function committedText(s: GameState, id: string, triggerId: string): string {
+    const o = engine.firedOrders(s).find((x) => x.actorId === id && x.triggerId === triggerId);
+    if (!o) return `trigger ${triggerId}`;
+    const t = o.target;
+    const label = !t ? '' : s.actors.some((a) => a.id === t) || t === s.player.id ? views.callName(s, id, t) : s.zones.find((z) => z.id === t)?.name ?? t;
+    return `trigger ${triggerId}: ${o.type}${label ? ` ${label}` : ''}`;
+  }
+
+  /** Q3: a Responder said a secret without listing it; logged and filed as a bug for the build threads to review */
+  async function reportUnlisted(s: GameState, actorId: string, secretIds: string[], line: string): Promise<void> {
+    const detail = { actorId, secretIds, line };
+    s.log.push({ turn: s.turn, code: 'unlisted_reveal', detail });
+    await store.set(`bugs/${s.storyId}_t${s.turn}_${actorId}`, { code: 'unlisted_reveal', storyId: s.storyId, turn: s.turn, at: clock.now(), ...detail }).catch(() => {});
+  }
+
   async function dialogueCall(s: GameState, id: string, input: DialogueInput, exchange: ExchangeSpeech, agenda: boolean, ctx: AgentCtx, world: Set<string>): Promise<AcceptedAgentOutput> {
     if (agenda) {
       const view = views.buildOppositionView(s, id);
       const fired = s.hidden.firedLog.filter((f) => f.turn === s.turn && f.ownerId === id).map((f) => f.triggerId);
-      // GAP: COMMITTED names the fired trigger by id (the trigger's bound order lives with the engine)
-      const r = await callResponder(view, input, ctx, { world, committed: fired.length ? `trigger ${fired[0]}` : null, slips: exchange.perSpokesperson[id]?.slips ?? [] });
+      const r = await callResponder(view, input, ctx, { world, committed: fired.length ? committedText(s, id, fired[0]) : null, slips: exchange.perSpokesperson[id]?.slips ?? [] });
+      if (r.unlisted.length) await reportUnlisted(s, id, r.unlisted, r.output.dialogue?.line ?? '');
       return { agent: 'responder', actorId: id, output: r.output };
     }
     const view = views.buildDialogueView(s, id, input);
