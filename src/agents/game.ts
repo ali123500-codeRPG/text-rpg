@@ -645,7 +645,7 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
     if (l.turn !== s.turn) continue;
     if (l.code === 'healed') {
       const d = l.detail as HealNote & { actorId: string };
-      if (d.actorId === s.player.id) heals.push({ source: d.source, from: d.from, to: d.to, parts: d.parts });
+      if (d.actorId === s.player.id) heals.push({ source: d.source, from: d.from, to: d.to, parts: d.parts, ...(d.better ? { better: true } : {}) });
     } else if (l.code === 'skill_improved') {
       const d = l.detail as { skill: string; from: number; to: number; milestone?: number };
       gains[d.skill] = (gains[d.skill] ?? 0) + d.to - d.from;
@@ -736,10 +736,18 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   // H11: healing; the look is the designer's (plain text for now)
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'healed') continue;
-    const d = l.detail as { actorId: string; source: string; from: string; to: string; parts: { id: string; from: string; to: string }[] };
+    const d = l.detail as { actorId: string; source: string; from: string; to: string; parts: { id: string; from: string; to: string }[]; better?: boolean };
     if (d.actorId !== s.player.id) continue;
     const bits = [...(d.from !== d.to ? [`${d.from} → ${d.to}`] : []), ...d.parts.map((p) => `${p.id.replace(/_/g, ' ')} ${p.from} → ${p.to}`)];
-    out.push(`${engine.healingName(d.source)}: ${bits.length ? bits.join(', ') : 'no change'}`);
+    out.push(`${engine.healingName(d.source)}: ${bits.length ? bits.join(', ') : d.better ? 'a little better' : 'no change'}`);
+  }
+  // run 17: a rest or wait that the rules refuse says why, so the player doesn't keep trying
+  for (const l of s.log) {
+    if (l.turn !== turn || (l.code !== 'rest_blocked' && l.code !== 'wait_blocked')) continue;
+    const d = l.detail as { actorId: string; reason: string };
+    if (d.actorId !== s.player.id) continue;
+    const what = l.code === 'rest_blocked' ? 'Rest' : 'Wait';
+    out.push(`${what}: ${d.reason === 'cooldown' ? 'too soon after your last rest' : 'not while someone hostile is near you'}`);
   }
   // T6: a wait or sleep says how long it took and where the clock is now
   for (const l of s.log) {

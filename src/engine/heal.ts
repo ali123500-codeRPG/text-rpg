@@ -35,7 +35,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
     if (was !== p.state) changed.push({ id: p.id, from: was, to: p.state });
   }
   const to = healthLevel(a);
-  if (!opts.quiet || to !== level || changed.length) logCode(state, 'healed', { actorId: a.id, source: sourceId, from: level, to, parts: changed });
+  if (!opts.quiet || to !== level || changed.length) logCode(state, 'healed', { actorId: a.id, source: sourceId, from: level, to, parts: changed, better: c.hpLostPct < lost || healed });
   return c.hpLostPct !== lost || healed;
 }
 

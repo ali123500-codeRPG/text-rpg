@@ -23,7 +23,8 @@ export type LogLine = {
 };
 
 /** one healing of the player: the health level and each body part that changed state */
-export type HealNote = { source: string; from: string; to: string; parts: { id: string; from: string; to: string }[] };
+/** better: health went up without changing level or any part state (a bandage on a light wound) */
+export type HealNote = { source: string; from: string; to: string; parts: { id: string; from: string; to: string }[]; better?: boolean };
 
 export type LineCheck = {
   kind: 'attack' | 'contest' | 'roll';

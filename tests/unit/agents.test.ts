@@ -342,6 +342,10 @@ describe('browser client', () => {
     // the schema's "|null" copied into a value (run 16); a "|null" inside a string is left alone
     expect(parseTolerant('{"move":{"toZone":"bar"}|null,"action":{"t":"x|null"}|null,"n":1 | null}'))
       .toEqual({ ok: true, value: { move: { toZone: 'bar' }, action: { t: 'x|null' }, n: 1 } });
+    // a reply that corrects itself: the last whole object wins (run 17)
+    expect(parseTolerant('{"line":"Hm? Cat got your\n\nWait, correction:\n\n{"action":{"a":1},"line":"Hm?"}'))
+      .toEqual({ ok: true, value: { action: { a: 1 }, line: 'Hm?' } });
+    expect(parseTolerant('{"a":1,"b":{"c":2}')).toEqual({ ok: false }); // cut off: not mistaken for {"c":2}
   });
   it('maps runtime codes and passes tier, model, effort, signal', async () => {
     expect(mapCode('capability_removed')).toBe('not_granted');

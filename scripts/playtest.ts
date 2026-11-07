@@ -78,12 +78,13 @@ move on to somewhere new at once.`,
   bloodthirsty: `You are a violent, bloodthirsty brute (a test of combat, XP and level-ups). You settle everything with your sword:
 insult people, threaten them, and attack anyone who looks at you wrong, starting within your first few turns. Keep fighting
 until your foes are down or flee, then look for the next fight. Use /aim now and then. Never talk your way out of a fight.`,
-  rester: `You are a weary, patient traveller (a test of the quiet-turn clock, story beats, resting, healing and the endurance
-skill). You cannot hurt yourself in this game, so to get wounds: early on, start a small scrap (shove or punch someone rough,
-or accept a challenge) and let them land hits on you, then back off. Then mostly let time pass: sit, wait, nurse a drink,
-watch the room, doze, and rest often, including right after you just rested, and once while someone is threatening you.
-Use a bandage once. When your wounds have healed, pick another small scrap to take more hits, then rest again. Do not
-chase leads or start conversations yourself; answer briefly if spoken to, and see what the story does on its own.`,
+  rester: `You are a weary, patient traveller (a test of the game clock, waiting, sleeping, resting, healing, story beats
+and the endurance skill). You cannot hurt yourself in this game, so to get wounds: early on, start a small scrap (shove or
+punch someone rough, or accept a challenge), let them land a few hits, then fight back properly until they stop or flee.
+Once nobody is threatening you: rest, use a bandage, wait until a later time of day (e.g. "I wait until dusk"), and sleep
+through the night now and then. Try resting twice in a row, and try resting or waiting once while someone is still
+threatening you, then defend yourself. When your wounds have healed, pick another small scrap and repeat. Do not chase
+leads or start conversations yourself; answer briefly if spoken to, and see what the story does on its own.`,
 };
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
 
@@ -143,10 +144,10 @@ function tracePacing(game: ReturnType<typeof createGame>, step: number, input: s
   const st = game.state();
   if (!st) return;
   const fired = st.hidden.firedLog.slice(firedSeen); firedSeen = st.hidden.firedLog.length;
-  const codes = st.log.slice(logSeen).filter((l) => /rest|beat|stall|scene|break/i.test(l.code)); logSeen = st.log.length;
+  const codes = st.log.slice(logSeen).filter((l) => /rest|beat|stall|scene|break|wait|time|heal/i.test(l.code)); logSeen = st.log.length;
   const p = st.player;
   appendFileSync(join(OUT, 'pacing.jsonl'), JSON.stringify({ step, turn: st.turn, input, scene: st.stage.sceneNumber, quiet: st.stage.quiet,
-    breakCause: st.stage.breakCause ?? null, hpLostPct: p.core.condition.hpLostPct, restedTurn: st.clocks[`rest:${p.id}`] ?? null,
+    breakCause: st.stage.breakCause ?? null, clock: st.clocks.time ?? null, hpLostPct: p.core.condition.hpLostPct, restedAt: st.clocks[`rest:${p.id}`] ?? null,
     fired, codes, quietBeatsLeft: Object.values(st.hidden.plans).flatMap((pl) => pl.triggers).filter((tr) => tr.when.type === 'quiet_turns').map((tr) => tr.id) }) + '\n');
 }
 
