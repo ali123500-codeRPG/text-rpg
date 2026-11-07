@@ -1,0 +1,275 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { makeVillage, actor } from '../harness';
+import { CONFIG, resetConfig } from '../../src/config';
+import { getLibrary } from '../../src/library';
+import {
+  LoadRefusedError, MIGRATIONS, acquireTurnLock, artifactDbStore, listBackups, listStories, loadStory, memoryStore,
+  readTurnRecord, releaseTurnLock, restoreBackup, saveTurn, undoTurn, useBookmark, type DB,
+} from '../../src/save';
+import type { GameState, Head, StoryFact, TurnRecord } from '../../src/types';
+
+const rec = (s: GameState, turn: number, extra: Partial<TurnRecord> = {}): TurnRecord =>
+  ({ storyId: s.storyId, turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [], ...extra });
+const head = async (st: ReturnType<typeof memoryStore>) => (await st.get<Head>('stories/test/control/head'))!;
+const lib = () => getLibrary();
+/** play `turns` turns: each changes the rng state and the guard's flag */
+async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: number, to: number) {
+  for (let t = from; t <= to; t++) {
+    s.turn = t;
+    s.rngState = 1000 + t;
+    s.flags.last = t;
+    await saveTurn(st, s, rec(s, t));
+  }
+}
+
+afterEach(() => {
+  resetConfig();
+  delete MIGRATIONS[1];
+});
+
+describe('save and load', () => {
+  it('round-trips the village', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    const { state, report } = await loadStory(st, 'test', lib());
+    expect(report).toEqual([]);
+    expect(state).toEqual(s);
+    expect(state.zones[0]).toBe(state.places.find((p) => p.id === 'tavern')!.zones[0]);
+    expect((await listStories(st)).map((m) => m.storyId)).toEqual(['test']);
+  });
+
+  it('writes only changed pages; head is the commit', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    actor(s, 'guard_1').zone = 'street_square';
+    actor(s, 'guard_1').placeId = 'street';
+    const h = await saveTurn(st, s, rec(s, 1));
+    expect(h.pages['actor.guard_1'].version).toBe(1);
+    expect(h.pages['actor.trader'].version).toBe(0);
+    expect(h.undo!.turn).toBe(0);
+    expect(await readTurnRecord(st, 'test', 1)).toMatchObject({ turn: 1 });
+  });
+
+  it('a failed write before the head keeps the last good save (quota_exceeded)', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    s.flags.x = 1;
+    st.failNext = { match: /control\/head/, code: 'quota_exceeded' };
+    await expect(saveTurn(st, s, rec(s, 1))).rejects.toMatchObject({ code: 'quota_exceeded', committed: false });
+    expect((await head(st)).turn).toBe(0);
+    expect((await loadStory(st, 'test', lib())).state.flags.x).toBeUndefined();
+  });
+
+  it('refuses a tampered page and leaves the save untouched', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    const h = await head(st);
+    const path = `stories/test/pages/actor.player@${h.pages['actor.player'].version}`;
+    st.docs.set(path, st.docs.get(path)!.replace('"Aldric"', '"Mallory"'));
+    const before = new Map(st.docs);
+    const err = await loadStory(st, 'test', lib()).catch((e) => e);
+    expect(err).toBeInstanceOf(LoadRefusedError);
+    expect(err.report[0]).toMatch(/checksum: page actor.player/);
+    expect(err.options).toEqual(['reset']);
+    expect(st.docs).toEqual(before);
+  });
+
+  it('refuses invariant failures; the designer can take the undo bookmark', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    s.player.core.classes.push({ classId: 'slime', state: 'current', level: 1 });
+    s.player.core.inventory.push({ id: 'c2', itemId: 'coin', qty: 0 });
+    await saveTurn(st, s, rec(s, 1));
+    const err = await loadStory(st, 'test', lib()).catch((e) => e);
+    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/exactly one current class/), expect.stringMatching(/qty < 1/)]));
+    expect(err.options).toContain('undo');
+    const back = await useBookmark(st, 'test', 'undo', lib());
+    expect(back.state.player.core.classes).toHaveLength(1);
+    expect((await head(st)).turn).toBe(0);
+  });
+
+  it('flags a placeId that disagrees with the zone, and a stage zone on no place page', async () => {
+    const s = makeVillage();
+    s.player.placeId = 'street';
+    s.stage.zoneIds.push('nowhere');
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    const err = await loadStory(st, 'test', lib()).catch((e) => e);
+    expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/player placeId street/), expect.stringMatching(/stage zone nowhere/)]));
+  });
+
+  it('repairs dangling references and reports them; raw above 100 is a warning', async () => {
+    const s = makeVillage();
+    s.player.journal!.factsWitnessed.push('f_missing');
+    actor(s, 'guard_1').mind!.knowledge.ghost = { status: 'aware', source: 'seen', revealed: [] };
+    s.player.core.skills.melee_medium.raw = 104;
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    const { state, report } = await loadStory(st, 'test', lib());
+    expect(state.player.journal!.factsWitnessed).toEqual([]);
+    expect(actor(state, 'guard_1').mind!.knowledge.ghost).toBeUndefined();
+    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/), 'warning: player raw melee_medium 104 above 100']));
+    expect((await loadStory(st, 'test', lib())).report).toEqual(['warning: player raw melee_medium 104 above 100']); // repair was saved
+  });
+
+  it('splits a busy place into several facts pages', async () => {
+    const s = makeVillage();
+    const text = 'x'.repeat(1000);
+    s.facts = Array.from({ length: 400 }, (_, i): StoryFact => ({ id: `f${i}`, storyId: 'test', placeId: 'tavern', turn: i, text, refs: [], source: 'rule', promotedTo: [] }));
+    const st = memoryStore();
+    const h = await saveTurn(st, s, rec(s, 0));
+    expect(Object.keys(h.pages).filter((k) => k.startsWith('facts.tavern.')).length).toBeGreaterThan(1);
+    expect((await loadStory(st, 'test', lib())).state.facts).toEqual(s.facts);
+  });
+});
+
+describe('undo', () => {
+  it('goes back one turn, carries the RNG state forward, drops the turn record', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await play(st, s, 1, 2);
+    await undoTurn(st, 'test');
+    const { state } = await loadStory(st, 'test', lib());
+    expect(state.flags.last).toBe(1);
+    expect(state.rngState).toBe(1002); // not rolled back
+    expect(await readTurnRecord(st, 'test', 2)).toBeNull();
+    await expect(undoTurn(st, 'test')).rejects.toMatchObject({ code: 'nothing_to_undo' }); // D-72: one turn
+    s.flags.last = 2; s.rngState = 2002;
+    await saveTurn(st, s, rec(s, 2)); // redo writes turn 2 again without touching the live engine page
+    expect((await loadStory(st, 'test', lib())).state.rngState).toBe(2002);
+    await undoTurn(st, 'test');
+    expect((await loadStory(st, 'test', lib())).state.rngState).toBe(2002);
+  });
+});
+
+describe('cleanup, backups, restore', () => {
+  it('keeps the last N turn records and only pages a bookmark points to', async () => {
+    const s = makeVillage();
+    CONFIG.TURN_RECORDS_KEPT = 3;
+    const st = memoryStore();
+    await play(st, s, 1, 6);
+    expect(await st.list('stories/test/turns')).toEqual(['stories/test/turns/4', 'stories/test/turns/5', 'stories/test/turns/6']);
+    const h = await head(st);
+    const live = new Set([h, h.undo!].flatMap((b) => Object.entries(b.pages).map(([k, r]) => `stories/test/pages/${k}@${r.version}`)));
+    expect(new Set(await st.list('stories/test/pages'))).toEqual(live);
+  });
+
+  it('backs up every BACKUP_EVERY turns, keeps BACKUPS_KEPT, restores with a safety bookmark', async () => {
+    const s = makeVillage();
+    CONFIG.BACKUP_EVERY = 2;
+    CONFIG.BACKUPS_KEPT = 2;
+    const st = memoryStore();
+    await play(st, s, 1, 6);
+    expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([6, 4]);
+    const { state } = await restoreBackup(st, 'test', 4, lib());
+    expect(state.flags.last).toBe(4);
+    const h = await head(st);
+    expect(h.safety!.turn).toBe(6);
+    expect(h.undo).toBeNull();
+    await play(st, state, 5, 5);
+    expect((await head(st)).safety).toBeUndefined(); // dropped after the next good turn
+    expect((await loadStory(st, 'test', lib())).state.flags.last).toBe(5);
+  });
+});
+
+describe('migration and reconcile', () => {
+  it('runs numbered steps on load, backs up first and keeps a safety bookmark', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await play(st, s, 1, 2);
+    CONFIG.SCHEMA_VERSION = 2;
+    MIGRATIONS[1] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
+    const { state, report } = await loadStory(st, 'test', lib());
+    expect(state.flags.migrated).toBe(true);
+    expect(report).toContain('migrated v1 -> v2');
+    const h = await head(st);
+    expect(h).toMatchObject({ schemaVersion: 2, undo: null, safety: { turn: 2 } });
+    expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
+    // the safety bookmark can be taken back (it migrates again)
+    expect((await useBookmark(st, 'test', 'safety', lib())).state.flags.migrated).toBe(true);
+  });
+
+  it('refuses when a step is missing and leaves the save untouched', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    CONFIG.SCHEMA_VERSION = 3;
+    MIGRATIONS[1] = () => {};
+    const err = await loadStory(st, 'test', lib()).catch((e) => e);
+    expect(err.report).toContain('schema: no migration step v2 -> v3');
+    expect((await head(st)).schemaVersion).toBe(1);
+  });
+
+  it('follows renamed entries, marks deleted ones dormant, syncs body parts', async () => {
+    const s = makeVillage();
+    const st = memoryStore();
+    await saveTurn(st, s, rec(s, 0));
+    const l = structuredClone(lib());
+    l.version = 2;
+    l.skills.blades = { ...l.skills.melee_medium, id: 'blades' };
+    delete l.skills.melee_medium;
+    delete l.skills.barter;
+    l.status = { melee_medium: { state: 'renamed', to: 'blades' }, barter: { state: 'deleted' } };
+    l.creatures.humanoid.parts.push({ id: 'tail', size: 'small', impact: 'non_essential', roles: [] });
+    const { state, report } = await loadStory(st, 'test', l);
+    expect(state.player.core.skills.blades).toEqual({ raw: 50, state: 'tagged' });
+    expect(state.player.core.skills.melee_medium).toBeUndefined();
+    expect(state.player.core.skills.barter.dormant).toBe(true);
+    expect(state.player.core.condition.parts.tail).toBe(100);
+    expect(state.libraryVersion).toBe(2);
+    expect(report).toEqual(expect.arrayContaining(['reconcile: player skill melee_medium -> blades', 'reconcile: player skill barter dormant']));
+    expect((await head(st)).libraryVersion).toBe(2);
+  });
+});
+
+describe('turn lock', () => {
+  it('one window at a time; the lease expires', async () => {
+    let now = 0;
+    const st = memoryStore(() => now);
+    expect(await acquireTurnLock(st, 'test', 'A')).toBe(true);
+    expect(await acquireTurnLock(st, 'test', 'B')).toBe(false);
+    now += CONFIG.LOCK_LEASE_MS + 1;
+    expect(await acquireTurnLock(st, 'test', 'B')).toBe(true);
+    await releaseTurnLock(st, 'test', 'B');
+    expect(await acquireTurnLock(st, 'test', 'A')).toBe(true);
+  });
+});
+
+describe('artifact db adapter', () => {
+  it('maps the Store onto the db capability, retrying once on unavailable', async () => {
+    const calls: string[] = [];
+    let fail = 1;
+    const docs = new Map<string, Record<string, unknown>>();
+    const ref = (path: string) => ({
+      id: path.split('/').pop()!, path,
+      async get() { return { id: path, exists: docs.has(path), data: () => docs.get(path) }; },
+      async set(d: Record<string, unknown>) {
+        if (fail-- > 0) throw { code: 'unavailable', message: 'x' };
+        docs.set(path, d);
+      },
+      async delete() { docs.delete(path); },
+      async acquire(o: { holder: string; ttlMs?: number }) { calls.push(`acquire ${path} ${o.holder} ${o.ttlMs}`); return { acquired: true }; },
+    });
+    const db: DB = {
+      doc: ref,
+      collection: (p: string) => {
+        const q = { limit: () => q, get: async () => { const d = [...docs.keys()].filter((k) => k.startsWith(p + '/')).map((k) => ({ id: k.slice(p.length + 1), exists: true, data: () => docs.get(k) })); return { docs: d, size: d.length }; } };
+        return { ...q, path: p, doc: (id?: string) => ref(`${p}/${id}`) };
+      },
+    };
+    const st = artifactDbStore(db, async () => {});
+    await st.set('stories/a', { x: 1 });
+    expect(await st.get('stories/a')).toEqual({ x: 1 });
+    expect(await st.list('stories')).toEqual(['stories/a']);
+    expect(await st.acquireLease('stories/a/control/lock', 'w1', 60000)).toBe(true);
+    await st.releaseLease('stories/a/control/lock', 'w1');
+    expect(calls).toEqual(['acquire stories/a/control/lock w1 60000', 'acquire stories/a/control/lock w1 1000']);
+    fail = 2;
+    await expect(st.set('stories/b', {})).rejects.toMatchObject({ code: 'unavailable' });
+  });
+});
