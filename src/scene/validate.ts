@@ -155,6 +155,14 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     for (const t of terms) if (mentions(v, t)) err('public_leak', `${where} contains hidden term "${t}"` +
       (where.includes(' knows ') ? '; knows is public, so a secret goes in seeds.secrets' : ''), castKey);
   };
+  // keys become ids the player-side agents see (Q2): scanned like public text, with _ and - read as spaces
+  const keyScan = (kind: string, k: unknown, castKey?: string) => {
+    if (typeof k !== 'string') return;
+    const words = k.replace(/[_-]+/g, ' ');
+    for (const t of terms) if (mentions(words, t)) err('public_leak', `${kind} key ${k} contains hidden term "${t}"`, castKey);
+  };
+  for (const [kind, list] of [['place', places], ['zone', zones], ['frontier', frontiers], ['band', bands]] as const) for (const x of list) keyScan(kind, x.key);
+  for (const c of cast) if (c.actor === undefined) keyScan('cast', c.key, c.key);
   text('event.summary', ev?.summary, false);
   text('weaverNote', plan.weaverNote, false);
   for (const p of places) {

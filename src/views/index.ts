@@ -1,7 +1,7 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState,
-  HealthLevel, Intent, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, SeenActor, SeenGearView,
+  HealthLevel, Intent, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -335,7 +335,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '' },
     surroundings: perceivedZones(state, p.zone),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
   };
@@ -409,6 +409,15 @@ function modeOf(state: GameState, attacker: Actor, weaponId: string, modeId: str
   return { mode, weapon: mode?.name ?? null };
 }
 
+/** the other side's deciding sources: only lucky/fumble, situation and aim, the weapon used, and gear the viewer can see (no health, wounds, perks or hidden gear) */
+function shownDeciding(state: GameState, list: string[], roll: RollResult, rollerId: string, viewerId: string): string[] {
+  if (rollerId === viewerId) return [...list];
+  const seen = new Set(seenGear(state, need(state, rollerId), need(state, viewerId).mind?.knowledge[rollerId]?.revealed ?? []).map((g) => g.name));
+  const type = new Map(roll.modifiers.map((m) => [m.source, m.type]));
+  return list.filter((s) => s === 'lucky' || s === 'fumble' || s.startsWith('weapon: ') || type.get(s) === 'situational' || type.get(s) === 'aim' ||
+    (s.startsWith('Gear (') && seen.has(s.slice(s.indexOf('): ') + 3))));
+}
+
 /** Part 3 packet: no numbers. Others' Healthy→Damaged and Bruised–Injured stay hidden; the player's own condition is always visible. */
 export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: string): CombatPacket {
   const r = event.attack;
@@ -430,8 +439,8 @@ export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: 
     weapon,
     armor: armor ? itemDef(state, armor.itemId).name : null,
     shield: shield ? itemDef(state, shield.itemId).name : null,
-    attack: { tier: tierName(r.attack.tier), natural: nat(r.attack.natural), deciding: [...r.deciding.attack] },
-    defense: r.defense && r.defenseType ? { type: r.defenseType, tier: tierName(r.defense.tier), natural: nat(r.defense.natural), deciding: [...r.deciding.defense] } : null,
+    attack: { tier: tierName(r.attack.tier), natural: nat(r.attack.natural), deciding: shownDeciding(state, r.deciding.attack, r.attack, attacker.id, viewerId) },
+    defense: r.defense && r.defenseType ? { type: r.defenseType, tier: tierName(r.defense.tier), natural: nat(r.defense.natural), deciding: shownDeciding(state, r.deciding.defense, r.defense, target.id, viewerId) } : null,
     outcome: outcomeLabel(r.outcome),
     location: r.location && partName ? { part: partName, how: r.locationHow ?? 'rolled' } : null,
     changes: visibleChanges(state, event.effects, viewerId),

@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GameState, Intent, Pending } from '../../src/types';
 import type { TurnInput } from '../../src/engine';
-import { makeVillage, ScriptedClaude } from '../harness';
+import { makeVillage, ScriptedClaude, sentText } from '../harness';
 import { createGame, VirtualClock, NEUTRAL_LINE, type Game } from '../../src/agents';
 import { CONFIG } from '../../src/config';
 import type { Store } from '../../src/save';
@@ -12,6 +12,9 @@ const H = vi.hoisted(() => ({
   engagedNext: [] as string[],
   resolved: [] as { at: number; input: TurnInput }[],
   clockNow: (): number => 0,
+  firedOrders: [] as unknown[],
+  secrets: [] as unknown[],
+  sets: [] as [string, unknown][],
 }));
 
 vi.mock('../../src/engine', () => ({
@@ -19,6 +22,7 @@ vi.mock('../../src/engine', () => ({
   selectSpokespeople: (s: GameState, i: Intent) => (i.addressees ?? []).filter((id) => s.actors.some((a) => a.id === id)),
   unclearAddressee: () => null,
   resolveSpeech: () => ({ skill: 'persuasion', playerTier: 'success', impression: 'convincing', perSpokesperson: {} }),
+  firedOrders: () => H.firedOrders,
   resolveTurn: (_s: GameState, input: TurnInput) => {
     H.resolved.push({ at: H.clockNow(), input });
     return [];
@@ -28,9 +32,10 @@ vi.mock('../../src/views', async () => {
   const f = await import('./agent-views');
   return {
     buildPlayerView: () => ({ ...f.playerView(), actors: [{ id: 'guard_1', label: 'a guard', zone: 'tav_common', level: 'full', gear: [] }] }),
-    buildOppositionView: (_s: unknown, id: string) => f.actorView(id),
+    buildOppositionView: (_s: unknown, id: string) => ({ ...f.actorView(id), secrets: H.secrets }),
     buildDialogueView: (_s: unknown, id: string) => f.dialogueView(id),
     buildNarrationView: () => f.narrationView(),
+    callName: () => 'player',
   };
 });
 vi.mock('../../src/save', () => ({
@@ -40,7 +45,7 @@ vi.mock('../../src/save', () => ({
 }));
 
 const store: Store = {
-  get: async () => null, set: async () => {}, delete: async () => {}, list: async () => [],
+  get: async () => null, set: async (p, v) => { H.sets.push([p, v]); }, delete: async () => {}, list: async () => [],
   acquireLease: async () => true, releaseLease: async () => {},
 };
 const narr = { text: 'An old drinker nurses a mug.', narrated: ['e1'] };
@@ -63,6 +68,9 @@ beforeEach(() => {
   H.clockNow = () => clock.now();
   H.engagedNext = [];
   H.resolved = [];
+  H.firedOrders = [];
+  H.secrets = [];
+  H.sets = [];
   claude = new ScriptedClaude(clock);
   game = createGame({ client: claude, clock, store });
 });
@@ -143,6 +151,23 @@ describe('clarify and dialogue', () => {
     const out = H.resolved[0].input.agentOutputs[0];
     expect(out.agent).toBe('responder');
     expect(out.agent === 'responder' && out.output.dialogue?.line).toBe(NEUTRAL_LINE);
+  });
+
+  it('COMMITTED names the fired order; an unlisted secret is revealed, logged and filed as a bug (F6, Q3)', async () => {
+    start();
+    state.hidden.memory.guard_1 = 'saw a stranger';
+    state.hidden.firedLog.push({ triggerId: 't_grab', turn: state.turn, ownerId: 'guard_1' });
+    H.firedOrders = [{ actorId: 'guard_1', type: 'attack', target: 'player', skill: null, intent: '', source: 'trigger', triggerId: 't_grab' }];
+    H.secrets = [{ id: 's_bribe', holderId: 'guard_1', fact: 'took a bribe', leakTerms: ['bribe'], revealWhen: { type: 'event_in_zone', kind: 'k', zone: 'z' } }];
+    claude.push('parser', parserTalk('guard_1'))
+      .push('responder', { ...plannerOut({ type: 'talk', target: 'player' }), dialogue: { line: 'The bribe was small.', volume: 'normal' }, reveals: [] })
+      .push('narrator', narr);
+    await game.submit('Hello there.', { aimed: false });
+    expect(sentText(claude.calls.find((c) => c.agent === 'responder')!)).toContain('trigger t_grab: attack player');
+    const out = H.resolved[0].input.agentOutputs[0];
+    expect(out.agent === 'responder' && out.output.reveals).toEqual(['s_bribe']);
+    const bug = H.sets.find(([p]) => p.startsWith('bugs/'));
+    expect(bug?.[1]).toMatchObject({ code: 'unlisted_reveal', actorId: 'guard_1', secretIds: ['s_bribe'], line: 'The bribe was small.' });
   });
 });
 

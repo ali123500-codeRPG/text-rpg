@@ -140,7 +140,7 @@ export type NarrationView = {
   player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string };
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; zone: string; activityLook?: string }[];
+  actors: { label: string; name?: string; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
