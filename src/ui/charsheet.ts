@@ -95,7 +95,7 @@ function xpTrack(p: Actor): HTMLElement | null {
   const cur = open.find((c) => c.state === 'current');
   const name = (id: string) => lib.classes[id]?.name ?? id;
   return h('div', { class: 'cs-track' },
-    h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${pr.xp} / ${need} XP`)),
+    h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (pr.xp / need) * 100)}%` })),
     open.length > 1
       ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),

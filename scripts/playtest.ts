@@ -152,11 +152,14 @@ function tracePacing(game: ReturnType<typeof createGame>, step: number, input: s
 
 /** The test player can't open the Perks page, so it spends each perk point at once on the open milestone of its highest skill. */
 const progress: string[] = [];
+let levelUpsSeen = 0;
 function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
   const st = game.state();
   const p = st?.player;
   if (!p?.progression) return;
-  for (const x of p.progression.xpLog ?? []) if (x.turn === st!.turn && x.levelUp) progress.push(`turn ${turn}: level up to ${x.levelUp.level} (${x.levelUp.classId})`);
+  const ups = (p.progression.xpLog ?? []).filter((x) => x.levelUp);
+  for (const x of ups.slice(levelUpsSeen)) progress.push(`turn ${turn}: level up to ${x.levelUp!.level} (${x.levelUp!.classId})`);
+  levelUpsSeen = ups.length;
   while (p.progression.unspentPerkPoints > 0) {
     const open = Object.keys(p.core.skills).flatMap((sk) => MILESTONES.filter((m) => milestoneState(p, sk, m) === 'open' && !canTake(p, milestonePerk(sk, m)!.id)).map((m) => ({ id: milestonePerk(sk, m)!.id, sk, m })))
       .sort((a, b) => trueSkill(p, b.sk) - trueSkill(p, a.sk) || a.m - b.m);
@@ -169,7 +172,7 @@ function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
 function writeTranscript(game: ReturnType<typeof createGame>, storyId: string, t0: number) {
   const pr = game.state()?.player.progression;
   const md = [`# Playtest ${storyId}`, `Started ${new Date(t0).toISOString()} · ${calls} game calls so far`, '',
-    `XP ${pr?.xp ?? 0} · unspent perk points ${pr?.unspentPerkPoints ?? 0} · perks: ${game.state()?.player.core.perks.map((x) => x.perkId).join(', ') || 'none'}`,
+    `XP ${+(pr?.xp ?? 0).toFixed(6)} · unspent perk points ${pr?.unspentPerkPoints ?? 0} · perks: ${game.state()?.player.core.perks.map((x) => x.perkId).join(', ') || 'none'}`,
     ...progress.map((x) => `- ${x}`), '',
     ...game.lines().map((l) => (l.kind === 'player' ? `\n**> ${l.text}**` : `${l.kind === 'narration' ? '' : `_${l.kind}:_ `}${l.text}`)
       + (l.speech?.length ? `\n\n${l.speech.map((sp) => `> _${sp.speaker}:_ "${sp.text}"`).join('\n')}` : '')
