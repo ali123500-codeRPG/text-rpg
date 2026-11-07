@@ -49,8 +49,13 @@ vi.mock('../../src/ruleset', async (orig) => {
         if (!('targetId' in res)) return [];
         const t = state.player.id === res.targetId ? state.player : state.actors.find((a) => a.id === res.targetId)!;
         t.core.condition.hpLostPct = Math.min(100, t.core.condition.hpLostPct + res.damage);
-        if (F.destroyPart) t.core.condition.parts[F.destroyPart] = 0;
-        return [{ kind: 'damage', actorId: t.id, data: {} }];
+        if (!F.destroyPart) return [{ kind: 'damage', actorId: t.id, data: {} }];
+        // like the real applyEffects: a Destroyed arm drops what it held to the zone's ground
+        t.core.condition.parts[F.destroyPart] = -100;
+        const held = t.core.inventory.filter((i) => i.equippedIn?.includes(`hand:${F.destroyPart}`));
+        const zone = state.zones.find((z) => z.id === t.zone)!;
+        for (const i of held) { t.core.inventory.splice(t.core.inventory.indexOf(i), 1); delete i.equippedIn; zone.groundItems.push(i); }
+        return [{ kind: 'damage', actorId: t.id, data: {} }, ...held.map((i) => ({ kind: 'item_dropped', actorId: t.id, data: { itemId: i.id, zone: t.zone } }))];
       },
       recordUse: () => {},
     },

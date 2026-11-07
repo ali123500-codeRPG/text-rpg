@@ -91,14 +91,6 @@ export function dropToGround(state: GameState, actor: Actor, instId: string, zon
   return true;
 }
 
-/** a Destroyed Grip arm drops what it held to the ground of the actor's zone. Returns the dropped instance ids. */
-export function dropFromDestroyedArms(state: GameState, actor: Actor, newlyDestroyed: string[]): string[] {
-  const grips = new Set(gripParts(state, actor));
-  const hands = newlyDestroyed.filter((p) => grips.has(p)).map((p) => `hand:${p}`);
-  const held = actor.core.inventory.filter((i) => i.equippedIn?.some((s) => hands.includes(s)));
-  return held.filter((i) => dropToGround(state, actor, i.id, actor.zone)).map((i) => i.id);
-}
-
 /** give (main action): to another active actor in the same zone. */
 export function giveItem(state: GameState, actor: Actor, instId: string | null | undefined, targetId: string | null): boolean {
   const to = targetId ? actorById(state, targetId) : undefined;

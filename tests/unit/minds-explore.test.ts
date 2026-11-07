@@ -5,6 +5,7 @@ import type { GameEvent, GameState, RollRequest } from '../../src/types';
 const tiers: Record<string, number> = {};
 vi.mock('../../src/perception', () => ({
   computePerception: vi.fn(() => ({})),
+  perceptionOf: vi.fn(() => null), // unit tests give levels through event.perception
   updateBeliefs: vi.fn((state: GameState, u: { kind: string; observerId: string; aboutId: string; status: 'aware' }) => {
     const a = state.actors.find((x) => x.id === u.observerId)!;
     a.mind!.knowledge[u.aboutId] = { status: u.status, source: 'seen', revealed: [] };

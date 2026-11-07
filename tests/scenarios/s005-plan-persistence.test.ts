@@ -5,7 +5,7 @@ import type { Trigger } from '../../src/types';
 import { act, play, plannerOut } from './w4-kit';
 
 it('5 Plan persistence', () => {
-  const s = makeVillage();
+  const s = makeVillage({ without: ['slime_1', 'slime_2'] }); // slimes wandering into the guard's view would engage it
   s.pending = { ...s.pending, turn: 3 };
   const trig: Trigger = { id: 'ambush_t7', ownerId: 'guard_1', when: { type: 'turn_reached', turn: 7 },
     then: { type: 'move', target: 'street_square', skill: null, intent: 'spring the ambush' }, once: true };

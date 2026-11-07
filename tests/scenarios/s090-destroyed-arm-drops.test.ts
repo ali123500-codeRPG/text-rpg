@@ -14,6 +14,7 @@ const roll = (actorId: string, skill: string, tierIndex: number, tier: string): 
 it('90 Destroyed arm drops', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
   const g = place(s, 'guard_1', 'tav_common');
+  g.mind!.slots!.post = 'tav_common'; // keep the guard here (its routine would walk it back to the gate first)
   g.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: 1, source: 'seen', revealed: [] };
   g.core.condition.parts.right_arm = 1; // one more hit there destroys it
   const sword = 'guard_1_arming_sword_1';

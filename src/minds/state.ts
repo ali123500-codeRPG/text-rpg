@@ -3,7 +3,7 @@ import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } f
 import { CONFIG } from '../config';
 import { routine as getRoutine, routineSet, creatureType, npcTemplate } from '../library';
 import { actorById, atLeast, isActive, opposed } from '../engine/relations';
-import { computePerception, updateBeliefs } from '../perception';
+import { computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { ruleset, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { bindTemplate, expandSteps, slotsRead } from './routines';
 
@@ -134,8 +134,9 @@ export function detectPlayer(state: GameState, event: GameEvent, _rng: Rng): voi
     if (!a.mind || !isActive(a)) continue;
     const cur = a.mind.knowledge.player?.status ?? 'unaware';
     if (cur === 'aware' || cur === 'tracking') continue;
-    // GAP: the level is read from event.perception, so computePerception must record unaware observers of a major player action.
-    const level = event.perception[a.id]?.level;
+    // Observers unaware of the player are left out of event.perception (they perceive the player only through detection),
+    // so detection reads the perception level directly.
+    const level = event.perception[a.id]?.level ?? perceptionOf(event, state, a)?.level;
     if (!level) continue;
     const status = level === 'full' ? 'aware' : 'suspicious';
     if (status === cur) continue;
@@ -156,7 +157,13 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   const attacker = actorById(state, attackerId);
   if (!attacker) return { surprised: false };
   // GAP: perception before the blow: use the event's if already computed, else compute it now.
-  const perception = Object.keys(attackEvent.perception).length ? attackEvent.perception : computePerception(attackEvent, state, rng);
+  // Every active NPC that could perceive the attack, including those unaware of the attacker (left out of computePerception).
+  const perception: GameEvent['perception'] = Object.keys(attackEvent.perception).length ? { ...attackEvent.perception } : { ...computePerception(attackEvent, state, rng) };
+  for (const o of state.actors) {
+    if (perception[o.id] || o.id === attackerId) continue;
+    const seen = perceptionOf(attackEvent, state, o);
+    if (seen) perception[o.id] = seen;
+  }
   const ids = [targetId, ...Object.keys(perception).filter((id) => id !== targetId && id !== attackerId).sort()];
   const observers = ids
     .map((id) => actorById(state, id))

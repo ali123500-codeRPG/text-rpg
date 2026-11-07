@@ -10,7 +10,7 @@ import { actorById, allActors, atLeast, isActive, isEngaged, opposed, shortestPa
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { applyGearOps, dropFromDestroyedArms, dropToGround, equipArmor, giveItem } from './gear';
+import { applyGearOps, dropToGround, equipArmor, giveItem } from './gear';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import type { TurnInput } from './types';
@@ -219,10 +219,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push({ kind: 'item_landed', actorId: a.id, data: { itemId: m.itemId, zone: t.zone } });
   }
   emit(ctx, ev, res, true);
-  // Destroyed arm drops what it held
-  const wasDestroyed = new Set(before.parts.filter((p) => p.state === 'Destroyed').map((p) => p.id));
-  const newly = partStates(state, t).filter((p) => p.state === 'Destroyed' && !wasDestroyed.has(p.id)).map((p) => p.id);
-  for (const id of dropFromDestroyedArms(state, t, newly)) emit(ctx, mk(ctx, t, 'item_dropped', { itemId: id }));
+  // Destroyed arm drops what it held: ruleset.applyEffects moves the item; each drop is its own perceived event
+  for (const f of ev.effects) if (f.kind === 'item_dropped') emit(ctx, mk(ctx, t, 'item_dropped', { itemId: f.data.itemId as string }));
   // morale: a new level from Injured onwards; bandmates who perceive an incapacitation
   const L = LEVELS();
   const after = healthLevel(t);
