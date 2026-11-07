@@ -17,6 +17,7 @@ const H = vi.hoisted(() => ({
 vi.mock('../../src/engine', () => ({
   computePending: (s: GameState): Pending => ({ turn: s.turn + 1, mode: H.engagedNext.length ? 'tactical' : 'explore', engaged: [...H.engagedNext], fired: [] }),
   selectSpokespeople: (s: GameState, i: Intent) => (i.addressees ?? []).filter((id) => s.actors.some((a) => a.id === id)),
+  unclearAddressee: () => null,
   resolveSpeech: () => ({ skill: 'persuasion', playerTier: 'Success', impression: 'convincing', perSpokesperson: {} }),
   resolveTurn: (_s: GameState, input: TurnInput) => {
     H.resolved.push({ at: H.clockNow(), input });

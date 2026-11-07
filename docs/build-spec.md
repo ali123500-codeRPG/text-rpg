@@ -245,7 +245,7 @@ Only code ever sees every agent's input and output. Planner calls run in the bac
 A turn is a dialogue turn when the Parser's main action is a speech action (talk, persuade, deceive, intimidate, barter) addressed to one or more NPCs.
 
 1. The Parser parses the player's text and lists the addressees: named actors, a band, or everyone in earshot.
-2. Code picks one spokesperson per addressed band: the named member, else the band's nearest addressed member, ties by actor id. At most MAX\_SPOKESPEOPLE (config, placeholder) bands get one, in the order the player's words name them; members of other bands only hear the words. Inactive actors are never picked.
+2. Code picks one spokesperson per addressed band: the named member; else the sticky partner (the NPC the player last spoke with this scene) if it is an active member of that band in reach; else the band's nearest addressed member, ties by actor id. When a band is addressed without a name, no partner of it is in reach and the player can see more than one of its members, code asks "Who do you speak to: A or B?" naming only people the player can see, with no Claude call and no turn spent (OQ-27, answered 07/11/2026). At most MAX\_SPOKESPEOPLE (config, placeholder) bands get one, in the order the player's words name them; members of other bands only hear the words. Inactive actors are never picked.
 3. Exchange slot, part 1: the engine resolves the player's speech. A speech check is the speaker against the other side: one roll by the player with the action's speech skill, contested separately against each spokesperson's roll with the same skill (read by tier difference, Part 1 §4, Contests). Talk, persuade and deceive use persuasion; intimidate uses intimidation; barter uses barter. Any of them may be substituted by another speech skill (Part 1 §3, Skill substitution). The speech event is perceived like any other event. \[Proposed\] In the first build, winning a speech contest counts only toward check\_passed secret reveals; otherwise the result is logged, and deals and prices wait for trade (D-93).
 4. One dialogue call per spokesperson runs in parallel: the Responder if that spokesperson has an agenda, else the Voice. Each receives its own view plus only this turn's spoken words and its impression (Dialogue input, below). Each returns its one action for the turn: a reply (a talk action) or any other main action.
 5. Exchange slot, part 2: spoken replies resolve right after the player's speech, in initiative order. A spokesperson that chose another action resolves it at its own initiative in step 6.
@@ -2474,7 +2474,7 @@ Decisions built as written for the first build, to be checked once the game is p
 
 ## Open questions (answer before sharing)
 
-These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review; OQ-27 from the Voyage playtest (07/11/2026). A question with a build default is built that way until it is answered.
+These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review. A question with a build default is built that way until it is answered.
 
 - OQ-4: Does every attack on an unaware actor make an ambush roll, or only an attack made while sneaking?
   - Build default: every attack on an unaware actor.
@@ -2500,8 +2500,6 @@ These must be answered before the spec goes to a build agent. Each question has 
   - Build default: placeholder ids, renamed through library aliases later.
 - OQ-22: Changing objects and places. In the first build a check or a contest only changes beliefs and reveals secrets (Part 2, Resolution engine). How one changes an object or a place, such as a forced door, a picked lock or a stolen item, is not designed yet.
   - Build default: nothing changes; the attempt is only narrated.
-- OQ-27: Unclear addressee (Voyage A8). The wrong NPC answered. Options: (a) sticky partner: the NPC you last spoke with stays the addressee until you name someone else, then the nearest; (b) clarify: when more than one addressed member is in view and none is named, code asks "Who do you speak to: A or B?" using only people the player can see, with no Claude call and no turn spent; (c) both: sticky partner first, and clarify only when there is no partner yet. Recommendation: (c).
-  - Build default: the nearest addressed member answers, as written (Part 2, Dialogue turn step 2).
 
 ## Appendix: prototype routine bank
 

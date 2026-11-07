@@ -8,7 +8,7 @@ import { buildWeaverView } from '../views';
 import { zoneById } from '../engine/relations';
 import type { PlanContext, PlanError } from './index';
 import { validateStagePlan } from './validate';
-import { applyFallbackStage, applyStagePlan, beginScene, openingEvents } from './apply';
+import { applyFallbackStage, applyStagePlan, beginScene, ensurePlace, openingEvents } from './apply';
 import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
 
 /** one Agent Weaver call. `errors` set = the repair retry. null = the call failed. */
@@ -41,6 +41,7 @@ export class SceneDirector {
   /** Scene setup (steps 1–8 minus the save): one situation roll, one Weaver call (+ one repair), apply or fallback. */
   async startScene(state: GameState, rng: Rng, entry: 'open' | 'sneaking' = 'open'): Promise<SceneResult> {
     const placeId = state.player.placeId; // step 1
+    ensurePlace(state, placeId);
     const situation = ruleset.situation(state.player, state, rng); // step 2
     this.lastSituation = situation;
     this.held.clear();
@@ -150,6 +151,7 @@ function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry:
  */
 export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | null)[], rng: Rng, entry: 'open' | 'sneaking' = 'open'): SceneResult {
   const placeId = state.player.placeId;
+  ensurePlace(state, placeId);
   const situation = ruleset.situation(state.player, state, rng);
   beginScene(state, situation.tier);
   const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId };
