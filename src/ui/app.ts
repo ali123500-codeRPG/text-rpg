@@ -59,7 +59,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     const item = (id: string, label: string, enabled: boolean) => h('a', {
       href: enabled ? '#' + id : undefined, 'aria-current': page === id ? 'page' : undefined, 'aria-disabled': enabled ? undefined : 'true',
       title: enabled ? label : 'Opens once your swordsman is made',
-    }, icon(id), label);
+    }, icon(id), label, id === 'stats' && (api.state()?.player.progression?.unspentPerkPoints ?? 0) > 0 ? h('span', { class: 'hs-dot', title: 'A perk point to spend' }) : null);
     rail.replaceChildren(
       h('div', { class: 'hs-brand' }, 'RPG', h('span', { class: 'ar' }, 'v0')),
       started ? '' : item('create', 'Create', true),
