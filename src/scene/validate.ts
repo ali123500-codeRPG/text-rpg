@@ -324,6 +324,13 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 
 type Reward = StagePlan['rewards'][number];
 
+/** Loot V8: a reward's Boon = the item's boon (or value ÷ BOON_COIN) × qty, × BOON_QUALITY for a minted item. */
+export function boon(state: GameState, item: Reward['item'], qty = 1): number {
+  const def = itemDef(state, typeof item === 'string' ? item : item.base);
+  const q = typeof item === 'string' ? 0 : item.quality;
+  return (def.boon ?? def.value / CONFIG.BOON_COIN) * qty * CONFIG.BOON_QUALITY[q];
+}
+
 /**
  * Loot L1: a bad reward is fixed or dropped, never fails the plan. Validation reports each change as a repaired
  * note; the apply step places the tidied list. Same input, same output, so replay matches.
@@ -342,12 +349,12 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
   const gain = plan.event?.gain;
   const maxQ = GRADES.includes(gain) ? CONFIG.GAIN_MAX_QUALITY[gain] ?? 0 : 0;
   let mintLeft = CONFIG.SCENE_CAPS.minted - state.sceneCaps.minted;
+  let boonLeft = GRADES.includes(gain) ? CONFIG.BOON_BUDGET[gain] ?? 0 : 0; // V8: Boon is the only limit on rewards
   const known = (id: unknown) => { try { return typeof id === 'string' ? itemDef(state, id) : undefined; } catch { return undefined; } };
 
   const rewards: Reward[] = [];
   arr(plan.rewards).forEach((r, i) => {
     const where = `reward ${i}`;
-    if (rewards.length >= CONFIG.PLAN_CAPS.rewards) return note('reward_dropped', `${where}: over the cap of ${CONFIG.PLAN_CAPS.rewards} rewards`);
     const pl = r?.place as { carriedBy?: string; groundIn?: string } | undefined;
     const placed = pl?.carriedBy !== undefined ? castKeys.has(pl.carriedBy) || actorIds.has(pl.carriedBy)
       : pl?.groundIn !== undefined && (zoneKeys.has(pl.groundIn) || stageZones.has(pl.groundIn));
@@ -377,6 +384,12 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
         item = { ...m, quality, boosts };
       }
     }
+    const b = boon(state, item, qty ?? 1);
+    if (b > boonLeft + 1e-9) {
+      if (typeof item !== 'string') mintLeft += 1;
+      return note('reward_dropped', `${where}: worth ${b} Boon, only ${boonLeft} left of the ${gain} gain budget`);
+    }
+    boonLeft -= b;
     rewards.push({ ...r, item, ...(qty !== undefined ? { qty } : {}) });
   });
   return { rewards, notes };

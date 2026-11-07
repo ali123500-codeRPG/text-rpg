@@ -69,6 +69,8 @@ In a dark zone people are only half seen: hearths and lamps are bright or dim, c
 Slots bind zones only, never frontiers; every zone an actor's slots bind must be reachable from its first bound zone by links.
 A player-band cast entry uses routine set "companion" and binds no slots.
 Limits: at most ${Object.entries(CONFIG.PLAN_CAPS).filter(([k]) => k !== 'knows').map(([k, n]) => `${n} ${k}`).join(', ')}; at most ${CONFIG.PLAN_CAPS.knows} knows per actor;
+rewards together are worth at most ${Object.entries(CONFIG.BOON_BUDGET).map(([g, b]) => `${b} Boon for ${g} gain`).join(', ')}:
+a reward's Boon is its catalog item's boon × qty, × ${CONFIG.BOON_QUALITY.slice(1).join('/')} for a minted item of quality 1/2/3/4;
 at most ${CONFIG.SCENE_CAPS.minted} minted items (rewards whose item is an object) per scene. A minted item's quality is at most
 ${Object.entries(CONFIG.GAIN_MAX_QUALITY).map(([g, q]) => `${q} for ${g} gain`).join(', ')}; a minted weapon's boosts is "hitAdj" or "damageAdj".
 A reward that breaks these rules is not refused: code drops it or places it as its plain base item.

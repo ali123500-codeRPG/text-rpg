@@ -72,6 +72,10 @@ const DEFAULTS = {
   },
   STALL_TURNS: 8, // placeholder (Ali, 07/11/2026, P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10, // placeholder (Ali, 07/11/2026, loot L3)
+  // Boon (loot V8, Ali 07/11/2026): a reward's worth to the player. Placeholders, tune after playtests (V8c).
+  BOON_COIN: 20, // coin value per Boon, unless the item sets its own boon
+  BOON_QUALITY: [1, 2, 3, 5, 8], // multiplier by minted quality (index 0 = not minted)
+  BOON_BUDGET: { none: 0, minor: 2, moderate: 5, major: 10, extreme: 20 } as Record<string, number>, // per plan, by gain
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)
@@ -82,7 +86,7 @@ const DEFAULTS = {
   WEAVER_TIMEOUT_MS: 120_000, // Q2
   MAX_ROUTE_ZONES: 4, // Q2
   MAX_STAGE_ZONES: 12, // Q2
-  PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, rewards: 4, knows: 5 }, // Q2
+  PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, knows: 5 }, // Q2
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
   SCENE_CAPS: { promotions: 3, minted: 2 }, // Q2

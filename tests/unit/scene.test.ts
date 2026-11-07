@@ -29,7 +29,7 @@ import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
 import { updateBeliefs } from '../../src/perception';
 import {
-  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, SceneDirector, tidyRewards, trimStage, validateStagePlan, type PlanContext,
+  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, SceneDirector, boon, tidyRewards, trimStage, validateStagePlan, type PlanContext,
 } from '../../src/scene';
 import { toStoryStart, villageStagePlan, VirtualClock, FITTING_GRADES } from '../../src/scene/fixtures';
 
@@ -166,10 +166,22 @@ describe('validateStagePlan', () => {
     expect(t).toHaveLength(n + 1);
     expect(t[n].item).toMatchObject({ base: 'arming_sword', quality: 2, boosts: 'hitAdj' });
     const q = villageStagePlan();
+    q.rewards = []; // 2 + 2 + plain 1 = 5 Boon, the moderate budget
     for (let i = 0; i < 3; i++) q.rewards.push({ item: { base: 'arming_sword', quality: 1, boosts: 'damageAdj', name: 'a sword', look: 'plain' }, place: { carriedBy: 'guard_1' } });
     expect(codes(fresh(), q)).toEqual(['reward_plain']);
-    for (let i = 0; i < CONFIG.PLAN_CAPS.rewards; i++) q.rewards.push({ item: 'coin', place: { carriedBy: 'guard_1' } });
-    expect(tidyRewards(fresh(), q).rewards).toHaveLength(CONFIG.PLAN_CAPS.rewards);
+  });
+  it('rewards fit the Boon budget of the gain, with no flat cap (loot V8)', () => {
+    const q = villageStagePlan(); // moderate gain: 5 Boon
+    q.rewards = [];
+    for (let i = 0; i < 6; i++) q.rewards.push({ item: 'arming_sword', place: { carriedBy: 'guard_1' } }); // 20 coin = 1 Boon each
+    expect(boon(fresh(), 'arming_sword')).toBe(1);
+    expect(boon(fresh(), { base: 'arming_sword', quality: 2, boosts: 'hitAdj', name: 'x', look: 'y' })).toBe(3);
+    expect(boon(fresh(), 'coin', 10)).toBe(0.5);
+    const t = tidyRewards(fresh(), q);
+    expect(t.rewards).toHaveLength(5);
+    expect(t.notes.map((n) => n.code)).toEqual(['reward_dropped']);
+    q.rewards = [{ item: 'coin', qty: 200, place: { carriedBy: 'guard_1' } }, { item: 'coin', qty: 100, place: { carriedBy: 'guard_1' } }];
+    expect(tidyRewards(fresh(), q).rewards).toHaveLength(1); // 10 Boon is over 5, 5 fits
   });
   it('routine errors are routineOnly and name the cast entry', () => {
     const p = villageStagePlan();
