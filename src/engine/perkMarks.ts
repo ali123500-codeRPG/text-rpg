@@ -1,0 +1,63 @@
+// Perks that leave a short-lived mark (Ali, 07/11/2026; rules in src/library/perks.ts). attack() reads marks without
+// changing state; this module makes and clears them after each attack, and clears them when they run out.
+//   Turn the Blade (A2): a clean block (gap +2 or better) with a melee weapon opens the attacker to the owner's next melee attack.
+//   Hunter's Mark (A5): a ranged hit marks the target for the owner's next ranged attack.
+//   Make Them Stumble (A10): a clean dodge of a melee attack makes the attacker's next defense one tier worse.
+// The two openings last until used or the owner's engagement ends; the stumble until the end of the attacker's next turn.
+import type { Actor, AttackResult, GameState } from '../types';
+import { itemDef } from '../library';
+import { hasPerk } from '../ruleset/perks';
+import { blockItem, effectiveSkill } from '../ruleset/gear';
+import { allActors, isActive, stance } from './relations';
+
+const HITS = new Set(['grazed', 'blocked', 'full_hit', 'heavy_hit', 'crushing_hit']);
+export const MARK_SOURCE: Record<string, string> = { turn_the_blade: 'Turn the Blade', hunters_mark: 'Hunter’s Mark', make_them_stumble: 'Make Them Stumble' };
+
+const drop = (a: Actor, f: (m: NonNullable<Actor['perkMarks']>[number]) => boolean) => {
+  if (!a.perkMarks) return;
+  a.perkMarks = a.perkMarks.filter((m) => !f(m));
+  if (!a.perkMarks.length) delete a.perkMarks;
+};
+const add = (a: Actor, m: NonNullable<Actor['perkMarks']>[number]) => {
+  drop(a, (x) => x.perk === m.perk && x.target === m.target);
+  (a.perkMarks ??= []).push(m);
+};
+
+/** attack shifts from marks (read only): the attacker's opening on the target, the defender's stumble */
+export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean) {
+  const has = (a: Actor, perk: string, target?: string) => !!a.perkMarks?.some((m) => m.perk === perk && m.target === target && (m.until === undefined || m.until >= state.turn));
+  const open = ranged ? 'hunters_mark' : 'turn_the_blade';
+  return {
+    attack: has(A, open, D.id) ? [{ source: MARK_SOURCE[open], value: 1 }] : [],
+    defense: has(D, 'make_them_stumble') ? [{ source: MARK_SOURCE.make_them_stumble, value: -1 }] : [],
+  };
+}
+
+/** after an attack resolves: spend the marks it used, then make the ones it earned */
+export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResult, ranged: boolean): void {
+  const used = (src: string, shifts?: { source: string }[]) => !!shifts?.some((x) => x.source === src);
+  for (const perk of ['turn_the_blade', 'hunters_mark']) if (used(MARK_SOURCE[perk], r.attack.tierShifts)) drop(A, (m) => m.perk === perk && m.target === D.id);
+  if (used(MARK_SOURCE.make_them_stumble, r.defense?.tierShifts)) drop(D, (m) => m.perk === 'make_them_stumble');
+  const clean = r.gap !== null && r.gap >= 2;
+  if (!ranged && clean && r.defenseType === 'block' && hasPerk(D, 'turn_the_blade')) {
+    const blocker = blockItem(state, D); // what the block was made with
+    if (blocker && !itemDef(state, blocker.itemId).shield) add(D, { perk: 'turn_the_blade', target: A.id });
+  }
+  if (ranged && HITS.has(r.outcome) && hasPerk(A, 'hunters_mark')) add(A, { perk: 'hunters_mark', target: D.id });
+  if (!ranged && clean && r.defenseType === 'dodge' && hasPerk(D, 'make_them_stumble')) add(A, { perk: 'make_them_stumble', until: state.turn + 1 });
+}
+
+/** each turn: stumbles run out; an actor whose engagement ended loses its openings */
+export function expireMarks(state: GameState, a: Actor): void {
+  drop(a, (m) => (m.until !== undefined && m.until < state.turn) || (!a.engagement && (m.perk === 'turn_the_blade' || m.perk === 'hunters_mark')));
+}
+
+/** Cover Ally (A11): an actor in the target's zone, friendly to it, with the perk switched on, standing on block and able
+ * to block, whose block beats the target's own standing defense, takes a ranged attack in the target's place. */
+export function coverFor(state: GameState, target: Actor): Actor | undefined {
+  const own = (a: Actor) => effectiveSkill(state, a, a.core.standingDefense, a.core.standingDefense === 'block' ? { itemId: blockItem(state, a)?.id } : {}).value;
+  const mine = own(target);
+  return allActors(state).filter((c) => c !== target && c.zone === target.zone && isActive(c) && hasPerk(c, 'cover_ally') && !c.core.perksOff?.includes('cover_ally')
+    && stance(state, c, target) === 'friendly' && c.core.standingDefense === 'block' && !!blockItem(state, c) && own(c) > mine)
+    .sort((x, y) => own(y) - own(x) || (x.id < y.id ? -1 : 1))[0];
+}

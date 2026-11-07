@@ -8,15 +8,20 @@ import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
-import { actorById, allActors, atLeast, bandById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, isActive, hostile, shortestPath, wary, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { healthLevel, partStates, tierName } from '../ruleset';
+import { hasPerk, healthLevel, partStates, tierName } from '../ruleset';
 import { isComm } from '../perception';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
-const VISIBLE_HEALTH: HealthLevel[] = ['Wounded', 'Mauled', 'Critical', 'Incapacitated'];
 const VISIBLE_PART = ['Crippled', 'Destroyed'];
+/** others' health shows from CONFIG.HEALTH_SHOWN_FROM down (Voyage C2); Read Wounds (A13) shows it one step earlier on
+ * the health track, by position, against a foe (an actor either side is opposed or hostile to) */
+const LEVEL_POS = (l: string) => CONFIG.HEALTH_TRACK.findIndex(([x]) => x === l);
+const foe = (state: GameState, a: Actor, b: Actor) => wary(state, a, b) || wary(state, b, a);
+const reads = (state: GameState, viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && hasPerk(viewer, 'read_wounds') && foe(state, viewer, other);
+const healthShows = (level: string, sharp: boolean) => LEVEL_POS(level) >= LEVEL_POS(CONFIG.HEALTH_SHOWN_FROM) - (sharp ? 1 : 0);
 
 // ---------- shared helpers ----------
 const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneById(state, id)).filter((z): z is Zone => !!z);
@@ -111,12 +116,14 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const parts = partStates(state, a);
     const crippled = parts.filter((p) => p.state === 'Crippled').map((p) => p.id);
     const destroyed = parts.filter((p) => p.state === 'Destroyed').map((p) => p.id);
+    const damaged = parts.filter((p) => p.state === 'Damaged').map((p) => p.id);
     const look = lookOf(events, viewer.id, a.id);
     out.push({
-      id: a.id, label: a.label, ...(name ? { name } : {}), zone: a.zone, level,
+      id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(look ? { activityLook: look } : {}),
-      ...(VISIBLE_HEALTH.includes(h) ? { health: h } : {}),
+      ...(healthShows(h, reads(state, viewer, a)) ? { health: h } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
+      ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
     });
   }
@@ -147,8 +154,9 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     const own = f.actorId === viewerId;
     const to = String(f.data.to ?? '');
     const who = callName(state, viewerId, f.actorId);
-    if (f.kind === 'threshold_crossed' && (own || VISIBLE_HEALTH.includes(to as HealthLevel))) out.push(`${who} is ${to}`);
-    if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
+    const sharp = reads(state, actorById(state, viewerId), actorById(state, f.actorId));
+    if (f.kind === 'threshold_crossed' && (own || healthShows(to, sharp))) out.push(`${who} is ${to}`);
+    if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
 }
@@ -288,6 +296,18 @@ export function buildDialogueView(state: GameState, actorId: string, input: Dial
 }
 
 // ---------- NarrationView ----------
+/**
+ * What the player calls an event's target. Run 15: a zone target ("observe the cellar") came out as "someone", and the
+ * Narrator invented a person. Actors only when the player perceives them fully; zones and items by name; else nothing.
+ */
+function eventTarget(state: GameState, me: string, target: string, seenIds: Set<string>): string | undefined {
+  if (target === me) return 'player';
+  if (actorById(state, target)) return seenIds.has(target) ? callName(state, me, target) : undefined;
+  const z = zoneById(state, target);
+  if (z) return z.name;
+  return itemName(state, target);
+}
+
 function itemName(state: GameState, instanceId: string): string | undefined {
   for (const a of allActors(state)) {
     const i = a.core.inventory.find((x) => x.id === instanceId);
@@ -306,6 +326,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   const me = p.id;
   const out: NarrationEvent[] = [];
   const heard: NarrationView['heard'] = [];
+  const seenIds = new Set(seenActors(state, p, events).filter((x) => x.level === 'full').map((x) => x.id));
   for (const e of events) {
     const per = e.perception[me];
     if (!per) continue;
@@ -317,10 +338,12 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;
     const item = full && e.itemId && e.kind !== 'attack' ? itemName(state, e.itemId) : undefined;
+    // a fully seen attack shows both sides; any other target only if the player sees it (run 15)
+    const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds) : undefined;
     out.push({
       id: e.id, kind: e.kind, level: per.level, cue: per.cue,
       ...(full ? { actor: callName(state, me, e.actorId) } : {}),
-      ...(full && e.target ? { target: callName(state, me, e.target) } : {}),
+      ...(target ? { target } : {}),
       where: full ? zoneById(state, e.zone)?.name : whereLabel(state, p.zone, e.zone),
       ...(hears ? { line: { text: e.line!.text, volume: e.line!.volume, ...(speaker ? { speaker } : {}) } } : {}),
       ...(look ? { activityLook: look } : {}),
@@ -339,7 +362,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '' },
     surroundings: perceivedZones(state, p.zone),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
   };

@@ -145,7 +145,7 @@ const weaver = obj<StagePlan>({
     relations: (v, p, e) => (v === undefined || v === null ? {} : record(STANCE_WORD)(v, p, e)),
   })),
   cast: arr(obj<Cast>({
-    template: str, actor: str, label: str, name: str, appearance: str,
+    template: str, actor: str, label: str, name: str, appearance: str, pronouns: oneOf(['he', 'she', 'they', 'it'] as const),
     knownOnSight: bool, knows: arr(obj<{ id: string; text: string }>({ id: str, text: str })),
     key: str, band: str, routineSetId: str,
     slots: record<string | string[]>((v, p, e) => (Array.isArray(v) ? arr(str)(v, p, e) : str(v, p, e))),
@@ -153,7 +153,7 @@ const weaver = obj<StagePlan>({
     awarenessOfBands: arr(obj<{ band: string; awareness: 'unaware' | 'suspicious' | 'aware' }>({ band: str, awareness: AWARENESS })),
     overrides: arr(obj<{ actor: string; stance: Stance }>({ actor: str, stance: STANCE_WORD })),
     motive: str,
-  }, ['template', 'actor', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides'])),
+  }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
     item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: 1 | 2 | 3 | 4; boosts: string; name: string; look: string }>(

@@ -884,6 +884,7 @@ Rules:
 6. List in "narrated" the id of every event your text describes.
 7. Keep to the length given in STYLE. End on a moment that invites the player's next move. Do not list options.
 8. Never write the player character's words or decisions beyond the resolved action.
+9. Refer to each person with the pronouns given for them in actors. If none are given, use "they".
 
 Return only JSON matching the schema.
 ```
@@ -953,7 +954,7 @@ Per turn:
 
 Code picks the mode each turn; agents run only when someone needs a mind. Ordinary and guarded dialogue now share one pipeline, so the mode no longer shows whether an NPC has a secret.
 
-**Engagement** (Ali, 07/11/2026, E1). An engagement is one fight from an actor's point of view. It starts when any actor becomes engaged with that actor (active, hostile to it, and believing in it at suspicious or higher). It ends once no actor has been engaged with it for ENGAGEMENT\_END\_TURNS turns in a row (config, 2). A scene can hold several engagements. Effects that work once per engagement reset when a new one starts, and other rules may count engagements too. Code keeps the current engagement's start turn per actor.
+**Engagement** (Ali, 07/11/2026, E1). An engagement is one encounter from an actor's point of view: a fight, a negotiation, or both. It starts when any actor becomes engaged with that actor, either in a fight (active, hostile to it, and believing in it at suspicious or higher) or in talk (the two speak to each other in a dialogue exchange). It ends once no actor has been engaged with it, in either way, for ENGAGEMENT\_END\_TURNS turns in a row (config, 2). A negotiation that turns into a fight, or a fight that turns into talk, stays one engagement (Ali, 07/11/2026): once-per-engagement effects and the improvement rolls at its end happen once. A scene can hold several engagements. Effects that work once per engagement reset when a new one starts, and other rules may count engagements too. Code keeps the current engagement's start turn per actor, and which kinds it has held so far (talk, fight).
 
 | Mode | When code enters it | Pipeline | Claude calls per turn |
 | --- | --- | --- | --- |
@@ -1060,7 +1061,7 @@ Output shape (notation, not literal JSON):
                    relations: { [bandKey | bandId]: hostile | opposed | neutral | friendly } } ],
                                     // new bands only; may also set relations toward existing bands
   cast:        [ { template: templateId | actor: actorId,
-                   label: public text, name, appearance: public text,
+                   label: public text, name, appearance: public text, pronouns: he | she | they | it,   // public; stored on the actor and shown to every agent that sees them (run 14 Q3)
                    knownOnSight?: true, knows?: [ { id, text: public text } ],   // facts this actor may share (Agent Voice); capped
                     key, band: bandKey | bandId, routineSetId,
                    slots: { <slot>: zoneKey | zoneId | [zoneKey | zoneId, ...] },   // every slot the set lists

@@ -68,6 +68,9 @@ function effectView(p: Actor) {
   }));
 }
 
+/** perks the owner can switch on and off */
+const SWITCHABLE = new Set(['cover_ally']);
+
 function card(s: GameState, p: Actor, api: GameApi) {
   if (!ui.sel) return null;
   const { skill, milestone } = ui.sel;
@@ -80,6 +83,10 @@ function card(s: GameState, p: Actor, api: GameApi) {
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
     st === 'open' && d?.built === false ? h('p', { class: 'tiny' }, 'Not in the game yet.') : null,
     st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? 'No perk point' : 'Take · 1 point') : null,
+    // A11 (Ali, 07/11/2026): a perk the owner can switch off, on by default
+    st === 'own' && d && SWITCHABLE.has(d.id) ? h('button', { type: 'button', class: 'hs-btn-text', 'aria-pressed': String(!p.core.perksOff?.includes(d.id)),
+      onclick: () => { const off = new Set(p.core.perksOff ?? []); if (off.has(d.id)) off.delete(d.id); else off.add(d.id); p.core.perksOff = [...off]; redraw(); } },
+      p.core.perksOff?.includes(d.id) ? 'Off · switch on' : 'On · switch off') : null,
     st === 'own' && d && canUndo(s, p, d.id) ? h('button', { type: 'button', class: 'hs-btn-text', onclick: () => api.undoPerk(d.id) }, 'Undo') : null,
     st === 'open' && pts > 0 ? h('p', { class: 'tiny' }, 'You can undo until you play the next turn.') : null);
 }
@@ -87,7 +94,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
 function writeup(d: PerkDef) {
   const r = d.rules;
   if (ui.text === 'rules' && r) {
-    const rows: [string, string][] = [['Kind', r.kind], ['Trigger', r.trigger], ...(r.conditions.length ? [['Conditions', r.conditions.join(' ')] as [string, string]] : []), ['Effect', r.effect], ['Lasts', r.lasts]];
+    const rows: [string, string][] = [['Kind', r.kind], ['Trigger', r.trigger], ...(r.conditions.length ? [['Conditions', r.conditions.join(' ')] as [string, string]] : []), ['Effect', r.effect], ['Lasts', r.lasts], ...(r.cooldown ? [['Cooldown', r.cooldown] as [string, string]] : [])];
     return [h('dl', { class: 'pk-rules' }, rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)]))];
   }
   const t = d.story ?? d.text;

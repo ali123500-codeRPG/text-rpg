@@ -399,3 +399,28 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
   .pk-lad { display: none; } .pk-trk { display: grid; }
   .pk-card { position: static; width: auto; margin-top: var(--space-3); }
 }
+
+/* Healing (Ali, 07/11/2026): H1 d card, H2 a healed part glow, H3 b quick slot. Level colours go by position on the
+   health track (lv0 Unhurt … lv7 Incapacitated); part states ps0 Healthy … ps3 Destroyed. */
+.hcard { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 10px 12px; border: 1px solid color-mix(in oklch, var(--ok) 55%, transparent); border-radius: var(--r-lg);
+  background: linear-gradient(90deg, color-mix(in oklch, var(--ok) 16%, transparent), color-mix(in oklch, var(--ok) 4%, transparent)); color: #c9f3d6; font-weight: 600; }
+.hcard .x { font-size: 18px; color: var(--ok); }
+.hcard .hl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 4px 0 0; font-size: 13px; }
+.hcard .src { color: var(--text); }
+.hcard .ar { color: var(--faint); }
+.hcard .pt { color: var(--faint); font-weight: 500; margin-left: 4px; }
+.htag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; line-height: 18px; border: 1px solid; --c: var(--faint); color: var(--c);
+  border-color: color-mix(in oklch, var(--c) 60%, transparent); background: color-mix(in oklch, var(--c) 12%, transparent); }
+.lv0, .ps0 { --c: #7fe3a2; } .lv1 { --c: #e6d36e; } .lv2, .ps1 { --c: #ffc46b; } .lv3 { --c: #ffa25c; }
+.lv4 { --c: #ff8a5c; } .lv5, .ps2 { --c: #ff6b6b; } .lv6 { --c: #e0475e; } .lv7, .ps3 { --c: #8e97b8; }
+.hseg { display: inline-flex; gap: 3px; margin-left: auto; flex: none; }
+.hseg i { width: 14px; height: 8px; border-radius: 2px; background: var(--border); }
+.hseg i[class^="lv"] { background: var(--c); }
+.hseg i.new { box-shadow: 0 0 0 1.5px #fff8, 0 0 10px var(--c); }
+.hseg i.lost { background: transparent; outline: 1px dashed color-mix(in oklch, var(--warn) 60%, transparent); outline-offset: -1px; }
+@media (max-width: 560px) { .hcard { flex-wrap: wrap; } .hseg { margin-left: 30px; } }
+.bf-svg path.bf-healed { stroke: #9ff0bd; stroke-width: 2.5; filter: drop-shadow(0 0 5px #5fd38a); fill-opacity: 1; }
+.inbar button.itm { display: inline-flex; align-items: center; gap: 5px; padding-left: 10px; padding-right: 12px; }
+.inbar button.itm[hidden] { display: none; }
+.hico svg { width: 20px; height: 20px; display: block; }
+.itm b { font-weight: 600; color: #cfd8f5; }

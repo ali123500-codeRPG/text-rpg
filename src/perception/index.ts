@@ -5,6 +5,7 @@ import { CONFIG } from '../config';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
+import { hasPerk } from '../ruleset/perks';
 
 export type BeliefUpdate =
   | { kind: 'event'; event: GameEvent; result?: CheckResult | ContestResult | AttackResult }
@@ -52,7 +53,8 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     const d = dist(state, observer.zone, event.zone, true);
     if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
   }
-  const nl = soundReach(event.noise, dist(state, observer.zone, event.zone, false));
+  // A14 Keen Ear: a sound reaches the owner one zone link further
+  const nl = soundReach(event.noise + (event.noise > 0 && hasPerk(observer, 'keen_ear') ? 1 : 0), dist(state, observer.zone, event.zone, false));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.

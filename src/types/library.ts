@@ -71,7 +71,7 @@ export type PerkDef = {
   /** false: written down but not coded yet, so it can't be taken */
   built?: boolean;
 };
-export type PerkRules = { kind: string; trigger: string; conditions: string[]; effect: string; lasts: string; needs?: string; open?: string };
+export type PerkRules = { kind: string; trigger: string; conditions: string[]; effect: string; lasts: string; cooldown?: string; needs?: string; open?: string };
 /** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | 'higher' | 'very_high' | 'banked'; story: string; rules: PerkRules };
 

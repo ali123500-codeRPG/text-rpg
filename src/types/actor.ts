@@ -2,6 +2,9 @@
 import type { ActorId, Belief, Fact, FactId, LibraryRef, PlaceId, SlotKey, StoryId, Turn, Stance } from './core';
 import type { ItemInstance } from './items';
 
+export const PRONOUNS = ['he', 'she', 'they', 'it'] as const;
+export type Pronouns = (typeof PRONOUNS)[number];
+
 export type NameHistory = { current: string; past: { name: string; untilTurn: Turn }[] };
 
 export type Actor = {
@@ -11,6 +14,7 @@ export type Actor = {
   names: NameHistory;
   label: string; // public stranger label
   appearance?: string; // public text from the stage plan (W6)
+  pronouns?: Pronouns; // public, from the stage plan (run 14 Q3: agents keep each NPC's pronouns)
   knownOnSight?: boolean;
   placeId: PlaceId; // always the place of `zone`
   zone: string;
@@ -20,7 +24,17 @@ export type Actor = {
   progression?: Progression;
   mind?: Mind;
   journal?: Journal;
+  engagement?: Engagement; // E1: the actor's current engagement; absent when it is in none
+  perkMarks?: PerkMark[]; // short-lived perk effects this actor carries (src/engine/perkMarks.ts)
 };
+
+/** a perk's lasting effect: target is the actor it names (an opening on that foe); until is the last turn it holds */
+export type PerkMark = { perk: string; target?: string; until?: number };
+
+/** E1 (Ali, 07/11/2026): one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
+ * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
+export type EngagementKind = 'talk' | 'fight';
+export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number> };
 
 export type SkillState = 'tagged' | 'normal' | 'flawed';
 export type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };
@@ -36,6 +50,7 @@ export type Core = {
   condition: SavedCondition;
   inventory: ItemInstance[];
   standingDefense: 'dodge' | 'block';
+  perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
 };
 
 export type ClassEntry = {
@@ -73,6 +88,7 @@ export type Progression = {
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn }[];
   defeats?: Record<string, number>; // defeat counts: 'all', 'creature:<type>', 'race:<race>'
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
+  quickHeal?: LibraryRef; // H3 (Ali, 07/11/2026): the healing item (item def id) the quick slot shows; absent = the strongest
 };
 
 export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } };

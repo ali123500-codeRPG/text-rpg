@@ -116,11 +116,28 @@ describe('NPC views', () => {
 });
 
 describe('NarrationView and the packet', () => {
+  it('an observe aimed at a zone names the zone, never "someone"; an unseen actor target is left out (run 15)', () => {
+    const s = makeVillage();
+    run(s, ev({ actorId: 'player', kind: 'observe', zone: s.player.zone, target: s.player.zone }));
+    const zoneName = s.zones.find((z) => z.id === s.player.zone)!.name;
+    expect(buildNarrationView(s, s.events, null).events[0].target).toBe(zoneName);
+    const hidden = s.actors.find((a) => a.id !== 'player' && a.zone !== s.player.zone)!;
+    run(s, ev({ actorId: 'player', kind: 'observe', zone: s.player.zone, target: hidden.id }));
+    expect(buildNarrationView(s, s.events, null).events.at(-1)!.target).toBeUndefined();
+  });
   it('partial events carry no actor, only the link label and cue', () => {
     const s = makeVillage({ playerZone: 'street_door' });
     run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 2 }));
     const v = buildNarrationView(s, s.events, null);
     expect(v.events).toEqual([{ id: s.events[0].id, kind: 'move', level: 'partial', cue: 'sound', where: 'inside the tavern' }]);
+  });
+  it('an NPC\'s stored pronouns reach the Narrator and the Parser (run 14 Q3)', () => {
+    const s = makeVillage();
+    place(s, 'trader', 'tav_common');
+    s.actors.find((a) => a.id === 'trader')!.pronouns = 'she';
+    const trader = s.actors.find((x) => x.id === 'trader')!;
+    expect(buildNarrationView(s, s.events, null).actors.find((a) => a.label === trader.label)?.pronouns).toBe('she');
+    expect(buildPlayerView(s).actors.find((a) => a.id === 'trader')?.pronouns).toBe('she');
   });
   it("hides others' minor condition changes, shows the player's own", () => {
     const s = makeVillage();

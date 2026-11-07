@@ -1,11 +1,13 @@
 // Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group),
 // figures that can't be filtered in a text line under them, then the grouped table.
+import { PART_STATES } from '../scales';
 import type { Actor, GameApi, GameState } from '../types';
 import { itemDef } from '../library';
 import { buildPlayerView, factText } from '../views';
 import { groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
 import { perksSection, refreshPerks } from './perks';
+import { healItems, quickHeal } from './healing';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -100,6 +102,21 @@ export function inventoryPage(api: GameApi) {
       if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
       if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
       for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : e.skill) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
+      const heal = healItems(s, s.player).find((x) => x.itemId === it!.itemId);
+      if (heal) {
+        const r = heal.row;
+        rows.push({ k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}${r.inFight ? ', works in a fight' : ', not in a fight'}` });
+        // H3 b (Ali, 07/11/2026): the player picks which healing item the quick slot beside Aim shows
+        const btn = h('button', { type: 'button', class: 'hs-btn-text', style: 'min-height:0;padding:0' });
+        const draw = () => {
+          const on = quickHeal(s, s.player)?.itemId === heal.itemId;
+          btn.textContent = on ? 'Shown in the quick slot' : 'Show in the quick slot';
+          btn.disabled = on;
+        };
+        btn.onclick = () => { if (s.player.progression) { s.player.progression.quickHeal = heal.itemId; draw(); } };
+        draw();
+        rows.push({ k: 'Quick slot', v: btn });
+      }
       rows.push({ k: 'Bulk', v: String(d.bulk) });
       return rows;
     },

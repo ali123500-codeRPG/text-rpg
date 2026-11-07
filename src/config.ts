@@ -5,6 +5,11 @@
 const DEFAULTS = {
   // ---- Part 1 ----
   SUBSTITUTE_EFFICIENCY: 0.5,
+  /** Per-check substitutes (Ali, 07/11/2026): a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
+   * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
+  SUBSTITUTES: {
+    unarmed_grapple: [{ fn: 'unarmed_attack', k: 0.4 }, { fn: 'melee_attack', k: 0.2 }],
+  } as Record<string, { fn: string; k: number }[]>,
   SITUATION_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
@@ -21,6 +26,7 @@ const DEFAULTS = {
   // ---- Part 3 ----
   HP_BASE: 50,
   HP_PER_END: 1,
+  HEALTH_SHOWN_FROM: 'Wounded', // others' health level shows from this level down (Voyage C2)
   HEALTH_TRACK: [
     // [level, max % lost, wounds modifier]
     ['Unhurt', 0, 0], ['Bruised', 15, 0], ['Hurt', 30, -5], ['Injured', 45, -10],

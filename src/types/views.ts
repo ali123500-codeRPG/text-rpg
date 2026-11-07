@@ -36,10 +36,11 @@ export type EventView = {
 };
 
 export type SeenActor = {
-  id: ActorId; label: string; name?: string; zone: string;
+  id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
   health?: HealthLevel; // others: only from Wounded down
   crippled?: string[]; destroyed?: string[];
+  damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
   gear: SeenGearView[];
 };
 
@@ -145,7 +146,7 @@ export type NarrationView = {
   player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string };
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
+  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)

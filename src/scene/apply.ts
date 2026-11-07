@@ -192,6 +192,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     }
     a.bandId = bandRef(c.band);
     a.appearance = c.appearance;
+    if (c.pronouns) a.pronouns = c.pronouns;
     if (c.knownOnSight) a.knownOnSight = true;
     a.mind!.knows = (c.knows ?? []).map((f) => ({ id: f.id, text: f.text }));
     moveTo(state, a, startZone);

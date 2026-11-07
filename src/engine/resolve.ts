@@ -7,6 +7,8 @@ import { defaultMode, healthLevel, improveMarked, markEndurance, moraleCheck, pa
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
+import { updateEngagements } from './engagement';
+import { afterAttack, coverFor, expireMarks } from './perkMarks';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -194,7 +196,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
 
 function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
-  const t = o.target ? actorById(state, o.target) : undefined;
+  let t = o.target ? actorById(state, o.target) : undefined;
   const wasted = () => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
   if (!t || t === a || !isActive(t)) return wasted();
   const dist = shortestPath(state, a.zone, t.zone, true)?.length ?? Infinity;
@@ -209,6 +211,14 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
     surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised;
     if (surprised) ctx.surprised.add(t.id);
   }
+  // A11 Cover Ally: a friend in the zone steps into the path of a ranged attack and defends in the target's place
+  const cover = m.mode.tree === 'ranged' ? coverFor(state, t) : undefined;
+  if (cover) {
+    ev.effects.push({ kind: 'covered', actorId: cover.id, data: { ally: t.id } });
+    ev.target = cover.id;
+    t = cover;
+    surprised = false;
+  }
   const before = { level: healthLevel(t), parts: partStates(state, t), lost: t.core.condition.hpLostPct };
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
@@ -216,7 +226,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
     state, rng,
   );
   if (res.defense) ctx.defenses.set(t.id, (ctx.defenses.get(t.id) ?? 0) + 1);
-  ev.effects = ruleset.applyEffects(res, state);
+  ev.effects = [...ev.effects, ...ruleset.applyEffects(res, state)];
+  afterAttack(state, a, t, res, m.mode.tree === 'ranged'); // perk marks (A2, A5, A10)
   ruleset.recordUse(a, res.attack.skill, res, state);
   markEndurance(state, t, t.core.condition.hpLostPct - before.lost);
   ev.tier = res.attack.tier;
@@ -448,8 +459,9 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
-  // SP3: marked skills roll when an engagement ends, or when the scene breaks
-  if ((state.mode === 'tactical' && !allActors(state).some((x) => isEngaged(state, x))) || state.stage.breakCause) improveMarked(state, rng);
+  // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
+  if (updateEngagements(state, ctx.events) || state.stage.breakCause) improveMarked(state, rng);
+  for (const x of allActors(state)) expireMarks(state, x);
   state.events.push(...ctx.events);
   return ctx.events;
 }
