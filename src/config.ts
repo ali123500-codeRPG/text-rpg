@@ -45,6 +45,7 @@ const DEFAULTS = {
   WEAPON_CLASSES: {
     light: { damage: 20, hit: 10 }, medium: { damage: 25, hit: 0 }, heavy: { damage: 30, hit: -10 },
     punch: { damage: 15, hit: 10 }, slam: { damage: 20, hit: 10 },
+    grapple: { damage: 5, hit: 0 }, // grab and wrench (placeholder, 07/11/2026): anyone can grapple; Hold (A8) locks on
   } as Record<string, { damage: number; hit: number }>,
   UNARMED_PROFILE: { damage: 15, hit: 10 },
   HEAVY_VS_BLOCK_GAP: -1,

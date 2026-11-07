@@ -3,12 +3,13 @@ import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEv
 import { CONFIG } from '../config';
 import { activity, getLibrary, itemDef } from '../library';
 import { applyHealing, passiveHealing } from './heal';
-import { defaultMode, healthLevel, improveMarked, markEndurance, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
 import { updateEngagements } from './engagement';
 import { afterAttack, coverFor, expireMarks } from './perkMarks';
+import { applyHold, breakFree, releaseHolds } from './held';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -147,6 +148,12 @@ function bark(ev: GameEvent, o: Order): GameEvent {
 function doMove(ctx: Ctx, a: Actor, to: string, o: Order, withBark: boolean): boolean {
   const { state } = ctx;
   if (to === a.zone) return false;
+  // A8 Hold: a held actor's move is its try to break free; it stays in the zone either way
+  const bf = a.heldBy ? breakFree(state, a, ctx.rng) : null;
+  if (bf) {
+    emit(ctx, mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect] }));
+    return true;
+  }
   const link = zoneById(state, a.zone)?.links.find((l) => l.to === to);
   if (link?.frontier) {
     if (a.kind !== 'player') return false; // [Proposed] NPC orders into frontiers are dropped
@@ -201,7 +208,9 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   if (!t || t === a || !isActive(t)) return wasted();
   const dist = shortestPath(state, a.zone, t.zone, true)?.length ?? Infinity;
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
-  const m = named ?? defaultMode(state, a, dist);
+  // a named skill picks the mode that uses it ("I grab him" names unarmed_grapple, not the sword in hand)
+  const bySkill = !named && o.skill ? usableModes(state, a).find((x) => modeSkill(x.mode) === o.skill && x.mode.reach >= dist) : undefined;
+  const m = named ?? bySkill ?? defaultMode(state, a, dist);
   // target moved first: resolves only within the mode's reach (links with sight); else a wasted action
   if (!m || dist > m.mode.reach) return wasted();
   const ev = bark(mk(ctx, a, 'attack', { target: t.id, itemId: m.itemId }), o);
@@ -228,6 +237,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   if (res.defense) ctx.defenses.set(t.id, (ctx.defenses.get(t.id) ?? 0) + 1);
   ev.effects = [...ev.effects, ...ruleset.applyEffects(res, state)];
   afterAttack(state, a, t, res, m.mode.tree === 'ranged'); // perk marks (A2, A5, A10)
+  const hold = applyHold(a, t, res, modeSkill(m.mode)); // A8 Hold
+  if (hold) ev.effects.push(hold);
   ruleset.recordUse(a, res.attack.skill, res, state);
   markEndurance(state, t, t.core.condition.hpLostPct - before.lost);
   ev.tier = res.attack.tier;
@@ -471,6 +482,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
   if (updateEngagements(state, ctx.events) || state.stage.breakCause) improveMarked(state, rng);
   for (const x of allActors(state)) expireMarks(state, x);
+  releaseHolds(state, allActors(state));
   state.events.push(...ctx.events);
   return ctx.events;
 }

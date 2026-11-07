@@ -154,10 +154,10 @@ describe('ruleset methods', () => {
   });
   it('modes: held first, natural after; default by reach', () => {
     const s = makeVillage();
-    expect(usableModes(s, s.player).map((m) => `${m.itemId}/${m.mode.id}`)).toEqual([`${sword}/cut`, 'natural:punch/punch']);
+    expect(usableModes(s, s.player).map((m) => `${m.itemId}/${m.mode.id}`)).toEqual([`${sword}/cut`, 'natural:punch/punch', 'natural:grapple/grapple']);
     expect(defaultMode(s, s.player, 0)!.mode.id).toBe('cut');
     expect(defaultMode(s, s.player, 1)).toBeNull();
     s.player.core.condition.parts.right_arm = -10; // Crippled sword arm: no sword attack
-    expect(usableModes(s, s.player).map((m) => m.mode.id)).toEqual(['punch']);
+    expect(usableModes(s, s.player).map((m) => m.mode.id)).toEqual(['punch', 'grapple']);
   });
 });

@@ -4,6 +4,7 @@ import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, trueSkill } from './perks';
+import { heldBy } from '../engine/relations';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
@@ -119,10 +120,11 @@ export const UNARMED_MODE: AttackMode = { id: 'unarmed', tree: 'unarmed', class:
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {
   const grips = usableGrips(state, actor);
+  const maxHands = heldBy(state, actor) ? 1 : grips.length; // A8 Hold: a held actor can't use a two-handed mode
   const out: { itemId: string; mode: AttackMode }[] = [];
   for (const inst of actor.core.inventory) {
     if (!isHeld(inst) || !handsOf(inst).every((h) => grips.includes(h))) continue;
-    for (const mode of itemDef(state, inst.itemId).weapon?.modes ?? []) if (mode.hands <= grips.length) out.push({ itemId: inst.id, mode });
+    for (const mode of itemDef(state, inst.itemId).weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode });
   }
   const ct = creatureType(state, actor.core.creatureTypeId);
   for (const mode of ct.naturalAttacks) {
