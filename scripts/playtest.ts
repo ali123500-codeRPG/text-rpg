@@ -15,7 +15,7 @@ import { CONFIG } from '../src/config';
 import { validateStagePlan } from '../src/scene';
 import { ensurePlace } from '../src/scene/apply';
 import type { GameState, StagePlan } from '../src/types';
-import { MILESTONES, milestonePerk, milestoneState, trueSkill } from '../src/ruleset/perks';
+import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../src/ruleset/perks';
 import type { SceneDirector } from '../src/agents';
 
 // Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scene-start wait is widened here.
@@ -138,9 +138,9 @@ function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
   if (!p?.progression) return;
   for (const x of p.progression.xpLog ?? []) if (x.turn === st!.turn && x.levelUp) progress.push(`turn ${turn}: level up to ${x.levelUp.level} (${x.levelUp.classId})`);
   while (p.progression.unspentPerkPoints > 0) {
-    const open = Object.keys(p.core.skills).flatMap((sk) => MILESTONES.filter((m) => milestoneState(p, sk, m) === 'open').map((m) => ({ id: milestonePerk(sk, m)!.id, sk, m })))
+    const open = Object.keys(p.core.skills).flatMap((sk) => MILESTONES.filter((m) => milestoneState(p, sk, m) === 'open' && !canTake(p, milestonePerk(sk, m)!.id)).map((m) => ({ id: milestonePerk(sk, m)!.id, sk, m })))
       .sort((a, b) => trueSkill(p, b.sk) - trueSkill(p, a.sk) || a.m - b.m);
-    if (!open.length) { progress.push(`turn ${turn}: ${p.progression.unspentPerkPoints} perk point(s) unspent, no open milestone`); break; }
+    if (!open.length) { progress.push(`turn ${turn}: ${p.progression.unspentPerkPoints} perk point(s) unspent, no perk it can take yet`); break; }
     game.takePerk(open[0].id);
     progress.push(`turn ${turn}: took perk ${open[0].id} (${open[0].sk} ${open[0].m})`);
   }
