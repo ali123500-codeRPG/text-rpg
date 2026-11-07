@@ -1,7 +1,7 @@
 // The turn pipeline (Part 2, Architecture: one turn) behind GameApi.
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scene setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
-import type { TierRoll,
+import type { AgentName, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
   GmSnapshot, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PlannerOutput, Rng, TurnRecord, Actor,
 } from '../types';
@@ -76,7 +76,18 @@ export function createGame(deps: GameDeps): Game {
   const subs = new Set<() => void>();
   const emit = () => subs.forEach((cb) => cb());
   let calls = 0; // Claude calls this session, shown on the Play screen
-  const counted: ClaudeClient = { call: (req) => { calls++; return client.call(req); } };
+  // calls in flight, so the Play screen can show that Claude is working and on what
+  const running = new Map<number, { agent: AgentName; since: number }>();
+  let callId = 0;
+  const counted: ClaudeClient = {
+    call: async (req) => {
+      calls++;
+      const id = callId++;
+      running.set(id, { agent: req.agent, since: Date.now() });
+      emit();
+      try { return await client.call(req); } finally { running.delete(id); emit(); }
+    },
+  };
 
   const notice = (n: Notice) => {
     notices = [...notices.filter((x) => x.kind !== n.kind), n];
@@ -459,6 +470,7 @@ export function createGame(deps: GameDeps): Game {
       emit();
     },
     calls: () => calls,
+    working: () => [...running.values()],
     gm: (): GmSnapshot => ({
       state,
       agentLog: lastLog,

@@ -57,5 +57,7 @@ export interface GameApi {
   reset(): Promise<void>; // confirmed by the UI first
   gm(): GmSnapshot;
   calls(): number; // Claude calls made in this session (page load), counted by code
+  /** Claude calls in flight now, oldest first: which agent and since when (Date.now ms) */
+  working(): { agent: import('./agents').AgentName; since: number }[];
   restoreBackup(turn: number): Promise<void>;
 }

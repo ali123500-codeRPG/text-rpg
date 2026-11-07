@@ -87,6 +87,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
     calls: () => n * 3 + 4,
+    working: () => [],
     gm(): GmSnapshot { return { state, agentLog: state?.agentLog ?? [], log: state?.log ?? [], fallbackBanner: !!state?.stage.fallback, backups: state ? [{ turn: 0, path: 'stories/fake/backups/0' }] : [] }; },
     async restoreBackup() { emit(); },
   };

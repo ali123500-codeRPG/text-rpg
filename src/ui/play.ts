@@ -37,6 +37,14 @@ function checkIcon(kind: 'attack' | 'contest'): SVGSVGElement {
 }
 const tierChip = (t: TierRoll) => h('span', { class: 'tier ' + (tierAtLeast(t, 'great_success') ? 'great' : tierAtLeast(t, 'success') ? 'ok' : tierAtLeast(t, 'near_miss') ? 'near' : 'bad') }, tierName(t));
 
+// what each Claude agent is doing, in the player's words (shown while it runs)
+const DOING: Record<string, string> = {
+  weaver: 'setting the scene', parser: 'reading what you typed', planner: 'deciding what the others do',
+  responder: 'working out a reply', voice: 'working out a reply', narrator: 'writing what happens',
+};
+const SLOW_AFTER_S = 90; // past this a running call gets a "taking longer than usual" note
+const secs = (since: number) => Math.max(0, Math.round((Date.now() - since) / 1000));
+
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
@@ -126,12 +134,29 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     ];
   }
 
+  /** the story column's row while the player waits: what Claude is doing and for how long */
+  function workingRow(): HTMLElement {
+    const w = api.working()[0];
+    const doing = w ? `Claude is ${DOING[w.agent] ?? 'working'}` : 'Working on your turn';
+    return h('p', { class: 'working', role: 'status' }, h('span', { class: 'spin', 'aria-hidden': 'true' }), h('span', {}, doing),
+      w ? h('span', { class: 'secs', 'data-since': String(w.since) }, `${secs(w.since)} s`) : null,
+      w ? h('span', { class: 'slow', 'data-slow-since': String(w.since), hidden: secs(w.since) < SLOW_AFTER_S }, 'Taking longer than usual. It is still running; the game waits for it.') : null);
+  }
+  /** header note for calls running while the player is free to act (background Planners and Weaver) */
+  function bgNote(): HTMLElement | null {
+    const n = api.working().length;
+    if (!n || api.busy()) return null;
+    return h('p', { class: 'hs-note bg-run', title: 'Claude is preparing the next turn in the background. You can act now.' },
+      h('span', { class: 'spin sm', 'aria-hidden': 'true' }), `Claude is preparing ${n === 1 ? '1 call' : `${n} calls`} in the background`);
+  }
+
   function update() {
     const s = api.state();
     const pv = s ? safe(() => buildPlayerView(s)) : null;
     title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play'), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
       h('p', { class: 'hs-note calls', title: 'Every request this page sent to Claude since it was opened, counted by code. Repairs and background calls count too.' },
-        `${api.calls()} Claude calls this session`));
+        `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`),
+      bgNote() ?? '');
     // who's here: only actors the character fully perceives (PlayerView); others' health only from Wounded down
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
     who.hidden = !seen.length;
@@ -140,7 +165,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null)));
     const lines = api.lines();
     const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-    log.replaceChildren(...lines.flatMap(lineEl).filter((x): x is HTMLElement => !!x), api.busy() ? h('p', { class: 'wait', 'aria-label': 'Waiting for the story' }, '…') : '');
+    log.replaceChildren(...lines.flatMap(lineEl).filter((x): x is HTMLElement => !!x), api.busy() ? workingRow() : '');
 
     helpPanel.hidden = !open;
     cmdBtn.setAttribute('aria-pressed', String(open === 'commands'));
@@ -199,5 +224,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
   }
   aimBtn.onclick = () => { aimed = !aimed; update(); };
+  // tick the seconds on the working row without rebuilding the page
+  setInterval(() => {
+    for (const e of Array.from(el.querySelectorAll<HTMLElement>('[data-since]'))) e.textContent = `${secs(+e.dataset.since!)} s`;
+    for (const e of Array.from(el.querySelectorAll<HTMLElement>('[data-slow-since]'))) e.hidden = secs(+e.dataset.slowSince!) < SLOW_AFTER_S;
+  }, 1000);
   return { el, update, focus: () => input.focus() };
 }

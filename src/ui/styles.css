@@ -234,7 +234,13 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .ln-clarify { color: var(--warn); }
 .ln-command, .ln-notice { color: var(--muted); font-size: 13px; white-space: pre-wrap; }
 .log p { overflow-wrap: anywhere; }
-.wait { color: var(--muted); font-size: 22px; letter-spacing: .2em; line-height: 1; }
+.working { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); margin: 14px 0; }
+.working .secs { font-variant-numeric: tabular-nums; opacity: .8; }
+.working .slow { flex-basis: 100%; font-size: 13px; padding-left: 28px; }
+.spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .9s linear infinite; flex: none; }
+.spin.sm { width: 11px; height: 11px; border-width: 2px; display: inline-block; vertical-align: -1px; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.bg-run { margin-top: 2px; }
 .mech { border-top: 1px solid var(--border); padding-top: var(--space-3); display: grid; gap: var(--space-2); }
 .mech ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 13px; color: var(--muted); }
 .notices { display: flex; flex-wrap: wrap; gap: var(--space-2); }
