@@ -14,11 +14,11 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Hidden Strike (Light weapons) · A1
 
-*Story:* Strike someone who never sees you coming. Any attack you make on someone who hasn't noticed you, melee, ranged or unarmed, lands one outcome better.
+*Story:* Strike someone who never sees you coming. Any attack you make on someone who hasn't noticed you lands one outcome better.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an attack.
-- **Conditions:** Any attack mode: melee, ranged or unarmed (Ali, 07/11/2026). The target is unaware of the owner when the attack resolves (the same test that starts an ambush).
+- **Conditions:** Any attack (Ali, 07/11/2026). The target is unaware of the owner when the attack resolves (the same test that starts an ambush).
 - **Effect:** Tier shift +1 on the attack roll.
 - **Lasts:** That attack.
 

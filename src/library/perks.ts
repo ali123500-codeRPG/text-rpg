@@ -7,10 +7,10 @@ import type { PerkWriteup } from '../types';
 export const PERK_WRITEUPS: PerkWriteup[] = [
   { id: "hidden_strike", ref: "A1", name: "Hidden Strike", skill: "melee_light", place: "20",
     ladder: { skill: "melee_light", milestone: 20 }, effect: "attack",
-    story: "Strike someone who never sees you coming. Any attack you make on someone who hasn't noticed you, melee, ranged or unarmed, lands one outcome better.",
+    story: "Strike someone who never sees you coming. Any attack you make on someone who hasn't noticed you lands one outcome better.",
     rules: { kind: "Always on",
       trigger: "The owner makes an attack.",
-      conditions: ["Any attack mode: melee, ranged or unarmed (Ali, 07/11/2026).", "The target is unaware of the owner when the attack resolves (the same test that starts an ambush)."],
+      conditions: ["Any attack (Ali, 07/11/2026).", "The target is unaware of the owner when the attack resolves (the same test that starts an ambush)."],
       effect: "Tier shift +1 on the attack roll.",
       lasts: "That attack." } },
   { id: "turn_the_blade", ref: "A2", name: "Turn the Blade", skill: "melee_medium", place: "20",
