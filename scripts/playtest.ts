@@ -99,7 +99,8 @@ async function main() {
     if (game.fell()) { console.log('player fell'); break; }
     const stop = game.notices().find((n) => n.kind === 'stop_play');
     if (stop) { console.log('stop_play:', stop.text); break; }
-    const recent = game.lines().slice(-14).map((l) => `[${l.kind}] ${l.text}`).join('\n');
+    // spoken lines are shown under the narration on screen (the Narrator does not quote them), so the player sees them too
+    const recent = game.lines().slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
     const pick = await claudeCli(`${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n\nThe story so far (latest last):\n${recent}`, 'claude-sonnet-5-5');
     const input = (pick.text || 'I look around.').split('\n')[0].trim().slice(0, 200);
     const aimed = input.startsWith('/aim');
@@ -118,6 +119,7 @@ async function main() {
 function writeTranscript(game: ReturnType<typeof createGame>, storyId: string, t0: number) {
   const md = [`# Playtest ${storyId}`, `Started ${new Date(t0).toISOString()} · ${calls} game calls so far`, '',
     ...game.lines().map((l) => (l.kind === 'player' ? `\n**> ${l.text}**` : `${l.kind === 'narration' ? '' : `_${l.kind}:_ `}${l.text}`)
+      + (l.speech?.length ? `\n\n${l.speech.map((sp) => `> _${sp.speaker}:_ "${sp.text}"`).join('\n')}` : '')
       + (l.mechanics?.length ? `\n\n    ${l.mechanics.join('\n    ')}` : ''))].join('\n');
   writeFileSync(join(OUT, 'transcript.md'), md);
 }
