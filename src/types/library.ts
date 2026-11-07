@@ -51,6 +51,7 @@ export type Library = {
   routines: Record<string, Routine>;
   routineSets: Record<string, RoutineSet>;
   perks: Record<string, PerkDef>;
+  healing?: Record<string, HealingDef>; // H1: one table of healing sources
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the creature type; race perks come later
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
 };
@@ -61,12 +62,25 @@ export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 
 export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
+  /** player-facing write-up (the Story view); must say the same thing as `rules` */
+  story?: string;
+  /** exact rules code applies (the Rules view, and the basis for building the perk) */
+  rules?: PerkRules;
+  /** false: written down but not coded yet, so it can't be taken */
+  built?: boolean;
 };
+export type PerkRules = { kind: string; trigger: string; conditions: string[]; effect: string; lasts: string; needs?: string; open?: string };
+/** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
+export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | 'higher' | 'very_high' | 'banked'; story: string; rules: PerkRules };
 
 /** X6/X11 (Ali, 07/11/2026): a library achievement, each with its own id and name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per creature type or race: the granted id is
  * <id>:<type or race> and {creature}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
+/** A healing source (Ali, 07/11/2026, H1): what it restores, whether it can lift a Crippled part, whether it works
+ * in a fight, and what it needs (a place kind; an item names its source with ItemDef.heal). */
+export type HealingDef = { id: string; name: string; hpPct: number; partPct: number; fixesCrippled: boolean; inFight: boolean; placeKinds?: string[] };
+
 export type RaceDef = { id: string; name: string; creatureTypeId: string };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */

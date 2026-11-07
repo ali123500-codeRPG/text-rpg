@@ -2,6 +2,7 @@
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
 import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SkillDef, XpCategory } from '../types';
+import { PERK_WRITEUPS } from './perks';
 
 /** XP category from the skill's function (X21); a skill with no deciding function names its own. */
 const CATEGORY_OF: Partial<Record<SkillDef['functions'][number], XpCategory>> = {
@@ -82,6 +83,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: 'improvised_heavy', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
     weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'heavy', skill: 'unarmed_improvised', reach: 0, hands: 2, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
   { id: 'curio', kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
+  { id: 'bandage', kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: 'bandage' },
   { id: 'coin', kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
@@ -239,6 +241,12 @@ export function prototypeLibrary(): Library {
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false } },
     creatures: CREATURES,
+    // Healing sources (Ali, 07/11/2026, H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
+    healing: {
+      rest: { id: 'rest', name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, fixesCrippled: false, inFight: false },
+      clinic: { id: 'clinic', name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, fixesCrippled: true, inFight: false, placeKinds: ['clinic', 'infirmary'] },
+      bandage: { id: 'bandage', name: 'Bandage', hpPct: 10, partPct: 10, fixesCrippled: false, inFight: true },
+    },
     // Ali (07/11/2026): humans and elves for now, identical
     races: { human: { id: 'human', name: 'Human', creatureTypeId: 'humanoid' }, elf: { id: 'elf', name: 'Elf', creatureTypeId: 'humanoid' } },
     items: ITEMS,
@@ -246,7 +254,8 @@ export function prototypeLibrary(): Library {
     activities: ACTIVITIES,
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,
-    perks: {},
+    // the 20 milestone picks; higher and banked perks stay in PERK_WRITEUPS until they get a milestone
+    perks: Object.fromEntries(PERK_WRITEUPS.filter((d) => d.ladder).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: false }])),
     achievements: {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
       first_defeat: { id: 'first_defeat', name: 'First {creature} Felled', level: 'i', rule: 'defeats', count: 1, by: 'creature' },

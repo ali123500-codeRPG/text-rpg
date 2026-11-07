@@ -7,3 +7,4 @@ export { achievementName, awardXp, charLevel, grantAchievement, killXp, xpToNext
 export { fromIntent } from './merge';
 export { firedOrders } from './triggers';
 export { checkSecrets } from './secrets';
+export { applyHealing, healingName } from './heal';

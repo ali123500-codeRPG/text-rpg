@@ -157,7 +157,8 @@ export function createPlayer(build: CreationBuild, storyId: string): Actor {
       classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],
       perks: [],
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
-      inventory: [...equipLoadout(null, STARTING_GEAR, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN }],
+      inventory: [...equipLoadout(null, STARTING_GEAR, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN },
+        { id: 'player_bandage', itemId: 'bandage', qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here
       standingDefense: (build.skills.block ?? 0) >= (build.skills.dodge ?? 0) ? 'block' : 'dodge',
     },
