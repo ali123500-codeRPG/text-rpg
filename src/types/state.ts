@@ -89,6 +89,8 @@ export type EnginePage = {
   flags: Record<string, string | number | boolean>;
   bands: Band[];
   quests: Quest[];
+  /** W1: in-memory order of actors and places (the store may not keep object key order) */
+  order?: { actors: string[]; places: string[] };
 };
 
 export type HiddenPage = { storyId: StoryId } & HiddenStore;

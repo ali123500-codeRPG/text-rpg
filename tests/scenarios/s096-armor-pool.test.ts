@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest';
+import { makeVillage, place, forcedRng } from '../harness';
+import { ruleset } from '../../src/ruleset';
+
+describe('96 Armor pool', () => {
+  it('a head hit drains the helm pool before the head pool; the health track ignores the helm pool', () => {
+    const s = makeVillage();
+    const g = place(s, 'guard_1', 'tav_common');
+    g.core.inventory = g.core.inventory.filter((i) => i.itemId !== 'mail_hauberk');
+    g.core.inventory.push({ id: 'plate', itemId: 'plate_harness', equippedIn: ['armor'], pools: { head: 100 } });
+    // aimed head: 100 → Strong + 2 = 6; guard block 10 + 15 − 63.5 → Failure (1): gap −5, 2×
+    const r = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', targetPart: 'head', aimed: true }, s, forcedRng([100, 10]));
+    expect(r.location).toBe('head');
+    expect(r.damage).toBe(Math.round((50 - 6) * 0.55)); // 24
+    ruleset.applyEffects(r, s);
+    const plate = g.core.inventory.find((i) => i.id === 'plate')!;
+    expect(plate.pools!.head).toBe(0); // the 20-point helm pool is drained
+    // the other 4 reach the head: guard HP 50, head pool 10 → 60% left
+    expect(g.core.condition.parts.head).toBeCloseTo(60);
+    // health track: 4 × 1.5 (essential) of 50 HP = 12%
+    expect(g.core.condition.hpLostPct).toBeCloseTo(12);
+  });
+});

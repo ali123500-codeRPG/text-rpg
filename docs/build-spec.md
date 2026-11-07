@@ -1232,6 +1232,7 @@ Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns
 * **Creation screen:** the approved layout at https://claude.ai/artifact/HW45ivigqwZ5VDo4PWPv9u (Part 4 §4, Player creation). The story starts from it.
 * **Narration log:** checked narration, newest last, with the "…" waiting indicator (Latency and cost).
 * **Input:** one free-text box; a line starting with / is a command (Part 1 §7).
+* **Input keys:** the action box keeps focus; what it sends is trimmed, and an empty line sends nothing. If narration is ever paced (D-24), skipping uses a click on the narration or Esc, never a key that types (Voyage A7, decided by Ali 07/11/2026; was OQ-24).
 * **Aim toggle:** marks this turn's attack as aimed (Part 1 §7).
 * **Mechanics panel:** under the narration while SHOW\_MECHANICS is on; dice, modifiers and damage from code.
 * **Out-of-character notices:** the scene-planning failure marker (Agent Weaver), the rate-limit notice and the stop-play message (Leak prevention, validation and failure handling).
@@ -2362,21 +2363,21 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-7 | Difficulty tier names and target numbers | 1 | Deferred | Names are the challenge grades (Part 1 §4, Layer 2); values are placeholders until set |
 | D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Deferred | Skills are designed with character and mob generation; sneaking waits for the Stealth tree. Also open: what a larger contest gap does, and combined skill checks (such as sight with hearing) |
 | D-9 | Mastery checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |
-| D-10 | XP sources and achievements | 1–2 | Deferred | Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP |
-| D-11 | Minting improvised items and NPCs | 1 | Deferred | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation |
+| D-10 | XP sources and achievements | 1–2 | Deferred | Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
+| D-11 | Minting improvised items and NPCs | 1 | Deferred | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22 |
 | D-12 | Content database for items, loot and prices | 1 | Partly settled | Part 5 (Gear) sets the item data shape (Part 4 §9) and a prototype bank. Still deferred: loot tables, shops, trade, prices beyond the value placeholder |
 | D-13 | Faction clocks | 1 | Deferred | Time advances with turns and faction clocks tick on their own. A faction here is a grand faction, unrelated to bands |
-| D-14 | Skills and classes | 1, 4 | Deferred | Separate thread: general skills, class trees, exclusions, how classes unlock |
+| D-14 | Skills and classes | 1, 4 | Deferred | Separate thread: general skills, class trees, exclusions, how classes unlock. Voyage playtest (07/11/2026): B11, ability requirements and cooldowns |
 | D-15 | Status effects | 1, 4 | Deferred | Blessings, buffs, curses, debuffs: library entries, duration, and which rolls they modify, the situation roll among them |
 | D-16 | One Planner call per actor | 2 | Provisional | Evaluate later against one call per group of actors who can talk to each other, or a commander layer; also decides shared plans, whether a spokesperson's answer can bind its band (commander layer), and coordination between allies, who also commit blind |
 | D-17 | Fallback combat list | 2 | Under review | Which actors count as minor, and how rich their behaviors are. The prototype uses a fixed combat list in code (Fallback behavior). Later: a per-type, data-driven rule order once many creature types fight; tacticsLevel variants, such as level 3 calling for help first |
 | D-18 | Call cap (MAX\_PLANNER\_CALLS) | 2 | Under review | The value, and which actors get calls first. Counts engaged significant actors only. Overflow runs its type's combat list \[Proposed\] |
 | D-19 | Action economy | 2 | Parked | Decided: speech is an action and takes the main action, for everyone; words beside another action are a bark. The rest stays parked: a per-turn action limit is being considered, each action using 0–100% of it by type; covers move plus action and move timing |
 | D-20 | Deferred actions | 2 | Parked | Run next turn unless new input, show as a queue, or drop; queuing many and typing "continue" is an exploit |
-| D-21 | Player names something that doesn't exist | 2 | Parked | A clarify question can reveal what exists in the world |
-| D-22 | What code produces, agents see, player sees | 2 | Parked | Separate document; includes roll numbers for Agent Narrator, SHOW\_MECHANICS and on-screen panels. Part 3's roll packet specifies part of this; Agent Narrator never gets roll numbers (Part 3, The packet). Includes whether the player sees the situation roll |
+| D-21 | Player names something that doesn't exist | 2 | Parked | A clarify question can reveal what exists in the world. Voyage playtest (07/11/2026): F1, the player liked an impossible action failing inside the story instead of a clarify question |
+| D-22 | What code produces, agents see, player sees | 2 | Parked | Separate document; includes roll numbers for Agent Narrator, SHOW\_MECHANICS and on-screen panels. Part 3's roll packet specifies part of this; Agent Narrator never gets roll numbers (Part 3, The packet). Includes whether the player sees the situation roll. Voyage playtest (07/11/2026): A1 one-line check summary, A2 typed update cards, D9 speaker labels and plain text, E3 location header, G2 quest text, G3 player-facing wording for rules text. Decided by Ali (07/11/2026, Voyage C2): no enemy health bars, by design; characters only know what they perceive |
 | D-23 | Fallback narration form | 2 | Parked | Template text breaks immersion |
-| D-24 | Streaming | 2 | Provisional | Off for now; revisit after playtests |
+| D-24 | Streaming | 2 | Provisional | Off for now; revisit after playtests. Voyage playtest (07/11/2026): A5, narration paced line by line |
 | D-25 | Improvement-roll timing | 2 | Parked | After each use, at scene end or at rest; whether NPCs improve. Part 1 §6 runs improvement at the end of a training action |
 | D-26 | Ruleset module | 2 | Partly settled | First build: TIERS, situation, roll, attack, check and contested are built (Part 2, Resolution engine, First-build ruleset); the rest stays stubbed |
 | D-27 | Body-part targeting | 2 | Settled | targetPart and aimed in the agent outputs (Part 2); aim penalty, gap ladder and location (Part 3) |
@@ -2393,7 +2394,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-38 | CALM\_TURNS | 2 | Deferred | Changes no calls now; keep only if mode drives something else, such as UI. The alarm calm-down uses DECAY\_TURNS; CALM\_TURNS could serve instead |
 | D-39 | BACKGROUND\_WINDOW value | 2 | Deferred | Config; set at or above Agent Planner's usual latency after playtests |
 | D-40 | Hide and detection tests | 2 | Deferred | One test per observer per action for now; revisit with the definition of a major action |
-| D-41 | Out-of-character agent (/ooc) | 1–2 | Deferred | Code-only /help for now. An OOC agent would add a Claude call |
+| D-41 | Out-of-character agent (/ooc) | 1–2 | Deferred | Code-only /help for now. An OOC agent would add a Claude call. Voyage playtest (07/11/2026): F3 a plain-text OOC question in the action box used a turn; F4 a side chat that answers questions without a turn |
 | D-42 | Reloads and pending Planner outputs | 2, 4 | Deferred | Proposed: write each Planner output to a pending.\<turn> page outside the head bookmark and reuse it until the turn commits. This stops a reload from rerolling enemy plans and keeps test 13 across reloads. Until then a reload calls the Planners again |
 | D-43 | Late and failed agent outputs | 2 | Deferred | Proposed: a late Planner output is discarded whole (built that way for now); the Responder and Voice share one fallback: one retry, then a neutral line as a talk action |
 | D-44 | Undo and Planner outputs | 2, 4 | Deferred | Proposed: the redone turn reuses the stored Planner outputs; Parser, dialogue and Narrator calls run fresh. Until then undo calls the Planners again |
@@ -2410,10 +2411,10 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-55 | Triggers beyond the player | 2 | Deferred | player\_seen\_in\_zone and $player only watch the player; NPC-versus-NPC fights may need "enemy seen in zone" |
 | D-56 | Total HP and its split between body parts | 3 | Settled | Part 3, Total HP and Body parts; the values wait for the balance pass (D-77) |
 | D-57 | Damage calculation | 3 | Settled |  Part 3, Damage flow, and Part 5 §6, the damage step; values wait for D-77 |
-| D-58 | Healing | 3 | Parked |  |
+| D-58 | Healing | 3 | Parked | Voyage playtest (07/11/2026): B5, healing amounts must be consistent |
 | D-59 | How positive and negative modifiers combine per action | 3 | Settled | Part 1 §4, Stacking within a type; the values per type stay with D-75 |
 | D-60 | Critical: "one action per turn" | 3 | Deferred | Unclear what it removes, since Part 2 already allows one move and one main action; settle with the action economy |
-| D-61 | Recurring NPCs | 4 | Deferred | Stable NPC ids now; promotion adds modules |
+| D-61 | Recurring NPCs | 4 | Deferred | Stable NPC ids now; promotion adds modules. Voyage playtest (07/11/2026): D2, an NPC remembered a lie 15 turns later |
 | D-62 | Temporary NPC linked to the place last seen | 4 | Deferred |  |
 | D-63 | Telling temporary from recurring NPCs | 4 | Deferred |  |
 | D-64 | NPC generation from templates | 4 | Partly settled | Settled in Part 4 §4: minimums, points, focus picks, random spend, personality, unique vs copy. Still deferred: level rules (level is fixed per template for now) and NPC perks |
@@ -2429,7 +2430,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-74 | Turn-record count N and proposal caps | 4 | Deferred | Placeholders; set after measuring the platform caps |
 | D-75 | Diminishing-returns values per modifier type | 1 | Deferred | Roll perks, wounds, situational, aim |
 | D-76 | Outnumbered and unaware values | 3 | Deferred | For the defense roll |
-| D-77 | Damage and HP balance pass | 3 | Deferred | After playtests: weapon damage and hit values, armor, HP\_BASE and HP\_PER\_END, part shares |
+| D-77 | Damage and HP balance pass | 3 | Deferred | After playtests: weapon damage and hit values, armor, HP\_BASE and HP\_PER\_END, part shares. Voyage playtest (07/11/2026): B7. Decided by Ali (07/11/2026): HP, part pools and damage may be fractional (OQ-25) |
 | D-78 | Critical effects | 1 | Deferred | For Critical Failure and Critical Success; excluded from the hit roll review |
 | D-79 | Partial-hit cost | 3 | Deferred | Whether a Partial attack that lands leaves the attacker exposed; left out for now |
 | D-80 | Tiny parts | 3 | Deferred | Their pool share, when the first Tiny part is used |
@@ -2445,13 +2446,21 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-90 | Containers, charges, keys, crafting | 5 | Deferred | Bags inside bags, items with uses, keys bound to doors, making items |
 | D-91 | Consumable effects | 5 | Deferred | Healing and timed buffs; waits for Healing and Status effects |
 | D-92 | Loot and item creation | 5 | Deferred | Loot tables, minting detail, items with no library base. Minting is base item + quality tier for now |
-| D-93 | Shops, trade and prices | 5 | Deferred | Buying, selling, haggling, prices by place. value is a placeholder until then |
+| D-93 | Shops, trade and prices | 5 | Deferred | Buying, selling, haggling, prices by place. value is a placeholder until then. Voyage playtest (07/11/2026): B3, a payment must happen once; B13, prices out of scale |
 | D-94 | Hidden rewards and theft | 5 | Deferred | Containered or hidden rewards and searching for them, stealing, NPCs noticing a missing item, partial-perception gear cues (“a glint of steel”) |
 | D-95 | ACCESSORY\_SLOTS value | 5 | Deferred | Placeholder 3; may vary by race or perk |
 | D-96 | Ranged details | 5 | Deferred | Reloading. Range modifiers are set in Part 3 (Reach, range, cover and light); partial cover has its own row |
 | D-97 | Gauntlets and unarmed damage | 5 | Deferred | Worn hand gear such as gauntlets may change unarmed damage while worn. Until such items exist, every unarmed attack without a class uses the unarmed profile (15 damage, +10 hit) |
 | D-98 | Surrendered actors | 3 | Deferred | What the player can do with an actor that surrendered (take it prisoner, question it, let it go), and whether surrender lasts past the scene |
 | D-99 | Movement speed | 3 | Deferred | How movement speed works beyond one zone link per turn, and how injured legs slow it; the Move role's movement effects wait for this |
+| D-100 | Command buttons | 2 | Planned | Decided by Ali (07/11/2026, Voyage A3): plan buttons on the Play screen that show the available commands (Part 1 §7). Not in the first build; design with D-22 |
+| D-101 | Game clock | 2, 4 | Deferred | Voyage playtest (07/11/2026): E1, a trade took a day while 31 km of travel took no time; E2, NPCs said "yesterday" on day 1. Covers turn and command durations, travel time and a calendar NPCs can read. Related: D-13, D-49 |
+| D-102 | Resource costs | 1 | Deferred | Voyage playtest (07/11/2026): B12, a failed spell still charged mana. There is no mana or other resource; when one exists, decide whether a failed action still pays |
+| D-103 | NPC self-interest in exchanges | 2 | Deferred | Voyage playtest (07/11/2026): D1, NPCs refused tips and bonuses. Whether Agent Responder and Agent Voice are told to keep their own interests in deals |
+| D-104 | Attitude toward the player | 2, 4 | Deferred | Voyage playtest (07/11/2026): D4, a relationship score per NPC with labels; D5, threatening an NPC raised it. A Belief tracks awareness only and stance comes from bands (Part 2, Opposition); threats short of an attack have no lasting effect |
+| D-105 | Quests | 2, 4 | Deferred | Voyage playtest (07/11/2026): D8, a duplicate quest for a job already taken; G2, quest text revealed secrets. Who creates quests and writes their text, a leak check on that text, and de-duplication. Quests are only {id, state, text} for now (Part 4 §9) |
+| D-106 | Narration against NPC lines | 2 | Deferred | Voyage playtest (07/11/2026): D7, the narration contradicted an NPC line. A check that the narration agrees with the NPC lines it quotes |
+| D-107 | Action ideas on request | 2 | Planned | Decided by Ali (07/11/2026, Voyage A4; was OQ-23): a code-built list from PlayerView, shown when the player asks: people in view to talk to, exits, items held, actors in reach, grouped by tab (Talk, Move, Fight, Use) and refreshed each turn. No Claude call, so nothing can leak. Narrator rule 7 ("Do not list options") stays for the narration. Not in the first build; design with D-100 |
 
 ## Check on release
 
@@ -2464,7 +2473,7 @@ Decisions built as written for the first build, to be checked once the game is p
 
 ## Open questions (answer before sharing)
 
-These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review. A question with a build default is built that way until it is answered.
+These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review; OQ-25 to OQ-27 from the Voyage playtest (07/11/2026). A question with a build default is built that way until it is answered.
 
 - OQ-4: Does every attack on an unaware actor make an ambush roll, or only an attack made while sneaking?
   - Build default: every attack on an unaware actor.
@@ -2490,6 +2499,12 @@ These must be answered before the spec goes to a build agent. Each question has 
   - Build default: placeholder ids, renamed through library aliases later.
 - OQ-22: Changing objects and places. In the first build a check or a contest only changes beliefs and reveals secrets (Part 2, Resolution engine). How one changes an object or a place, such as a forced door, a picked lock or a stolen item, is not designed yet.
   - Build default: nothing changes; the attempt is only narrated.
+- OQ-25: Fractional values (Voyage B7). Ali decided HP, part pools and damage may be fractional (D-77). Open: does armor reduction still round (scenario test 95), and how many decimals does the player see? Recommendation: no rounding in the engine; show whole numbers and round only for display.
+  - Build default: as written until answered (test 95 rounds armor reduction).
+- OQ-26: The Narrator speaking for the player (Voyage D6). The Narrator wrote the player's words ("Deal.") and choices, and code can't catch an invented line. Recommendation: add an Agent Narrator rule: never write the player character's speech or decisions beyond the resolved action.
+  - Build default: no such rule.
+- OQ-27: Unclear addressee (Voyage A8). The wrong NPC answered. Should an ambiguous addressee get a clarify question instead of the nearest addressed member answering (Part 2, Dialogue turn step 2)?
+  - Build default: the nearest addressed member answers, as written.
 
 ## Appendix: prototype routine bank
 

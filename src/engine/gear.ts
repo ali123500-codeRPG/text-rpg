@@ -1,0 +1,117 @@
+// Part 5 §4: hands, free gear ops, equip and give (main actions), ground items, Destroyed arm drops, thrown items.
+import type { Actor, GameState, GearOp, ItemInstance } from '../types';
+import { CONFIG } from '../config';
+import { creatureType, itemDef } from '../library';
+import { partStates } from '../ruleset';
+import { actorById, isActive, zoneById } from './relations';
+
+export function gripParts(state: GameState, actor: Actor): string[] {
+  return creatureType(state, actor.core.creatureTypeId).parts.filter((p) => p.roles.includes('grip')).map((p) => p.id);
+}
+
+function usableFreeHands(state: GameState, actor: Actor): string[] {
+  const bad = new Set(partStates(state, actor).filter((p) => p.state === 'Crippled' || p.state === 'Destroyed').map((p) => p.id));
+  const held = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
+  return gripParts(state, actor).filter((p) => !bad.has(p) && !held.has(`hand:${p}`)).map((p) => `hand:${p}`);
+}
+
+function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
+  const need = itemDef(state, inst.itemId).hands ?? 1;
+  const free = usableFreeHands(state, actor);
+  if (inst.equippedIn?.length || free.length < need) return false;
+  inst.equippedIn = free.slice(0, need);
+  return true;
+}
+
+export type GearResult = { picked: { itemId: string; from?: string }[]; invalid: GearOp[] };
+
+/** free gear ops at the actor's initiative, before its action. Invalid ops are skipped and reported. */
+export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | null | undefined): GearResult {
+  const res: GearResult = { picked: [], invalid: [] };
+  for (const op of ops ?? []) {
+    const inst = actor.core.inventory.find((i) => i.id === op.item);
+    let ok = false;
+    switch (op.op) {
+      case 'draw':
+        ok = !!inst && draw(state, actor, inst);
+        break;
+      case 'stow':
+        ok = !!inst?.equippedIn?.some((s) => s.startsWith('hand:'));
+        if (ok) delete inst!.equippedIn;
+        break;
+      case 'swap': {
+        if (!inst || inst.equippedIn?.length) break;
+        const held = actor.core.inventory.filter((i) => i.equippedIn?.some((s) => s.startsWith('hand:')));
+        const before = held.map((i) => [i, i.equippedIn] as const);
+        held.forEach((i) => { if (itemDef(state, i.itemId).kind === 'weapon') delete i.equippedIn; });
+        ok = draw(state, actor, inst);
+        if (!ok) before.forEach(([i, e]) => (i.equippedIn = e));
+        break;
+      }
+      case 'wear_acc': {
+        if (!inst || inst.equippedIn?.length || itemDef(state, inst.itemId).slot !== 'accessory') break;
+        const used = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
+        const slot = Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
+        if (slot) { inst.equippedIn = [slot]; ok = true; }
+        break;
+      }
+      case 'remove_acc':
+        ok = !!inst?.equippedIn?.some((s) => s.startsWith('acc:'));
+        if (ok) delete inst!.equippedIn;
+        break;
+      case 'pick_up': {
+        const src = op.from ? actorById(state, op.from) : undefined;
+        const list = op.from
+          ? src && src.zone === actor.zone && !isActive(src) ? src.core.inventory : undefined
+          : zoneById(state, actor.zone)?.groundItems;
+        const i = list?.findIndex((x) => x.id === op.item) ?? -1;
+        if (list && i >= 0) {
+          const [it] = list.splice(i, 1);
+          delete it.equippedIn;
+          actor.core.inventory.push(it);
+          res.picked.push({ itemId: it.id, from: op.from });
+          ok = true;
+        }
+        break;
+      }
+    }
+    if (!ok) res.invalid.push(op);
+  }
+  return res;
+}
+
+/** remove an instance from an actor's inventory onto a zone's ground. */
+export function dropToGround(state: GameState, actor: Actor, instId: string, zoneId: string): boolean {
+  const i = actor.core.inventory.findIndex((x) => x.id === instId);
+  const zone = zoneById(state, zoneId);
+  if (i < 0 || !zone) return false;
+  const [it] = actor.core.inventory.splice(i, 1);
+  delete it.equippedIn;
+  zone.groundItems.push(it);
+  return true;
+}
+
+/** give (main action): to another active actor in the same zone. */
+export function giveItem(state: GameState, actor: Actor, instId: string | null | undefined, targetId: string | null): boolean {
+  const to = targetId ? actorById(state, targetId) : undefined;
+  const i = actor.core.inventory.findIndex((x) => x.id === instId);
+  if (!to || to === actor || !isActive(to) || to.zone !== actor.zone || i < 0) return false;
+  const [it] = actor.core.inventory.splice(i, 1);
+  delete it.equippedIn;
+  to.core.inventory.push(it);
+  return true;
+}
+
+/** equip (main action): put armor on (taking off any worn armor), or take it off when worn. */
+export function equipArmor(state: GameState, actor: Actor, instId: string | null | undefined): boolean {
+  const inst = actor.core.inventory.find((x) => x.id === instId);
+  if (!inst || itemDef(state, inst.itemId).slot !== 'armor') return false;
+  if (inst.equippedIn?.includes('armor')) {
+    delete inst.equippedIn;
+    return true;
+  }
+  if (inst.equippedIn?.length) return false;
+  actor.core.inventory.forEach((i) => { if (i.equippedIn?.includes('armor')) delete i.equippedIn; });
+  inst.equippedIn = ['armor'];
+  return true;
+}

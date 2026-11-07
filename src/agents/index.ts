@@ -1,3 +1,13 @@
 // W7 — Agent wrappers (prompts as constants, schemas validated, legality), leak scan and fact checks, fallback narration,
 // and the turn pipeline (Planner scheduler, BACKGROUND_WINDOW / DIALOGUE_WINDOW gates, mode switcher, call cap).
-export {};
+export * from './prompts';
+export * from './schema';
+export * from './format';
+export * from './legality';
+export * from './narration';
+export * from './call';
+export * from './wrappers';
+export * from './clock';
+export * from './client';
+export { createGame, hasAgenda, plannerActors, worldIds, applyPlanUpdates, mechanicsLines, validateBuild } from './game';
+export type { Game, GameDeps, SceneDirector } from './game';
