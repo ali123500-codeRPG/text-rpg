@@ -14,6 +14,10 @@ const DEFAULTS = {
   KIT_BONUS: 25,
   POTENTIAL: 300,
   K: 20,
+  /** SP2 (Ali, 07/11/2026): a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
+  MARK_WINDOW: 10,
+  /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
+  ENDURANCE_MARK_PCT: 10,
   // ---- Part 3 ----
   HP_BASE: 50,
   HP_PER_END: 1,
