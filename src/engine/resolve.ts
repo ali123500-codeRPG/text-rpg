@@ -13,6 +13,7 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
+import { payDefeats } from './xp';
 import type { TurnInput } from './types';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
@@ -364,6 +365,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     heardExchange: (id) => ctx.exchangeEvents.some((e) => !!e.perception[id]),
   });
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
+  payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   state.events.push(...ctx.events);
   return ctx.events;

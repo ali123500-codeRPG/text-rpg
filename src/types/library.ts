@@ -48,4 +48,9 @@ export type Library = {
   routines: Record<string, Routine>;
   routineSets: Record<string, RoutineSet>;
   perks: Record<string, { id: string; name: string; situation?: number }>;
+  achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
 };
+
+/** X6 (Ali, 07/11/2026): a library achievement. rule 'first_defeat' is earned once per creature type ({creature} in
+ * the name); 'mastery' once per tree and tier (awarded when mastery perks exist). */
+export type AchievementDef = { id: string; name: string; xp: number; rule: 'first_defeat' | 'mastery' };

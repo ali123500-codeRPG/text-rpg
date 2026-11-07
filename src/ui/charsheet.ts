@@ -5,6 +5,7 @@ import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp } from '../ruleset';
 import { poolState } from '../ruleset/body';
+import { charLevel, xpToNext } from '../engine/xp';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 
@@ -70,10 +71,34 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', { class: 'cs-steps' }, ['Unhurt', 'Hurt', 'Wounded', 'Critical', 'Out'].map((l) =>
         h('span', { class: (l === 'Out' ? 'Incapacitated' : l) === level ? 'now' : '' }, l))),
       bodyFigure(s, p)),
+    xpTrack(p),
     h('div', { class: 'cs-figs' },
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
       h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
-    gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null);
+    gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
+    h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Achievements'),
+      (p.progression?.achievements ?? []).length
+        ? p.progression!.achievements!.map((a) => h('span', {}, a.name, ` · turn ${a.turn}`))
+        : h('span', {}, 'None yet')));
+}
+
+/** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. */
+function xpTrack(p: Actor): HTMLElement | null {
+  const pr = p.progression;
+  if (!pr) return null;
+  const lib = getLibrary();
+  const need = xpToNext(p);
+  const open = p.core.classes.filter((c) => c.state === 'current' || c.state === 'unlocked');
+  const cur = open.find((c) => c.state === 'current');
+  const name = (id: string) => lib.classes[id]?.name ?? id;
+  return h('div', { class: 'cs-track' },
+    h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${pr.xp} / ${need} XP`)),
+    h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (pr.xp / need) * 100)}%` })),
+    open.length > 1
+      ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),
+        h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; } },
+          open.map((c) => h('option', { value: c.classId, ...((pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) }, name(c.classId)))))
+      : null);
 }
 
 export function treeBars(s: GameState, p: Actor): HTMLElement {
