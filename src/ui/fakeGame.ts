@@ -55,7 +55,11 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { turn: 2, kind: 'player', text: 'I head out through the gate to the field' },
       { turn: 2, kind: 'narration', text: NARRATION[1] },
       { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it' },
-      { turn: 3, kind: 'narration', text: NARRATION[2], mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Strong', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Strong · dodge 0 · full hit · 25 damage to body'] },
+      { turn: 3, kind: 'narration', text: NARRATION[2],
+        check: { skill: 'melee_medium', tier: 'Strong', against: { what: 'slime’s dodge', tier: 'Success' }, result: 'full hit, body' },
+        speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
+        changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],
+        mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Strong', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Strong · dodge 0 · full hit · 25 damage to body'] },
     ];
   }
   if (opts.autoStart) start({ name: 'Aldric', skills: { melee_medium: 50, block: 40, dodge: 30, endurance: 50, sight: 30, hearing: 30, feint: 10, riposte: 10 }, tagged: ['melee_medium', 'block', 'endurance'] });
@@ -82,6 +86,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
+    calls: () => n * 3 + 4,
     gm(): GmSnapshot { return { state, agentLog: state?.agentLog ?? [], log: state?.log ?? [], fallbackBanner: !!state?.stage.fallback, backups: state ? [{ turn: 0, path: 'stories/fake/backups/0' }] : [] }; },
     async restoreBackup() { emit(); },
   };

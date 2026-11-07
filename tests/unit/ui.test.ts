@@ -19,3 +19,47 @@ describe('ui helpers', () => {
     expect(validateBuildLocal({ name: 'A', skills: { ...skills, feint: 0 }, tagged: ['block'] }).length).toBe(2);
   });
 });
+
+describe('play screen extras (Voyage UI check, 07/11/2026)', async () => {
+  const { makeVillage } = await import('../harness');
+  const { buildPlayerView } = await import('../../src/views');
+  const { ideas } = await import('../../src/ui/play');
+  const { lineExtras, tierGap } = await import('../../src/agents/game');
+  const { narrationView } = await import('./agent-views');
+
+  it('ideas come only from PlayerView: people in view, exits, gear', () => {
+    const s = makeVillage();
+    const pv = buildPlayerView(s);
+    const g = Object.fromEntries(ideas(pv).map((x) => [x.group, x.items.map((i) => i.text)]));
+    const seen = pv.actors.filter((a) => a.level === 'full').map((a) => a.name ?? a.label);
+    expect(g.Talk).toEqual(seen.slice(0, 3).map((n) => `Talk to ${n}`));
+    expect(g.Move).toEqual(pv.zone.links.slice(0, 3).map((l) => `Go ${l.label}`));
+    expect(g.Use.at(-1)).toBe('Look around');
+    for (const list of Object.values(g)) expect(list.length).toBeLessThanOrEqual(3);
+    // nobody outside the view: slimes in the field are not in the tavern
+    expect(JSON.stringify(g)).not.toMatch(/slime/i);
+  });
+  it('tier gap in words', () => {
+    expect(tierGap('Strong', 'Success')).toBe('1 tier ahead');
+    expect(tierGap('Failure', 'Strong')).toBe('3 tiers behind');
+    expect(tierGap('Success', 'Success')).toBe('same tier');
+  });
+  it('heard lines show word for word unless the narration already quotes them; packets become turn changes', () => {
+    const s = makeVillage();
+    const nv = { ...narrationView(),
+      heard: [{ speaker: 'a guard', text: 'Halt!', volume: 'shout' as const }, { speaker: 'Mags', text: 'Mind the step.', volume: 'normal' as const }],
+      events: [{ id: 'e9', kind: 'attack', level: 'full' as const, cue: 'sight' as const, packet: {
+        event: 'e9', actor: 'a slime', target: 'player', action: 'melee attack', weapon: null, armor: null, shield: null,
+        attack: { tier: 'Success', natural: null, deciding: [] }, defense: null, outcome: 'full hit', location: { part: 'left arm', how: 'rolled' },
+        changes: ['player is Bruised', "player's left arm is Damaged", 'a slime is Wounded'], events: [] } }] };
+    const x = lineExtras(s, [], nv, 'Mags says, "Mind the step." The guard bellows.');
+    expect(x.speech).toEqual([{ speaker: 'a guard', volume: 'shout', text: 'Halt!' }]);
+    expect(x.changes).toEqual([
+      { kind: 'combat', text: 'A slime → you · full hit, left arm' },
+      { kind: 'health', text: 'You are Bruised' },
+      { kind: 'condition', text: 'Your left arm is Damaged' },
+      { kind: 'condition', text: 'A slime is Wounded' },
+    ]);
+    expect(x.check).toBeUndefined();
+  });
+});

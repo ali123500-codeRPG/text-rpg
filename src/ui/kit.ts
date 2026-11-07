@@ -133,4 +133,3 @@ export function openPanel(title: string, rows: PanelRow[], note?: string) {
   (panelHost.querySelector('.edit input') as HTMLInputElement | null)?.focus();
 }
 
-export const credit = () => h('p', { class: 'credit' }, 'Background picture: “Sky Backgrounds” by Unicorn Creates, CC BY 4.0.');
