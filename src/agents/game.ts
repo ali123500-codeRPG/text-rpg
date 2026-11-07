@@ -569,7 +569,7 @@ function buildPlayer(storyId: string, build: CreationBuild): Actor {
   const sk = build.skills;
   return {
     id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, label: 'a swordsman',
-    placeId: '', zone: '', posture: 'open', bandId: 'player_band', // the director places the player
+    placeId: 'tavern', zone: '', posture: 'open', bandId: 'player_band', // the director places the player; the first build starts in the village tavern (Story start)
     core: {
       creatureTypeId: 'humanoid',
       skills: Object.fromEntries(Object.entries(sk).map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }])),
