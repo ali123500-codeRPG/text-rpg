@@ -23,6 +23,6 @@ describe('perk write-ups (story and rules views)', () => {
     for (const p of twenties) expect(L[p.id]).toMatchObject({ ladder: { skill: p.skill, milestone: 20 }, built: BUILT_PERKS.has(p.id), story: p.story });
     for (const id of BUILT_PERKS) expect(L[id]).toBeDefined(); // no stale ids
     const a = { core: { perks: [], skills: { melee_medium: { raw: 40 } } }, progression: { unspentPerkPoints: 1 } } as never;
-    expect(canTake(a, 'quick_word')).toBe('not in the game yet');
+    expect(canTake(a, 'haggler')).toBe('not in the game yet');
   });
 });

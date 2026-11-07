@@ -491,21 +491,29 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
 
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order
   const ex = input.exchange;
-  if (ex && isActive(state.player) && isSpeech(playerOrder.type)) {
+  if (ex && isActive(state.player) && (isSpeech(playerOrder.type) || input.quickWord)) {
     const ev = mk(ctx, state.player, 'speak', {
       line: { text: input.intent?.spoken ?? '', volume: 'normal' }, tier: ex.playerTier,
       speech: { skill: ex.skill, impression: ex.impression ?? undefined, addressees: input.spokespeople },
     });
     emit(ctx, ev);
     ctx.exchangeEvents.push(ev);
-    ctx.mainDone.add(state.player.id);
+    if (input.quickWord) playerOrder.line = null; // A15: the line was said; the action follows in turn order
+    else ctx.mainDone.add(state.player.id);
     const spokes = new Set(input.spokespeople);
     for (const id of ordered) {
       const o = orders.get(id);
       const a = actorById(state, id);
-      if (!spokes.has(id) || !o || !a || !isActive(a) || o.source !== 'agent' || !isSpeech(o.type)) continue;
-      ctx.acted.add(id);
-      doSpeak(ctx, a, o);
+      if (!spokes.has(id) || !o || !a || !isActive(a) || o.source !== 'agent') continue;
+      if (!isSpeech(o.type)) {
+        // A15 Quick Word: a spoken reply is free; the reply's action still comes in turn order
+        if (!input.quickWord || !o.line) continue;
+        doSpeak(ctx, a, { ...o, type: 'talk', target: state.player.id });
+        o.line = null;
+      } else {
+        ctx.acted.add(id);
+        doSpeak(ctx, a, o);
+      }
       ctx.exchangeEvents.push(ctx.events[ctx.events.length - 1]);
     }
   }
@@ -513,7 +521,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const id of ordered) if (!ctx.acted.has(id)) step(ctx, id);
 
   applyBeliefDecay(state);
-  const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : undefined;
+  const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
   updateAlarms(state, ctx.events);
   applyAgentEffects(state, input, {
