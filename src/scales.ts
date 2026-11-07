@@ -50,5 +50,8 @@ export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], 
 export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
 /** stance of one actor toward another, coldest first (Ali, 07/11/2026: hostile = attacks on sight; opposed = at odds, won't strike first) */
 export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['neutral', 'neutral'], ['friendly', 'friendly']]);
+/** XP reward levels for achievements and quests (Ali, 07/11/2026); XP per level is CONFIG.REWARD_XP */
+export const REWARD_LEVELS = scale([['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
+export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);

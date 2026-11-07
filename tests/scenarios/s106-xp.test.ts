@@ -5,6 +5,8 @@ import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
 import { awardXp, effort, killXp, payDefeats, rating, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
+import { REWARD_LEVELS } from '../../src/scales';
+import { getLibrary } from '../../src/library';
 import type { GameEvent } from '../../src/types';
 
 const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'player', kind: 'attack', zone: 'field_mid', effects: [], noise: 1, visibility: 1, perception: {},
@@ -36,6 +38,12 @@ describe('106 XP and levels', () => {
     const ids = s.player.progression!.achievements!.map((a) => a.id);
     expect(ids).toEqual(['first_defeat:slime', 'defeats_10:slime', 'defeats_10']);
     expect(s.player.progression!.achievements!.map((a) => a.name)).toEqual(['First Slime Felled', 'Slimebane', 'Blooded Fighter']);
+  });
+  it('every achievement pays the XP of its reward level', () => {
+    const lib = getLibrary().achievements!;
+    for (const d of Object.values(lib)) expect(REWARD_LEVELS.has(d.level)).toBe(true);
+    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([100, 250, 1000, 2000]);
+    expect(CONFIG.REWARD_XP[lib.mastery_150.level]).toBe(2000);
   });
   it('a foe with a race also earns the first race defeat', () => {
     const s = makeVillage();
