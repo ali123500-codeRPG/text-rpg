@@ -24,11 +24,11 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Turn the Blade (Medium weapons) · A2
 
-*Story:* You catch their swing on your own blade and turn it aside. When you block a melee attack cleanly with any melee weapon (not a shield), the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
+*Story:* You catch their swing on your own blade and turn it aside. When you block a melee attack cleanly with any melee weapon, the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
 
 - **Kind:** Always on
 - **Trigger:** The owner blocks a melee attack.
-- **Conditions:** The owner blocks with any melee weapon (light, medium or heavy) held in a working Grip arm, not a shield. The gap is +2 or better for the owner.
+- **Conditions:** The owner blocks with any melee weapon held in a working Grip arm. The gap is +2 or better for the owner.
 - **Effect:** The attacker is marked as open to the owner. The owner's next melee attack on that attacker gets tier shift +1, and the mark clears.
 - **Lasts:** Until it is used or the engagement ends.
 
