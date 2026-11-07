@@ -3,8 +3,10 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { awardXp, effort, killXp, payDefeats, rating, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, effort, killXp, payDefeats, rating, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
+import { REWARD_LEVELS } from '../../src/scales';
+import { getLibrary } from '../../src/library';
 import type { GameEvent } from '../../src/types';
 
 const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'player', kind: 'attack', zone: 'field_mid', effects: [], noise: 1, visibility: 1, perception: {},
@@ -35,7 +37,16 @@ describe('106 XP and levels', () => {
     }
     const ids = s.player.progression!.achievements!.map((a) => a.id);
     expect(ids).toEqual(['first_defeat:slime', 'defeats_10:slime', 'defeats_10']);
-    expect(s.player.progression!.achievements!.map((a) => a.name)).toEqual(['First Slime Felled', 'Slimebane', 'Blooded Fighter']);
+    expect(s.player.progression!.achievements!.map((a) => achievementName(s, a))).toEqual(['First Slime Felled', 'Slimebane', 'Blooded Fighter']);
+    getLibrary().achievements!.defeats_10_creature.name = 'Slime Hunter {creature}'; // renaming edits only the table
+    expect(achievementName(s, s.player.progression!.achievements![1])).toBe('Slime Hunter Slime');
+    getLibrary().achievements!.defeats_10_creature.name = '{creature}bane';
+  });
+  it('every achievement pays the XP of its reward level', () => {
+    const lib = getLibrary().achievements!;
+    for (const d of Object.values(lib)) expect(REWARD_LEVELS.has(d.level)).toBe(true);
+    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([100, 250, 1000, 2000]);
+    expect(CONFIG.REWARD_XP[lib.mastery_150.level]).toBe(2000);
   });
   it('a foe with a race also earns the first race defeat', () => {
     const s = makeVillage();
@@ -45,7 +56,7 @@ describe('106 XP and levels', () => {
     a.mind!.moraleState = 'surrendered';
     payDefeats(s, []);
     const got = s.player.progression!.achievements!;
-    expect(got.map((x) => [x.id, x.name])).toEqual([['first_defeat:slime', 'First Slime Felled'], ['first_defeat_race:elf', 'First of Elfkind Felled']]);
+    expect(got.map((x) => [x.id, achievementName(s, x)])).toEqual([['first_defeat:slime', 'First Slime Felled'], ['first_defeat_race:elf', 'First of Elfkind Felled']]);
   });
   it('a slime the player hit and downed pays its kill XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();

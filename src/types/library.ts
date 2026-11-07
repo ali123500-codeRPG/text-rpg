@@ -69,4 +69,5 @@ export type PerkDef = {
  * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
 export type RaceDef = { id: string; name: string; creatureTypeId: string };
 
-export type AchievementDef = { id: string; name: string; xp: number; rule: 'defeats' | 'mastery'; count?: number; by?: 'creature' | 'race' };
+/** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */
+export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'creature' | 'race' };

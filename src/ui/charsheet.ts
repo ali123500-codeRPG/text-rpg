@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState } from '../ruleset/body';
-import { charLevel, xpToNext } from '../engine/xp';
+import { achievementName, charLevel, xpToNext } from '../engine/xp';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 
@@ -78,7 +78,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
     gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
     h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Achievements'),
       (p.progression?.achievements ?? []).length
-        ? p.progression!.achievements!.map((a) => h('span', {}, a.name, ` · turn ${a.turn}`))
+        ? p.progression!.achievements!.map((a) => h('span', {}, achievementName(s, a), ` · turn ${a.turn}`))
         : h('span', {}, 'None yet')));
 }
 

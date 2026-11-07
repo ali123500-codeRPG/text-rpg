@@ -691,7 +691,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     if (x.turn !== turn) continue;
     if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${x.levelUp.classId})`); continue; }
     const [kind, id] = x.source.split(/:(.*)/);
-    const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${ach.find((a) => a.id === id)?.name ?? id}` : x.source;
+    const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
     out.push(`+${x.amount} XP (${what})`);
   }
   return out;

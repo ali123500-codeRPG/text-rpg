@@ -87,27 +87,38 @@ function defeatAchievements(state: GameState, t: Actor): void {
   const pr = state.player.progression;
   if (!pr) return;
   const type = t.core.creatureTypeId, race = t.core.raceId;
-  let creature = type;
-  try { creature = (creatureType(state, type) as { name?: string }).name ?? type; } catch { /* keep the id */ }
   const n = (pr.defeats ??= {});
   const keys = ['all', `creature:${type}`, ...(race ? [`race:${race}`] : [])];
   for (const k of keys) n[k] = (n[k] ?? 0) + 1;
-  for (const d of Object.values(getLibrary().achievements ?? {})) {
+  for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
     if (d.rule !== 'defeats' || d.count === undefined) continue;
     if (d.by === 'race' && !race) continue;
     const of = d.by === 'race' ? race! : type;
-    if ((n[d.by ? `${d.by}:${of}` : 'all'] ?? 0) < d.count) continue;
-    const raceName = race ? getLibrary().races?.[race]?.name ?? race : '';
-    const name = d.name.replace('{creature}', title(creature)).replace('{race}', title(raceName));
-    grantAchievement(state, d.by ? `${d.id}:${of}` : d.id, name, d.xp);
+    if ((n[d.by ? `${d.by}:${of}` : 'all'] ?? 0) >= d.count) grantAchievement(state, key, d.by ? of : undefined);
   }
 }
 
-/** Each achievement is granted once (B4). */
-export function grantAchievement(state: GameState, id: string, name: string, xp: number): void {
+/** Each achievement is granted once (B4). key is its row in the library table; of the creature type, race or tree it names.
+ * Saves keep only key and of, so renaming a row or moving its reward level edits only the table. */
+export function grantAchievement(state: GameState, key: string, of?: string): void {
   const pr = state.player.progression;
-  if (!pr || pr.achievements?.some((x) => x.id === id)) return;
-  (pr.achievements ??= []).push({ id, name, turn: state.turn });
+  const d = getLibrary().achievements?.[key];
+  if (!pr || !d) return;
+  const id = of ? `${d.id}:${of}` : d.id;
+  if (pr.achievements?.some((x) => x.id === id)) return;
+  (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), turn: state.turn });
+  const xp = CONFIG.REWARD_XP[d.level] ?? 0;
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
+}
+
+/** Display name of an earned achievement, read from the library table now. */
+export function achievementName(state: GameState, a: { id: string; key?: string; of?: string; name?: string }): string {
+  const lib = getLibrary();
+  const d = a.key ? lib.achievements?.[a.key] : undefined;
+  if (!d) return a.name ?? a.id;
+  let what = a.of ?? '';
+  if (d.by === 'creature' && a.of) try { what = (creatureType(state, a.of) as { name?: string }).name ?? a.of; } catch { /* keep the id */ }
+  if (d.by === 'race' && a.of) what = lib.races?.[a.of]?.name ?? a.of;
+  return d.name.replace(/\{(creature|race|tree)\}/g, title(what));
 }
