@@ -506,7 +506,8 @@ Output shape (notation, not literal JSON):
     item:     item_instance_id | null,     // weapon, consumable, tool or item given
     mode:     mode_id | null,              // attack mode; code default if null (Part 5 §5)
     approach: short phrase in the player's style,   // flavor only
-    stance:   careful | normal | reckless          // flavor only
+    stance:   careful | normal | reckless,         // flavor only
+    improvised: { base: improvised_light | improvised_medium | improvised_heavy, name: short phrase } | null   // a scene object used as a weapon (Part 5 §7)
   } | null,
   gear:       [ { op: draw | stow | swap | wear_acc | remove_acc | pick_up,
                   item: item_instance_id, from?: actor_id } ] | null,   // free; before the action
@@ -544,6 +545,9 @@ Rules:
 9. Drawing, stowing, swapping, putting on or taking off accessories and picking things
    up go in "gear"; they cost nothing. Putting armor on or taking it off is an "equip"
    action. Name the item, and the attack mode, when the player names them.
+10. If the player fights with an object from the scene that is not in PLAYER_VIEW (a chair, a
+   bottle), set "improvised": the base by its size (improvised_light, improvised_medium,
+   improvised_heavy) and a short name for the object. Leave "item" null.
 
 Return only JSON matching the schema.
 ```
@@ -1350,6 +1354,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 101 | Fallback close in | An engaged minor actor whose belief puts the player two links away moves one link along the shortest path, never into a frontier; in that zone with nobody there, it searches |
 | 102 | Late Planner fights on | A significant engaged actor whose Planner call is late runs its type's combat list that turn instead of holding |
 | 103 | Broken flees | A broken engaged actor with an exit slot moves one link toward it and holds once there; a slime never flees |
+| 104 | Improvised weapon | The Parser's improvised chair leg becomes a held improvised\_medium story item with hitAdj IMPROVISED\_HIT\_ADJ and no kit bonus, and the attack uses it |
 
 ### Deliverables and acceptance criteria
 
@@ -2336,7 +2341,9 @@ Reduction before the multiplier bites light weapons hardest, so heavy weapons ea
 - **Consumables** are a flag: the item is removed on use. Their effects wait for Healing and Status effects.
 - **Coins** are a stackable library item, bulk 0. **value** is a base price in coins on every item (*placeholder*); no code reads it until trade exists.
 - **Concealed items** stay out of other actors' views while held or worn, until used in an event that actor perceives; that observer's Belief.revealed then keeps it. Accessories are hidden by default unless tagged visible.
-- **Minting** (for now): a variant = a base library item + quality tier 1–4 + public name and look. Code reads the tier's bonuses from QUALITY\_TABLE and writes a story blueprint, within the per-scene minted cap. Loot and item-creation details are deferred.
+- **Minting** (for now): a variant = a base library item + quality tier 1–4 + public name and look. Code reads the tier's bonuses from QUALITY\_TABLE and writes a story blueprint, within the per-scene minted cap. A minted item with no close library match uses the nearest generic base: improvised\_light, improvised\_medium or improvised\_heavy for an odd weapon, curio (misc, no effects) for a thing with no game effect (Ali, 07/11/2026, loot L2).
+- **Improvised items** (Ali, 07/11/2026, loot L3): when the player fights with a scene object not in the view, the Parser names an improvised base by size and a short name. Code writes a story blueprint (that base, the given name as name and look), puts it in the player's inventory and swaps it into hand before the attack. Improvised bases carry hitAdj IMPROVISED\_HIT\_ADJ (*placeholder*, −10) and no kit bonus.
+- **Needs data.** Every story item blueprint (minted or improvised) is listed on the GM page under Needs data, so the designer can give it its own data and promote it.
 
 QUALITY\_TABLE (*placeholder*): per tier 1/2/3/4, weapon hitAdj +2/+4/+6/+8 or damageAdj +1/+2/+3/+4 (the variant names which); armor reduction +1/+1/+2/+2; tool skill bonus +5/+10/+15/+20. Highest tier allowed by the scene's gain grade: minor 1, moderate 2, major 3, extreme 4.
 
@@ -2366,7 +2373,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Deferred | Skills are designed with character and mob generation; sneaking waits for the Stealth tree. Also open: what a larger contest gap does, and combined skill checks (such as sight with hearing) |
 | D-9 | Mastery checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |
 | D-10 | XP sources and achievements | 1–2 | Deferred | Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
-| D-11 | Minting improvised items and NPCs | 1 | Deferred | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22 |
+| D-11 | Minting improvised items and NPCs | 1 | Partly settled | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22. Settled 07/11/2026: generic bases, improvised weapons and the Needs data list (Part 5 §7). Still open: NPCs, improvised tools and objects used other than as weapons |
 | D-12 | Content database for items, loot and prices | 1 | Partly settled | Part 5 (Gear) sets the item data shape (Part 4 §9) and a prototype bank. Still deferred: loot tables, shops, trade, prices beyond the value placeholder |
 | D-13 | Faction clocks | 1 | Deferred | Time advances with turns and faction clocks tick on their own. A faction here is a grand faction, unrelated to bands |
 | D-14 | Skills and classes | 1, 4 | Deferred | Separate thread: general skills, class trees, exclusions, how classes unlock. Voyage playtest (07/11/2026): B11, ability requirements and cooldowns |
@@ -2445,7 +2452,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-87 | Dual wielding and versatile grips | 5 | Deferred | Off-hand attacks and penalties; weapons usable one- or two-handed with a bonus for two |
 | D-88 | Armor depth | 5 | Deferred | Layers, armor-piercing weapons, damage types (already excluded for now), armor stealth penalties |
 | D-89 | Durability and repair | 5 | Deferred | Wear on items other than pools; refilling shield and armor pools |
-| D-90 | Containers, charges, keys, crafting | 5 | Deferred | Bags inside bags, items with uses, keys bound to doors, making items |
+| D-90 | Containers, charges, keys, crafting | 5 | Deferred | Bags inside bags, items with uses, keys bound to doors, making items. Crafting plan (Ali, 07/11/2026, loot L4): a recipe consumes inputs and makes a check; outcome tier ID sets the quality (−1 plain base, 0 → 1, 1 → 2, 2 → 3, 3 → 4); failure tiers lose the inputs |
 | D-91 | Consumable effects | 5 | Deferred | Healing and timed buffs; waits for Healing and Status effects |
 | D-92 | Loot and item creation | 5 | Deferred | Loot tables, minting detail, items with no library base. Minting is base item + quality tier for now |
 | D-93 | Shops, trade and prices | 5 | Deferred | Buying, selling, haggling, prices by place. value is a placeholder until then. Voyage playtest (07/11/2026): B3, a payment must happen once; B13, prices out of scale |
