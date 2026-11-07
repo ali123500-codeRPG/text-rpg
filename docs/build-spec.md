@@ -24,7 +24,7 @@ Skills are grouped into trees of exactly three. Example only: Tactics = Preparat
 
 - Combat – Melee: light weapons, medium weapons, heavy weapons
 - Combat – Ranged: light ranged, medium ranged, heavy ranged
-- Combat – Unarmed: strike, grapple, natural weapons; they behave the same for now (Part 5 §5). Natural weapons are for creatures only for now: humans have none, so the player can't raise it and the creation screen shows it locked (Ali, 07/11/2026)
+- Combat – Unarmed: strike, grapple, improvisation; they behave the same for now (Part 5 §5). Improvisation is fighting with whatever is at hand: improvised weapons (Part 5 §7) roll it (Ali, 07/11/2026). Natural weapons is a creature-only skill outside every player tree (creatures' natural attacks roll it)
 - Combat – Defense: dodge, block, endurance
 
 Endurance sets total HP (Part 3, Total HP). An average fighter has 50 in a combat skill; this is the design reference point. Mastery perks apply to these trees as to any other.
@@ -2369,7 +2369,7 @@ Reduction before the multiplier bites light weapons hardest, so heavy weapons ea
 - **Coins** are a stackable library item, bulk 0. **value** is a base price in coins on every item (*placeholder*); no code reads it until trade exists.
 - **Concealed items** stay out of other actors' views while held or worn, until used in an event that actor perceives; that observer's Belief.revealed then keeps it. Accessories are hidden by default unless tagged visible.
 - **Minting** (for now): a variant = a base library item + quality tier 1–4 + public name and look. Code reads the tier's bonuses from QUALITY\_TABLE and writes a story blueprint, within the per-scene minted cap. A minted item with no close library match uses the nearest generic base: improvised\_light, improvised\_medium or improvised\_heavy for an odd weapon, curio (misc, no effects) for a thing with no game effect (Ali, 07/11/2026, loot L2).
-- **Improvised items** (Ali, 07/11/2026, loot L3): when the player fights with a scene object not in the view, the Parser names an improvised base by size and a short name. Code writes a story blueprint (that base, the given name as name and look), puts it in the player's inventory and swaps it into hand before the attack. Improvised bases carry hitAdj IMPROVISED\_HIT\_ADJ (*placeholder*, −10) and no kit bonus.
+- **Improvised items** (Ali, 07/11/2026, loot L3): when the player fights with a scene object not in the view, the Parser names an improvised base by size and a short name. Code writes a story blueprint (that base, the given name as name and look), puts it in the player's inventory and swaps it into hand before the attack. Improvised bases roll the Improvisation skill (Combat – Unarmed), carry hitAdj IMPROVISED\_HIT\_ADJ (*placeholder*, −10) and no kit bonus.
 - **Needs data.** Every story item blueprint (minted or improvised) is listed on the GM page under Needs data, so the designer can give it its own data and promote it.
 
 QUALITY\_TABLE (*placeholder*): per tier 1/2/3/4, weapon hitAdj +2/+4/+6/+8 or damageAdj +1/+2/+3/+4 (the variant names which); armor reduction +1/+1/+2/+2; tool skill bonus +5/+10/+15/+20. Highest tier allowed by the scene's gain grade: minor 1, moderate 2, major 3, extreme 4.

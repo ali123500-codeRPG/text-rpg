@@ -15,7 +15,8 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('ranged_heavy', 'ranged', ['ranged_attack'], ['grip']),
   sk('unarmed_strike', 'unarmed', ['unarmed_attack'], ['grip']),
   sk('unarmed_grapple', 'unarmed', ['unarmed_attack'], ['grip']),
-  sk('unarmed_natural', 'unarmed', ['unarmed_attack'], ['strike'], false), // creatures only for now (Ali, 07/11/2026)
+  sk('unarmed_improvised', 'unarmed', ['unarmed_attack'], ['grip']), // fighting with whatever is at hand (Ali, 07/11/2026)
+  sk('unarmed_natural', 'unarmed', ['unarmed_attack'], ['strike'], false), // creatures only, in no player tree (Ali, 07/11/2026)
   sk('dodge', 'defense', ['defense'], ['move']),
   sk('block', 'defense', ['defense'], ['grip']),
   sk('endurance', 'defense', [], []),
@@ -71,11 +72,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: 'healing_draught', kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
   // generic bases for minted items with no close match, and for scene objects the player grabs (loot L2, L3)
   { id: 'improvised_light', kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
-    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'light', reach: 0, hands: 1, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
+    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'light', skill: 'unarmed_improvised', reach: 0, hands: 1, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
   { id: 'improvised_medium', kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
-    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'medium', reach: 0, hands: 1, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
+    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'medium', skill: 'unarmed_improvised', reach: 0, hands: 1, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
   { id: 'improvised_heavy', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
-    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'heavy', reach: 0, hands: 2, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
+    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'heavy', skill: 'unarmed_improvised', reach: 0, hands: 2, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
   { id: 'curio', kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
   { id: 'coin', kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
@@ -220,7 +221,7 @@ export function prototypeLibrary(): Library {
     trees: {
       melee: { id: 'melee', name: 'Combat – Melee', skills: ['melee_light', 'melee_medium', 'melee_heavy'] },
       ranged: { id: 'ranged', name: 'Combat – Ranged', skills: ['ranged_light', 'ranged_medium', 'ranged_heavy'] },
-      unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_natural'] },
+      unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'] },
       defense: { id: 'defense', name: 'Combat – Defense', skills: ['dodge', 'block', 'endurance'] },
       perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'] },
       speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'] },
