@@ -1782,6 +1782,7 @@ The save has two layers. The library holds blueprints shared by every story. A s
 | Bands, clocks, settings | Story | Yes | Settings: difficulty, SHOW\_MECHANICS, tone |
 | Engine state | Story | Yes | Turn, mode, RNG seed and state, pending, stage, scene caps |
 | Turn records | Story | Last N | N is a placeholder (section 6) |
+| Story text | Story | Yes, all of it | The play screen's story column, in documents of HISTORY\_CHUNK\_TURNS turns (section 10). Ali, 07/11/2026, easy open questions Q18 |
 
 - **Story isolation.** Every story-scoped read and write takes the story id. Each story lives under its own storage namespace. No function reads across stories. Views are built only from the loaded story.
 - **Lookup order.** An id resolves in the story's blueprints first, then in the library.
@@ -1913,6 +1914,7 @@ stories/<storyId>/control/lock        turn lock (lease)
 stories/<storyId>/pages/<key>@<turn>  one page version, e.g. actor.rook@41
 stories/<storyId>/turns/<turn>        one turn record
 stories/<storyId>/backups/<turn>      one in-database backup (section 11)
+stories/<storyId>/history/<n>         story text for turns n×HISTORY_CHUNK_TURNS onward
 ```
 
 Page keys: engine, hidden, actor.\<id>, place.\<id>, facts.\<placeId>.\<n>, blueprint.\<id>.
@@ -1982,6 +1984,7 @@ Raw skill above 100 is logged as a warning, not refused, because workaround mech
 | --- | --- | --- |
 | Any page | 256 KiB (platform) | Busy places split facts into more facts.\<placeId>.\<n> pages |
 | Turn records | Last N (placeholder) | Oldest records are deleted; story history stays |
+| Story text | HISTORY\_CHUNK\_TURNS turns per document (20) | A new document starts; nothing is pruned. If one document passes 256 KiB its lines keep their text and lose the code-built extras (mechanics, heard lines, changes) |
 | Claude proposals | Fact text and name length; promotions and minted items per scene (placeholders) | The validator rejects the proposal |
 | Whole story | 25,000 documents per database, shared by the library and every story; total size and per-collection caps unpublished | Saving stops and the game says so. Data is never dropped silently |
 
@@ -2280,6 +2283,7 @@ A save counts only once the head is written, so a crash at any earlier step leav
 4. Write turns/\<turn>.
 5. Write control/head: the new turn, the full page map, undo = the previous head's bookmark. This is the commit.
 6. Clean up: delete page versions that no bookmark (head, undo, safety) points to, and turn records older than the last N.
+7. After the narration is shown, write the story text: every history/\<n> document the turn's new lines fall in, rewritten whole. It is not part of the commit, so a failure costs only text. Loading a story reads every history document, so a reload shows the whole story column (Q18).
 
 On unavailable, retry the failed write once. On quota\_exceeded, stop, keep the last good head, and tell the player.
 

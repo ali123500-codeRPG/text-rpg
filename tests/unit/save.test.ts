@@ -4,9 +4,9 @@ import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import {
   LoadRefusedError, MIGRATIONS, acquireTurnLock, artifactDbStore, listBackups, listStories, loadStory, memoryStore,
-  readTurnRecord, releaseTurnLock, restoreBackup, saveTurn, undoTurn, useBookmark, type DB,
+  loadHistory, readTurnRecord, releaseTurnLock, restoreBackup, saveHistory, saveTurn, undoTurn, useBookmark, type DB,
 } from '../../src/save';
-import type { GameState, Head, StoryFact, TurnRecord } from '../../src/types';
+import type { GameState, Head, LogLine, StoryFact, TurnRecord } from '../../src/types';
 
 const rec = (s: GameState, turn: number, extra: Partial<TurnRecord> = {}): TurnRecord =>
   ({ storyId: s.storyId, turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [], ...extra });
@@ -358,5 +358,38 @@ describe('artifact db adapter', () => {
     expect(calls).toEqual(['acquire stories/a/control/lock w1 60000', 'acquire stories/a/control/lock w1 1000']);
     fail = 2;
     await expect(st.set('stories/b', {})).rejects.toMatchObject({ code: 'unavailable' });
+  });
+});
+
+describe('story text (Q18)', () => {
+  it('saves the story column in chunks of HISTORY_CHUNK_TURNS turns and loads it back whole, in order', async () => {
+    const st = memoryStore();
+    const lines: LogLine[] = [];
+    let saved = 0;
+    for (let t = 0; t <= 45; t++) {
+      lines.push({ turn: t, kind: 'player', text: `go ${t}` }, { turn: t, kind: 'narration', text: `turn ${t}`, mechanics: ['d100 50'] });
+      await saveHistory(st, 'a', lines, saved);
+      saved = lines.length;
+    }
+    expect((await st.list('stories/a/history')).length).toBe(3); // turns 0-19, 20-39, 40-45
+    expect(await loadHistory(st, 'a')).toEqual(lines);
+    expect(await loadHistory(st, 'b')).toEqual([]);
+  });
+
+  it('a line added late for an earlier chunk rewrites that chunk too', async () => {
+    const st = memoryStore();
+    const lines: LogLine[] = [{ turn: 19, kind: 'narration', text: 'a' }];
+    await saveHistory(st, 'a', lines, 0);
+    lines.push({ turn: 19, kind: 'command', text: 'Difficulty: hard.' }, { turn: 20, kind: 'narration', text: 'b' });
+    await saveHistory(st, 'a', lines, 1);
+    expect((await loadHistory(st, 'a')).map((l) => l.text)).toEqual(['a', 'Difficulty: hard.', 'b']);
+  });
+
+  it('a chunk over 256 KiB keeps the text and drops the code-built extras', async () => {
+    const st = memoryStore();
+    const big = 'x'.repeat(40_000);
+    const lines: LogLine[] = Array.from({ length: 5 }, (_, i) => ({ turn: i, kind: 'narration' as const, text: `t${i}`, mechanics: [big, big] }));
+    await saveHistory(st, 'a', lines, 0);
+    expect(await loadHistory(st, 'a')).toEqual(lines.map(({ turn, kind, text }) => ({ turn, kind, text })));
   });
 });
