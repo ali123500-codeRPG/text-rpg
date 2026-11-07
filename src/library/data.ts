@@ -14,7 +14,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('ranged_heavy', 'ranged', ['ranged_attack'], ['grip']),
   sk('unarmed_strike', 'unarmed', ['unarmed_attack'], ['grip']),
   sk('unarmed_grapple', 'unarmed', ['unarmed_attack'], ['grip']),
-  sk('unarmed_natural', 'unarmed', ['unarmed_attack'], ['strike']),
+  sk('unarmed_natural', 'unarmed', ['unarmed_attack'], ['strike'], false), // creatures only for now (Ali, 07/11/2026)
   sk('dodge', 'defense', ['defense'], ['move']),
   sk('block', 'defense', ['defense'], ['grip']),
   sk('endurance', 'defense', [], []),

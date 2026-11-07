@@ -24,7 +24,7 @@ Skills are grouped into trees of exactly three. Example only: Tactics = Preparat
 
 - Combat – Melee: light weapons, medium weapons, heavy weapons
 - Combat – Ranged: light ranged, medium ranged, heavy ranged
-- Combat – Unarmed: strike, grapple, natural weapons; they behave the same for now (Part 5 §5)
+- Combat – Unarmed: strike, grapple, natural weapons; they behave the same for now (Part 5 §5). Natural weapons are for creatures only for now: humans have none, so the player can't raise it and the creation screen shows it locked (Ali, 07/11/2026)
 - Combat – Defense: dodge, block, endurance
 
 Endurance sets total HP (Part 3, Total HP). An average fighter has 50 in a combat skill; this is the design reference point. Mastery perks apply to these trees as to any other.
@@ -845,6 +845,7 @@ Rules:
 5. Use every character's spoken line exactly as given, and only if the player character heard it.
 6. List in "narrated" the id of every event your text describes.
 7. Keep to the length given in STYLE. End on a moment that invites the player's next move. Do not list options.
+8. Never write the player character's words or decisions beyond the resolved action.
 
 Return only JSON matching the schema.
 ```
@@ -1339,7 +1340,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 92 | Reach | A reach-1 spear hits a target one linked zone away with sight; the same attack through a link without sight becomes a wasted action |
 | 93 | Thrown | A thrown dagger ends on the ground of the target's zone, hit or miss |
 | 94 | Uncovered part | A hauberk covering general area and arms: an aimed head hit takes no armor, a torso hit does |
-| 95 | Stacked armor | A creature with natural armor wearing armor takes damage reduced by worn, then natural, rounded, floor 0 |
+| 95 | Stacked armor | A creature with natural armor wearing armor takes damage reduced by worn, then natural, floor 0, not rounded |
 | 96 | Armor pool | A head hit on a heavy helm drains the helm pool before the head pool; the health track ignores the helm pool |
 | 97 | Concealed blade | An NPC's view omits a concealed blade until the NPC perceives an attack with it; after that its belief keeps it |
 | 98 | Minted reward cap | A Weaver plan with a quality-3 variant on a moderate-gain scene fails validation; quality 2 passes |
@@ -1650,7 +1651,7 @@ Code runs the whole exchange; Claude gets one packet afterwards and narrates fro
 3. Defense roll with the standing defense, then its tier shifts.
 4. Gap = defense tier − attack tier + gap shifts; read the gap ladder (past ±5: the ±5 entry). A 0× result ends here as dodged.
 5. Location: aimed → the aimed part; else the location roll on the hit table. At gap −2 move to the named part if adjacent; at −3 or lower, to the named part anywhere. A part the defense forbids → the general area. Blocking with a shield → the shield.
-6. Damage: by the damage step in Part 5 §6 (class damage and bonuses, the tier-gap multiplier, worn then natural armor, rounding, floor 0, armor pools).
+6. Damage: by the damage step in Part 5 §6 (class damage and bonuses, the tier-gap multiplier, worn then natural armor, floor 0 with no rounding, armor pools).
 7. **Body part:** apply the damage to that part's pool (the general area skips this) and update its state; a Destroyed part is removed and the hit table rebuilt. Fire `part_state_changed` if the state changed.
 8. **Health track:** add the damage × impact (non-essential 0, normal 1, essential 1.5); a Destroyed essential part sets HP to 0. Fire threshold\_crossed if the level changed.
 9. **Listeners:** perks, enemy AI and story scripts react; each reaction becomes an event.
@@ -2316,7 +2317,7 @@ base  = WEAPON_CLASSES[mode.class].damage + mode.damageAdj + damage perks
 dmg   = base × gapMultiplier(defense outcome)                 // Part 3, Defense
 if worn armor covers the struck part:    dmg = (dmg − worn.reduction) × worn.multiplier
 if natural armor covers the struck part: dmg = (dmg − nat.reduction)  × nat.multiplier
-dmg   = max(0, round(dmg))
+dmg   = max(0, dmg)          # no rounding: fractions allowed (Ali, 07/11/2026)
 if an armor pool covers the part: the pool absorbs first, the rest goes on
 then Part 3: part pool, then the health track × impact (unchanged)
 ```
@@ -2430,7 +2431,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-74 | Turn-record count N and proposal caps | 4 | Deferred | Placeholders; set after measuring the platform caps |
 | D-75 | Diminishing-returns values per modifier type | 1 | Deferred | Roll perks, wounds, situational, aim |
 | D-76 | Outnumbered and unaware values | 3 | Deferred | For the defense roll |
-| D-77 | Damage and HP balance pass | 3 | Deferred | After playtests: weapon damage and hit values, armor, HP\_BASE and HP\_PER\_END, part shares. Voyage playtest (07/11/2026): B7. Decided by Ali (07/11/2026): HP, part pools and damage may be fractional (OQ-25) |
+| D-77 | Damage and HP balance pass | 3 | Deferred | After playtests: weapon damage and hit values, armor, HP\_BASE and HP\_PER\_END, part shares. Voyage playtest (07/11/2026): B7. Decided by Ali (07/11/2026): HP, part pools and damage may be fractional, with no rounding anywhere (was OQ-25) |
 | D-78 | Critical effects | 1 | Deferred | For Critical Failure and Critical Success; excluded from the hit roll review |
 | D-79 | Partial-hit cost | 3 | Deferred | Whether a Partial attack that lands leaves the attacker exposed; left out for now |
 | D-80 | Tiny parts | 3 | Deferred | Their pool share, when the first Tiny part is used |
@@ -2473,7 +2474,7 @@ Decisions built as written for the first build, to be checked once the game is p
 
 ## Open questions (answer before sharing)
 
-These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review; OQ-25 to OQ-27 from the Voyage playtest (07/11/2026). A question with a build default is built that way until it is answered.
+These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review; OQ-27 from the Voyage playtest (07/11/2026). A question with a build default is built that way until it is answered.
 
 - OQ-4: Does every attack on an unaware actor make an ambush roll, or only an attack made while sneaking?
   - Build default: every attack on an unaware actor.
@@ -2499,12 +2500,8 @@ These must be answered before the spec goes to a build agent. Each question has 
   - Build default: placeholder ids, renamed through library aliases later.
 - OQ-22: Changing objects and places. In the first build a check or a contest only changes beliefs and reveals secrets (Part 2, Resolution engine). How one changes an object or a place, such as a forced door, a picked lock or a stolen item, is not designed yet.
   - Build default: nothing changes; the attempt is only narrated.
-- OQ-25: Fractional values (Voyage B7). Ali decided HP, part pools and damage may be fractional (D-77). Open: does armor reduction still round (scenario test 95), and how many decimals does the player see? Recommendation: no rounding in the engine; show whole numbers and round only for display.
-  - Build default: as written until answered (test 95 rounds armor reduction).
-- OQ-26: The Narrator speaking for the player (Voyage D6). The Narrator wrote the player's words ("Deal.") and choices, and code can't catch an invented line. Recommendation: add an Agent Narrator rule: never write the player character's speech or decisions beyond the resolved action.
-  - Build default: no such rule.
-- OQ-27: Unclear addressee (Voyage A8). The wrong NPC answered. Should an ambiguous addressee get a clarify question instead of the nearest addressed member answering (Part 2, Dialogue turn step 2)?
-  - Build default: the nearest addressed member answers, as written.
+- OQ-27: Unclear addressee (Voyage A8). The wrong NPC answered. Options: (a) sticky partner: the NPC you last spoke with stays the addressee until you name someone else, then the nearest; (b) clarify: when more than one addressed member is in view and none is named, code asks "Who do you speak to: A or B?" using only people the player can see, with no Claude call and no turn spent; (c) both: sticky partner first, and clarify only when there is no partner yet. Recommendation: (c).
+  - Build default: the nearest addressed member answers, as written (Part 2, Dialogue turn step 2).
 
 ## Appendix: prototype routine bank
 

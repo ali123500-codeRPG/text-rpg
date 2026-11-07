@@ -230,7 +230,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(location)) dmg = (dmg - a.reduction) * a.multiplier;
   }
-  const damage = Math.max(0, Math.round(dmg));
+  const damage = Math.max(0, dmg); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
   return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(location === 'shield' ? { shieldItemId: blocker!.id } : {}) };
 }
 
