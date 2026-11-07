@@ -97,7 +97,8 @@ function defeatAchievements(state: GameState, t: Actor): void {
     if (d.by === 'race' && !race) continue;
     const of = d.by === 'race' ? race! : type;
     if ((n[d.by ? `${d.by}:${of}` : 'all'] ?? 0) < d.count) continue;
-    const name = d.name.replace('{creature}', title(creature)).replace('{race}', title(race ?? ''));
+    const raceName = race ? getLibrary().races?.[race]?.name ?? race : '';
+    const name = d.name.replace('{creature}', title(creature)).replace('{race}', title(raceName));
     grantAchievement(state, d.by ? `${d.id}:${of}` : d.id, name, d.xp);
   }
 }
