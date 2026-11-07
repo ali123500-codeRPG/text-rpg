@@ -1,3 +1,4 @@
+import type { Tier } from '../../src/types';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { Intent, RollRequest } from '../../src/types';
 import { makeVillage, actor, createRng } from '../harness';
@@ -12,7 +13,7 @@ it('23 Silent kill: nobody else perceives the attack; the next turn is Explore',
   const slime = actor(s, 'slime_1');
   slime.core.condition.hpLostPct = 99.9;
   vi.spyOn(ruleset, 'roll').mockImplementation((req: RollRequest) => {
-    const tier = req.actorId === 'player' ? 2 : -3;
+    const tier: Tier = req.actorId === 'player' ? 'critical_success' : 'critical_failure';
     return { actorId: req.actorId, skill: req.skill, d100: 50, margin: 0, tier, natural: 0, modifiers: [], tierShifts: [] };
   });
   const intent: Intent = {

@@ -2,8 +2,12 @@
 // GAP: the spec says "Return only JSON matching the schema" but gives no schema text; the *_SHAPE texts below are ours,
 // written from the spec's output notation, and appended to the fixed part (still fixed, never per turn).
 
-import { CONFIG, TIER_NAMES } from '../config';
-import { ORDER_TYPES } from '../types';
+import { CONFIG } from '../config';
+import { gradesFitText } from '../scene/validate';
+import { GRADES, ORDER_TYPES } from '../types';
+import { COVER, LIGHT, TACTICS, TIERS, type Scale } from '../scales';
+/** a scale's levels as the JSON choices Claude may write (G4) */
+const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.stringify(sc.name(k))).join('|');
 
 export const PARSER_INSTRUCTIONS = "You are the Intent Parser for a text RPG. You turn the player's words into structured actions. You never narrate and never decide outcomes.\n\nYou receive:\n- PLAYER_INPUT: what the player typed.\n- PLAYER_VIEW: what the character knows right now: skills, perks, inventory, current zone, and the zones and actors they can perceive.\n\nRules:\n1. Use only targets, items and skills present in PLAYER_VIEW. If the player names something that isn't there, map it to the closest thing that is, or ask.\n2. A turn holds at most one move and one main action. Speaking counts as the main action; words said alongside another action are a passing remark, kept in \"spoken\" as a bark. Put anything extra in \"deferred\".\n3. Choose the skill a fair game master would call for. If two fit, pick the one the player's wording stresses.\n4. Keep the player's style in \"approach\", e.g. \"quietly, from behind the crates\".\n5. If the intent is truly unclear, return only \"clarify\" with one short question.\n6. Never assume success. \"I kill the guard\" is an attack, not a kill.\n7. When the player speaks to someone, list in \"addressees\" whom the words are for: named characters, a group (\"the guards\"), or everyone.\n8. If the player names a body part of the target, put it in \"targetPart\". Never decide whether the attack is aimed.\n9. Drawing, stowing, swapping, putting on or taking off accessories and picking things\n   up go in \"gear\"; they cost nothing. Putting armor on or taking it off is an \"equip\"\n   action. Name the item, and the attack mode, when the player names them.\n10. If the player fights with an object from the scene that is not in PLAYER_VIEW (a chair, a\n   bottle), set \"improvised\": the base by its size (improvised_light, improvised_medium,\n   improvised_heavy) and a short name for the object. Leave \"item\" null.\n\nReturn only JSON matching the schema.";
 
@@ -42,26 +46,24 @@ export const VOICE_SHAPE = `{"action":${NPC_ACTION},"line":string,"volume":"whis
 export const NARRATOR_SHAPE = '{"text":string,"narrated":[event_id]}';
 export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain":grade},
  "places":[{"key","name","kind","parent":placeKey|placeId|null}],
- "zones":[{"key","place","name","look","cover":"none"|"some"|"heavy","light":"bright"|"dim"|"dark","links":[{"to","label","sight":boolean}]}],
+ "zones":[{"key","place","name","look","cover":${words(COVER)},"light":${words(LIGHT)},"links":[{"to","label","sight":boolean}]}],
  "frontiers":[{"key","label"}],
- "bands":[{"key","name","goals","temperament","tacticsLevel":"simple"|"competent"|"cunning","lethal":boolean,"relations":{bandKey:"opposed"|"neutral"|"friendly"}}],
+ "bands":[{"key","name","goals","temperament","tactics":${words(TACTICS)},"lethal":boolean,"relations":{bandKey:"opposed"|"neutral"|"friendly"}}],
  "cast":[{"template"?:templateId,"actor"?:actorId,"label","name","appearance","knownOnSight"?:true,"knows"?:[{"id","text"}],"key","band","routineSetId",
    "slots":{slot:zone|[zone]} (a route slot lists 1 to ${CONFIG.MAX_ROUTE_ZONES} zones; one zone means stay there),"startAt"?:slot,"routineGap"?:string,
    "awarenessOfPlayer":awareness,"awarenessOfBands"?:[{"band":bandKey|bandId,"awareness":awareness}],"overrides"?:[{"actor","stance"}],"motive":string}],
- "seeds":{"plans":[{"ownerId","goal","steps":[short phrase],"triggers":[trigger, ownerId defaults to the plan owner],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string, at least one],"revealWhen":{"type":"event_in_zone","kind","zone"}|{"type":"check_passed","skill":skill id from catalogs.skills,"minTier":tierId,"againstActorId"}}]},
+ "seeds":{"plans":[{"ownerId","goal","steps":[short phrase],"triggers":[trigger, ownerId defaults to the plan owner],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string, at least one],"revealWhen":{"type":"event_in_zone","kind","zone"}|{"type":"check_passed","skill":skill id from catalogs.skills,"minTier":tier,"againstActorId"}}]},
  "rewards":[{"item":itemId|{"base","quality":1|2|3|4,"boosts","name","look"},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone}}],
  "hiddenTerms":[string],"weaverNote":string}
-grade = "none"|"minor"|"moderate"|"major"|"extreme"
+grade = ${GRADES.map((g) => JSON.stringify(g)).join("|")}
 trigger = {"id","ownerId":actor key or id,"when":{"type":"player_seen_in_zone","zone"}|{"type":"turn_reached","turn":number}|{"type":"actor_down","actorId"}|{"type":"alarm_heard"},"then":{"type":orderType,"target":string|null,"skill":string|null,"intent"},"once"?:boolean (default true)}
 orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}
 awareness = what the character knows: "unaware"|"suspicious"|"aware" (hostility goes in band relations)
-tierId = a tier as its number: ${Object.entries(TIER_NAMES).sort(([a], [b]) => +a - +b).map(([id, n]) => `${id} ${n}`).join(', ')}
+tier = ${words(TIERS)}
 Public text (every name, label, appearance, look, link label and knows text) is at most ${CONFIG.TEXT_CAP} characters; hidden notes are cut at ${CONFIG.NOTE_CAP}.
 No word or phrase from hiddenTerms or any secret's leakTerms may appear in public text, so list only words that public text never uses.
 Terms match whole words only.
-Grades must fit the tier: Critical Failure = challenge major or extreme, gain none or minor; Failure = challenge moderate or
-higher, gain none or minor; Near Miss and Success = challenge minor to major, gain within one step of it; Great Success = challenge
-major or extreme, gain major; Critical Success = both extreme.
+Grades must fit the tier: ${gradesFitText()}.
 In a dark zone people are only half seen: hearths and lamps are bright or dim, cellars and night are dark.
 Slots bind zones only, never frontiers; every zone an actor's slots bind must be reachable from its first bound zone by links.
 A player-band cast entry uses routine set "companion" and binds no slots.

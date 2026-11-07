@@ -7,17 +7,17 @@ describe('36 Situation modifiers', () => {
   it('a perk naming the situation roll changes it; Wounded and terrain do not', () => {
     const s = makeVillage();
     const base = ruleset.situation(s.player, s, forcedRng([60]));
-    expect(base.tier).toBe(0); // total 60
+    expect(base.tier).toBe('success'); // total 60
 
     getLibrary().perks.lucky_star = { id: 'lucky_star', name: 'Lucky star', situation: 20 };
     s.player.core.perks.push({ perkId: 'lucky_star', source: 'level', gainedTurn: 0 });
     const perk = ruleset.situation(s.player, s, forcedRng([60]));
     expect(perk.modifiers).toEqual([{ source: 'Lucky star', type: 'perk', value: 20 }]);
-    expect(perk.tier).toBe(1); // total 80
+    expect(perk.tier).toBe('great_success'); // total 80
     s.player.core.perks = [];
 
     s.player.core.condition.hpLostPct = 50; // Wounded
-    for (const z of s.zones) { z.cover = 2; z.light = 2; } // terrain
+    for (const z of s.zones) { z.cover = 'heavy'; z.light = 'dark'; } // terrain
     const hurt = ruleset.situation(s.player, s, forcedRng([60]));
     expect(hurt.modifiers).toEqual([]);
     expect(hurt.tier).toBe(base.tier);

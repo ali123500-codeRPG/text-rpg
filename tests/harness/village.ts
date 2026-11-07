@@ -1,13 +1,13 @@
 // Scenario-test fixture: the prototype village built directly (no Weaver call), deterministic.
 // Gate, street, tavern and a slime field outside the gate. Tests mutate the returned state freely.
-import type { Actor, Band, GameState, Place, Zone, ZoneLink } from '../../src/types';
+import type { Actor, Band, Cover, Light, GameState, Place, Zone, ZoneLink } from '../../src/types';
 import { spawnNpc, equipLoadout, fullParts } from '../../src/library/spawn';
 import { resetLibrary } from '../../src/library';
 import { resetConfig } from '../../src/config';
 import { getLibrary, routineSet } from '../../src/library';
 
 const L = (to: string, label: string, sight = true, frontier = false): ZoneLink => ({ to, label, sight, ...(frontier ? { frontier: true as const } : {}) });
-const Z = (id: string, placeId: string, name: string, look: string, links: ZoneLink[], cover: 0 | 1 | 2 = 0, light: 0 | 1 | 2 = 0): Zone =>
+const Z = (id: string, placeId: string, name: string, look: string, links: ZoneLink[], cover: Cover = 'none', light: Light = 'bright'): Zone =>
   ({ id, placeId, name, look, links, cover, light, groundItems: [] });
 
 export function villagePlaces(storyId = 'test'): Place[] {
@@ -18,7 +18,7 @@ export function villagePlaces(storyId = 'test'): Place[] {
     P('tavern', 'place', 'village', 'The Crooked Kettle', [
       Z('tav_common', 'tavern', 'common room', 'a low smoky room of benches and tables', [L('tav_counter', 'behind the bar'), L('street_door', 'out the front door', false)]),
       Z('tav_counter', 'tavern', 'behind the bar', 'a scarred counter with kegs behind it', [L('tav_common', 'the common room'), L('tav_cellar', 'down the cellar steps', false)]),
-      Z('tav_cellar', 'tavern', 'cellar', 'a damp cellar of barrels', [L('tav_counter', 'up the cellar steps', false)], 1, 2),
+      Z('tav_cellar', 'tavern', 'cellar', 'a damp cellar of barrels', [L('tav_counter', 'up the cellar steps', false)], 'some', 'dark'),
     ]),
     P('street', 'place', 'village', 'Market Street', [
       Z('street_door', 'street', 'outside the tavern', 'a muddy street before the tavern door', [L('tav_common', 'inside the tavern', false), L('street_square', 'down the street')]),
@@ -30,14 +30,14 @@ export function villagePlaces(storyId = 'test'): Place[] {
     P('field', 'place', 'village', 'the slime field', [
       Z('field_edge', 'field', 'edge of the field', 'trampled grass outside the palisade', [L('gate_inner', 'back through the gate'), L('field_mid', 'out across the field')]),
       Z('field_mid', 'field', 'the open field', 'wet grass streaked with slime trails', [L('field_edge', 'toward the gate'), L('field_far', 'the far side of the field')]),
-      Z('field_far', 'field', 'far side of the field', 'long grass by a line of trees', [L('field_mid', 'back across the field'), L('woods', 'into the woods', false, true)], 1),
+      Z('field_far', 'field', 'far side of the field', 'long grass by a line of trees', [L('field_mid', 'back across the field'), L('woods', 'into the woods', false, true)], 'some'),
     ]),
   ];
 }
 
 export function villageBands(): Band[] {
   const B = (id: string, name: string, relations: Band['relations'], lethal = true): Band =>
-    ({ id, name, goals: '', temperament: '', tacticsLevel: 1, lethal, relations });
+    ({ id, name, goals: '', temperament: '', tactics: 'simple', lethal, relations });
   return [
     B('player_band', 'the player', { slimes: 'opposed' }),
     B('village_watch', 'the village watch', { slimes: 'opposed' }),
@@ -111,12 +111,12 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     rngSeed: seed, rngState: seed,
     pending: { turn: 1, mode: 'explore', engaged: [], fired: [] },
     places, facts: [],
-    stage: { zoneIds, tier: 0, sceneNumber: 1, sceneStartTurn: 0 },
+    stage: { zoneIds, tier: 'success', sceneNumber: 1, sceneStartTurn: 0 },
     sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [],
     settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,
     blueprints: [],
-    meta: { storyId, title: 'Test story', schemaVersion: 2, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
+    meta: { storyId, title: 'Test story', schemaVersion: 3, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
   };
   return state;
 }

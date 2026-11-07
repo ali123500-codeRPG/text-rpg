@@ -5,7 +5,8 @@ import type { GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView } from '../views';
 import { tierGap } from '../agents/game';
-import { tierName } from '../ruleset';
+import { tierAtLeast, tierName } from '../ruleset';
+import type { TierRoll } from '../types';
 import { h } from './kit';
 import { sideSheet } from './charsheet';
 import { skillName } from './creation';
@@ -34,7 +35,7 @@ function checkIcon(kind: 'attack' | 'contest'): SVGSVGElement {
   p.setAttribute('d', ICON_PATH[kind]); s.append(p);
   return s;
 }
-const tierChip = (t: number) => h('span', { class: 'tier ' + (t >= 1 ? 'great' : t === 0 ? 'ok' : t === -1 ? 'near' : 'bad') }, tierName(t));
+const tierChip = (t: TierRoll) => h('span', { class: 'tier ' + (tierAtLeast(t, 'great_success') ? 'great' : tierAtLeast(t, 'success') ? 'ok' : tierAtLeast(t, 'near_miss') ? 'near' : 'bad') }, tierName(t));
 
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
@@ -110,8 +111,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (l.kind !== 'narration') return [h('p', { class: 'ln-' + l.kind }, l.text)];
     const c = l.check;
     return [
-      c ? h('p', { class: 'check' }, checkIcon(c.kind), h('span', { class: 'sk' }, skillName(c.skill)), tierChip(c.tier),
-        c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against.tier), h('span', { class: 'gap' }, tierGap(c.tier, c.against.tier))] : null,
+      c ? h('p', { class: 'check' }, checkIcon(c.kind), h('span', { class: 'sk' }, skillName(c.skill)), tierChip(c),
+        c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against), h('span', { class: 'gap' }, tierGap(c, c.against))] : null,
         h('span', { class: 'res' }, '→ ', h('b', {}, c.result))) : null,
       h('p', { class: 'ln-narration' }, l.text),
       ...(l.speech ?? []).map((sp) => h('div', { class: 'line' },

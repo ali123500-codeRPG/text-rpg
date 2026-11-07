@@ -44,7 +44,8 @@ export type RollResult = {
   skill: string;
   d100: number;
   margin: number;
-  tier: Tier; // unclamped tier ID; tierName() gives the nearest named tier
+  tier: Tier; // clamped to the TIERS table
+  beyond?: number; // steps a shifted roll went past the end tier (+ above, − below); tierLevel() adds it
   natural: -2 | -1 | 0 | 1 | 2;
   modifiers: Mod[];
   tierShifts: TierShift[];
@@ -95,7 +96,6 @@ export type AttackResult = {
 };
 
 export interface Ruleset {
-  readonly TIERS: readonly Tier[]; // ordered best to worst
   initiative(actor: Actor, state: GameState, rng: Rng): number;
   check(req: CheckRequest, state: GameState, rng: Rng): CheckResult;
   contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult;

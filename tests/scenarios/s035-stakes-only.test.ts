@@ -6,9 +6,9 @@ import { toStoryStart, villageStagePlan } from '../../src/scene/fixtures';
 
 describe('35 Stakes only', () => {
   it('unaware threats under a Failure tier are fine', () => {
-    const p = villageStagePlan(-2);
+    const p = villageStagePlan('failure');
     for (const c of p.cast) c.awarenessOfPlayer = 'unaware';
     expect(p.event).toMatchObject({ challenge: 'moderate', gain: 'minor' });
-    expect(validateStagePlan(toStoryStart(makeVillage()), p, { tier: -2, kind: 'scene', placeId: 'tavern' })).toEqual([]);
+    expect(validateStagePlan(toStoryStart(makeVillage()), p, { tier: 'failure', kind: 'scene', placeId: 'tavern' })).toEqual([]);
   });
 });

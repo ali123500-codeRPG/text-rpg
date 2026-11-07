@@ -1,5 +1,5 @@
 // Agent I/O (Part 2: Parser, Planner, Responder, Voice, Narrator, Weaver) and the Claude-call boundary.
-import type { Grade, Stance } from './core';
+import type { Cover, Grade, Light, Stance, Tactics } from './core';
 import type { GearOp } from './items';
 import type { Plan, Secret, Trigger } from './hidden';
 
@@ -82,13 +82,13 @@ export type StagePlan = {
   places: { key: string; name: string; kind: string; parent: string }[];
   zones: {
     key: string; place: string; name: string; look: string;
-    cover: 0 | 1 | 2; light: 0 | 1 | 2;
+    cover: Cover; light: Light;
     links: { to: string; label: string; sight: boolean }[];
   }[];
   frontiers: { key: string; label: string }[];
   bands: {
     key: string; name: string; goals: string; temperament: string;
-    tacticsLevel: 1 | 2 | 3; lethal: boolean; relations: Record<string, Stance>;
+    tactics: Tactics; lethal: boolean; relations: Record<string, Stance>;
   }[];
   cast: {
     template?: string; actor?: string;

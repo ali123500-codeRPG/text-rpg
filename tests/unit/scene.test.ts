@@ -1,5 +1,6 @@
 // W6 unit tests: validator (every Validation bullet), grades table, apply, fallback, trim, director.
 // Other workstreams' functions are replaced with small local fakes.
+import type { Tier } from '../../src/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, GameState, StagePlan } from '../../src/types';
 
@@ -32,7 +33,7 @@ import {
 } from '../../src/scene';
 import { toStoryStart, villageStagePlan, VirtualClock, FITTING_GRADES } from '../../src/scene/fixtures';
 
-const ctx: PlanContext = { tier: 0, kind: 'scene', placeId: 'tavern' };
+const ctx: PlanContext = { tier: 'success', kind: 'scene', placeId: 'tavern' };
 const fresh = () => toStoryStart(makeVillage());
 const codes = (s: GameState, p: StagePlan, c: PlanContext = ctx) => validateStagePlan(s, p, c).map((e) => e.code);
 
@@ -40,17 +41,17 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('gradesFitTier', () => {
   it('follows the table', () => {
-    expect(gradesFitTier(-3, 'major', 'none')).toBe(true);
-    expect(gradesFitTier(-3, 'moderate', 'none')).toBe(false);
-    expect(gradesFitTier(-2, 'moderate', 'minor')).toBe(true);
-    expect(gradesFitTier(-2, 'moderate', 'major')).toBe(false);
-    expect(gradesFitTier(-1, 'minor', 'moderate')).toBe(true);
-    expect(gradesFitTier(0, 'minor', 'major')).toBe(false);
-    expect(gradesFitTier(0, 'none', 'none')).toBe(false);
-    expect(gradesFitTier(1, 'extreme', 'major')).toBe(true);
-    expect(gradesFitTier(1, 'major', 'moderate')).toBe(false);
-    expect(gradesFitTier(2, 'extreme', 'extreme')).toBe(true);
-    for (const [t, g] of Object.entries(FITTING_GRADES)) expect(gradesFitTier(+t, g.challenge, g.gain)).toBe(true);
+    expect(gradesFitTier('critical_failure', 'major', 'none')).toBe(true);
+    expect(gradesFitTier('critical_failure', 'moderate', 'none')).toBe(false);
+    expect(gradesFitTier('failure', 'moderate', 'minor')).toBe(true);
+    expect(gradesFitTier('failure', 'moderate', 'major')).toBe(false);
+    expect(gradesFitTier('near_miss', 'minor', 'moderate')).toBe(true);
+    expect(gradesFitTier('success', 'minor', 'major')).toBe(false);
+    expect(gradesFitTier('success', 'none', 'none')).toBe(false);
+    expect(gradesFitTier('great_success', 'extreme', 'major')).toBe(true);
+    expect(gradesFitTier('great_success', 'major', 'moderate')).toBe(false);
+    expect(gradesFitTier('critical_success', 'extreme', 'extreme')).toBe(true);
+    for (const [t, g] of Object.entries(FITTING_GRADES)) expect(gradesFitTier(t as Tier, g.challenge, g.gain)).toBe(true);
   });
 });
 
@@ -91,7 +92,7 @@ describe('validateStagePlan', () => {
     // a stage zone and an existing frontier are fine
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 1, light: 1, links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }] };
+      zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }] };
     expect(validateStagePlan(s, ext, { ...ctx, kind: 'extension', frontierKey: 'woods', placeId: 'field' })).toEqual([]);
   });
   it('triggers: vocabulary and one order; secrets need leakTerms', () => {
@@ -104,7 +105,7 @@ describe('validateStagePlan', () => {
     expect(c).toContain('secret_without_leak_terms');
   });
   it('grades must fit the tier', () => {
-    expect(codes(fresh(), villageStagePlan(), { ...ctx, tier: -2 })).toEqual(['grades_misfit']);
+    expect(codes(fresh(), villageStagePlan(), { ...ctx, tier: 'failure' })).toEqual(['grades_misfit']);
   });
   it('hidden terms and leak terms are scanned in every public field', () => {
     const p = villageStagePlan();
@@ -147,7 +148,7 @@ describe('validateStagePlan', () => {
   it('trigger orders and secret skills must exist; one route zone is fine (V9)', () => {
     const p = villageStagePlan();
     p.seeds.triggers.push({ id: 't2', ownerId: 'barkeep', when: { type: 'alarm_heard' }, then: { type: 'confront', target: null, skill: null, intent: 'x' }, once: true } as never);
-    p.seeds.secrets.push({ id: 's9', holderId: 'barkeep', fact: 'x', leakTerms: ['ledger'], revealWhen: { type: 'check_passed', skill: 'insight', minTier: 0, againstActorId: 'barkeep' } });
+    p.seeds.secrets.push({ id: 's9', holderId: 'barkeep', fact: 'x', leakTerms: ['ledger'], revealWhen: { type: 'check_passed', skill: 'insight', minTier: 'success', againstActorId: 'barkeep' } });
     const m = validateStagePlan(fresh(), p, ctx).map((e) => e.message);
     expect(m.some((x) => x.includes('then.type confront unknown'))).toBe(true);
     expect(m.some((x) => x.includes('skill insight unknown'))).toBe(true);
@@ -187,7 +188,7 @@ describe('validateStagePlan', () => {
   });
   it('bound zones must reach each other', () => {
     const p = villageStagePlan();
-    p.zones.push({ key: 'island', place: 'field', name: 'an island', look: 'reeds', cover: 0, light: 0, links: [] });
+    p.zones.push({ key: 'island', place: 'field', name: 'an island', look: 'reeds', cover: 'none', light: 'bright', links: [] });
     p.cast[3].slots = { route: ['field_mid', 'field_far'], post: 'island' };
     expect(validateStagePlan(fresh(), p, ctx)).toEqual([expect.objectContaining({ code: 'unreachable_zone', castKey: 'slime_1', routineOnly: true })]);
   });
@@ -244,7 +245,7 @@ describe('applyStagePlan', () => {
     const p = villageStagePlan();
     p.seeds.plans.push({ ownerId: 'guard_1', goal: 'catch the thief', steps: ['watch'], triggers: [], createdTurn: 99 });
     p.seeds.triggers.push({ id: 't1', ownerId: 'patron_1', when: { type: 'player_seen_in_zone', zone: 'tav_cellar' }, then: { type: 'call_help', target: 'barkeep', skill: null, intent: 'shout' }, once: true });
-    p.seeds.secrets.push({ id: 's1', holderId: 'barkeep', fact: 'owes money', leakTerms: ['debt'], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 0, againstActorId: 'barkeep' } });
+    p.seeds.secrets.push({ id: 's1', holderId: 'barkeep', fact: 'owes money', leakTerms: ['debt'], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 'success', againstActorId: 'barkeep' } });
     p.rewards.push({ item: { base: 'arming_sword', quality: 2, boosts: 'hitAdj', name: 'Wim\'s old blade', look: 'a notched sword' }, place: { groundIn: 'tav_cellar' } });
     const s = fresh();
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
@@ -260,10 +261,10 @@ describe('applyStagePlan', () => {
   it('keys that collide with existing ids get fresh ids; existing bands keep lethal', () => {
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
-      bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tacticsLevel: 1, lethal: undefined as never, relations: { player_band: 'opposed' } }],
-      zones: [{ key: 'field_mid', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 1, light: 1, links: [{ to: 'field_far', label: 'back', sight: true }] }],
+      bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tactics: 'simple', lethal: undefined as never, relations: { player_band: 'opposed' } }],
+      zones: [{ key: 'field_mid', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }],
       cast: [{ template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
-    applyStagePlan(s, ext, { tier: 0, kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
+    applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(s.stage.zoneIds).toContain('field_mid_2');
     expect(s.bands.find((b) => b.id === 'slimes_2')!.lethal).toBe(true);
     const a = s.actors.find((x) => x.id === 'slime_1_2')!;
@@ -293,7 +294,7 @@ describe('applyFallbackStage', () => {
     const s = makeVillage();
     s.stage.zoneIds = [];
     s.zones = [];
-    applyFallbackStage(s, { tier: 0, kind: 'scene', placeId: 'tavern' }, 'invalid_plan', [{ code: 'x', message: 'y', routineOnly: false }]);
+    applyFallbackStage(s, { tier: 'success', kind: 'scene', placeId: 'tavern' }, 'invalid_plan', [{ code: 'x', message: 'y', routineOnly: false }]);
     expect(s.stage.zoneIds).toEqual(['tav_common', 'tav_counter', 'tav_cellar']);
     expect(s.hidden.stage.challenge).toBe('none');
     expect(s.stage.fallback).toEqual({ reason: 'invalid_plan', turn: 1 });
@@ -302,7 +303,7 @@ describe('applyFallbackStage', () => {
   it('extension: one empty zone named by the frontier label, no cast', () => {
     const s = makeVillage({ playerZone: 'field_far' });
     const n = s.actors.length;
-    applyFallbackStage(s, { tier: 0, kind: 'extension', frontierKey: 'woods', placeId: 'field' }, 'call_failed', []);
+    applyFallbackStage(s, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, 'call_failed', []);
     const z = s.zones.find((x) => x.id === 'woods')!;
     expect(z.name).toBe('into the woods');
     expect(z.links).toEqual([{ to: 'field_far', label: 'far side of the field', sight: false }]);
@@ -342,12 +343,12 @@ describe('stage', () => {
 });
 
 describe('SceneDirector', () => {
-  const situation = (tier: number) => vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 50, tier, modifiers: [] });
+  const situation = (tier: Tier) => vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 50, tier, modifiers: [] });
 
   it('scene start: one roll, repair retry with errors, then applies', async () => {
-    situation(-2);
-    const bad = villageStagePlan(0);
-    const good = villageStagePlan(-2);
+    situation('failure');
+    const bad = villageStagePlan('success');
+    const good = villageStagePlan('failure');
     const weave = vi.fn().mockResolvedValueOnce(bad).mockResolvedValueOnce(good);
     const d = new SceneDirector({ weave, clock: new VirtualClock() });
     const s = fresh();
@@ -357,12 +358,12 @@ describe('SceneDirector', () => {
     expect(weave).toHaveBeenCalledTimes(2);
     expect(weave.mock.calls[1][1]).toEqual([expect.objectContaining({ code: 'grades_misfit' })]);
     expect(s.turn).toBe(0);
-    expect(s.stage).toMatchObject({ tier: -2, sceneNumber: 1, sceneStartTurn: 0 });
+    expect(s.stage).toMatchObject({ tier: 'failure', sceneNumber: 1, sceneStartTurn: 0 });
     expect(r.events.map((e) => e.kind)).toEqual(['arrival', 'presence']);
-    expect(r.situation!.tier).toBe(-2);
+    expect(r.situation!.tier).toBe('failure');
   });
   it('scene start past WEAVER_TIMEOUT gives the fallback', async () => {
-    situation(0);
+    situation('success');
     const clock = new VirtualClock();
     const weave = vi.fn(() => clock.sleep(CONFIG.WEAVER_TIMEOUT_MS + 1).then(() => villageStagePlan()));
     const d = new SceneDirector({ weave, clock });
@@ -377,7 +378,7 @@ describe('SceneDirector', () => {
     const clock = new VirtualClock();
     const s = makeVillage({ playerZone: 'field_far' });
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 1, light: 1, links: [{ to: 'field_far', label: 'back', sight: true }] }] };
+      zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }] };
     const weave = vi.fn(() => clock.sleep(5000).then(() => ext));
     const spy = vi.spyOn(ruleset, 'situation');
     const d = new SceneDirector({ weave, clock });

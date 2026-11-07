@@ -1,8 +1,9 @@
 // detectPlayer and resolveAmbush with local fakes for W3's updateBeliefs and W2's roll.
+import type { Tier } from '../../src/types';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { GameEvent, GameState, RollRequest } from '../../src/types';
 
-const tiers: Record<string, number> = {};
+const tiers: Record<string, Tier> = {};
 vi.mock('../../src/perception', () => ({
   computePerception: vi.fn(() => ({})),
   perceptionOf: vi.fn(() => null), // unit tests give levels through event.perception
@@ -18,7 +19,7 @@ vi.mock('../../src/ruleset', async (orig) => {
     usableModes: () => [],
     defaultMode: () => ({ itemId: 'player_arming_sword_1', mode: { id: 'cut', tree: 'melee', class: 'medium', reach: 0, hands: 1 } }),
     modeSkill: () => 'melee_medium',
-    ruleset: { ...real.ruleset, roll: vi.fn((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, tier: tiers[req.actorId] ?? -1 })) },
+    ruleset: { ...real.ruleset, roll: vi.fn((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, tier: tiers[req.actorId] ?? 'near_miss' })) },
   };
 });
 
@@ -61,14 +62,14 @@ describe('detectPlayer', () => {
 describe('resolveAmbush', () => {
   it('player beats the target: surprise, nothing changes', () => {
     const s = makeVillage();
-    tiers.player = 1; tiers.guard_1 = -1;
+    tiers.player = 'great_success'; tiers.guard_1 = 'near_miss';
     expect(resolveAmbush(s, 'player', 'guard_1', ev({ guard_1: { level: 'full', cue: 'sight' } }, 'guard_1'), createRng(1))).toEqual({ surprised: true });
     expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual(['melee_medium', 'sight']);
     expect(actor(s, 'guard_1').mind!.knowledge.player).toBeUndefined();
   });
   it('target wins: aware and onAlert due; a witness wins too', () => {
     const s = makeVillage();
-    tiers.player = -1; tiers.guard_1 = 0; tiers.trader = 1;
+    tiers.player = 'near_miss'; tiers.guard_1 = 'success'; tiers.trader = 'great_success';
     const r = resolveAmbush(s, 'player', 'guard_1', ev({ guard_1: { level: 'full', cue: 'sight' }, trader: { level: 'partial', cue: 'sound' } }, 'guard_1'), createRng(1));
     expect(r.surprised).toBe(false);
     expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual(['melee_medium', 'sight', 'hearing']);
@@ -78,7 +79,7 @@ describe('resolveAmbush', () => {
   });
   it('tie: not surprised, stays unaware', () => {
     const s = makeVillage();
-    tiers.player = -1; tiers.guard_1 = -1;
+    tiers.player = 'near_miss'; tiers.guard_1 = 'near_miss';
     expect(resolveAmbush(s, 'player', 'guard_1', ev({}, 'guard_1'), createRng(1)).surprised).toBe(false);
     expect(actor(s, 'guard_1').mind!.knowledge.player).toBeUndefined();
   });

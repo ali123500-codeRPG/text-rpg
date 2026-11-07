@@ -3,7 +3,7 @@
 import type { GameEvent, GameState, Intent, Rng, TurnRecord } from '../types';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine/types';
 import { createRng } from '../rng';
-import { tiersToIds } from './checks';
+import { levelsToKeys, tiersToIds } from './checks';
 
 export type ReplayDeps = {
   /** the running library's version */
@@ -25,6 +25,7 @@ const USED = new Set(['ok', 'repaired', 'fallback']); // GAP: 'fallback' outputs
 export function replayTurn(stateBefore: GameState, rec: TurnRecord, deps: ReplayDeps): { state: GameState; events: GameEvent[]; rngState: number } {
   const record = structuredClone(rec);
   tiersToIds(record); // a record from a v1 save names its tiers
+  levelsToKeys(record); // and one from a v2 save numbers them
   if (record.libraryVersion !== deps.libraryVersion)
     throw new ReplayRefused(`turn ${record.turn} ran under library v${record.libraryVersion}; this is v${deps.libraryVersion}`);
   const state = structuredClone(stateBefore);

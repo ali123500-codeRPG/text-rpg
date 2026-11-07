@@ -10,10 +10,10 @@ import { villageStagePlan, VirtualClock } from '../../src/scene/fixtures';
 
 describe('34 Fallback is flagged', () => {
   it('two failed plans give the flagged fallback stage until the next scene start', async () => {
-    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 0, modifiers: [] });
+    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const s = makeVillage();
     s.turn = 5;
-    const bad: StagePlan = { ...villageStagePlan(0), event: { summary: 'x', challenge: 'none', gain: 'extreme' } };
+    const bad: StagePlan = { ...villageStagePlan('success'), event: { summary: 'x', challenge: 'none', gain: 'extreme' } };
     const weave = vi.fn(async () => bad);
     const d = new SceneDirector({ weave, clock: new VirtualClock() });
     const nActors = s.actors.length;
@@ -29,8 +29,8 @@ describe('34 Fallback is flagged', () => {
 
     // the flags stay until the next scene start
     weave.mockResolvedValue(null as never);
-    weave.mockResolvedValueOnce({ ...villageStagePlan(0), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
-      zones: [{ key: 'snug', place: 'tavern', name: 'the snug', look: 'a cramped side room', cover: 1, light: 1, links: [{ to: 'tav_common', label: 'the common room', sight: true }] }] });
+    weave.mockResolvedValueOnce({ ...villageStagePlan('success'), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
+      zones: [{ key: 'snug', place: 'tavern', name: 'the snug', look: 'a cramped side room', cover: 'some', light: 'dim', links: [{ to: 'tav_common', label: 'the common room', sight: true }] }] });
     s.turn = 9;
     await d.startScene(s, createRng(s.rngState));
     expect(s.stage.fallback).toBeUndefined();

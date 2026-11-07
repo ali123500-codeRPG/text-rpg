@@ -10,11 +10,17 @@ export type Turn = number;
 export type Grade = 'none' | 'minor' | 'moderate' | 'major' | 'extreme'; // [Proposed] scale
 export const GRADES: readonly Grade[] = ['none', 'minor', 'moderate', 'major', 'extreme'];
 
-// A tier is its ID: −3 Critical Failure, −2 Failure, −1 Near Miss, 0 Success, 1 Great Success, 2 Critical Success.
-// Shifted roll tiers are not clamped, so an ID can fall outside −3..2. Names live only in config TIER_NAMES (tierName).
-export type Tier = number;
 /** a tier's display name, only in text for people and for Claude */
 export type TierName = string;
+
+import type { COVER, LIGHT, TACTICS, TIERS } from '../scales';
+/** keys of the ordered scales in src/scales.ts (code and saves use only keys) */
+export type Light = (typeof LIGHT.keys)[number];
+export type Cover = (typeof COVER.keys)[number];
+export type Tier = (typeof TIERS.keys)[number];
+/** a rolled tier: clamped to the table, plus the steps a shifted roll went past the end (+ above, − below) */
+export type TierRoll = { tier: Tier; beyond?: number };
+export type Tactics = (typeof TACTICS.keys)[number];
 
 export type Mode = 'explore' | 'dialogue' | 'tactical';
 export type Perception = 'full' | 'partial';
@@ -28,7 +34,7 @@ export type Band = {
   name: string; // public
   goals: string; // hidden text (Weaver)
   temperament: string; // hidden text (Weaver)
-  tacticsLevel: 1 | 2 | 3;
+  tactics: Tactics;
   lethal: boolean;
   relations: Record<string, Stance>;
 };
@@ -40,8 +46,8 @@ export type Zone = {
   name: string;
   look: string; // public text
   links: ZoneLink[];
-  cover: 0 | 1 | 2;
-  light: 0 | 1 | 2; // 0 bright, 1 dim, 2 dark
+  cover: Cover;
+  light: Light;
   groundItems: import('./items').ItemInstance[];
 };
 

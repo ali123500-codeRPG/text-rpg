@@ -7,7 +7,7 @@ import { buildNarrationView } from '../../src/views';
 
 it('40 Nothing hidden in the opening', () => {
   const s = makeVillage();
-  s.stage.tier = 1;
+  s.stage.tier = 'great_success';
   s.hidden.stage = { eventSummary: 'SUMMARY smugglers meet tonight', challenge: 'major', gain: 'extreme', hiddenTerms: ['smugglers'] };
   s.hidden.weaverNote = 'NOTE the barkeep is the fence';
   updateBeliefs(s, { kind: 'opening', observerId: 'patron_1', aboutId: 'player', status: 'suspicious', zone: 'tav_common' });

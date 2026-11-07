@@ -2,6 +2,8 @@
 import type { Actor, BlueprintPage, CreatureType, EnginePage, FactsPage, HiddenPage, ItemDef, Library, Place } from '../types';
 import { resolveAlias } from '../library';
 import type { Pages } from './pages';
+import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
+import { tierAt } from '../ruleset';
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
@@ -22,8 +24,25 @@ export function tiersToIds(v: unknown): void {
   Object.values(o).forEach(tiersToIds);
 }
 
+// v3 stores every ordered scale by its key (src/scales.ts): tier IDs become tier keys (a roll past either end keeps
+// the end key plus `beyond`), zone light and cover levels and band tacticsLevel become keys (tacticsLevel → tactics).
+// Perk tiers (50, 100, 150) are not check tiers and stay numbers.
+export function levelsToKeys(v: unknown): void {
+  if (Array.isArray(v)) return v.forEach(levelsToKeys);
+  if (!v || typeof v !== 'object') return;
+  const o = v as Record<string, unknown>;
+  const isPerk = typeof o.perkId === 'string';
+  if (typeof o.tier === 'number' && !isPerk) Object.assign(o, tierAt(o.tier + 3));
+  for (const k of ['minTier', 'playerTier']) if (typeof o[k] === 'number') o[k] = TIERS.at((o[k] as number) + 3);
+  if (typeof o.light === 'number') o.light = LIGHT.at(o.light);
+  if (typeof o.cover === 'number') o.cover = COVER.at(o.cover);
+  if (typeof o.tacticsLevel === 'number') { o.tactics = TACTICS.at(o.tacticsLevel - 1); delete o.tacticsLevel; }
+  Object.values(o).forEach(levelsToKeys);
+}
+
 export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
+  2: (pages) => Object.values(pages).forEach(levelsToKeys),
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */

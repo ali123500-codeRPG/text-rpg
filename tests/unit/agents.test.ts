@@ -53,12 +53,12 @@ describe('schemas', () => {
     const r = checkStagePlan({ event: { summary: 's', challenge: 'huge', gain: 'none' }, places: [], zones: [], frontiers: [], bands: [], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [], hiddenTerms: [], weaverNote: '' });
     expect(r.errors).toEqual(['$.event.challenge: expected one of none, minor, moderate, major, extreme']);
   });
-  it('weaver: band tactics are written as words and kept as levels 1 to 3', () => {
-    const band = (t: unknown) => ({ key: 'b', name: 'b', goals: '', temperament: '', tacticsLevel: t, relations: {} });
+  it('weaver: band tactics are written as words and kept as keys', () => {
+    const band = (t: unknown) => ({ key: 'b', name: 'b', goals: '', temperament: '', tactics: t, relations: {} });
     const plan = (t: unknown) => ({ event: { summary: 's', challenge: 'minor', gain: 'minor' }, places: [], zones: [], frontiers: [], bands: [band(t)], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [], hiddenTerms: [], weaverNote: '' });
-    expect((checkStagePlan(plan('cunning')).value as { bands: { tacticsLevel: number }[] }).bands[0].tacticsLevel).toBe(3);
-    expect((checkStagePlan(plan('simple')).value as { bands: { tacticsLevel: number }[] }).bands[0].tacticsLevel).toBe(1);
-    expect(checkStagePlan(plan('clever')).errors).toEqual(['$.bands[0].tacticsLevel: expected one of simple, competent, cunning']);
+    expect(checkStagePlan(plan('Cunning')).value.bands[0].tactics).toBe('cunning');
+    expect(checkStagePlan(plan('simple')).value.bands[0].tactics).toBe('simple');
+    expect(checkStagePlan(plan('clever')).errors).toEqual(['$.bands[0].tactics: expected one of simple, competent, cunning']);
   });
 });
 

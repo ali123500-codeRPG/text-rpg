@@ -45,8 +45,8 @@ const DEFAULTS = {
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
-  LIGHT_MODS: { 0: 0, 1: -5, 2: -10 } as Record<number, number>,
-  COVER_GAP: { 0: 0, 1: 1, 2: 2 } as Record<number, number>,
+  LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
+  COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   MORALE_DEFAULT: 50,
   PERSONALITY_MORALE: { fearless: null, bold: 70, steady: 50, timid: 30 } as Record<string, number | null>,
   REST_COOLDOWN: 20,
@@ -62,7 +62,7 @@ const DEFAULTS = {
   BACKUP_EVERY: 10, // Q2
   BACKUPS_KEPT: 3, // Q2
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 2, // v2: tiers stored as IDs
+  SCHEMA_VERSION: 3, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts)
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
   ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
@@ -102,12 +102,3 @@ export function resetConfig(): void {
   Object.assign(CONFIG, structuredClone(DEFAULTS));
 }
 
-/** Tier IDs to names: the only place tier names live. Code refers to tiers by ID (Part 1 §4). */
-export const TIER_NAMES: Record<number, string> = { [-3]: 'Critical Failure', [-2]: 'Failure', [-1]: 'Near Miss', 0: 'Success', 1: 'Great Success', 2: 'Critical Success' };
-/** Band tactics levels to the words Claude reads and writes (V2). Code uses only the level. */
-export const TACTICS_NAMES: Record<number, string> = { 1: 'simple', 2: 'competent', 3: 'cunning' };
-/** Zone light and cover levels to the words Claude reads and writes (V1). Code uses only the level. */
-export const LIGHT_NAMES: Record<number, string> = { 0: 'bright', 1: 'dim', 2: 'dark' };
-export const COVER_NAMES: Record<number, string> = { 0: 'none', 1: 'some', 2: 'heavy' };
-export const TIER_MIN = -3;
-export const TIER_MAX = 2;

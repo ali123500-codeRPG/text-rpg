@@ -1,11 +1,12 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
-import type {
+import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState,
   HealthLevel, Intent, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, SeenActor, SeenGearView,
   WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
-import { CONFIG, COVER_NAMES, LIGHT_NAMES } from '../config';
+import { CONFIG } from '../config';
+import { COVER, LIGHT } from '../scales';
 import { actorById, allActors, atLeast, bandById, isActive, opposed, shortestPath, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { healthLevel, partStates, tierName } from '../ruleset';
@@ -21,7 +22,7 @@ const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneByI
 
 export function zoneView(state: GameState, z: Zone): ZoneView {
   return {
-    id: z.id, name: z.name, look: z.look, cover: COVER_NAMES[z.cover], light: LIGHT_NAMES[z.light],
+    id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(z.light),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })),
     groundItems: z.groundItems.map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })),
   };
@@ -100,7 +101,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (a.id === state.player.id && !atLeast(viewer.mind?.knowledge[a.id]?.status, 'aware')) continue;
     // P3: in a dark zone someone is half seen, unless they share the viewer's zone and the viewer perceived them
     // fully this scene (spoke face to face, say): then they stay seen
-    const level = zoneById(state, a.zone)?.light === 2 && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
+    const level = zoneById(state, a.zone)?.light === 'dark' && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
     // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [] }); continue; }
     const name = viewer.id === state.player.id ? (nameKnown(state, a) ? a.names.current : undefined) : viewer.bandId === a.bandId ? a.names.current : undefined;
@@ -251,8 +252,8 @@ function baseView(state: GameState, actorId: string): BaseView {
     },
     beliefs, perceived, told, said,
     band: band
-      ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tacticsLevel: band.tacticsLevel, relations: { ...band.relations } }
-      : { id: a.bandId, name: '', goals: '', temperament: '', tacticsLevel: 1, relations: {} },
+      ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
+      : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
     map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })) })),
     zones: perceivedZones(state, a.zone),
     seen: seenActors(state, a),
@@ -341,13 +342,13 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
 }
 
 // ---------- WeaverView ----------
-const STAKES: Record<number, string> = { // keyed by tier ID
-  [-3]: 'A real challenge with little gain; the harder of the two',
-  [-2]: 'A real challenge with little gain',
-  [-1]: 'A normal event, gain matched to challenge',
-  0: 'A normal event, gain matched to challenge',
-  1: 'High gain with a matching high challenge',
-  2: 'The biggest gain with the biggest challenge',
+const STAKES: Record<Tier, string> = {
+  critical_failure: 'A real challenge with little gain; the harder of the two',
+  failure: 'A real challenge with little gain',
+  near_miss: 'A normal event, gain matched to challenge',
+  success: 'A normal event, gain matched to challenge',
+  great_success: 'High gain with a matching high challenge',
+  critical_success: 'The biggest gain with the biggest challenge',
 };
 
 export function buildWeaverView(state: GameState, target: WeaverView['target']): WeaverView {

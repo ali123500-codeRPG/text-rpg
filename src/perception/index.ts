@@ -45,7 +45,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   const zone = zoneById(state, event.zone);
   let sight: Seen | null = null;
   const sl = sightReach(event.visibility, dist(state, observer.zone, event.zone, true));
-  if (sl) sight = { level: zone?.light === 2 ? 'partial' : sl, cue: 'sight' };
+  if (sl) sight = { level: zone?.light === 'dark' ? 'partial' : sl, cue: 'sight' };
   const nl = soundReach(event.noise, dist(state, observer.zone, event.zone, false));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);

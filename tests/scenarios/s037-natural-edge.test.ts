@@ -10,11 +10,10 @@ describe('37 Natural edge', () => {
     s.player.core.perks.push({ perkId: 'blessed', source: 'level', gainedTurn: 0 });
     const six = ruleset.situation(s.player, s, forcedRng([6])); // total 66: Success, no edge
     const one = ruleset.situation(s.player, s, forcedRng([1])); // total 61: Success band, then −2
-    expect(six.tier).toBe(0);
-    expect(one.tier).toBe(0 - 2);
-    expect(one.tier).toBe(-2);
+    expect(six.tier).toBe('success');
+    expect(one.tier).toBe('failure');
     // clamped at the ends (situation roll only)
     s.player.core.perks = [];
-    expect(ruleset.situation(s.player, s, forcedRng([1])).tier).toBe(-3);
+    expect(ruleset.situation(s.player, s, forcedRng([1])).tier).toBe('critical_failure');
   });
 });

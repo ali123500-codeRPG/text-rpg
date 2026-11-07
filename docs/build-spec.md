@@ -113,7 +113,7 @@ SKILL_WEIGHT = 0.5, ROLL_NEEDED = 63.5 (placeholders); d100 runs 1–100 (00 = 1
 
 Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to −1 Near Miss; 0 to 24 Success; 25 to 74 Great Success; 75+ Critical Success. Margins may end in .5; compare exact values.
 
-**Tier IDs.** Code refers to a tier only by its ID: Critical Failure −3, Failure −2, Near Miss −1, Success 0, Great Success 1, Critical Success 2. The names live in one table (config `TIER_NAMES`) and appear only in text for the player and for Claude, so renaming a tier changes no rule. Saves store IDs (schema v2; a v1 save is migrated on load).
+**Scale keys.** Every ordered scale (tiers, band tactics, zone light and cover, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load).
 
 Modifier types (each type diminishes within itself; values per type are deferred):
 
@@ -304,13 +304,13 @@ type GameState = {
 
 type Band = {                   // a small group: a guard post, a gang, a household, the player's party
   id: string; name: string; goals: string; temperament: string;
-  tacticsLevel: 1 | 2 | 3;
+  tactics: 'simple' | 'competent' | 'cunning';   // TACTICS keys
   lethal: boolean;   // set when the band is made, default true; an existing band keeps it (Part 2, Agent Weaver)
   relations: Record<string, 'opposed' | 'neutral' | 'friendly'>;  // default stance toward other bands
 };
 
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
-              links: ZoneLink[]; cover: 0 | 1 | 2; light: 0 | 1 | 2;      // zone ids unique within a story
+              links: ZoneLink[]; cover: 'none' | 'some' | 'heavy'; light: 'bright' | 'dim' | 'dark';      // zone ids unique within a story
               groundItems: ItemInstance[] };                             // Part 5 §4
 type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true };
                                                    // label: how the linked zone reads from here, e.g. 'left of the gate'
@@ -401,7 +401,7 @@ On a calm return:               the anchor saved in returnTo (Explore mode: Alar
 Tier comes from the ruleset. Health and body parts are Part 3's health track and per-creature body parts (SavedCondition, Part 4).
 
 ```ts
-type Tier = number;   // tier ID, −3 Critical Failure … 2 Critical Success (Part 1 §4); names only via tierName(id). TIERS lists the IDs best to worst
+type Tier = 'critical_failure' | 'failure' | 'near_miss' | 'success' | 'great_success' | 'critical_success';   // keys of TIERS (src/scales.ts), worst first; names only via tierName()
 ```
 
 Six views are built from state:
@@ -487,7 +487,7 @@ Like every code mind, it reads only its ActorView. The rng pick uses the turn's 
 
 **Per-type data.** Each creature type, or the NPC template when it sets one, names fallback.attackSkill. Slime: unarmed\_natural; slimes have only the general area, so targetPart is always null.
 
-The rule order is fixed in code for the prototype. Each rule is its own small check, so a per-type, data-driven rule order can replace the fixed one later (D-17). tacticsLevel does not change the list yet (D-17).
+The rule order is fixed in code for the prototype. Each rule is its own small check, so a per-type, data-driven rule order can replace the fixed one later (D-17). tactics does not change the list yet (D-17).
 
 ### Agent Parser
 
@@ -732,7 +732,8 @@ type RollRequest = {
 };
 type RollResult = {
   actorId: string; skill: string; d100: number; margin: number;
-  tier: Tier;                       // tier ID, −3 Critical Failure … 2 Critical Success; unclamped
+  tier: Tier;                       // clamped to the table
+  beyond?: number;                  // steps a shifted roll went past the end tier (+ above, − below); tierLevel() adds it
   natural: -2 | -1 | 0 | 1 | 2;
   modifiers: RollRequest['modifiers']; tierShifts: RollRequest['tierShifts'];
 };
@@ -911,7 +912,7 @@ Per turn:
 3. **One order per actor.** A fired trigger's order replaces the agent's order for the same actor. When several of an owner's triggers fire in one turn, the first in its plan's order wins; the others stay armed unless they are once triggers.
 4. **Next view.** The owner's next OppositionView lists its fired triggers under "already happened", so the Planner doesn't order the same thing twice.
 5. **Plan updates.** A non-null planUpdate replaces that actor's plan; memoryNote replaces its memory. Updates from a turn that stopped on a clarify question are kept and apply when that turn resolves. A late Planner output is discarded whole, planUpdate included (interim; D-43).
-6. **Secrets.** A secret becomes player knowledge only when a resolved event meets revealWhen: minTier is a tier ID and the check must reach at least that ID (the Weaver writes it as a number, with the legend in its prompt), and a check\_passed reveal needs the check aimed at againstActorId. A secret is also revealed when its holder's Responder lists it in reveals; code accepts only secrets that actor holds **\[Proposed\]**. When the player's speech check against a spokesperson meets one of its check\_passed reveals, its Responder is told so (SLIPS) before it answers **\[Proposed\]**. A revealed secret is added to the player's Journal (secretsKnown); only then can it appear in NarrationView.
+6. **Secrets.** A secret becomes player knowledge only when a resolved event meets revealWhen: minTier is a tier key and the check must reach at least that tier (the Weaver writes the tier's name; code keeps the key), and a check\_passed reveal needs the check aimed at againstActorId. A secret is also revealed when its holder's Responder lists it in reveals; code accepts only secrets that actor holds **\[Proposed\]**. When the player's speech check against a spokesperson meets one of its check\_passed reveals, its Responder is told so (SLIPS) before it answers **\[Proposed\]**. A revealed secret is added to the player's Journal (secretsKnown); only then can it appear in NarrationView.
 7. **Save.** After resolution, the story is saved as described in Part 4 §10. Hidden fields are saved but shown only in the GM debug view.
 
 **onAlert** is not a trigger. Code fires a routine's onAlert order once, when its owner first leaves unaware of an opposed actor or first perceives an attack or alarm: this turn if the owner hasn't acted and has no agent order, otherwise next turn unless an agent order exists by then. An armed flag resets when the owner is calm again: unaware of every opposed actor, and DECAY\_TURNS turns with no attack or alarm perceived.
@@ -999,11 +1000,11 @@ Output shape (notation, not literal JSON):
   event:       { summary: hidden text, challenge: grade, gain: grade },
   places:      [ { key, name, kind, parent: placeKey | placeId } ],   // new place nodes only
   zones:       [ { key, place: placeKey | placeId, name, look: public text,
-                   cover: none | some | heavy, light: bright | dim | dark,   // code stores 0 | 1 | 2 (config COVER_NAMES, LIGHT_NAMES)
+                   cover: none | some | heavy, light: bright | dim | dark,   // keys of COVER and LIGHT (src/scales.ts)
                    links: [ { to: zoneKey | zoneId | frontierKey, label, sight } ] } ],
   frontiers:   [ { key, label } ],
   bands:       [ { key, name: public text, goals: hidden text, temperament: hidden text,
-                   tacticsLevel: 'simple' | 'competent' | 'cunning', lethal: true | false,   // code stores level 1 | 2 | 3 (config TACTICS_NAMES)
+                   tactics: 'simple' | 'competent' | 'cunning', lethal: true | false,   // keys of TACTICS (src/scales.ts)
                    relations: { [bandKey | bandId]: opposed | neutral | friendly } } ],
                                     // new bands only; may also set relations toward existing bands
   cast:        [ { template: templateId | actor: actorId,
@@ -1339,7 +1340,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 74 | Import rejects | A shared routine that reads slot counter is not promoted, and the error names the slot |
 | 75 | Attack floor | An attack whose shifted tier is Failure or worse logs a miss and makes no defense roll |
 | 76 | Gap ladder | With forced dice, gap +1 against dodge gives 0.8×, and gap 0 against block lands on a Non-essential part or the general area |
-| 77 | No clamp | Great Success plus a natural 00 gives tier ID 3; the packet shows Critical Success+ |
+| 77 | No clamp | Great Success plus a natural 00 gives Critical Success with beyond 1; the packet shows Critical Success+ |
 | 78 | Ladder ends | A gap of +6 or −6 uses the ±5 entry |
 | 79 | Named part | At gap −2 a hit rolled on the general area moves to the named legs; one rolled on an arm stays |
 | 80 | Aim is code-set | The Parser output never carries aimed; /aim sets it for one turn only |

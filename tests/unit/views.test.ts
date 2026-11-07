@@ -1,3 +1,4 @@
+import type { Tier } from '../../src/types';
 import { describe, expect, it, vi } from 'vitest';
 import type { AttackResult, GameEvent, GameState, RollResult } from '../../src/types';
 import { makeVillage, actor, place, createRng } from '../harness';
@@ -32,7 +33,7 @@ const run = (s: GameState, e: GameEvent) => {
   return e;
 };
 const npcViews = (s: GameState, id: string) => [buildActorView(s, id), buildOppositionView(s, id), buildDialogueView(s, id, [{ spoken: 'hello', impression: 'convincing' }])];
-const roll = (tier: number, d100: number, margin: number, natural: RollResult['natural'] = 0): RollResult =>
+const roll = (tier: Tier, d100: number, margin: number, natural: RollResult['natural'] = 0): RollResult =>
   ({ actorId: 'x', skill: 'melee_medium', d100, margin, tier, natural, modifiers: [{ source: 'aim', type: 'aim', value: -20 }], tierShifts: [] });
 
 describe('NPC views', () => {
@@ -133,7 +134,7 @@ describe('NarrationView and the packet', () => {
     const s = makeVillage();
     place(s, 'guard_1', 'tav_common');
     const result: AttackResult = {
-      attack: roll(1, 87, 13.5, 1), defense: roll(0, 42, 7), defenseType: 'block', gap: -1, gapShifts: [],
+      attack: roll('great_success', 87, 13.5, 1), defense: roll('success', 42, 7), defenseType: 'block', gap: -1, gapShifts: [],
       outcome: 'full_hit', location: 'general', locationHow: 'rolled', multiplier: 0.8, damage: 17,
       deciding: { attack: ['aim'], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', modeId: 'cut',
     };
@@ -167,7 +168,7 @@ describe('P3 seen clearly stays seen', () => {
   it('someone in a dark zone is half seen until the player fully perceives them this scene', () => {
     const s = makeVillage();
     const zone = s.zones.find((z) => z.id === 'tav_common')!;
-    zone.light = 2;
+    zone.light = 'dark';
     const pat = actor(s, 'patron_1');
     pat.zone = 'tav_common';
     expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')!.level).toBe('partial');

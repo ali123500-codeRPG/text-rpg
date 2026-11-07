@@ -1,11 +1,12 @@
 // 84 No numbers to the Narrator: the combat packet in NarrationView holds no roll, margin, damage, pool or HP value (unit test).
+import type { Tier } from '../../src/types';
 import { expect, it } from 'vitest';
 import type { AttackResult, GameEvent, RollResult } from '../../src/types';
 import { makeVillage, place, createRng } from '../harness';
 import { computePerception } from '../../src/perception';
 import { buildNarrationView } from '../../src/views';
 
-const roll = (actorId: string, tier: number, d100: number, margin: number): RollResult =>
+const roll = (actorId: string, tier: Tier, d100: number, margin: number): RollResult =>
   ({ actorId, skill: 'melee_medium', d100, margin, tier, natural: 0, modifiers: [{ source: 'wounds', type: 'wounds', value: -15 }], tierShifts: [{ source: 'perk', value: 1 }] });
 
 it('84 No numbers to the Narrator', () => {
@@ -13,12 +14,12 @@ it('84 No numbers to the Narrator', () => {
   place(s, 'guard_1', 'tav_common');
   s.actors.find((a) => a.id === 'guard_1')!.core.condition.hpLostPct = 37;
   const result: AttackResult = {
-    attack: roll('player', 1, 87, 13.5), defense: roll('guard_1', -1, 61, -4.25), defenseType: 'block', gap: -2, gapShifts: [{ source: 'cover', value: 1 }],
+    attack: roll('player', 'great_success', 87, 13.5), defense: roll('guard_1', 'near_miss', 61, -4.25), defenseType: 'block', gap: -2, gapShifts: [{ source: 'cover', value: 1 }],
     outcome: 'heavy_hit', location: 'general', locationHow: 'rolled', multiplier: 1.75, damage: 23,
     deciding: { attack: ['arming sword'], defense: ['round shield'], gap: [] },
     attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', modeId: 'cut',
   };
-  const e: GameEvent = { id: 'evt_hit', turn: 1, actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', tier: 1, effects: [{ kind: 'damage', actorId: 'guard_1', data: { hp: 23, pool: 44 } }], noise: 2, visibility: 2, perception: {}, attack: result };
+  const e: GameEvent = { id: 'evt_hit', turn: 1, actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', tier: 'great_success', effects: [{ kind: 'damage', actorId: 'guard_1', data: { hp: 23, pool: 44 } }], noise: 2, visibility: 2, perception: {}, attack: result };
   e.perception = computePerception(e, s, createRng(1));
   const v = buildNarrationView(s, [e], null);
   const packet = v.events[0].packet!;

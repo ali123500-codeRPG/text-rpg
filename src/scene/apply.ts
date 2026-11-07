@@ -161,7 +161,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // ---- bands (existing bands keep theirs) ----
   for (const b of plan.bands) {
     state.bands.push({
-      id: bandMap.get(b.key)!, name: b.name, goals: b.goals, temperament: b.temperament, tacticsLevel: b.tacticsLevel,
+      id: bandMap.get(b.key)!, name: b.name, goals: b.goals, temperament: b.temperament, tactics: b.tactics,
       lethal: b.lethal ?? true,
       relations: Object.fromEntries(Object.entries(b.relations ?? {}).map(([k, v]) => [bandRef(k), v])),
     });
@@ -292,7 +292,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     const link = state.zones.flatMap((z) => z.links).find((l) => l.frontier && l.to === ctx.frontierKey);
     const taken = new Set([...state.places.flatMap((p) => p.zones.map((z) => z.id)), ...stageFrontiers(state)]);
     taken.delete(ctx.frontierKey);
-    const zone: Zone = { id: freshId(ctx.frontierKey, taken), placeId: ctx.placeId, name: link?.label ?? ctx.frontierKey, look: '', links: [], cover: 0, light: 0, groundItems: [] };
+    const zone: Zone = { id: freshId(ctx.frontierKey, taken), placeId: ctx.placeId, name: link?.label ?? ctx.frontierKey, look: '', links: [], cover: 'none', light: 'bright', groundItems: [] };
     place?.zones.push(zone);
     putOnStage(state, zone);
     enterFrontier(state, ctx.frontierKey, zone);
@@ -301,7 +301,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     else if (place) {
       // GAP: a scene start at a place with no saved zones and no frontier gets one empty zone named after the place.
       const taken = new Set(state.places.flatMap((p) => p.zones.map((z) => z.id)));
-      const zone: Zone = { id: freshId(`${place.id}_area`, taken), placeId: place.id, name: place.names.current, look: '', links: [], cover: 0, light: 0, groundItems: [] };
+      const zone: Zone = { id: freshId(`${place.id}_area`, taken), placeId: place.id, name: place.names.current, look: '', links: [], cover: 'none', light: 'bright', groundItems: [] };
       place.zones.push(zone);
       putOnStage(state, zone);
     }

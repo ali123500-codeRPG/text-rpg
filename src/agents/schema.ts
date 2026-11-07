@@ -3,7 +3,7 @@
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
 import type { Intent, NarratorOutput, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
-import { COVER_NAMES, LIGHT_NAMES, TACTICS_NAMES } from '../config';
+import { COVER, LIGHT, TACTICS, type Scale } from '../scales';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -118,12 +118,9 @@ const narrator = obj<NarratorOutput>({
 });
 
 const GRADE = oneOf(GRADES);
-/** a level the Weaver writes as a word (config names table); a bare level number is accepted too */
-const named = <T extends number>(names: Record<number, string>): V<T> => {
-  const level = Object.fromEntries(Object.entries(names).map(([lvl, w]) => [w, +lvl]));
-  return (v, p, e) => (typeof v === 'string' && v in level ? level[v] as T
-    : typeof v === 'number' && v in names ? v as T : (e.push(`${p}: expected one of ${Object.values(names).join(', ')}`), +Object.keys(names)[0] as T));
-};
+/** a scale level Claude writes as its display name (or key); code keeps the key (src/scales.ts) */
+const level = <K extends string>(sc: Scale<K>): V<K> => (v, p, e) =>
+  sc.keyOf(v) ?? (e.push(`${p}: expected one of ${sc.keys.map(sc.name).join(', ')}`), sc.keys[0]);
 const STANCE_WORD = oneOf(['opposed', 'neutral', 'friendly'] as const);
 const BELIEF_WORD = oneOf(['unaware', 'suspicious', 'aware'] as const);
 /** awareness is what an actor knows; hostility belongs in band relations (V3, V12 hint) */
@@ -136,13 +133,13 @@ const weaver = obj<StagePlan>({
   places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)) })), // no parent = top level (V5)
   zones: arr(obj<StagePlan['zones'][number]>({
     key: str, place: str, name: str, look: str,
-    cover: named<0 | 1 | 2>(COVER_NAMES), light: named<0 | 1 | 2>(LIGHT_NAMES), // words in, levels kept (V1)
+    cover: level(COVER), light: level(LIGHT),
     links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool })),
   })),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
-    tacticsLevel: named<1 | 2 | 3>(TACTICS_NAMES), // the Weaver writes the word; code keeps the level (V2)
+    tactics: level(TACTICS),
     lethal: (v, p, e) => (v === undefined || v === null ? true : bool(v, p, e)),
     relations: (v, p, e) => (v === undefined || v === null ? {} : record(STANCE_WORD)(v, p, e)),
   })),
