@@ -1,0 +1,168 @@
+// The six views (Part 2, Game state model). Every builder copies whitelisted fields into a new object.
+// No view holds a gear number, a pool, HP, a roll or a margin.
+import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tier, Grade, Fact } from './core';
+import type { Plan, Secret } from './hidden';
+import type { Volume } from './agents';
+
+export type HealthLevel = 'Unhurt' | 'Bruised' | 'Hurt' | 'Injured' | 'Wounded' | 'Mauled' | 'Critical' | 'Incapacitated';
+export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
+
+export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: string[]; classLabel?: string; weightLabel?: string; qty?: number };
+export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' };
+export type ZoneView = { id: string; name: string; look: string; cover: 0 | 1 | 2; light: 0 | 1 | 2; links: { to: string; label: string; sight: boolean; frontier?: boolean }[]; groundItems: { id: string; name: string }[] };
+export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean }[] }; // geometry only, for code minds' pathing
+
+export type BeliefView = {
+  about: ActorId;
+  status: BeliefStatus;
+  lastKnownZone?: string;
+  lastSeenTurn?: number;
+  source: 'seen' | 'heard' | 'told';
+  revealed: string[];
+  opposed: boolean; // opposed(self, about)
+  active: boolean;
+  label: string; // public label or known name
+};
+
+export type EventView = {
+  id: string; turn: number; kind: string; zone: string;
+  actorId?: string; // only when perceived fully
+  target?: string;
+  tier?: Tier; // own view only for full perception
+  level: Perception; cue: Cue;
+  where?: string; // partial: zone-link label
+  line?: { text: string; volume: Volume };
+  outcome?: string; // attacks: packet outcome label
+};
+
+export type SeenActor = {
+  id: ActorId; label: string; name?: string; zone: string;
+  level: Perception; activityLook?: string;
+  health?: HealthLevel; // others: only from Wounded down
+  crippled?: string[]; destroyed?: string[];
+  gear: SeenGearView[];
+};
+
+// ---------- PlayerView: Agent Parser ----------
+export type PlayerView = {
+  turn: number;
+  player: {
+    id: 'player'; name: string; classes: string[];
+    skills: string[]; // ids only; no numbers
+    perks: string[];
+    health: HealthLevel; parts: { id: string; state: PartState }[];
+    inventory: OwnGearView[];
+    posture: 'open' | 'sneaking';
+    standingDefense: 'dodge' | 'block';
+  };
+  zone: ZoneView;
+  zones: ZoneView[]; // zones the player perceives (own + sight links)
+  actors: SeenActor[];
+  facts: string[];
+  headlines: string[];
+};
+
+// ---------- ActorView: code minds ----------
+export type ActorView = {
+  turn: number;
+  self: {
+    id: ActorId; label: string; name: string; kind: 'npc';
+    zone: string; placeId: string; bandId: string;
+    health: HealthLevel; parts: { id: string; state: PartState }[];
+    active: boolean; broken: boolean; surrendered: boolean; fearless: boolean;
+    control: 'agent' | 'code';
+    standingDefense: 'dodge' | 'block';
+    gear: OwnGearView[];
+    attackSkill: string; // fallback.attackSkill (template, else creature type)
+    routine?: { id: string; anchorTurn: number };
+    routines: { id: string; brief: string }[];
+    routineSetId?: string;
+    slots: Record<string, string | string[]>;
+    alarm?: { armed: boolean; lastAlarmTurn?: number; returnTo?: { id: string; anchorTurn: number } };
+    lastHitBy?: ActorId; // from events it perceived
+  };
+  beliefs: BeliefView[];
+  perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
+  told: EventView[]; // communication events it perceived
+  plan?: Plan;
+  memory?: string;
+  secrets: Secret[]; // its own
+  firedTriggers: { triggerId: string; turn: number }[]; // "already happened"
+  band: { id: string; name: string; goals: string; temperament: string; tacticsLevel: 1 | 2 | 3; relations: Record<string, Stance> };
+  map: MapZone[]; // stage geometry
+  zones: ZoneView[]; // zones it perceives
+  seen: SeenActor[]; // actors it currently perceives
+};
+
+// ---------- OppositionView: Agent Planner and Responder ----------
+export type OppositionView = ActorView; // formatted for the prompt by the agent wrapper
+
+// ---------- DialogueView: Agent Voice ----------
+export type DialogueInput = { spoken: string; impression: string | null }[]; // one entry per speech action this turn
+export type DialogueView = Omit<ActorView, 'plan' | 'memory' | 'secrets' | 'firedTriggers'> & {
+  knows: Fact[];
+  dialogue: DialogueInput;
+};
+
+// ---------- NarrationView: Agent Narrator ----------
+export type CombatPacket = {
+  event: string;
+  actor: string; // 'player' or public label/name
+  target: string;
+  action: string; // 'melee attack' | 'aimed melee attack' | 'ranged attack' ...
+  weapon: string | null; armor: string | null; shield: string | null;
+  attack: { tier: Tier; natural: 'lucky' | 'fumble' | null; deciding: string[] };
+  defense: { type: 'dodge' | 'block'; tier: Tier; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
+  outcome: string; // missed, dodged, grazed, blocked, full hit, heavy hit, crushing hit
+  location: { part: string; how: string } | null;
+  changes: string[];
+  events: string[];
+};
+
+export type NarrationEvent = {
+  id: string; kind: string;
+  level: Perception; cue: Cue;
+  actor?: string; // name or label (full only)
+  target?: string;
+  where?: string; // zone name (full) or link label (partial)
+  line?: { text: string; volume: Volume; speaker?: string };
+  activityLook?: string; // presence events
+  packet?: CombatPacket; // attacks
+  item?: string; // public item name
+  changes?: string[]; // visible condition changes
+};
+
+export type NarrationView = {
+  style: { tone: string; length: string };
+  approach?: string; stance?: string; // the player's flavor
+  events: NarrationEvent[];
+  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string };
+  surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
+  heard: { speaker: string; text: string; volume: Volume }[];
+  actors: { label: string; name?: string; zone: string; activityLook?: string }[];
+  facts: string[];
+  headlines: string[];
+  notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
+};
+
+// ---------- WeaverView: Agent Weaver ----------
+export type WeaverView = {
+  tier: Tier;
+  stakes: string;
+  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string };
+  headlines: string[];
+  stage: ZoneView[];
+  actors: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[];
+  quests: { id: string; state: string; text: string }[];
+  flags: Record<string, string | number | boolean>;
+  bands: { id: string; name: string; goals: string; relations: Record<string, Stance> }[];
+  player: { level: number; currentClass: string | null; health: HealthLevel };
+  previousNote: string;
+  catalogs: {
+    templates: { id: string; label: string; creatureTypeId: string }[];
+    creatureTypes: string[];
+    routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
+    items: { id: string; name: string; kind: string }[];
+  };
+  grades: Grade[];
+};
