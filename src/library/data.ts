@@ -248,20 +248,20 @@ export function prototypeLibrary(): Library {
     routineSets: ROUTINE_SETS,
     perks: {},
     achievements: {
-      // XP: first defeat and mastery 100 and 250 (X11); the rest are placeholders (X17). Names grow grander with the feat (Ali, 07/11/2026).
+      // XP steps 100 / 250 / 1000; per-kind 10 and 100 and mastery all-100/150 moved up a step (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
       first_defeat: { id: 'first_defeat', name: 'First {creature} Felled', xp: 100, rule: 'defeats', count: 1, by: 'creature' },
-      defeats_10_creature: { id: 'defeats_10', name: '{creature}bane', xp: 100, rule: 'defeats', count: 10, by: 'creature' },
-      defeats_100_creature: { id: 'defeats_100', name: 'Scourge of the {creature} Hordes', xp: 250, rule: 'defeats', count: 100, by: 'creature' },
+      defeats_10_creature: { id: 'defeats_10', name: '{creature}bane', xp: 250, rule: 'defeats', count: 10, by: 'creature' },
+      defeats_100_creature: { id: 'defeats_100', name: 'Scourge of the {creature} Hordes', xp: 1000, rule: 'defeats', count: 100, by: 'creature' },
       first_defeat_race: { id: 'first_defeat_race', name: 'First of {race}kind Felled', xp: 100, rule: 'defeats', count: 1, by: 'race' },
-      defeats_10_race: { id: 'defeats_10_race', name: 'Bane of {race}kind', xp: 100, rule: 'defeats', count: 10, by: 'race' },
-      defeats_100_race: { id: 'defeats_100_race', name: 'Scourge of {race}kind', xp: 250, rule: 'defeats', count: 100, by: 'race' },
+      defeats_10_race: { id: 'defeats_10_race', name: 'Bane of {race}kind', xp: 250, rule: 'defeats', count: 10, by: 'race' },
+      defeats_100_race: { id: 'defeats_100_race', name: 'Scourge of {race}kind', xp: 1000, rule: 'defeats', count: 100, by: 'race' },
       defeats_10: { id: 'defeats_10', name: 'Blooded Fighter', xp: 100, rule: 'defeats', count: 10 },
       defeats_100: { id: 'defeats_100', name: 'Calamity of a Hundred Blades', xp: 250, rule: 'defeats', count: 100 },
       defeats_1000: { id: 'defeats_1000', name: 'Thousand-Slayer, Herald of Ruin', xp: 1000, rule: 'defeats', count: 1000 },
       // one per tree and mastery step, id <id>:<tree>; not awarded until mastery perks exist
       mastery_50: { id: 'mastery_50', name: 'Adept of {tree}', xp: 250, rule: 'mastery', count: 50 },
-      mastery_100: { id: 'mastery_100', name: 'Ascendant of {tree}', xp: 250, rule: 'mastery', count: 100 },
-      mastery_150: { id: 'mastery_150', name: 'Transcendent Sovereign of {tree}', xp: 250, rule: 'mastery', count: 150 },
+      mastery_100: { id: 'mastery_100', name: 'Ascendant of {tree}', xp: 1000, rule: 'mastery', count: 100 },
+      mastery_150: { id: 'mastery_150', name: 'Transcendent Sovereign of {tree}', xp: 1000, rule: 'mastery', count: 150 },
     },
   });
 }
