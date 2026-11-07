@@ -3,9 +3,12 @@
 import type { Actor, GameState } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary, itemDef } from '../library';
-import { effectiveSkill, healthLevel, totalHp } from '../ruleset';
+import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp } from '../ruleset';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
+
+/** Set by a gear link on the character card; the Inventory page opens that item once. */
+export const invFocus: { id: string | null } = { id: null };
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const LOCKED = new Set(['unarmed_natural']);
@@ -21,6 +24,14 @@ function standing(s: GameState, p: Actor): { kind: string; value: number | null 
   const shield = p.core.inventory.find((i) => safe(() => itemDef(s, i.itemId).kind) === 'shield' && i.equippedIn?.length);
   const value = safe(() => effectiveSkill(s, p, kind, kind === 'block' && shield ? { itemId: shield.id } : {}).value);
   return { kind, value };
+}
+
+/** Standing attack: the first usable weapon mode at reach 0 and its effective skill (same as the creation preview). */
+function attackOf(s: GameState, p: Actor): { name: string; value: number | null } | null {
+  const m = safe(() => defaultMode(s, p, 0));
+  if (!m) return null;
+  const inst = p.core.inventory.find((i) => i.id === m.itemId);
+  return { name: safe(() => itemDef(s, inst!.itemId).name) ?? m.itemId, value: safe(() => effectiveSkill(s, p, modeSkill(m.mode), { itemId: m.itemId, modeId: m.mode.id }).value) };
 }
 
 /** Trees the player has points in, each with its open skills. */
@@ -46,8 +57,9 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
   const place = s.places.find((x) => x.id === p.placeId)?.names.current;
   const cls = p.core.classes.find((c) => c.state === 'current')?.classId ?? '';
   const def = standing(s, p);
+  const atk = attackOf(s, p);
   const gear = p.core.inventory.filter((i) => i.equippedIn?.length).map((i) =>
-    h('span', {}, h('b', {}, cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)), ` · ${i.equippedIn!.some((x) => x.startsWith('hand:')) ? 'held' : 'worn'}`));
+    h('span', {}, h('a', { href: '#inv', class: 'cs-item', title: 'Open in Inventory for its full stats', onclick: () => { invFocus.id = i.id; } }, cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)), ` · ${i.equippedIn!.some((x) => x.startsWith('hand:')) ? 'held' : 'worn'}`));
   return h('div', { class: 'cs-card' },
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
       h('div', {}, h('b', {}, p.names.current || cls.charAt(0).toUpperCase() + cls.slice(1)), h('span', {}, place ? `In the ${place}` : ''))),
@@ -57,10 +69,8 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', { class: 'cs-steps' }, ['Unhurt', 'Hurt', 'Wounded', 'Critical', 'Out'].map((l) =>
         h('span', { class: (l === 'Out' ? 'Incapacitated' : l) === level ? 'now' : '' }, l)))),
     h('div', { class: 'cs-figs' },
-      h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`)),
-      h('div', {}, h('b', {}, String(p.progression?.potential.base ?? '—')), h('span', {}, 'Potential')),
-      h('div', {}, h('b', {}, String(p.progression?.startingTotal ?? '—')), h('span', {}, 'StartingTotal')),
-      h('div', {}, h('b', {}, String(Object.values(p.core.skills).filter((e) => e.state === 'tagged').length)), h('span', {}, 'Tagged skills'))),
+      h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
+      h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
     gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null);
 }
 
@@ -77,9 +87,11 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
 export function sideSheet(s: GameState, p: Actor): HTMLElement[] {
   const { hp, total } = hpLeft(s, p);
   const def = standing(s, p);
+  const atk = attackOf(s, p);
   return [
     h('div', { class: 'cs-hpline' }, h('div', { class: 'cs-row' }, h('span', {}, `Health · ${healthLevel(p)}`), h('b', {}, `${whole(hp)} HP`)),
       h('div', { class: 'cs-meter' }, h('b', { style: `width:${total ? Math.max(0, (hp ?? 0) / total) * 100 : 0}%` }))),
+    h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),

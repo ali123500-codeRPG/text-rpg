@@ -2,14 +2,16 @@
 // figures that can't be filtered in a text line under them, then the grouped table.
 import type { Actor, GameApi, GameState } from '../types';
 import { itemDef } from '../library';
-import { credit, groupedTable, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
-import { charCard, treeBars } from './charsheet';
+import { credit, groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
+import { charCard, invFocus, treeBars } from './charsheet';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
   groups: (s: GameState) => (TGroup & { sub: string; value: string; unit: string; how: string })[];
   line: (s: GameState) => string;
   panelTitle: string;
+  detail?: (s: GameState, rowId: string) => PanelRow[]; // extra read-only rows for the side panel
+  focus?: () => string | null; // a row to open on arrival (consumed once)
 };
 
 export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: () => void } {
@@ -32,8 +34,13 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
       document.getElementById('grp-' + id)?.scrollIntoView({ block: 'nearest' });
     };
     const onField = (row: TRow, key: string) => openPanel(spec.panelTitle,
-      spec.cols.map((c) => ({ k: c.title, v: row.cells[c.key] ?? '–', edit: c.key === key })),
+      [...spec.cols.map((c) => ({ k: c.title, v: row.cells[c.key] ?? '–', edit: c.key === key })), ...(spec.detail?.(s, row.id) ?? [])],
       'The game changes these through play, so the field is shown read-only here.');
+    const want = spec.focus?.();
+    if (want) {
+      const g = all.find((x) => x.rows.some((r) => r.id === want));
+      if (g) { open.add(g.id); delete picks[g.id]; onField(g.rows.find((r) => r.id === want)!, spec.cols[0].key); }
+    }
     const picked = Object.entries(picks).filter(([, v]) => v !== 'off');
     const count = shown.reduce((a, g) => a + g.rows.length, 0);
     const hint = picked.length
@@ -77,7 +84,22 @@ function where(a: Actor, slots: string[] | undefined): string {
 
 export function inventoryPage(api: GameApi) {
   return listPage(api, {
-    title: 'Inventory', intro: 'What you carry. Same as /inv.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'You carry nothing.',
+    title: 'Inventory', intro: 'What you carry. Same as /inv. Click an item for its stats.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'You carry nothing.',
+    focus: () => { const id = invFocus.id; invFocus.id = null; return id; },
+    detail: (s, id) => {
+      const it = s.player.core.inventory.find((i) => i.id === id);
+      const d = it ? safe(() => itemDef(s, it.itemId)) : null;
+      if (!d) return [];
+      const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
+      const rows: PanelRow[] = [{ k: 'Look', v: d.look }, { k: 'Kind', v: d.kind }];
+      if (d.hands) rows.push({ k: 'Hands', v: String(d.hands) });
+      for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${m.name ?? m.id}`, v: `${m.tree} ${m.class}, reach ${m.reach}, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
+      if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
+      if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
+      for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : e.skill) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
+      rows.push({ k: 'Bulk', v: String(d.bulk) });
+      return rows;
+    },
     cols: [{ key: 'name', title: 'Item' }, { key: 'where', title: 'Where' }, { key: 'qty', title: 'Qty', right: true }, { key: 'cond', title: 'Condition' }],
     groups: (s) => {
       const p = s.player, groups = new Map<string, TGroup & { sub: string; value: string; unit: string; how: string }>();
