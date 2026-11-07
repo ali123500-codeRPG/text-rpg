@@ -44,7 +44,7 @@ export function readouts(items: Readout[], howEl: HTMLElement): HTMLElement {
 export type VisState = 'shown' | 'out' | 'off';
 export type VisTile = { id: string; label: string; value: string; unit: string; sub: string; how: string };
 const NEXT: Record<VisState, VisState> = { off: 'shown', shown: 'out', out: 'off' };
-const NEXT_TIP: Record<VisState, string> = { off: 'Click to show only these (several Shown = either)', shown: 'Click to leave these out', out: 'Click to count them again' };
+const NEXT_TIP: Record<VisState, string> = { off: 'Click for Shown (several Shown = either)', shown: 'Click for Left out', out: 'Click to clear' };
 
 export function visTiles(tiles: VisTile[], picks: Record<string, VisState>, onChange: () => void, onOpen: (id: string) => void, howEl: HTMLElement): HTMLElement {
   return h('div', { class: 'hs-readouts' }, tiles.map((t) => {

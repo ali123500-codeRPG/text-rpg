@@ -2,7 +2,7 @@
 // Aim toggle, mechanics panel under the narration, out-of-character notices and the "You fell" screen.
 import type { GameApi, LogLine, Notice } from '../types';
 import { CONFIG } from '../config';
-import { h } from './kit';
+import { credit, h } from './kit';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scene_fallback: 'Scene planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -26,7 +26,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const aimPicker = h('div', { class: 'hs-picker' }, aimBtn);
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, input, aimPicker, send);
   const fell = h('div', { class: 'fell', hidden: true });
-  const body = h('div', { class: 'play' }, h('div', { class: 'log-wrap' }, log, mech), h('div', { class: 'sec' }, notices, bar));
+  const body = h('div', { class: 'play' }, h('div', { class: 'log-wrap' }, log, mech), h('div', { class: 'sec' }, notices, bar, credit()));
   const title = h('div', { class: 'head' });
   const el = h('main', { class: 'playmain' }, title, body, fell);
 

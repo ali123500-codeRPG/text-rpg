@@ -17,9 +17,12 @@ export const skillName = (id: string) => SKILL_NAMES[id] ?? id;
 const SUB: Record<string, string> = { endurance: 'sets HP', feint: 'effect not designed', riposte: 'effect not designed', disarm: 'effect not designed' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
+// Skills the approved layout shows as a locked row instead of a slider.
+const LOCKED = new Set(['unarmed_natural']);
+
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
   { id: 'melee', c: 'c10' }, { id: 'defense', c: 'c1' }, { id: 'swordsman', c: 'c5' },
-  { id: 'perception', c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: 'ranged', c: 'c7' }, { id: 'unarmed', c: 'c14' },
+  { id: 'perception', c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: 'ranged', c: 'c7' }, { id: 'unarmed', c: 'c14', locked: ['Natural weapons', 'Humans have none'] },
   { id: 'stealth', c: 'c3', locked: ['No skills yet', 'Coming later'] }, { id: 'speech', c: 'c4' },
 ];
 
@@ -31,7 +34,7 @@ const REC_TAGS = ['melee_medium', 'block', 'endurance'];
 export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement {
   const lib = getLibrary();
   const floors = lib.classes.swordsman?.floors ?? {};
-  const open = TREE_VIEW.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => lib.skills[k]?.playerOpen);
+  const open = TREE_VIEW.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => lib.skills[k]?.playerOpen && !LOCKED.has(k));
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), name: 'Aldric', swings: 400 };
   const total = () => CONFIG.CREATION_POINTS, cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
@@ -54,7 +57,7 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
     const name = def?.name ?? 'Stealth';
     const sec = h('section', {}, h('div', { class: 'grp-h' }, h('i', { class: 'hs-sq', style: `background:var(--${t.c})` }), h('h2', { class: 'hs-section' }, name),
       def?.classId ? h('span', { class: 'hs-chip' }, 'Class tree') : null, sum));
-    for (const k of def?.skills ?? []) {
+    for (const k of (def?.skills ?? []).filter((x) => !LOCKED.has(x))) {
       const nm = h('div', { class: 'nm' }, h('b', {}, skillName(k)), SUB[k] ? h('small', {}, SUB[k]) : null, floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
       const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,
@@ -75,8 +78,6 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
     if (t.locked) sec.append(h('div', { class: 'row locked' }, h('div', { class: 'nm' }, h('b', {}, t.locked[0])), h('span', { class: 'lockw' }, t.locked[1])));
     return sec;
   }));
-
-  const nameIn = h('input', { class: 'hs-input', id: 'pc-name', value: st.name, 'aria-label': 'Name', placeholder: 'Name', style: 'width:160px', oninput: (e: Event) => { st.name = (e.target as HTMLInputElement).value; } });
 
   function editSwings() {
     const inp = h('input', { class: 'hs-input', type: 'number', min: '50', max: '5000', step: '50', value: String(st.swings), id: 'swings',
@@ -132,7 +133,6 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
   async function go() {
     const L = left(), need = maxTags() - st.tags.size;
     const fail = (t: string) => { msg.textContent = 'Needs attention: ' + t; msg.className = 'msg bad'; };
-    if (!st.name.trim()) return fail('give your swordsman a name first.');
     if (L > 0) return fail(`spend your last ${L} points first.`);
     if (need > 0) return fail(`tag ${need} more skill${need > 1 ? 's' : ''} first.`);
     const errs = api.validateBuild(build());
@@ -148,7 +148,7 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
     h('div', { class: 'head' },
       h('div', {}, h('h1', {}, 'Create your swordsman'),
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
-      h('div', { class: 'actions' }, nameIn,
+      h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { recommended(); render(); } }, 'Use recommended build'),
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { reset(); render(); } }, 'Reset'),
         h('button', { class: 'hs-btn-main', type: 'button', id: 'btn-go', onclick: go }, 'Begin the story'))),
@@ -161,5 +161,8 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
       h('span', {}, h('i', { class: 'tick cap' }), `Creation cap ${cap()}`),
       h('span', {}, h('span', { class: 'hs-tg cap', style: '--tg:var(--c15)' }, 'Tagged'), ' tagged skill'),
       h('span', {}, h('i', { class: 'hs-sq', style: 'background:var(--c5)' }), 'Class tree')),
+    h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
+      `${total()} points, cap ${cap()}, floors medium weapons ${floors.melee_medium ?? 0} and block ${floors.block ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
+      + `Kit assumed: sword +${CONFIG.KIT_BONUS}, shield +${CONFIG.KIT_BONUS}, gambeson. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)),
     credit());
 }

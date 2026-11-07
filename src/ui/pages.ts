@@ -39,7 +39,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     const count = shown.reduce((a, g) => a + g.rows.length, 0);
     const hint = picked.length
       ? [h('span', {}, `${plural(count, spec.noun[0], spec.noun[1])} shown · `), h('button', { class: 'hs-btn-text', type: 'button', style: 'min-height:0', onclick: () => { for (const k of Object.keys(picks)) delete picks[k]; update(); } }, 'Clear')]
-      : 'Click a box: once to show only those, twice to leave them out. Click a heading to open its rows.';
+      : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title), h('p', {}, spec.intro))),
       h('div', { class: 'sec' },
@@ -77,7 +77,7 @@ export function characterPage(api: GameApi) {
     },
     line: (s) => {
       const p = s.player, hp = safe(() => totalHp(s, p));
-      return `HP ${hp ?? '—'} · standing defense ${p.core.standingDefense} · Potential ${p.progression?.potential.base ?? '–'} · StartingTotal ${p.progression?.startingTotal ?? '–'} · XP ${p.progression?.xp ?? 0}`;
+      return `HP ${hp ?? '—'} · standing defense ${p.core.standingDefense} · Potential ${p.progression?.potential.base ?? '–'} · StartingTotal ${p.progression?.startingTotal ?? '–'}`;
     },
   });
 }
