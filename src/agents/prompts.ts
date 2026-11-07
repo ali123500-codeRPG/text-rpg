@@ -66,6 +66,7 @@ No word or phrase from hiddenTerms or any secret's leakTerms may appear in publi
 Terms match whole words only.
 Grades must fit the tier: ${gradesFitText()}.
 In a dark zone people are only half seen: hearths and lamps are bright or dim, cellars and night are dark.
+A healer's house or infirmary is a place of kind "clinic": resting there heals fully, crippled limbs included. Settlements may have one.
 Slots bind zones only, never frontiers; every zone an actor's slots bind must be reachable from its first bound zone by links.
 A player-band cast entry uses routine set "companion" and binds no slots.
 Limits: at most ${Object.entries(CONFIG.PLAN_CAPS).filter(([k]) => k !== 'knows').map(([k, n]) => `${n} ${k}`).join(', ')}; at most ${CONFIG.PLAN_CAPS.knows} knows per actor;

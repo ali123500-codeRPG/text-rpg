@@ -714,6 +714,14 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
     out.push(`+${x.amount} XP (${what})`);
   }
+  // H11: healing; the look is the designer's (plain text for now)
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'healed') continue;
+    const d = l.detail as { actorId: string; source: string; from: string; to: string; parts: { id: string; from: string; to: string }[] };
+    if (d.actorId !== s.player.id) continue;
+    const bits = [...(d.from !== d.to ? [`${d.from} → ${d.to}`] : []), ...d.parts.map((p) => `${p.id.replace(/_/g, ' ')} ${p.from} → ${p.to}`)];
+    out.push(`${engine.healingName(d.source)}: ${bits.length ? bits.join(', ') : 'no change'}`);
+  }
   // SP10/SP11: skill gains and newly reached milestones; failed improvement rolls show nothing
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'skill_improved') continue;
