@@ -7,7 +7,7 @@ import type { AgentName, TierRoll,
 } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { timeView } from '../time';
+import { now, timeOfDay, timeView } from '../time';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
@@ -15,7 +15,7 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
-import { equipLoadout, fullParts } from '../library/spawn';
+import { createPlayer, validateBuild } from '../library/spawn';
 import { defaultStandingDefense, healthLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
@@ -236,7 +236,7 @@ export function createGame(deps: GameDeps): Game {
     const submitAt = clock.now();
     lines.push({ turn: s.turn, kind: 'player', text });
     emit();
-    if (!(await store.acquireLease(`stories/${s.storyId}/control/lock`, owner, CONFIG.LOCK_LEASE_MS))) {
+    if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
       notice({ kind: 'read_only', text: 'This story is open in another window; this one is read-only.' });
       return;
     }
@@ -304,7 +304,7 @@ export function createGame(deps: GameDeps): Game {
     if (s.scratch) delete s.scratch.situation;
     // save step 1: hold the turn lock. Re-acquiring renews the lease, so a long turn (Weaver wait, slow calls) or the
     // first save of a new story still writes under the lock.
-    if (!(await store.acquireLease(`stories/${s.storyId}/control/lock`, owner, CONFIG.LOCK_LEASE_MS))) {
+    if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
       notice({ kind: 'read_only', text: 'This story is open in another window; this one is read-only.' });
       stopped = true;
       return;
@@ -441,7 +441,7 @@ export function createGame(deps: GameDeps): Game {
     const now = clock.now();
     const storyId = `story_${now.toString(36)}`;
     const seed = (now >>> 0) || 1;
-    state = newState(storyId, seed, buildPlayer(storyId, build), new Date(now).toISOString());
+    state = newState(storyId, seed, { ...createPlayer(build, storyId), placeId: 'tavern' /* the first build starts in the village tavern (Story start) */ }, new Date(now).toISOString());
     state.player.core.standingDefense = defaultStandingDefense(state, state.player); // same rule as the creation preview
     lines = [];
     savedLines = 0;
@@ -464,9 +464,8 @@ export function createGame(deps: GameDeps): Game {
   }
 
   async function resume(): Promise<boolean> {
-    // GAP: the save contract has no "latest story"; we take the last story id under stories/ in sort order
-    const ids = [...new Set((await store.list('stories')).map((p) => p.split('/')).map((seg) => seg[seg.indexOf('stories') + 1]).filter(Boolean))].sort();
-    const storyId = ids[ids.length - 1];
+    // the newest story runs (same order as save.listStories)
+    const storyId = (await save.listStories(store))[0]?.storyId;
     if (!storyId) return false;
     try {
       const loaded = await save.loadStory(store, storyId, getLibrary());
@@ -504,7 +503,7 @@ export function createGame(deps: GameDeps): Game {
     submit,
     async reset() {
       abortBackground();
-      if (state) await store.releaseLease(`stories/${state.storyId}/control/lock`, owner).catch(() => {});
+      if (state) await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
       state = null;
       lines = [];
       savedLines = 0;
@@ -640,8 +639,9 @@ function nameOf(s: GameState, itemId: string): string {
  */
 /** H11, V1b, V2a: the player's healing, skill gains and milestones from this turn's code log, kept on the story line
  * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. */
-export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains'> {
+export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains' | 'timePassed'> {
   const heals: HealNote[] = [], unlocks: { skill: string; milestone: number }[] = [], gains: Record<string, number> = {};
+  let minutes = 0;
   for (const l of s.log) {
     if (l.turn !== s.turn) continue;
     if (l.code === 'healed') {
@@ -651,9 +651,10 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
       const d = l.detail as { skill: string; from: number; to: number; milestone?: number };
       gains[d.skill] = (gains[d.skill] ?? 0) + d.to - d.from;
       if (d.milestone) unlocks.push({ skill: d.skill, milestone: d.milestone });
-    }
+    } else if (l.code === 'time_passed') minutes += (l.detail as { minutes: number }).minutes;
   }
-  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}) };
+  const timePassed = minutes > 0 ? { minutes: Math.round(minutes), day: timeView(s).day, timeOfDay: timeOfDay(now(s)) } : undefined;
+  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}) };
 }
 
 export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes'> {
@@ -760,51 +761,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   return out;
 }
 
-// ---------------- player creation (Part 4 §4) ----------------
-
-const START_KIT = ['arming_sword', 'round_shield', 'gambeson'];
-const START_CLASS = 'swordsman'; // first build: the player is a swordsman
-
-export function validateBuild(build: CreationBuild): string[] {
-  const lib = getLibrary();
-  const errs: string[] = [];
-  if (!build.name.trim()) errs.push('name is empty');
-  let total = 0;
-  for (const [k, v] of Object.entries(build.skills)) {
-    if (!lib.skills[k]?.playerOpen) errs.push(`${k} is not open to the player`);
-    if (!Number.isInteger(v) || v < 0) errs.push(`${k}: points must be a whole number`);
-    if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${k} is above ${CONFIG.CREATION_MAX_SKILL}`);
-    total += v;
-  }
-  if (total !== CONFIG.CREATION_POINTS) errs.push(`${total} of ${CONFIG.CREATION_POINTS} points spent`);
-  for (const [k, floor] of Object.entries(lib.classes[START_CLASS]?.floors ?? {}))
-    if ((build.skills[k] ?? 0) < floor) errs.push(`${k} is below the class floor ${floor}`);
-  if (new Set(build.tagged).size !== CONFIG.CREATION_TAGS) errs.push(`exactly ${CONFIG.CREATION_TAGS} skills must be tagged`);
-  for (const t of build.tagged) if (!(t in build.skills)) errs.push(`tagged skill ${t} has no points`);
-  return errs;
-}
-
-function buildPlayer(storyId: string, build: CreationBuild): Actor {
-  const sk = build.skills;
-  return {
-    id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, label: 'a swordsman',
-    placeId: 'tavern', zone: '', posture: 'open', bandId: 'player_band', // the director places the player; the first build starts in the village tavern (Story start)
-    core: {
-      creatureTypeId: 'humanoid',
-      skills: Object.fromEntries(Object.entries(sk).map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }])),
-      classes: [{ classId: START_CLASS, state: 'current', level: 1 }],
-      perks: [],
-      condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
-      inventory: [...equipLoadout(null, START_KIT, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN }],
-      standingDefense: 'block', // set from effective skill once the state exists (newGame)
-    },
-    progression: {
-      startingTotal: Object.entries(sk).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),
-      potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: 0, marks: [],
-    },
-    journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
-  };
-}
+// Player creation and build checks live in src/library/spawn.ts (createPlayer, validateBuild), shared with the creation preview.
 
 function newState(storyId: string, seed: number, player: Actor, createdAt: string): GameState {
   const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_MECHANICS, tone: CONFIG.STYLE.tone };

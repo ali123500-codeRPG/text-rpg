@@ -5,6 +5,8 @@
 const DEFAULTS = {
   // ---- Part 1 ----
   SUBSTITUTE_EFFICIENCY: 0.5,
+  /** A7 Open-Hand Guard: share of a hit through an open-hand block that lands on the blocking arm; the rest goes to the general area (placeholder, Ali 07/11/2026) */
+  OPEN_HAND_ARM_SHARE: 0.5,
   /** Per-check substitutes (Ali, 07/11/2026): a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
    * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
   SUBSTITUTES: {
@@ -43,6 +45,7 @@ const DEFAULTS = {
   WEAPON_CLASSES: {
     light: { damage: 20, hit: 10 }, medium: { damage: 25, hit: 0 }, heavy: { damage: 30, hit: -10 },
     punch: { damage: 15, hit: 10 }, slam: { damage: 20, hit: 10 },
+    grapple: { damage: 5, hit: 0 }, // grab and wrench (placeholder, 07/11/2026): anyone can grapple; Hold (A8) locks on
   } as Record<string, { damage: number; hit: number }>,
   UNARMED_PROFILE: { damage: 15, hit: 10 },
   HEAVY_VS_BLOCK_GAP: -1,

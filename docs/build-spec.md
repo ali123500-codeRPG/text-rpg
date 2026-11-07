@@ -1661,7 +1661,8 @@ Code keeps every creature type, its parts and the role table. Agent Weaver names
     "humanoid": {
       "hpMultiplier": 1,
       "general": {"name": "torso", "size": "normal"},
-      "naturalAttacks": [{"id": "punch", "tree": "unarmed", "class": "punch", "skill": "unarmed_strike", "reach": 0, "hands": 0}],
+      "naturalAttacks": [{"id": "punch", "tree": "unarmed", "class": "punch", "skill": "unarmed_strike", "reach": 0, "hands": 0},
+                        {"id": "grapple", "tree": "unarmed", "class": "grapple", "skill": "unarmed_grapple", "reach": 0, "hands": 0}],
       "parts": [
         {"id": "head", "size": "small", "impact": "essential", "roles": ["sense"], "adjacent": ["general", "neck"]},
         {"id": "left_arm", "size": "normal", "impact": "normal", "roles": ["grip"]},
@@ -1711,7 +1712,7 @@ Weapons, armor and shields are items (Part 5): attack modes and reach in §5, ar
 | Medium | 25 | 0 | — |
 | Heavy | 30 | −10 | gap −1 |
 
-Natural attacks have their own classes: punch (damage 15, hit +10) and slam (damage 20, hit +10). All values are *placeholders*. Reach is set per attack mode (Part 5 §5).
+Natural attacks have their own classes: punch (damage 15, hit +10), slam (damage 20, hit +10) and grapple (damage 5, hit 0; any humanoid can grapple, and the Hold perk, A8, locks the target in place). All values are *placeholders*. Reach is set per attack mode (Part 5 §5).
 
 **Shield as a part:** Non-essential, pool from the item. When the defender blocks with a shield, a hit at gap 0 or better goes to the shield (**\[Proposed\]** for gaps +1 to +5). Its states: Damaged −10 to block (wounds type), Crippled: can't block with it, Destroyed: the item is lost. The arm holding it must be a working Grip part.
 
@@ -2087,7 +2088,7 @@ type ItemEffect = {
 type AttackMode = {
   id: string;
   tree: 'melee' | 'ranged' | 'unarmed';
-  class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam';   // natural attacks use their own class; unarmed with no class: the unarmed profile
+  class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam' | 'grapple';   // natural attacks use their own class; unarmed with no class: the unarmed profile
   skill?: LibraryRef;                    // unarmed only: which placeholder skill
   reach: number;                         // zone links; 0 = same zone
   hands: 0 | 1 | 2;                      // 0 for natural attacks
@@ -2707,4 +2708,4 @@ Seventeen library items for the first build, approved as placeholders (Nov 2026)
 | healing\_draught | consumable, stackable | — | none until Healing is designed | 1 | 1 | 10 |
 | coin | misc, stackable | — | — | — | 0 | 1 |
 
-Not items (ruleset config and creature database): the weapon class table (Part 3, Weapons, armor and shields); the unarmed profile, 15 damage and +10 hit; the humanoid's unarmed mode "punch" (class punch, unarmed\_strike, reach 0, no hands); QUALITY\_TABLE (Part 5 §7). Natural attacks and natural armor for other creature types arrive with their database entries.
+Not items (ruleset config and creature database): the weapon class table (Part 3, Weapons, armor and shields); the unarmed profile, 15 damage and +10 hit; the humanoid's unarmed modes "punch" (class punch, unarmed\_strike, reach 0, no hands) and "grapple" (class grapple, unarmed\_grapple, reach 0, no hands); QUALITY\_TABLE (Part 5 §7). Natural attacks and natural armor for other creature types arrive with their database entries.

@@ -44,6 +44,9 @@ export function parseTolerant(text: string): { ok: true; value: unknown } | { ok
     const s = tryParse(text.slice(first, last + 1));
     if (s) return s;
   }
+  // a model sometimes copies the schema's "x|null" notation into its value, e.g. {"toZone":"bar"}|null (run 16)
+  const unshaped = text.replace(/([}\]"\d]|true|false|null)\s*\|\s*null\b/g, '$1');
+  if (unshaped !== text) return parseTolerant(unshaped);
   return { ok: false };
 }
 

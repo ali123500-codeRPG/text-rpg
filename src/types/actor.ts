@@ -26,6 +26,7 @@ export type Actor = {
   journal?: Journal;
   engagement?: Engagement; // E1: the actor's current engagement; absent when it is in none
   perkMarks?: PerkMark[]; // short-lived perk effects this actor carries (src/engine/perkMarks.ts)
+  heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
 };
 
 /** a perk's lasting effect: target is the actor it names (an opening on that foe); until is the last turn it holds */

@@ -11,4 +11,7 @@ export const BUILT_PERKS = new Set<string>([
   'hunters_mark', // A5: src/engine/perkMarks.ts
   'make_them_stumble', // A10: src/engine/perkMarks.ts
   'cover_ally', // A11: src/engine/perkMarks.ts coverFor(), switch on the Perks card
+  'open_hand_guard', // A7: src/ruleset/gear.ts openHandArm(), attack() and applyEffects()
+  'threaten_for_answers', // A16: src/engine/speech.ts resolveSpeech()
+  'hold', // A8: src/engine/held.ts, the grapple mode in src/library/data.ts
 ]);

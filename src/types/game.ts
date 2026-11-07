@@ -20,6 +20,7 @@ export type LogLine = {
   heals?: HealNote[]; // H11: the player's healing this turn
   unlocks?: { skill: string; milestone: number }[]; // V2a: milestones a skill crossed this turn
   gains?: Record<string, number>; // V1b: skill points gained this turn, by skill
+  timePassed?: { minutes: number; day: number; timeOfDay: string }; // T2 b: a wait or sleep; timeOfDay is a TIME_OF_DAY key
 };
 
 /** one healing of the player: the health level and each body part that changed state */

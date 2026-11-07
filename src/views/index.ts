@@ -8,7 +8,7 @@ import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
-import { actorById, allActors, atLeast, bandById, isActive, hostile, shortestPath, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, wary, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, partStates, tierName } from '../ruleset';
 import { isComm } from '../perception';
@@ -156,6 +156,10 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     const who = callName(state, viewerId, f.actorId);
     const sharp = reads(state, actorById(state, viewerId), actorById(state, f.actorId));
     if (f.kind === 'threshold_crossed' && (own || healthShows(to, sharp))) out.push(`${who} is ${to}`);
+    const by = f.data.by ? callName(state, viewerId, String(f.data.by)) : '';
+    if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
+    if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);
+    if (f.kind === 'still_held') out.push(`${who} fails to break free of ${by}`);
     if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
@@ -204,6 +208,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
       standingDefense: p.core.standingDefense,
+      ...(heldBy(state, p) ? { heldBy: callName(state, p.id, heldBy(state, p)!.id) } : {}),
     },
     zone: zoneView(state, zoneById(state, p.zone)!),
     zones: perceivedZones(state, p.zone),
@@ -252,7 +257,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       zone: a.zone, placeId: a.placeId, bandId: a.bandId,
       health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })),
       active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered', fearless: !!m.fearless,
-      control: m.control, standingDefense: a.core.standingDefense,
+      control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill,
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn } } : {}),
       routines: (m.routines ?? []).map((id) => ({ id, brief: routine(id).brief })),
@@ -326,7 +331,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
   const me = p.id;
   const out: NarrationEvent[] = [];
   const heard: NarrationView['heard'] = [];
-  const seenIds = new Set(seenActors(state, p, events).filter((x) => x.level === 'full').map((x) => x.id));
+  const seen = seenActors(state, p, events);
+  const seenIds = new Set(seen.filter((x) => x.level === 'full').map((x) => x.id));
   for (const e of events) {
     const per = e.perception[me];
     if (!per) continue;
@@ -352,7 +358,6 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(changes.length && e.kind !== 'attack' ? { changes } : {}),
     });
   }
-  const seen = seenActors(state, p, events);
   const a = intent?.action;
   return {
     style: { tone: state.settings.tone || CONFIG.STYLE.tone, length: CONFIG.STYLE.length },

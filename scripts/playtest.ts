@@ -78,6 +78,12 @@ move on to somewhere new at once.`,
   bloodthirsty: `You are a violent, bloodthirsty brute (a test of combat, XP and level-ups). You settle everything with your sword:
 insult people, threaten them, and attack anyone who looks at you wrong, starting within your first few turns. Keep fighting
 until your foes are down or flee, then look for the next fight. Use /aim now and then. Never talk your way out of a fight.`,
+  rester: `You are a weary, patient traveller (a test of the quiet-turn clock, story beats, resting, healing and the endurance
+skill). You cannot hurt yourself in this game, so to get wounds: early on, start a small scrap (shove or punch someone rough,
+or accept a challenge) and let them land hits on you, then back off. Then mostly let time pass: sit, wait, nurse a drink,
+watch the room, doze, and rest often, including right after you just rested, and once while someone is threatening you.
+Use a bandage once. When your wounds have healed, pick another small scrap to take more hits, then rest again. Do not
+chase leads or start conversations yourself; answer briefly if spoken to, and see what the story does on its own.`,
 };
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
 
@@ -122,6 +128,7 @@ async function main() {
     spendPerkPoints(game, t);
     const gm = game.gm();
     appendFileSync(agentLog, JSON.stringify({ step: t, input, notices: game.notices(), agentLog: gm.agentLog }) + '\n');
+    tracePacing(game, t, input);
     writeTranscript(game, storyId!, t0);
   }
   await game.settle();
@@ -130,13 +137,29 @@ async function main() {
   console.log(`done: ${calls} game calls, ${Math.round((Date.now() - t0) / 60000)} min`);
 }
 
+/** pacing.jsonl: the quiet-turn clock, scene breaks, beats and rests after each step (P7 / resting tests) */
+let firedSeen = 0, logSeen = 0;
+function tracePacing(game: ReturnType<typeof createGame>, step: number, input: string) {
+  const st = game.state();
+  if (!st) return;
+  const fired = st.hidden.firedLog.slice(firedSeen); firedSeen = st.hidden.firedLog.length;
+  const codes = st.log.slice(logSeen).filter((l) => /rest|beat|stall|scene|break/i.test(l.code)); logSeen = st.log.length;
+  const p = st.player;
+  appendFileSync(join(OUT, 'pacing.jsonl'), JSON.stringify({ step, turn: st.turn, input, scene: st.stage.sceneNumber, quiet: st.stage.quiet,
+    breakCause: st.stage.breakCause ?? null, hpLostPct: p.core.condition.hpLostPct, restedTurn: st.clocks[`rest:${p.id}`] ?? null,
+    fired, codes, quietBeatsLeft: Object.values(st.hidden.plans).flatMap((pl) => pl.triggers).filter((tr) => tr.when.type === 'quiet_turns').map((tr) => tr.id) }) + '\n');
+}
+
 /** The test player can't open the Perks page, so it spends each perk point at once on the open milestone of its highest skill. */
 const progress: string[] = [];
+let levelUpsSeen = 0;
 function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
   const st = game.state();
   const p = st?.player;
   if (!p?.progression) return;
-  for (const x of p.progression.xpLog ?? []) if (x.turn === st!.turn && x.levelUp) progress.push(`turn ${turn}: level up to ${x.levelUp.level} (${x.levelUp.classId})`);
+  const ups = (p.progression.xpLog ?? []).filter((x) => x.levelUp);
+  for (const x of ups.slice(levelUpsSeen)) progress.push(`turn ${turn}: level up to ${x.levelUp!.level} (${x.levelUp!.classId})`);
+  levelUpsSeen = ups.length;
   while (p.progression.unspentPerkPoints > 0) {
     const open = Object.keys(p.core.skills).flatMap((sk) => MILESTONES.filter((m) => milestoneState(p, sk, m) === 'open' && !canTake(p, milestonePerk(sk, m)!.id)).map((m) => ({ id: milestonePerk(sk, m)!.id, sk, m })))
       .sort((a, b) => trueSkill(p, b.sk) - trueSkill(p, a.sk) || a.m - b.m);
@@ -149,7 +172,7 @@ function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
 function writeTranscript(game: ReturnType<typeof createGame>, storyId: string, t0: number) {
   const pr = game.state()?.player.progression;
   const md = [`# Playtest ${storyId}`, `Started ${new Date(t0).toISOString()} · ${calls} game calls so far`, '',
-    `XP ${pr?.xp ?? 0} · unspent perk points ${pr?.unspentPerkPoints ?? 0} · perks: ${game.state()?.player.core.perks.map((x) => x.perkId).join(', ') || 'none'}`,
+    `XP ${+(pr?.xp ?? 0).toFixed(6)} · unspent perk points ${pr?.unspentPerkPoints ?? 0} · perks: ${game.state()?.player.core.perks.map((x) => x.perkId).join(', ') || 'none'}`,
     ...progress.map((x) => `- ${x}`), '',
     ...game.lines().map((l) => (l.kind === 'player' ? `\n**> ${l.text}**` : `${l.kind === 'narration' ? '' : `_${l.kind}:_ `}${l.text}`)
       + (l.speech?.length ? `\n\n${l.speech.map((sp) => `> _${sp.speaker}:_ "${sp.text}"`).join('\n')}` : '')

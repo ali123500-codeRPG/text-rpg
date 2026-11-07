@@ -45,7 +45,7 @@ export type ItemEffect = {
 export type AttackMode = {
   id: string;
   tree: 'melee' | 'ranged' | 'unarmed';
-  class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam';
+  class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam' | 'grapple';
   skill?: LibraryRef; // unarmed only
   reach: number;
   hands: 0 | 1 | 2;

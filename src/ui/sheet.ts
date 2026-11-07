@@ -3,28 +3,13 @@
 import type { Actor, CreationBuild, GameState } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { equipLoadout, fullParts, spawnNpc } from '../library/spawn';
+import { createPlayer, spawnNpc } from '../library/spawn';
 import { effectiveSkill, ruleset, totalHp } from '../ruleset';
 import { createRng } from '../rng';
 
-export const KIT = ['arming_sword', 'round_shield', 'gambeson'];
-
-// GAP: the spec names no shared "player from build" helper yet; this mirrors Part 4 §4 (kit, 20 coin, Potential, StartingTotal).
+/** The preview's sheet: the game's own builder (library createPlayer), placed in the duel zone. */
 export function playerFromBuild(build: CreationBuild, storyId = 'preview', zone = 'duel', placeId = 'duel'): Actor {
-  const skills = Object.fromEntries(Object.entries(build.skills).filter(([, v]) => v > 0)
-    .map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }]));
-  const startingTotal = Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((a, [, v]) => a + v, 0);
-  return {
-    id: 'player', storyId, kind: 'player', names: { current: build.name, past: [] }, label: 'a swordsman', placeId, zone, posture: 'open', bandId: 'player_band',
-    core: {
-      creatureTypeId: 'humanoid', skills, classes: [{ classId: 'swordsman', state: 'current', level: 1 }], perks: [],
-      condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
-      inventory: [...equipLoadout(null, KIT, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN }],
-      standingDefense: (build.skills.block ?? 0) >= (build.skills.dodge ?? 0) ? 'block' : 'dodge',
-    },
-    progression: { startingTotal, potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: 0, marks: [] },
-    journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
-  };
+  return { ...createPlayer(build, storyId, { preview: true }), zone, placeId };
 }
 
 function duelState(build: CreationBuild): GameState {
