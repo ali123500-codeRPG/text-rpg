@@ -1,9 +1,14 @@
-// Play screen (Part 2, Play screen): narration log newest last, "…" while waiting, one input (/ starts a command),
-// Aim toggle, mechanics panel under the narration, out-of-character notices and the "You fell" screen.
-import type { GameApi, LogLine, Notice } from '../types';
+// Play screen (Part 2, Play screen): place line and Claude-call count in the header, who's-here strip, narration log
+// newest last with the check line, speaker lines and folded turn changes, "…" while waiting, Commands and Ideas
+// panels (D-100, D-107), one input (/ starts a command), Aim toggle, mechanics panel, notices and the "You fell" screen.
+import type { GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
-import { credit, h } from './kit';
+import { buildPlayerView } from '../views';
+import { tierGap } from '../agents/game';
+import { tierName } from '../ruleset';
+import { h } from './kit';
 import { sideSheet } from './charsheet';
+import { skillName } from './creation';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scene_fallback: 'Scene planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -11,6 +16,41 @@ const NOTICE_KIND: Record<Notice['kind'], string> = {
 };
 
 const MODE_WORD: Record<string, string> = { explore: 'Exploring', dialogue: 'Talking', tactical: 'Fighting' };
+const VOLUME_WORD: Record<string, string> = { whisper: 'whispering', normal: '', shout: 'shouting' };
+const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'], condition: ['Condition', 'c7'], health: ['Health', 'c2'] };
+const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
+const COMMANDS: [string, string][] = [
+  ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
+  ['/quests', 'your quests'], ['/aim ', 'this turn’s attack is aimed'], ['/undo', 'rewind one turn (dice are not rolled back)'],
+  ['/difficulty ', 'show or change the difficulty'],
+];
+
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
+const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
+
+/** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Three per group. */
+export function ideas(pv: PlayerView): { group: string; items: { text: string; note?: string }[] }[] {
+  const people = pv.actors.filter((a) => a.level === 'full' && a.health !== 'Incapacitated');
+  const nm = (a: PlayerView['actors'][number]) => a.name ?? a.label;
+  const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('hand:')) && i.kind === 'weapon');
+  const stowed = pv.player.inventory.filter((i) => !i.equippedIn.length && i.kind === 'weapon');
+  return [
+    { group: 'Fight', items: people.map((a) => ({ text: `Attack ${nm(a)}`, note: a.health })) },
+    { group: 'Talk', items: people.map((a) => ({ text: `Talk to ${nm(a)}` })) },
+    { group: 'Move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined })) },
+    { group: 'Use', items: [
+      ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
+      ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },
+  ].map((g) => ({ ...g, items: g.items.slice(0, 3) }));
+}
+
+function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
+  const place = s.places.find((x) => x.id === s.player.placeId);
+  const parent = place?.parentId ? s.places.find((x) => x.id === place.parentId) : undefined;
+  const where = [place?.names.current, parent?.names.current].filter(Boolean).join(' › ');
+  return pv?.zone.name ? [' · ', h('b', {}, cap(pv.zone.name)), where ? ' · ' + where : ''] : where ? [' · ', h('b', {}, where)] : [];
+}
 
 export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void };
 
@@ -27,14 +67,21 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', placeholder: 'What do you do? A line starting with / is a command (/help)', 'aria-label': 'What do you do' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
   const aimPicker = h('div', { class: 'hs-picker' }, aimBtn);
-  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, input, aimPicker, send);
+  let open: 'commands' | 'ideas' | null = null;
+  const helpBtn = (id: 'commands' | 'ideas', label: string) => h('button', { type: 'button', onclick: () => { open = open === id ? null : id; update(); } }, label);
+  const cmdBtn = helpBtn('commands', 'Commands'), ideaBtn = helpBtn('ideas', 'Ideas');
+  const helpPanel = h('div', { class: 'helps', hidden: true });
+  const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn), input, aimPicker, send);
   const fell = h('div', { class: 'fell', hidden: true });
-  const body = h('div', { class: 'play' }, h('div', { class: 'log-wrap' }, log, mech), h('div', { class: 'sec' }, notices, bar, credit()));
+  const body = h('div', { class: 'play' }, h('div', { class: 'log-wrap' }, log, mech), h('div', { class: 'sec' }, notices, helpPanel, bar));
   const title = h('div', { class: 'head' });
+  const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
   let folded = false;
   try { folded = localStorage.getItem('sheetFolded') === '1'; } catch { /* storage blocked: start open */ }
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
-  const el = h('main', { class: 'playmain' }, title, h('div', { class: 'play-wrap' }, body, sheet), fell);
+  const el = h('main', { class: 'playmain' }, title, who, h('div', { class: 'play-wrap' }, body, sheet), fell);
+
+  const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
 
   async function submit() {
     const text = input.value.trim();
@@ -48,16 +95,54 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     await api.submit(text, { aimed: wasAimed });
   }
 
-  function lineEl(l: LogLine): HTMLElement {
-    return h('p', { class: 'ln-' + l.kind }, l.text);
+  function lineEl(l: LogLine): (HTMLElement | null)[] {
+    if (l.kind !== 'narration') return [h('p', { class: 'ln-' + l.kind }, l.text)];
+    const c = l.check;
+    return [
+      c ? h('p', { class: 'check' }, `${skillName(c.skill)} `, h('b', {}, tierName(c.tier)),
+        c.against ? [` vs ${c.against.what} ${tierName(c.against.tier)}`, h('span', { class: 'sep' }, ' · '), tierGap(c.tier, c.against.tier)] : null,
+        h('span', { class: 'sep' }, ' · '), h('b', {}, c.result)) : null,
+      h('p', { class: 'ln-narration' }, l.text),
+      ...(l.speech ?? []).map((sp) => h('div', { class: 'line' },
+        h('p', { class: 'who2', style: `color:var(--${colourOf(sp.speaker)})` }, cap(sp.speaker), VOLUME_WORD[sp.volume] ? h('span', { class: 'how' }, VOLUME_WORD[sp.volume]) : null),
+        h('p', {}, h('q', { class: sp.volume }, sp.text)))),
+      l.changes?.length ? h('details', { class: 'changes' },
+        h('summary', {}, h('span', { class: 'hs-label' }, `Turn ${l.turn}`), h('span', { class: 'hs-chip' }, `↻${l.changes.length}`),
+          h('span', { class: 'sum' }, l.changes.filter((x) => x.kind !== 'combat').map((x) => x.text).join(' · ') || `${l.changes.length} changes`)),
+        h('table', { class: 'chg' }, h('tbody', {}, l.changes.map((x) => h('tr', {},
+          h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,
+    ];
   }
 
   function update() {
     const s = api.state();
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play'), h('p', {}, s ? `Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}` : 'No story yet')));
+    const pv = s ? safe(() => buildPlayerView(s)) : null;
+    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play'), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
+      h('p', { class: 'hs-note calls', title: 'Every request this page sent to Claude since it was opened, counted by code. Repairs and background calls count too.' },
+        `${api.calls()} Claude calls this session`));
+    // who's here: only actors the character fully perceives (PlayerView); others' health only from Wounded down
+    const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
+    who.hidden = !seen.length;
+    who.replaceChildren(h('span', { class: 'hs-label' }, 'Who’s here'), ...seen.map((a) => h('span', { class: 'pp' }, h('b', {}, cap(a.name ?? a.label)),
+      a.health ? h('span', { class: a.health === 'Incapacitated' ? 'st down' : 'st warn' }, a.health === 'Incapacitated' ? 'Down' : a.health)
+        : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null)));
     const lines = api.lines();
     const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-    log.replaceChildren(...lines.map(lineEl), api.busy() ? h('p', { class: 'wait', 'aria-label': 'Waiting for the story' }, '…') : '');
+    log.replaceChildren(...lines.flatMap(lineEl).filter((x): x is HTMLElement => !!x), api.busy() ? h('p', { class: 'wait', 'aria-label': 'Waiting for the story' }, '…') : '');
+
+    helpPanel.hidden = !open;
+    cmdBtn.setAttribute('aria-pressed', String(open === 'commands'));
+    ideaBtn.setAttribute('aria-pressed', String(open === 'ideas'));
+    const head = (t: string) => h('div', { class: 'helps-h' }, h('p', { class: 'hs-section' }, t),
+      h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { open = null; update(); } }, 'Close ×'));
+    if (open === 'commands') helpPanel.replaceChildren(head('Commands · no time passes'),
+      h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
+      h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'));
+    else if (open === 'ideas') helpPanel.replaceChildren(head('Ideas · from what you can see now'),
+      h('div', { class: 'idea-groups' }, (pv ? ideas(pv) : []).map((g) => h('div', {}, h('p', { class: 'hs-label' }, g.group),
+        g.items.length ? h('ul', {}, g.items.map((it) => h('li', {}, h('button', { type: 'button', onclick: () => pick(it.text) }, it.text, it.note ? h('span', {}, it.note) : null))))
+          : h('p', { class: 'hs-note' }, 'Nothing right now')))),
+      h('p', { class: 'hs-note' }, 'Built by code from what your character can see and carries, refreshed every turn. Picking one fills the box; nothing is sent until you press Send.'));
     if (stick || api.busy()) log.scrollTop = log.scrollHeight;
 
     const show = s?.settings.showMechanics ?? CONFIG.SHOW_MECHANICS;
@@ -86,6 +171,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const fallen = api.fell();
     body.hidden = fallen;
     sheet.hidden = fallen;
+    who.hidden = fallen || !seen.length;
     fell.hidden = !fallen;
     if (fallen) {
       fell.replaceChildren(

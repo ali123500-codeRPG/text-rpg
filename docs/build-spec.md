@@ -506,7 +506,8 @@ Output shape (notation, not literal JSON):
     item:     item_instance_id | null,     // weapon, consumable, tool or item given
     mode:     mode_id | null,              // attack mode; code default if null (Part 5 §5)
     approach: short phrase in the player's style,   // flavor only
-    stance:   careful | normal | reckless          // flavor only
+    stance:   careful | normal | reckless,         // flavor only
+    improvised: { base: improvised_light | improvised_medium | improvised_heavy, name: short phrase } | null   // a scene object used as a weapon (Part 5 §7)
   } | null,
   gear:       [ { op: draw | stow | swap | wear_acc | remove_acc | pick_up,
                   item: item_instance_id, from?: actor_id } ] | null,   // free; before the action
@@ -544,6 +545,9 @@ Rules:
 9. Drawing, stowing, swapping, putting on or taking off accessories and picking things
    up go in "gear"; they cost nothing. Putting armor on or taking it off is an "equip"
    action. Name the item, and the attack mode, when the player names them.
+10. If the player fights with an object from the scene that is not in PLAYER_VIEW (a chair, a
+   bottle), set "improvised": the base by its size (improvised_light, improvised_medium,
+   improvised_heavy) and a short name for the object. Leave "item" null.
 
 Return only JSON matching the schema.
 ```
@@ -845,7 +849,7 @@ Rules:
 2. Describe only what the character perceives. Turn "partial" events into hints through their cue (a sound, a shadow, a smell) with no names, numbers or intentions.
 3. Never add facts that change the game: no new characters, items, wounds, exits or clues beyond the events.
 4. Never contradict an event's outcome or tier. Show success and failure through the fiction. Never print rolls or numbers.
-5. Use every character's spoken line exactly as given, and only if the player character heard it.
+5. Do not quote spoken lines: the screen shows each line the player character heard, word for word, under your text. You may say who spoke and how, and only for lines the player character heard.
 6. List in "narrated" the id of every event your text describes.
 7. Keep to the length given in STYLE. End on a moment that invites the player's next move. Do not list options.
 8. Never write the player character's words or decisions beyond the resolved action.
@@ -1048,14 +1052,14 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 - the grades fit the tier;
 - no public field contains a hiddenTerm or a secret's leakTerm, matched as whole words (as the Narrator's leak scan matches);
 - public text respects TEXT\_CAP (placeholder). Hidden-only notes (event summary, band goals and temperament, motive, routineGap, plan goal, secret fact, Weaver note) are not rejected for length: code trims them to NOTE\_CAP at a word boundary.
-
-**Defaults filled before validation.** A trigger inside an NPC plan with no ownerId belongs to the plan's owner; a trigger with no once fires once; a place with no parent (missing or null) is top-level, and a new place may name another new place as its parent; a plan with no steps gets an empty list. Validator errors are listed once each, with a hint where the Weaver mixes fields up (a stance in an awareness field; a secret in knows). The repair retry sends the rejected plan back with its errors and asks for only those fixes.
-- every reward resolves; a minted variant's quality is at most the tier its gain grade allows (Part 5 §7) and the minted count stays within the per-scene cap; reward names and looks are public text and are scanned like other public fields;
+- rewards never fail a plan; code repairs them and logs each repair (reward\_repaired): a reward over the count cap, or with an unknown item, base or place, is dropped; a bad qty becomes 1; a minted variant past the per-scene cap, at a gain that allows none, or whose name or look is too long or uses a hidden term is placed as its plain base item; a quality above what the gain allows (Part 5 §7) is lowered to it; a weapon's boosts other than hitAdj or damageAdj becomes hitAdj (loot L1, V7);
 - every routineSetId resolves; a player-band entry names the companion set and binds no slots;
 - every slot the set lists is bound: a zone slot to one zone, a route slot to 1 to MAX\_ROUTE\_ZONES zones (one zone: the actor stays there); bound keys are zones in the plan or on the stage, never frontiers; startAt names one of the set's slots;
 - every bound zone is reachable from the actor's other bound zones through zone links;
 - routineGap respects its length cap (placeholder).
 - every knows fact is public text: it respects its length and count caps (placeholders) and is scanned like other public fields;
+
+**Defaults filled before validation.** A trigger inside an NPC plan with no ownerId belongs to the plan's owner; a trigger with no once fires once; a place with no parent (missing or null) is top-level, and a new place may name another new place as its parent; a plan with no steps gets an empty list. Validator errors are listed once each, with a hint where the Weaver mixes fields up (a stance in an awareness field; a secret in knows). The repair retry sends the rejected plan back with its errors and asks for only those fixes.
 
 **Failed stage plan.** A plan that fails validation gets one repair retry with the validator's errors. If it fails again, or the call fails, or (scene start only) it passes WEAVER\_TIMEOUT (config), code builds a fallback stage: the place's saved zones, or one empty zone per frontier label; no new cast; grades none/none. The fallback is flagged so it cannot be missed:
 
@@ -1225,7 +1229,7 @@ Each actor type's combat list (Fallback behavior) keeps the game playable even i
 
 ### Play screen
 
-One self-contained page for PC only, built with the HISAB design system (https://claude.ai/artifact/PsxYHump4Sjy9iz9GvXkfx): its tokens and HISABRound fonts, one theme only (Sky diary Night, keeping the Sky Backgrounds CC BY 4.0 credit), no network calls except the game's own Claude and database capabilities. No max width, 32px gutters, 1.3× zoom at 2400px and wider, 64px rail items, dates DD/MM/YYYY.
+One self-contained page for PC only, built with the HISAB design system (https://claude.ai/artifact/PsxYHump4Sjy9iz9GvXkfx): its tokens and HISABRound fonts (story text in Literata, SIL OFL, embedded; Ali, 07/11/2026), one theme only (Sky diary Night; no picture credit, as this is a personal-use project, Ali 07/11/2026), no network calls except the game's own Claude and database capabilities. No max width, 32px gutters, 1.3× zoom at 2400px and wider, 64px rail items, dates DD/MM/YYYY.
 
 Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns.md, data-display.md and checklist.md before building, and invent no colours, radii or spacing. These design rules are binding for every play screen:
 
@@ -1236,12 +1240,19 @@ Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns
 - **Estimates:** every estimated number shows its source line and a link, and stays editable.
 
 * **Creation screen:** the approved layout at https://claude.ai/artifact/HW45ivigqwZ5VDo4PWPv9u (Part 4 §4, Player creation). The story starts from it.
-* **Narration log:** checked narration, newest last, with the "…" waiting indicator (Latency and cost).
+* **Header:** the story title; under it the turn, the mode and the place line (the character's zone, then its place and parent place). On the right, the number of Claude calls this session, counted by code (Voyage U2, U3, U30; decided by Ali 07/11/2026). Time of day waits for the game clock (D-101).
+* **Who's here:** a strip under the header listing the actors the character fully perceives (PlayerView), by label until the name is known. Others' health shows only from Wounded down (Part 3), never as a bar (Voyage C2, U6, U7).
+* **Narration log:** checked narration, newest last, with the "…" waiting indicator (Latency and cost). Story text is set in Literata.
+* **Check line:** under the player's action, the player's own roll this turn with no numbers: skill, tier, the other side's tier, how far apart they are ("1 tier ahead") and the result, e.g. "Medium weapons Strong vs the slime's dodge Success · 1 tier ahead · full hit, body" (Voyage U10).
+* **Speaker lines:** each line the character heard, word for word under the narration: the speaker's name in a column on the left with how it was said (whispering, shouting) under it, the line on the right, vertically centred (Narrator rule 5; Voyage U9, U12, style A picked by Ali 07/11/2026).
+* **Turn changes:** one folded row per turn ("Turn 14 ↻3 You are Bruised") that opens to one typed row per change: Combat, Condition, Health. Built by code from the combat packets the character perceived (Voyage U14 to U16).
+* **Commands and Ideas:** two buttons beside the input open a wide panel above it. Commands lists the / commands (D-100). Ideas lists up to three actions each for Fight, Talk, Move and Use, built by code from PlayerView (D-107). Picking one fills the box; nothing is sent until Send.
 * **Input:** one free-text box; a line starting with / is a command (Part 1 §7).
 * **Input keys:** the action box keeps focus; what it sends is trimmed, and an empty line sends nothing. If narration is ever paced (D-24), skipping uses a click on the narration or Esc, never a key that types (Voyage A7, decided by Ali 07/11/2026; was OQ-24).
 * **Aim toggle:** marks this turn's attack as aimed (Part 1 §7).
 * **Mechanics panel:** under the narration while SHOW\_MECHANICS is on; dice, modifiers and damage from code.
 * **Out-of-character notices:** the scene-planning failure marker (Agent Weaver), the rate-limit notice and the stop-play message (Leak prevention, validation and failure handling).
+* **Side sheet health:** the health bar marks the health-track thresholds and names the current level; clicking it opens each body part with its pool and state (Ali, 07/11/2026).
 * **"You fell" screen:** shown when a lethal fight incapacitates the player, offering /undo or reset (D-54).
 * **GM debug view toggle** (Leak prevention, validation and failure handling).
 
@@ -1348,12 +1359,13 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 95 | Stacked armor | A creature with natural armor wearing armor takes damage reduced by worn, then natural, floor 0, not rounded |
 | 96 | Armor pool | A head hit on a heavy helm drains the helm pool before the head pool; the health track ignores the helm pool |
 | 97 | Concealed blade | An NPC's view omits a concealed blade until the NPC perceives an attack with it; after that its belief keeps it |
-| 98 | Minted reward cap | A Weaver plan with a quality-3 variant on a moderate-gain scene fails validation; quality 2 passes |
+| 98 | Minted reward cap | A quality-3 variant on a moderate-gain scene is lowered to quality 2, and a weapon boosts of "keen edge" becomes hitAdj; the plan applies with no repair call |
 | 99 | Fallback attack | An engaged slime with the player in its zone attacks the player with unarmed\_natural, targetPart null; the order's source is fallback |
 | 100 | Fallback target | An engaged minor actor that a companion hit last turn attacks the companion, even with the player in the same zone |
 | 101 | Fallback close in | An engaged minor actor whose belief puts the player two links away moves one link along the shortest path, never into a frontier; in that zone with nobody there, it searches |
 | 102 | Late Planner fights on | A significant engaged actor whose Planner call is late runs its type's combat list that turn instead of holding |
 | 103 | Broken flees | A broken engaged actor with an exit slot moves one link toward it and holds once there; a slime never flees |
+| 104 | Improvised weapon | The Parser's improvised chair leg becomes a held improvised\_medium story item with hitAdj IMPROVISED\_HIT\_ADJ and no kit bonus, and the attack uses it |
 
 ### Deliverables and acceptance criteria
 
@@ -2340,7 +2352,9 @@ Reduction before the multiplier bites light weapons hardest, so heavy weapons ea
 - **Consumables** are a flag: the item is removed on use. Their effects wait for Healing and Status effects.
 - **Coins** are a stackable library item, bulk 0. **value** is a base price in coins on every item (*placeholder*); no code reads it until trade exists.
 - **Concealed items** stay out of other actors' views while held or worn, until used in an event that actor perceives; that observer's Belief.revealed then keeps it. Accessories are hidden by default unless tagged visible.
-- **Minting** (for now): a variant = a base library item + quality tier 1–4 + public name and look. Code reads the tier's bonuses from QUALITY\_TABLE and writes a story blueprint, within the per-scene minted cap. Loot and item-creation details are deferred.
+- **Minting** (for now): a variant = a base library item + quality tier 1–4 + public name and look. Code reads the tier's bonuses from QUALITY\_TABLE and writes a story blueprint, within the per-scene minted cap. A minted item with no close library match uses the nearest generic base: improvised\_light, improvised\_medium or improvised\_heavy for an odd weapon, curio (misc, no effects) for a thing with no game effect (Ali, 07/11/2026, loot L2).
+- **Improvised items** (Ali, 07/11/2026, loot L3): when the player fights with a scene object not in the view, the Parser names an improvised base by size and a short name. Code writes a story blueprint (that base, the given name as name and look), puts it in the player's inventory and swaps it into hand before the attack. Improvised bases carry hitAdj IMPROVISED\_HIT\_ADJ (*placeholder*, −10) and no kit bonus.
+- **Needs data.** Every story item blueprint (minted or improvised) is listed on the GM page under Needs data, so the designer can give it its own data and promote it.
 
 QUALITY\_TABLE (*placeholder*): per tier 1/2/3/4, weapon hitAdj +2/+4/+6/+8 or damageAdj +1/+2/+3/+4 (the variant names which); armor reduction +1/+1/+2/+2; tool skill bonus +5/+10/+15/+20. Highest tier allowed by the scene's gain grade: minor 1, moderate 2, major 3, extreme 4.
 
@@ -2370,7 +2384,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Deferred | Skills are designed with character and mob generation; sneaking waits for the Stealth tree. Also open: what a larger contest gap does, and combined skill checks (such as sight with hearing) |
 | D-9 | Mastery checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |
 | D-10 | XP sources and achievements | 1–2 | Deferred | Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
-| D-11 | Minting improvised items and NPCs | 1 | Deferred | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22 |
+| D-11 | Minting improvised items and NPCs | 1 | Partly settled | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22. Settled 07/11/2026: generic bases, improvised weapons and the Needs data list (Part 5 §7). Still open: NPCs, improvised tools and objects used other than as weapons |
 | D-12 | Content database for items, loot and prices | 1 | Partly settled | Part 5 (Gear) sets the item data shape (Part 4 §9) and a prototype bank. Still deferred: loot tables, shops, trade, prices beyond the value placeholder |
 | D-13 | Faction clocks | 1 | Deferred | Time advances with turns and faction clocks tick on their own. A faction here is a grand faction, unrelated to bands |
 | D-14 | Skills and classes | 1, 4 | Deferred | Separate thread: general skills, class trees, exclusions, how classes unlock. Voyage playtest (07/11/2026): B11, ability requirements and cooldowns |
@@ -2449,7 +2463,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-87 | Dual wielding and versatile grips | 5 | Deferred | Off-hand attacks and penalties; weapons usable one- or two-handed with a bonus for two |
 | D-88 | Armor depth | 5 | Deferred | Layers, armor-piercing weapons, damage types (already excluded for now), armor stealth penalties |
 | D-89 | Durability and repair | 5 | Deferred | Wear on items other than pools; refilling shield and armor pools |
-| D-90 | Containers, charges, keys, crafting | 5 | Deferred | Bags inside bags, items with uses, keys bound to doors, making items |
+| D-90 | Containers, charges, keys, crafting | 5 | Deferred | Bags inside bags, items with uses, keys bound to doors, making items. Crafting plan (Ali, 07/11/2026, loot L4): a recipe consumes inputs and makes a check; outcome tier ID sets the quality (−1 plain base, 0 → 1, 1 → 2, 2 → 3, 3 → 4); failure tiers lose the inputs |
 | D-91 | Consumable effects | 5 | Deferred | Healing and timed buffs; waits for Healing and Status effects |
 | D-92 | Loot and item creation | 5 | Deferred | Loot tables, minting detail, items with no library base. Minting is base item + quality tier for now |
 | D-93 | Shops, trade and prices | 5 | Deferred | Buying, selling, haggling, prices by place. value is a placeholder until then. Voyage playtest (07/11/2026): B3, a payment must happen once; B13, prices out of scale |
@@ -2459,14 +2473,14 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-97 | Gauntlets and unarmed damage | 5 | Deferred | Worn hand gear such as gauntlets may change unarmed damage while worn. Until such items exist, every unarmed attack without a class uses the unarmed profile (15 damage, +10 hit) |
 | D-98 | Surrendered actors | 3 | Deferred | What the player can do with an actor that surrendered (take it prisoner, question it, let it go), and whether surrender lasts past the scene |
 | D-99 | Movement speed | 3 | Deferred | How movement speed works beyond one zone link per turn, and how injured legs slow it; the Move role's movement effects wait for this |
-| D-100 | Command buttons | 2 | Planned | Decided by Ali (07/11/2026, Voyage A3): plan buttons on the Play screen that show the available commands (Part 1 §7). Not in the first build; design with D-22 |
+| D-100 | Command buttons | 2 | Built | Decided by Ali (07/11/2026, Voyage A3): plan buttons on the Play screen that show the available commands (Part 1 §7). Built 07/11/2026 as the Commands panel |
 | D-101 | Game clock | 2, 4 | Deferred | Voyage playtest (07/11/2026): E1, a trade took a day while 31 km of travel took no time; E2, NPCs said "yesterday" on day 1. Covers turn and command durations, travel time and a calendar NPCs can read. Related: D-13, D-49 |
 | D-102 | Resource costs | 1 | Deferred | Voyage playtest (07/11/2026): B12, a failed spell still charged mana. There is no mana or other resource; when one exists, decide whether a failed action still pays |
 | D-103 | NPC self-interest in exchanges | 2 | Deferred | Voyage playtest (07/11/2026): D1, NPCs refused tips and bonuses. Whether Agent Responder and Agent Voice are told to keep their own interests in deals |
 | D-104 | Attitude toward the player | 2, 4 | Deferred | Voyage playtest (07/11/2026): D4, a relationship score per NPC with labels; D5, threatening an NPC raised it. A Belief tracks awareness only and stance comes from bands (Part 2, Opposition); threats short of an attack have no lasting effect |
 | D-105 | Quests | 2, 4 | Deferred | Voyage playtest (07/11/2026): D8, a duplicate quest for a job already taken; G2, quest text revealed secrets. Who creates quests and writes their text, a leak check on that text, and de-duplication. Quests are only {id, state, text} for now (Part 4 §9) |
 | D-106 | Narration against NPC lines | 2 | Deferred | Voyage playtest (07/11/2026): D7, the narration contradicted an NPC line. A check that the narration agrees with the NPC lines it quotes |
-| D-107 | Action ideas on request | 2 | Planned | Decided by Ali (07/11/2026, Voyage A4; was OQ-23): a code-built list from PlayerView, shown when the player asks: people in view to talk to, exits, items held, actors in reach, grouped by tab (Talk, Move, Fight, Use) and refreshed each turn. No Claude call, so nothing can leak. Narrator rule 7 ("Do not list options") stays for the narration. Not in the first build; design with D-100 |
+| D-107 | Action ideas on request | 2 | Built | Decided by Ali (07/11/2026, Voyage A4; was OQ-23): a code-built list from PlayerView, shown when the player asks: people in view to talk to, exits, items held, actors in reach, grouped by tab (Talk, Move, Fight, Use) and refreshed each turn. No Claude call, so nothing can leak. Narrator rule 7 ("Do not list options") stays for the narration. Built 07/11/2026 as the Ideas panel on the Play screen (Fight, Talk, Move, Use side by side, three each) |
 
 ## Check on release
 
@@ -2505,6 +2519,8 @@ These must be answered before the spec goes to a build agent. Each question has 
   - Build default: placeholder ids, renamed through library aliases later.
 - OQ-22: Changing objects and places. In the first build a check or a contest only changes beliefs and reveals secrets (Part 2, Resolution engine). How one changes an object or a place, such as a forced door, a picked lock or a stolen item, is not designed yet.
   - Build default: nothing changes; the attempt is only narrated.
+- OQ-28: Quests as a mechanic (Ali, 07/11/2026, Voyage UI check). Who creates a quest and writes its text, how the text is leak-checked and how duplicates are avoided (D-105). Until then the Play screen shows no quest line.
+  - Build default: quests stay {id, state, text} and show only on the Quests page.
 
 ## Appendix: prototype routine bank
 

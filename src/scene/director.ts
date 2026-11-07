@@ -24,6 +24,9 @@ export type SceneResult = {
   situation?: SituationResult;
 };
 
+/** errors that need the repair call: repaired notes don't count */
+const blocking = (errors: PlanError[]) => errors.some((e) => !e.repaired);
+
 type Planned = { plan: StagePlan | null; errors: PlanError[]; reason?: string };
 type Held = { ctx: PlanContext; result: Promise<Planned> };
 const TIMEOUT: unique symbol = Symbol('timeout');
@@ -108,7 +111,7 @@ export class SceneDirector {
     if (first === TIMEOUT) return { plan: null, errors: [], reason: 'weaver_timeout' };
     if (!first) return { plan: null, errors: [], reason: 'call_failed' };
     const errors = validateStagePlan(state, first, ctx);
-    if (!errors.length) return { plan: first, errors };
+    if (!blocking(errors)) return { plan: first, errors };
     const second = await this.timed(this.call(view, errors, first), deadline);
     if (second === TIMEOUT || !second) {
       // the repair failed: the first plan may still degrade if its errors are routine-only
@@ -138,9 +141,10 @@ export class SceneDirector {
 }
 
 function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'sneaking'): SceneResult {
-  if (p.plan && p.errors.every((e) => e.routineOnly)) {
-    applyStagePlan(state, p.plan, ctx, { entry, ...(p.errors.length ? { degrade: p.errors } : {}) }, rng);
-    return { outcome: p.errors.length ? 'degraded' : 'applied', plan: p.plan, errors: p.errors };
+  if (p.plan && p.errors.every((e) => e.routineOnly || e.repaired)) {
+    const degrade = p.errors.filter((e) => e.routineOnly);
+    applyStagePlan(state, p.plan, ctx, { entry, ...(degrade.length ? { degrade } : {}) }, rng);
+    return { outcome: degrade.length ? 'degraded' : 'applied', plan: p.plan, errors: p.errors };
   }
   applyFallbackStage(state, ctx, p.reason ?? 'invalid_plan', p.errors);
   return { outcome: 'fallback', plan: p.plan, errors: p.errors };
@@ -161,7 +165,7 @@ export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | n
   if (!first) planned = { plan: null, errors: [], reason: 'call_failed' };
   else {
     const errors = validateStagePlan(state, first, ctx);
-    if (!errors.length) planned = { plan: first, errors };
+    if (!blocking(errors)) planned = { plan: first, errors };
     else if (!second) planned = { plan: first, errors, reason: 'call_failed' };
     else planned = { plan: second, errors: validateStagePlan(state, second, ctx), reason: 'invalid_plan' };
   }

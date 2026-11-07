@@ -2,7 +2,7 @@
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
 import type { Intent, NarratorOutput, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
-import { GRADES } from '../types';
+import { GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { COVER_NAMES, LIGHT_NAMES, TACTICS_NAMES } from '../config';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
@@ -62,6 +62,8 @@ const intent = obj<Intent>({
     mode: nul(str),
     approach: (v, p, e) => (v === null || v === undefined ? '' : str(v, p, e)),
     stance: (v, p, e) => (v === null || v === undefined ? 'normal' : oneOf(['careful', 'normal', 'reckless'] as const)(v, p, e)),
+    improvised: (v, p, e) => (v === null || v === undefined ? null
+      : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
   })),
   gear: GEAR,
   spoken: nul(str),

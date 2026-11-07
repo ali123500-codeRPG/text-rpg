@@ -84,7 +84,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const cap = CONFIG.TEXT_CAP;
   const arr = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
   const places = arr(plan.places), zones = arr(plan.zones), frontiers = arr(plan.frontiers), bands = arr(plan.bands);
-  const cast = arr(plan.cast), rewards = arr(plan.rewards);
+  const cast = arr(plan.cast);
   const seeds = plan.seeds ?? { plans: [], triggers: [], secrets: [] };
   const secrets = arr(seeds.secrets);
 
@@ -117,7 +117,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   // ---- caps ----
   const counts: [string, number, number][] = [
     ['cast', cast.length, P.cast], ['zones', zones.length, P.zones], ['frontiers', frontiers.length, P.frontiers],
-    ['places', places.length, P.places], ['bands', bands.length, P.bands], ['rewards', rewards.length, P.rewards],
+    ['places', places.length, P.places], ['bands', bands.length, P.bands],
   ];
   for (const [what, n, max] of counts) if (n > max) err('cap_exceeded', `${what}: ${n} > ${max}`);
 
@@ -298,35 +298,68 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     else if (r?.type !== 'event_in_zone' && r?.type !== 'check_passed') err('bad_secret', `secret ${s.id}: revealWhen unknown`);
   }
 
-  // ---- rewards ----
-  let minted = 0;
-  rewards.forEach((r, i) => {
-    const where = `reward ${i}`;
-    if (typeof r.item === 'string') {
-      try { itemDef(state, r.item); } catch { err('unresolved_item', `${where}: item ${r.item} unknown`); }
-    } else if (r.item && typeof r.item === 'object') {
-      minted += 1;
-      const m = r.item;
-      let base;
-      try { base = itemDef(state, m.base); } catch { err('unresolved_item', `${where}: base item ${m.base} unknown`); }
-      text(`${where} name`, m.name, true);
-      text(`${where} look`, m.look, true);
-      const max = ev && GRADES.includes(ev.gain) ? CONFIG.GAIN_MAX_QUALITY[ev.gain] ?? 0 : 0;
-      if (![1, 2, 3, 4].includes(m.quality) || m.quality > max)
-        err('minted_quality', `${where}: quality ${m.quality} exceeds ${max}, the most a ${ev?.gain} gain allows`);
-      if (base?.kind === 'weapon' && m.boosts !== 'hitAdj' && m.boosts !== 'damageAdj')
-        err('minted_boosts', `${where}: a weapon variant boosts hitAdj or damageAdj`);
-    } else err('unresolved_item', `${where}: no item`);
-    if (r.qty !== undefined && (!Number.isInteger(r.qty) || r.qty < 1)) err('bad_reward', `${where}: qty is a whole number of at least 1`);
-    const pl = r.place as { carriedBy?: string; groundIn?: string } | undefined;
-    if (pl?.carriedBy !== undefined) {
-      if (!isActor(pl.carriedBy) || pl.carriedBy === state.player.id) err('bad_reward', `${where}: carrier ${pl.carriedBy} unknown`);
-    } else if (pl?.groundIn !== undefined) {
-      if (!isZone(pl.groundIn)) err('bad_reward', `${where}: zone ${pl.groundIn} unknown`);
-    } else err('bad_reward', `${where}: needs carriedBy or groundIn`);
-  });
-  if (minted + state.sceneCaps.minted > CONFIG.SCENE_CAPS.minted)
-    err('minted_cap', `minted items: ${minted} + ${state.sceneCaps.minted} this scene > ${CONFIG.SCENE_CAPS.minted}`);
+  // ---- rewards: repaired, never blocking (loot L1) ----
+  errs.push(...tidyRewards(state, plan).notes);
 
   return errs;
+}
+
+type Reward = StagePlan['rewards'][number];
+
+/**
+ * Loot L1: a bad reward is fixed or dropped, never fails the plan. Validation reports each change as a repaired
+ * note; the apply step places the tidied list. Same input, same output, so replay matches.
+ */
+export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Reward[]; notes: PlanError[] } {
+  const notes: PlanError[] = [];
+  const note = (code: string, message: string) => notes.push({ code, message, routineOnly: false, repaired: true });
+  const arr = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
+  const castKeys = new Set(arr(plan.cast).map((c) => c.key));
+  const zoneKeys = new Set(arr(plan.zones).map((z) => z.key));
+  const actorIds = new Set(state.actors.map((a) => a.id));
+  const stageZones = new Set(state.stage.zoneIds);
+  const terms = [...arr(plan.hiddenTerms), ...arr(plan.seeds?.secrets).flatMap((s) => arr(s.leakTerms))]
+    .filter((t) => typeof t === 'string' && t.trim()).map((t) => t.toLowerCase());
+  const badText = (v: unknown) => typeof v !== 'string' || v.length > CONFIG.TEXT_CAP || terms.some((t) => v.toLowerCase().includes(t));
+  const gain = plan.event?.gain;
+  const maxQ = GRADES.includes(gain) ? CONFIG.GAIN_MAX_QUALITY[gain] ?? 0 : 0;
+  let mintLeft = CONFIG.SCENE_CAPS.minted - state.sceneCaps.minted;
+  const known = (id: unknown) => { try { return typeof id === 'string' ? itemDef(state, id) : undefined; } catch { return undefined; } };
+
+  const rewards: Reward[] = [];
+  arr(plan.rewards).forEach((r, i) => {
+    const where = `reward ${i}`;
+    if (rewards.length >= CONFIG.PLAN_CAPS.rewards) return note('reward_dropped', `${where}: over the cap of ${CONFIG.PLAN_CAPS.rewards} rewards`);
+    const pl = r?.place as { carriedBy?: string; groundIn?: string } | undefined;
+    const placed = pl?.carriedBy !== undefined ? castKeys.has(pl.carriedBy) || actorIds.has(pl.carriedBy)
+      : pl?.groundIn !== undefined && (zoneKeys.has(pl.groundIn) || stageZones.has(pl.groundIn));
+    if (!placed) return note('reward_dropped', `${where}: needs a known carriedBy (not the player) or groundIn`);
+    let qty = r.qty;
+    if (qty !== undefined && (!Number.isInteger(qty) || qty < 1)) { note('reward_qty', `${where}: qty ${qty} set to 1`); qty = 1; }
+    let item: Reward['item'];
+    if (typeof r.item === 'string') {
+      if (!known(r.item)) return note('reward_dropped', `${where}: item ${r.item} unknown`);
+      item = r.item;
+    } else {
+      const m = r.item;
+      const base = known(m?.base);
+      if (!base) return note('reward_dropped', `${where}: base item ${m?.base} unknown`);
+      const plain = mintLeft <= 0 ? 'the scene\'s minted cap is used up' : maxQ < 1 ? `a ${gain} gain allows no minted item`
+        : badText(m.name) || badText(m.look) ? 'its name or look is too long or uses a hidden term' : '';
+      if (plain) { note('reward_plain', `${where}: placed as a plain ${base.id}, because ${plain}`); item = base.id; }
+      else {
+        mintLeft -= 1;
+        const quality = Math.min(maxQ, Math.max(1, Math.round(Number(m.quality)) || 1)) as 1 | 2 | 3 | 4;
+        if (quality !== m.quality) note('reward_quality', `${where}: quality ${m.quality} set to ${quality}, the most a ${gain} gain allows`);
+        let boosts = m.boosts;
+        if (base.kind === 'weapon' && boosts !== 'hitAdj' && boosts !== 'damageAdj') {
+          note('reward_boosts', `${where}: boosts "${boosts}" set to hitAdj`);
+          boosts = 'hitAdj';
+        }
+        item = { ...m, quality, boosts };
+      }
+    }
+    rewards.push({ ...r, item, ...(qty !== undefined ? { qty } : {}) });
+  });
+  return { rewards, notes };
 }

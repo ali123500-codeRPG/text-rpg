@@ -8,7 +8,7 @@ import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
 import { actorById, isActive, zoneById } from '../engine/relations';
 import type { PlanContext, PlanError } from './index';
-import { stageFrontiers } from './validate';
+import { stageFrontiers, tidyRewards } from './validate';
 
 function freshId(key: string, taken: Set<string>): string {
   let id = key;
@@ -247,7 +247,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   }
 
   // ---- rewards ----
-  plan.rewards.forEach((r, i) => {
+  const { rewards, notes } = tidyRewards(state, plan);
+  if (notes.length) state.log.push({ turn, code: 'reward_repaired', detail: { notes: notes.map((e) => e.message) } });
+  rewards.forEach((r, i) => {
     const itemId = typeof r.item === 'string' ? r.item : mint(state, r.item, i);
     const def = itemDef(state, itemId);
     const qty = r.qty ?? 1;

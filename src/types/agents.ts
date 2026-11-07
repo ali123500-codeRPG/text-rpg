@@ -12,6 +12,9 @@ export type ParserActionType =
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
+export const IMPROVISED_BASES = ['improvised_light', 'improvised_medium', 'improvised_heavy'] as const;
+export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
+
 export type Intent = {
   move: { toZone: string } | null;
   action: {
@@ -23,6 +26,8 @@ export type Intent = {
     mode: string | null;
     approach: string;
     stance: 'careful' | 'normal' | 'reckless';
+    /** a scene object not in the view, used as a weapon: code mints it on an improvised base (loot L3) */
+    improvised?: { base: ImprovisedBase; name: string } | null;
   } | null;
   gear: GearOp[] | null;
   spoken: string | null;

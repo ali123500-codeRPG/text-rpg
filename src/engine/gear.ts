@@ -1,5 +1,5 @@
 // Part 5 §4: hands, free gear ops, equip and give (main actions), ground items, Destroyed arm drops, thrown items.
-import type { Actor, GameState, GearOp, ItemInstance } from '../types';
+import type { Actor, GameState, GearOp, ImprovisedBase, ItemInstance } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, itemDef } from '../library';
 import { partStates } from '../ruleset';
@@ -114,4 +114,19 @@ export function equipArmor(state: GameState, actor: Actor, instId: string | null
   actor.core.inventory.forEach((i) => { if (i.equippedIn?.includes('armor')) delete i.equippedIn; });
   inst.equippedIn = ['armor'];
   return true;
+}
+
+/**
+ * Loot L3: a scene object the player fights with becomes a story item on its improvised base (the base carries
+ * IMPROVISED_HIT_ADJ). It goes into the actor's inventory; the caller draws it. Returns the instance id.
+ */
+export function improvise(state: GameState, actor: Actor, imp: { base: ImprovisedBase; name: string }): string {
+  const base = itemDef(state, imp.base);
+  const id = `${imp.base}_i${state.turn}`;
+  const name = imp.name.trim().slice(0, CONFIG.TEXT_CAP) || base.name;
+  if (!state.blueprints.some((b) => b.id === id))
+    state.blueprints.push({ storyId: state.storyId, id, kind: 'item', data: { ...structuredClone(base), id, name, look: name } as unknown as Record<string, unknown> });
+  const inst: ItemInstance = { id: `${id}_${actor.id}`, itemId: id };
+  actor.core.inventory.push(inst);
+  return inst.id;
 }

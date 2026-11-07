@@ -64,6 +64,15 @@ export function gmPage(api: GameApi) {
             h('tr', {}, h('td', {}, a.names.current), h('td', {}, who), h('td', {}, b.status), h('td', {}, b.lastKnownZone ?? '–'), h('td', {}, b.source))))))
           : h('p', { class: 'empty' }, 'No NPCs yet.')),
 
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Needs data · items Claude made this story'),
+        s?.blueprints.some((b) => b.kind === 'item') ? h('table', { class: 'hs-tbl' },
+          h('thead', {}, h('tr', {}, ['Name', 'Built from', 'Quality', 'Id'].map((t) => h('th', {}, t)))),
+          h('tbody', {}, s.blueprints.filter((b) => b.kind === 'item').map((b) => {
+            const d = b.data as { name?: string; base?: { itemId: string; quality: number } };
+            return h('tr', {}, h('td', {}, d.name ?? b.id), h('td', {}, d.base?.itemId ?? b.id.replace(/_i\d+$/, '')), h('td', { class: 'hs-num' }, d.base ? String(d.base.quality) : '–'), h('td', {}, b.id));
+          })))
+          : h('p', { class: 'empty' }, 'No made items yet. Each one runs on a library base until you give it its own data.')),
+
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Hidden plans'), s ? json(s.hidden) : h('p', { class: 'empty' }, 'No story yet.')),
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Engine log'), g.log.length ? json(g.log) : h('p', { class: 'empty' }, 'Nothing logged this turn.')),
 

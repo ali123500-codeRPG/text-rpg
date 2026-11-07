@@ -2,8 +2,9 @@
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
 import type { Actor, GameState } from '../types';
 import { CONFIG } from '../config';
-import { getLibrary, itemDef } from '../library';
+import { creatureType, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp } from '../ruleset';
+import { poolState } from '../ruleset/body';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 
@@ -83,14 +84,44 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
         bar(r.raw), h('div', { class: 'num' }, String(r.raw)))))));
 }
 
+const partOpen = { on: false }; // body-part list under the health bar, kept open across turns
+const partName = (id: string) => cap(id.replace(/_/g, ' '));
+
+/** Health bar with the health-track thresholds (Part 3) marked; clicking it opens each body part's pool and state. */
+function healthBar(s: GameState, p: Actor): HTMLElement[] {
+  const { hp, total } = hpLeft(s, p);
+  const level = healthLevel(p);
+  const left = Math.max(0, 100 - p.core.condition.hpLostPct);
+  // segments by % left: Bruised 85–100, Hurt 70–85 … Critical 0–25 (Unhurt is only the full bar, Incapacitated the empty one)
+  const segs = CONFIG.HEALTH_TRACK.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
+  const at = Math.max(0, segs.findIndex((x) => x.l === level));
+  const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
+    h('p', { class: 'hs-label' }, 'Body parts'),
+    safe(() => creatureType(s, p.core.creatureTypeId).parts.map((d) => {
+      const pct = p.core.condition.parts[d.id] ?? 100;
+      const pool = total === null ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
+      const st = poolState(pct);
+      return h('div', { class: 'cs-part', title: pool === null ? '' : `${whole(pool * pct / 100)} of ${whole(pool)}` },
+        h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
+        h('span', { class: 'w' + (st === 'Healthy' ? '' : ' bad') }, st));
+    })) ?? [],
+    h('p', { class: 'hs-note' }, 'Below 50% a part is Damaged; at 0 it is Crippled.'));
+  const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
+    onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
+    h('span', { class: 'cs-row' }, h('span', {}, `Health · ${level} ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${whole(hp)} HP`)),
+    h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` }), segs.slice(0, -1).map((x) => h('i', { style: `left:${x.from}%` }))),
+    h('span', { class: 'cs-hpsteps' }, segs.filter((_, i) => i % 2 === at % 2).map((x) =>
+      h('span', { class: x.l === level ? 'now' : '', style: `left:${(x.from + x.to) / 2}%` }, x.l))));
+  btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health · ${level} ${partOpen.on ? '⌄' : '›'}`; });
+  return [btn, parts];
+}
+
 /** Compact sheet beside the story: health, standing defense and skills above 0. */
 export function sideSheet(s: GameState, p: Actor): HTMLElement[] {
-  const { hp, total } = hpLeft(s, p);
   const def = standing(s, p);
   const atk = attackOf(s, p);
   return [
-    h('div', { class: 'cs-hpline' }, h('div', { class: 'cs-row' }, h('span', {}, `Health · ${healthLevel(p)}`), h('b', {}, `${whole(hp)} HP`)),
-      h('div', { class: 'cs-meter' }, h('b', { style: `width:${total ? Math.max(0, (hp ?? 0) / total) * 100 : 0}%` }))),
+    ...healthBar(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },

@@ -3,7 +3,7 @@
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import type {
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
-  GmSnapshot, Intent, LogLine, Notice, OppositionView, PlannerOutput, Rng, TurnRecord, Actor,
+  GmSnapshot, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PlannerOutput, Rng, TurnRecord, Actor,
 } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
@@ -75,6 +75,8 @@ export function createGame(deps: GameDeps): Game {
   let background = new Map<string, Background>();
   const subs = new Set<() => void>();
   const emit = () => subs.forEach((cb) => cb());
+  let calls = 0; // Claude calls this session, shown on the Play screen
+  const counted: ClaudeClient = { call: (req) => { calls++; return client.call(req); } };
 
   const notice = (n: Notice) => {
     notices = [...notices.filter((x) => x.kind !== n.kind), n];
@@ -86,7 +88,7 @@ export function createGame(deps: GameDeps): Game {
     notice({ kind: 'stop_play', text: `Claude can't be used in this view (${code}). Allow Claude for this page or sign in again, then reload.` });
   };
   const ctxFor = (turn: number, sink: AgentTurnLog[]): AgentCtx => ({
-    client, clock, turn,
+    client: counted, clock, turn,
     log: (e) => sink.push(e),
     onError: (code) => {
       if (code === 'rate_limited') {
@@ -291,7 +293,8 @@ export function createGame(deps: GameDeps): Game {
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
-    lines.push({ turn, kind: 'narration', text: narr.output.text, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}) });
+    lines.push({ turn, kind: 'narration', text: narr.output.text, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
+      ...lineExtras(s, events, nv, narr.output.text) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
   }
@@ -455,6 +458,7 @@ export function createGame(deps: GameDeps): Game {
       lastLog = [];
       emit();
     },
+    calls: () => calls,
     gm: (): GmSnapshot => ({
       state,
       agentLog: lastLog,
@@ -569,6 +573,55 @@ function nameOf(s: GameState, itemId: string): string {
   } catch {
     return itemId;
   }
+}
+
+/**
+ * Play screen extras for a narration line, from what the player perceived (no numbers): the player's own check this
+ * turn, the lines heard (word for word, unless the narration already quotes them) and the turn's visible changes.
+ */
+export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes'> {
+  const out: Pick<LogLine, 'check' | 'speech' | 'changes'> = {};
+  const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? n.charAt(0).toUpperCase() + n.slice(1) : n);
+  const words = (x: string) => x.replace(/_/g, ' ');
+  let check: LineCheck | undefined;
+  for (const e of events) {
+    if (check) break;
+    if (e.attack && e.attack.attackerId === 'player') {
+      const a = e.attack;
+      const pk = nv.events.find((x) => x.id === e.id)?.packet;
+      const loc = pk?.location?.part ?? (a.location ? words(a.location) : '');
+      check = {
+        skill: a.attack.skill, tier: a.attack.tier,
+        ...(a.defense && a.defenseType ? { against: { what: `${views.callName(s, 'player', a.targetId)}’s ${a.defenseType}`, tier: a.defense.tier } } : {}),
+        result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}`,
+      };
+    } else if (e.contest && (e.contest.a.actorId === 'player' || e.contest.b.actorId === 'player')) {
+      const c = e.contest;
+      const mine = c.a.actorId === 'player' ? c.a : c.b, other = mine === c.a ? c.b : c.a;
+      const result = c.winner === 'tie' ? 'a tie' : (c.winner === 'a') === (mine === c.a) ? 'you win' : 'you lose';
+      check = { skill: mine.skill, tier: mine.tier, against: { what: views.callName(s, 'player', other.actorId), tier: other.tier }, result };
+    }
+  }
+  if (check) out.check = check;
+  const speech = nv.heard.filter((l) => !narration.includes(l.text)).map((l) => ({ speaker: l.speaker, volume: l.volume, text: l.text }));
+  if (speech.length) out.speech = speech;
+  const changes: NonNullable<LogLine['changes']> = [];
+  for (const ev of nv.events) {
+    const p = ev.packet;
+    if (!p) continue;
+    changes.push({ kind: 'combat', text: `${who(p.actor, true)} → ${who(p.target, false)} · ${words(p.outcome)}${p.location ? `, ${p.location.part}` : ''}` });
+    for (const c of p.changes) {
+      const own = c.startsWith('player ') || c.startsWith("player's ");
+      changes.push({ kind: own && c.startsWith('player is ') ? 'health' : 'condition', text: own ? c.replace(/^player is /, 'You are ').replace(/^player's /, 'Your ') : who(c, true) });
+    }
+  }
+  if (changes.length) out.changes = changes;
+  return out;
+}
+/** how far apart two tiers are, in words ("1 tier ahead") */
+export function tierGap(mine: number, theirs: number): string {
+  const d = mine - theirs;
+  return d === 0 ? 'same tier' : `${Math.abs(d)} tier${Math.abs(d) === 1 ? '' : 's'} ${d > 0 ? 'ahead' : 'behind'}`;
 }
 
 /** mechanics panel: dice, modifiers and damage of events the player took part in or perceived (never sent to an agent) */

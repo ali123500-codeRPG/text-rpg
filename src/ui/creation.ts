@@ -2,7 +2,7 @@
 import type { CreationBuild, GameApi } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { h, openPanel, readouts, credit, type Readout } from './kit';
+import { h, openPanel, readouts, type Readout } from './kit';
 import { preview } from './sheet';
 
 export const SKILL_NAMES: Record<string, string> = {
@@ -165,6 +165,5 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
       h('span', {}, h('i', { class: 'hs-sq', style: 'background:var(--c5)' }), 'Class tree')),
     h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
       `${total()} points, cap ${cap()}, floors medium weapons ${floors.melee_medium ?? 0} and block ${floors.block ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
-      + `Kit assumed: sword +${CONFIG.KIT_BONUS}, shield +${CONFIG.KIT_BONUS}, gambeson. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)),
-    credit());
+      + `Kit assumed: sword +${CONFIG.KIT_BONUS}, shield +${CONFIG.KIT_BONUS}, gambeson. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)));
 }

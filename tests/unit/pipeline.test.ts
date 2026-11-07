@@ -76,6 +76,7 @@ describe('pipeline timing', () => {
     expect(claude.calls.map((c) => c.agent)).toEqual(['parser', 'narrator']);
     expect(game.lines().at(-1)).toMatchObject({ kind: 'narration', text: narr.text });
     expect(game.state()!.turn).toBe(2);
+    expect(game.calls()).toBe(2); // the Play screen's Claude-call count
   });
 
   it('a Planner back in time is used; a late one is discarded and logged planner_late', async () => {
