@@ -38,6 +38,8 @@ export type RollRequest = {
   /** gear context: the item instance used, for withItem effects; RollKind for noted roll modifiers */
   itemId?: string;
   rollKind?: import('./items').RollKind;
+  /** skills that count at full value here instead of as substitutes (perks such as Threaten for Answers) */
+  fullValue?: string[];
 };
 export type RollResult = {
   actorId: string;
@@ -83,7 +85,7 @@ export type AttackResult = {
   gapShifts: TierShift[];
   outcome: AttackOutcome;
   location: string | null; // part id, 'general', or 'shield'
-  locationHow: 'rolled' | 'aimed' | 'redirected' | 'restricted' | 'shield' | null;
+  locationHow: 'rolled' | 'aimed' | 'redirected' | 'restricted' | 'shield' | 'open_hand' | null;
   multiplier: number;
   damage: number; // code only; never reaches an agent
   deciding: { attack: string[]; defense: string[]; gap: string[] };
@@ -94,6 +96,8 @@ export type AttackResult = {
   modeId: string;
   shieldItemId?: string;
   shieldMult?: number; // A3 Shield Breaker: the shield pool takes this multiple of the damage
+  /** A7 Open-Hand Guard: of `damage`, this much goes to the general area; the rest lands on the blocking arm (location) */
+  generalShare?: number;
 };
 
 export interface Ruleset {
