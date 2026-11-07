@@ -311,6 +311,7 @@ function step(ctx: Ctx, id: string): void {
 // ---------- the turn ----------
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
+  const learnedBefore = learned(state);
   const active = state.actors.filter(isActive);
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
@@ -363,7 +364,33 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     heardExchange: (id) => ctx.exchangeEvents.some((e) => !!e.perception[id]),
   });
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
+  updatePacing(state, ctx.events, learnedBefore, playerOrder);
   state.events.push(...ctx.events);
   return ctx.events;
+}
+
+// ---------- pacing (P7) ----------
+
+/** how much the player knows: secrets, witnessed facts, names */
+function learned(state: GameState): number {
+  const j = state.player.journal;
+  return j ? j.secretsKnown.length + j.factsWitnessed.length + j.namesKnown.length : 0;
+}
+
+/**
+ * A quiet turn: no attack, nothing new learned, no beat fired (the beat's own reset). Rest outside a fight, or a
+ * stall (STALL_TURNS quiet turns with no beat left), marks the scene to end; the director starts the next one.
+ */
+function updatePacing(state: GameState, events: GameEvent[], learnedBefore: number, playerOrder: Order): void {
+  const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
+  state.stage.quiet = quiet ? (state.stage.quiet ?? 0) + 1 : 0;
+  if (state.stage.breakCause) return;
+  if (playerOrder.type === 'rest' && state.mode !== 'tactical' && isActive(state.player)) state.stage.breakCause = 'rest';
+  else if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) state.stage.breakCause = 'story_beat';
+}
+
+function beatsLeft(state: GameState): boolean {
+  // a beat whose owner is down never fires, so it doesn't count
+  return Object.entries(state.hidden.plans).some(([id, p]) => p.triggers.some((t) => t.when.type === 'quiet_turns' && isActive(actorById(state, t.ownerId ?? id)!)));
 }
 
