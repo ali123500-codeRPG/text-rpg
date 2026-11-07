@@ -48,5 +48,7 @@ export const TIERS = scale([
 export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], ['cunning', 'cunning']]);
 /** zone light, brightest first (V1) */
 export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
+/** stance of one actor toward another, coldest first (Ali, 07/11/2026: hostile = attacks on sight; opposed = at odds, won't strike first) */
+export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['neutral', 'neutral'], ['friendly', 'friendly']]);
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);

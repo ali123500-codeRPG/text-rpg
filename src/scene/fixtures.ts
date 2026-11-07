@@ -41,10 +41,10 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
     ],
     frontiers: [{ key: 'woods', label: 'the woods' }],
     bands: [
-      { key: 'village_watch', name: 'the village watch', goals: 'keep the slimes out of the village', temperament: 'tired but dutiful', tactics: 'competent', lethal: true, relations: { slimes: 'opposed' } },
+      { key: 'village_watch', name: 'the village watch', goals: 'keep the slimes out of the village', temperament: 'tired but dutiful', tactics: 'competent', lethal: true, relations: { slimes: 'hostile' } },
       { key: 'tavern_folk', name: 'tavern folk', goals: 'keep the tavern open', temperament: 'wary of strangers', tactics: 'simple', lethal: true, relations: {} },
       { key: 'slimes', name: 'slimes', goals: 'feed', temperament: 'mindless', tactics: 'simple', lethal: true,
-        relations: { player_band: 'opposed', village_watch: 'opposed', tavern_folk: 'opposed' } },
+        relations: { player_band: 'hostile', village_watch: 'hostile', tavern_folk: 'hostile' } },
     ],
     cast: [
       { template: 'guard', key: 'guard_1', label: 'a village guard', name: 'Bertram', appearance: 'a stocky man in a dented mail shirt',

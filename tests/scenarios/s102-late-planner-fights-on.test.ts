@@ -8,7 +8,7 @@ it('102 Late Planner fights on: a significant engaged actor with no Planner outp
   const s = makeVillage({ playerZone: 'gate_inner' });
   const g = place(s, 'guard_1', 'gate_inner');
   expect(g.mind!.control).toBe('agent');
-  g.mind!.overrides = { player: 'opposed' };
+  g.mind!.overrides = { player: 'hostile' };
   g.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'gate_inner', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
   expect(fallbackOrder(buildActorView(s, 'guard_1'), createRng(1))).toMatchObject({ type: 'attack', target: 'player', source: 'fallback' });
   // the Planner output is late: the turn resolves with no agent output for the guard

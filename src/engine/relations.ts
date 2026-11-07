@@ -1,6 +1,7 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
 import type { Actor, BeliefStatus, GameState, Stance } from '../types';
 import { BELIEF_ORDER } from '../types';
+import { STANCES } from '../scales';
 
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
@@ -21,29 +22,34 @@ export function countsInFight(actor: Actor): boolean {
   return isActive(actor) && !actor.mind?.moraleState;
 }
 
-/** opposed(a, b) = a's override for b, else the relation of a's band to b's band. Same band: friendly. */
+/** stance(a, b) = a's override for b, else the relation of a's band to b's band. Same band: friendly. */
 export function stance(state: GameState, a: Actor, b: Actor): Stance {
   const o = a.mind?.overrides?.[b.id];
   if (o) return o;
   if (a.bandId === b.bandId) return 'friendly';
   return bandById(state, a.bandId)?.relations[b.bandId] ?? 'neutral';
 }
-export function opposed(state: GameState, a: Actor, b: Actor): boolean {
-  return stance(state, a, b) === 'opposed';
+/** hostile: a attacks b on sight. */
+export function hostile(state: GameState, a: Actor, b: Actor): boolean {
+  return stance(state, a, b) === 'hostile';
+}
+/** wary: opposed or colder. a's alert fires when it notices b, but only hostile attacks. */
+export function wary(state: GameState, a: Actor, b: Actor): boolean {
+  return STANCES.pos(stance(state, a, b)) <= STANCES.pos('opposed');
 }
 
 export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): boolean {
   return BELIEF_ORDER.indexOf(status ?? 'unaware') >= BELIEF_ORDER.indexOf(min);
 }
 
-/** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is opposed to. */
+/** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to. */
 export function isEngaged(state: GameState, actor: Actor): boolean {
   if (actor.kind === 'player' || !countsInFight(actor)) return false;
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
     if (!atLeast(b.status, 'suspicious')) return false;
     const other = actorById(state, id);
-    return !!other && countsInFight(other) && opposed(state, actor, other);
+    return !!other && countsInFight(other) && hostile(state, actor, other);
   });
 }
 

@@ -3,12 +3,11 @@ import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
 import { GRADES, ORDER_TYPES } from '../types';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
+import { COVER, LIGHT, STANCES, TACTICS, TIERS } from '../scales';
 import { tierName } from '../ruleset';
 import { creatureType, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
 
-const STANCES = ['opposed', 'neutral', 'friendly'];
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
 const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard', 'quiet_turns'];
 
@@ -193,7 +192,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     if (b.lethal !== undefined && typeof b.lethal !== 'boolean') err('bad_band', `band ${b.key}: lethal is true or false`);
     for (const [other, st] of Object.entries(b.relations ?? {})) {
       if (!isBand(other)) err('unresolved_band', `band ${b.key}: relation to unknown band ${other}`);
-      if (!STANCES.includes(st)) err('bad_stance', `band ${b.key}: relation ${st}`);
+      if (!STANCES.has(st)) err('bad_stance', `band ${b.key}: relation ${st}`);
     }
   }
 
@@ -251,7 +250,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     }
     for (const o of arr(c.overrides)) {
       if (!isActor(o.actor)) err('unresolved_actor', `cast ${k}: override for unknown actor ${o.actor}`, k);
-      if (!STANCES.includes(o.stance)) err('bad_stance', `cast ${k}: override stance ${o.stance}`, k);
+      if (!STANCES.has(o.stance)) err('bad_stance', `cast ${k}: override stance ${o.stance}`, k);
     }
 
     // ---- routine errors (routineOnly) ----

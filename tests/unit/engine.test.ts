@@ -249,7 +249,7 @@ describe('dialogue', () => {
     s2.player.zone = 'tav_counter';
     F.init = { player: 99, trader: 10, guard_1: 50 };
     actor(s2, 'trader').mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
-    s2.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'opposed';
+    s2.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'hostile';
     const resp = { agent: 'responder', actorId: 'trader', output: { action: npcAction('attack', 'player'), dialogue: { line: 'die', volume: 'shout' }, gear: null, stance: null, reveals: [], planUpdate: null } } as never;
     const ev2 = resolveTurn(s2, input({ intent: intent({ action: { type: 'talk' }, spoken: 'hi' }), spokespeople: ['trader'], exchange: resolveSpeech(s2, intent({ action: { type: 'talk' } }), ['trader'], createRng(2)), agentOutputs: [resp] }), createRng(1));
     expect(ev2.filter((e) => e.kind === 'speak').map((e) => e.actorId)).toEqual(['player']);
@@ -277,7 +277,7 @@ describe('agent side effects', () => {
       stance: { toward: 'player', step: 'friendlier' }, reveals: ['mine', 'theirs'],
       planUpdate: { goal: 'sell', steps: [], memoryNote: 'met them', routine: null, triggers: [{ id: 'bad', when: { type: 'nope' } }] },
     } } as never;
-    const p = planner('guard_1', npcAction('hold'), { stance: { toward: 'player', step: 'more_opposed' } });
+    const p = planner('guard_1', npcAction('hold'), { stance: { toward: 'player', step: 'colder' } });
     resolveTurn(s, input({ intent: intent({ action: { type: 'talk' }, spoken: 'hi' }), spokespeople: ['trader'], exchange: ex, agentOutputs: [resp, p] }), createRng(1));
     expect(s.hidden.plans.trader).toEqual({ goal: 'sell', steps: [], triggers: [], createdTurn: 1 });
     expect(s.hidden.memory.trader).toBe('met them');
@@ -292,7 +292,7 @@ describe('agent side effects', () => {
 describe('gear and combat', () => {
   const engage = (id: string) => {
     actor(s, id).mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
-    s.bands.find((b) => b.id === actor(s, id).bandId)!.relations.player_band = 'opposed';
+    s.bands.find((b) => b.id === actor(s, id).bandId)!.relations.player_band = 'hostile';
   };
   it('reach counts links with sight; no sight is a wasted action', () => {
     s.player.core.inventory.push({ id: 'sp', itemId: 'spear' });
@@ -338,7 +338,7 @@ describe('gear and combat', () => {
     place(s, 'guard_1', 'tav_common');
     engage('guard_1');
     actor(s, 'patron_1').mind!.knowledge.guard_1 = { status: 'aware', source: 'seen', revealed: [] };
-    actor(s, 'patron_1').mind!.overrides = { guard_1: 'opposed' };
+    actor(s, 'patron_1').mind!.overrides = { guard_1: 'hostile' };
     F.init = { player: 90, patron_1: 80, guard_1: 10 };
     F.damage = 20;
     F.morale = 'broken';

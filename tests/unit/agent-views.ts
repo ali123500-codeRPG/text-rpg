@@ -32,7 +32,7 @@ export function actorView(id = 'guard_1'): ActorView {
       attackSkill: 'melee_medium', routines: [{ id: 'guard_post', brief: 'stand at the post' }, { id: 'guard_alert', brief: 'watch hard' }],
       slots: { post: 'gate_inner' },
     },
-    beliefs: [{ about: 'player', status: 'suspicious', lastKnownZone: 'street_square', source: 'heard', revealed: [], opposed: true, active: true, label: 'a swordsman' }],
+    beliefs: [{ about: 'player', status: 'suspicious', lastKnownZone: 'street_square', source: 'heard', revealed: [], hostile: true, active: true, label: 'a swordsman' }],
     perceived: [], told: [], said: [], secrets: [], firedTriggers: [],
     band: { id: 'village_watch', name: 'the village watch', goals: 'keep the gate', temperament: 'dutiful', tactics: 'competent', relations: {} },
     map: [{ id: 'gate_inner', links: [{ to: 'street_square', sight: true }, { to: 'field_edge', sight: true }] }],
