@@ -218,6 +218,16 @@ describe('NPC legality', () => {
     const sent = sentText(claude.calls[0]);
     for (const w of ['keep the gate', 'dutiful', 'bandGoals', 'temperament', 'tactics']) expect(sent).not.toContain(w);
   });
+  it('Voice: a secret or hidden term in the line regenerates without repeating it, then the neutral line (F5)', async () => {
+    const { claude, ctx, logs } = setup();
+    const leaky = voiceOut({ line: 'The smuggling ring meets below.', shares: [] });
+    claude.push('voice', leaky).push('voice', leaky);
+    const r = await callVoice(dialogueView(), ctx, { world: new Set(), terms: ['smuggling'] });
+    expect(claude.calls).toHaveLength(2);
+    expect(sentText(claude.calls[1])).not.toContain('smuggling');
+    expect(r.output.line).toBe(NEUTRAL_LINE);
+    expect(logs[0].errors).toContain('voice_leak');
+  });
   it('Voice: shares outside knows regenerate once, then the neutral line', async () => {
     const { claude, ctx, logs } = setup();
     claude.push('voice', voiceOut({ shares: ['f_secret'] })).push('voice', voiceOut({ shares: ['f_secret'] }));
