@@ -8,8 +8,9 @@ import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeC
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
 import { updateEngagements } from './engagement';
-import { afterAttack, coverFor, expireMarks } from './perkMarks';
+import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
 import { applyHold, breakFree, releaseHolds } from './held';
+import { perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -429,11 +430,20 @@ function step(ctx: Ctx, id: string): void {
   // AE2: dash: a player with no main action who moved and is still short of the move's zone spends the action on a second link
   if (!o.moveAfter && o.move && a === state.player && o.type === 'hold' && a.zone !== from && a.zone !== o.move && !ctx.mainDone.has(id)) {
     ctx.mainDone.add(id);
-    if (lame(state, a)) logCode(state, 'dash_blocked', { actorId: id, reason: 'crippled_leg' });
+    if (lame(state, a)) logCode(state, 'dash_blocked', { actorId: id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' });
     else if (!doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   }
+  if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
   if (!ctx.mainDone.has(id)) doMain(ctx, a, o);
   if (o.moveAfter) move(); // AE3: act, then move
+}
+
+/** AE5/AE8: a perk move; a free one resolves beside the main action, just before it */
+function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): void {
+  const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
+  if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
+  const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
+  emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
 }
 
 /** the attack mode the actor would use from a zone (as doAttack picks it) and the distance to the target */
@@ -451,8 +461,9 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const m = here.m && here.dist <= here.m.mode.reach ? here.m : there ? attackMode(state, a, o, there).m : here.m;
   return m?.mode.tree === 'ranged';
 };
-/** AE2: a Crippled or Destroyed part with the move role stops a dash (slowed from Leg Bolt will too) */
+/** AE2: a Crippled or Destroyed part with the move role stops a dash, and so does Leg Bolt's slow (A6) */
 const lame = (state: GameState, a: Actor) => {
+  if (slowed(state, a)) return true;
   const parts = new Map(partStates(state, a).map((p) => [p.id, p.state]));
   return creatureType(state, a.core.creatureTypeId).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
 };

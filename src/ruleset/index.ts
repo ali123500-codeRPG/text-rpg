@@ -17,7 +17,7 @@ import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, r
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
-export { MILESTONES, ALL_STEPS, PERKS_NEEDED, hasPerk, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
+export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool } from './gear';
 
@@ -267,7 +267,10 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier;
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
   const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
-  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(openArm ? { generalShare } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, 'shield_breaker') ? { shieldMult: 2 } : {}) } : {}) };
+  // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
+  const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, 'leg_bolt')
+    && !!ct.parts.find((p) => p.id === location)?.roles.includes('move');
+  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(openArm ? { generalShare } : {}), ...(legBolt ? { legBolt } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, 'shield_breaker') ? { shieldMult: 2 } : {}) } : {}) };
 }
 
 function applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[] {
@@ -311,7 +314,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   let destroyedEssential = false;
   if (part) {
     const before = partPct(T, part.id);
-    const after = before - (dmg / (CONFIG.PART_SHARE[part.size] * hp)) * 100;
+    const after = before - ((dmg * (result.legBolt ? CONFIG.LEG_BOLT_PART_MULT : 1)) / (CONFIG.PART_SHARE[part.size] * hp)) * 100; // A6 Leg Bolt
     T.core.condition.parts = { ...T.core.condition.parts, [part.id]: after };
     const [from, to] = [poolState(before), poolState(after)];
     changed(part.id, from, to);

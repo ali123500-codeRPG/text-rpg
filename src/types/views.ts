@@ -51,6 +51,7 @@ export type PlayerView = {
     id: 'player'; name: string; classes: string[];
     skills: string[]; // ids only; no numbers
     perks: string[];
+    perkMoves?: string[]; // AE8: owned perk moves by perk id (the Parser's perkMove.perk)
     health: HealthLevel; parts: { id: string; state: PartState }[];
     inventory: OwnGearView[];
     posture: 'open' | 'sneaking';
