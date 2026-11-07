@@ -82,8 +82,9 @@ type NpcOut = {
  * Checks the order's target against the view (world = every real id, to tell view_leak from invalid_target),
  * then drops illegal gear ops, items, modes, stance steps and introduces in place.
  */
-export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<string>): NpcLegality {
+export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<string>, alsoKnown: string[] = []): NpcLegality {
   const k = knownIds(view);
+  for (const id of alsoKnown) k.actors.add(id);
   const errors: string[] = [];
   const a = out.action;
   let orderError: NpcLegality['orderError'] = null;

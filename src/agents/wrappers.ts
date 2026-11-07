@@ -36,9 +36,10 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
 /** shared NPC post-checks: target legality (drop), gear/stance/introduces, routine switch */
 function npcAccept<T extends { action: NpcAction; gear: PlannerOutput['gear']; stance: PlannerOutput['stance'] }>(
   view: NpcViewBase, world: Set<string>, value: T, getIntro: (v: T) => string[] | undefined, setIntro: (v: T, ids: string[]) => void,
+  alsoKnown: string[] = [],
 ): { orderError: string | null; errors: string[] } {
   const box = { action: value.action, gear: value.gear, stance: value.stance, introduces: getIntro(value) };
-  const leg = checkNpcLegality(box, view, world);
+  const leg = checkNpcLegality(box, view, world, alsoKnown);
   value.gear = box.gear;
   value.stance = box.stance;
   if (box.introduces) setIntro(value, box.introduces);
@@ -95,7 +96,7 @@ export async function callResponder(
 ): Promise<DialogueResult<ResponderOutput>> {
   let extra: string[] = [];
   const accept = (v: ResponderOutput): Attempt<ResponderOutput> => {
-    const leg = npcAccept(view, opts.world, v, (x) => x.dialogue?.introduces, (x, ids) => x.dialogue && (x.dialogue.introduces = ids));
+    const leg = npcAccept(view, opts.world, v, (x) => x.dialogue?.introduces, (x, ids) => x.dialogue && (x.dialogue.introduces = ids), ['player']); // a spokesperson answers the speaker it just heard
     if (leg.orderError) return { kind: 'fail', errors: [leg.orderError, ...leg.errors] };
     extra = [...leg.errors];
     const own = new Set(view.secrets.map((s) => s.id));
@@ -134,7 +135,7 @@ export async function callVoice(
   const viewText = JSON.stringify(view);
   let extra: string[] = [];
   const accept = (v: VoiceOutput): Attempt<VoiceOutput> => {
-    const leg = npcAccept(view, opts.world, v, (x) => x.introduces, (x, ids) => (x.introduces = ids));
+    const leg = npcAccept(view, opts.world, v, (x) => x.introduces, (x, ids) => (x.introduces = ids), ['player']); // a spokesperson answers the speaker it just heard
     if (leg.orderError) return { kind: 'fail', errors: [leg.orderError, ...leg.errors] };
     const knows = new Set(view.knows.map((f) => f.id));
     const badShares = v.shares.filter((id) => !knows.has(id));
