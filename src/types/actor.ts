@@ -68,7 +68,9 @@ export type Progression = {
   unspentPerkPoints: number;
   marks: LibraryRef[];
   xpLog?: XpAward[]; // source trail (B8); every award, in order
-  achievements?: { id: string; name: string; turn: Turn }[]; // earned, each once (B4, X6)
+  /** earned, each once (B4, X6). key = the library achievements table row, of = the creature type, race or tree it names;
+   * the name and XP level live only in that table (Ali, 07/11/2026). name is only on entries from older saves. */
+  achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn }[];
   defeats?: Record<string, number>; // defeat counts: 'all', 'creature:<type>', 'race:<race>'
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
 };
