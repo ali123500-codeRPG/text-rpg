@@ -240,8 +240,7 @@ export function createGame(deps: GameDeps): Game {
     agentOutputs.sort((a, b) => (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0));
     const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(exchange ? { exchange } : {}) };
     const events = engine.resolveTurn(s, input, rng);
-    s.rngState = rng.state;
-    applyPlanUpdates(s, agentOutputs);
+    s.rngState = rng.state; // plan updates were applied (with triggers sanitized) inside resolveTurn
     if (director) {
       events.push(...(await director.afterResolve(s, events, rng, ctx)));
       s.rngState = rng.state;
@@ -314,8 +313,14 @@ export function createGame(deps: GameDeps): Game {
         if (busy) return;
         busy = true;
         try {
+          try {
+            await save.undoTurn(store, s.storyId);
+          } catch (e) {
+            if (!(e instanceof save.SaveError) || e.committed) throw e;
+            lines.push({ turn: s.turn, kind: 'command', text: 'Undo goes back one turn only, and there is no turn to undo.' });
+            return;
+          }
           abortBackground();
-          await save.undoTurn(store, s.storyId);
           state = (await save.loadStory(store, s.storyId, getLibrary())).state;
           advance();
           lastDisplayAt = clock.now();
@@ -510,16 +515,6 @@ const orList = (xs: string[]) => (xs.length < 3 ? xs.join(' or ') : `${xs.slice(
 function knownNames(s: GameState): string[] {
   return [s.player, ...s.actors].flatMap((a) => [a.names.current, ...a.names.past.map((p) => p.name)])
     .concat(s.places.map((p) => p.names.current));
-}
-
-/** Hidden state persistence step 5: a non-null planUpdate replaces the plan; memoryNote replaces the memory */
-export function applyPlanUpdates(s: GameState, outputs: AcceptedAgentOutput[]): void {
-  for (const o of outputs) {
-    if (o.agent === 'voice' || !o.output.planUpdate) continue;
-    const u = o.output.planUpdate;
-    s.hidden.plans[o.actorId] = { goal: u.goal, steps: u.steps, triggers: u.triggers, createdTurn: s.turn };
-    s.hidden.memory[o.actorId] = u.memoryNote;
-  }
 }
 
 function safeHealth(a: Actor): string {

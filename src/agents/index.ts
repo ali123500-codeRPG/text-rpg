@@ -9,5 +9,5 @@ export * from './call';
 export * from './wrappers';
 export * from './clock';
 export * from './client';
-export { createGame, hasAgenda, plannerActors, worldIds, applyPlanUpdates, mechanicsLines, validateBuild } from './game';
+export { createGame, hasAgenda, plannerActors, worldIds, mechanicsLines, validateBuild } from './game';
 export type { Game, GameDeps, SceneDirector } from './game';
