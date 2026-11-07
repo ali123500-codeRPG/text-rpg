@@ -246,12 +246,14 @@ export function prototypeLibrary(): Library {
     routineSets: ROUTINE_SETS,
     perks: {},
     achievements: {
-      // XP: first defeat and mastery back to 100 and 250 (X11); the defeat counts are placeholders (X17)
-      first_defeat: { id: 'first_defeat', name: 'First {creature} defeated', xp: 100, rule: 'first_defeat' },
-      defeats_10: { id: 'defeats_10', name: 'Ten foes defeated', xp: 100, rule: 'defeats', count: 10 },
-      defeats_100: { id: 'defeats_100', name: 'A hundred foes defeated', xp: 250, rule: 'defeats', count: 100 },
-      defeats_1000: { id: 'defeats_1000', name: 'A thousand foes defeated', xp: 1000, rule: 'defeats', count: 1000 },
-      mastery: { id: 'mastery', name: 'Mastery: {tree} {tier}', xp: 250, rule: 'mastery' }, // not awarded until mastery perks exist
+      // XP: first defeat and mastery 100 and 250 (X11); the rest are placeholders (X17). Grand names (Ali, 07/11/2026).
+      first_defeat: { id: 'first_defeat', name: '{creature}bane', xp: 100, rule: 'defeats', count: 1, by: 'creature' },
+      first_defeat_race: { id: 'first_defeat_race', name: 'Bane of {race}kind', xp: 100, rule: 'defeats', count: 1, by: 'race' },
+      defeats_10_creature: { id: 'defeats_10', name: 'Scourge of the {creature} Hordes', xp: 100, rule: 'defeats', count: 10, by: 'creature' },
+      defeats_10: { id: 'defeats_10', name: 'Tenfold Reaper', xp: 100, rule: 'defeats', count: 10 },
+      defeats_100: { id: 'defeats_100', name: 'Calamity of a Hundred Blades', xp: 250, rule: 'defeats', count: 100 },
+      defeats_1000: { id: 'defeats_1000', name: 'Thousand-Slayer, Herald of Ruin', xp: 1000, rule: 'defeats', count: 1000 },
+      mastery: { id: 'mastery', name: 'Ascendant of {tree}: {tier}', xp: 250, rule: 'mastery' }, // not awarded until mastery perks exist
     },
   });
 }

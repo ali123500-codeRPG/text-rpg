@@ -24,7 +24,7 @@ describe('106 XP and levels', () => {
     s.player.core.skills.lockpicking = { raw: 90, state: 'normal' }; // misc counts 0
     expect(rating(s.player)).toBe(before);
   });
-  it('ten defeats earn the defeats_10 achievement once', () => {
+  it('ten defeats earn defeats_10 and defeats_10:<creature> once each, named for what was defeated', () => {
     const s = makeVillage();
     for (let i = 0; i < 11; i++) {
       const a = structuredClone(actor(s, 'slime_1'));
@@ -34,7 +34,17 @@ describe('106 XP and levels', () => {
       payDefeats(s, []);
     }
     const ids = s.player.progression!.achievements!.map((a) => a.id);
-    expect(ids).toEqual(['first_defeat:slime', 'defeats_10']);
+    expect(ids).toEqual(['first_defeat:slime', 'defeats_10:slime', 'defeats_10']);
+    expect(s.player.progression!.achievements!.map((a) => a.name)).toEqual(['Slimebane', 'Scourge of the Slime Hordes', 'Tenfold Reaper']);
+  });
+  it('a foe with a race also earns the first race defeat', () => {
+    const s = makeVillage();
+    const a = actor(s, 'slime_1');
+    a.core.raceId = 'elf';
+    a.mind!.moraleState = 'surrendered';
+    payDefeats(s, []);
+    const got = s.player.progression!.achievements!;
+    expect(got.map((x) => [x.id, x.name])).toEqual([['first_defeat:slime', 'Slimebane'], ['first_defeat_race:elf', 'Bane of Elfkind']]);
   });
   it('a slime the player hit and downed pays its kill XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();
