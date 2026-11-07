@@ -19,7 +19,8 @@ export type TriggerWhen =
   | { type: 'player_seen_in_zone'; zone: string }
   | { type: 'turn_reached'; turn: number }
   | { type: 'actor_down'; actorId: string }
-  | { type: 'alarm_heard' };
+  | { type: 'alarm_heard' }
+  | { type: 'quiet_turns'; turns: number }; // a beat (P7): holds once the scene has been quiet this many turns in a row
 
 export type Trigger = {
   id: string;
@@ -27,6 +28,7 @@ export type Trigger = {
   when: TriggerWhen;
   then: OrderTemplate;
   once: boolean;
+  endsScene?: true; // P7 S2: when it fires, the scene ends (sceneBreak story_beat)
 };
 
 export type OrderTemplate = Omit<Order, 'source' | 'target' | 'actorId'> & {

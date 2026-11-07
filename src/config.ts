@@ -70,6 +70,7 @@ const DEFAULTS = {
   QUALITY_TABLE: {
     hitAdj: [2, 4, 6, 8], damageAdj: [1, 2, 3, 4], reduction: [1, 1, 2, 2], tool: [5, 10, 15, 20],
   },
+  STALL_TURNS: 8, // placeholder (Ali, 07/11/2026, P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10, // placeholder (Ali, 07/11/2026, loot L3)
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
