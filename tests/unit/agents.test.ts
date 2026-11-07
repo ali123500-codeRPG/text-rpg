@@ -201,6 +201,23 @@ describe('NPC legality', () => {
     expect(r.output.dialogue?.line).toBe(NEUTRAL_LINE);
     expect(r.output.action.type).toBe('talk');
   });
+  it('Responder: a line saying an own secret unlisted counts as revealed and is flagged (Q3)', async () => {
+    const { claude, ctx, logs } = setup();
+    const sec = (id: string, term: string) => ({ id, holderId: 'guard_1', fact: id, leakTerms: [term], revealWhen: { type: 'event_in_zone' as const, kind: 'k', zone: 'z' } });
+    const v = { ...actorView(), secrets: [sec('s1', 'smuggling'), sec('s2', 'cellar'), sec('s3', 'ledger')] };
+    claude.push('responder', { ...plannerOut({ type: 'talk', target: 'player' }), dialogue: { line: 'The smuggling runs through the cellar.', volume: 'normal' }, reveals: [] });
+    const r = await callResponder(v, [{ spoken: 'hi', impression: null }], ctx, { world: new Set(), slips: ['s2'] });
+    expect(r.output.reveals).toEqual(['s1']); // s2 is a slip, revealed by code; s3 was not said
+    expect(r.unlisted).toEqual(['s1']);
+    expect(logs[0].errors).toContain('unlisted_reveal');
+  });
+  it('Voice: CHARACTER carries no band goals, temperament or tactics (Q1)', async () => {
+    const { claude, ctx } = setup();
+    claude.push('voice', voiceOut());
+    await callVoice(dialogueView(), ctx, { world: new Set() });
+    const sent = sentText(claude.calls[0]);
+    for (const w of ['keep the gate', 'dutiful', 'bandGoals', 'temperament', 'tactics']) expect(sent).not.toContain(w);
+  });
   it('Voice: shares outside knows regenerate once, then the neutral line', async () => {
     const { claude, ctx, logs } = setup();
     claude.push('voice', voiceOut({ shares: ['f_secret'] })).push('voice', voiceOut({ shares: ['f_secret'] }));

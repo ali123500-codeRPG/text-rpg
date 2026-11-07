@@ -8,6 +8,7 @@ export type ItemDef = {
   look: string; // public text
   bulk: 0 | 1 | 2 | 3;
   value: number;
+  boon?: number; // hand-set Boon, overrides value ÷ BOON_COIN (loot V8b)
   stackable?: true;
   consumable?: true;
   concealed?: true;

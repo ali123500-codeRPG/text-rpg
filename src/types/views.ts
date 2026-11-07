@@ -140,7 +140,7 @@ export type NarrationView = {
   player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string };
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; zone: string; activityLook?: string }[];
+  actors: { label: string; name?: string; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
@@ -163,7 +163,7 @@ export type WeaverView = {
     templates: { id: string; label: string; creatureTypeId: string }[];
     creatureTypes: string[];
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
-    items: { id: string; name: string; kind: string }[];
+    items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: string[];
   };
   grades: Grade[];
