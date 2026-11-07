@@ -51,6 +51,8 @@ export type GameState = {
   meta: StoryMeta;
   /** derived per turn, never saved: actor id -> ids of actors that hit it this scene (latest last) */
   scratch?: Record<string, unknown>;
+  /** never saved: earlier turns' events, pruned to each actor's last RECENT_EVENTS perceived ones, so NPC views keep what they saw and heard */
+  recentEvents?: GameEvent[];
 };
 
 export type LibraryMeta = { libraryVersion: number; status: Record<LibraryRef, EntryStatus> };

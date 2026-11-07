@@ -80,6 +80,15 @@ describe('NPC views', () => {
     expect(ov.secrets.map((x) => x.id)).toEqual(['sec1']);
     expect(ov.firedTriggers).toEqual([{ triggerId: 'TRIGID', turn: 1 }]);
   });
+  it('NPC views keep events perceived in earlier turns (recentEvents) and who last hit them', () => {
+    const s = makeVillage();
+    const hit = { id: 't0.1', turn: 0, actorId: 'player', kind: 'attack', target: 'patron_1', zone: 'tav_common', effects: [], noise: 2, visibility: 2,
+      perception: { patron_1: { level: 'full', cue: 'sight' } }, attack: { outcome: 'full hit' } } as unknown as GameEvent;
+    s.recentEvents = [hit];
+    const ov = buildOppositionView(s, 'patron_1');
+    expect(ov.perceived.length).toBe(1);
+    expect(ov.self.lastHitBy).toBe('player');
+  });
   it("others' health shows only from Wounded down; own health always", () => {
     const s = makeVillage();
     actor(s, 'trader').core.condition.hpLostPct = 40; // Injured
