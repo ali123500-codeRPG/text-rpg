@@ -1,3 +1,4 @@
+import type { Tier } from '../../src/types';
 import { afterEach, expect, it, vi } from 'vitest';
 import type { GameEvent, RollRequest } from '../../src/types';
 import { makeVillage, actor, place, createRng } from '../harness';
@@ -12,8 +13,8 @@ it('22 Failed ambush: aware before the blow, onAlert this turn, Planner next tur
   const s = makeVillage({ playerZone: 'gate_inner' });
   s.bands.find((b) => b.id === 'village_watch')!.relations.player_band = 'opposed';
   place(s, 'guard_1', 'gate_inner');
-  const tiers: Record<string, number> = { player: -2, guard_1: 1 };
-  vi.spyOn(ruleset, 'roll').mockImplementation((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, d100: 50, margin: 0, tier: tiers[req.actorId] ?? -3, natural: 0, modifiers: [], tierShifts: [] }));
+  const tiers: Record<string, Tier> = { player: 'failure', guard_1: 'great_success' };
+  vi.spyOn(ruleset, 'roll').mockImplementation((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, d100: 50, margin: 0, tier: tiers[req.actorId] ?? 'critical_failure', natural: 0, modifiers: [], tierShifts: [] }));
   const attack: GameEvent = {
     id: 'ev_1', turn: s.turn, actorId: 'player', kind: 'attack', zone: 'gate_inner', target: 'guard_1', itemId: 'player_arming_sword_1',
     effects: [], noise: 2, visibility: 2, perception: { guard_1: { level: 'full', cue: 'sight' } },

@@ -9,9 +9,9 @@ import { toStoryStart, villageStagePlan, VirtualClock } from '../../src/scene/fi
 
 describe('33 Grades must fit the tier', () => {
   it('repairs a misfit plan once, then applies it', async () => {
-    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 30, tier: -2, modifiers: [] });
-    const bad: StagePlan = { ...villageStagePlan(-2), event: { summary: 'slimes raid the field', challenge: 'moderate', gain: 'major' } };
-    const good = villageStagePlan(-2);
+    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 30, tier: 'failure', modifiers: [] });
+    const bad: StagePlan = { ...villageStagePlan('failure'), event: { summary: 'slimes raid the field', challenge: 'moderate', gain: 'major' } };
+    const good = villageStagePlan('failure');
     const weave = vi.fn(async (_v: unknown, errors?: PlanError[]) => (errors ? good : bad));
     const s = toStoryStart(makeVillage());
     const r = await new SceneDirector({ weave, clock: new VirtualClock() }).storyStart(s, createRng(s.rngState));

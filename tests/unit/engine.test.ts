@@ -1,11 +1,12 @@
 // W4 engine unit tests. Other workstreams' modules are replaced by small local fakes.
+import type { Tier } from '../../src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, Order, RollRequest } from '../../src/types';
 import { makeVillage, actor, place, createRng } from '../harness';
 
 const F = vi.hoisted(() => ({
   init: {} as Record<string, number>,
-  rollTier: {} as Record<string, number>, // tier ID per actor
+  rollTier: {} as Record<string, Tier>, // tier per actor
   damage: 0,
   destroyPart: null as string | null,
   defended: true,
@@ -19,7 +20,7 @@ vi.mock('../../src/ruleset', async (orig) => {
   const real = await orig<typeof import('../../src/ruleset')>();
   const { itemDef, creatureType } = await import('../../src/library');
   const roll = (req: RollRequest) => {
-    const tier = F.rollTier[req.actorId] ?? 0;
+    const tier = F.rollTier[req.actorId] ?? 'success';
     return { actorId: req.actorId, skill: req.skill, d100: 50, margin: 0, tier, natural: 0 as const, modifiers: [], tierShifts: [] };
   };
   const usableModes = (_s: GameState, a: Actor) => {
@@ -201,8 +202,8 @@ describe('mid-turn triggers', () => {
 
 describe('dialogue', () => {
   it('impressions come from the table', () => {
-    expect(impressionWords('deceive', 1)).toBe('very convincing');
-    expect(impressionWords('intimidate', -3)).toBe('laughable');
+    expect(impressionWords('deceive', 'great_success')).toBe('very convincing');
+    expect(impressionWords('intimidate', 'critical_failure')).toBe('laughable');
   });
   it('spokespeople: one per band, named member, never inactive, capped', () => {
     s.actors.push({ ...structuredClone(actor(s, 'patron_1')), id: 'patron_2' });
@@ -225,10 +226,10 @@ describe('dialogue', () => {
     expect(unclearAddressee(s, intent({ action: { type: 'talk' }, addressees: ['everyone'] }), ['patron_1', 'trader'])).toBeNull();
   });
   it('one player roll, contested per spokesperson; SLIPS when the contest meets a check_passed reveal', () => {
-    F.rollTier = { player: 1, trader: -1, patron_1: 2 };
-    s.hidden.secrets.push({ id: 'sec', holderId: 'trader', fact: 'x', leakTerms: [], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 1, againstActorId: 'trader' } });
+    F.rollTier = { player: 'great_success', trader: 'near_miss', patron_1: 'critical_success' };
+    s.hidden.secrets.push({ id: 'sec', holderId: 'trader', fact: 'x', leakTerms: [], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 'great_success', againstActorId: 'trader' } });
     const ex = resolveSpeech(s, intent({ action: { type: 'persuade' }, spoken: 'tell me' }), ['trader', 'patron_1'], createRng(1));
-    expect(ex).toMatchObject({ skill: 'persuasion', playerTier: 1, impression: 'very convincing' });
+    expect(ex).toMatchObject({ skill: 'persuasion', playerTier: 'great_success', impression: 'very convincing' });
     expect(ex.perSpokesperson.trader).toMatchObject({ contest: { winner: 'a', gap: -2 }, slips: ['sec'] });
     expect(ex.perSpokesperson.patron_1).toMatchObject({ contest: { winner: 'b' }, slips: [] });
     resolveTurn(s, input({ intent: intent({ action: { type: 'persuade' }, spoken: 'tell me' }), spokespeople: ['trader'], exchange: ex }), createRng(1));

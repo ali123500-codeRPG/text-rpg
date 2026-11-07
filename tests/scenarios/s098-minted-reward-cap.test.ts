@@ -8,9 +8,9 @@ import { ruleset } from '../../src/ruleset';
 import { CONFIG } from '../../src/config';
 
 describe('98 Minted reward cap', () => {
-  const ctx = { tier: 0, kind: 'scene' as const, placeId: 'tavern' };
+  const ctx = { tier: 'success' as const, kind: 'scene' as const, placeId: 'tavern' };
   const withSword = (quality: 1 | 2 | 3 | 4, boosts = 'hitAdj') => {
-    const p = villageStagePlan(0);
+    const p = villageStagePlan('success');
     expect(p.event.gain).toBe('moderate');
     p.rewards.push({ item: { base: 'arming_sword', quality, boosts, name: 'a watchman\'s sword', look: 'a well-kept blade' }, place: { carriedBy: 'guard_1' } });
     return p;
@@ -30,7 +30,7 @@ describe('98 Minted reward cap', () => {
     expect(s.log.some((l) => l.code === 'reward_repaired')).toBe(true);
   });
   it('run 2: a plan whose only faults are rewards applies at once, with no repair call', async () => {
-    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 0, modifiers: [] });
+    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const weave = vi.fn(async () => withSword(3, 'keen edge'));
     const r = await new SceneDirector({ weave, clock: new VirtualClock() }).startScene(makeVillage(), createRng(1));
     expect(weave).toHaveBeenCalledTimes(1);

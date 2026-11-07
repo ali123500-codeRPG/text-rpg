@@ -2,7 +2,8 @@
 import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
 import { GRADES, ORDER_TYPES } from '../types';
 import { mentions } from '../words';
-import { CONFIG, COVER_NAMES, LIGHT_NAMES, TIER_MAX, TIER_MIN } from '../config';
+import { CONFIG } from '../config';
+import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
 import { tierName } from '../ruleset';
 import { creatureType, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
@@ -13,19 +14,30 @@ const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reach
 
 const g = (x: Grade) => GRADES.indexOf(x);
 
-/** Challenge and gain grades [Proposed scale]. */
+type Fit = { challenge: [Grade, Grade]; gain: [Grade, Grade]; gainNearChallenge?: number };
+/** Challenge and gain grades that fit each tier [Proposed scale] (G3: data, not code): lowest and highest grade
+ * for each, and for the middle tiers gain within that many grades of the challenge. The Weaver prompt reads this too. */
+export const GRADES_FIT: Record<Tier, Fit> = {
+  critical_failure: { challenge: ['major', 'extreme'], gain: ['none', 'minor'] },
+  failure: { challenge: ['moderate', 'extreme'], gain: ['none', 'minor'] },
+  near_miss: { challenge: ['minor', 'major'], gain: ['none', 'extreme'], gainNearChallenge: 1 },
+  success: { challenge: ['minor', 'major'], gain: ['none', 'extreme'], gainNearChallenge: 1 },
+  great_success: { challenge: ['major', 'extreme'], gain: ['major', 'major'] },
+  critical_success: { challenge: ['extreme', 'extreme'], gain: ['extreme', 'extreme'] },
+};
+const within = (x: number, [lo, hi]: [Grade, Grade]) => x >= g(lo) && x <= g(hi);
 export function gradesFitTier(tier: Tier, challenge: Grade, gain: Grade): boolean {
-  const c = g(challenge), n = g(gain);
-  if (c < 0 || n < 0) return false;
-  switch (tier) {
-    case -3: return c >= g('major') && n <= g('minor');
-    case -2: return c >= g('moderate') && n <= g('minor');
-    case -1:
-    case 0: return c >= g('minor') && c <= g('major') && Math.abs(n - c) <= 1;
-    case 1: return c >= g('major') && gain === 'major';
-    case 2: return challenge === 'extreme' && gain === 'extreme';
-    default: return false;
-  }
+  const c = g(challenge), n = g(gain), fit = GRADES_FIT[tier];
+  if (c < 0 || n < 0 || !fit) return false;
+  return within(c, fit.challenge) && within(n, fit.gain) && (fit.gainNearChallenge === undefined || Math.abs(n - c) <= fit.gainNearChallenge);
+}
+/** GRADES_FIT in words, for the Weaver prompt */
+export function gradesFitText(): string {
+  const range = ([lo, hi]: [Grade, Grade]) => (lo === hi ? lo : `${lo} to ${hi}`);
+  return TIERS.keys.map((t) => {
+    const f = GRADES_FIT[t];
+    return `${TIERS.name(t)} = challenge ${range(f.challenge)}, gain ${f.gainNearChallenge !== undefined ? `within ${f.gainNearChallenge} step of it` : range(f.gain)}`;
+  }).join('; ');
 }
 
 /** frontier ids currently on the stage (links marked frontier) */
@@ -67,7 +79,12 @@ export function fillPlanDefaults(plan: StagePlan): void {
     for (const t of list(p.triggers)) trig(t, p.ownerId);
   }
   for (const t of list(seeds.triggers)) trig(t);
-  for (const s of list(seeds.secrets)) if (s) s.fact = trimNote(s.fact) as string;
+  for (const s of list(seeds.secrets)) {
+    if (!s) continue;
+    s.fact = trimNote(s.fact) as string;
+    // the Weaver writes a tier name; code keeps the key
+    if (s.revealWhen?.type === 'check_passed') s.revealWhen.minTier = TIERS.keyOf(s.revealWhen.minTier) ?? s.revealWhen.minTier;
+  }
 }
 
 export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext): PlanError[] {
@@ -152,7 +169,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`zone ${z.key} name`, z.name, true);
     text(`zone ${z.key} look`, z.look, true);
     if (!isPlace(z.place)) err('unresolved_place', `zone ${z.key}: place ${z.place} unknown`);
-    if (!(z.cover in COVER_NAMES) || !(z.light in LIGHT_NAMES)) err('bad_zone', `zone ${z.key}: light is ${Object.values(LIGHT_NAMES).join(', ')}; cover is ${Object.values(COVER_NAMES).join(', ')}`);
+    if (!COVER.has(z.cover) || !LIGHT.has(z.light)) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
       if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, or a frontier`);
@@ -164,7 +181,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`band ${b.key} name`, b.name, true);
     text(`band ${b.key} goals`, b.goals, false);
     text(`band ${b.key} temperament`, b.temperament, false);
-    if (![1, 2, 3].includes(b.tacticsLevel)) err('bad_band', `band ${b.key}: tacticsLevel is 1, 2 or 3`);
+    if (!TACTICS.has(b.tactics)) err('bad_band', `band ${b.key}: tactics is ${TACTICS.list()}`);
     if (b.lethal !== undefined && typeof b.lethal !== 'boolean') err('bad_band', `band ${b.key}: lethal is true or false`);
     for (const [other, st] of Object.entries(b.relations ?? {})) {
       if (!isBand(other)) err('unresolved_band', `band ${b.key}: relation to unknown band ${other}`);
@@ -295,7 +312,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     if (r?.type === 'event_in_zone' && !isZone(r.zone)) err('bad_secret', `secret ${s.id}: zone ${r.zone} unknown`);
     else if (r?.type === 'check_passed' && !isActor(r.againstActorId)) err('bad_secret', `secret ${s.id}: actor ${r.againstActorId} unknown`);
     else if (r?.type === 'check_passed' && !lib.skills[r.skill]) err('bad_secret', `secret ${s.id}: skill ${r.skill} unknown; known: ${Object.keys(lib.skills).join(', ')}`);
-    else if (r?.type === 'check_passed' && !(Number.isInteger(r.minTier) && r.minTier >= TIER_MIN && r.minTier <= TIER_MAX)) err('bad_secret', `secret ${s.id}: minTier must be a tier ID from ${TIER_MIN} to ${TIER_MAX}`);
+    else if (r?.type === 'check_passed' && !TIERS.has(r.minTier)) err('bad_secret', `secret ${s.id}: minTier must be one of ${TIERS.list()}`);
     else if (r?.type !== 'event_in_zone' && r?.type !== 'check_passed') err('bad_secret', `secret ${s.id}: revealWhen unknown`);
   }
 

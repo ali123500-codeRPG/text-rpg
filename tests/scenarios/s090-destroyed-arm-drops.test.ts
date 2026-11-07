@@ -1,5 +1,6 @@
 // 90 Destroyed arm drops: a Destroyed sword arm puts the sword on the zone's ground; an observer perceives an
 // item_dropped event; pick up returns it.
+import type { Tier } from '../../src/types';
 import { afterEach, expect, it, vi } from 'vitest';
 import { actor, makeVillage, place } from '../harness';
 import { ruleset } from '../../src/ruleset';
@@ -8,7 +9,7 @@ import { intent, play } from './w4-kit';
 
 afterEach(() => vi.restoreAllMocks());
 
-const roll = (actorId: string, skill: string, tier: number): RollResult =>
+const roll = (actorId: string, skill: string, tier: Tier): RollResult =>
   ({ actorId, skill, d100: 90, margin: 40, tier, natural: 0, modifiers: [], tierShifts: [] });
 
 it('90 Destroyed arm drops', () => {
@@ -21,7 +22,7 @@ it('90 Destroyed arm drops', () => {
   expect(g.core.inventory.find((i) => i.id === sword)!.equippedIn).toEqual(['hand:right_arm']);
   // force the blow onto the sword arm; damage still goes through the real applyEffects
   vi.spyOn(ruleset, 'attack').mockImplementationOnce((req: AttackRequest): AttackResult => ({
-    attack: roll(req.attackerId, 'melee_medium', 2), defense: roll(req.targetId, 'block', -2), defenseType: 'block',
+    attack: roll(req.attackerId, 'melee_medium', 'critical_success'), defense: roll(req.targetId, 'block', 'failure'), defenseType: 'block',
     gap: -4, gapShifts: [], outcome: 'heavy_hit', location: 'right_arm', locationHow: 'aimed', multiplier: 1.5, damage: 30,
     deciding: { attack: [], defense: [], gap: [] }, attackerId: req.attackerId, targetId: req.targetId, weaponId: req.weaponId, modeId: req.modeId ?? 'cut',
   }));

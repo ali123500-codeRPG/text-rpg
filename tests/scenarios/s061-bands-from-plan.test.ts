@@ -13,7 +13,7 @@ export function smugglerPlan(): StagePlan {
   // room under PLAN_CAPS: this plan has no slimes
   p.cast = p.cast.filter((c) => c.band !== 'slimes');
   p.bands = p.bands.filter((b) => b.key !== 'slimes').map((b) => ({ ...b, relations: {} }));
-  p.bands.push({ key: 'smugglers', name: 'cellar folk', goals: 'move the crates unseen', temperament: 'cagey', tacticsLevel: 2, lethal: true, relations: { village_watch: 'opposed' } });
+  p.bands.push({ key: 'smugglers', name: 'cellar folk', goals: 'move the crates unseen', temperament: 'cagey', tactics: 'competent', lethal: true, relations: { village_watch: 'opposed' } });
   const smuggler = (key: string, name: string) => ({
     template: 'patron', key, label: 'a hooded drinker', name, appearance: 'a hood pulled low',
     band: 'smugglers', routineSetId: 'patron', slots: { seat: 'tav_cellar', refuge: 'tav_cellar', exit: 'street_door' },
@@ -30,7 +30,7 @@ export function smugglerPlan(): StagePlan {
 describe('61 Bands from the plan', () => {
   it('creates the band, beliefs per member and a personal stance', () => {
     const s = toStoryStart(makeVillage());
-    const ctx: PlanContext = { tier: 0, kind: 'scene', placeId: 'tavern' };
+    const ctx: PlanContext = { tier: 'success', kind: 'scene', placeId: 'tavern' };
     const p = smugglerPlan();
     expect(validateStagePlan(s, p, ctx)).toEqual([]);
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));

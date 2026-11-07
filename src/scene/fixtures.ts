@@ -3,20 +3,20 @@
 import type { Clock, GameState, Grade, StagePlan, Tier } from '../types';
 
 /** a challenge/gain pair that fits each tier (Agent Weaver: grades table) */
-export const FITTING_GRADES: Record<number, { challenge: Grade; gain: Grade }> = { // keyed by tier ID
-  [-3]: { challenge: 'major', gain: 'minor' },
-  [-2]: { challenge: 'moderate', gain: 'minor' },
-  [-1]: { challenge: 'moderate', gain: 'moderate' },
-  0: { challenge: 'moderate', gain: 'moderate' },
-  1: { challenge: 'major', gain: 'major' },
-  2: { challenge: 'extreme', gain: 'extreme' },
+export const FITTING_GRADES: Record<Tier, { challenge: Grade; gain: Grade }> = {
+  critical_failure: { challenge: 'major', gain: 'minor' },
+  failure: { challenge: 'moderate', gain: 'minor' },
+  near_miss: { challenge: 'moderate', gain: 'moderate' },
+  success: { challenge: 'moderate', gain: 'moderate' },
+  great_success: { challenge: 'major', gain: 'major' },
+  critical_success: { challenge: 'extreme', gain: 'extreme' },
 };
 
 /** Story start: Brookmere's tavern, the street and gate, the slime field, a frontier into the woods. */
-export function villageStagePlan(tier: Tier = 0): StagePlan {
+export function villageStagePlan(tier: Tier = 'success'): StagePlan {
   const L = (to: string, label: string, sight = true) => ({ to, label, sight });
   return {
-    event: { summary: 'slimes from a nest in the woods have started raiding the field', ...(FITTING_GRADES[tier] ?? FITTING_GRADES[0]) },
+    event: { summary: 'slimes from a nest in the woods have started raiding the field', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.success) },
     places: [
       { key: 'village', name: 'Brookmere', kind: 'settlement', parent: '' },
       { key: 'tavern', name: 'The Crooked Kettle', kind: 'place', parent: 'village' },
@@ -24,26 +24,26 @@ export function villageStagePlan(tier: Tier = 0): StagePlan {
       { key: 'field', name: 'the east field', kind: 'place', parent: 'village' },
     ],
     zones: [
-      { key: 'tav_common', place: 'tavern', name: 'common room', look: 'a low smoky room of benches and tables', cover: 0, light: 1,
+      { key: 'tav_common', place: 'tavern', name: 'common room', look: 'a low smoky room of benches and tables', cover: 'none', light: 'dim',
         links: [L('tav_counter', 'behind the bar'), L('street_door', 'out the front door', false)] },
-      { key: 'tav_counter', place: 'tavern', name: 'behind the bar', look: 'a scarred counter with kegs behind it', cover: 1, light: 1,
+      { key: 'tav_counter', place: 'tavern', name: 'behind the bar', look: 'a scarred counter with kegs behind it', cover: 'some', light: 'dim',
         links: [L('tav_common', 'the common room'), L('tav_cellar', 'down the cellar steps', false)] },
-      { key: 'tav_cellar', place: 'tavern', name: 'cellar', look: 'a damp cellar of barrels', cover: 1, light: 2,
+      { key: 'tav_cellar', place: 'tavern', name: 'cellar', look: 'a damp cellar of barrels', cover: 'some', light: 'dark',
         links: [L('tav_counter', 'up the cellar steps', false)] },
-      { key: 'street_door', place: 'street', name: 'outside the tavern', look: 'a muddy street before the tavern door', cover: 0, light: 0,
+      { key: 'street_door', place: 'street', name: 'outside the tavern', look: 'a muddy street before the tavern door', cover: 'none', light: 'bright',
         links: [L('tav_common', 'inside the tavern', false), L('gate_inner', 'toward the gate')] },
-      { key: 'gate_inner', place: 'street', name: 'the gate', look: 'a timber gate in the palisade', cover: 0, light: 0,
+      { key: 'gate_inner', place: 'street', name: 'the gate', look: 'a timber gate in the palisade', cover: 'none', light: 'bright',
         links: [L('street_door', 'back toward the tavern'), L('field_mid', 'through the gate')] },
-      { key: 'field_mid', place: 'field', name: 'the open field', look: 'wet grass streaked with slime trails', cover: 0, light: 0,
+      { key: 'field_mid', place: 'field', name: 'the open field', look: 'wet grass streaked with slime trails', cover: 'none', light: 'bright',
         links: [L('gate_inner', 'back toward the gate'), L('field_far', 'the far side of the field')] },
-      { key: 'field_far', place: 'field', name: 'far side of the field', look: 'long grass by a line of trees', cover: 1, light: 0,
+      { key: 'field_far', place: 'field', name: 'far side of the field', look: 'long grass by a line of trees', cover: 'some', light: 'bright',
         links: [L('field_mid', 'back across the field'), L('woods', 'into the woods', false)] },
     ],
     frontiers: [{ key: 'woods', label: 'the woods' }],
     bands: [
-      { key: 'village_watch', name: 'the village watch', goals: 'keep the slimes out of the village', temperament: 'tired but dutiful', tacticsLevel: 2, lethal: true, relations: { slimes: 'opposed' } },
-      { key: 'tavern_folk', name: 'tavern folk', goals: 'keep the tavern open', temperament: 'wary of strangers', tacticsLevel: 1, lethal: true, relations: {} },
-      { key: 'slimes', name: 'slimes', goals: 'feed', temperament: 'mindless', tacticsLevel: 1, lethal: true,
+      { key: 'village_watch', name: 'the village watch', goals: 'keep the slimes out of the village', temperament: 'tired but dutiful', tactics: 'competent', lethal: true, relations: { slimes: 'opposed' } },
+      { key: 'tavern_folk', name: 'tavern folk', goals: 'keep the tavern open', temperament: 'wary of strangers', tactics: 'simple', lethal: true, relations: {} },
+      { key: 'slimes', name: 'slimes', goals: 'feed', temperament: 'mindless', tactics: 'simple', lethal: true,
         relations: { player_band: 'opposed', village_watch: 'opposed', tavern_folk: 'opposed' } },
     ],
     cast: [
@@ -67,11 +67,11 @@ export function villageStagePlan(tier: Tier = 0): StagePlan {
 }
 
 /** A one-zone extension for the 'woods' frontier off the village field (entry zone 'grove'). */
-export function grovePlan(tier: Tier = 0): StagePlan {
+export function grovePlan(tier: Tier = 'success'): StagePlan {
   return {
     ...villageStagePlan(tier), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
-    event: { summary: 'a quiet grove', ...(FITTING_GRADES[tier] ?? FITTING_GRADES[0]) },
-    zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove of birches', cover: 1, light: 1, links: [{ to: 'field_far', label: 'back to the field', sight: true }] }],
+    event: { summary: 'a quiet grove', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.success) },
+    zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove of birches', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back to the field', sight: true }] }],
   };
 }
 
@@ -82,7 +82,7 @@ export function toStoryStart(state: GameState, placeId = 'tavern'): GameState {
   state.zones = [];
   state.actors = [];
   state.bands = state.bands.filter((b) => b.id === state.player.bandId).map((b) => ({ ...b, relations: {} }));
-  state.stage = { zoneIds: [], tier: 0, sceneNumber: 0, sceneStartTurn: 0 };
+  state.stage = { zoneIds: [], tier: 'success', sceneNumber: 0, sceneStartTurn: 0 };
   state.hidden = { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } };
   state.player.zone = '';
   state.player.placeId = placeId;

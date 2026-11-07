@@ -59,12 +59,12 @@ describe('105 Story pacing', () => {
     expect(s.stage.breakCause).toBe('story_beat');
   });
   it('the director starts a new scene on a break and resets the clock', async () => {
-    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 0, modifiers: [] });
+    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const s = calm();
     s.stage.breakCause = 'rest';
     s.stage.quiet = 5;
     const scene = s.stage.sceneNumber;
-    const client = new ScriptedClaude().push('weaver', { ...villageStagePlan(0), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [] });
+    const client = new ScriptedClaude().push('weaver', { ...villageStagePlan('success'), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [] });
     const clock = new VirtualClock();
     await createDirector(clock).afterResolve(s, [], createRng(1), { client, clock, turn: s.turn, log: () => {} });
     expect(client.callsFor('weaver')).toHaveLength(1);

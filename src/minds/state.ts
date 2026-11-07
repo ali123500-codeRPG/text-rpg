@@ -4,7 +4,7 @@ import { CONFIG } from '../config';
 import { routine as getRoutine, routineSet, creatureType, npcTemplate } from '../library';
 import { actorById, atLeast, isActive, isEngaged, opposed } from '../engine/relations';
 import { computePerception, perceptionOf, updateBeliefs } from '../perception';
-import { ruleset, usableModes, defaultMode, modeSkill } from '../ruleset';
+import { ruleset, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { bindTemplate, expandSteps, slotsRead } from './routines';
 
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
@@ -178,7 +178,7 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   for (const o of observers) {
     const skill = perception[o.id]?.cue === 'sound' ? 'hearing' : 'sight';
     const p = ruleset.roll({ actorId: o.id, skill, modifiers: [], tierShifts: [], rollKind: 'perception' }, state, rng);
-    const gap = p.tier - ambush.tier; // Part 1 §4 Contests: acting side wins below 0
+    const gap = tierLevel(p) - tierLevel(ambush); // Part 1 §4 Contests: acting side wins below 0
     if (o.id === targetId && gap < 0) surprised = true;
     if (gap > 0) {
       updateBeliefs(state, { kind: 'detection', observerId: o.id, aboutId: attackerId, status: 'aware', event: attackEvent });

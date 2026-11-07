@@ -4,7 +4,7 @@ import type { AgentTurnLog, ClaudeClient, GameEvent, GameState, Rng, SituationRe
 import { SceneDirector, replaySceneStart } from '../../src/scene/director';
 import { openingEvents } from '../../src/scene';
 import { FITTING_GRADES, VirtualClock } from '../../src/scene/fixtures';
-import { tierIdOf } from '../../src/ruleset';
+import { TIERS } from '../../src/scales';
 
 export type SceneDirectorApi = {
   runSceneSetup(state: GameState, deps: { claude: ClaudeClient; rng: Rng }): Promise<{ situation: SituationResult; events: GameEvent[]; agentLog: AgentTurnLog[] }>;
@@ -43,9 +43,9 @@ export const MILL_PLAN: StagePlan = {
   event: { summary: 'slime tracks lead toward the old mill', challenge: 'moderate', gain: 'moderate' },
   places: [{ key: 'mill', name: 'the old mill', kind: 'place', parent: 'village' }],
   zones: [
-    { key: 'mill_yard', place: 'mill', name: 'mill yard', look: 'a weedy yard before a sagging mill', cover: 1, light: 0,
+    { key: 'mill_yard', place: 'mill', name: 'mill yard', look: 'a weedy yard before a sagging mill', cover: 'some', light: 'bright',
       links: [{ to: 'field_edge', label: 'back to the field', sight: true }, { to: 'mill_race', label: 'down to the race', sight: false }] },
-    { key: 'mill_race', place: 'mill', name: 'mill race', look: 'a choked stone channel', cover: 1, light: 1,
+    { key: 'mill_race', place: 'mill', name: 'mill race', look: 'a choked stone channel', cover: 'some', light: 'dim',
       links: [{ to: 'mill_yard', label: 'up to the yard', sight: false }, { to: 'mill_pond', label: 'along the race', sight: false }] },
   ],
   frontiers: [{ key: 'mill_pond', label: 'along the race' }],
@@ -56,5 +56,5 @@ export const MILL_PLAN: StagePlan = {
 /** a scripted Weaver answer: MILL_PLAN with grades that fit whatever tier the situation roll dealt */
 export function millWeaver(req: import('../../src/types').ClaudeRequest): import('../../src/types').ClaudeResponse {
   const tier = (JSON.parse(req.input[1].content) as { view: { tier: string } }).view.tier;
-  return { ok: true, value: { ...MILL_PLAN, event: { ...MILL_PLAN.event, ...FITTING_GRADES[tierIdOf(tier)!] } } };
+  return { ok: true, value: { ...MILL_PLAN, event: { ...MILL_PLAN.event, ...FITTING_GRADES[TIERS.keyOf(tier)!] } } };
 }

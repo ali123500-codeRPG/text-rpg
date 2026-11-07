@@ -1,6 +1,6 @@
 // The six views (Part 2, Game state model). Every builder copies whitelisted fields into a new object.
 // No view holds a gear number, a pool, HP, a roll or a margin.
-import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tier, TierName, Grade, Fact } from './core';
+import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, Tier, TierName, Grade, Fact } from './core';
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
 
@@ -89,7 +89,7 @@ export type ActorView = {
   memory?: string;
   secrets: Secret[]; // its own
   firedTriggers: { triggerId: string; turn: number }[]; // "already happened"
-  band: { id: string; name: string; goals: string; temperament: string; tacticsLevel: 1 | 2 | 3; relations: Record<string, Stance> };
+  band: { id: string; name: string; goals: string; temperament: string; tactics: Tactics; relations: Record<string, Stance> };
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives

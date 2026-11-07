@@ -13,6 +13,6 @@ describe('86 One copy counts', () => {
     expect(one).toHaveLength(1);
     const r2 = ruleset.situation(s.player, s, forcedRng([45]));
     expect(r2.tier).toBe(r1.tier);
-    expect(r2.tier).toBe(0); // 45 + 5
+    expect(r2.tier).toBe('success'); // 45 + 5
   });
 });

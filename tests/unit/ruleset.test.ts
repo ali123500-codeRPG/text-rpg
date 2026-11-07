@@ -1,7 +1,9 @@
+import { TIERS } from '../../src/scales';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, actor, forcedRng, createRng } from '../harness';
 import {
   band, defaultMode, effectiveSkill, healthLevel, hitTable, moraleCheck, ruleset, stackType, totalHp, usableModes, woundsMods,
+  tierLevel,
 } from '../../src/ruleset';
 import type { Actor } from '../../src/types';
 
@@ -15,7 +17,8 @@ describe('ruleset maths', () => {
     expect(stackType([5, 5, 5, 5])).toBe(8.75); // fourth counts 0
   });
   it('bands margins exactly, .5 included', () => {
-    expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map(band)).toEqual([-3, -2, -2, -2, -1, -1, 0, 0, 1, 1, 2]);
+    expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map((m) => TIERS.at(band(m)))).toEqual(
+      ['critical_failure', 'failure', 'failure', 'failure', 'near_miss', 'near_miss', 'success', 'success', 'great_success', 'great_success', 'critical_success']);
   });
   it('substitutes at half efficiency, highest candidate', () => {
     const s = makeVillage();
@@ -113,7 +116,7 @@ describe('ruleset methods', () => {
       { actorId: 'player', skill: 'sight', modifiers: [{ source: 'aim', type: 'aim', value: -40 }], tierShifts: [] },
       { actorId: 'patron_1', skill: 'sight', modifiers: [], tierShifts: [] }, s, forcedRng([50, 90]));
     expect(c.a.modifiers).toEqual([]); // no aim in contests
-    expect(c.gap).toBe(c.b.tier - c.a.tier);
+    expect(c.gap).toBe(tierLevel(c.b) - tierLevel(c.a));
     expect(c.winner).toBe('b');
     const before = JSON.stringify(s);
     expect(ruleset.applyEffects(c, s)).toEqual([]);

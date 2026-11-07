@@ -28,7 +28,7 @@ export function playerFromBuild(build: CreationBuild, storyId = 'preview', zone 
 }
 
 function duelState(build: CreationBuild): GameState {
-  const zone = { id: 'duel', placeId: 'duel', name: 'field', look: 'open grass', links: [], cover: 0 as const, light: 0 as const, groundItems: [] };
+  const zone = { id: 'duel', placeId: 'duel', name: 'field', look: 'open grass', links: [], cover: 'none' as const, light: 'bright' as const, groundItems: [] };
   const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_MECHANICS, tone: CONFIG.STYLE.tone };
   return {
     storyId: 'preview', turn: 0, mode: 'tactical', zones: [zone], player: playerFromBuild(build),
@@ -36,7 +36,7 @@ function duelState(build: CreationBuild): GameState {
     bands: [], hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: 1, rngState: 1, pending: { turn: 0, mode: 'tactical', engaged: [], fired: [] },
     places: [{ id: 'duel', storyId: 'preview', kind: 'place', parentId: null, names: { current: 'field', past: [] }, zones: [zone], state: {}, headlines: [] }],
-    facts: [], stage: { zoneIds: ['duel'], tier: 0, sceneNumber: 0, sceneStartTurn: 0 }, sceneCaps: { promotions: 0, minted: 0 },
+    facts: [], stage: { zoneIds: ['duel'], tier: 'success', sceneNumber: 0, sceneStartTurn: 0 }, sceneCaps: { promotions: 0, minted: 0 },
     clocks: {}, flags: {}, quests: [], settings, libraryVersion: getLibrary().version, blueprints: [],
     meta: { storyId: 'preview', title: 'preview', schemaVersion: CONFIG.SCHEMA_VERSION, createdAt: '', settings },
   };

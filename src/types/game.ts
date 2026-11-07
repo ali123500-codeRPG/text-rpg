@@ -20,8 +20,8 @@ export type LogLine = {
 export type LineCheck = {
   kind: 'attack' | 'contest';
   skill: string; // skill id
-  tier: Tier;
-  against?: { what: string; tier: Tier }; // the defense or the other side of a contest, e.g. "its dodge"
+  tier: Tier; beyond?: number;
+  against?: { what: string; tier: Tier; beyond?: number }; // the defense or the other side of a contest, e.g. "its dodge"
   result: string; // "full hit, body", "you win the exchange"
 };
 
@@ -57,5 +57,7 @@ export interface GameApi {
   reset(): Promise<void>; // confirmed by the UI first
   gm(): GmSnapshot;
   calls(): number; // Claude calls made in this session (page load), counted by code
+  /** Claude calls in flight now, oldest first: which agent and since when (Date.now ms) */
+  working(): { agent: import('./agents').AgentName; since: number }[];
   restoreBackup(turn: number): Promise<void>;
 }
