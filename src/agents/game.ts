@@ -264,6 +264,13 @@ export function createGame(deps: GameDeps): Game {
       ...(s.scratch?.situation ? { situation: s.scratch.situation as TurnRecord['situation'] } : {}),
     };
     if (s.scratch) delete s.scratch.situation;
+    // save step 1: hold the turn lock. Re-acquiring renews the lease, so a long turn (Weaver wait, slow calls) or the
+    // first save of a new story still writes under the lock.
+    if (!(await store.acquireLease(`stories/${s.storyId}/control/lock`, owner, CONFIG.LOCK_LEASE_MS))) {
+      notice({ kind: 'read_only', text: 'This story is open in another window; this one is read-only.' });
+      stopped = true;
+      return;
+    }
     try {
       await save.saveTurn(store, s, record);
     } catch (e) {

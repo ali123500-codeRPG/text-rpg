@@ -11,13 +11,18 @@ import { formatWeaverView } from './format';
 
 export function createDirector(clock: Clock): SceneDirector {
   let ctx: AgentCtx | null = null; // the context of the turn that owns the next Weaver call
+  const ctxOf = new WeakMap<object, AgentCtx>();
   const d = new Director({
     clock,
     weave: async (view, errors) => {
-      if (!ctx) return null;
+      // a repair call gets the same view object as its first call: log it under the turn that started that plan,
+      // not whatever turn is current when a background extension's repair runs
+      const own = ctxOf.get(view) ?? ctx;
+      if (!own) return null;
+      ctxOf.set(view, own);
       // the validator's errors go into the repair call's input (Agent Weaver: Failed stage plan)
       const note = errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.map((e) => `- ${e.code}: ${e.message}`).join('\n')}` : '';
-      const run = await runAgent<StagePlan>(ctx, { agent: 'weaver', fixed: FIXED.weaver, data: formatWeaverView(view) + note, schema: checkStagePlan });
+      const run = await runAgent<StagePlan>(own, { agent: 'weaver', fixed: FIXED.weaver, data: formatWeaverView(view) + note, schema: checkStagePlan });
       return run.value;
     },
   });

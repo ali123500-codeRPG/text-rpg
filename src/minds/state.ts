@@ -2,7 +2,7 @@
 import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
 import { routine as getRoutine, routineSet, creatureType, npcTemplate } from '../library';
-import { actorById, atLeast, isActive, opposed } from '../engine/relations';
+import { actorById, atLeast, isActive, isEngaged, opposed } from '../engine/relations';
 import { computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { ruleset, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { bindTemplate, expandSteps, slotsRead } from './routines';
@@ -50,23 +50,27 @@ function getRoutineOrNull(id: string) {
 const hasBinding = (b: string | string[] | undefined) => (Array.isArray(b) ? b.length > 0 : !!b);
 
 /** Calm bandmates [Proposed]: calm, routine-run bandmates of the spokesperson who perceived the exchange take its new routine. */
-export function calmBandmatesSwitch(state: GameState, spokespersonId: string, routineId: string, exchange: GameEvent): string[] {
+/**
+ * Calm bandmates [Proposed] (Dialogue turn rules): when a spokesperson's output switches its routine, calm, code-run
+ * bandmates who perceived the exchange switch to the same routine. The one rule for this; the engine calls it.
+ * GAP: "calm" read as not engaged, alarm not armed, and no attack or alarm perceived within DECAY_TURNS.
+ */
+export function calmBandmatesSwitch(state: GameState, spokespersonId: string, routineId: string, heard: (actorId: string) => boolean): string[] {
   const sp = actorById(state, spokespersonId);
   if (!sp) return [];
   const switched: string[] = [];
   for (const a of [...state.actors].sort((x, y) => x.id.localeCompare(y.id))) {
-    if (a.id === sp.id || a.bandId !== sp.bandId || !isActive(a) || !exchange.perception[a.id]) continue;
-    if (a.mind?.alarm?.armed || isEngagedLocal(state, a)) continue; // engaged bandmates decide through their own mind
+    if (a.id === sp.id || a.bandId !== sp.bandId || !isActive(a) || a.mind?.control !== 'code' || !heard(a.id)) continue;
+    if (!isCalm(state, a)) continue; // engaged or alarmed bandmates decide through their own mind
     if (switchRoutine(state, a, routineId, 'bandmate')) switched.push(a.id);
   }
   return switched;
 }
 
-function isEngagedLocal(state: GameState, a: Actor): boolean {
-  return Object.entries(a.mind?.knowledge ?? {}).some(([id, b]) => {
-    const o = actorById(state, id);
-    return atLeast(b.status, 'suspicious') && !!o && isActive(o) && !o.mind?.moraleState && opposed(state, a, o);
-  });
+export function isCalm(state: GameState, a: Actor): boolean {
+  const alarm = a.mind?.alarm;
+  const last = alarm?.lastAlarmTurn;
+  return !isEngaged(state, a) && !alarm?.armed && (last === undefined || state.turn - last >= CONFIG.DECAY_TURNS);
 }
 
 const ALARM_KINDS = new Set(['attack', 'alarm']);

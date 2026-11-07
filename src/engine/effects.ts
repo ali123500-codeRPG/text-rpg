@@ -1,7 +1,7 @@
 // Agent side effects, applied when the turn resolves. Every model output is a request; the engine decides.
 import type { Actor, GameState, Stance, Trigger } from '../types';
 import { CONFIG } from '../config';
-import { switchRoutine } from '../minds';
+import { calmBandmatesSwitch, switchRoutine } from '../minds';
 import { actorById, isActive, isEngaged, stance } from './relations';
 import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
@@ -29,12 +29,6 @@ function sanitizeTriggers(triggers: Trigger[] | undefined, ownerId: string): Tri
   return (triggers ?? [])
     .filter((t) => t && typeof t.id === 'string' && TRIGGER_TYPES.includes(t.when?.type) && t.then && typeof t.then.type === 'string')
     .map((t) => ({ ...t, ownerId, once: !!t.once }));
-}
-
-function isCalm(state: GameState, a: Actor): boolean {
-  const last = a.mind?.alarm?.lastAlarmTurn;
-  // GAP: "calm" read as not engaged and no attack or alarm perceived within DECAY_TURNS.
-  return !isEngaged(state, a) && (last === undefined || state.turn - last >= CONFIG.DECAY_TURNS);
 }
 
 export type EffectsCtx = {
@@ -77,10 +71,6 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
     }
     if (!routineId || !switchRoutine(state, a, routineId, 'agent')) continue;
     if (!spokes.has(a.id)) continue;
-    // Calm bandmates [Proposed]: calm, code-run bandmates who perceived the exchange follow next turn.
-    for (const m of state.actors) {
-      if (m === a || m.bandId !== a.bandId || !isActive(m) || m.mind?.control !== 'code') continue;
-      if (isCalm(state, m) && ctx.heardExchange(m.id)) switchRoutine(state, m, routineId, 'bandmate');
-    }
+    calmBandmatesSwitch(state, a.id, routineId, ctx.heardExchange);
   }
 }
