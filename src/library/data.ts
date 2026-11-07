@@ -34,7 +34,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('disarm', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
   sk('tremor', 'slime_senses', ['notice'], ['sense'], false, 'sound'),
   sk('taste', 'slime_senses', ['notice'], ['sense'], false),
-  // OQ-20 build default: placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
+  // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk('lockpicking', 'tools', [], ['grip'], false),
 ].map((s) => [s.id, s]));
 
