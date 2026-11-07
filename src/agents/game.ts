@@ -216,7 +216,7 @@ export function createGame(deps: GameDeps): Game {
       return { agent: 'responder', actorId: id, output: r.output };
     }
     const view = views.buildDialogueView(s, id, input);
-    const r = await callVoice(view, ctx, { world, names: knownNames(s) });
+    const r = await callVoice(view, ctx, { world, names: knownNames(s), terms: buildLeakContext(s).terms });
     return { agent: 'voice', actorId: id, output: r.output };
   }
 

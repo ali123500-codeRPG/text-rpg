@@ -138,7 +138,7 @@ export async function callResponder(
  * names: actor and place names the code knows of (checked against the view's own text).
  */
 export async function callVoice(
-  view: DialogueView, ctx: AgentCtx, opts: { world: Set<string>; names?: string[]; signal?: AbortSignal },
+  view: DialogueView, ctx: AgentCtx, opts: { world: Set<string>; names?: string[]; terms?: string[]; signal?: AbortSignal },
 ): Promise<DialogueResult<VoiceOutput>> {
   const viewText = JSON.stringify(view);
   let extra: string[] = [];
@@ -148,11 +148,12 @@ export async function callVoice(
     const knows = new Set(view.knows.map((f) => f.id));
     const badShares = v.shares.filter((id) => !knows.has(id));
     const badNames = (opts.names ?? []).filter((n) => mentions(v.line, n) && !mentions(viewText, n));
-    if (badShares.length || badNames.length) {
-      const errors = [...(badShares.length ? ['invalid_share', ...badShares] : []), ...(badNames.length ? ['voice_leak'] : [])];
+    const badTerms = (opts.terms ?? []).filter((t) => mentions(v.line, t) && !mentions(viewText, t)); // F5: unrevealed secrets and hidden terms
+    if (badShares.length || badNames.length || badTerms.length) {
+      const errors = [...(badShares.length ? ['invalid_share', ...badShares] : []), ...(badNames.length || badTerms.length ? ['voice_leak'] : [])];
       const note = [
         badShares.length ? `"shares" lists ids not in KNOWS (${badShares.join(', ')})` : '',
-        badNames.length ? 'the line names someone or something that is not in DIALOGUE_VIEW or KNOWS' : '',
+        badNames.length || badTerms.length ? 'the line names someone or something that is not in DIALOGUE_VIEW or KNOWS' : '',
       ].filter(Boolean).join('; ');
       return { kind: 'retry', errors, note };
     }
