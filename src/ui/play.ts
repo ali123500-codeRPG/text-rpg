@@ -116,6 +116,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     await api.submit(text, { aimed: wasAimed });
   }
 
+  /** V2a (Ali, 07/11/2026): milestones a skill crossed on this turn; the card never names the perk */
+  const unlocks = (turn: number) => (api.state()?.log ?? []).filter((x) => x.code === 'skill_improved' && x.turn === turn && (x.detail as { milestone?: number }).milestone)
+    .map((x) => x.detail as { skill: string; milestone: number });
+
+  /** opens the Character page at its Perks section */
+  const seePerks = () => { nav('stats'); setTimeout(() => document.querySelector('.pk')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
+
   function lineEl(l: LogLine): (HTMLElement | null)[] {
     if (l.kind !== 'narration') return [h('p', { class: 'ln-' + l.kind }, l.text)];
     const c = l.check;
@@ -127,6 +134,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.speech ?? []).map((sp) => h('div', { class: 'line' },
         h('p', { class: 'who2', style: `color:var(--${colourOf(sp.speaker)})` }, cap(sp.speaker), VOLUME_WORD[sp.volume] ? h('span', { class: 'how' }, VOLUME_WORD[sp.volume]) : null),
         h('p', {}, h('q', { class: sp.volume }, sp.text)))),
+      ...unlocks(l.turn).map((u) => h('div', { class: 'perk-new', role: 'status' }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
+        h('div', {}, 'New perk unlocked', h('small', {}, `${skillName(u.skill)} reached ${u.milestone}`)),
+        h('button', { type: 'button', class: 'hs-btn-text', onclick: seePerks }, 'See perks'))),
       l.changes?.length ? h('details', { class: 'changes' },
         h('summary', {}, h('span', { class: 'hs-label' }, `Turn ${l.turn}`), h('span', { class: 'hs-chip' }, `↻${l.changes.length}`),
           h('span', { class: 'sum' }, l.changes.filter((x) => x.kind !== 'combat').map((x) => x.text).join(' · ') || `${l.changes.length} changes`)),

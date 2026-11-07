@@ -44,12 +44,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], weaverNote: 'the slimes are fleeing something in the woods', stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
-      log: [{ turn: 3, code: 'planner_late' }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
+      log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: 'block', from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
       places: [], facts: [], stage: { zoneIds: [], tier: 'success', sceneNumber: 2, sceneStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scene planning failed: placeholder area', turn: 2 } } : {}) },
       sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
       quests: [{ id: 'q1', state: 'active', text: 'Clear the slimes from the field' }, { id: 'q2', state: 'active', text: 'Ask the barkeep about the woods' }, { id: 'q0', state: 'done', text: 'Find a bed for the night' }],
       settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
     };
+    if (player.progression) { player.progression.marks = ['dodge', 'sight']; player.progression.unspentPerkPoints = 1; }
     player.core.inventory.push({ id: 'player_draught', itemId: 'healing_draught', qty: 2 }, { id: 'player_draught_2', itemId: 'healing_draught', qty: 1 });
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0] },

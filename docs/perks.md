@@ -14,23 +14,23 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Hidden Strike (Light weapons) · A1
 
-*Story:* A short blade is deadliest when the victim never sees it coming. Your light-weapon attacks against someone who hasn't noticed you land one outcome better.
+*Story:* Strike someone who never sees you coming. Any attack you make on someone who hasn't noticed you lands one outcome better.
 
 - **Kind:** Always on
-- **Trigger:** The owner makes a melee attack.
-- **Conditions:** The attack uses a light melee mode (skill melee_light). The target is unaware of the owner when the attack resolves (the same test that starts an ambush).
+- **Trigger:** The owner makes an attack.
+- **Conditions:** Any attack (Ali, 07/11/2026). The target is unaware of the owner when the attack resolves (the same test that starts an ambush).
 - **Effect:** Tier shift +1 on the attack roll.
 - **Lasts:** That attack.
 
 ### Turn the Blade (Medium weapons) · A2
 
-*Story:* You catch their swing on your own blade and turn it aside. When you block a melee attack cleanly with a medium weapon (not a shield), the attacker is left open: your next melee attack on it, before the end of your next turn, lands one outcome better.
+*Story:* You catch their swing on your own blade and turn it aside. When you block a melee attack cleanly with any melee weapon, the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
 
 - **Kind:** Always on
 - **Trigger:** The owner blocks a melee attack.
-- **Conditions:** The owner blocks with a medium melee weapon held in a working Grip arm (not a shield). The gap is +2 or better for the owner.
+- **Conditions:** The owner blocks with any melee weapon held in a working Grip arm. The gap is +2 or better for the owner.
 - **Effect:** The attacker is marked as open to the owner. The owner's next melee attack on that attacker gets tier shift +1, and the mark clears.
-- **Lasts:** Until the end of the owner's next turn.
+- **Lasts:** Until it is used or the engagement ends.
 
 ### Shield Breaker (Heavy weapons) · A3
 
@@ -44,24 +44,23 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Point Blank (Light ranged) · A4
 
-*Story:* Most archers panic when a foe closes in. You keep your nerve: with a light ranged weapon you take no penalty for shooting while a hostile is in your zone.
+*Story:* Most archers panic when a foe closes in. You keep your nerve: with any ranged weapon you take no penalty for shooting while a hostile is in your zone.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
-- **Conditions:** The attack uses a light ranged mode (shortbow, thrown dagger; skill ranged_light). A hostile actor is in the owner's zone.
+- **Conditions:** Any ranged attack, thrown included. A hostile actor is in the owner's zone.
 - **Effect:** The −10 ranged modifier for a hostile in the shooter's zone is not applied.
 - **Lasts:** That attack.
 
 ### Hunter's Mark (Medium ranged) · A5
 
-*Story:* Once your arrow has found a foe, you have its measure. After a medium ranged hit, your next shot at that foe lands one outcome better, as long as it comes in the same fight.
+*Story:* Once your shot has found a foe, you have its measure. After any ranged hit, your next shot at that foe lands one outcome better, as long as it comes in the same fight.
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits (outcome grazed, blocked, full, heavy or crushing hit).
-- **Conditions:** The attack uses a medium ranged mode (longbow, thrown spear; skill ranged_medium).
+- **Conditions:** Any ranged attack.
 - **Effect:** The target is marked. The owner's next ranged attack on that target gets tier shift +1, and the mark clears.
 - **Lasts:** Until it is used or the engagement ends.
-- **Open:** Should the follow-up be any ranged attack (as written) or only a medium ranged one?
 
 ### Leg Bolt (Heavy ranged) · A6
 
@@ -316,11 +315,11 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Menace (Intimidation) · B13
 
-*Story:* When you cut a foe down, those who see it lose heart. Every other foe that sees it makes a morale check at once.
+*Story:* When you cut a foe down, those who see or hear it lose heart. Every other foe that sees or hears it makes a morale check at once.
 
 - **Kind:** Always on
 - **Trigger:** The owner's attack downs a foe.
-- **Conditions:** Other foes hostile to the owner see it happen.
+- **Conditions:** Other foes hostile to the owner see or hear it happen.
 - **Effect:** Each of those foes makes a morale check at once.
 - **Lasts:** Each time.
 
