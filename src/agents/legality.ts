@@ -15,6 +15,7 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
   if (first.startsWith('action.target') || first.startsWith('addressee')) return `Who do you mean?${who}`;
   if (first.startsWith('action.item')) return 'Which item do you mean?';
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
+  if (first.startsWith('action.stealth')) return 'Sneaking and hiding aren\'t in the game yet, so anyone nearby would see you. What do you do instead?';
   if (first.startsWith('action.skill')) return 'How do you want to do that?';
   return null;
 }
@@ -31,13 +32,18 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const gearErrors: string[] = [];
   const out: Intent = { ...intent, action: intent.action ? { ...intent.action } : null };
 
+  // a move to the zone the player already stands in is no move (runs 11–13: it was the most common clarify)
+  if (out.move?.toZone === view.zone.id) out.move = null;
   if (out.move && !view.zone.links.some((l) => l.to === out.move!.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
   const a = out.action;
   if (a) {
     if (a.target !== null && a.target !== 'player' && !actors.has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
       illegal.push(`action.target ${a.target}`);
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
-    if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
+    // hide and sneak wait for the Stealth tree (Part 2, Sneaking posture): with a move the player just goes, openly;
+    // without one, say so instead of "How do you want to do that?"
+    if (a.type === 'hide' || a.type === 'sneak') { if (out.move) out.action = null; else illegal.push(`action.stealth ${a.type}`); }
+    else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.includes(a.skill)) illegal.push(`action.skill ${a.skill}`);
     if (a.item !== null && !items.has(a.item)) illegal.push(`action.item ${a.item}`);
     if (a.mode !== null) {

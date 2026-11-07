@@ -15,6 +15,7 @@ import { CONFIG } from '../src/config';
 import { validateStagePlan } from '../src/scene';
 import { ensurePlace } from '../src/scene/apply';
 import type { GameState, StagePlan } from '../src/types';
+import { MILESTONES, milestonePerk, milestoneState, trueSkill } from '../src/ruleset/perks';
 import type { SceneDirector } from '../src/agents';
 
 // Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scene-start wait is widened here.
@@ -108,6 +109,7 @@ async function main() {
     const aimed = input.startsWith('/aim');
     console.log(`turn ${t}: ${input}`);
     await game.submit(input, { aimed });
+    spendPerkPoints(game, t);
     const gm = game.gm();
     appendFileSync(agentLog, JSON.stringify({ step: t, input, notices: game.notices(), agentLog: gm.agentLog }) + '\n');
     writeTranscript(game, storyId!, t0);
@@ -118,8 +120,27 @@ async function main() {
   console.log(`done: ${calls} game calls, ${Math.round((Date.now() - t0) / 60000)} min`);
 }
 
+/** The test player can't open the Perks page, so it spends each perk point at once on the open milestone of its highest skill. */
+const progress: string[] = [];
+function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
+  const st = game.state();
+  const p = st?.player;
+  if (!p?.progression) return;
+  for (const x of p.progression.xpLog ?? []) if (x.turn === st!.turn && x.levelUp) progress.push(`turn ${turn}: level up to ${x.levelUp.level} (${x.levelUp.classId})`);
+  while (p.progression.unspentPerkPoints > 0) {
+    const open = Object.keys(p.core.skills).flatMap((sk) => MILESTONES.filter((m) => milestoneState(p, sk, m) === 'open').map((m) => ({ id: milestonePerk(sk, m)!.id, sk, m })))
+      .sort((a, b) => trueSkill(p, b.sk) - trueSkill(p, a.sk) || a.m - b.m);
+    if (!open.length) { progress.push(`turn ${turn}: ${p.progression.unspentPerkPoints} perk point(s) unspent, no open milestone`); break; }
+    game.takePerk(open[0].id);
+    progress.push(`turn ${turn}: took perk ${open[0].id} (${open[0].sk} ${open[0].m})`);
+  }
+}
+
 function writeTranscript(game: ReturnType<typeof createGame>, storyId: string, t0: number) {
+  const pr = game.state()?.player.progression;
   const md = [`# Playtest ${storyId}`, `Started ${new Date(t0).toISOString()} · ${calls} game calls so far`, '',
+    `XP ${pr?.xp ?? 0} · unspent perk points ${pr?.unspentPerkPoints ?? 0} · perks: ${game.state()?.player.core.perks.map((x) => x.perkId).join(', ') || 'none'}`,
+    ...progress.map((x) => `- ${x}`), '',
     ...game.lines().map((l) => (l.kind === 'player' ? `\n**> ${l.text}**` : `${l.kind === 'narration' ? '' : `_${l.kind}:_ `}${l.text}`)
       + (l.speech?.length ? `\n\n${l.speech.map((sp) => `> _${sp.speaker}:_ "${sp.text}"`).join('\n')}` : '')
       + (l.mechanics?.length ? `\n\n    ${l.mechanics.join('\n    ')}` : ''))].join('\n');
