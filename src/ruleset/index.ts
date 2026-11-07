@@ -9,9 +9,11 @@ import { TIERS } from '../scales';
 import { creatureType, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
+import { markUse } from './improve';
 import { blockItem, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
+export { improveMarked, markEndurance, markUse } from './improve';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool } from './gear';
@@ -316,8 +318,9 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   return out;
 }
 
-function recordUse(actor: Actor, skill: string, _result: CheckResult | ContestResult | AttackResult, state: GameState): void {
+function recordUse(actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult, state: GameState): void {
   state.log.push({ turn: state.turn, code: 'skill_use', detail: { actorId: actor.id, skill } });
+  markUse(state, actor, skill, result);
 }
 
 export const ruleset: Ruleset = {

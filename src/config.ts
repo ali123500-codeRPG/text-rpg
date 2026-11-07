@@ -14,6 +14,10 @@ const DEFAULTS = {
   KIT_BONUS: 25,
   POTENTIAL: 300,
   K: 20,
+  /** SP2 (Ali, 07/11/2026): a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
+  MARK_WINDOW: 10,
+  /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
+  ENDURANCE_MARK_PCT: 10,
   // ---- Part 3 ----
   HP_BASE: 50,
   HP_PER_END: 1,
@@ -44,6 +48,7 @@ const DEFAULTS = {
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
+  ENGAGEMENT_END_TURNS: 2, // E1 (Ali, 07/11/2026): an engagement ends after this many turns with no one engaged with the actor
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key

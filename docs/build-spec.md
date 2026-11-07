@@ -184,7 +184,9 @@ For each marked skill:
 Clear all marks.
 ```
 
-- **Marks:** a skill being trained is marked so code knows which skills the training affects. What marks a skill depends on training actions (deferred).
+- **Marks** (Ali, 07/11/2026, "Skill progression: options" SP1–SP11): a use marks the skill actually rolled (SP4), success or failure, when the opposition is within ±MARK\_WINDOW (10, placeholder) of the user's raw or true skill (SP2), so true-skill perks widen what teaches you. The opposition is a check's target, or the other side's true skill in a contest, attack or defense; notice rolls follow the same rule (SP6). Endurance is marked by a single hit costing ENDURANCE\_MARK\_PCT (10%, placeholder) health or more (SP5). One mark per skill. Only the player keeps marks; NPC progression comes later (SP7).
+- **When the roll runs** (SP3): at the end of each engagement (a tactical turn after which no one is engaged), and when the scene breaks (rest, story beat or stall), for marks earned outside a fight. A gain shows on the turn's mechanics lines ("Sight 38 → 41", and "New perk unlocked" when a 20 milestone is crossed); failed rolls show nothing and nothing goes to Claude (SP11). Visuals, including a mark dot on the Character page, wait for the designer (SP10). The all-XXX check is not run yet.
+- **Training actions** happen only under a tutor; designed later (SP1, SP8). Beyond the mortal limit stays later (SP9).
 - **StartingTotal:** sum of untagged raw skills at creation. A record only; it never changes.
 - **Potential:** the Total at which Burden begins. Can be changed later by perks or events. At creation it is the fixed POTENTIAL (300, placeholder) for every character. Any character, NPC or player, may carry its own value instead, set case by case: an NPC template's potential, or a value set on one player character.
 - **K:** *placeholder*, default 20.
@@ -951,6 +953,8 @@ Per turn:
 
 Code picks the mode each turn; agents run only when someone needs a mind. Ordinary and guarded dialogue now share one pipeline, so the mode no longer shows whether an NPC has a secret.
 
+**Engagement** (Ali, 07/11/2026, E1). An engagement is one fight from an actor's point of view. It starts when any actor becomes engaged with that actor (active, hostile to it, and believing in it at suspicious or higher). It ends once no actor has been engaged with it for ENGAGEMENT\_END\_TURNS turns in a row (config, 2). A scene can hold several engagements. Effects that work once per engagement reset when a new one starts, and other rules may count engagements too. Code keeps the current engagement's start turn per actor.
+
 | Mode | When code enters it | Pipeline | Claude calls per turn |
 | --- | --- | --- | --- |
 | Explore | No engaged actor, and no one is being spoken to | Parser → engine → Narrator | 2 |
@@ -1415,6 +1419,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScene, marks a break; rest marks a break; a stall marks one only with no live beat left; the director then starts a new scene with one Weaver call |
 | 107 | Opposed standoff | An opposed guard who notices the player is alarmed (its onAlert fires) but not engaged, so the turn stays Explore; made hostile, it engages |
 | 108 | Look around | Someone sitting still one zone away is a shape; a successful look shows them clearly and they stay seen while they stay put; a move the player can't see clearly forgets them; looking is a sight roll, not a check |
+| 109 | Skill progression | A use marks a skill only when the opposition is within MARK\_WINDOW of raw or true skill, once, and only for the player; a hit costing ENDURANCE\_MARK\_PCT marks endurance; a marked skill whose roll beats its target gains 1d5 and shows "Sight 38 → 41" plus "New perk unlocked" past a milestone; a failed roll shows nothing; marks clear |
 
 ### Deliverables and acceptance criteria
 
@@ -2438,7 +2443,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | ID | Item | Part | Status | Notes |
 | --- | --- | --- | --- | --- |
 | D-1 | Setting, genre, skill trees and skill names | 1 | Deferred | Slot into the framework later. Also supplies turn 0's premise and starting place |
-| D-2 | Training actions | 1 | Deferred | What triggers them and what marks a skill; related to improvement-roll timing below |
+| D-2 | Training actions | 1 | Partly settled | Settled 07/11/2026 (SP1–SP6): use marks a skill (Part 1 §6). Still open: training only under a tutor (SP1), designed later. Was: what triggers them and what marks a skill; related to improvement-roll timing below |
 | D-3 | Soft cap and hard cap | 1 | Deferred | Values and behaviour |
 | D-4 | Burden fine-tuning | 1 | Deferred | K, default 20 |
 | D-5 | Potential at creation | 1 | Partly settled | A fixed POTENTIAL (300, placeholder) with a per-character override (Part 1 §6); the value waits for a balance pass |
@@ -2461,7 +2466,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-22 | What code produces, agents see, player sees | 2 | Parked | Separate document; includes roll numbers for Agent Narrator, SHOW\_MECHANICS and on-screen panels. Part 3's roll packet specifies part of this; Agent Narrator never gets roll numbers (Part 3, The packet). Includes whether the player sees the situation roll. Voyage playtest (07/11/2026): A1 one-line check summary, A2 typed update cards, D9 speaker labels and plain text, E3 location header, G2 quest text, G3 player-facing wording for rules text. Decided by Ali (07/11/2026, Voyage C2): no enemy health bars, by design; characters only know what they perceive |
 | D-23 | Fallback narration form | 2 | Parked | Template text breaks immersion |
 | D-24 | Streaming | 2 | Provisional | Off for now; revisit after playtests. Voyage playtest (07/11/2026): A5, narration paced line by line |
-| D-25 | Improvement-roll timing | 2 | Parked | After each use, at scene end or at rest; whether NPCs improve. Part 1 §6 runs improvement at the end of a training action |
+| D-25 | Improvement-roll timing | 2 | Settled | Settled 07/11/2026 (SP3, SP7): at the end of each engagement and at scene breaks; NPCs don't improve yet. Was: After each use, at scene end or at rest; whether NPCs improve. Part 1 §6 runs improvement at the end of a training action |
 | D-26 | Ruleset module | 2 | Partly settled | First build: TIERS, situation, roll, attack, check and contested are built (Part 2, Resolution engine, First-build ruleset); the rest stays stubbed |
 | D-27 | Body-part targeting | 2 | Settled | targetPart and aimed in the agent outputs (Part 2); aim penalty, gap ladder and location (Part 3) |
 | D-28 | Event log retention | 2, 4 | Partly settled | Keep the last N turn records (placeholder); story history is never pruned. N stays deferred |

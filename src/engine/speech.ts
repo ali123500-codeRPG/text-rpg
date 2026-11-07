@@ -2,7 +2,7 @@
 import type { Actor, ContestResult, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { ruleset, tierAtLeast, tierLevel } from '../ruleset';
+import { markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { isActive, shortestPath } from './relations';
 import type { ExchangeSpeech } from './types';
 
@@ -107,6 +107,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     const gap = tierLevel(b) - tierLevel(a);
     const contest: ContestResult = { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
     perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, [named, a.skill], contest) };
+    markUse(state, state.player, a.skill, contest); // SP2: talking to someone near your level marks the skill
   }
   return { skill: a.skill, playerTier: a.tier, impression: impressionWords(type, a.tier) ?? null, perSpokesperson };
 }

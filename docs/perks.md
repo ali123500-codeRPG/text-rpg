@@ -1,70 +1,351 @@
 # Perks: chosen and banked
 
-Ladder perks by skill and milestone (Part 1 §5, Skill ladders), as Ali picked them. Rules are written here first and built later. Many need a state or move that does not exist yet; each such entry says so.
+Ladder perks by skill and milestone (Part 1 §5, Skill ladders), as Ali picked them on the 20 milestone page (https://claude.ai/artifact/WkMeSULi8AjSWxeK4jAdwg), 07/11/2026. Review page: https://claude.ai/artifact/DE4FDK98f9uBy7s9Ce41qn. Perks are coded, so each one states exactly when it applies (Ali).
 
-Picked on the 20 milestone page (https://claude.ai/artifact/WkMeSULi8AjSWxeK4jAdwg), 07/11/2026.
+**Terms.** *Owner*: the actor who has the perk. *Hits*: an attack whose outcome is grazed, blocked, full hit, heavy hit or crushing hit (not missed or dodged). *Light/medium/heavy melee or ranged mode*: the attack mode's tree and class (Part 5 §5); thrown weapons are ranged. *Gap* and *tier shift*: Part 1 §4 and Part 3, Defense. *Next turn*: until the end of that actor's next turn. *Engagement*: Part 2, Encounter modes (E1). *Move*: an action the owner chooses on its turn.
+
+The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill). Swordsman, lockpicking and slime skills have no perks for now.
 
 ## 20 milestone
 
-| Skill | Perk | Rule | Needs |
-| --- | --- | --- | --- |
-| Light weapons | Hidden Strike | An attack on an unaware target gets +1 tier. | |
-| Medium weapons | Turn the Blade | When you block with a medium weapon at gap +2 or better, the attacker is left open: your next attack on it lands one tier higher. | |
-| Heavy weapons | Shield Breaker | A hit that lands on a shield deals double damage to the shield. | |
-| Light ranged | Point Blank | No penalty for shooting with a hostile in your own zone. | |
-| Medium ranged | Hunter's Mark | After you hit a foe, your next shot at it lands one tier higher. | |
-| Heavy ranged | *open* | Ali wants a better fit for the 20 milestone; new options are on the page. | |
-| Strike | Open-Hand Guard | You can block with empty hands. | |
-| Grapple | Hold | A grapple hit at Great Success or better holds the target: it can't leave your zone or use a two-handed weapon until it breaks free. | A held state and a way to break free |
-| Improvisation | Dirt in the Eyes | A move, once per engagement. Throw something in a foe's face: its next roll that needs sight drops two tiers. | Engagement defined; moves |
-| Dodge | Make Them Stumble | When you dodge a melee attack at gap +2 or better, the attacker overreaches: its next defense drops one tier. | |
-| Block | Cover Ally | You can block an attack aimed at someone else in your zone. | |
-| Endurance | Iron Frame | Damaged body parts give you no role penalty (Crippled parts still do). | |
-| Sight | Read Wounds | You see when a foe's body part is Damaged (normally hidden). | |
-| Hearing | Keen Ear | Your hearing reaches one zone link further. | |
-| Persuasion | *open* | New options are on the page. | |
-| Intimidation | *open* | New options are on the page. | |
-| Barter | Haggler | You buy 10% cheaper and sell 10% higher. | Buying and selling |
+### Hidden Strike (Light weapons) · A1
 
-The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill).
+- **Kind:** Always on
+- **Trigger:** The owner makes a melee attack.
+- **Conditions:** The attack uses a light melee mode (skill melee_light). The target is unaware of the owner when the attack resolves (the same test that starts an ambush).
+- **Effect:** Tier shift +1 on the attack roll.
+- **Lasts:** That attack.
 
-## Bank
+### Turn the Blade (Medium weapons) · A2
 
-Perks Ali liked but placed later, or kept for possible use. Some may suit class skills instead.
+- **Kind:** Always on
+- **Trigger:** The owner blocks a melee attack.
+- **Conditions:** The owner blocks with a medium melee weapon held in a working Grip arm (not a shield). The gap is +2 or better for the owner.
+- **Effect:** The attacker is marked as open to the owner. The owner's next melee attack on that attacker gets tier shift +1, and the mark clears.
+- **Lasts:** Until the end of the owner's next turn.
 
-**Higher milestone:**
+### Shield Breaker (Heavy weapons) · A3
 
-| Skill | Perk | Rule | Ali's note |
-| --- | --- | --- | --- |
-| Light weapons | Precise | Aiming a light weapon costs half the usual aim penalty. | Later perk |
-| Medium weapons | Disarming Cut | A hit to an arm makes the target drop what that hand holds. | Higher tier |
-| Heavy weapons | Cleave | When your hit downs a foe, your swing carries on into another foe in the same zone as a free attack. | Later level |
-| Light ranged | Shoot and Move | You can move one zone link and still shoot in the same turn. | Higher level |
-| Medium ranged | Pinning Shot | A hit to a leg pins the target: it can't leave its zone next turn. | Higher level |
-| Grapple | Human Shield | While you hold someone, ranged attacks at you hit them instead on a tie or worse. | Higher level |
-| Improvisation | Anything Goes | Improvised weapons lose their hit penalty. | Higher level |
-| Dodge | Untouchable | Your dodge never takes the outnumbered penalty. | Excellent, higher level |
-| Block | Shield Wall | Your blocks never take the outnumbered penalty. | Higher level |
-| Endurance | Refuse to Fall | The first time in an engagement you would be downed, you stay standing at the lowest health level instead. | Higher level; once per engagement, not per scene |
-| Sight | Night Eyes | Dim and dark light count as normal for you (two steps, not one). | Good; improved as Ali asked. Milestone not set |
-| Persuasion | Calm Words | Winning a persuasion contest by 2 tiers or more turns a hostile NPC opposed: it stops attacking on sight. | High level |
-| Intimidation | Menace | When you down a foe, every foe that sees it makes a morale check. | Higher level |
+- **Kind:** Always on
+- **Trigger:** The owner's melee attack is resolved.
+- **Conditions:** The attack uses a heavy melee mode (skill melee_heavy). The defender blocked with a shield, so the hit lands on the shield (location how = shield).
+- **Effect:** The shield's pool takes double the damage. Damage to the defender itself is unchanged.
+- **Lasts:** That attack.
 
-**Very high milestone:**
+### Point Blank (Light ranged) · A4
 
-| Skill | Perk | Rule | Ali's note |
-| --- | --- | --- | --- |
-| Hearing | Never Surprised | You are never caught unaware by an attacker you could hear coming. | Very high: it means total hearing awareness |
-| Intimidation | Battle Cry | A move. Every foe in your zone makes a morale check. | Very high |
-| Barter | Buy Them Off | In a fight, you can offer coin to a foe; a barter contest decides whether it stands down. | Very high |
+- **Kind:** Always on
+- **Trigger:** The owner makes a ranged attack.
+- **Conditions:** The attack uses a light ranged mode (shortbow, thrown dagger; skill ranged_light). A hostile actor is in the owner's zone.
+- **Effect:** The −10 ranged modifier for a hostile in the shooter's zone is not applied.
+- **Lasts:** That attack.
 
-**Banked, no milestone yet:**
+### Hunter's Mark (Medium ranged) · A5
 
-| Skill | Perk | Rule |
-| --- | --- | --- |
-| Heavy weapons | Crushing Blow | Against a block, the heavy-weapon gap shift is −2 instead of −1. |
-| Heavy ranged | Punch Through | When a shield blocks your bolt, half the hit still reaches the arm behind it. |
-| Heavy ranged | Staggering Bolt | A full hit or better knocks the target back: it acts last next turn. |
-| Strike | Flurry | While unarmed, you attack twice a turn, each attack one tier lower. |
-| Dodge | Roll With It | A graze deals no damage. |
-| Endurance | Tough It Out | The health-track penalty to your rolls starts one level later. |
+- **Kind:** Always on
+- **Trigger:** The owner's ranged attack hits (outcome grazed, blocked, full, heavy or crushing hit).
+- **Conditions:** The attack uses a medium ranged mode (longbow, thrown spear; skill ranged_medium).
+- **Effect:** The target is marked. The owner's next ranged attack on that target gets tier shift +1, and the mark clears.
+- **Lasts:** Until it is used or the engagement ends.
+- **Open:** Should the follow-up be any ranged attack (as written) or only a medium ranged one?
+
+### Leg Bolt (Heavy ranged) · A6
+
+- **Kind:** Always on
+- **Trigger:** The owner's ranged attack hits a part with the Move role (a leg) and deals damage.
+- **Conditions:** It is a ranged attack with a heavy ranged mode (crossbow; skill ranged_heavy). The location is a part with the Move role. Damage after armor is above 0.
+- **Effect:** The leg's pool takes 1.5× the damage the hit puts on the health track. The target is slowed: it can move at most one zone link.
+- **Lasts:** The slow lasts until the end of the target's next turn.
+- **Needs first:** A slowed state; a move allowance per turn (part of the action-economy talk).
+
+### Open-Hand Guard (Strike) · A7
+
+- **Kind:** Always on
+- **Trigger:** The owner defends with block.
+- **Conditions:** The owner holds no shield or weapon, and has at least one working Grip arm with an empty hand.
+- **Effect:** The owner may block (block normally needs a held shield or weapon). The block uses the block column of the gap ladder.
+- **Lasts:** Each defense.
+- **Open:** Where does a blocked hit that still deals damage land? I suggest the blocking arm, the way a shield takes the hit for a shield block.
+
+### Hold (Grapple) · A8
+
+- **Kind:** Always on
+- **Trigger:** The owner's grapple attack is resolved.
+- **Conditions:** The attack uses skill unarmed_grapple. The attack roll is Great Success or better. The attack hits (not missed or dodged).
+- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode.
+- **Lasts:** Until the target breaks free, the owner is downed, or the owner leaves the zone.
+- **Needs first:** A held state; a break-free move.
+- **Open:** How does the target break free? I suggest a move: a grapple-against-grapple contest; the target wins on a gap of 0 or better.
+
+### Dirt in the Eyes (Improvisation) · A9
+
+- **Kind:** Move, once per engagement
+- **Trigger:** The owner uses the move on a foe in the owner's zone.
+- **Conditions:** The owner has a free hand. Not used yet in this engagement.
+- **Effect:** An unarmed_improvised attack roll against the foe's dodge. If the foe does not win, its next roll that needs sight gets tier shift −2.
+- **Lasts:** Until that roll is made, or the end of the foe's next turn.
+- **Needs first:** Moves; engagement tracking.
+- **Open:** Is a contest against the foe's dodge right, or should it always work?
+
+### Make Them Stumble (Dodge) · A10
+
+- **Kind:** Always on
+- **Trigger:** The owner dodges a melee attack.
+- **Conditions:** The gap is +2 or better for the owner.
+- **Effect:** The attacker's next defense roll gets tier shift −1.
+- **Lasts:** Until the end of the attacker's next turn.
+
+### Cover Ally (Block) · A11
+
+- **Kind:** Always on
+- **Trigger:** An attack targets an actor friendly to the owner in the owner's zone.
+- **Conditions:** The owner's standing defense is block and the owner can block (working Grip arm with a shield or weapon). The owner is active.
+- **Effect:** The owner defends in the ally's place with the owner's own block roll. It counts as one of the owner's defenses this turn (outnumbered).
+- **Lasts:** Each attack.
+- **Open:** Is it automatic, or only when the owner's block is better than the ally's own defense? And does a hit that gets through land on the ally or on the owner?
+
+### Iron Frame (Endurance) · A12
+
+- **Kind:** Always on
+- **Trigger:** Any roll by the owner.
+- **Conditions:** A body part is Damaged.
+- **Effect:** Damaged parts give no role penalty. Crippled and Destroyed parts still do.
+- **Lasts:** Always.
+
+### Read Wounds (Sight) · A13
+
+- **Kind:** Always on
+- **Trigger:** The owner perceives a foe by sight.
+- **Conditions:** The owner can see the foe.
+- **Effect:** The foe's Damaged body parts are visible to the owner (normally hidden). The foe's health-track level stays hidden.
+- **Lasts:** While the owner sees it.
+
+### Keen Ear (Hearing) · A14
+
+- **Kind:** Always on
+- **Trigger:** A perception check for the owner by sound.
+- **Effect:** The owner's hearing range is one zone link longer.
+- **Lasts:** Always.
+
+### Quick Word (Persuasion) · A15
+
+- **Kind:** Always on
+- **Trigger:** A tactical turn in which the owner both speaks and acts.
+- **Conditions:** The line is short (one sentence).
+- **Effect:** The line resolves as talk without using the owner's action.
+- **Lasts:** Once per turn.
+
+### Threaten for Answers (Intimidation) · A16
+
+- **Kind:** Always on
+- **Trigger:** The owner tries to get information from an NPC.
+- **Conditions:** The NPC's stance to the owner is opposed or hostile.
+- **Effect:** Intimidation counts as a named skill for the request (full value), not a substitute at half value.
+- **Lasts:** Each request.
+
+### Haggler (Barter) · A17
+
+- **Kind:** Always on
+- **Trigger:** The owner buys or sells.
+- **Effect:** Buying prices ×0.9; selling prices ×1.1.
+- **Lasts:** Always.
+- **Needs first:** Buying and selling.
+
+## Higher milestone
+
+### Precise (Light weapons) · B1
+
+- **Kind:** Always on
+- **Trigger:** The owner makes an aimed melee attack.
+- **Conditions:** The attack uses a light melee mode.
+- **Effect:** The aim penalty for the part's size is halved.
+- **Lasts:** That attack.
+
+### Disarming Cut (Medium weapons) · B2
+
+- **Kind:** Always on
+- **Trigger:** The owner's melee attack hits a part with the Grip role (an arm) and deals damage.
+- **Conditions:** The attack uses a medium melee mode. Damage to that part is above 0.
+- **Effect:** The target drops what that arm's hand holds, into its zone.
+- **Lasts:** That attack.
+- **Open:** Should it also drop a shield, or weapons only?
+
+### Cleave (Heavy weapons) · B3
+
+- **Kind:** Always on
+- **Trigger:** The owner's heavy melee attack downs its target.
+- **Conditions:** Another hostile active actor is in the owner's zone, within reach.
+- **Effect:** The owner makes one extra attack at that actor at once, with the same weapon. Code picks the target at random (seeded) if there are several.
+- **Lasts:** Once per turn.
+
+### Shoot and Move (Light ranged) · B4
+
+- **Kind:** Always on
+- **Trigger:** A tactical turn in which the owner's order is a light ranged attack.
+- **Effect:** The owner may also move one zone link, before or after the shot.
+- **Lasts:** Each turn.
+- **Needs first:** Action economy.
+
+### Pinning Shot (Medium ranged) · B5
+
+- **Kind:** Always on
+- **Trigger:** The owner's medium ranged attack hits a part with the Move role and deals damage.
+- **Effect:** The target can't leave its zone.
+- **Lasts:** Until the end of the target's next turn.
+- **Needs first:** A pinned state.
+
+### Human Shield (Grapple) · B6
+
+- **Kind:** Always on
+- **Trigger:** A ranged attack targets the owner.
+- **Conditions:** The owner is holding an actor (Hold).
+- **Effect:** If the gap is 0 or better for the owner, the attack resolves against the held actor instead, with no defense from it.
+- **Lasts:** Each attack.
+- **Needs first:** Hold.
+
+### Anything Goes (Improvisation) · B7
+
+- **Kind:** Always on
+- **Trigger:** The owner attacks with an improvised weapon.
+- **Effect:** The improvised hit penalty (−10) is not applied.
+- **Lasts:** Always.
+
+### Untouchable (Dodge) · B8
+
+- **Kind:** Always on
+- **Trigger:** The owner dodges.
+- **Effect:** The outnumbered modifier is not applied.
+- **Lasts:** Always.
+
+### Shield Wall (Block) · B9
+
+- **Kind:** Always on
+- **Trigger:** The owner blocks.
+- **Conditions:** The owner blocks with a shield.
+- **Effect:** The outnumbered modifier is not applied.
+- **Lasts:** Always.
+- **Open:** Shield only (as the name says), or any block?
+
+### Refuse to Fall (Endurance) · B10
+
+- **Kind:** Always on, once per engagement
+- **Trigger:** Damage would down the owner.
+- **Conditions:** Not used yet in this engagement. The damage did not destroy an essential part (head, neck).
+- **Effect:** The owner stays active at the lowest health level above downed.
+- **Lasts:** Once per engagement.
+- **Needs first:** Engagement tracking.
+
+### Calm Words (Persuasion) · B11
+
+- **Kind:** Always on
+- **Trigger:** The owner wins a persuasion contest against an NPC hostile to the owner.
+- **Conditions:** The gap is −2 or lower (the owner wins by 2 tiers or more).
+- **Effect:** The NPC's stance toward the owner becomes opposed: it stops attacking on sight.
+- **Lasts:** Until something changes it again.
+
+### Plead (Persuasion) · B12
+
+- **Kind:** Move
+- **Trigger:** The owner pleads for mercy with a foe.
+- **Conditions:** The owner is at the lowest health level above downed. The foe is hostile to the owner.
+- **Effect:** Persuasion contest against the foe. If the owner wins, the foe stops attacking the owner.
+- **Lasts:** For the rest of the engagement.
+- **Needs first:** Moves.
+
+### Menace (Intimidation) · B13
+
+- **Kind:** Always on
+- **Trigger:** The owner's attack downs a foe.
+- **Conditions:** Other foes hostile to the owner see it happen.
+- **Effect:** Each of those foes makes a morale check at once.
+- **Lasts:** Each time.
+
+## Very high milestone
+
+### Never Surprised (Hearing) · C1
+
+- **Kind:** Always on
+- **Trigger:** An attack on the owner while the owner is unaware of the attacker.
+- **Conditions:** The attacker's approach or attack is within the owner's hearing range.
+- **Effect:** The owner counts as aware: no unaware initiative or defense penalty.
+- **Lasts:** Always.
+
+### Battle Cry (Intimidation) · C2
+
+- **Kind:** Move
+- **Trigger:** The owner uses the move.
+- **Effect:** Every foe hostile to the owner in the owner's zone that hears it makes a morale check.
+- **Lasts:** Once per engagement.
+- **Needs first:** Moves.
+- **Open:** Once per engagement, or unlimited?
+
+### Buy Them Off (Barter) · C3
+
+- **Kind:** Move
+- **Trigger:** The owner offers coin to a foe in a fight.
+- **Conditions:** The owner has the coin.
+- **Effect:** Barter contest against the foe. If the owner wins, the coin changes hands and the foe stops attacking the owner.
+- **Lasts:** For the rest of the engagement.
+- **Needs first:** Moves.
+- **Open:** How much coin? I suggest the owner names the amount and a bigger offer adds a modifier.
+
+## Banked, no milestone yet
+
+### Held Shot (Medium ranged) · D8
+
+- **Kind:** Move
+- **Trigger:** The owner readies a medium ranged weapon instead of acting.
+- **Effect:** When a hostile actor enters the owner's zone, the owner shoots it at once, before it acts.
+- **Lasts:** Until the end of the owner's next turn, one shot.
+- **Needs first:** Moves; reactions.
+
+### Crushing Blow (Heavy weapons) · D1
+
+- **Kind:** Always on
+- **Trigger:** The owner's heavy melee attack is blocked.
+- **Effect:** The heavy-weapon gap shift is −2 instead of −1.
+- **Lasts:** That attack.
+
+### Punch Through (Heavy ranged) · D2
+
+- **Kind:** Always on
+- **Trigger:** The owner's heavy ranged attack is blocked with a shield.
+- **Effect:** The arm holding the shield also takes half the damage the shield took, and it counts on the health track.
+- **Lasts:** That attack.
+
+### Staggering Bolt (Heavy ranged) · D3
+
+- **Kind:** Always on
+- **Trigger:** The owner's heavy ranged attack is a full hit or better.
+- **Effect:** The target acts last next turn.
+- **Lasts:** Its next turn.
+
+### Flurry (Strike) · D4
+
+- **Kind:** Always on
+- **Trigger:** A tactical turn in which the owner's order is an unarmed strike.
+- **Conditions:** Both Grip arms work and hold nothing.
+- **Effect:** The owner attacks twice, each attack with tier shift −1.
+- **Lasts:** Each turn.
+- **Needs first:** Action economy.
+
+### Roll With It (Dodge) · D5
+
+- **Kind:** Always on
+- **Trigger:** The owner dodges and the gap is +1 (a graze).
+- **Effect:** The multiplier is 0× instead of 0.8×.
+- **Lasts:** Always.
+
+### Tough It Out (Endurance) · D6
+
+- **Kind:** Always on
+- **Trigger:** Any roll by the owner.
+- **Effect:** The health-track penalty is taken from one level less hurt.
+- **Lasts:** Always.
+
+### Night Eyes (Sight) · D7
+
+- **Kind:** Always on
+- **Trigger:** A roll by the owner that needs sight.
+- **Effect:** Dim and dark light give no penalty: both count as bright.
+- **Lasts:** Always.
