@@ -207,6 +207,15 @@ export function createGame(deps: GameDeps): Game {
     await store.set(`bugs/${s.storyId}_t${s.turn}_${actorId}`, { code: 'unlisted_reveal', storyId: s.storyId, turn: s.turn, at: clock.now(), ...detail }).catch(() => {});
   }
 
+  /** Q9 (Ali, 07/11/2026): a late or failed NPC call keeps its fallback, and is filed for the build threads to review */
+  function reportFallbacks(s: GameState, log: AgentTurnLog[]): void {
+    for (const e of log) {
+      if (!['planner', 'responder', 'voice'].includes(e.agent) || (e.status !== 'late' && e.status !== 'fallback')) continue;
+      const code = e.status === 'late' ? 'planner_late' : 'agent_fallback';
+      store.set(`bugs/${s.storyId}_t${s.turn}_${e.agent}_${e.actorId}`, { code, storyId: s.storyId, turn: s.turn, agent: e.agent, actorId: e.actorId, errors: e.errors, at: clock.now() }).catch(() => {});
+    }
+  }
+
   async function dialogueCall(s: GameState, id: string, input: DialogueInput, exchange: ExchangeSpeech, agenda: boolean, ctx: AgentCtx, world: Set<string>): Promise<AcceptedAgentOutput> {
     if (agenda) {
       const view = views.buildOppositionView(s, id);
@@ -312,6 +321,7 @@ export function createGame(deps: GameDeps): Game {
       // committed: the head was written and only cleanup or backups failed, so the turn is saved
       if (!err.committed) notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` });
     }
+    reportFallbacks(s, turnLog);
     const nv = views.buildNarrationView(s, events, rec.intent);
     const leak = buildLeakContext(s);
     const mechanics = mechanicsLines(s, events);
