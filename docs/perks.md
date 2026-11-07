@@ -138,12 +138,12 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 
 ### Read Wounds (Sight) · A13
 
-*Story:* You notice a limp, a favoured arm, a bleeding hand. You can see which of a foe's body parts are Damaged, though not how close it is to falling.
+*Story:* You notice a limp, a favoured arm, a bleeding hand. You can see which of a foe's body parts are Damaged, and you can tell a foe is hurt one step sooner than others can: from Injured instead of Wounded.
 
 - **Kind:** Always on
 - **Trigger:** The owner perceives a foe by sight.
 - **Conditions:** The owner can see the foe.
-- **Effect:** The foe's Damaged body parts are shown to the owner. Foes' part states are otherwise never shown, and a foe's health level shows only from Wounded down; this perk doesn't change the health level.
+- **Effect:** The foe's Damaged body parts are shown to the owner (foes' part states are otherwise never shown). The foe's health level also shows one step earlier on the health track: the level where it starts to show moves one position milder in the health-track names table (from Wounded to Injured today) (Ali, 07/11/2026).
 - **Lasts:** While the owner sees it.
 
 ### Keen Ear (Hearing) · A14
