@@ -15,7 +15,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
 import { equipLoadout, fullParts } from '../library/spawn';
-import { defaultStandingDefense, healthLevel, takePerk, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
+import { defaultStandingDefense, healthLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
@@ -64,6 +64,7 @@ export function createGame(deps: GameDeps): Game {
   const owner = `window_${clock.now().toString(36)}`;
   let state: GameState | null = null;
   let lines: LogLine[] = [];
+  let savedLines = 0; // Q18: lines[0..savedLines) are in the story's saved history
   let notices: Notice[] = [];
   let busy = false;
   let stopped = false;
@@ -334,6 +335,18 @@ export function createGame(deps: GameDeps): Game {
       ...lineExtras(s, events, nv, narr.output.text), ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
+    await storeHistory(s.storyId);
+  }
+
+  /** Q18: save the story column after each turn; a failure keeps play going and only costs text. */
+  async function storeHistory(storyId: string): Promise<void> {
+    const upTo = lines.length;
+    try {
+      await save.saveHistory(store, storyId, lines, savedLines);
+      savedLines = upTo;
+    } catch (e) {
+      console.warn('story text not saved', e);
+    }
   }
 
   // ---------------- commands (code only, no Claude call, no time passes) ----------------
@@ -429,6 +442,7 @@ export function createGame(deps: GameDeps): Game {
     state = newState(storyId, seed, buildPlayer(storyId, build), new Date(now).toISOString());
     state.player.core.standingDefense = defaultStandingDefense(state, state.player); // same rule as the creation preview
     lines = [];
+    savedLines = 0;
     notices = [];
     turnLog = [];
     busy = true;
@@ -459,7 +473,8 @@ export function createGame(deps: GameDeps): Game {
       notice({ kind: 'load_refused', text: `The story could not be loaded: ${(e as Error).message}` });
       return false;
     }
-    lines = [];
+    lines = await save.loadHistory(store, storyId).catch(() => []);
+    savedLines = lines.length;
     turnLog = [];
     advance();
     lastDisplayAt = clock.now();
@@ -490,6 +505,7 @@ export function createGame(deps: GameDeps): Game {
       if (state) await store.releaseLease(`stories/${state.storyId}/control/lock`, owner).catch(() => {});
       state = null;
       lines = [];
+      savedLines = 0;
       notices = notices.filter((n) => n.kind === 'stop_play');
       turnLog = [];
       lastLog = [];
@@ -641,6 +657,8 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       const mine = c.a.actorId === 'player' ? c.a : c.b, other = mine === c.a ? c.b : c.a;
       const result = c.winner === 'tie' ? 'a tie' : (c.winner === 'a') === (mine === c.a) ? 'you win' : 'you lose';
       check = { kind: 'contest', skill: mine.skill, ...tierPart(mine), against: { what: views.callName(s, 'player', other.actorId), ...tierPart(other) }, result };
+    } else if (e.roll && e.roll.actorId === 'player') {
+      check = { kind: 'roll', skill: e.roll.skill, ...tierPart(e.roll), result: tierAtLeast(e.roll.tier, 'success') ? 'you make out who is there' : 'nothing clearer' };
     }
   }
   if (check) out.check = check;
@@ -680,6 +698,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     } else if (e.contest) {
       const c = e.contest;
       out.push(`${label(c.a.actorId)} ${c.a.skill} d100 ${c.a.d100} → ${tierName(c.a)} vs ${label(c.b.actorId)} d100 ${c.b.d100} → ${tierName(c.b)}: ${c.winner}`);
+    } else if (e.roll) {
+      out.push(`${label(e.roll.actorId)} ${e.roll.skill} d100 ${e.roll.d100} → ${tierName(e.roll)}${mods(e.roll.modifiers)}`);
     } else if (e.check) {
       out.push(`${label(e.check.actorId)} ${e.check.skill} vs ${e.check.target}: ${e.check.passed ? 'passed' : 'failed'}${mods(e.check.modifiers)}`);
     }

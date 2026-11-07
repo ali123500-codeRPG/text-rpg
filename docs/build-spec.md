@@ -27,7 +27,7 @@ Skills are grouped into trees of exactly three. Example only: Tactics = Preparat
 - Combat – Unarmed: strike, grapple, improvisation; they behave the same for now (Part 5 §5). Improvisation is fighting with whatever is at hand: improvised weapons (Part 5 §7) roll it (Ali, 07/11/2026). Natural weapons is a creature-only skill outside every player tree (creatures' natural attacks roll it)
 - Combat – Defense: dodge, block, endurance
 
-Endurance sets total HP (Part 3, Total HP). An average fighter has 50 in a combat skill; this is the design reference point. Mastery perks apply to these trees as to any other.
+Endurance sets total HP (Part 3, Total HP). An average fighter has 50 in a combat skill; this is the design reference point. All-XXX perks apply to these trees as to any other.
 
 **Other skill trees** (placeholders; each is its own tree):
 
@@ -69,7 +69,7 @@ A Flaw is something the character functionally struggles to improve. Near 100 a 
 **Three skill values** (Ali, 07/11/2026):
 
 - **Raw skill:** what training gave. Burden, Total and skill improvement use raw skill only.
-- **True skill:** raw skill + perks that raise that one skill by a flat amount and are always on (e.g. a ladder's Training rung, +5). Ladder rungs and mastery perks read true skill. It has no cap of its own, so a ladder's boosts can carry a skill past the mortal limit of 100 toward the 120 and 140 rungs.
+- **True skill:** raw skill + perks that raise that one skill by a flat amount and are always on (e.g. a ladder's Training milestone, +5). Ladder milestones and all-XXX perks read true skill. It has no cap of its own, so a ladder's boosts can carry a skill past the mortal limit of 100 toward the 120 and 140 milestones.
 - **Effective skill** (computed for every check and roll, in order): true skill → + gear → + combined-check perks → + situational skill perks → apply hard cap → apply conditions.
 
 Derived, never saved; the Character page shows true skill, with raw skill beside it when they differ.
@@ -103,7 +103,7 @@ Only three sources may modify the roll, each its own modifier type: perks, gear 
 
 **Natural edges** apply after the bands, clamped at the ends of the scale: a natural 01 drops two tiers, 02–05 one tier, 96–99 raises one tier, 00 two tiers.
 
-**Layer 2 — skill checks.** No dice. Effective skill is compared with the scene's target number. Result is pass or fail only; the margin does not matter. The target comes from the stage plan's challenge grade through DIFFICULTY: none 20, minor 35, moderate 50, major 65, extreme 80 (placeholders). A check passes when effective skill plus situational modifiers is at least the target. The same rule applies to every actor. Wounds don't apply (settles OQ-15).
+**Layer 2 — skill checks.** No dice. Effective skill is compared with the scene's target number. Result is pass or fail only; the margin does not matter. The target comes from the stage plan's challenge grade through DIFFICULTY: none 20, minor 35, moderate 50, major 65, extreme 80 (placeholders). A check passes when effective skill plus situational modifiers is at least the target. The same rule applies to every actor. Wounds don't apply (settles OQ-15). Exception, looking around (Ali, 07/11/2026, Q17): the player's observe action with a notice skill (sight, hearing) is a roll, not a check: d100 with the skill, a scene difficulty modifier (moderate − the challenge grade's target) and the light modifier of the player's zone. Success or better shows everyone in the player's zone and the zones in sight of it clearly.
 
 - **Combined checks:** some perks let a check add several skills, or half of another skill.
 - **Gear:** flat skill bonuses from item effects that are active (Part 5 §2–3). They enter effective skill; item stats and the rare noted roll modifiers are read separately.
@@ -148,15 +148,15 @@ XP drives levels and perks only. Skills grow separately, through skill improveme
 
 - **XP** (Ali, 07/11/2026, XP proposal X1–X10; all numbers *placeholders*, kept small at first). Three sources, each logged on the source trail as {source, amount, turn} (B8):
   - **Defeats (main source).** An opposed or hostile NPC pays once (B4) when it is downed and the player hit it at least once, or when it surrenders. A broken (fleeing) foe pays nothing. Companions' defeats wait for companion XP. The amount comes from stats only (X18–X23, Ali 07/11/2026; Danger was dropped). Each skill carries an XP category in the library (`xpCategory`, set per skill because one tree may mix categories): offensive (attack skills and the Swordsman class skills), defensive (dodge, block), endurance (endurance, function tag hp), notice, influence, or misc (lockpicking). A skill's training effort is (100 ÷ 3) × ln(100 ÷ max(100 − s, 2)), so high skills weigh more (Part 1 §6). Within each category the efforts are ranked high to low and count at 1, ½, ¼…. The foe's **rating** is the sum over categories × XP\_CATEGORY\_WEIGHT: offensive, defensive and endurance 1, notice 0.5, influence 0.25, misc 0. Kill XP = rating × min(1, KILL\_XP\_TAPER (2) × foe rating ÷ player rating) × KILL\_XP\_MULT (1, X20). All numbers are *placeholders*, to be tuned later (X19). Example against the recommended swordsman (rating 72): a slime (rating 12) gives 4 XP, a guard (rating 46) 46.
-  - **Achievements**, each with an id and a name, each earned once. Library achievements are a data table that only code awards. Per creature type: 1, 10 and 100 defeats (100, 250 and 1000 XP; ids first\_defeat:<type>, defeats\_10:<type>, defeats\_100:<type>; "First Slime Felled", "Slimebane", "Scourge of the Slime Hordes"). Per race (human and elf for now, identical, both humanoid; library NPCs and the player are human until creation offers a choice): the same counts (ids first\_defeat\_race:<race>, defeats\_10\_race:<race>, defeats\_100\_race:<race>; "First of Elfkind Felled", "Bane of Elfkind", "Scourge of Elfkind"). In all: 10, 100 and 1000 defeats (100, 250 and 1000 XP: "Blooded Fighter", "Calamity of a Hundred Blades", "Thousand-Slayer, Herald of Ruin"). Per tree, when all three skills reach 50, 100 and 150 (250, 1000 and 2000 XP, ids mastery\_50:<tree> etc.: "Adept of <tree>", "Ascendant of <tree>", "Transcendent Sovereign of <tree>"; awarded once mastery perks exist). The achievements table is treated like a scale table: saves keep only the row key and what it names, so a rename or a new reward level edits only the table. Each achievement (and each quest, once quests exist) has a reward level, an ordered scale like tiers: I 100, II 250, III 1000, IV 2000 XP (REWARD_LEVELS in src/scales.ts, XP in CONFIG.REWARD_XP; Ali, 07/11/2026). Names name what was defeated and grow grander with the feat; small feats get tame names (Ali, 07/11/2026). Progression keeps defeat counts per creature type and race. New achievements come only from Ali-approved proposals (D-108); Weaver-seeded scene achievements (X7) are dropped (Ali, 07/11/2026). The character sheet lists earned achievements.
+  - **Achievements**, each with an id and a name, each earned once. Library achievements are a data table that only code awards. Per creature type: 1, 10 and 100 defeats (100, 250 and 1000 XP; ids first\_defeat:<type>, defeats\_10:<type>, defeats\_100:<type>; "First Slime Felled", "Slimebane", "Scourge of the Slime Hordes"). Per race (human and elf for now, identical, both humanoid; library NPCs and the player are human until creation offers a choice): the same counts (ids first\_defeat\_race:<race>, defeats\_10\_race:<race>, defeats\_100\_race:<race>; "First of Elfkind Felled", "Bane of Elfkind", "Scourge of Elfkind"). In all: 10, 100 and 1000 defeats (100, 250 and 1000 XP: "Blooded Fighter", "Calamity of a Hundred Blades", "Thousand-Slayer, Herald of Ruin"). Per tree, when all three skills reach 50, 100 and 150 (250, 1000 and 2000 XP, ids mastery\_50:<tree> etc.: "Adept of <tree>", "Ascendant of <tree>", "Transcendent Sovereign of <tree>"; awarded once all-XXX perks exist). The achievements table is treated like a scale table: saves keep only the row key and what it names, so a rename or a new reward level edits only the table. Each achievement (and each quest, once quests exist) has a reward level, an ordered scale like tiers: I 100, II 250, III 1000, IV 2000 XP (REWARD_LEVELS in src/scales.ts, XP in CONFIG.REWARD_XP; Ali, 07/11/2026). Names name what was defeated and grow grander with the feat; small feats get tame names (Ali, 07/11/2026). Progression keeps defeat counts per creature type and race. New achievements come only from Ali-approved proposals (D-108); Weaver-seeded scene achievements (X7) are dropped (Ali, 07/11/2026). The character sheet lists earned achievements.
   - **Quests** pay on completion by gain: 25/50/100/200. Held until quests exist (X8).
 - **Levels.** From level n to n+1 takes LEVEL\_XP × n XP (LEVEL\_XP 100). There is one XP bar. A level goes to the class picked on the sheet ("Next level goes to", shown when more than one class is current or unlocked), or else to the current class, with no waiting (X9; settles OQ-8). With mechanics shown, the turn lists "+n XP (source)" and "Level n!".
 - **Level perks:** one perk point on every even level, spent on perks. Some perks are trade-offs (e.g. give up a skill for a higher cap, faster training and bonuses to class skills); these come later, on their own tab (S6).
-- **Skill ladders** (Ali, 07/11/2026, perk page S1–S9): every skill has a perk at each 20 points of true skill: rungs 20, 40, 60, 80, 100, 120 and 140. Reaching a rung unlocks its perk; taking it costs one perk point (S2). Rungs 20, 60, 100 and 140 give a new trick; rungs 40, 80 and 120 give a number boost, such as +5/+10/+15 true skill (S5). A perk is kept if the skill later drops below its rung (S4). Ladder perks are level perks (OwnedPerk source 'level'). Their content is not written yet.
-- **Mastery perks:** granted instantly, at no point cost, when all three skills in a tree reach 50, 100 and 150. Once granted they are never removed. They replace the LLtQ category bonus.
-- **Mastery check:** runs only when a skill crosses a threshold upward, and checks whether the other two skills in its tree already meet it. Uses true skill (S9, Ali, 07/11/2026).
+- **Skill ladders** (Ali, 07/11/2026, perk page S1–S9): every skill has a perk at each 20 points of true skill: milestones 20, 40, 60, 80, 100, 120 and 140. Reaching a milestone unlocks its perk; taking it costs one perk point (S2). Milestones 20, 60, 100 and 140 give a perk that adds a new ability; milestones 40, 80 and 120 give a perk that raises a number, such as +5/+10/+15 true skill (S5). A perk is kept if the skill later drops below its milestone (S4). **Milestone gating** (Ali, 07/11/2026): a milestone shows only once enough ladder perks have been taken in that same skill: 60 and 80 need one (from 20 or 40), 100 and 120 need two, 140 needs three. Until then it stays sealed like an unreached one. All-XXX perks do not count. The 40, 80 and 120 perks stay simple number boosts (confirmed by Ali). Ladder perks are level perks (OwnedPerk source 'level'). Content is chosen milestone by milestone; the chosen perks and the bank of perks kept for later are in docs/perks.md. Most perks are always on and apply when their condition is met; a few are moves chosen on a turn (G1). The Swordsman skills (feint, riposte, disarm) are placeholders and get no perks for now (G2); lockpicking and the slime senses get none either (G3).
+- **All-XXX perks** (All-50, All-100, All-150; formerly mastery perks, renamed by Ali on 07/11/2026; the save key stays `mastery`): granted instantly, at no point cost, when all three skills in a tree reach 50, 100 and 150. Once granted they are never removed. They replace the LLtQ category bonus.
+- **All-XXX check:** runs only when a skill crosses a threshold upward, and checks whether the other two skills in its tree already meet it. Uses true skill (S9, Ali, 07/11/2026).
 
-With 100 as the mortal limit, the 150 mastery tier is unreachable through training alone until workaround mechanics are designed.
+With 100 as the mortal limit, the All-150 tier is unreachable through training alone until workaround mechanics are designed.
 
 ### 6. Skill improvement algorithm
 
@@ -179,7 +179,7 @@ For each marked skill:
      old   = Skill
      Skill += 1d5
      For each threshold T in (50, 100, 150):
-        if old < T <= Skill: run mastery check for T
+        if old < T <= Skill: run all-XXX check for T
 
 Clear all marks.
 ```
@@ -216,7 +216,7 @@ The engine must solve four problems that appear when one model plays both sides:
 3. **Forgotten plans.** An ambush or secret disappears between turns. Fix: hidden state lives in code, and triggers fire without asking a model.
 4. **Latency and cost.** Several calls per turn is slow. Fix: parallel calls where the design allows, cheaper models where prose quality doesn't matter, and agents only in scenes that need them.
 
-**Ruleset (do not change its numbers):** skills in three-skill trees in the style of Long Live the Queen, with caps, Tags (+) and Flaws (−); Fallout-style perks (level perks plus tree-mastery perks); AGG-style d100 roll-high with tiered results, where the dice set the situation and skill checks mitigate it. Build the ruleset behind the Ruleset interface (Resolution engine): the six core methods for real (Part 2, First-build ruleset), the rest stubbed (each method keeps its signature and returns a fixed placeholder).
+**Ruleset (do not change its numbers):** skills in three-skill trees in the style of Long Live the Queen, with caps, Tags (+) and Flaws (−); Fallout-style perks (level perks plus all-XXX perks); AGG-style d100 roll-high with tiered results, where the dice set the situation and skill checks mitigate it. Build the ruleset behind the Ruleset interface (Resolution engine): the six core methods for real (Part 2, First-build ruleset), the rest stubbed (each method keeps its signature and returns a fixed placeholder).
 
 **Agents.** Six Claude agents, each with one job:
 
@@ -965,7 +965,7 @@ Mode is computed after the previous turn is saved, from saved state; Dialogue is
 
 An attack from Explore resolves in the same turn (Explore mode, Ambush). Tactical no longer has an "or the player attacks" condition **\[Proposed\]**: observers of the attack become engaged anyway, and a kill nobody perceives leaves the game in Explore.
 
-Belief decay still returns actors to unaware. Because Planner calls follow engagement per actor, CALM\_TURNS no longer changes which calls run (D-38). Triggers are checked in every mode, so an ambush can start a tactical turn by itself.
+Belief decay still returns actors to unaware. Planner calls follow engagement per actor, so encounter mode doesn't change which calls run. Triggers are checked in every mode, so an ambush can start a tactical turn by itself.
 
 Every mode takes the same time after the player submits, except turns that start a scene or cross a frontier (Latency and cost).
 
@@ -1105,7 +1105,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 
 **Routine-only failures \[Proposed\].** After the repair retry, a plan whose only errors are routine errors still applies, minus those errors. Routine errors are an unresolved set, a missing or invalid slot binding, an unreachable bound zone or a bad startAt. Each actor with an error gets the library routine idle\_here: a wait routine with activity rest, here bound to its first valid bound zone, else the plan's first zone. Code logs routine\_fallback with the validator's errors, and sets the same four flags as a fallback stage.
 
-**Model.** Agent Weaver runs on Claude Opus 5.5 for both scene setup and stage extensions: model "claude-opus-5-5", with modelTier "complex" as the fallback, and effort always set explicitly (Opus 5.5 defaults to medium). Target effort is xhigh, never max. The artifact runtime (contract 0.2.96) accepts only low, medium and high and ignores other values, so the build sets WEAVER\_EFFORT = "high" (config) and changes it to "xhigh" once the runtime accepts it. The agent log records modelApplied for every Weaver call.
+**Model.** Agent Weaver runs on Claude Opus 5.5 for both scene setup and stage extensions: model "claude-opus-5-5", with modelTier "complex" as the fallback, and effort always set explicitly (Opus 5.5 defaults to medium). The artifact runtime (contract 0.2.96) accepts only low, medium and high, so the build sets WEAVER\_EFFORT = "high" (config), never max (D-33 closed). The agent log records modelApplied for every Weaver call.
 
 Fixed instructions (sent as the leading user turn) **\[Proposed\]**:
 
@@ -1174,6 +1174,7 @@ In Explore no Planner runs: unaware actors follow routines, the player is detect
 
 - Each actor follows one routine at a time from its routines list, the routines of one library routine set. A routine is a desired-state function (Game state model). At scene setup Agent Weaver picks the set and binds its slots; code sets the anchor.
 - Each turn, every active actor with no higher-priority order reads its desired zone and activity from its ActorView. Elsewhere: it moves one zone link along the shortest path. There: it performs the activity. Actors are processed in actor-id order; ties use the seeded RNG. If no path to the desired zone exists on the stage, the actor stays in its zone, performing the step's activity, and code logs routine\_unreachable **\[Proposed\]**. Whether a stage trim may cut off a bound zone stays deferred (D-46).
+- **Clear sight (Ali, 07/11/2026, Q17).** The player's Journal keeps clearSight: each actor the player has seen fully by sight (or made out with a successful look), with the zone it was in. While that actor stays in that zone, and the zone is the player's own or in sight of it, its events reach the player as full sight, dark zones included. A move or flee the player does not see fully removes it; one the player does see records the new zone.
 - Moves and activities emit ordinary move and idle events with the activity's noise and visibility, and go through computePerception, so the player perceives patrols (a partial event, sound only).
 - An activity's attention level is passed to the ruleset as a situational tag on perception rolls and checks. The ruleset owns its value (stub: 0).
 - Actors that aren't engaged keep following their routines during Tactical turns too.
@@ -1231,7 +1232,7 @@ Without streaming, the player waits for the whole turn, so the parallel parts ma
 - **Prompt order.** Each agent's input starts with its fixed instructions (a leading user turn, since the capability has no system prompt) and ends with the per-turn data; nothing that changes per turn or per actor goes in the fixed part. If the platform caches prompt prefixes, this makes repeat calls faster; the runtime docs don't say it does (OQ-11), so estimates assume it doesn't. Pass cache:false on calls whose repeat must give a new answer.
 - **Waiting state.** Show the same short "…" indicator in every mode until the Narrator's checked text is ready.
 - **Streaming** is off for now; revisit after playtests (D-24).
-- **Timing rule.** Resolution never starts before the previous display plus BACKGROUND\_WINDOW (config), in every mode. In dialogue turns, results are also shown no earlier than DIALOGUE\_WINDOW (config) after submit, set at or above the Responder's usual latency, so guarded and ordinary NPCs answer in the same time. Known limits: the number of calls is visible in the browser's network tools, and retries still change timing (D-37, D-45).
+- **Timing rule.** Resolution never starts before the previous display plus BACKGROUND\_WINDOW (config), in every mode. In dialogue turns, results are also shown no earlier than DIALOGUE\_WINDOW (config) after submit, set at or above the Responder's usual latency, so guarded and ordinary NPCs answer in the same time. Known limit: retries still change timing (D-45). The call count is shown in the header on purpose.
 
 ### Leak prevention, validation and failure handling
 
@@ -1294,7 +1295,7 @@ Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns
 * **Aim toggle:** marks this turn's attack as aimed (Part 1 §7).
 * **Mechanics panel:** under the narration while SHOW\_MECHANICS is on; dice, modifiers and damage from code.
 * **Out-of-character notices:** the scene-planning failure marker (Agent Weaver), the rate-limit notice and the stop-play message (Leak prevention, validation and failure handling).
-* **Perks (Character page)** (Ali, 07/11/2026, K1–K4, S1, S7): a perk point is spent any time on the Character page; the rail shows a dot while one is unspent, and the level-up line on Play links there (K2). A taken perk can be undone until the next turn is played, then it is permanent (K3). Two views behind a "By tree / By effect" switch. By tree: a tab per skill tree, each skill a ladder of its seven rungs on a gold line showing true skill, the mastery steps 50/100/150 as dotted lines across the tree; on narrow screens the ladders become horizontal tracks. By effect: tracks in the same style grouped by what the perks do (Attack, Defense, Health, Speed, Senses, Speech); each group folds when its name is tapped. Rungs not yet reached are sealed and show only their number; the page never hints at what comes next (K4). Tapping a taken or open rung shows a small card beside it with the perk's text and, when open, "Take · 1 point". Mock-ups: https://claude.ai/artifact/TVfF7qs3WnDdDZzzM6Yjf5
+* **Perks (Character page)** (Ali, 07/11/2026, K1–K4, S1, S7): a perk point is spent any time on the Character page; the rail shows a dot while one is unspent, and the level-up line on Play links there (K2). A taken perk can be undone until the next turn is played, then it is permanent (K3). Two views behind a "By tree / By effect" switch. By tree: a tab per skill tree, each skill a ladder of its seven milestones on a gold line showing true skill, the All-50/100/150 steps as dotted lines across the tree; on narrow screens the ladders become horizontal tracks. By effect: tracks in the same style grouped by what the perks do (Attack, Defense, Health, Speed, Senses, Speech); each group folds when its name is tapped. Milestones not yet reached are sealed and show only their number; the page never hints at what comes next (K4). Tapping a taken or open milestone shows a small card beside it with the perk's text and, when open, "Take · 1 point". Mock-ups: https://claude.ai/artifact/TVfF7qs3WnDdDZzzM6Yjf5
 * **Journal page:** People (actors seen clearly now, or whose name is known; a label until the name is known; health only from Wounded down), Places (the current place and those above it, plus places of facts the character witnessed, folded under their parent place, no drawn map) and a Timeline (turns played since the page was opened). Built from PlayerView, the Journal and the story log only, never the hidden store (Voyage U26, U28; Ali, 07/11/2026).
 * **Side sheet health:** the health bar marks the health-track thresholds and names the current level; clicking it opens each body part with its pool and state (Ali, 07/11/2026).
 * **"You fell" screen:** shown when a lethal fight incapacitates the player, offering /undo or reset (D-54).
@@ -1413,6 +1414,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 106 | XP and levels | Rating: a slime's is the effort of its one offensive skill, a guard's is higher, misc skills add nothing; kill XP applies the taper and KILL\_XP\_MULT; a slime the player hit and downed pays its kill XP once, plus the first-defeat achievement; ten defeats of slimes earn first\_defeat:slime, defeats\_10:slime and defeats\_10 once each, named for the slime; a foe with a race also earns its first race defeat; a foe downed by someone else or broken pays nothing, a surrender pays; LEVEL\_XP + 5 XP levels into the chosen unlocked class, which becomes current, with a perk point at level 2 |
 | 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScene, marks a break; rest marks a break; a stall marks one only with no live beat left; the director then starts a new scene with one Weaver call |
 | 107 | Opposed standoff | An opposed guard who notices the player is alarmed (its onAlert fires) but not engaged, so the turn stays Explore; made hostile, it engages |
+| 108 | Look around | Someone sitting still one zone away is a shape; a successful look shows them clearly and they stay seen while they stay put; a move the player can't see clearly forgets them; looking is a sight roll, not a check |
 
 ### Deliverables and acceptance criteria
 
@@ -1780,6 +1782,7 @@ The save has two layers. The library holds blueprints shared by every story. A s
 | Bands, clocks, settings | Story | Yes | Settings: difficulty, SHOW\_MECHANICS, tone |
 | Engine state | Story | Yes | Turn, mode, RNG seed and state, pending, stage, scene caps |
 | Turn records | Story | Last N | N is a placeholder (section 6) |
+| Story text | Story | Yes, all of it | The play screen's story column, in documents of HISTORY\_CHUNK\_TURNS turns (section 10). Ali, 07/11/2026, easy open questions Q18 |
 
 - **Story isolation.** Every story-scoped read and write takes the story id. Each story lives under its own storage namespace. No function reads across stories. Views are built only from the loaded story.
 - **Lookup order.** An id resolves in the story's blueprints first, then in the library.
@@ -1792,7 +1795,7 @@ The save stores only what can't be rebuilt. Everything recomputable is derived o
 | Kind | Fields | Rule |
 | --- | --- | --- |
 | Derived | True skill, effective skill, Total, Burden, cap in effect, health-track level, part states, hit table, active item effects, gear bonuses, protection per part, hands and slots in use, race perk, class perks, character level, excluded skills | Never saved. Effective skill differs per check, so it can't be cached |
-| History | Raw skills and their states, StartingTotal, mastery perks, level perks chosen, marks, classes and class levels, race, creature type, part pools, minted item blueprints, item instances, shield and armor pool states | Saved as plain fields |
+| History | Raw skills and their states, StartingTotal, all-XXX perks, level perks chosen, marks, classes and class levels, race, creature type, part pools, minted item blueprints, item instances, shield and armor pool states | Saved as plain fields |
 | Grey zone | XP, unspent perk points, Potential | Saved, with a source trail where the value can change |
 
 - Potential is saved as a base plus a list of {source, delta, turn} adjustments, so a perk or event change can be traced or reversed.
@@ -1911,6 +1914,7 @@ stories/<storyId>/control/lock        turn lock (lease)
 stories/<storyId>/pages/<key>@<turn>  one page version, e.g. actor.rook@41
 stories/<storyId>/turns/<turn>        one turn record
 stories/<storyId>/backups/<turn>      one in-database backup (section 11)
+stories/<storyId>/history/<n>         story text for turns n×HISTORY_CHUNK_TURNS onward
 ```
 
 Page keys: engine, hidden, actor.\<id>, place.\<id>, facts.\<placeId>.\<n>, blueprint.\<id>.
@@ -1948,7 +1952,7 @@ Three things can change under a running story, and each has its own rule.
 | Replaced | Old id points to its successor; saves move to the new entry |
 | Deleted | Perk, skill or class stays dormant on the sheet: kept, not applied, shown in the GM view. A removed body part's pool is dropped |
 
-**Resets.** A change too big to migrate may reset the story, but only after the designer confirms it. Code never resets on its own. If a migration can't run, the game refuses to load, leaves the save untouched, and asks. Whether a confirmed reset archives or deletes the old story is deferred.
+**Resets.** A change too big to migrate may reset the story, but only after the designer confirms it. Code never resets on its own. If a migration can't run, the game refuses to load, leaves the save untouched, and asks. A confirmed reset archives the old story: its pages and backups stay under its own id, and play starts a new story id (D-73).
 
 **Safety bookmark.** Before migrating, load keeps the pre-migration bookmark. It is dropped after the next good turn.
 
@@ -1980,6 +1984,7 @@ Raw skill above 100 is logged as a warning, not refused, because workaround mech
 | --- | --- | --- |
 | Any page | 256 KiB (platform) | Busy places split facts into more facts.\<placeId>.\<n> pages |
 | Turn records | Last N (placeholder) | Oldest records are deleted; story history stays |
+| Story text | HISTORY\_CHUNK\_TURNS turns per document (20) | A new document starts; nothing is pruned. If one document passes 256 KiB its lines keep their text and lose the code-built extras (mechanics, heard lines, changes) |
 | Claude proposals | Fact text and name length; promotions and minted items per scene (placeholders) | The validator rejects the proposal |
 | Whole story | 25,000 documents per database, shared by the library and every story; total size and per-collection caps unpublished | Saving stops and the game says so. Data is never dropped silently |
 
@@ -2149,7 +2154,7 @@ type ClassEntry = {
 
 type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery';       // mastery perks are never removed
+  source: 'level' | 'mastery';       // 'mastery' = all-XXX perks, never removed
   gainedTurn: Turn;
   treeId?: LibraryRef;               // mastery only
   tier?: 50 | 100 | 150;             // mastery only
@@ -2224,6 +2229,7 @@ type Journal = {
   factsWitnessed: FactId[];
   remembered: Record<SlotKey, { value: string; seenTurn: Turn }>;
   namesKnown: ActorId[];             // actors the player knows by name
+  clearSight?: Record<ActorId, ZoneId>; // actors seen clearly and where; kept until they move unseen (Q17)
 };
 
 // ---------- places and memory ----------
@@ -2277,6 +2283,7 @@ A save counts only once the head is written, so a crash at any earlier step leav
 4. Write turns/\<turn>.
 5. Write control/head: the new turn, the full page map, undo = the previous head's bookmark. This is the commit.
 6. Clean up: delete page versions that no bookmark (head, undo, safety) points to, and turn records older than the last N.
+7. After the narration is shown, write the story text: every history/\<n> document the turn's new lines fall in, rewritten whole. It is not part of the commit, so a failure costs only text. Loading a story reads every history document, so a reload shows the whole story column (Q18).
 
 On unavailable, retry the failed write once. On quota\_exceeded, stop, keep the last good head, and tell the player.
 
@@ -2435,10 +2442,10 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-3 | Soft cap and hard cap | 1 | Deferred | Values and behaviour |
 | D-4 | Burden fine-tuning | 1 | Deferred | K, default 20 |
 | D-5 | Potential at creation | 1 | Partly settled | A fixed POTENTIAL (300, placeholder) with a per-character override (Part 1 §6); the value waits for a balance pass |
-| D-6 | Beyond the mortal limit (100) | 1 | Deferred | Also makes the 150 mastery tier unreachable through training |
+| D-6 | Beyond the mortal limit (100) | 1 | Deferred | Also makes the All-150 tier unreachable through training |
 | D-7 | Difficulty tier names and target numbers | 1 | Deferred | Names are the challenge grades (Part 1 §4, Layer 2); values are placeholders until set |
 | D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Deferred | Skills are designed with character and mob generation; sneaking waits for the Stealth tree. Also open: what a larger contest gap does, and combined skill checks (such as sight with hearing) |
-| D-9 | Mastery checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |
+| D-9 | All-XXX checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |
 | D-10 | XP sources and achievements | 1–2 | Partly settled | Settled 07/11/2026 (XP proposal X1–X10, Part 1 §5): defeats, library achievements, levels into a chosen class; kill XP from stat ratings (X18–X23); Weaver scene achievements dropped for D-108 (Ali, 07/11/2026); still open: quest XP (X8, held). Was: Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
 | D-11 | Minting improvised items and NPCs | 1 | Partly settled | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22. Settled 07/11/2026: generic bases, improvised weapons and the Needs data list (Part 5 §7). Still open: NPCs, improvised tools and objects used other than as weapons |
 | D-12 | Content database for items, loot and prices | 1 | Partly settled | Part 5 (Gear) sets the item data shape (Part 4 §9) and a prototype bank. Still deferred: loot tables, shops, trade, prices beyond the value placeholder |
@@ -2462,12 +2469,12 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-30 | Scene breaks | 2 | Partly settled | Settled 07/11/2026 (P7): rest, beats with endsScene, and the stall fallback (Scenes). Still open: time skip (with D-101); NPCs reacting on their own after a fight (P7 B2) |
 | D-31 | Random rolls during a scene | 2 | Deferred | Iliad Quest-style encounter rolls while travelling or mid-scene. For now only the scene-start situation roll exists |
 | D-32 | Computed grade check | 2 | Partly settled | Measuring a plan's challenge and gain from its cast and rewards. Settled 07/11/2026 (loot V8): rewards are held to the gain's Boon budget (Part 5 §7). Still open: measuring the cast's challenge, a passing stub until then |
-| D-33 | Weaver effort | 2 | Deferred | Switch WEAVER\_EFFORT from high to xhigh once the artifact runtime accepts it |
+| D-33 | Weaver effort | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q10). The runtime accepts only low, medium and high, and the Weaver already uses high. Reopen if the runtime adds a higher level |
 | D-34 | Definition of a major action | 2 | Deferred | Includes which actions end sneaking, and whether an observer arriving in view counts. Stub: every player action is major |
 | D-35 | Marks and missed check-ins | 2 | Deferred | Bodies, forced doors and missing colleagues that unaware actors could notice. Left out of the first prompt to keep it simple |
 | D-36 | Planner for failed ambushes | 2 | Deferred | Code onAlert order for now. Options reviewed: interrupt the turn at detection, a speculative Planner call in the background, or a fixed reaction stage in every turn |
-| D-37 | Call count visible in network tools | 2 | Deferred | Timing is equal across modes; only always-on placeholder Planner calls would hide the count |
-| D-38 | CALM\_TURNS | 2 | Deferred | Changes no calls now; keep only if mode drives something else, such as UI. The alarm calm-down uses DECAY\_TURNS; CALM\_TURNS could serve instead |
+| D-37 | Call count visible in network tools | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q11). The play screen header shows the call count on purpose, so hiding it from network tools no longer matters |
+| D-38 | CALM\_TURNS | 2 | Dropped | Deleted by Ali (07/11/2026, easy open questions Q12). Nothing used it; the alarm calm-down uses DECAY\_TURNS |
 | D-39 | BACKGROUND\_WINDOW value | 2 | Deferred | Config; set at or above Agent Planner's usual latency after playtests |
 | D-40 | Hide and detection tests | 2 | Deferred | One test per observer per action for now; revisit with the definition of a major action |
 | D-41 | Out-of-character agent (/ooc) | 1–2 | Deferred | Code-only /help for now. An OOC agent would add a Claude call. Voyage playtest (07/11/2026): F3 a plain-text OOC question in the action box used a turn; F4 a side chat that answers questions without a turn |
@@ -2502,7 +2509,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-70 | Setting-specific library content | 4 | Deferred | Tags so a story draws only fitting entries |
 | D-71 | Visibility of saved fields | 4 | Deferred | Separate thread, with "What code produces, agents see, player sees": tags plus builders, default for untagged fields, whether an NPC sees its own Damaged parts |
 | D-72 | Undo depth | 4 | Deferred | One turn for now |
-| D-73 | Reset: archive or delete | 4 | Deferred | Backups (Part 4 §11) also allow recovery from a reset |
+| D-73 | Reset: archive or delete | 4 | Settled | Settled by Ali (07/11/2026, easy open questions Q13): archive. A confirmed reset starts a new story id and keeps the old story's pages and backups under its own id, so a misclick can be recovered. Play shows only the newest story |
 | D-74 | Turn-record count N and proposal caps | 4 | Deferred | Placeholders; set after measuring the platform caps |
 | D-75 | Diminishing-returns values per modifier type | 1 | Deferred | Roll perks, wounds, situational, aim |
 | D-76 | Outnumbered and unaware values | 3 | Deferred | For the defense roll |
@@ -2535,7 +2542,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-103 | NPC self-interest in exchanges | 2 | Dropped | Dropped by Ali (07/11/2026, easy open questions Q15). Voyage playtest (07/11/2026): D1, NPCs refused tips and bonuses. Whether Agent Responder and Agent Voice are told to keep their own interests in deals |
 | D-104 | Attitude toward the player | 2, 4 | Deferred | Voyage playtest (07/11/2026): D4, a relationship score per NPC with labels; D5, threatening an NPC raised it. A Belief tracks awareness only and stance comes from bands (Part 2, Opposition); threats short of an attack have no lasting effect |
 | D-105 | Quests | 2, 4 | Deferred | Voyage playtest (07/11/2026): D8, a duplicate quest for a job already taken; G2, quest text revealed secrets. Who creates quests and writes their text, a leak check on that text, and de-duplication. Quests are only {id, state, text} for now (Part 4 §9) |
-| D-106 | Narration against NPC lines | 2 | Deferred | Voyage playtest (07/11/2026): D7, the narration contradicted an NPC line. A check that the narration agrees with the NPC lines it quotes |
+| D-106 | Narration against NPC lines | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q14). The Narrator no longer quotes lines and the play screen shows each heard line word for word, which removed the cause. Reopen if a playtest shows it again. Voyage playtest (07/11/2026): D7 |
 | D-107 | Action ideas on request | 2 | Built | Decided by Ali (07/11/2026, Voyage A4; was OQ-23): a code-built list from PlayerView, shown when the player asks: people in view to talk to, exits, items held, actors in reach, grouped by tab (Talk, Move, Fight, Use) and refreshed each turn. No Claude call, so nothing can leak. Narrator rule 7 ("Do not list options") stays for the narration. Built 07/11/2026 as the Ideas panel on the Play screen (Fight, Talk, Move, Use side by side, three each) |
 | D-108 | Achievement proposals | 1, 2 | Planned | Decided by Ali (07/11/2026, settles OQ-10): Claude may propose achievements, never grant them. A proposal goes to Ali for approval; once he approves, the feat is implemented as permanent code (a code rule that grants it), like the first-defeat achievement. Place state and promoted facts still come only from code rules. Which agent carries the proposal is open |
 

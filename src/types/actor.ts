@@ -118,6 +118,8 @@ export type Journal = {
   factsWitnessed: FactId[];
   remembered: Record<SlotKey, { value: string; seenTurn: Turn }>;
   namesKnown: ActorId[];
+  /** Q17 (Ali, 07/11/2026): actors the player has seen clearly, and the zone they were in; they stay seen until they move */
+  clearSight?: Record<ActorId, string>;
 };
 
 export type { PlaceId };

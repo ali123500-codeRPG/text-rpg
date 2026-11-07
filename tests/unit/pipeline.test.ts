@@ -40,6 +40,8 @@ vi.mock('../../src/views', async () => {
 });
 vi.mock('../../src/save', () => ({
   saveTurn: vi.fn(async () => ({})),
+  saveHistory: vi.fn(async () => {}),
+  loadHistory: vi.fn(async () => []),
   loadStory: vi.fn(),
   undoTurn: vi.fn(),
 }));
@@ -212,5 +214,26 @@ describe('errors and commands', () => {
     await game.submit('strike', { aimed: false });
     await game.submit('strike', { aimed: false });
     expect(H.resolved.map((r) => r.input.aimed)).toEqual([true, false]);
+  });
+});
+
+describe('story text (Q18)', () => {
+  it('saves the story column after each turn, from the first unsaved line', async () => {
+    const save = await import('../../src/save');
+    const sh = vi.mocked(save.saveHistory);
+    sh.mockClear();
+    start();
+    claude.push('parser', intentOf()).push('narrator', narr);
+    await game.submit('look around', { aimed: false });
+    expect(sh).toHaveBeenCalledTimes(1);
+    const [, id, lines, from] = sh.mock.calls[0];
+    expect(id).toBe(state.storyId);
+    expect(from).toBe(0);
+    expect(lines.map((l) => l.kind)).toEqual(['player', 'narration']);
+    await game.submit('/stats', { aimed: false });
+    expect(sh).toHaveBeenCalledTimes(1); // commands are saved with the next turn
+    claude.push('parser', intentOf()).push('narrator', narr);
+    await game.submit('look around', { aimed: false });
+    expect(sh.mock.calls[1][3]).toBe(2);
   });
 });
