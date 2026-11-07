@@ -15,7 +15,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
 import { equipLoadout, fullParts } from '../library/spawn';
-import { defaultStandingDefense, healthLevel, tierLevel, tierName, tierPart } from '../ruleset';
+import { defaultStandingDefense, healthLevel, takePerk, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
@@ -507,6 +507,9 @@ export function createGame(deps: GameDeps): Game {
     async restoreBackup() {
       throw new Error('restore is not available: the save module exposes no restore yet'); // GAP (W1)
     },
+    // GAP: a pick lives in memory until the next turn is played and saved; a reload before then drops it (K3 keeps it undoable till then)
+    takePerk(id) { if (state && !busy) { takePerk(state, state.player, id); emit(); } },
+    undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;

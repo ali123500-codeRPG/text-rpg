@@ -50,8 +50,16 @@ export type Library = {
   activities: Record<string, ActivityDef>;
   routines: Record<string, Routine>;
   routineSets: Record<string, RoutineSet>;
-  perks: Record<string, { id: string; name: string; situation?: number }>;
+  perks: Record<string, PerkDef>;
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
+};
+
+/** Perk page S1–S9 (Ali, 07/11/2026): a ladder perk sits on one rung of one skill; trueSkill is its flat boost to
+ * that skill (rungs 40/80/120); effect groups it in the "By effect" view. */
+export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech';
+export type PerkDef = {
+  id: string; name: string; text?: string; situation?: number;
+  ladder?: { skill: string; rung: number }; trueSkill?: number; effect?: PerkEffect;
 };
 
 /** X6/X11 (Ali, 07/11/2026): a library achievement, each with its own id and name. 'defeats' is earned at `count`

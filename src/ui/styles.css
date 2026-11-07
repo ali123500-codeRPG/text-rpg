@@ -327,3 +327,63 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .bf-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin: 0; font-size: 12px; color: var(--muted); }
 .bf-key span { display: inline-flex; align-items: center; gap: 4px; }
 .bf-key i { width: 10px; height: 10px; border-radius: 2px; }
+
+/* Perks (Character page; perk page S1, S7). Gold = --scene-mark. */
+.hs-rail a { position: relative; }
+.hs-dot { position: absolute; top: 12px; right: 22px; width: 8px; height: 8px; border-radius: 50%; background: var(--scene-mark); box-shadow: 0 0 6px var(--scene-mark); }
+.pk { position: relative; margin-top: var(--space-8); padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: radial-gradient(120% 90% at 50% 0%, color-mix(in oklch, var(--surface) 80%, var(--deco-1)) 0%, var(--bg) 75%); }
+.pk-h { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.pk-h h2 { margin: 0; font-size: 18px; margin-right: auto; }
+.pk-pts { color: var(--scene-mark); font-weight: 800; font-size: 13px; border: 1px solid color-mix(in oklch, var(--scene-mark) 50%, transparent); border-radius: var(--r-pill); padding: 3px 12px; }
+.pk-pts.none { color: var(--faint); border-color: var(--border); }
+.pk-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--space-3) 0 var(--space-4); border-bottom: 1px solid var(--border); }
+.pk-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 6px 10px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.pk-tabs button[aria-selected="true"] { color: var(--scene-mark); border-color: var(--scene-mark); font-weight: 700; }
+.pk-board { max-width: 720px; margin: 0 auto; }
+.pk-lad { --rh: 360px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 0 64px; }
+.pk-mb { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in oklch, var(--scene-mark) 40%, transparent); }
+.pk-mb b { position: absolute; left: 0; top: -18px; color: var(--scene-mark); font-size: 12px; }
+.pk-mb small { position: absolute; left: 0; top: 2px; color: var(--faint); font-size: 10px; }
+.pk-col { display: grid; grid-template-rows: 46px var(--rh); justify-items: center; gap: 10px; min-width: 0; }
+.pk-ch { text-align: center; } .pk-ch b { display: block; font-size: 13px; } .pk-ch span { color: var(--scene-mark); font-weight: 800; font-size: 16px; }
+.pk-rail { position: relative; width: 8px; border-radius: 4px; background: #0a1128; }
+.pk-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px; background: linear-gradient(0deg, #b8862b, #ffe39a); box-shadow: 0 0 8px color-mix(in oklch, var(--scene-mark) 70%, transparent); }
+.pk-at { position: absolute; left: 50%; height: 0; }
+.pk-n { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: 22px; height: 22px; padding: 0; display: grid; place-items: center; border: 0; background: none; cursor: pointer; font: inherit; color: inherit; }
+.pk-n::before { content: ""; position: absolute; inset: 0; transform: rotate(45deg); border-radius: 3px; box-sizing: border-box; }
+.pk-n span { position: relative; font-size: 8px; font-weight: 800; }
+.pk-n.sealed { width: 16px; height: 16px; cursor: default; }
+.pk-n.sealed::before { transform: none; border-radius: 50%; background: #101a3d; border: 1.5px solid var(--rule); }
+.pk-n.sealed span { font-size: 7px; color: #5d6f9e; }
+.pk-n.own::before { background: linear-gradient(180deg, #ffe39a, #b8862b); border: 2px solid #fff1c4; } .pk-n.own span { color: #3b2a07; }
+.pk-n.open::before { background: #13204a; border: 2px solid var(--scene-mark); box-shadow: 0 0 10px color-mix(in oklch, var(--scene-mark) 70%, transparent); } .pk-n.open span { color: var(--scene-mark); }
+.pk-n.empty::before, .pk-n.other::before { background: #13204a; border: 1.5px dashed var(--faint); } .pk-n.empty span, .pk-n.other span { color: var(--faint); }
+.pk-n.sel::before { outline: 2px solid #fff; outline-offset: 2px; }
+.pk-n em { position: absolute; left: 30px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-style: normal; font-size: 12px; font-weight: 700; color: #ffe7a6; }
+.pk-n.open em { color: var(--text); }
+.pk-trk, .pk-eff { display: grid; gap: 14px; }
+.pk-trk { display: none; }
+.pk-tr { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; align-items: center; }
+.pk-tl b { display: block; font-size: 13px; } .pk-tl span { color: var(--scene-mark); font-weight: 800; }
+.pk-tt { position: relative; height: 30px; margin-right: 12px; }
+.pk-tt::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 6px; border-radius: 3px; background: #0a1128; }
+.pk-tf { position: absolute; left: 0; top: 12px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #b8862b, #ffe39a); box-shadow: 0 0 8px color-mix(in oklch, var(--scene-mark) 60%, transparent); }
+.pk-tm { position: absolute; top: 2px; width: 2px; height: 26px; margin-left: -1px; background: color-mix(in oklch, var(--scene-mark) 50%, transparent); }
+.pk-ta { position: absolute; top: 15px; width: 0; height: 0; }
+.pk-g { display: grid; gap: 10px; }
+.pk-gh { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--scene-mark); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.pk-gh::before { content: "▾ "; display: inline-block; transition: transform .15s; }
+.pk-gh[aria-expanded="false"]::before { transform: rotate(-90deg); }
+.pk-card { position: absolute; z-index: 2; width: 190px; box-sizing: border-box; padding: 10px; border: 1px solid color-mix(in oklch, var(--scene-mark) 45%, transparent); border-radius: var(--r-lg);
+  background: linear-gradient(180deg, #1b2858, #121c42); box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.pk-eff ~ .pk-card, .pk .empty ~ .pk-card { position: static; margin-top: var(--space-3); }
+.pk-card .k { margin: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.pk-card h4 { margin: 2px 0 4px; font-size: 14px; color: #ffe7a6; }
+.pk-card p { margin: 0 0 8px; font-size: 12px; }
+.pk-card .tiny { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+.pk-take { min-height: 30px; font-size: 12px; }
+@media (max-width: 760px) {
+  .pk-lad { display: none; } .pk-trk { display: grid; }
+  .pk-card { position: static; width: auto; margin-top: var(--space-3); }
+}

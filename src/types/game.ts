@@ -60,4 +60,7 @@ export interface GameApi {
   /** Claude calls in flight now, oldest first: which agent and since when (Date.now ms) */
   working(): { agent: import('./agents').AgentName; since: number }[];
   restoreBackup(turn: number): Promise<void>;
+  /** spend a perk point on a ladder perk, or undo it before the next turn (K3); in memory until the next turn saves */
+  takePerk(perkId: string): void;
+  undoPerk(perkId: string): void;
 }

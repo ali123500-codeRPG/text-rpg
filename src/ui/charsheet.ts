@@ -3,7 +3,7 @@
 import type { Actor, GameState } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
-import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp } from '../ruleset';
+import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { charLevel, xpToNext } from '../engine/xp';
 import { h } from './kit';
@@ -107,7 +107,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
       h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', {}, `${t.sum} pts`)),
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw), h('div', { class: 'num' }, String(r.raw)))))));
+        bar(r.raw), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
 }
 
 const partOpen = { on: false }; // body-part list under the health bar, kept open across turns
