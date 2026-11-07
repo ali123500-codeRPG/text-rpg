@@ -3,7 +3,7 @@
 // show only their number and nothing hints at what comes next (K4). A small card beside the tapped milestone takes or undoes.
 import type { Actor, GameApi, GameState, PerkEffect } from '../types';
 import { getLibrary } from '../library';
-import { MASTERY_STEPS, MILESTONES, canUndo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
+import { ALL_STEPS, MILESTONES, canUndo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
 import { h } from './kit';
 import { skillName, TREE_VIEW } from './creation';
 
@@ -32,7 +32,7 @@ function node(skill: string, milestone: number, st: Show, label: boolean) {
 
 function ladders(p: Actor, skills: string[]) {
   return h('div', { class: 'pk-lad' },
-    MASTERY_STEPS.map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / TOP} * var(--rh))` }, h('b', {}, `♛ ${m}`), h('small', {}, `${skills.filter((k) => trueSkill(p, k) >= m).length} of ${skills.length}`))),
+    ALL_STEPS.map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / TOP} * var(--rh))` }, h('b', {}, `All-${m}`), h('small', {}, `${skills.filter((k) => trueSkill(p, k) >= m).length} of ${skills.length}`))),
     skills.map((k) => {
       const v = trueSkill(p, k);
       return h('div', { class: 'pk-col' },
@@ -47,7 +47,7 @@ function track(p: Actor, k: string, show: (r: number, st: MilestoneState) => Sho
   return h('div', { class: 'pk-tr' },
     h('div', { class: 'pk-tl' }, h('b', {}, skillName(k)), h('span', {}, String(v))),
     h('div', { class: 'pk-tt' }, h('i', { class: 'pk-tf', style: `width:${pct(v)}` }),
-      MASTERY_STEPS.map((m) => h('b', { class: 'pk-tm', style: `left:${pct(m)}` })),
+      ALL_STEPS.map((m) => h('b', { class: 'pk-tm', style: `left:${pct(m)}` })),
       MILESTONES.map((r) => h('div', { class: 'pk-ta', style: `left:${pct(r)}` }, node(k, r, show(r, milestoneState(p, k, r)), false)))));
 }
 

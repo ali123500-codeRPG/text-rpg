@@ -58,4 +58,21 @@ describe('skill ladders and true skill', () => {
     p.core.skills.melee_medium.raw = 10;
     expect(milestoneState(p, 'melee_medium', 20)).toBe('own');
   });
+
+  it('60 and 80 need one perk in the skill, 100 and 120 need two, 140 needs three (Ali, 07/11/2026)', () => {
+    const { s, p } = setup();
+    p.core.skills.melee_medium.raw = 145;
+    p.progression!.unspentPerkPoints = 5;
+    expect(milestoneState(p, 'melee_medium', 60)).toBe('sealed');
+    expect(canTake(p, 't_60')).toBe('too few perks in this skill');
+    takePerk(s, p, 't_gb');
+    expect(milestoneState(p, 'melee_medium', 60)).toBe('open');
+    expect(milestoneState(p, 'melee_medium', 100)).toBe('sealed');
+    takePerk(s, p, 't_wt');
+    expect(milestoneState(p, 'melee_medium', 100)).toBe('empty');
+    expect(milestoneState(p, 'melee_medium', 140)).toBe('sealed');
+    takePerk(s, p, 't_60');
+    expect(milestoneState(p, 'melee_medium', 140)).toBe('empty');
+  });
 });
+
