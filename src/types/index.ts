@@ -7,3 +7,4 @@ export * from './state';
 export * from './agents';
 export * from './views';
 export * from './library';
+export * from './game';
