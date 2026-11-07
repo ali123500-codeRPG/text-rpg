@@ -7,6 +7,7 @@ import { getLibrary } from '../../src/library';
 function setup() {
   const s = makeVillage();
   const L = getLibrary().perks;
+  for (const k of Object.keys(L)) delete L[k]; // stand-in perks only, so the real 20 milestone picks don't fill these slots
   L.t_gb = { id: 't_gb', name: 'Guard Break', ladder: { skill: 'melee_medium', milestone: 20 }, effect: 'attack' };
   L.t_wt = { id: 't_wt', name: 'Weapon Training I', ladder: { skill: 'melee_medium', milestone: 40 }, trueSkill: 5, effect: 'attack' };
   L.t_60 = { id: 't_60', name: 'Follow-through', ladder: { skill: 'melee_medium', milestone: 60 } };
