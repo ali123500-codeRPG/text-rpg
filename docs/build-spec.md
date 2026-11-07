@@ -140,7 +140,11 @@ The margin bands stay open-ended: a margin of 75 or more is Critical Success, ne
 
 XP drives levels and perks only. Skills grow separately, through skill improvement (section 6).
 
-- **XP:** earned from actions and from achievements (e.g. +250 XP for a bold feat). Claude may propose an achievement; code validates it against a list or mints it with capped XP (no agent can send this request yet; see OQ-10) **\[Proposed\]**.
+- **XP** (Ali, 07/11/2026, XP proposal X1–X10; all numbers *placeholders*, kept small at first). Three sources, each logged on the source trail as {source, amount, turn} (B8):
+  - **Defeats (main source).** An opposed NPC pays once (B4) when it is downed and the player hit it at least once, or when it surrenders. A broken (fleeing) foe pays nothing. Interim amount, until X11 settles the measure: the template's hand-set xp if it has one, otherwise its Total ÷ KILL\_XP\_DIV (10) × min(1, KILL\_XP\_TAPER (2) × its Total ÷ the player's Total). Companions' defeats wait for companion XP.
+  - **Achievements**, each earned once. Library achievements are a data table that only code awards: the first defeat of each creature type (10 XP) and each mastery perk (25 XP, once mastery perks exist). Scene achievements seeded by the Weaver (up to 2 per plan, XP by gain 0/10/25/50/100) are agreed but not built yet (X7). The character sheet lists earned achievements.
+  - **Quests** pay on completion by gain: 25/50/100/200. Held until quests exist (X8).
+- **Levels.** From level n to n+1 takes LEVEL\_XP × n XP (LEVEL\_XP 100). There is one XP bar. A level goes to the class picked on the sheet ("Next level goes to", shown when more than one class is current or unlocked), or else to the current class, with no waiting (X9; settles OQ-8). With mechanics shown, the turn lists "+n XP (source)" and "Level n!".
 - **Level perks:** one perk point on every even level, spent on perks. Some perks are trade-offs (e.g. give up a skill for a higher cap, faster training and bonuses to class skills).
 - **Mastery perks:** granted instantly, at no point cost, when all three skills in a tree reach 50, 100 and 150. Once granted they are never removed. They replace the LLtQ category bonus.
 - **Mastery check:** runs only when a skill crosses a threshold upward, and checks whether the other two skills in its tree already meet it. Uses raw skill **\[Proposed\]**.
@@ -1377,13 +1381,14 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 102 | Late Planner fights on | A significant engaged actor whose Planner call is late runs its type's combat list that turn instead of holding |
 | 103 | Broken flees | A broken engaged actor with an exit slot moves one link toward it and holds once there; a slime never flees |
 | 104 | Improvised weapon | The Parser's improvised chair leg becomes a held improvised\_medium story item with hitAdj IMPROVISED\_HIT\_ADJ and no kit bonus, and the attack uses it |
+| 106 | XP and levels | A slime the player hit and downed pays tapered XP once, plus the first-defeat achievement; a foe downed by someone else or broken pays nothing, a surrender pays; LEVEL\_XP + 5 XP levels into the chosen unlocked class, which becomes current, with a perk point at level 2 |
 | 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScene, marks a break; rest marks a break; a stall marks one only with no live beat left; the director then starts a new scene with one Weaver call |
 
 ### Deliverables and acceptance criteria
 
 Done means every scenario test passes except those waiting on other work: 3, 18 and 42 wait on the Stealth tree (D-8), and 46 and 53 test rules still \[Proposed\]. Also, every non-dialogue turn that doesn't start a scene shows checked narration after one Parser call plus one full Narrator call.
 
-**First build scope.** A fantasy village with a guard, a trader and a tavern patron to talk to. The player is a swordsman, and slimes living around the village are hunted. Hunting gives no XP for now, and no skill changes (recordUse() only logs). The slimes' routine set, slime\_wander, is the test of the Agent Weaver integration (Appendix: prototype routine bank).
+**First build scope.** A fantasy village with a guard, a trader and a tavern patron to talk to. The player is a swordsman, and slimes living around the village are hunted. Hunting gives XP (Part 1 §5) but no skill changes (recordUse() only logs). The slimes' routine set, slime\_wander, is the test of the Agent Weaver integration (Appendix: prototype routine bank).
 
 Build in this order, so the game is playable with stubs before any agent is wired in:
 
@@ -2139,9 +2144,12 @@ type ItemInstance = {
 type Progression = {
   startingTotal: number;             // record only; never changes
   potential: { base: number; adjustments: { source: string; delta: number; turn: Turn }[] };   // base: POTENTIAL, or this character's own value
-  xp: number;
+  xp: number;                        // toward the next level
   unspentPerkPoints: number;
   marks: LibraryRef[];
+  xpLog?: { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } }[];   // source trail (B8)
+  achievements?: { id: string; name: string; turn: Turn }[];   // each once (B4)
+  nextClass?: LibraryRef;            // the class the next level goes to (X9)
 };
 
 type Mind = {
@@ -2400,7 +2408,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-7 | Difficulty tier names and target numbers | 1 | Deferred | Names are the challenge grades (Part 1 §4, Layer 2); values are placeholders until set |
 | D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Deferred | Skills are designed with character and mob generation; sneaking waits for the Stealth tree. Also open: what a larger contest gap does, and combined skill checks (such as sight with hearing) |
 | D-9 | Mastery checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |
-| D-10 | XP sources and achievements | 1–2 | Deferred | Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
+| D-10 | XP sources and achievements | 1–2 | Partly settled | Settled 07/11/2026 (XP proposal X1–X10, Part 1 §5): defeats, library achievements, levels into a chosen class; still open: the kill-XP measure (X11), Weaver scene achievements (X7, agreed), quest XP (X8, held). Was: Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
 | D-11 | Minting improvised items and NPCs | 1 | Partly settled | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22. Settled 07/11/2026: generic bases, improvised weapons and the Needs data list (Part 5 §7). Still open: NPCs, improvised tools and objects used other than as weapons |
 | D-12 | Content database for items, loot and prices | 1 | Partly settled | Part 5 (Gear) sets the item data shape (Part 4 §9) and a prototype bank. Still deferred: loot tables, shops, trade, prices beyond the value placeholder |
 | D-13 | Faction clocks | 1 | Deferred | Time advances with turns and faction clocks tick on their own. A faction here is a grand faction, unrelated to bands |
@@ -2510,7 +2518,7 @@ Decisions built as written for the first build, to be checked once the game is p
 
 ## Open questions (answer before sharing)
 
-These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6, OQ-8 and OQ-9 from the save data model; OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review. A question with a build default is built that way until it is answered.
+These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6 and OQ-9 from the save data model (OQ-8 settled 07/11/2026 by XP X9); OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review. A question with a build default is built that way until it is answered.
 
 - OQ-4: Does every attack on an unaware actor make an ambush roll, or only an attack made while sneaking?
   - Build default: every attack on an unaware actor.
@@ -2518,8 +2526,6 @@ These must be answered before the spec goes to a build agent. Each question has 
   - Build default: a won contest makes it aware and a tie makes it suspicious. An open player is decided by perception level instead: full makes the observer aware, partial makes it suspicious.
 - OQ-6: Can a Destroyed part ever come back? The destroyed field is reserved until Healing decides.
   - Build default: a Destroyed part stays gone unless a special rule (a perk, item or story event) brings it back.
-- OQ-8: When a level-up could go to an unlocked class, does the level wait for the player's choice? If so, the save needs a pending-level field.
-  - Build default: never reached; the first build awards no XP, so there are no level-ups.
 - OQ-9: The database holds at most 25,000 documents, shared by the library and every story. The caps on documents per collection, total size and write rate are not published. The build must measure them in a throwaway artifact (a full database refuses new documents) before N, the backup counts and the proposal caps are set.
 - OQ-10: Which agent sends Claude's proposals? Part 4 lets Claude propose set\_place\_state and promote\_fact, and Part 1 lets it propose achievements, but no agent's output shape (Parser, Planner, Responder, Voice, Narrator or Weaver) has a field for any of them.
   - Build default: no agent sends proposals; place state and promoted facts come only from code rules, and there are no achievements.

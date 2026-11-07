@@ -241,5 +241,9 @@ export function prototypeLibrary(): Library {
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,
     perks: {},
+    achievements: {
+      first_defeat: { id: 'first_defeat', name: 'First {creature} defeated', xp: 10, rule: 'first_defeat' }, // placeholder XP (X1, X6)
+      mastery: { id: 'mastery', name: 'Mastery: {tree} {tier}', xp: 25, rule: 'mastery' }, // not awarded until mastery perks exist
+    },
   });
 }

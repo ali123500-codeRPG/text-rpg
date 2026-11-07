@@ -655,6 +655,16 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
       out.push(`${label(e.check.actorId)} ${e.check.skill} vs ${e.check.target}: ${e.check.passed ? 'passed' : 'failed'}${mods(e.check.modifiers)}`);
     }
   }
+  // X9: XP awards and level-ups this turn
+  const turn = events[0]?.turn ?? s.turn;
+  const ach = s.player.progression?.achievements ?? [];
+  for (const x of s.player.progression?.xpLog ?? []) {
+    if (x.turn !== turn) continue;
+    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${x.levelUp.classId})`); continue; }
+    const [kind, id] = x.source.split(/:(.*)/);
+    const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${ach.find((a) => a.id === id)?.name ?? id}` : x.source;
+    out.push(`+${x.amount} XP (${what})`);
+  }
   return out;
 }
 
