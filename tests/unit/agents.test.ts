@@ -131,12 +131,20 @@ describe('runAgent', () => {
 });
 
 describe('Parser legality', () => {
-  it('a target outside PlayerView stops the turn with a generic question', async () => {
+  it('a target outside PlayerView stops the turn with a question about who is meant (P2)', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'attack', skill: 'melee_medium', target: 'guard_1' } }));
     const r = await callParser('attack the guard', playerView(), ctx);
     expect(r.intent).toBeNull();
-    expect(r.clarify).toBe(GENERIC_CLARIFY);
+    expect(r.clarify).toMatch(/^Who do you mean\?/);
+    expect(r.clarify).not.toBe(GENERIC_CLARIFY);
+  });
+  it('a speech action\'s skill is set by code, so a made-up one is not an error (P2)', async () => {
+    const { claude, ctx } = setup();
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'intimidate', skill: 'intimidate', target: null } }));
+    const r = await callParser('back off', playerView(), ctx);
+    expect(r.clarify).toBeNull();
+    expect(r.intent!.action!.skill).toBe('');
   });
   it('the Parser\'s own clarify is passed on', async () => {
     const { claude, ctx } = setup();

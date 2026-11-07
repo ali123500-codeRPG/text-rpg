@@ -1,7 +1,8 @@
 // Stage-plan validation (Part 2, Agent Weaver: Validation) and the grades table.
 import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
-import { GRADES } from '../types';
-import { CONFIG, TIER_MAX, TIER_MIN } from '../config';
+import { GRADES, ORDER_TYPES } from '../types';
+import { mentions } from '../words';
+import { CONFIG, COVER_NAMES, LIGHT_NAMES, TIER_MAX, TIER_MIN } from '../config';
 import { tierName } from '../ruleset';
 import { creatureType, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
@@ -34,10 +35,50 @@ export function stageFrontiers(state: GameState): Set<string> {
   return out;
 }
 
+/** trim hidden-only text to NOTE_CAP at a word boundary (V6) */
+function trimNote(v: unknown): unknown {
+  const cap = CONFIG.NOTE_CAP;
+  if (typeof v !== 'string' || v.length <= cap) return v;
+  const cut = v.slice(0, cap);
+  const sp = cut.lastIndexOf(' ');
+  return (sp > cap * 0.6 ? cut.slice(0, sp) : cut).trimEnd();
+}
+
+/** Fill in what a plan may leave out, in place, before validation (V4, V5, V6; missing plan steps). Never fills public text. */
+export function fillPlanDefaults(plan: StagePlan): void {
+  if (!plan || typeof plan !== 'object') return;
+  const list = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
+  if (plan.event) plan.event.summary = trimNote(plan.event.summary) as string;
+  plan.weaverNote = trimNote(plan.weaverNote) as string;
+  for (const p of list(plan.places)) if (p && (p.parent === undefined || p.parent === null)) p.parent = '';
+  for (const b of list(plan.bands)) if (b) { b.goals = trimNote(b.goals) as string; b.temperament = trimNote(b.temperament) as string; }
+  for (const c of list(plan.cast)) if (c) { c.motive = trimNote(c.motive) as string; c.routineGap = trimNote(c.routineGap) as string | undefined; }
+  const seeds = plan.seeds;
+  if (!seeds) return;
+  const trig = (t: StagePlan['seeds']['triggers'][number], owner?: string) => {
+    if (!t || typeof t !== 'object') return;
+    if (!t.ownerId && owner) t.ownerId = owner;
+    if (t.once === undefined || t.once === null) t.once = true;
+  };
+  for (const p of list(seeds.plans)) {
+    if (!p || typeof p !== 'object') continue;
+    if (!Array.isArray(p.steps)) p.steps = [];
+    p.goal = trimNote(p.goal) as string;
+    for (const t of list(p.triggers)) trig(t, p.ownerId);
+  }
+  for (const t of list(seeds.triggers)) trig(t);
+  for (const s of list(seeds.secrets)) if (s) s.fact = trimNote(s.fact) as string;
+}
+
 export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext): PlanError[] {
+  fillPlanDefaults(plan);
   const errs: PlanError[] = [];
-  const err = (code: string, message: string, castKey?: string, routineOnly = false) =>
+  const seenErr = new Set<string>();
+  const err = (code: string, message: string, castKey?: string, routineOnly = false) => {
+    if (seenErr.has(message)) return; // one error per field and problem (V12)
+    seenErr.add(message);
     errs.push({ code, message, routineOnly, ...(castKey !== undefined ? { castKey } : {}) });
+  };
 
   const P = CONFIG.PLAN_CAPS;
   const cap = CONFIG.TEXT_CAP;
@@ -91,10 +132,11 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const text = (where: string, v: unknown, pub: boolean, castKey?: string) => {
     if (v === undefined || v === null) return;
     if (typeof v !== 'string') return err('bad_text', `${where} is not text`, castKey);
+    if (!pub) return; // hidden-only notes were trimmed to NOTE_CAP by fillPlanDefaults
     if (v.length > cap) err('text_too_long', `${where}: ${v.length} > ${cap} chars`, castKey);
-    if (!pub) return;
-    const low = v.toLowerCase();
-    for (const t of terms) if (low.includes(t.toLowerCase())) err('public_leak', `${where} contains hidden term "${t}"`, castKey);
+    // whole words, as the narration check matches (V10)
+    for (const t of terms) if (mentions(v, t)) err('public_leak', `${where} contains hidden term "${t}"` +
+      (where.includes(' knows ') ? '; knows is public, so a secret goes in seeds.secrets' : ''), castKey);
   };
   text('event.summary', ev?.summary, false);
   text('weaverNote', plan.weaverNote, false);
@@ -110,7 +152,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`zone ${z.key} name`, z.name, true);
     text(`zone ${z.key} look`, z.look, true);
     if (!isPlace(z.place)) err('unresolved_place', `zone ${z.key}: place ${z.place} unknown`);
-    if (![0, 1, 2].includes(z.cover) || ![0, 1, 2].includes(z.light)) err('bad_zone', `zone ${z.key}: cover and light are 0, 1 or 2`);
+    if (!(z.cover in COVER_NAMES) || !(z.light in LIGHT_NAMES)) err('bad_zone', `zone ${z.key}: light is ${Object.values(LIGHT_NAMES).join(', ')}; cover is ${Object.values(COVER_NAMES).join(', ')}`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
       if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, or a frontier`);
@@ -177,10 +219,10 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     }
     if (!c.band) err('missing_band', `cast ${k}: names no band`, k);
     else if (!isBand(c.band)) err('unresolved_band', `cast ${k}: band ${c.band} unknown`, k);
-    if (!BELIEFS.includes(c.openingBelief)) err('bad_belief', `cast ${k}: openingBelief ${c.openingBelief}`, k);
-    for (const b of arr(c.bandBeliefs)) {
-      if (!isBand(b.band)) err('unresolved_band', `cast ${k}: bandBelief about unknown band ${b.band}`, k);
-      if (!BELIEFS.includes(b.status)) err('bad_belief', `cast ${k}: bandBelief ${b.status}`, k);
+    if (!BELIEFS.includes(c.awarenessOfPlayer)) err('bad_belief', `cast ${k}: awarenessOfPlayer is ${BELIEFS.join(', ')}`, k);
+    for (const b of arr(c.awarenessOfBands)) {
+      if (!isBand(b.band)) err('unresolved_band', `cast ${k}: awarenessOfBands names unknown band ${b.band}`, k);
+      if (!BELIEFS.includes(b.awareness)) err('bad_belief', `cast ${k}: awareness ${b.awareness} is not ${BELIEFS.join(', ')}`, k);
     }
     for (const o of arr(c.overrides)) {
       if (!isActor(o.actor)) err('unresolved_actor', `cast ${k}: override for unknown actor ${o.actor}`, k);
@@ -204,8 +246,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       if (v === undefined) { rerr('missing_slot', `cast ${k}: slot ${s} is not bound`); continue; }
       const list = def.kind === 'zone' ? (typeof v === 'string' ? [v] : null) : Array.isArray(v) ? v : null;
       if (!list) { rerr('invalid_slot', `cast ${k}: slot ${s} binds ${def.kind === 'zone' ? 'one zone' : 'a list of zones'}`); continue; }
-      if (def.kind === 'route' && (list.length < 2 || list.length > CONFIG.MAX_ROUTE_ZONES))
-        rerr('invalid_slot', `cast ${k}: route slot ${s} binds 2 to ${CONFIG.MAX_ROUTE_ZONES} zones`);
+      // a one-zone route means the actor stays there (V9)
+      if (def.kind === 'route' && (list.length < 1 || list.length > CONFIG.MAX_ROUTE_ZONES))
+        rerr('invalid_slot', `cast ${k}: route slot ${s} binds 1 to ${CONFIG.MAX_ROUTE_ZONES} zones`);
       for (const z of list) {
         if (isFrontier(z) && !isZone(z)) rerr('frontier_binding', `cast ${k}: slot ${s} is bound to frontier ${z}`);
         else if (!isZone(z)) rerr('invalid_slot', `cast ${k}: slot ${s} is bound to unknown zone ${z}`);
@@ -233,10 +276,12 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     checkWhen(`trigger ${t.id}`, t.when);
     // one order per trigger: `then` is a single order template
     if (!t.then || Array.isArray(t.then) || typeof t.then.type !== 'string') err('bad_trigger', `trigger ${t.id}: then holds exactly one order`);
+    else if (!(ORDER_TYPES as readonly string[]).includes(t.then.type)) err('bad_trigger', `trigger ${t.id}: then.type ${t.then.type} unknown; known: ${ORDER_TYPES.join(', ')}`);
     if (typeof t.once !== 'boolean') err('bad_trigger', `trigger ${t.id}: once is true or false`);
   };
   for (const p of arr(seeds.plans)) {
     if (!isActor(p.ownerId)) err('unresolved_actor', `plan owner ${p.ownerId} unknown`);
+    if (!arr(p.steps).every((x) => typeof x === 'string')) err('bad_plan', `plan ${p.ownerId}: steps is a list of short phrases`);
     text(`plan ${p.ownerId} goal`, p.goal, false);
     for (const t of arr(p.triggers)) checkTrigger(`plan ${p.ownerId}`, t);
   }
@@ -248,6 +293,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     const r = s.revealWhen;
     if (r?.type === 'event_in_zone' && !isZone(r.zone)) err('bad_secret', `secret ${s.id}: zone ${r.zone} unknown`);
     else if (r?.type === 'check_passed' && !isActor(r.againstActorId)) err('bad_secret', `secret ${s.id}: actor ${r.againstActorId} unknown`);
+    else if (r?.type === 'check_passed' && !lib.skills[r.skill]) err('bad_secret', `secret ${s.id}: skill ${r.skill} unknown; known: ${Object.keys(lib.skills).join(', ')}`);
     else if (r?.type === 'check_passed' && !(Number.isInteger(r.minTier) && r.minTier >= TIER_MIN && r.minTier <= TIER_MAX)) err('bad_secret', `secret ${s.id}: minTier must be a tier ID from ${TIER_MIN} to ${TIER_MAX}`);
     else if (r?.type !== 'event_in_zone' && r?.type !== 'check_passed') err('bad_secret', `secret ${s.id}: revealWhen unknown`);
   }

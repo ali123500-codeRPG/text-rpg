@@ -12,7 +12,8 @@ import { applyFallbackStage, applyStagePlan, beginScene, ensurePlace, openingEve
 import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
 
 /** one Agent Weaver call. `errors` set = the repair retry. null = the call failed. */
-export type Weave = (view: WeaverView, errors?: PlanError[]) => Promise<StagePlan | null>;
+/** `errors` and `rejected` set = the repair retry: the validator's errors and the plan they belong to (V11). */
+export type Weave = (view: WeaverView, errors?: PlanError[], rejected?: StagePlan) => Promise<StagePlan | null>;
 
 export type SceneOutcome = 'applied' | 'degraded' | 'fallback' | 'loaded';
 export type SceneResult = {
@@ -111,7 +112,7 @@ export class SceneDirector {
     if (!first) return { plan: null, errors: [], reason: 'call_failed' };
     const errors = validateStagePlan(state, first, ctx);
     if (!blocking(errors)) return { plan: first, errors };
-    const second = await this.timed(this.call(view, errors), deadline);
+    const second = await this.timed(this.call(view, errors, first), deadline);
     if (second === TIMEOUT || !second) {
       // the repair failed: the first plan may still degrade if its errors are routine-only
       return { plan: first, errors, reason: second === TIMEOUT ? 'weaver_timeout' : 'call_failed' };
@@ -123,8 +124,8 @@ export class SceneDirector {
     return finish(state, ctx, p, rng, entry);
   }
 
-  private call(view: WeaverView, errors?: PlanError[]): Promise<StagePlan | null> {
-    return this.opts.weave(view, errors).catch(() => null);
+  private call(view: WeaverView, errors?: PlanError[], rejected?: StagePlan): Promise<StagePlan | null> {
+    return this.opts.weave(view, errors, rejected).catch(() => null);
   }
 
   private async timed<T>(p: Promise<T>, deadline?: number): Promise<T | typeof TIMEOUT> {

@@ -108,7 +108,7 @@ describe('validateStagePlan', () => {
   });
   it('hidden terms and leak terms are scanned in every public field', () => {
     const p = villageStagePlan();
-    p.hiddenTerms = ['nest', 'smuggl'];
+    p.hiddenTerms = ['nest', 'smugglers', 'tab']; // whole words: 'tab' does not match 'table' (V10)
     p.bands[0].name = 'the nest watch';
     p.cast[1].knows![0].text = 'Smugglers use the cellar.';
     p.rewards.push({ item: { base: 'arming_sword', quality: 1, boosts: 'hitAdj', name: 'nest blade', look: 'plain' }, place: { groundIn: 'tav_cellar' } });
@@ -123,11 +123,34 @@ describe('validateStagePlan', () => {
     p.weaverNote = 'the nest';
     expect(validateStagePlan(fresh(), p, ctx).filter((e) => e.message.includes('weaverNote'))).toEqual([]);
   });
-  it('free-text caps', () => {
+  it('free-text caps: public text over the cap fails, hidden-only notes are trimmed (V6)', () => {
     const p = villageStagePlan();
-    p.weaverNote = 'x'.repeat(CONFIG.TEXT_CAP + 1);
-    p.cast[0].routineGap = 'y'.repeat(CONFIG.TEXT_CAP + 1);
-    expect(codes(fresh(), p).filter((c) => c === 'text_too_long')).toHaveLength(2);
+    p.weaverNote = 'word '.repeat(CONFIG.NOTE_CAP);
+    p.cast[0].routineGap = 'y'.repeat(CONFIG.NOTE_CAP + 1);
+    p.cast[0].label = 'z'.repeat(CONFIG.TEXT_CAP + 1);
+    expect(codes(fresh(), p).filter((c) => c === 'text_too_long')).toHaveLength(1);
+    expect(p.weaverNote.length).toBeLessThanOrEqual(CONFIG.NOTE_CAP);
+    expect(p.weaverNote.endsWith('word')).toBe(true);
+    expect(p.cast[0].routineGap).toHaveLength(CONFIG.NOTE_CAP);
+  });
+  it('fills defaults: trigger owner and once, top-level place, missing steps (V4, V5)', () => {
+    const p = villageStagePlan();
+    p.places[0].parent = null as unknown as string;
+    p.seeds.plans.push({ ownerId: 'barkeep', goal: 'hide the kegs', steps: undefined as unknown as string[], createdTurn: 0,
+      triggers: [{ id: 't1', when: { type: 'turn_reached', turn: 3 }, then: { type: 'hide', target: null, skill: null, intent: 'hide' } } as never] });
+    expect(validateStagePlan(fresh(), p, ctx)).toEqual([]);
+    const pl = p.seeds.plans.at(-1)!;
+    expect(pl.steps).toEqual([]);
+    expect(pl.triggers[0]).toMatchObject({ ownerId: 'barkeep', once: true });
+    expect(p.places[0].parent).toBe('');
+  });
+  it('trigger orders and secret skills must exist; one route zone is fine (V9)', () => {
+    const p = villageStagePlan();
+    p.seeds.triggers.push({ id: 't2', ownerId: 'barkeep', when: { type: 'alarm_heard' }, then: { type: 'confront', target: null, skill: null, intent: 'x' }, once: true } as never);
+    p.seeds.secrets.push({ id: 's9', holderId: 'barkeep', fact: 'x', leakTerms: ['ledger'], revealWhen: { type: 'check_passed', skill: 'insight', minTier: 0, againstActorId: 'barkeep' } });
+    const m = validateStagePlan(fresh(), p, ctx).map((e) => e.message);
+    expect(m.some((x) => x.includes('then.type confront unknown'))).toBe(true);
+    expect(m.some((x) => x.includes('skill insight unknown'))).toBe(true);
   });
   it('bad rewards are repaired or dropped, never blocking (loot L1)', () => {
     const p = villageStagePlan(); // moderate gain: quality 2 at most
@@ -152,7 +175,7 @@ describe('validateStagePlan', () => {
     p.cast[0].routineSetId = 'juggler';
     p.cast[1].slots = { counter: 'tav_counter' };
     p.cast[2].slots = { seat: 'tav_common', refuge: 'tav_cellar', exit: 'street_door', bed: 'tav_cellar' };
-    p.cast[3].slots = { route: ['field_mid'], post: 'field_far' };
+    p.cast[3].slots = { route: [], post: 'field_far' };
     p.cast[4].slots = { route: ['field_far', 'field_mid'], post: 'woods' };
     p.cast[4].startAt = 'nap';
     const e = validateStagePlan(fresh(), p, ctx);
@@ -170,7 +193,7 @@ describe('validateStagePlan', () => {
   });
   it('player-band entries use the companion set and bind nothing', () => {
     const p = villageStagePlan();
-    p.cast.push({ template: 'guard', key: 'squire', label: 'a squire', name: 'Tam', appearance: 'young', band: 'player_band', routineSetId: 'gate_guard', slots: { post: 'gate_inner' }, openingBelief: 'aware', motive: 'loyal' });
+    p.cast.push({ template: 'guard', key: 'squire', label: 'a squire', name: 'Tam', appearance: 'young', band: 'player_band', routineSetId: 'gate_guard', slots: { post: 'gate_inner' }, awarenessOfPlayer: 'aware', motive: 'loyal' });
     expect(codes(fresh(), p)).toEqual(['companion_set', 'invalid_slot']);
     p.cast[5].routineSetId = 'companion';
     p.cast[5].slots = {};
@@ -203,7 +226,7 @@ describe('applyStagePlan', () => {
   });
   it('opening beliefs go through updateBeliefs on open entry only; band beliefs always', () => {
     const p = villageStagePlan();
-    p.cast[0].bandBeliefs = [{ band: 'slimes', status: 'suspicious' }];
+    p.cast[0].awarenessOfBands = [{ band: 'slimes', awareness: 'suspicious' }];
     const s = fresh();
     applyStagePlan(s, p, ctx, { entry: 'sneaking' }, createRng(1));
     const calls = vi.mocked(updateBeliefs).mock.calls.map((c) => c[1]);
@@ -239,7 +262,7 @@ describe('applyStagePlan', () => {
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
       bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tacticsLevel: 1, lethal: undefined as never, relations: { player_band: 'opposed' } }],
       zones: [{ key: 'field_mid', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 1, light: 1, links: [{ to: 'field_far', label: 'back', sight: true }] }],
-      cast: [{ template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, openingBelief: 'unaware', motive: '' }] };
+      cast: [{ template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 0, kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(s.stage.zoneIds).toContain('field_mid_2');
     expect(s.bands.find((b) => b.id === 'slimes_2')!.lethal).toBe(true);

@@ -6,7 +6,7 @@ import type {
 import { FIXED } from './prompts';
 import { checkIntent, checkNarrator, checkPlanner, checkResponder, checkStagePlan, checkVoice } from './schema';
 import { formatDialogueView, formatNarrationView, formatOppositionView, formatPlayerView, formatResponderInput, formatWeaverView } from './format';
-import { checkNpcLegality, checkParserLegality, routineAllowed, type NpcViewBase } from './legality';
+import { checkNpcLegality, checkParserLegality, illegalClarify, routineAllowed, type NpcViewBase } from './legality';
 import { fallbackNarration, factCheck, leakScan, mentions, type LeakContext } from './narration';
 import { runAgent, type AgentCtx, type Attempt, type RunResult } from './call';
 
@@ -25,7 +25,7 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
   if (leg.gearErrors.length) run.log.errors.push('invalid_gear');
   if (leg.illegal.length) {
     run.log.errors.push('illegal_intent', ...leg.illegal);
-    return { intent: null, clarify: GENERIC_CLARIFY, run };
+    return { intent: null, clarify: illegalClarify(leg.illegal, view) ?? GENERIC_CLARIFY, run };
   }
   run.log.output = leg.intent;
   return { intent: leg.intent, clarify: null, run };

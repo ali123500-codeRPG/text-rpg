@@ -2,7 +2,7 @@
 import type { ActorView, DialogueView, NarrationView, PlayerView, ZoneView, PlannerOutput, VoiceOutput, Intent } from '../../src/types';
 
 export const zone = (id: string, links: string[] = [], ground: string[] = []): ZoneView => ({
-  id, name: id.replace(/_/g, ' '), look: `the ${id}`, cover: 0, light: 0,
+  id, name: id.replace(/_/g, ' '), look: `the ${id}`, cover: 'none', light: 'bright',
   links: links.map((to) => ({ to, label: `toward ${to}`, sight: true })), groundItems: ground.map((g) => ({ id: g, name: g })),
 });
 

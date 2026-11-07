@@ -98,8 +98,10 @@ export type StagePlan = {
     slots: Record<string, string | string[]>;
     startAt?: string;
     routineGap?: string;
-    openingBelief: 'unaware' | 'suspicious' | 'aware';
-    bandBeliefs?: { band: string; status: 'unaware' | 'suspicious' | 'aware' }[];
+    /** what this actor knows of the player at the opening (V3) */
+    awarenessOfPlayer: 'unaware' | 'suspicious' | 'aware';
+    /** what this actor knows of each band's members on the stage (V3) */
+    awarenessOfBands?: { band: string; awareness: 'unaware' | 'suspicious' | 'aware' }[];
     overrides?: { actor: string; stance: Stance }[];
     motive: string;
   }[];

@@ -3,7 +3,7 @@
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
 import type { Intent, NarratorOutput, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
-import { TACTICS_NAMES } from '../config';
+import { COVER_NAMES, LIGHT_NAMES, TACTICS_NAMES } from '../config';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -118,24 +118,31 @@ const narrator = obj<NarratorOutput>({
 });
 
 const GRADE = oneOf(GRADES);
-const TACTICS_LEVEL = Object.fromEntries(Object.entries(TACTICS_NAMES).map(([lvl, w]) => [w, +lvl]));
+/** a level the Weaver writes as a word (config names table); a bare level number is accepted too */
+const named = <T extends number>(names: Record<number, string>): V<T> => {
+  const level = Object.fromEntries(Object.entries(names).map(([lvl, w]) => [w, +lvl]));
+  return (v, p, e) => (typeof v === 'string' && v in level ? level[v] as T
+    : typeof v === 'number' && v in names ? v as T : (e.push(`${p}: expected one of ${Object.values(names).join(', ')}`), +Object.keys(names)[0] as T));
+};
 const STANCE_WORD = oneOf(['opposed', 'neutral', 'friendly'] as const);
 const BELIEF_WORD = oneOf(['unaware', 'suspicious', 'aware'] as const);
+/** awareness is what an actor knows; hostility belongs in band relations (V3, V12 hint) */
+const AWARENESS: V<'unaware' | 'suspicious' | 'aware'> = (v, p, e) => (['opposed', 'neutral', 'friendly'].includes(v as string)
+  ? (e.push(`${p}: awareness is unaware, suspicious or aware (what they know); "${v}" is a stance and goes in band relations`), 'unaware')
+  : BELIEF_WORD(v, p, e));
 type Cast = StagePlan['cast'][number];
 const weaver = obj<StagePlan>({
   event: obj<StagePlan['event']>({ summary: str, challenge: GRADE, gain: GRADE }),
-  places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: str })),
+  places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)) })), // no parent = top level (V5)
   zones: arr(obj<StagePlan['zones'][number]>({
     key: str, place: str, name: str, look: str,
-    cover: oneOf([0, 1, 2] as const), light: oneOf([0, 1, 2] as const),
+    cover: named<0 | 1 | 2>(COVER_NAMES), light: named<0 | 1 | 2>(LIGHT_NAMES), // words in, levels kept (V1)
     links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool })),
   })),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
-    // the Weaver writes the tactics word; code keeps the level (V2)
-    tacticsLevel: (v, p, e) => (typeof v === 'string' && TACTICS_LEVEL[v] ? TACTICS_LEVEL[v] as 1 | 2 | 3
-      : [1, 2, 3].includes(v as number) ? v as 1 | 2 | 3 : (e.push(`${p}: expected one of ${Object.values(TACTICS_NAMES).join(', ')}`), 1)),
+    tacticsLevel: named<1 | 2 | 3>(TACTICS_NAMES), // the Weaver writes the word; code keeps the level (V2)
     lethal: (v, p, e) => (v === undefined || v === null ? true : bool(v, p, e)),
     relations: (v, p, e) => (v === undefined || v === null ? {} : record(STANCE_WORD)(v, p, e)),
   })),
@@ -144,11 +151,11 @@ const weaver = obj<StagePlan>({
     knownOnSight: bool, knows: arr(obj<{ id: string; text: string }>({ id: str, text: str })),
     key: str, band: str, routineSetId: str,
     slots: record<string | string[]>((v, p, e) => (Array.isArray(v) ? arr(str)(v, p, e) : str(v, p, e))),
-    startAt: str, routineGap: str, openingBelief: BELIEF_WORD,
-    bandBeliefs: arr(obj<{ band: string; status: 'unaware' | 'suspicious' | 'aware' }>({ band: str, status: BELIEF_WORD })),
+    startAt: str, routineGap: str, awarenessOfPlayer: AWARENESS,
+    awarenessOfBands: arr(obj<{ band: string; awareness: 'unaware' | 'suspicious' | 'aware' }>({ band: str, awareness: AWARENESS })),
     overrides: arr(obj<{ actor: string; stance: 'opposed' | 'neutral' | 'friendly' }>({ actor: str, stance: STANCE_WORD })),
     motive: str,
-  }, ['template', 'actor', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'bandBeliefs', 'overrides'])),
+  }, ['template', 'actor', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
     item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: 1 | 2 | 3 | 4; boosts: string; name: string; look: string }>(
