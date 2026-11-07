@@ -52,7 +52,7 @@ const GEAR = nul(arr(gearOp));
 const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
 
 const intent = obj<Intent>({
-  move: nul(obj<{ toZone: string }>({ toZone: str })),
+  move: nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after'])),
   action: nul(obj<NonNullable<Intent['action']>>({
     type: oneOf(['attack', 'hide', 'sneak', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : str(v, p, e)),

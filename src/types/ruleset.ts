@@ -120,6 +120,7 @@ export type Order = {
   intent: string;
   source: OrderSource;
   move?: string | null; // player: the turn's one move (toZone), resolved before the main action
+  moveAfter?: boolean; // AE3: the player's move comes after the main action
   targetPart?: string | null;
   aimed?: boolean;
   defense?: 'dodge' | 'block' | null;
