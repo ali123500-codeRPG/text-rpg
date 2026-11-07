@@ -84,6 +84,8 @@ export type GameEvent = {
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;
   check?: import('./ruleset').CheckResult;
+  /** Q17: the player's look, a sight roll */
+  roll?: import('./ruleset').RollResult;
   speech?: { skill: string; impression?: string; addressees: string[] }; // dialogue-turn speech
 };
 

@@ -103,7 +103,7 @@ Only three sources may modify the roll, each its own modifier type: perks, gear 
 
 **Natural edges** apply after the bands, clamped at the ends of the scale: a natural 01 drops two tiers, 02–05 one tier, 96–99 raises one tier, 00 two tiers.
 
-**Layer 2 — skill checks.** No dice. Effective skill is compared with the scene's target number. Result is pass or fail only; the margin does not matter. The target comes from the stage plan's challenge grade through DIFFICULTY: none 20, minor 35, moderate 50, major 65, extreme 80 (placeholders). A check passes when effective skill plus situational modifiers is at least the target. The same rule applies to every actor. Wounds don't apply (settles OQ-15).
+**Layer 2 — skill checks.** No dice. Effective skill is compared with the scene's target number. Result is pass or fail only; the margin does not matter. The target comes from the stage plan's challenge grade through DIFFICULTY: none 20, minor 35, moderate 50, major 65, extreme 80 (placeholders). A check passes when effective skill plus situational modifiers is at least the target. The same rule applies to every actor. Wounds don't apply (settles OQ-15). Exception, looking around (Ali, 07/11/2026, Q17): the player's observe action with a notice skill (sight, hearing) is a roll, not a check: d100 with the skill, a scene difficulty modifier (moderate − the challenge grade's target) and the light modifier of the player's zone. Success or better shows everyone in the player's zone and the zones in sight of it clearly.
 
 - **Combined checks:** some perks let a check add several skills, or half of another skill.
 - **Gear:** flat skill bonuses from item effects that are active (Part 5 §2–3). They enter effective skill; item stats and the rare noted roll modifiers are read separately.
@@ -1174,6 +1174,7 @@ In Explore no Planner runs: unaware actors follow routines, the player is detect
 
 - Each actor follows one routine at a time from its routines list, the routines of one library routine set. A routine is a desired-state function (Game state model). At scene setup Agent Weaver picks the set and binds its slots; code sets the anchor.
 - Each turn, every active actor with no higher-priority order reads its desired zone and activity from its ActorView. Elsewhere: it moves one zone link along the shortest path. There: it performs the activity. Actors are processed in actor-id order; ties use the seeded RNG. If no path to the desired zone exists on the stage, the actor stays in its zone, performing the step's activity, and code logs routine\_unreachable **\[Proposed\]**. Whether a stage trim may cut off a bound zone stays deferred (D-46).
+- **Clear sight (Ali, 07/11/2026, Q17).** The player's Journal keeps clearSight: each actor the player has seen fully by sight (or made out with a successful look), with the zone it was in. While that actor stays in that zone, and the zone is the player's own or in sight of it, its events reach the player as full sight, dark zones included. A move or flee the player does not see fully removes it; one the player does see records the new zone.
 - Moves and activities emit ordinary move and idle events with the activity's noise and visibility, and go through computePerception, so the player perceives patrols (a partial event, sound only).
 - An activity's attention level is passed to the ruleset as a situational tag on perception rolls and checks. The ruleset owns its value (stub: 0).
 - Actors that aren't engaged keep following their routines during Tactical turns too.
@@ -1413,6 +1414,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 106 | XP and levels | Rating: a slime's is the effort of its one offensive skill, a guard's is higher, misc skills add nothing; kill XP applies the taper and KILL\_XP\_MULT; a slime the player hit and downed pays its kill XP once, plus the first-defeat achievement; ten defeats of slimes earn first\_defeat:slime, defeats\_10:slime and defeats\_10 once each, named for the slime; a foe with a race also earns its first race defeat; a foe downed by someone else or broken pays nothing, a surrender pays; LEVEL\_XP + 5 XP levels into the chosen unlocked class, which becomes current, with a perk point at level 2 |
 | 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScene, marks a break; rest marks a break; a stall marks one only with no live beat left; the director then starts a new scene with one Weaver call |
 | 107 | Opposed standoff | An opposed guard who notices the player is alarmed (its onAlert fires) but not engaged, so the turn stays Explore; made hostile, it engages |
+| 108 | Look around | Someone sitting still one zone away is a shape; a successful look shows them clearly and they stay seen while they stay put; a move the player can't see clearly forgets them; looking is a sight roll, not a check |
 
 ### Deliverables and acceptance criteria
 
@@ -2224,6 +2226,7 @@ type Journal = {
   factsWitnessed: FactId[];
   remembered: Record<SlotKey, { value: string; seenTurn: Turn }>;
   namesKnown: ActorId[];             // actors the player knows by name
+  clearSight?: Record<ActorId, ZoneId>; // actors seen clearly and where; kept until they move unseen (Q17)
 };
 
 // ---------- places and memory ----------

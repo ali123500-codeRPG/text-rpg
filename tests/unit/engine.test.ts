@@ -82,6 +82,9 @@ vi.mock('../../src/perception', () => ({
     }
   },
   applyBeliefDecay: () => {},
+  noteSightings: () => {},
+  lookAround: () => [],
+  noticeCue: () => undefined,
 }));
 
 vi.mock('../../src/views', () => ({

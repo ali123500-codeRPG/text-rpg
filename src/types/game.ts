@@ -19,7 +19,7 @@ export type LogLine = {
 };
 
 export type LineCheck = {
-  kind: 'attack' | 'contest';
+  kind: 'attack' | 'contest' | 'roll';
   skill: string; // skill id
   tier: Tier; beyond?: number;
   against?: { what: string; tier: Tier; beyond?: number }; // the defense or the other side of a contest, e.g. "its dodge"
