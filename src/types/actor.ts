@@ -81,7 +81,7 @@ export type Mind = {
   routines?: string[];
   routineSetId?: LibraryRef;
   slots?: Record<string, string | string[]>;
-  alarm?: { armed: boolean; lastAlarmTurn?: Turn; returnTo?: { id: string; anchorTurn: Turn } };
+  alarm?: { armed: boolean; lastAlarmTurn?: Turn; returnTo?: { id: string; anchorTurn: Turn }; onAlertDue?: string /* routine id whose onAlert is still to fire (W5) */ };
 };
 
 export type NpcTemplate = {
