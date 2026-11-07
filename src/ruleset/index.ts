@@ -11,6 +11,7 @@ import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { hasPerk } from './perks';
+import { markShifts } from '../engine/perkMarks';
 import { blockItem, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
@@ -172,7 +173,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   am.push(...(req.context?.attackerMods ?? []));
   const skill = modeSkill(mode);
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
-  const atkShifts: TierShift[] = req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : [];
+  const marks = markShifts(state, A, D, ranged); // A2, A5, A10
+  const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : []), ...marks.attack];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit' }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
@@ -194,7 +196,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const lightD = CONFIG.LIGHT_MODS[zoneA?.light ?? 'bright'];
   if (lightD) dm.push({ source: 'light', type: 'situational', value: lightD });
   dm.push(...(req.context?.defenderMods ?? []));
-  const def = ruleset.roll({ actorId: D.id, skill: type, modifiers: dm, tierShifts: [], itemId: blocker?.id, rollKind: type }, state, rng);
+  const def = ruleset.roll({ actorId: D.id, skill: type, modifiers: dm, tierShifts: marks.defense, itemId: blocker?.id, rollKind: type }, state, rng);
   const defEff = effectiveSkill(state, D, type, { itemId: blocker?.id });
   const defDeciding = decidingOf(def, defEff.value, defEff.gear);
 
