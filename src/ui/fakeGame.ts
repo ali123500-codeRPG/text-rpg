@@ -56,7 +56,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { turn: 2, kind: 'narration', text: NARRATION[1] },
       { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it' },
       { turn: 3, kind: 'narration', text: NARRATION[2],
-        check: { skill: 'melee_medium', tier: 1, against: { what: 'slime’s dodge', tier: 0 }, result: 'full hit, body' },
+        check: { kind: 'attack', skill: 'melee_medium', tier: 1, against: { what: 'slime’s dodge', tier: 0 }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
         changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],
         mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Great Success', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Great Success · dodge 0 · full hit · 25 damage to body'] },

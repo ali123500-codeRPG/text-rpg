@@ -591,7 +591,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       const pk = nv.events.find((x) => x.id === e.id)?.packet;
       const loc = pk?.location?.part ?? (a.location ? words(a.location) : '');
       check = {
-        skill: a.attack.skill, tier: a.attack.tier,
+        kind: 'attack', skill: a.attack.skill, tier: a.attack.tier,
         ...(a.defense && a.defenseType ? { against: { what: `${views.callName(s, 'player', a.targetId)}’s ${a.defenseType}`, tier: a.defense.tier } } : {}),
         result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}`,
       };
@@ -599,7 +599,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
       const c = e.contest;
       const mine = c.a.actorId === 'player' ? c.a : c.b, other = mine === c.a ? c.b : c.a;
       const result = c.winner === 'tie' ? 'a tie' : (c.winner === 'a') === (mine === c.a) ? 'you win' : 'you lose';
-      check = { skill: mine.skill, tier: mine.tier, against: { what: views.callName(s, 'player', other.actorId), tier: other.tier }, result };
+      check = { kind: 'contest', skill: mine.skill, tier: mine.tier, against: { what: views.callName(s, 'player', other.actorId), tier: other.tier }, result };
     }
   }
   if (check) out.check = check;

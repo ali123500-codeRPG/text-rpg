@@ -197,9 +197,13 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .ln-player { color: var(--accent); font-weight: 700; }
 .ln-player::before { content: "› "; color: var(--faint); }
 .ln-narration { color: var(--text); white-space: pre-wrap; font: 16px/1.55 var(--font-story); }
-.check { font-size: 13px; color: var(--muted); margin-top: -10px !important; }
-.check b { color: var(--text); margin: 0 2px; }
-.check .sep { color: var(--faint); }
+.check { font-size: 13px; color: var(--muted); margin-top: -10px !important; display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; }
+.check .ci { color: var(--accent); width: 16px; height: 16px; vertical-align: 0; }
+.check .sk { color: var(--text); font-weight: 700; }
+.check .tier { padding: 0 7px; border-radius: var(--r-pill); font-weight: 700; font-size: 12px; line-height: 20px; color: var(--text); background: color-mix(in srgb, var(--tc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--tc) 60%, transparent); }
+.check .tier.great { --tc: var(--ok); } .check .tier.ok { --tc: var(--accent); } .check .tier.near { --tc: var(--warn); } .check .tier.bad { --tc: var(--danger); }
+.check .gap { color: var(--faint); }
+.check .res b { color: var(--text); }
 .line { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--space-3); align-items: center; }
 .line .who2 { font-weight: 800; text-align: right; }
 .line .how { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }

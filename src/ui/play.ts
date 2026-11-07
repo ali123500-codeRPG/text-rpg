@@ -25,6 +25,17 @@ const COMMANDS: [string, string][] = [
   ['/difficulty ', 'show or change the difficulty'],
 ];
 
+// check line: an icon for the kind of roll, and each tier as a chip tinted good (Success and up) or bad (below)
+const ICON_PATH = { attack: 'M14.5 4H20v5.5L9 20.5 3.5 15zM6 13l5 5M4 20l2.5-2.5', contest: 'M4 5h16v11H9l-5 4z' };
+function checkIcon(kind: 'attack' | 'contest'): SVGSVGElement {
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('class', 'hs-i ci'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('d', ICON_PATH[kind]); s.append(p);
+  return s;
+}
+const tierChip = (t: number) => h('span', { class: 'tier ' + (t >= 1 ? 'great' : t === 0 ? 'ok' : t === -1 ? 'near' : 'bad') }, tierName(t));
+
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
@@ -99,9 +110,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (l.kind !== 'narration') return [h('p', { class: 'ln-' + l.kind }, l.text)];
     const c = l.check;
     return [
-      c ? h('p', { class: 'check' }, `${skillName(c.skill)} `, h('b', {}, tierName(c.tier)),
-        c.against ? [` vs ${c.against.what} ${tierName(c.against.tier)}`, h('span', { class: 'sep' }, ' · '), tierGap(c.tier, c.against.tier)] : null,
-        h('span', { class: 'sep' }, ' · '), h('b', {}, c.result)) : null,
+      c ? h('p', { class: 'check' }, checkIcon(c.kind), h('span', { class: 'sk' }, skillName(c.skill)), tierChip(c.tier),
+        c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against.tier), h('span', { class: 'gap' }, tierGap(c.tier, c.against.tier))] : null,
+        h('span', { class: 'res' }, '→ ', h('b', {}, c.result))) : null,
       h('p', { class: 'ln-narration' }, l.text),
       ...(l.speech ?? []).map((sp) => h('div', { class: 'line' },
         h('p', { class: 'who2', style: `color:var(--${colourOf(sp.speaker)})` }, cap(sp.speaker), VOLUME_WORD[sp.volume] ? h('span', { class: 'how' }, VOLUME_WORD[sp.volume]) : null),
