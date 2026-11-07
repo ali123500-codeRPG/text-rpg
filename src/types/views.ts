@@ -1,6 +1,6 @@
 // The six views (Part 2, Game state model). Every builder copies whitelisted fields into a new object.
 // No view holds a gear number, a pool, HP, a roll or a margin.
-import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tier, Grade, Fact } from './core';
+import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tier, TierName, Grade, Fact } from './core';
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
 
@@ -28,7 +28,7 @@ export type EventView = {
   id: string; turn: number; kind: string; zone: string;
   actorId?: string; // only when perceived fully
   target?: string;
-  tier?: Tier; // own view only for full perception
+  tier?: TierName; // own view only for full perception
   level: Perception; cue: Cue;
   where?: string; // partial: zone-link label
   line?: { text: string; volume: Volume };
@@ -111,8 +111,8 @@ export type CombatPacket = {
   target: string;
   action: string; // 'melee attack' | 'aimed melee attack' | 'ranged attack' ...
   weapon: string | null; armor: string | null; shield: string | null;
-  attack: { tier: Tier; natural: 'lucky' | 'fumble' | null; deciding: string[] };
-  defense: { type: 'dodge' | 'block'; tier: Tier; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
+  attack: { tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] };
+  defense: { type: 'dodge' | 'block'; tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
   outcome: string; // missed, dodged, grazed, blocked, full hit, heavy hit, crushing hit
   location: { part: string; how: string } | null;
   changes: string[];
@@ -147,7 +147,7 @@ export type NarrationView = {
 
 // ---------- WeaverView: Agent Weaver ----------
 export type WeaverView = {
-  tier: Tier;
+  tier: TierName;
   stakes: string;
   target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string };
   headlines: string[];

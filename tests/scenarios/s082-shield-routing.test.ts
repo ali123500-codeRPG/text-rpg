@@ -6,7 +6,7 @@ describe('82 Shield routing', () => {
   it('a block with a shield at gap 0 damages the shield pool and not the health track', () => {
     const s = makeVillage();
     place(s, 'player', 'field_mid');
-    // slime 80 + 15 + 10 − 63.5 = 41.5 → Strong; player block (40 + 25 kit): 95 + 32.5 − 63.5 = 64 → Strong
+    // slime 80 + 15 + 10 − 63.5 = 41.5 → Great Success; player block (40 + 25 kit): 95 + 32.5 − 63.5 = 64 → Great Success
     const r = ruleset.attack({ attackerId: 'slime_1', targetId: 'player', weaponId: 'natural:slam', targetPart: null, aimed: false }, s, forcedRng([80, 95]));
     expect(r.defenseType).toBe('block');
     expect(r.gap).toBe(0);

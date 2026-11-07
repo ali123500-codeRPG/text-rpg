@@ -15,7 +15,7 @@ describe('ruleset maths', () => {
     expect(stackType([5, 5, 5, 5])).toBe(8.75); // fourth counts 0
   });
   it('bands margins exactly, .5 included', () => {
-    expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map(band)).toEqual([0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5]);
+    expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map(band)).toEqual([-3, -2, -2, -2, -1, -1, 0, 0, 1, 1, 2]);
   });
   it('substitutes at half efficiency, highest candidate', () => {
     const s = makeVillage();
@@ -113,7 +113,7 @@ describe('ruleset methods', () => {
       { actorId: 'player', skill: 'sight', modifiers: [{ source: 'aim', type: 'aim', value: -40 }], tierShifts: [] },
       { actorId: 'patron_1', skill: 'sight', modifiers: [], tierShifts: [] }, s, forcedRng([50, 90]));
     expect(c.a.modifiers).toEqual([]); // no aim in contests
-    expect(c.gap).toBe(c.b.tierIndex - c.a.tierIndex);
+    expect(c.gap).toBe(c.b.tier - c.a.tier);
     expect(c.winner).toBe('b');
     const before = JSON.stringify(s);
     expect(ruleset.applyEffects(c, s)).toEqual([]);
@@ -132,7 +132,7 @@ describe('ruleset methods', () => {
     const s = makeVillage();
     expect(moraleCheck(s, actor(s, 'slime_1'), forcedRng([1]), 'level')).toBe('steady');
     const p = actor(s, 'patron_1'); // timid 30
-    expect(moraleCheck(s, p, forcedRng([90]), 'bandmate_down')).toBe('steady'); // 90 + 15 − 63.5 → Strong
+    expect(moraleCheck(s, p, forcedRng([90]), 'bandmate_down')).toBe('steady'); // 90 + 15 − 63.5 → Great Success
     expect(moraleCheck(s, p, forcedRng([10]), 'bandmate_down')).toBe('broken'); // −38.5 → Failure
     expect(moraleCheck(s, p, forcedRng([1]), 'bandmate_down')).toBe('surrendered'); // Failure, natural 01 → below Critical Failure
     p.core.condition.hpLostPct = 80;

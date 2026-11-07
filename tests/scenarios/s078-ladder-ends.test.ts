@@ -10,7 +10,7 @@ describe('78 Ladder ends', () => {
     }
     const s = makeVillage();
     place(s, 'player', 'field_mid');
-    // player 100: Strong + 2 = 6; slime dodge 0: 3 − 63.5 → Failure (1), natural −1 → 0. gap −6
+    // player 100: Great Success + 2 = 3; slime dodge 0: 3 − 63.5 → Failure (-2), natural −1 → -3. gap −6
     const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false }, s, forcedRng([100, 3, 50]));
     expect(r.gap).toBe(-6);
     expect(r.multiplier).toBe(2);

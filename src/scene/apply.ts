@@ -1,5 +1,5 @@
 // Applying a stage plan (Scene setup steps 4–8), the fallback stage, opening events.
-import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
+import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { activity, itemDef } from '../library';
 import { spawnNpc } from '../library/spawn';
@@ -96,7 +96,7 @@ function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'],
 }
 
 /** reset scene-scoped records at a scene start (Scenes: Start). */
-export function beginScene(state: GameState, tier: string): void {
+export function beginScene(state: GameState, tier: Tier): void {
   state.stage.tier = tier;
   state.stage.sceneNumber += 1;
   state.stage.sceneStartTurn = state.turn;

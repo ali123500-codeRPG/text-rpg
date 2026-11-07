@@ -32,8 +32,8 @@ const run = (s: GameState, e: GameEvent) => {
   return e;
 };
 const npcViews = (s: GameState, id: string) => [buildActorView(s, id), buildOppositionView(s, id), buildDialogueView(s, id, [{ spoken: 'hello', impression: 'convincing' }])];
-const roll = (tier: string, d100: number, margin: number, natural: RollResult['natural'] = 0): RollResult =>
-  ({ actorId: 'x', skill: 'melee_medium', d100, margin, tierIndex: 3, tier, natural, modifiers: [{ source: 'aim', type: 'aim', value: -20 }], tierShifts: [] });
+const roll = (tier: number, d100: number, margin: number, natural: RollResult['natural'] = 0): RollResult =>
+  ({ actorId: 'x', skill: 'melee_medium', d100, margin, tier, natural, modifiers: [{ source: 'aim', type: 'aim', value: -20 }], tierShifts: [] });
 
 describe('NPC views', () => {
   it('never copy bark events (Leak prevention)', () => {
@@ -127,7 +127,7 @@ describe('NarrationView and the packet', () => {
     const s = makeVillage();
     place(s, 'guard_1', 'tav_common');
     const result: AttackResult = {
-      attack: roll('Strong', 87, 13.5, 1), defense: roll('Success', 42, 7), defenseType: 'block', gap: -1, gapShifts: [],
+      attack: roll(1, 87, 13.5, 1), defense: roll(0, 42, 7), defenseType: 'block', gap: -1, gapShifts: [],
       outcome: 'full_hit', location: 'general', locationHow: 'rolled', multiplier: 0.8, damage: 17,
       deciding: { attack: ['aim'], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', modeId: 'cut',
     };
@@ -136,7 +136,7 @@ describe('NarrationView and the packet', () => {
     const pk = buildCombatPacket(s, e, 'player');
     expect(pk).toEqual({
       event: 'evt_a', actor: 'player', target: 'a village guard', action: 'melee attack', weapon: 'arming sword', armor: 'mail hauberk', shield: null,
-      attack: { tier: 'Strong', natural: 'lucky', deciding: ['aim'] }, defense: { type: 'block', tier: 'Success', natural: null, deciding: [] },
+      attack: { tier: 'Great Success', natural: 'lucky', deciding: ['aim'] }, defense: { type: 'block', tier: 'Success', natural: null, deciding: [] },
       outcome: 'full hit', location: { part: 'torso', how: 'rolled' }, changes: [], events: [],
     });
     expect(JSON.stringify(pk)).not.toMatch(/\d/);

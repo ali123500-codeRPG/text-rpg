@@ -7,7 +7,7 @@ const sword = 'player_arming_sword_1';
 describe('76 Gap ladder', () => {
   it('gap +1 against dodge gives 0.8×', () => {
     const s = makeVillage();
-    // player 50 → Success (3); patron dodge 0: 95 − 63.5 = 31.5 → Strong (4)
+    // player 50 → Success (0); patron dodge 0: 95 − 63.5 = 31.5 → Great Success (1)
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: sword, targetPart: null, aimed: false }, s, forcedRng([50, 95, 80]));
     expect(r.defenseType).toBe('dodge');
     expect(r.gap).toBe(1);

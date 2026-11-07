@@ -178,7 +178,7 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   for (const o of observers) {
     const skill = perception[o.id]?.cue === 'sound' ? 'hearing' : 'sight';
     const p = ruleset.roll({ actorId: o.id, skill, modifiers: [], tierShifts: [], rollKind: 'perception' }, state, rng);
-    const gap = p.tierIndex - ambush.tierIndex; // Part 1 §4 Contests: acting side wins below 0
+    const gap = p.tier - ambush.tier; // Part 1 §4 Contests: acting side wins below 0
     if (o.id === targetId && gap < 0) surprised = true;
     if (gap > 0) {
       updateBeliefs(state, { kind: 'detection', observerId: o.id, aboutId: attackerId, status: 'aware', event: attackEvent });

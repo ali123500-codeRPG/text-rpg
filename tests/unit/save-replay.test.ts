@@ -35,9 +35,9 @@ describe('replayTurn', () => {
     expect(() => replayTurn(s, record, { ...deps, libraryVersion: 2 })).toThrow(ReplayRefused);
   });
   it('a scene start replays through the director', () => {
-    const scene = { ...record, situation: { actorId: 'player', roll: 50, tier: 'Success', modifiers: [] } };
+    const scene = { ...record, situation: { actorId: 'player', roll: 50, tier: 0, modifiers: [] } };
     expect(() => replayTurn(s, scene, deps)).toThrow(/scene director/);
-    const r = replayTurn(s, scene, { ...deps, replaySceneStart: (_st, rec) => [ev(rec.situation!.tier, 'arrival')] });
+    const r = replayTurn(s, scene, { ...deps, replaySceneStart: (_st, rec) => [ev(String(rec.situation!.tier), 'arrival')] });
     expect(r.events.map((e) => e.kind)).toEqual([expect.any(String), 'arrival']);
   });
 });
