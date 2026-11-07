@@ -139,6 +139,16 @@ describe('Parser legality', () => {
     expect(r.clarify).toMatch(/^Who do you mean\?/);
     expect(r.clarify).not.toBe(GENERIC_CLARIFY);
   });
+  it('walking over to someone out of sight moves now and keeps the words for arrival (Q16)', async () => {
+    const { claude, ctx } = setup();
+    const pv = playerView();
+    const to = pv.zone.links[0].to;
+    claude.push('parser', intentOf({ move: { toZone: to }, action: { ...intentOf().action!, type: 'talk', target: 'bren' }, spoken: 'Bren, a word?', addressees: ['bren'] }));
+    const r = await callParser('I walk back to the bar to ask Bren', pv, ctx);
+    expect(r.clarify).toBeNull();
+    expect(r.intent).toMatchObject({ move: { toZone: to }, action: null, spoken: null, addressees: null, deferred: ['Bren, a word?'] });
+    expect(r.run.log.errors).toContain('deferred_to_arrival');
+  });
   it('a speech action\'s skill is set by code, so a made-up one is not an error (P2)', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'intimidate', skill: 'intimidate', target: null } }));
