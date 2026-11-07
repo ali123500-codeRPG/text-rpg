@@ -1,5 +1,6 @@
 // @ts-expect-error Node types are not installed; vitest runs in Node
 import { readFileSync } from 'node:fs';
+import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { describe, expect, it } from 'vitest';
 import { getLibrary, resetLibrary } from '../../src/library';
 import { PERK_WRITEUPS } from '../../src/library/perks';
@@ -14,13 +15,14 @@ describe('perk write-ups (story and rules views)', () => {
     expect(new Set(PERK_WRITEUPS.map((p) => p.id)).size).toBe(PERK_WRITEUPS.length);
     for (const p of PERK_WRITEUPS) expect([p.story, p.rules.trigger, p.rules.effect, p.rules.lasts].every((t) => t.length > 0)).toBe(true);
   });
-  it('the 20 milestone picks are in the library but cannot be taken until built', () => {
+  it('the 20 milestone picks are in the library; only built ones can be taken', () => {
     resetLibrary();
     const twenties = PERK_WRITEUPS.filter((p) => p.place === '20');
     expect(twenties).toHaveLength(17);
     const L = getLibrary().perks;
-    for (const p of twenties) expect(L[p.id]).toMatchObject({ ladder: { skill: p.skill, milestone: 20 }, built: false, story: p.story });
-    const a = { core: { perks: [], skills: { melee_light: 40 } }, progression: { unspentPerkPoints: 1 } } as never;
-    expect(canTake(a, 'hidden_strike')).toBe('not in the game yet');
+    for (const p of twenties) expect(L[p.id]).toMatchObject({ ladder: { skill: p.skill, milestone: 20 }, built: BUILT_PERKS.has(p.id), story: p.story });
+    for (const id of BUILT_PERKS) expect(L[id]).toBeDefined(); // no stale ids
+    const a = { core: { perks: [], skills: { melee_medium: { raw: 40 } } }, progression: { unspentPerkPoints: 1 } } as never;
+    expect(canTake(a, 'turn_the_blade')).toBe('not in the game yet');
   });
 });

@@ -93,6 +93,7 @@ export type AttackResult = {
   weaponId: string;
   modeId: string;
   shieldItemId?: string;
+  shieldMult?: number; // A3 Shield Breaker: the shield pool takes this multiple of the damage
 };
 
 export interface Ruleset {

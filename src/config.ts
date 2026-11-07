@@ -26,6 +26,7 @@ const DEFAULTS = {
   // ---- Part 3 ----
   HP_BASE: 50,
   HP_PER_END: 1,
+  HEALTH_SHOWN_FROM: 'Wounded', // others' health level shows from this level down (Voyage C2)
   HEALTH_TRACK: [
     // [level, max % lost, wounds modifier]
     ['Unhurt', 0, 0], ['Bruised', 15, 0], ['Hurt', 30, -5], ['Injured', 45, -10],

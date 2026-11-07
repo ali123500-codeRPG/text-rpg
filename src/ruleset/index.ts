@@ -10,11 +10,12 @@ import { creatureType, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
+import { hasPerk } from './perks';
 import { blockItem, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
-export { MILESTONES, ALL_STEPS, PERKS_NEEDED, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
+export { MILESTONES, ALL_STEPS, PERKS_NEEDED, hasPerk, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool } from './gear';
 
@@ -164,13 +165,15 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (ranged) {
     if (dist >= 1 && CONFIG.RANGE_MODS[dist]) am.push({ source: 'range', type: 'situational', value: CONFIG.RANGE_MODS[dist] });
     const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && hostile(state, A, o));
-    if (crowded && CONFIG.RANGE_MODS[0]) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
+    if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, 'point_blank')) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
   }
   const lightA = CONFIG.LIGHT_MODS[zoneD?.light ?? 'bright'];
   if (lightA) am.push({ source: 'light', type: 'situational', value: lightA });
   am.push(...(req.context?.attackerMods ?? []));
   const skill = modeSkill(mode);
-  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: [], itemId: req.weaponId, rollKind: 'hit' }, state, rng);
+  // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
+  const atkShifts: TierShift[] = req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : [];
+  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit' }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
 
@@ -251,7 +254,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(location)) dmg = (dmg - a.reduction) * a.multiplier;
   }
   const damage = Math.max(0, dmg); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
-  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(location === 'shield' ? { shieldItemId: blocker!.id } : {}) };
+  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, 'shield_breaker') ? { shieldMult: 2 } : {}) } : {}) };
 }
 
 function applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[] {
@@ -267,7 +270,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     const inst = T.core.inventory.find((i) => i.id === result.shieldItemId);
     if (!inst) return [];
     const before = inst.pools?.shield ?? 100;
-    const after = before - (dmg / itemDef(state, inst.itemId).shield!.pool) * 100;
+    const after = before - ((dmg * (result.shieldMult ?? 1)) / itemDef(state, inst.itemId).shield!.pool) * 100; // A3 Shield Breaker
     inst.pools = { ...inst.pools, shield: after };
     changed('shield', poolState(before), poolState(after), { itemId: inst.id });
     if (poolState(after) === 'Destroyed') T.core.inventory = T.core.inventory.filter((i) => i !== inst); // a Destroyed shield is lost
