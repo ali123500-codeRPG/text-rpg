@@ -63,7 +63,8 @@ Slots bind zones only, never frontiers; every zone an actor's slots bind must be
 A player-band cast entry uses routine set "companion" and binds no slots.
 Limits: at most ${Object.entries(CONFIG.PLAN_CAPS).filter(([k]) => k !== 'knows').map(([k, n]) => `${n} ${k}`).join(', ')}; at most ${CONFIG.PLAN_CAPS.knows} knows per actor;
 at most ${CONFIG.SCENE_CAPS.minted} minted items (rewards whose item is an object) per scene. A minted item's quality is at most
-${Object.entries(CONFIG.GAIN_MAX_QUALITY).map(([g, q]) => `${q} for ${g} gain`).join(', ')}; a minted weapon's boosts is "hitAdj" or "damageAdj".`;
+${Object.entries(CONFIG.GAIN_MAX_QUALITY).map(([g, q]) => `${q} for ${g} gain`).join(', ')}; a minted weapon's boosts is "hitAdj" or "damageAdj".
+A reward that breaks these rules is not refused: code drops it or places it as its plain base item.`;
 
 const fixed = (instr: string, shape: string) => `${instr}\n\nSCHEMA:\n${shape}`;
 /** the whole fixed (leading) user turn per agent */
