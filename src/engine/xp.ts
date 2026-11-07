@@ -2,7 +2,7 @@
 import type { Actor, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, npcTemplate } from '../library';
-import { isActive, opposed } from './relations';
+import { isActive, wary } from './relations';
 import { logCode } from './effects';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
@@ -39,7 +39,7 @@ function levelUp(p: Actor): XpAward['levelUp'] & {} {
   return { classId: pick.classId, level: charLevel(p) };
 }
 
-/** X4/X5: an opposed NPC that is down or surrendered pays once, if the player hit it or it surrendered. */
+/** X4/X5: an opposed or hostile NPC that is down or surrendered pays once, if the player hit it or it surrendered. */
 export function payDefeats(state: GameState, events: GameEvent[]): void {
   for (const e of events) {
     const a = e.attack;
@@ -50,7 +50,7 @@ export function payDefeats(state: GameState, events: GameEvent[]): void {
   }
   for (const t of state.actors) {
     const m = t.mind;
-    if (!m || m.xpPaid || !opposed(state, t, state.player)) continue;
+    if (!m || m.xpPaid || !wary(state, t, state.player)) continue;
     if (isActive(t) ? m.moraleState !== 'surrendered' : !m.hitByPlayer) continue; // fled or untouched: nothing
     m.xpPaid = true;
     awardXp(state, killXp(state, t), `defeat:${t.id}`);
