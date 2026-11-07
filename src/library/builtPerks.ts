@@ -7,4 +7,8 @@ export const BUILT_PERKS = new Set<string>([
   'iron_frame', // A12: src/ruleset/body.ts rolePenalty()
   'read_wounds', // A13: src/views/index.ts
   'keen_ear', // A14: src/perception/index.ts
+  'turn_the_blade', // A2: src/engine/perkMarks.ts
+  'hunters_mark', // A5: src/engine/perkMarks.ts
+  'make_them_stumble', // A10: src/engine/perkMarks.ts
+  'cover_ally', // A11: src/engine/perkMarks.ts coverFor(), switch on the Perks card
 ]);
