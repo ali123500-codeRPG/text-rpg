@@ -40,9 +40,25 @@ export function levelsToKeys(v: unknown): void {
   Object.values(o).forEach(levelsToKeys);
 }
 
+// v3 -> v4 (Ali, 07/11/2026): humanoids have a left and a right leg instead of one "legs" part. Both legs start from
+// the old pool; armor that covered "legs" covers both. Only humanoids had a part named "legs".
+export function splitLegs(v: unknown): void {
+  if (Array.isArray(v)) return v.forEach(splitLegs);
+  if (!v || typeof v !== 'object') return;
+  const o = v as Record<string, unknown>;
+  const parts = (o.condition as { parts?: Record<string, number> } | undefined)?.parts;
+  if (o.creatureTypeId === 'humanoid' && parts && 'legs' in parts) {
+    parts.left_leg = parts.right_leg = parts.legs;
+    delete parts.legs;
+  }
+  if (Array.isArray(o.covers) && o.covers.includes('legs')) o.covers = o.covers.flatMap((c) => (c === 'legs' ? ['left_leg', 'right_leg'] : [c]));
+  Object.values(o).forEach(splitLegs);
+}
+
 export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
   2: (pages) => Object.values(pages).forEach(levelsToKeys),
+  3: (pages) => Object.values(pages).forEach(splitLegs),
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */

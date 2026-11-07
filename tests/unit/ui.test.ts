@@ -87,3 +87,14 @@ describe('Journal page (U9)', async () => {
     expect(journalPlaces(s).find((p) => p.id === other.id)?.facts).toEqual(['The well is dry.']);
   });
 });
+
+import { CREATURES } from '../../src/library/data';
+describe('body figure data', () => {
+  it('a figure draws every part of its body type and the general area, and nothing else', () => {
+    for (const ct of Object.values(CREATURES)) {
+      if (!ct.figure) continue;
+      expect(Object.keys(ct.figure.parts).sort()).toEqual([...ct.parts.map((p) => p.id), 'general'].sort());
+    }
+    expect(CREATURES.humanoid.figure).toBeTruthy();
+  });
+});
