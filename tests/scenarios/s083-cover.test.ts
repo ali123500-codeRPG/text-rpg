@@ -12,7 +12,7 @@ describe('83 Cover', () => {
     s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'bow', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50]));
     expect(r.gapShifts).toEqual([{ source: 'cover', value: 2 }]);
-    expect(r.gap).toBe(r.defense!.tierIndex - r.attack.tierIndex + 2);
+    expect(r.gap).toBe(r.defense!.tier - r.attack.tier + 2);
     // a melee attack takes no cover
     place(s, 'player', 'field_mid');
     s.player.core.inventory = s.player.core.inventory.filter((i) => i.id !== 'bow');

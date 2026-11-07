@@ -3,6 +3,7 @@
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
 import type { Intent, NarratorOutput, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GRADES } from '../types';
+import { TACTICS_NAMES } from '../config';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -115,6 +116,7 @@ const narrator = obj<NarratorOutput>({
 });
 
 const GRADE = oneOf(GRADES);
+const TACTICS_LEVEL = Object.fromEntries(Object.entries(TACTICS_NAMES).map(([lvl, w]) => [w, +lvl]));
 const STANCE_WORD = oneOf(['opposed', 'neutral', 'friendly'] as const);
 const BELIEF_WORD = oneOf(['unaware', 'suspicious', 'aware'] as const);
 type Cast = StagePlan['cast'][number];
@@ -128,7 +130,10 @@ const weaver = obj<StagePlan>({
   })),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
   bands: arr(obj<StagePlan['bands'][number]>({
-    key: str, name: str, goals: str, temperament: str, tacticsLevel: oneOf([1, 2, 3] as const),
+    key: str, name: str, goals: str, temperament: str,
+    // the Weaver writes the tactics word; code keeps the level (V2)
+    tacticsLevel: (v, p, e) => (typeof v === 'string' && TACTICS_LEVEL[v] ? TACTICS_LEVEL[v] as 1 | 2 | 3
+      : [1, 2, 3].includes(v as number) ? v as 1 | 2 | 3 : (e.push(`${p}: expected one of ${Object.values(TACTICS_NAMES).join(', ')}`), 1)),
     lethal: (v, p, e) => (v === undefined || v === null ? true : bool(v, p, e)),
     relations: (v, p, e) => (v === undefined || v === null ? {} : record(STANCE_WORD)(v, p, e)),
   })),

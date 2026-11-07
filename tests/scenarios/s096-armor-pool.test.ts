@@ -8,7 +8,7 @@ describe('96 Armor pool', () => {
     const g = place(s, 'guard_1', 'tav_common');
     g.core.inventory = g.core.inventory.filter((i) => i.itemId !== 'mail_hauberk');
     g.core.inventory.push({ id: 'plate', itemId: 'plate_harness', equippedIn: ['armor'], pools: { head: 100 } });
-    // aimed head: 100 → Strong + 2 = 6; guard block 10 + 15 − 63.5 → Failure (1): gap −5, 2×
+    // aimed head: 100 → Great Success + 2 = 3; guard block 10 + 15 − 63.5 → Failure (-2): gap −5, 2×
     const r = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', targetPart: 'head', aimed: true }, s, forcedRng([100, 10]));
     expect(r.location).toBe('head');
     expect(r.damage).toBeCloseTo((50 - 6) * 0.55, 9); // 24.2, not rounded (OQ-25)

@@ -1,4 +1,5 @@
 // Per-turn data (the second user turn) for each agent. Built only from the view handed in, never from GameState.
+import { TACTICS_NAMES } from '../config';
 import type { DialogueInput, DialogueView, NarrationView, OppositionView, PlayerView, WeaverView } from '../types';
 
 const block = (name: string, v: unknown) => `${name}:\n${typeof v === 'string' ? v : JSON.stringify(v)}`;
@@ -8,11 +9,11 @@ export function formatPlayerView(text: string, view: PlayerView): string {
   return join(block('PLAYER_INPUT', text), block('PLAYER_VIEW', view));
 }
 
-/** CHARACTER: who the actor is (name, role, band, band goals, temperament, tactics level), from its own view */
+/** CHARACTER: who the actor is (name, role, band, band goals, temperament, tactics word), from its own view */
 function character(view: OppositionView | DialogueView) {
   return {
     id: view.self.id, name: view.self.name, role: view.self.label,
-    band: view.band.name, bandGoals: view.band.goals, temperament: view.band.temperament, tacticsLevel: view.band.tacticsLevel,
+    band: view.band.name, bandGoals: view.band.goals, temperament: view.band.temperament, tactics: TACTICS_NAMES[view.band.tacticsLevel],
   };
 }
 

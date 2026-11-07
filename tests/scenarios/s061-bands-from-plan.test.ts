@@ -30,7 +30,7 @@ export function smugglerPlan(): StagePlan {
 describe('61 Bands from the plan', () => {
   it('creates the band, beliefs per member and a personal stance', () => {
     const s = toStoryStart(makeVillage());
-    const ctx: PlanContext = { tier: 'Success', kind: 'scene', placeId: 'tavern' };
+    const ctx: PlanContext = { tier: 0, kind: 'scene', placeId: 'tavern' };
     const p = smugglerPlan();
     expect(validateStagePlan(s, p, ctx)).toEqual([]);
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));

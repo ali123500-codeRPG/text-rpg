@@ -4,7 +4,7 @@ import type {
   Actor, AttackRequest, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
   PartState, Rng, RollRequest, RollResult, Ruleset, SituationResult, Tier, TierShift,
 } from '../types';
-import { CONFIG, TIER_NAMES } from '../config';
+import { CONFIG, TIER_MAX, TIER_MIN, TIER_NAMES } from '../config';
 import { creatureType, itemDef } from '../library';
 import { actorById, isActive, opposed, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
@@ -13,13 +13,18 @@ import { blockItem, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, r
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool } from './gear';
 
-export const TIERS: readonly Tier[] = [...TIER_NAMES].reverse(); // best to worst
-/** 0 = Critical Failure … 5 = Critical Success */
-export function tierIndexOf(tier: Tier): number {
-  return TIER_NAMES.indexOf(tier as (typeof TIER_NAMES)[number]);
+/** tier IDs, best to worst */
+export const TIERS: readonly Tier[] = [2, 1, 0, -1, -2, -3];
+const clampTier = (id: number): Tier => Math.max(TIER_MIN, Math.min(TIER_MAX, id));
+/** tier ID of a display name (for text from Claude or an old save); undefined if unknown */
+export function tierIdOf(name: string): Tier | undefined {
+  const k = Object.keys(TIER_NAMES).find((id) => TIER_NAMES[+id] === name);
+  return k === undefined ? undefined : +k;
 }
-export function tierName(index: number): Tier {
-  return TIER_NAMES[Math.max(0, Math.min(5, index))];
+/** display name of a tier ID; an ID past either end shows the nearest name with one + or − per step past it (Ali, 07/11/2026) */
+export function tierName(id: number): string {
+  const past = id - clampTier(id);
+  return TIER_NAMES[clampTier(id)] + (past > 0 ? '+'.repeat(past) : '−'.repeat(-past));
 }
 
 /** Stacking within one modifier type (Part 1 §4). */
@@ -37,7 +42,7 @@ export function modTotal(mods: { type: string; value: number }[]): number {
 
 /** Layer 2b margin bands */
 export function band(margin: number): number {
-  return margin >= 75 ? 5 : margin >= 25 ? 4 : margin >= 0 ? 3 : margin >= -25 ? 2 : margin >= -75 ? 1 : 0;
+  return margin >= 75 ? 2 : margin >= 25 ? 1 : margin >= 0 ? 0 : margin >= -25 ? -1 : margin >= -75 ? -2 : -3;
 }
 export function naturalEdge(d: number): -2 | -1 | 0 | 1 | 2 {
   return d === 1 ? -2 : d <= 5 ? -1 : d === 100 ? 2 : d >= 96 ? 1 : 0;
@@ -72,11 +77,11 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
   const out: string[] = [];
   if (r.natural) out.push(r.natural > 0 ? 'lucky' : 'fumble');
   r.modifiers.forEach((m, i) => {
-    if (tierOf(r.d100, skill, r.modifiers.filter((_, j) => j !== i), r.tierShifts) !== r.tierIndex) out.push(m.source);
+    if (tierOf(r.d100, skill, r.modifiers.filter((_, j) => j !== i), r.tierShifts) !== r.tier) out.push(m.source);
   });
-  for (const g of gear) if (tierOf(r.d100, skill - g.value, r.modifiers, r.tierShifts) !== r.tierIndex) out.push(g.source);
+  for (const g of gear) if (tierOf(r.d100, skill - g.value, r.modifiers, r.tierShifts) !== r.tier) out.push(g.source);
   r.tierShifts.forEach((s, i) => {
-    if (tierOf(r.d100, skill, r.modifiers, r.tierShifts.filter((_, j) => j !== i)) !== r.tierIndex) out.push(s.source);
+    if (tierOf(r.d100, skill, r.modifiers, r.tierShifts.filter((_, j) => j !== i)) !== r.tier) out.push(s.source);
   });
   return out;
 }
@@ -91,8 +96,8 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   }
   const d = rng.d100();
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
-  const tierIndex = band(margin) + naturalEdge(d) + sumShifts(req.tierShifts);
-  return { actorId: actor.id, skill: eff.skill, d100: d, margin, tierIndex, tier: tierName(tierIndex), natural: naturalEdge(d), modifiers, tierShifts: [...req.tierShifts] };
+  const tier = band(margin) + naturalEdge(d) + sumShifts(req.tierShifts); // unclamped (Part 1 §4)
+  return { actorId: actor.id, skill: eff.skill, d100: d, margin, tier, natural: naturalEdge(d), modifiers, tierShifts: [...req.tierShifts] };
 }
 
 function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
@@ -108,7 +113,7 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
   const noAim = (r: RollRequest) => ({ ...r, modifiers: r.modifiers.filter((m) => m.type !== 'aim') });
   const ra = ruleset.roll(noAim(a), state, rng);
   const rb = ruleset.roll(noAim(b), state, rng);
-  const gap = rb.tierIndex - ra.tierIndex;
+  const gap = rb.tier - ra.tier;
   return { a: ra, b: rb, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
 }
 
@@ -118,8 +123,8 @@ function situation(actor: Actor, state: GameState, rng: Rng): SituationResult {
   const modifiers = situationMods(state, actor);
   const d = rng.d100();
   const margin = d + CONFIG.SITUATION_BASE + modTotal(modifiers) - 100;
-  const idx = Math.max(0, Math.min(5, SITUATION_BANDS.filter((t) => margin >= t).length + naturalEdge(d)));
-  return { actorId: actor.id, roll: d, tier: tierName(idx), tierIndex: idx, modifiers };
+  const tier = clampTier(SITUATION_BANDS.filter((t) => margin >= t).length + TIER_MIN + naturalEdge(d));
+  return { actorId: actor.id, roll: d, tier, modifiers };
 }
 
 function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
@@ -158,7 +163,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     attack: atk, defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
     multiplier: 0, damage: 0, attackerId: A.id, targetId: D.id, weaponId: req.weaponId, modeId: mode.id,
   };
-  if (atk.tierIndex <= 1) return { ...base, outcome: 'missed', deciding: { attack: atkDeciding, defense: [], gap: [] } };
+  if (atk.tier <= -2) return { ...base, outcome: 'missed', deciding: { attack: atkDeciding, defense: [], gap: [] } };
 
   // 3. defense roll with the standing defense
   let type: 'dodge' | 'block' = D.core.standingDefense;
@@ -179,7 +184,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const gapShifts: TierShift[] = [];
   if (mode.class === 'heavy' && type === 'block') gapShifts.push({ source: 'heavy vs block', value: CONFIG.HEAVY_VS_BLOCK_GAP });
   if (ranged && zoneD && CONFIG.COVER_GAP[zoneD.cover]) gapShifts.push({ source: 'cover', value: CONFIG.COVER_GAP[zoneD.cover] });
-  const gap = def.tierIndex - atk.tierIndex + sumShifts(gapShifts);
+  const gap = def.tier - atk.tier + sumShifts(gapShifts);
   const g = Math.max(-5, Math.min(5, gap));
   const multiplier = ladder(type, g);
   const shield = !!(blocker && itemDef(state, blocker.itemId).shield);
@@ -321,6 +326,6 @@ export function moraleCheck(state: GameState, actor: Actor, rng: Rng, reason: 'l
   if (healthLevel(actor) === 'Critical') return 'broken';
   const d = rng.d100();
   const morale = actor.mind.morale ?? CONFIG.MORALE_DEFAULT;
-  const idx = tierOf(d, morale, woundsMods(state, actor, 'morale'), []);
-  return idx <= 0 ? 'surrendered' : idx <= 1 ? 'broken' : 'steady';
+  const tier = tierOf(d, morale, woundsMods(state, actor, 'morale'), []);
+  return tier <= -3 ? 'surrendered' : tier <= -2 ? 'broken' : 'steady';
 }

@@ -15,7 +15,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
 import { equipLoadout, fullParts } from '../library/spawn';
-import { defaultStandingDefense, healthLevel } from '../ruleset';
+import { defaultStandingDefense, healthLevel, tierName } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
@@ -580,12 +580,12 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     if (e.actorId !== 'player' && !e.perception.player) continue;
     if (e.attack) {
       const a = e.attack;
-      const def = a.defense ? `; ${a.defenseType} d100 ${a.defense.d100} → ${a.defense.tier}${mods(a.defense.modifiers)}` : '';
-      out.push(`${label(a.attackerId)} → ${label(a.targetId)}: ${a.attack.skill} d100 ${a.attack.d100} → ${a.attack.tier}${mods(a.attack.modifiers)}${def}` +
+      const def = a.defense ? `; ${a.defenseType} d100 ${a.defense.d100} → ${tierName(a.defense.tier)}${mods(a.defense.modifiers)}` : '';
+      out.push(`${label(a.attackerId)} → ${label(a.targetId)}: ${a.attack.skill} d100 ${a.attack.d100} → ${tierName(a.attack.tier)}${mods(a.attack.modifiers)}${def}` +
         `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${a.outcome.replace(/_/g, ' ')}${a.location ? ` (${a.location})` : ''}${a.damage ? `, damage ${a.damage}` : ''}`);
     } else if (e.contest) {
       const c = e.contest;
-      out.push(`${label(c.a.actorId)} ${c.a.skill} d100 ${c.a.d100} → ${c.a.tier} vs ${label(c.b.actorId)} d100 ${c.b.d100} → ${c.b.tier}: ${c.winner}`);
+      out.push(`${label(c.a.actorId)} ${c.a.skill} d100 ${c.a.d100} → ${tierName(c.a.tier)} vs ${label(c.b.actorId)} d100 ${c.b.d100} → ${tierName(c.b.tier)}: ${c.winner}`);
     } else if (e.check) {
       out.push(`${label(e.check.actorId)} ${e.check.skill} vs ${e.check.target}: ${e.check.passed ? 'passed' : 'failed'}${mods(e.check.modifiers)}`);
     }
@@ -647,7 +647,7 @@ function newState(storyId: string, seed: number, player: Actor, createdAt: strin
     hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: seed, rngState: seed,
     pending: { turn: 0, mode: 'explore', engaged: [], fired: [] },
-    places: [], facts: [], stage: { zoneIds: [], tier: '', sceneNumber: 0, sceneStartTurn: 0 },
+    places: [], facts: [], stage: { zoneIds: [], tier: 0, sceneNumber: 0, sceneStartTurn: 0 },
     sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [], settings,
     libraryVersion: getLibrary().version, blueprints: [],
     meta: { storyId, title: CONFIG.STORY_PREMISE, schemaVersion: CONFIG.SCHEMA_VERSION, createdAt, settings },

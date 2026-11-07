@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
-import { ruleset, tierIndexOf } from '../../src/ruleset';
+import { ruleset } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
 
 describe('37 Natural edge', () => {
@@ -10,11 +10,11 @@ describe('37 Natural edge', () => {
     s.player.core.perks.push({ perkId: 'blessed', source: 'level', gainedTurn: 0 });
     const six = ruleset.situation(s.player, s, forcedRng([6])); // total 66: Success, no edge
     const one = ruleset.situation(s.player, s, forcedRng([1])); // total 61: Success band, then −2
-    expect(six.tier).toBe('Success');
-    expect(tierIndexOf(one.tier)).toBe(tierIndexOf('Success') - 2);
-    expect(one.tier).toBe('Failure');
+    expect(six.tier).toBe(0);
+    expect(one.tier).toBe(0 - 2);
+    expect(one.tier).toBe(-2);
     // clamped at the ends (situation roll only)
     s.player.core.perks = [];
-    expect(ruleset.situation(s.player, s, forcedRng([1])).tier).toBe('Critical Failure');
+    expect(ruleset.situation(s.player, s, forcedRng([1])).tier).toBe(-3);
   });
 });

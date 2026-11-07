@@ -7,7 +7,7 @@ import { buildNarrationView } from '../../src/views';
 
 it('40 Nothing hidden in the opening', () => {
   const s = makeVillage();
-  s.stage.tier = 'Strong';
+  s.stage.tier = 1;
   s.hidden.stage = { eventSummary: 'SUMMARY smugglers meet tonight', challenge: 'major', gain: 'extreme', hiddenTerms: ['smugglers'] };
   s.hidden.weaverNote = 'NOTE the barkeep is the fence';
   updateBeliefs(s, { kind: 'opening', observerId: 'patron_1', aboutId: 'player', status: 'suspicious', zone: 'tav_common' });
@@ -22,6 +22,6 @@ it('40 Nothing hidden in the opening', () => {
   const v = buildNarrationView(s, events, null);
   expect(v.events.map((e) => [e.id, e.level, e.activityLook])).toEqual([['arr', 'full', undefined], ['p1', 'full', 'nursing a drink'], ['p2', 'full', 'tending the counter']]);
   const text = JSON.stringify(v);
-  for (const w of ['Strong', 'major', 'extreme', 'moderate', 'SUMMARY', 'smugglers', 'NOTE', 'fence', 'suspicious', 'aware', 'tier', 'grade', 'attention', 'distracted'])
+  for (const w of ['Great Success', 'major', 'extreme', 'moderate', 'SUMMARY', 'smugglers', 'NOTE', 'fence', 'suspicious', 'aware', 'tier', 'grade', 'attention', 'distracted'])
     expect(text).not.toContain(w);
 });

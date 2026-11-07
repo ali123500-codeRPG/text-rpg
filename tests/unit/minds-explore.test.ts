@@ -18,7 +18,7 @@ vi.mock('../../src/ruleset', async (orig) => {
     usableModes: () => [],
     defaultMode: () => ({ itemId: 'player_arming_sword_1', mode: { id: 'cut', tree: 'melee', class: 'medium', reach: 0, hands: 1 } }),
     modeSkill: () => 'melee_medium',
-    ruleset: { ...real.ruleset, roll: vi.fn((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, tierIndex: tiers[req.actorId] ?? 2 })) },
+    ruleset: { ...real.ruleset, roll: vi.fn((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, tier: tiers[req.actorId] ?? -1 })) },
   };
 });
 
@@ -61,14 +61,14 @@ describe('detectPlayer', () => {
 describe('resolveAmbush', () => {
   it('player beats the target: surprise, nothing changes', () => {
     const s = makeVillage();
-    tiers.player = 4; tiers.guard_1 = 2;
+    tiers.player = 1; tiers.guard_1 = -1;
     expect(resolveAmbush(s, 'player', 'guard_1', ev({ guard_1: { level: 'full', cue: 'sight' } }, 'guard_1'), createRng(1))).toEqual({ surprised: true });
     expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual(['melee_medium', 'sight']);
     expect(actor(s, 'guard_1').mind!.knowledge.player).toBeUndefined();
   });
   it('target wins: aware and onAlert due; a witness wins too', () => {
     const s = makeVillage();
-    tiers.player = 2; tiers.guard_1 = 3; tiers.trader = 4;
+    tiers.player = -1; tiers.guard_1 = 0; tiers.trader = 1;
     const r = resolveAmbush(s, 'player', 'guard_1', ev({ guard_1: { level: 'full', cue: 'sight' }, trader: { level: 'partial', cue: 'sound' } }, 'guard_1'), createRng(1));
     expect(r.surprised).toBe(false);
     expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual(['melee_medium', 'sight', 'hearing']);
@@ -78,7 +78,7 @@ describe('resolveAmbush', () => {
   });
   it('tie: not surprised, stays unaware', () => {
     const s = makeVillage();
-    tiers.player = 2; tiers.guard_1 = 2;
+    tiers.player = -1; tiers.guard_1 = -1;
     expect(resolveAmbush(s, 'player', 'guard_1', ev({}, 'guard_1'), createRng(1)).surprised).toBe(false);
     expect(actor(s, 'guard_1').mind!.knowledge.player).toBeUndefined();
   });

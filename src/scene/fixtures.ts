@@ -3,20 +3,20 @@
 import type { Clock, GameState, Grade, StagePlan, Tier } from '../types';
 
 /** a challenge/gain pair that fits each tier (Agent Weaver: grades table) */
-export const FITTING_GRADES: Record<string, { challenge: Grade; gain: Grade }> = {
-  'Critical Failure': { challenge: 'major', gain: 'minor' },
-  Failure: { challenge: 'moderate', gain: 'minor' },
-  Partial: { challenge: 'moderate', gain: 'moderate' },
-  Success: { challenge: 'moderate', gain: 'moderate' },
-  Strong: { challenge: 'major', gain: 'major' },
-  'Critical Success': { challenge: 'extreme', gain: 'extreme' },
+export const FITTING_GRADES: Record<number, { challenge: Grade; gain: Grade }> = { // keyed by tier ID
+  [-3]: { challenge: 'major', gain: 'minor' },
+  [-2]: { challenge: 'moderate', gain: 'minor' },
+  [-1]: { challenge: 'moderate', gain: 'moderate' },
+  0: { challenge: 'moderate', gain: 'moderate' },
+  1: { challenge: 'major', gain: 'major' },
+  2: { challenge: 'extreme', gain: 'extreme' },
 };
 
 /** Story start: Brookmere's tavern, the street and gate, the slime field, a frontier into the woods. */
-export function villageStagePlan(tier: Tier = 'Success'): StagePlan {
+export function villageStagePlan(tier: Tier = 0): StagePlan {
   const L = (to: string, label: string, sight = true) => ({ to, label, sight });
   return {
-    event: { summary: 'slimes from a nest in the woods have started raiding the field', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.Success) },
+    event: { summary: 'slimes from a nest in the woods have started raiding the field', ...(FITTING_GRADES[tier] ?? FITTING_GRADES[0]) },
     places: [
       { key: 'village', name: 'Brookmere', kind: 'settlement', parent: '' },
       { key: 'tavern', name: 'The Crooked Kettle', kind: 'place', parent: 'village' },
@@ -67,10 +67,10 @@ export function villageStagePlan(tier: Tier = 'Success'): StagePlan {
 }
 
 /** A one-zone extension for the 'woods' frontier off the village field (entry zone 'grove'). */
-export function grovePlan(tier: Tier = 'Success'): StagePlan {
+export function grovePlan(tier: Tier = 0): StagePlan {
   return {
     ...villageStagePlan(tier), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
-    event: { summary: 'a quiet grove', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.Success) },
+    event: { summary: 'a quiet grove', ...(FITTING_GRADES[tier] ?? FITTING_GRADES[0]) },
     zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove of birches', cover: 1, light: 1, links: [{ to: 'field_far', label: 'back to the field', sight: true }] }],
   };
 }
@@ -82,7 +82,7 @@ export function toStoryStart(state: GameState, placeId = 'tavern'): GameState {
   state.zones = [];
   state.actors = [];
   state.bands = state.bands.filter((b) => b.id === state.player.bandId).map((b) => ({ ...b, relations: {} }));
-  state.stage = { zoneIds: [], tier: '', sceneNumber: 0, sceneStartTurn: 0 };
+  state.stage = { zoneIds: [], tier: 0, sceneNumber: 0, sceneStartTurn: 0 };
   state.hidden = { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } };
   state.player.zone = '';
   state.player.placeId = placeId;

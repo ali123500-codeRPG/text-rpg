@@ -5,7 +5,7 @@ import { ruleset } from '../../src/ruleset';
 describe('81 Forbidden part', () => {
   it('an aimed head attack against a dodge tie lands in the general area', () => {
     const s = makeVillage();
-    // player 90 + 37.5 − 30 (aim, small) − 63.5 = 34 → Strong; patron 90 − 63.5 = 26.5 → Strong
+    // player 90 + 37.5 − 30 (aim, small) − 63.5 = 34 → Great Success; patron 90 − 63.5 = 26.5 → Great Success
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'player_arming_sword_1', targetPart: 'head', aimed: true }, s, forcedRng([90, 90]));
     expect(r.attack.modifiers).toContainEqual({ source: 'aim: head', type: 'aim', value: -30 });
     expect(r.defenseType).toBe('dodge');

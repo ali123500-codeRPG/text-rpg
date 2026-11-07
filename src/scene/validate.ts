@@ -1,7 +1,8 @@
 // Stage-plan validation (Part 2, Agent Weaver: Validation) and the grades table.
 import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
 import { GRADES } from '../types';
-import { CONFIG } from '../config';
+import { CONFIG, TIER_MAX, TIER_MIN } from '../config';
+import { tierName } from '../ruleset';
 import { creatureType, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
 
@@ -16,12 +17,12 @@ export function gradesFitTier(tier: Tier, challenge: Grade, gain: Grade): boolea
   const c = g(challenge), n = g(gain);
   if (c < 0 || n < 0) return false;
   switch (tier) {
-    case 'Critical Failure': return c >= g('major') && n <= g('minor');
-    case 'Failure': return c >= g('moderate') && n <= g('minor');
-    case 'Partial':
-    case 'Success': return c >= g('minor') && c <= g('major') && Math.abs(n - c) <= 1;
-    case 'Strong': return c >= g('major') && gain === 'major';
-    case 'Critical Success': return challenge === 'extreme' && gain === 'extreme';
+    case -3: return c >= g('major') && n <= g('minor');
+    case -2: return c >= g('moderate') && n <= g('minor');
+    case -1:
+    case 0: return c >= g('minor') && c <= g('major') && Math.abs(n - c) <= 1;
+    case 1: return c >= g('major') && gain === 'major';
+    case 2: return challenge === 'extreme' && gain === 'extreme';
     default: return false;
   }
 }
@@ -83,7 +84,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   const ev = plan.event;
   if (!ev || !GRADES.includes(ev.challenge) || !GRADES.includes(ev.gain)) err('bad_grade', 'event needs challenge and gain grades');
   else if (!gradesFitTier(ctx.tier, ev.challenge, ev.gain))
-    err('grades_misfit', `challenge ${ev.challenge} / gain ${ev.gain} does not fit tier ${ctx.tier}`);
+    err('grades_misfit', `challenge ${ev.challenge} / gain ${ev.gain} does not fit tier ${tierName(ctx.tier)}`);
 
   // ---- text: caps for every free-text field; public fields scanned for hidden and leak terms ----
   const terms = [...arr(plan.hiddenTerms), ...secrets.flatMap((s) => arr(s.leakTerms))].filter((t) => typeof t === 'string' && t.trim());
@@ -247,6 +248,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     const r = s.revealWhen;
     if (r?.type === 'event_in_zone' && !isZone(r.zone)) err('bad_secret', `secret ${s.id}: zone ${r.zone} unknown`);
     else if (r?.type === 'check_passed' && !isActor(r.againstActorId)) err('bad_secret', `secret ${s.id}: actor ${r.againstActorId} unknown`);
+    else if (r?.type === 'check_passed' && !(Number.isInteger(r.minTier) && r.minTier >= TIER_MIN && r.minTier <= TIER_MAX)) err('bad_secret', `secret ${s.id}: minTier must be a tier ID from ${TIER_MIN} to ${TIER_MAX}`);
     else if (r?.type !== 'event_in_zone' && r?.type !== 'check_passed') err('bad_secret', `secret ${s.id}: revealWhen unknown`);
   }
 

@@ -111,12 +111,12 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     rngSeed: seed, rngState: seed,
     pending: { turn: 1, mode: 'explore', engaged: [], fired: [] },
     places, facts: [],
-    stage: { zoneIds, tier: 'Success', sceneNumber: 1, sceneStartTurn: 0 },
+    stage: { zoneIds, tier: 0, sceneNumber: 1, sceneStartTurn: 0 },
     sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [],
     settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,
     blueprints: [],
-    meta: { storyId, title: 'Test story', schemaVersion: 1, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
+    meta: { storyId, title: 'Test story', schemaVersion: 2, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
   };
   return state;
 }

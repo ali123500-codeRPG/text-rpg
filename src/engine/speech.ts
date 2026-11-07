@@ -1,8 +1,9 @@
 // Dialogue turns: spokespeople, the player's speech check, impressions (Dialogue input table), SLIPS.
-import type { Actor, ContestResult, GameState, Intent, Rng, RollResult, Secret } from '../types';
+import type { Actor, ContestResult, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { ruleset, tierIndexOf } from '../ruleset';
+import { ruleset } from '../ruleset';
+import { TIER_MAX, TIER_MIN } from '../config';
 import { isActive, shortestPath } from './relations';
 import type { ExchangeSpeech } from './types';
 
@@ -10,17 +11,17 @@ export const SPEECH_SKILL: Record<string, string> = {
   talk: 'persuasion', persuade: 'persuasion', deceive: 'persuasion', intimidate: 'intimidation', barter: 'barter',
 };
 
-// Dialogue input table (wording is a placeholder). Keyed by the six tier names.
-const CONVINCING: Record<string, string> = {
-  'Critical Failure': 'insulting, plainly false', Failure: 'unconvincing', Partial: 'doubtful but possible',
-  Success: 'convincing', Strong: 'very convincing', 'Critical Success': 'completely convincing',
+// Dialogue input table (wording is a placeholder). Keyed by tier ID; an ID past either end uses the end's words.
+const CONVINCING: Record<number, string> = {
+  [-3]: 'insulting, plainly false', [-2]: 'unconvincing', [-1]: 'doubtful but possible',
+  0: 'convincing', 1: 'very convincing', 2: 'completely convincing',
 };
-const THREATENING: Record<string, string> = {
-  'Critical Failure': 'laughable', Failure: 'unimpressive', Partial: 'unsettling',
-  Success: 'threatening', Strong: 'frightening', 'Critical Success': 'terrifying',
+const THREATENING: Record<number, string> = {
+  [-3]: 'laughable', [-2]: 'unimpressive', [-1]: 'unsettling',
+  0: 'threatening', 1: 'frightening', 2: 'terrifying',
 };
-export function impressionWords(actionType: string, tier: string): string {
-  return (actionType === 'intimidate' ? THREATENING : CONVINCING)[tier];
+export function impressionWords(actionType: string, tier: Tier): string {
+  return (actionType === 'intimidate' ? THREATENING : CONVINCING)[Math.max(TIER_MIN, Math.min(TIER_MAX, tier))];
 }
 
 export function isSpeech(type: string | undefined | null): boolean {
@@ -86,7 +87,7 @@ export function unclearAddressee(state: GameState, intent: Intent, seen: string[
 function meetsReveal(s: Secret, sp: string, skills: string[], contest: ContestResult): boolean {
   const w = s.revealWhen;
   return w.type === 'check_passed' && w.againstActorId === sp && skills.includes(w.skill) &&
-    contest.winner === 'a' && contest.a.tierIndex >= tierIndexOf(w.minTier);
+    contest.winner === 'a' && contest.a.tier >= w.minTier;
 }
 
 /** check_passed secrets of `sp` that this speech contest meets [Proposed]. GAP: "meets" = the player wins the contest with that skill at minTier or better. */
@@ -104,7 +105,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   const perSpokesperson: ExchangeSpeech['perSpokesperson'] = {};
   for (const sp of spokespeople) {
     const b = ruleset.roll(req(sp), state, rng);
-    const gap = b.tierIndex - a.tierIndex;
+    const gap = b.tier - a.tier;
     const contest: ContestResult = { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
     perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, [named, a.skill], contest) };
   }

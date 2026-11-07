@@ -10,8 +10,11 @@ export type Turn = number;
 export type Grade = 'none' | 'minor' | 'moderate' | 'major' | 'extreme'; // [Proposed] scale
 export const GRADES: readonly Grade[] = ['none', 'minor', 'moderate', 'major', 'extreme'];
 
-// ruleset exports TIERS ordered best to worst; tierIndex 0 = Critical Failure … 5 = Critical Success
-export type Tier = string;
+// A tier is its ID: −3 Critical Failure, −2 Failure, −1 Near Miss, 0 Success, 1 Great Success, 2 Critical Success.
+// Shifted roll tiers are not clamped, so an ID can fall outside −3..2. Names live only in config TIER_NAMES (tierName).
+export type Tier = number;
+/** a tier's display name, only in text for people and for Claude */
+export type TierName = string;
 
 export type Mode = 'explore' | 'dialogue' | 'tactical';
 export type Perception = 'full' | 'partial';
