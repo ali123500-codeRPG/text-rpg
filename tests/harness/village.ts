@@ -116,7 +116,7 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,
     blueprints: [],
-    meta: { storyId, title: 'Test story', schemaVersion: 3, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
+    meta: { storyId, title: 'Test story', schemaVersion: 4, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
   };
   return state;
 }

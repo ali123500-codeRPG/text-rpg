@@ -54,7 +54,7 @@ describe('body', () => {
   it('builds the spec hit tables and rebuilds without a Destroyed part', () => {
     const s = makeVillage();
     const ranges = (a: Actor) => hitTable(s, a).map((r) => `${r.part}:${r.from}-${r.to}`);
-    expect(ranges(s.player)).toEqual(['head:1-9', 'left_arm:10-28', 'right_arm:29-47', 'legs:48-66', 'neck:67-70', 'general:71-100']);
+    expect(ranges(s.player)).toEqual(['head:1-7', 'left_arm:8-22', 'right_arm:23-37', 'left_leg:38-52', 'right_leg:53-67', 'neck:68-70', 'general:71-100']);
     const dragon = { ...s.player, core: { ...s.player.core, creatureTypeId: 'dragon', condition: { hpLostPct: 0, parts: {}, status: [] } } };
     expect(ranges(dragon)).toEqual(['head:1-9', 'left_wing:10-18', 'right_wing:19-27', 'forelegs:28-36', 'hind_legs:37-46', 'tail:47-51', 'general:52-100']);
     s.player.core.condition.parts.left_arm = -100;

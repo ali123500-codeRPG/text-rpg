@@ -68,7 +68,8 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${level} · ${whole(hp)} HP`)),
       h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, levels.map((l, i) => h('i', { class: i < lit ? 'on' : '', 'aria-label': l }))),
       h('div', { class: 'cs-steps' }, ['Unhurt', 'Hurt', 'Wounded', 'Critical', 'Out'].map((l) =>
-        h('span', { class: (l === 'Out' ? 'Incapacitated' : l) === level ? 'now' : '' }, l)))),
+        h('span', { class: (l === 'Out' ? 'Incapacitated' : l) === level ? 'now' : '' }, l))),
+      bodyFigure(s, p)),
     h('div', { class: 'cs-figs' },
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
       h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
@@ -85,6 +86,39 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
 }
 
 const partOpen = { on: false }; // body-part list under the health bar, kept open across turns
+const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+/** Body figure (Ali, 07/11/2026): the creature type's silhouette, each part tinted by its state; the general area shows
+ * total health. Clicking a part names it with its state and amount. Null for body types without a figure. */
+export function bodyFigure(s: GameState, p: Actor): HTMLElement | null {
+  const ct = safe(() => creatureType(s, p.core.creatureTypeId));
+  if (!ct?.figure) return null;
+  const { hp, total } = hpLeft(s, p);
+  const info = (id: string): { name: string; state: string; amount: string } => {
+    if (id === 'general') return { name: cap(ct.general.name), state: poolState(100 - p.core.condition.hpLostPct), amount: `${whole(hp)} of ${whole(total)} HP` };
+    const d = ct.parts.find((x) => x.id === id);
+    const pct = p.core.condition.parts[id] ?? 100;
+    const pool = total === null || !d ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
+    return { name: partName(id), state: poolState(pct), amount: pool === null ? '' : `${whole(Math.max(0, pool * pct / 100))} of ${whole(pool)}` };
+  };
+  const shapes = Object.entries(ct.figure.parts).map(([id, d]) => {
+    const i = info(id);
+    return `<path data-part="${esc(id)}" class="bf-${i.state.toLowerCase()}" d="${esc(d)}"><title>${esc(i.name)} · ${i.state}</title></path>`;
+  }).join('');
+  const svg = h('div', { class: 'bf-svg' });
+  svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#5a6488"/><rect width="2.5" height="6" fill="#0b1330" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
+  const out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
+  svg.addEventListener('click', (e) => {
+    const el = (e.target as Element).closest('[data-part]');
+    svg.querySelectorAll('.on').forEach((x) => x.classList.remove('on'));
+    if (!el) { out.textContent = ''; return; }
+    el.classList.add('on');
+    const i = info(el.getAttribute('data-part')!);
+    out.textContent = [i.name, i.state, i.amount].filter(Boolean).join(' · ');
+  });
+  const key = h('p', { class: 'bf-key' }, ['Healthy', 'Damaged', 'Crippled', 'Destroyed'].map((st) => h('span', {}, h('i', { class: `bf-${st.toLowerCase()}` }), st)));
+  return h('div', { class: 'bf' }, svg, out, key);
+}
 const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
 /** Health bar with the health-track thresholds (Part 3) marked; clicking it opens each body part's pool and state. */
@@ -97,7 +131,7 @@ function healthBar(s: GameState, p: Actor): HTMLElement[] {
   const at = Math.max(0, segs.findIndex((x) => x.l === level));
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
-    safe(() => creatureType(s, p.core.creatureTypeId).parts.map((d) => {
+    bodyFigure(s, p) ?? safe(() => creatureType(s, p.core.creatureTypeId).parts.map((d) => {
       const pct = p.core.condition.parts[d.id] ?? 100;
       const pool = total === null ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
       const st = poolState(pct);
