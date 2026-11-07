@@ -28,7 +28,7 @@ import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
 import { updateBeliefs } from '../../src/perception';
 import {
-  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, SceneDirector, trimStage, validateStagePlan, type PlanContext,
+  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, SceneDirector, tidyRewards, trimStage, validateStagePlan, type PlanContext,
 } from '../../src/scene';
 import { toStoryStart, villageStagePlan, VirtualClock, FITTING_GRADES } from '../../src/scene/fixtures';
 
@@ -116,7 +116,8 @@ describe('validateStagePlan', () => {
     const leaks = validateStagePlan(fresh(), p, ctx).filter((e) => e.code === 'public_leak').map((e) => e.message);
     expect(leaks.some((m) => m.includes('band village_watch name'))).toBe(true);
     expect(leaks.some((m) => m.includes('knows'))).toBe(true);
-    expect(leaks.some((m) => m.includes('reward 1 name'))).toBe(true);
+    // a leaking minted name is no longer a leak error: the reward is placed as the plain base item
+    expect(validateStagePlan(fresh(), p, ctx).some((e) => e.code === 'reward_plain' && e.repaired && e.message.startsWith('reward 1'))).toBe(true);
     expect(leaks.some((m) => m.includes('zone tav_counter look') && m.includes('kegs'))).toBe(true);
     // hidden fields are not scanned
     p.weaverNote = 'the nest';
@@ -128,15 +129,23 @@ describe('validateStagePlan', () => {
     p.cast[0].routineGap = 'y'.repeat(CONFIG.TEXT_CAP + 1);
     expect(codes(fresh(), p).filter((c) => c === 'text_too_long')).toHaveLength(2);
   });
-  it('rewards resolve; minted quality and count capped', () => {
+  it('bad rewards are repaired or dropped, never blocking (loot L1)', () => {
     const p = villageStagePlan(); // moderate gain: quality 2 at most
+    const n = p.rewards.length;
     p.rewards.push({ item: 'excalibur', place: { carriedBy: 'barkeep' } });
-    p.rewards.push({ item: { base: 'arming_sword', quality: 3, boosts: 'hitAdj', name: 'a fine sword', look: 'bright' }, place: { carriedBy: 'guard_1' } });
+    p.rewards.push({ item: { base: 'arming_sword', quality: 3, boosts: 'keen edge', name: 'a fine sword', look: 'bright' }, place: { carriedBy: 'guard_1' } });
     p.rewards.push({ item: 'coin', place: { groundIn: 'woods' } });
-    expect(codes(fresh(), p)).toEqual(expect.arrayContaining(['unresolved_item', 'minted_quality', 'bad_reward']));
+    const e = validateStagePlan(fresh(), p, ctx);
+    expect(e.every((x) => x.repaired)).toBe(true);
+    expect(e.map((x) => x.code)).toEqual(['reward_dropped', 'reward_quality', 'reward_boosts', 'reward_dropped']);
+    const t = tidyRewards(fresh(), p).rewards;
+    expect(t).toHaveLength(n + 1);
+    expect(t[n].item).toMatchObject({ base: 'arming_sword', quality: 2, boosts: 'hitAdj' });
     const q = villageStagePlan();
     for (let i = 0; i < 3; i++) q.rewards.push({ item: { base: 'arming_sword', quality: 1, boosts: 'damageAdj', name: 'a sword', look: 'plain' }, place: { carriedBy: 'guard_1' } });
-    expect(codes(fresh(), q)).toEqual(['minted_cap']);
+    expect(codes(fresh(), q)).toEqual(['reward_plain']);
+    for (let i = 0; i < CONFIG.PLAN_CAPS.rewards; i++) q.rewards.push({ item: 'coin', place: { carriedBy: 'guard_1' } });
+    expect(tidyRewards(fresh(), q).rewards).toHaveLength(CONFIG.PLAN_CAPS.rewards);
   });
   it('routine errors are routineOnly and name the cast entry', () => {
     const p = villageStagePlan();

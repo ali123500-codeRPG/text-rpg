@@ -1046,7 +1046,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 - the grades fit the tier;
 - no public field contains a hiddenTerm or a secret's leakTerm;
 - free-text fields respect their length caps (placeholders).
-- every reward resolves; a minted variant's quality is at most the tier its gain grade allows (Part 5 §7) and the minted count stays within the per-scene cap; reward names and looks are public text and are scanned like other public fields;
+- rewards never fail a plan; code repairs them and logs each repair (reward\_repaired): a reward over the count cap, or with an unknown item, base or place, is dropped; a bad qty becomes 1; a minted variant past the per-scene cap, at a gain that allows none, or whose name or look is too long or uses a hidden term is placed as its plain base item; a quality above what the gain allows (Part 5 §7) is lowered to it; a weapon's boosts other than hitAdj or damageAdj becomes hitAdj (loot L1, V7);
 - every routineSetId resolves; a player-band entry names the companion set and binds no slots;
 - every slot the set lists is bound: a zone slot to one zone, a route slot to 2 to MAX\_ROUTE\_ZONES zones; bound keys are zones in the plan or on the stage, never frontiers; startAt names one of the set's slots;
 - every bound zone is reachable from the actor's other bound zones through zone links;
@@ -1344,7 +1344,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 95 | Stacked armor | A creature with natural armor wearing armor takes damage reduced by worn, then natural, floor 0, not rounded |
 | 96 | Armor pool | A head hit on a heavy helm drains the helm pool before the head pool; the health track ignores the helm pool |
 | 97 | Concealed blade | An NPC's view omits a concealed blade until the NPC perceives an attack with it; after that its belief keeps it |
-| 98 | Minted reward cap | A Weaver plan with a quality-3 variant on a moderate-gain scene fails validation; quality 2 passes |
+| 98 | Minted reward cap | A quality-3 variant on a moderate-gain scene is lowered to quality 2, and a weapon boosts of "keen edge" becomes hitAdj; the plan applies with no repair call |
 | 99 | Fallback attack | An engaged slime with the player in its zone attacks the player with unarmed\_natural, targetPart null; the order's source is fallback |
 | 100 | Fallback target | An engaged minor actor that a companion hit last turn attacks the companion, even with the player in the same zone |
 | 101 | Fallback close in | An engaged minor actor whose belief puts the player two links away moves one link along the shortest path, never into a frontier; in that zone with nobody there, it searches |
