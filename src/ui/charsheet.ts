@@ -47,6 +47,19 @@ export function trees(s: GameState, p: Actor, withZero: boolean) {
 }
 
 const tag = () => h('span', { class: 'tag', title: 'Tagged skill' }, '✦');
+/** V3a (Ali, 07/11/2026): a skill marked for an improvement roll */
+const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to improve when this fight ends', 'aria-label': 'marked to improve' });
+const marked = (p: Actor, id: string) => !!p.progression?.marks.includes(id);
+/** V1b (Ali, 07/11/2026): skill gains from the last played turn, by skill (SP10; failed rolls log nothing) */
+export function recentGains(s: GameState): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const l of s.log) {
+    if (l.code !== 'skill_improved' || l.turn < s.turn - 1) continue;
+    const d = l.detail as { skill: string; from: number; to: number };
+    out[d.skill] = (out[d.skill] ?? 0) + d.to - d.from;
+  }
+  return out;
+}
 const bar = (raw: number) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (raw / BAR_SCALE) * 100)}%` }));
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
@@ -106,7 +119,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
       h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', {}, `${t.sum} pts`)),
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
-        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
+        h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
         bar(r.raw), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
 }
 
@@ -178,6 +191,7 @@ function healthBar(s: GameState, p: Actor): HTMLElement[] {
 /** Compact sheet beside the story: health, standing defense and skills above 0. */
 export function sideSheet(s: GameState, p: Actor): HTMLElement[] {
   const def = standing(s, p);
+  const gains = recentGains(s);
   const atk = attackOf(s, p);
   return [
     ...healthBar(s, p),
@@ -185,6 +199,8 @@ export function sideSheet(s: GameState, p: Actor): HTMLElement[] {
     h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
-      t.rows.map((r) => h('div', { class: 'r' }, h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null), bar(r.raw), h('b', {}, String(r.raw)))))),
+      t.rows.map((r) => h('div', { class: 'r' + (gains[r.id] ? ' up' : '') },
+        h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
+        bar(r.raw), h('b', {}, String(r.raw)))))),
   ];
 }
