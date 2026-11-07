@@ -1,6 +1,7 @@
 // The boundary between the game (W7 pipeline) and the screens (W8).
 import type { GameState } from './state';
-import type { AgentTurnLog } from './agents';
+import type { AgentTurnLog, Volume } from './agents';
+import type { Tier } from './core';
 import type { LogEntry } from './core';
 
 export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[] };
@@ -10,6 +11,17 @@ export type LogLine = {
   kind: 'player' | 'narration' | 'clarify' | 'command' | 'notice';
   text: string;
   mechanics?: string[]; // dice, modifiers, damage from code (shown while SHOW_MECHANICS is on)
+  // Play screen extras on a narration line, all built by code from what the character perceived (no numbers):
+  check?: LineCheck; // the player's own roll this turn
+  speech?: { speaker: string; volume: Volume; text: string }[]; // lines the character heard, word for word
+  changes?: { kind: 'combat' | 'condition' | 'health'; text: string }[]; // what changed this turn
+};
+
+export type LineCheck = {
+  skill: string; // skill id
+  tier: Tier;
+  against?: { what: string; tier: Tier }; // the defense or the other side of a contest, e.g. "its dodge"
+  result: string; // "full hit, body", "you win the exchange"
 };
 
 export type Notice =
@@ -43,5 +55,6 @@ export interface GameApi {
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
   reset(): Promise<void>; // confirmed by the UI first
   gm(): GmSnapshot;
+  calls(): number; // Claude calls made in this session (page load), counted by code
   restoreBackup(turn: number): Promise<void>;
 }

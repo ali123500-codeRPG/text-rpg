@@ -2,7 +2,7 @@
 // figures that can't be filtered in a text line under them, then the grouped table.
 import type { Actor, GameApi, GameState } from '../types';
 import { itemDef } from '../library';
-import { credit, groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
+import { groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
 
 type Spec = {
@@ -52,8 +52,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
         all.length ? visTiles(all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
         h('p', { class: 'subline' }, spec.line(s)), how),
       h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, spec.title), h('p', { class: 'hs-note' }, hint)),
-        groupedTable({ cols: spec.cols, groups: shown, open, sort, onField, redraw: update, emptyText: picked.length ? `No ${spec.noun[1]} match these boxes. Pick other boxes or Clear.` : spec.empty })),
-      credit());
+        groupedTable({ cols: spec.cols, groups: shown, open, sort, onField, redraw: update, emptyText: picked.length ? `No ${spec.noun[1]} match these boxes. Pick other boxes or Clear.` : spec.empty })));
   }
   return { el, update };
 }
@@ -68,8 +67,7 @@ export function characterPage(api: GameApi) {
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
       h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s, s.player)),
-      h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'),
-      credit());
+      h('p', { class: 'hs-note' }, 'The 8 health segments are the health track, Unhurt to Incapacitated. ✦ marks a tagged skill. Bars are drawn out of 100 for display only; the rules set no skill maximum yet (D-3).'));
   }
   return { el, update };
 }

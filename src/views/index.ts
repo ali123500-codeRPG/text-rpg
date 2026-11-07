@@ -42,7 +42,7 @@ function whereLabel(state: GameState, from: string, to: string): string | undefi
 
 const nameKnown = (state: GameState, a: Actor) => a.id === state.player.id || !!a.knownOnSight || !!state.player.journal?.namesKnown.includes(a.id);
 /** what `viewerId` calls `id`: the player by 'player'; for the player, names only once known; NPCs know bandmates' names */
-function callName(state: GameState, viewerId: string, id: string): string {
+export function callName(state: GameState, viewerId: string, id: string): string {
   const a = actorById(state, id);
   if (!a) return 'someone';
   if (a.id === state.player.id) return 'player';
