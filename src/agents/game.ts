@@ -7,7 +7,7 @@ import type { AgentName, TierRoll,
 } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { timeView } from '../time';
+import { now, timeOfDay, timeView } from '../time';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
@@ -639,8 +639,9 @@ function nameOf(s: GameState, itemId: string): string {
  */
 /** H11, V1b, V2a: the player's healing, skill gains and milestones from this turn's code log, kept on the story line
  * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. */
-export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains'> {
+export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains' | 'timePassed'> {
   const heals: HealNote[] = [], unlocks: { skill: string; milestone: number }[] = [], gains: Record<string, number> = {};
+  let minutes = 0;
   for (const l of s.log) {
     if (l.turn !== s.turn) continue;
     if (l.code === 'healed') {
@@ -650,9 +651,10 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
       const d = l.detail as { skill: string; from: number; to: number; milestone?: number };
       gains[d.skill] = (gains[d.skill] ?? 0) + d.to - d.from;
       if (d.milestone) unlocks.push({ skill: d.skill, milestone: d.milestone });
-    }
+    } else if (l.code === 'time_passed') minutes += (l.detail as { minutes: number }).minutes;
   }
-  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}) };
+  const timePassed = minutes > 0 ? { minutes: Math.round(minutes), day: timeView(s).day, timeOfDay: timeOfDay(now(s)) } : undefined;
+  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}) };
 }
 
 export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes'> {
