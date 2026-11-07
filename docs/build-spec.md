@@ -606,6 +606,11 @@ Rules:
 9. To strike a body part, name it in targetPart. Set aimed to true only when a sure hit on that part is worth a harder attack. Set defense to dodge or block to change how you defend from now on; null keeps it.
 10. You may draw, stow or swap gear and pick things up in "gear" at no cost. Use only items
    your view lists as yours or lying where you can see them.
+11. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
+   for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
+   off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
+   opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
+   something you would truly come to blows for.
 
 Return only JSON matching the schema.
 ```
@@ -649,6 +654,11 @@ Rules:
 9. If your line gives your own name or another character's, list them in introduces.
 10. You may draw, stow or swap gear and pick things up in "gear" at no cost. Use only items
    your view lists as yours or lying where you can see them.
+11. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
+   for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
+   off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
+   opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
+   something you would truly come to blows for.
 
 Return only JSON matching the schema.
 ```
@@ -690,6 +700,11 @@ Rules:
 4. You speak for your own band only. You may switch to one of your routines (follow, wait, or another listed one).
 5. Keep it to one or two sentences unless asked for more. Your view lists what you already said in "said"; do not say it again, move the talk on.
 6. If your line gives your own name or another character's, list them in introduces.
+7. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
+   for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
+   off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
+   opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
+   something you would truly come to blows for.
 
 Return only JSON matching the schema.
 ```
@@ -1116,6 +1131,10 @@ Rules:
 6. Put each actor in a band. Create a new band only when no existing band
    fits. Set band relations, beliefs about other bands and personal stances
    only where the scene needs them; band names are public, goals hidden.
+   Stances: hostile attacks on sight, so use it only for a fight that starts
+   the moment they meet (monsters, a raid). Use opposed for rivals, standoffs,
+   tense guards and threats that talk first: they are wary but never strike
+   first, and turn hostile if attacked or talked into it.
    Mark a band lethal: false only when nobody means the conflict to end in
    death, such as a spar or a hostage-taking. Monsters are always lethal.
 7. Seed a plan only for a real agenda. Everyday behavior goes in routines;
