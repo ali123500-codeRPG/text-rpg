@@ -6,7 +6,7 @@ import { resolveTurn } from '../../src/engine';
 import { getLibrary } from '../../src/library';
 import { loadStory, memoryStore, readTurnRecord, saveTurn, undoTurn } from '../../src/save';
 import type { GameState } from '../../src/types';
-import { MILL_PLAN, loadDirector } from './scene-director';
+import { loadDirector, millWeaver } from './scene-director';
 
 describe('44 Undo rerolls the hand', () => {
   it('a redone scene start rolls from the carried-forward RNG and calls the Weaver again', async () => {
@@ -14,7 +14,7 @@ describe('44 Undo rerolls the hand', () => {
     const s = makeVillage({ playerZone: 'field_edge' });
     const st = memoryStore();
     await saveTurn(st, s, { storyId: 'test', turn: 0, libraryVersion: s.libraryVersion, rngBefore: s.rngState, playerInput: '', agentLog: [], events: [], factsAdded: [] });
-    const claude = new ScriptedClaude().push('weaver', MILL_PLAN).push('weaver', MILL_PLAN);
+    const claude = new ScriptedClaude().pushResponse({ agent: 'weaver', response: millWeaver }).pushResponse({ agent: 'weaver', response: millWeaver });
 
     const sceneTurn = async (state: GameState) => {
       const rngBefore = state.rngState;

@@ -116,12 +116,7 @@ export class SceneDirector {
   }
 
   private finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'sneaking'): SceneResult {
-    if (p.plan && p.errors.every((e) => e.routineOnly)) {
-      applyStagePlan(state, p.plan, ctx, { entry, ...(p.errors.length ? { degrade: p.errors } : {}) }, rng);
-      return { outcome: p.errors.length ? 'degraded' : 'applied', plan: p.plan, errors: p.errors };
-    }
-    applyFallbackStage(state, ctx, p.reason ?? 'invalid_plan', p.errors);
-    return { outcome: 'fallback', plan: p.plan, errors: p.errors };
+    return finish(state, ctx, p, rng, entry);
   }
 
   private call(view: WeaverView, errors?: PlanError[]): Promise<StagePlan | null> {
@@ -138,4 +133,34 @@ export class SceneDirector {
       ac.abort();
     }
   }
+}
+
+function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'sneaking'): SceneResult {
+  if (p.plan && p.errors.every((e) => e.routineOnly)) {
+    applyStagePlan(state, p.plan, ctx, { entry, ...(p.errors.length ? { degrade: p.errors } : {}) }, rng);
+    return { outcome: p.errors.length ? 'degraded' : 'applied', plan: p.plan, errors: p.errors };
+  }
+  applyFallbackStage(state, ctx, p.reason ?? 'invalid_plan', p.errors);
+  return { outcome: 'fallback', plan: p.plan, errors: p.errors };
+}
+
+/**
+ * Replay of a scene start (test 45): the same steps as startScene, fed the logged Weaver outputs in call order
+ * (first answer, then the repair answer if one was made; null = the call failed or timed out). No Claude call.
+ */
+export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | null)[], rng: Rng, entry: 'open' | 'sneaking' = 'open'): SceneResult {
+  const placeId = state.player.placeId;
+  const situation = ruleset.situation(state.player, state, rng);
+  beginScene(state, situation.tier);
+  const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId };
+  const [first, second] = weaverOutputs;
+  let planned: Planned;
+  if (!first) planned = { plan: null, errors: [], reason: 'call_failed' };
+  else {
+    const errors = validateStagePlan(state, first, ctx);
+    if (!errors.length) planned = { plan: first, errors };
+    else if (!second) planned = { plan: first, errors, reason: 'call_failed' };
+    else planned = { plan: second, errors: validateStagePlan(state, second, ctx), reason: 'invalid_plan' };
+  }
+  return { ...finish(state, ctx, planned, rng, entry), situation };
 }

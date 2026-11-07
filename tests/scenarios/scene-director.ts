@@ -1,17 +1,40 @@
-// Shared by tests 44 and 45: the contract assumed for W6's scene director (src/scene/director.ts, not built yet),
-// loaded dynamically so the suite type-checks before it lands. Adjust here at integration if W6 names it differently.
+// Shared by tests 44 and 45: scene setup inside a triggering turn, live (one Weaver call through Claude) and replayed
+// (the logged Weaver outputs, no call). Mirrors what the pipeline does: each Weaver call is one agent-log entry.
 import type { AgentTurnLog, ClaudeClient, GameEvent, GameState, Rng, SituationResult, StagePlan, TurnRecord } from '../../src/types';
+import { SceneDirector, replaySceneStart } from '../../src/scene/director';
+import { openingEvents } from '../../src/scene';
+import { FITTING_GRADES, VirtualClock } from '../../src/scene/fixtures';
 
-export type SceneDirector = {
-  /** Scene setup steps 1–8 inside the triggering turn (after resolveTurn): situation roll, one Weaver call, plan applied. */
+export type SceneDirectorApi = {
   runSceneSetup(state: GameState, deps: { claude: ClaudeClient; rng: Rng }): Promise<{ situation: SituationResult; events: GameEvent[]; agentLog: AgentTurnLog[] }>;
-  /** The same from a turn record: the logged situation roll and Weaver output, no Claude call. */
   replaySceneSetup(state: GameState, record: TurnRecord, rng: Rng): GameEvent[];
 };
 
-export async function loadDirector(): Promise<SceneDirector> {
-  const path = '../../src/scene/director';
-  return (await import(/* @vite-ignore */ path)) as SceneDirector;
+const director: SceneDirectorApi = {
+  async runSceneSetup(state, { claude, rng }) {
+    const agentLog: AgentTurnLog[] = [];
+    const d = new SceneDirector({
+      clock: new VirtualClock(),
+      weave: async (view, errors) => {
+        const r = await claude.call({ agent: 'weaver', input: [{ role: 'user', content: 'WEAVER' }, { role: 'user', content: JSON.stringify({ view, errors }) }], json: true });
+        const output = r.ok ? (r.value as StagePlan) : null;
+        agentLog.push({ turn: state.turn, agent: 'weaver', input: view, output, status: r.ok ? 'ok' : 'failed', errors: [] });
+        return output;
+      },
+    });
+    const res = await d.startScene(state, rng);
+    const events = openingEvents(state, rng);
+    return { situation: res.situation!, events, agentLog };
+  },
+  replaySceneSetup(state, record, rng) {
+    const outputs = record.agentLog.filter((l) => l.agent === 'weaver').map((l) => (l.output as StagePlan | null) ?? null);
+    replaySceneStart(state, outputs, rng);
+    return openingEvents(state, rng);
+  },
+};
+
+export async function loadDirector(): Promise<SceneDirectorApi> {
+  return director;
 }
 
 /** A small valid plan for the village: an old mill outside the gate, one frontier, no cast. */
@@ -28,3 +51,9 @@ export const MILL_PLAN: StagePlan = {
   bands: [], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [],
   hiddenTerms: ['nest'], weaverNote: 'the slimes come from the pond',
 };
+
+/** a scripted Weaver answer: MILL_PLAN with grades that fit whatever tier the situation roll dealt */
+export function millWeaver(req: import('../../src/types').ClaudeRequest): import('../../src/types').ClaudeResponse {
+  const tier = (JSON.parse(req.input[1].content) as { view: { tier: string } }).view.tier;
+  return { ok: true, value: { ...MILL_PLAN, event: { ...MILL_PLAN.event, ...FITTING_GRADES[tier] } } };
+}

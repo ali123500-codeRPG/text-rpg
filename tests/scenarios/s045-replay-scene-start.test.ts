@@ -6,7 +6,7 @@ import { resolveSpeech, resolveTurn } from '../../src/engine';
 import { getLibrary } from '../../src/library';
 import { loadStory, memoryStore, readTurnRecord, saveTurn } from '../../src/save';
 import { replayTurn } from '../../src/save/replay';
-import { MILL_PLAN, loadDirector } from './scene-director';
+import { loadDirector, millWeaver } from './scene-director';
 
 describe('45 Replay of a scene start', () => {
   it('rebuilds the same stage from the turn record without calling the Weaver', async () => {
@@ -16,7 +16,7 @@ describe('45 Replay of a scene start', () => {
     await saveTurn(st, s, { storyId: 'test', turn: 0, libraryVersion: s.libraryVersion, rngBefore: s.rngState, playerInput: '', agentLog: [], events: [], factsAdded: [] });
     const saved = (await loadStory(st, 'test', getLibrary())).state;
 
-    const claude = new ScriptedClaude().push('weaver', MILL_PLAN);
+    const claude = new ScriptedClaude().pushResponse({ agent: 'weaver', response: millWeaver });
     const live = structuredClone(saved);
     const rngBefore = live.rngState;
     const rng = createRng(rngBefore);
