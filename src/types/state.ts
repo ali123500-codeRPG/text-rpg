@@ -145,6 +145,8 @@ export type TurnRecord = {
   situation?: SituationResult;
   log?: LogEntry[];
   aimed?: boolean;
+  /** save schema the record was written under (absent before v5) */
+  schemaVersion?: number;
 };
 
 export type { ActorId };

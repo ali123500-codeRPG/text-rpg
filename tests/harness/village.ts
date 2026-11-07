@@ -39,10 +39,10 @@ export function villageBands(): Band[] {
   const B = (id: string, name: string, relations: Band['relations'], lethal = true): Band =>
     ({ id, name, goals: '', temperament: '', tactics: 'simple', lethal, relations });
   return [
-    B('player_band', 'the player', { slimes: 'opposed' }),
-    B('village_watch', 'the village watch', { slimes: 'opposed' }),
+    B('player_band', 'the player', { slimes: 'hostile' }),
+    B('village_watch', 'the village watch', { slimes: 'hostile' }),
     B('tavern_folk', 'tavern folk', {}),
-    B('slimes', 'slimes', { player_band: 'opposed', village_watch: 'opposed', tavern_folk: 'opposed' }),
+    B('slimes', 'slimes', { player_band: 'hostile', village_watch: 'hostile', tavern_folk: 'hostile' }),
   ];
 }
 
@@ -116,7 +116,7 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,
     blueprints: [],
-    meta: { storyId, title: 'Test story', schemaVersion: 4, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
+    meta: { storyId, title: 'Test story', schemaVersion: 5, createdAt: '2026-11-07', settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' } },
   };
   return state;
 }

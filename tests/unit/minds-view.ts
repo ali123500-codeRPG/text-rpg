@@ -1,6 +1,6 @@
 // Hand-built ActorView for W5 unit tests (the real builder is W3's buildActorView).
 import type { ActorView, GameState } from '../../src/types';
-import { actorById, isActive, opposed } from '../../src/engine/relations';
+import { actorById, isActive, hostile } from '../../src/engine/relations';
 import { getLibrary } from '../../src/library';
 
 export function fakeView(state: GameState, id: string, self: Partial<ActorView['self']> = {}): ActorView {
@@ -21,7 +21,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
     },
     beliefs: Object.entries(m.knowledge).map(([about, b]) => {
       const o = actorById(state, about)!;
-      return { about, status: b.status, lastKnownZone: b.lastKnownZone, lastSeenTurn: b.lastSeenTurn, source: b.source, revealed: [], opposed: opposed(state, a, o), active: isActive(o), label: o.label };
+      return { about, status: b.status, lastKnownZone: b.lastKnownZone, lastSeenTurn: b.lastSeenTurn, source: b.source, revealed: [], hostile: hostile(state, a, o), active: isActive(o), label: o.label };
     }),
     perceived: [], told: [], said: [], secrets: [], firedTriggers: [],
     band: { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },

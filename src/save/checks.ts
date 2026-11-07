@@ -9,6 +9,22 @@ export type CheckReport = { errors: string[]; repairs: string[]; warnings: strin
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
 
 // ---------- migrations ----------
+// v4 -> v5 (Ali, 07/11/2026): "opposed" used to mean attack on sight; that is now "hostile", and "opposed" means
+// at odds but never striking first. Saved band relations, personal overrides and planned stances keep their behavior.
+// A logged stance step "more_opposed" is now "colder".
+export function opposedToHostile(v: unknown): void {
+  if (Array.isArray(v)) return v.forEach(opposedToHostile);
+  if (!v || typeof v !== 'object') return;
+  const o = v as Record<string, unknown>;
+  for (const k of ['relations', 'overrides']) {
+    const m = o[k];
+    if (m && typeof m === 'object' && !Array.isArray(m)) for (const [id, st] of Object.entries(m)) if (st === 'opposed') (m as Record<string, unknown>)[id] = 'hostile';
+  }
+  if (Array.isArray(o.overrides)) for (const x of o.overrides) if (x && x.stance === 'opposed') x.stance = 'hostile';
+  if (o.step === 'more_opposed') o.step = 'colder';
+  Object.values(o).forEach(opposedToHostile);
+}
+
 /** step from version v to v + 1, keyed by v. v1 is the baseline: no steps yet. Defaults for missing fields go only here. */
 // v1 stored tiers by name (old names Partial and Strong included) and roll results with a tierIndex 0..5.
 // v2 stores tier IDs −3..2 (unclamped on rolls): tier = tierIndex − 3.
@@ -59,6 +75,7 @@ export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
   2: (pages) => Object.values(pages).forEach(levelsToKeys),
   3: (pages) => Object.values(pages).forEach(splitLegs),
+  4: (pages) => Object.values(pages).forEach(opposedToHostile),
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */

@@ -67,7 +67,7 @@ describe('updateBeliefs', () => {
     const s = makeVillage();
     place(s, 'slime_1', 'tav_common');
     run(s, ev({ actorId: 'patron_1', kind: 'attack', zone: 'tav_common', target: 'trader' }));
-    expect(actor(s, 'trader').mind!.overrides?.patron_1).toBe('opposed');
+    expect(actor(s, 'trader').mind!.overrides?.patron_1).toBe('hostile');
     expect(actor(s, 'slime_1').mind!.overrides?.patron_1).toBeUndefined();
   });
   it('communication copies the sender belief as told, capped at suspicious, dated by the sender', () => {

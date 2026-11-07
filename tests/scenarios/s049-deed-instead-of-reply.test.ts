@@ -13,7 +13,7 @@ it('49 Deed instead of a reply', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   s.hidden.secrets.push({ id: 'cellar', holderId: 'trader', fact: 'smuggled goods in the cellar', leakTerms: ['smuggled'],
     revealWhen: { type: 'event_in_zone', kind: 'search', zone: 'tav_cellar' } });
-  actor(s, 'trader').mind!.overrides = { player: 'opposed' };
+  actor(s, 'trader').mind!.overrides = { player: 'hostile' };
   const i = intent({ action: { type: 'talk', skill: 'persuasion' }, spoken: 'What is in the cellar?', addressees: ['trader'] });
   const spokespeople = selectSpokespeople(s, i);
   expect(spokespeople).toEqual(['trader']);

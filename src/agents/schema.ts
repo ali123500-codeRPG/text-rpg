@@ -1,9 +1,9 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
-import type { Intent, NarratorOutput, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import type { Intent, NarratorOutput, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
-import { COVER, LIGHT, TACTICS, type Scale } from '../scales';
+import { COVER, LIGHT, STANCES, TACTICS, type Scale } from '../scales';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -49,7 +49,7 @@ const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 
   ['from'],
 );
 const GEAR = nul(arr(gearOp));
-const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'more_opposed' }>({ toward: str, step: oneOf(['friendlier', 'more_opposed'] as const) }));
+const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
 
 const intent = obj<Intent>({
   move: nul(obj<{ toZone: string }>({ toZone: str })),
@@ -121,10 +121,10 @@ const GRADE = oneOf(GRADES);
 /** a scale level Claude writes as its display name (or key); code keeps the key (src/scales.ts) */
 const level = <K extends string>(sc: Scale<K>): V<K> => (v, p, e) =>
   sc.keyOf(v) ?? (e.push(`${p}: expected one of ${sc.keys.map(sc.name).join(', ')}`), sc.keys[0]);
-const STANCE_WORD = oneOf(['opposed', 'neutral', 'friendly'] as const);
+const STANCE_WORD = oneOf(STANCES.keys);
 const BELIEF_WORD = oneOf(['unaware', 'suspicious', 'aware'] as const);
 /** awareness is what an actor knows; hostility belongs in band relations (V3, V12 hint) */
-const AWARENESS: V<'unaware' | 'suspicious' | 'aware'> = (v, p, e) => (['opposed', 'neutral', 'friendly'].includes(v as string)
+const AWARENESS: V<'unaware' | 'suspicious' | 'aware'> = (v, p, e) => (STANCES.has(v)
   ? (e.push(`${p}: awareness is unaware, suspicious or aware (what they know); "${v}" is a stance and goes in band relations`), 'unaware')
   : BELIEF_WORD(v, p, e));
 type Cast = StagePlan['cast'][number];
@@ -150,7 +150,7 @@ const weaver = obj<StagePlan>({
     slots: record<string | string[]>((v, p, e) => (Array.isArray(v) ? arr(str)(v, p, e) : str(v, p, e))),
     startAt: str, routineGap: str, awarenessOfPlayer: AWARENESS,
     awarenessOfBands: arr(obj<{ band: string; awareness: 'unaware' | 'suspicious' | 'aware' }>({ band: str, awareness: AWARENESS })),
-    overrides: arr(obj<{ actor: string; stance: 'opposed' | 'neutral' | 'friendly' }>({ actor: str, stance: STANCE_WORD })),
+    overrides: arr(obj<{ actor: string; stance: Stance }>({ actor: str, stance: STANCE_WORD })),
     motive: str,
   }, ['template', 'actor', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),

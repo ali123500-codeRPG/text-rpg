@@ -7,7 +7,7 @@ import type { Tier, TierRoll,
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
-import { actorById, allActors, atLeast, bandById, isActive, opposed, shortestPath, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { healthLevel, partStates, tierName } from '../ruleset';
 import { isComm } from '../perception';
@@ -230,7 +230,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}),
       ...(b.lastSeenTurn !== undefined ? { lastSeenTurn: b.lastSeenTurn } : {}),
       source: b.source, revealed: [...b.revealed],
-      opposed: opposed(state, a, other), active: isActive(other), label: callName(state, a.id, about),
+      hostile: hostile(state, a, other), active: isActive(other), label: callName(state, a.id, about),
     });
   }
   const band = bandById(state, a.bandId);

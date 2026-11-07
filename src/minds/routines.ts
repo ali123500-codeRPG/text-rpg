@@ -90,8 +90,8 @@ export function routineOrder(view: ActorView): Order {
   return order(view, 'move', 'routine', `walk toward ${d.zone}`, { target: path[0], activity: d.activity });
 }
 
-function opposedBeliefs(view: ActorView) {
-  return view.beliefs.filter((b) => b.opposed && b.active && b.status !== 'unaware');
+function hostileBeliefs(view: ActorView) {
+  return view.beliefs.filter((b) => b.hostile && b.active && b.status !== 'unaware');
 }
 
 export function brokenOrder(view: ActorView): Order {
@@ -110,9 +110,9 @@ function flee(view: ActorView, source: Order['source']): Order {
     const path = mapPath(view.map, here, zone);
     if (path) return order(view, 'flee', source, 'flee', { target: path[0] });
   }
-  // away from the nearest opposed actor it believes in: a linked zone farther from it than here; else hold.
+  // away from the nearest hostile actor it believes in: a linked zone farther from it than here; else hold.
   const dist = (a: string, b: string) => mapPath(view.map, a, b)?.length ?? Infinity;
-  const threats = opposedBeliefs(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
+  const threats = hostileBeliefs(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
   if (!threats.length) return hold();
   const threat = threats.reduce((best, z) => (dist(here, z) < dist(here, best) ? z : best));
   const links = view.map.find((z) => z.id === here)?.links ?? [];
@@ -132,7 +132,7 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
   if ((s.broken || s.surrendered) && !s.fearless) return flee(view, 'fallback');
   // 2. Attack
   const here = view.beliefs
-    .filter((b) => b.opposed && b.active && (b.status === 'aware' || b.status === 'tracking') && b.lastKnownZone === s.zone)
+    .filter((b) => b.hostile && b.active && (b.status === 'aware' || b.status === 'tracking') && b.lastKnownZone === s.zone)
     .map((b) => b.about)
     .sort();
   if (here.length) {
@@ -142,7 +142,7 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
     return order(view, 'attack', 'fallback', 'attack', { target, skill: s.attackSkill, targetPart: null, aimed: false });
   }
   // 3. Close in / 4. Search
-  const recent = opposedBeliefs(view)
+  const recent = hostileBeliefs(view)
     .filter((b) => b.lastKnownZone)
     .sort((a, b) => (b.lastSeenTurn ?? -1) - (a.lastSeenTurn ?? -1) || a.about.localeCompare(b.about))[0];
   if (recent) {

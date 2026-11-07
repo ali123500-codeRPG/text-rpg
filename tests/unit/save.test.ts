@@ -24,7 +24,7 @@ async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: numb
 
 afterEach(() => {
   resetConfig();
-  delete MIGRATIONS[4];
+  delete MIGRATIONS[5];
 });
 
 describe('save and load', () => {
@@ -205,13 +205,13 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await play(st, s, 1, 2);
-    CONFIG.SCHEMA_VERSION = 5;
-    MIGRATIONS[4] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
+    CONFIG.SCHEMA_VERSION = 6;
+    MIGRATIONS[5] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
     const { state, report } = await loadStory(st, 'test', lib());
     expect(state.flags.migrated).toBe(true);
-    expect(report).toContain('migrated v4 -> v5');
+    expect(report).toContain('migrated v5 -> v6');
     const h = await head(st);
-    expect(h).toMatchObject({ schemaVersion: 5, undo: null, safety: { turn: 2 } });
+    expect(h).toMatchObject({ schemaVersion: 6, undo: null, safety: { turn: 2 } });
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
     // the safety bookmark can be taken back (it migrates again)
     expect((await useBookmark(st, 'test', 'safety', lib())).state.flags.migrated).toBe(true);
@@ -221,11 +221,11 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    CONFIG.SCHEMA_VERSION = 6;
-    MIGRATIONS[4] = () => {};
+    CONFIG.SCHEMA_VERSION = 7;
+    MIGRATIONS[5] = () => {};
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toContain('schema: no migration step v5 -> v6');
-    expect((await head(st)).schemaVersion).toBe(4);
+    expect(err.report).toContain('schema: no migration step v6 -> v7');
+    expect((await head(st)).schemaVersion).toBe(5);
   });
 
   it('v3 -> v4 gives humanoids two legs from the old pool and widens armor that covered legs', () => {
@@ -239,6 +239,20 @@ describe('migration and reconcile', () => {
       'actor.a': { core: { creatureTypeId: 'humanoid', condition: { parts: { head: 100, left_leg: 40, right_leg: 40 } } } },
       'actor.d': { core: { creatureTypeId: 'dragon', condition: { parts: { legs: 10 } } } },
       'blueprint.b': { data: { armor: { covers: ['general', 'left_leg', 'right_leg'] } } },
+    });
+  });
+
+  it('v4 -> v5 keeps old opposed behavior as hostile and renames the colder stance step', () => {
+    const pages: Record<string, unknown> = {
+      engine: { bands: [{ id: 'slimes', relations: { player_band: 'opposed', tavern_folk: 'neutral' } }] },
+      'actor.g': { mind: { overrides: { player: 'opposed', trader: 'friendly' } } },
+      hidden: { stage: { plan: { cast: [{ overrides: [{ actor: 'player', stance: 'opposed' }] }] } }, log: [{ stance: { toward: 'player', step: 'more_opposed' } }] },
+    };
+    MIGRATIONS[4](pages);
+    expect(pages).toEqual({
+      engine: { bands: [{ id: 'slimes', relations: { player_band: 'hostile', tavern_folk: 'neutral' } }] },
+      'actor.g': { mind: { overrides: { player: 'hostile', trader: 'friendly' } } },
+      hidden: { stage: { plan: { cast: [{ overrides: [{ actor: 'player', stance: 'hostile' }] }] } }, log: [{ stance: { toward: 'player', step: 'colder' } }] },
     });
   });
 

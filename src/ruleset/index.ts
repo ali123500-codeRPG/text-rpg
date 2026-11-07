@@ -7,7 +7,7 @@ import type {
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
 import { creatureType, itemDef } from '../library';
-import { actorById, isActive, opposed, shortestPath, zoneById } from '../engine/relations';
+import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { blockItem, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
 
@@ -159,8 +159,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (hit) am.push({ source: `weapon: ${name}`, type: 'gear', value: hit });
   if (ranged) {
     if (dist >= 1 && CONFIG.RANGE_MODS[dist]) am.push({ source: 'range', type: 'situational', value: CONFIG.RANGE_MODS[dist] });
-    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && opposed(state, A, o));
-    if (crowded && CONFIG.RANGE_MODS[0]) am.push({ source: 'opposed in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
+    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && hostile(state, A, o));
+    if (crowded && CONFIG.RANGE_MODS[0]) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
   }
   const lightA = CONFIG.LIGHT_MODS[zoneD?.light ?? 'bright'];
   if (lightA) am.push({ source: 'light', type: 'situational', value: lightA });

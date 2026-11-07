@@ -13,7 +13,7 @@ export function smugglerPlan(): StagePlan {
   // room under PLAN_CAPS: this plan has no slimes
   p.cast = p.cast.filter((c) => c.band !== 'slimes');
   p.bands = p.bands.filter((b) => b.key !== 'slimes').map((b) => ({ ...b, relations: {} }));
-  p.bands.push({ key: 'smugglers', name: 'cellar folk', goals: 'move the crates unseen', temperament: 'cagey', tactics: 'competent', lethal: true, relations: { village_watch: 'opposed' } });
+  p.bands.push({ key: 'smugglers', name: 'cellar folk', goals: 'move the crates unseen', temperament: 'cagey', tactics: 'competent', lethal: true, relations: { village_watch: 'hostile' } });
   const smuggler = (key: string, name: string) => ({
     template: 'patron', key, label: 'a hooded drinker', name, appearance: 'a hood pulled low',
     band: 'smugglers', routineSetId: 'patron', slots: { seat: 'tav_cellar', refuge: 'tav_cellar', exit: 'street_door' },
@@ -22,7 +22,7 @@ export function smugglerPlan(): StagePlan {
   p.cast.push(smuggler('smuggler_1', 'Rook'), smuggler('smuggler_2', 'Finch'));
   p.cast.push({ template: 'guard', key: 'guard_2', label: 'a young guard', name: 'Hal', appearance: 'a gangly youth with a spear',
     band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'street_door' }, awarenessOfPlayer: 'unaware', motive: 'eager',
-    overrides: [{ actor: 'smuggler_1', stance: 'opposed' }] });
+    overrides: [{ actor: 'smuggler_1', stance: 'hostile' }] });
   for (const c of p.cast) if (c.band === 'village_watch') c.awarenessOfBands = [{ band: 'smugglers', awareness: 'suspicious' }];
   return p;
 }
@@ -35,7 +35,7 @@ describe('61 Bands from the plan', () => {
     expect(validateStagePlan(s, p, ctx)).toEqual([]);
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
     const band = s.bands.find((b) => b.id === 'smugglers')!;
-    expect(band.relations.village_watch).toBe('opposed');
+    expect(band.relations.village_watch).toBe('hostile');
     expect(band.lethal).toBe(true);
     for (const g of ['guard_1', 'guard_2']) {
       for (const m of ['smuggler_1', 'smuggler_2']) {
@@ -44,7 +44,7 @@ describe('61 Bands from the plan', () => {
     }
     const rook = actor(s, 'smuggler_1');
     expect(stance(s, actor(s, 'guard_1'), rook)).toBe('neutral'); // the band's relation
-    expect(stance(s, actor(s, 'guard_2'), rook)).toBe('opposed'); // the personal stance
-    expect(stance(s, rook, actor(s, 'guard_1'))).toBe('opposed');
+    expect(stance(s, actor(s, 'guard_2'), rook)).toBe('hostile'); // the personal stance
+    expect(stance(s, rook, actor(s, 'guard_1'))).toBe('hostile');
   });
 });

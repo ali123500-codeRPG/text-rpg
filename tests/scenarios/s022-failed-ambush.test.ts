@@ -11,7 +11,7 @@ afterEach(() => vi.restoreAllMocks());
 
 it('22 Failed ambush: aware before the blow, onAlert this turn, Planner next turn', () => {
   const s = makeVillage({ playerZone: 'gate_inner' });
-  s.bands.find((b) => b.id === 'village_watch')!.relations.player_band = 'opposed';
+  s.bands.find((b) => b.id === 'village_watch')!.relations.player_band = 'hostile';
   place(s, 'guard_1', 'gate_inner');
   const tiers: Record<string, Tier> = { player: 'failure', guard_1: 'great_success' };
   vi.spyOn(ruleset, 'roll').mockImplementation((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, d100: 50, margin: 0, tier: tiers[req.actorId] ?? 'critical_failure', natural: 0, modifiers: [], tierShifts: [] }));
