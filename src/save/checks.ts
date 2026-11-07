@@ -8,7 +8,23 @@ export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings
 
 // ---------- migrations ----------
 /** step from version v to v + 1, keyed by v. v1 is the baseline: no steps yet. Defaults for missing fields go only here. */
-export const MIGRATIONS: Record<number, (pages: Pages) => void> = {};
+// v1 stored tiers by name (old names Partial and Strong included) and roll results with a tierIndex 0..5.
+// v2 stores tier IDs −3..2 (unclamped on rolls): tier = tierIndex − 3.
+const V1_TIER_IDS: Record<string, number> = {
+  'Critical Failure': -3, Failure: -2, Partial: -1, 'Near Miss': -1, Success: 0, Strong: 1, 'Great Success': 1, 'Critical Success': 2,
+};
+export function tiersToIds(v: unknown): void {
+  if (Array.isArray(v)) return v.forEach(tiersToIds);
+  if (!v || typeof v !== 'object') return;
+  const o = v as Record<string, unknown>;
+  if (typeof o.tierIndex === 'number') { o.tier = o.tierIndex - 3; delete o.tierIndex; }
+  for (const k of ['tier', 'minTier', 'playerTier']) if (typeof o[k] === 'string' && o[k] as string in V1_TIER_IDS) o[k] = V1_TIER_IDS[o[k] as string];
+  Object.values(o).forEach(tiersToIds);
+}
+
+export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
+  1: (pages) => Object.values(pages).forEach(tiersToIds),
+};
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */
 export function migrate(pages: Pages, from: number, to: number, r: CheckReport): boolean {

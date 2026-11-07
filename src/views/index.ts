@@ -8,7 +8,7 @@ import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { actorById, allActors, atLeast, bandById, isActive, opposed, shortestPath, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { healthLevel, partStates } from '../ruleset';
+import { healthLevel, partStates, tierName } from '../ruleset';
 import { isComm } from '../perception';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
@@ -121,7 +121,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     id: e.id, turn: e.turn, kind: e.kind, zone: e.zone,
     ...(full ? { actorId: e.actorId } : {}),
     ...(full && e.target ? { target: e.target } : {}),
-    ...(full && e.tier && e.actorId === viewer.id ? { tier: e.tier } : {}),
+    ...(full && e.tier !== undefined && e.actorId === viewer.id ? { tier: tierName(e.tier) } : {}),
     level: p.level, cue: p.cue,
     ...(!full ? { where: whereLabel(state, viewer.zone, e.zone) } : {}),
     ...(e.line && (full || p.cue === 'sound') ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
@@ -332,13 +332,13 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
 }
 
 // ---------- WeaverView ----------
-const STAKES: Record<string, string> = {
-  'Critical Failure': 'A real challenge with little gain; the harder of the two',
-  Failure: 'A real challenge with little gain',
-  Partial: 'A normal event, gain matched to challenge',
-  Success: 'A normal event, gain matched to challenge',
-  Strong: 'High gain with a matching high challenge',
-  'Critical Success': 'The biggest gain with the biggest challenge',
+const STAKES: Record<number, string> = { // keyed by tier ID
+  [-3]: 'A real challenge with little gain; the harder of the two',
+  [-2]: 'A real challenge with little gain',
+  [-1]: 'A normal event, gain matched to challenge',
+  0: 'A normal event, gain matched to challenge',
+  1: 'High gain with a matching high challenge',
+  2: 'The biggest gain with the biggest challenge',
 };
 
 export function buildWeaverView(state: GameState, target: WeaverView['target']): WeaverView {
@@ -353,7 +353,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   const items = new Map<string, { id: string; name: string; kind: string }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind }]));
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? '') });
   return {
-    tier: state.stage.tier,
+    tier: tierName(state.stage.tier),
     stakes: STAKES[state.stage.tier] ?? '',
     target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
@@ -419,8 +419,8 @@ export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: 
     weapon,
     armor: armor ? itemDef(state, armor.itemId).name : null,
     shield: shield ? itemDef(state, shield.itemId).name : null,
-    attack: { tier: r.attack.tier, natural: nat(r.attack.natural), deciding: [...r.deciding.attack] },
-    defense: r.defense && r.defenseType ? { type: r.defenseType, tier: r.defense.tier, natural: nat(r.defense.natural), deciding: [...r.deciding.defense] } : null,
+    attack: { tier: tierName(r.attack.tier), natural: nat(r.attack.natural), deciding: [...r.deciding.attack] },
+    defense: r.defense && r.defenseType ? { type: r.defenseType, tier: tierName(r.defense.tier), natural: nat(r.defense.natural), deciding: [...r.deciding.defense] } : null,
     outcome: outcomeLabel(r.outcome),
     location: r.location && partName ? { part: partName, how: r.locationHow ?? 'rolled' } : null,
     changes: visibleChanges(state, event.effects, viewerId),

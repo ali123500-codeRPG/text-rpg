@@ -28,11 +28,11 @@ import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
 import { updateBeliefs } from '../../src/perception';
 import {
-  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, SceneDirector, trimStage, validateStagePlan, type PlanContext,
+  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, SceneDirector, tidyRewards, trimStage, validateStagePlan, type PlanContext,
 } from '../../src/scene';
 import { toStoryStart, villageStagePlan, VirtualClock, FITTING_GRADES } from '../../src/scene/fixtures';
 
-const ctx: PlanContext = { tier: 'Success', kind: 'scene', placeId: 'tavern' };
+const ctx: PlanContext = { tier: 0, kind: 'scene', placeId: 'tavern' };
 const fresh = () => toStoryStart(makeVillage());
 const codes = (s: GameState, p: StagePlan, c: PlanContext = ctx) => validateStagePlan(s, p, c).map((e) => e.code);
 
@@ -40,17 +40,17 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('gradesFitTier', () => {
   it('follows the table', () => {
-    expect(gradesFitTier('Critical Failure', 'major', 'none')).toBe(true);
-    expect(gradesFitTier('Critical Failure', 'moderate', 'none')).toBe(false);
-    expect(gradesFitTier('Failure', 'moderate', 'minor')).toBe(true);
-    expect(gradesFitTier('Failure', 'moderate', 'major')).toBe(false);
-    expect(gradesFitTier('Partial', 'minor', 'moderate')).toBe(true);
-    expect(gradesFitTier('Success', 'minor', 'major')).toBe(false);
-    expect(gradesFitTier('Success', 'none', 'none')).toBe(false);
-    expect(gradesFitTier('Strong', 'extreme', 'major')).toBe(true);
-    expect(gradesFitTier('Strong', 'major', 'moderate')).toBe(false);
-    expect(gradesFitTier('Critical Success', 'extreme', 'extreme')).toBe(true);
-    for (const [t, g] of Object.entries(FITTING_GRADES)) expect(gradesFitTier(t, g.challenge, g.gain)).toBe(true);
+    expect(gradesFitTier(-3, 'major', 'none')).toBe(true);
+    expect(gradesFitTier(-3, 'moderate', 'none')).toBe(false);
+    expect(gradesFitTier(-2, 'moderate', 'minor')).toBe(true);
+    expect(gradesFitTier(-2, 'moderate', 'major')).toBe(false);
+    expect(gradesFitTier(-1, 'minor', 'moderate')).toBe(true);
+    expect(gradesFitTier(0, 'minor', 'major')).toBe(false);
+    expect(gradesFitTier(0, 'none', 'none')).toBe(false);
+    expect(gradesFitTier(1, 'extreme', 'major')).toBe(true);
+    expect(gradesFitTier(1, 'major', 'moderate')).toBe(false);
+    expect(gradesFitTier(2, 'extreme', 'extreme')).toBe(true);
+    for (const [t, g] of Object.entries(FITTING_GRADES)) expect(gradesFitTier(+t, g.challenge, g.gain)).toBe(true);
   });
 });
 
@@ -104,7 +104,7 @@ describe('validateStagePlan', () => {
     expect(c).toContain('secret_without_leak_terms');
   });
   it('grades must fit the tier', () => {
-    expect(codes(fresh(), villageStagePlan(), { ...ctx, tier: 'Failure' })).toEqual(['grades_misfit']);
+    expect(codes(fresh(), villageStagePlan(), { ...ctx, tier: -2 })).toEqual(['grades_misfit']);
   });
   it('hidden terms and leak terms are scanned in every public field', () => {
     const p = villageStagePlan();
@@ -116,7 +116,8 @@ describe('validateStagePlan', () => {
     const leaks = validateStagePlan(fresh(), p, ctx).filter((e) => e.code === 'public_leak').map((e) => e.message);
     expect(leaks.some((m) => m.includes('band village_watch name'))).toBe(true);
     expect(leaks.some((m) => m.includes('knows'))).toBe(true);
-    expect(leaks.some((m) => m.includes('reward 1 name'))).toBe(true);
+    // a leaking minted name is no longer a leak error: the reward is placed as the plain base item
+    expect(validateStagePlan(fresh(), p, ctx).some((e) => e.code === 'reward_plain' && e.repaired && e.message.startsWith('reward 1'))).toBe(true);
     expect(leaks.some((m) => m.includes('zone tav_counter look') && m.includes('kegs'))).toBe(true);
     // hidden fields are not scanned
     p.weaverNote = 'the nest';
@@ -128,15 +129,23 @@ describe('validateStagePlan', () => {
     p.cast[0].routineGap = 'y'.repeat(CONFIG.TEXT_CAP + 1);
     expect(codes(fresh(), p).filter((c) => c === 'text_too_long')).toHaveLength(2);
   });
-  it('rewards resolve; minted quality and count capped', () => {
+  it('bad rewards are repaired or dropped, never blocking (loot L1)', () => {
     const p = villageStagePlan(); // moderate gain: quality 2 at most
+    const n = p.rewards.length;
     p.rewards.push({ item: 'excalibur', place: { carriedBy: 'barkeep' } });
-    p.rewards.push({ item: { base: 'arming_sword', quality: 3, boosts: 'hitAdj', name: 'a fine sword', look: 'bright' }, place: { carriedBy: 'guard_1' } });
+    p.rewards.push({ item: { base: 'arming_sword', quality: 3, boosts: 'keen edge', name: 'a fine sword', look: 'bright' }, place: { carriedBy: 'guard_1' } });
     p.rewards.push({ item: 'coin', place: { groundIn: 'woods' } });
-    expect(codes(fresh(), p)).toEqual(expect.arrayContaining(['unresolved_item', 'minted_quality', 'bad_reward']));
+    const e = validateStagePlan(fresh(), p, ctx);
+    expect(e.every((x) => x.repaired)).toBe(true);
+    expect(e.map((x) => x.code)).toEqual(['reward_dropped', 'reward_quality', 'reward_boosts', 'reward_dropped']);
+    const t = tidyRewards(fresh(), p).rewards;
+    expect(t).toHaveLength(n + 1);
+    expect(t[n].item).toMatchObject({ base: 'arming_sword', quality: 2, boosts: 'hitAdj' });
     const q = villageStagePlan();
     for (let i = 0; i < 3; i++) q.rewards.push({ item: { base: 'arming_sword', quality: 1, boosts: 'damageAdj', name: 'a sword', look: 'plain' }, place: { carriedBy: 'guard_1' } });
-    expect(codes(fresh(), q)).toEqual(['minted_cap']);
+    expect(codes(fresh(), q)).toEqual(['reward_plain']);
+    for (let i = 0; i < CONFIG.PLAN_CAPS.rewards; i++) q.rewards.push({ item: 'coin', place: { carriedBy: 'guard_1' } });
+    expect(tidyRewards(fresh(), q).rewards).toHaveLength(CONFIG.PLAN_CAPS.rewards);
   });
   it('routine errors are routineOnly and name the cast entry', () => {
     const p = villageStagePlan();
@@ -212,7 +221,7 @@ describe('applyStagePlan', () => {
     const p = villageStagePlan();
     p.seeds.plans.push({ ownerId: 'guard_1', goal: 'catch the thief', steps: ['watch'], triggers: [], createdTurn: 99 });
     p.seeds.triggers.push({ id: 't1', ownerId: 'patron_1', when: { type: 'player_seen_in_zone', zone: 'tav_cellar' }, then: { type: 'call_help', target: 'barkeep', skill: null, intent: 'shout' }, once: true });
-    p.seeds.secrets.push({ id: 's1', holderId: 'barkeep', fact: 'owes money', leakTerms: ['debt'], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 'Success', againstActorId: 'barkeep' } });
+    p.seeds.secrets.push({ id: 's1', holderId: 'barkeep', fact: 'owes money', leakTerms: ['debt'], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 0, againstActorId: 'barkeep' } });
     p.rewards.push({ item: { base: 'arming_sword', quality: 2, boosts: 'hitAdj', name: 'Wim\'s old blade', look: 'a notched sword' }, place: { groundIn: 'tav_cellar' } });
     const s = fresh();
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
@@ -231,7 +240,7 @@ describe('applyStagePlan', () => {
       bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tacticsLevel: 1, lethal: undefined as never, relations: { player_band: 'opposed' } }],
       zones: [{ key: 'field_mid', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 1, light: 1, links: [{ to: 'field_far', label: 'back', sight: true }] }],
       cast: [{ template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, openingBelief: 'unaware', motive: '' }] };
-    applyStagePlan(s, ext, { tier: 'Success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
+    applyStagePlan(s, ext, { tier: 0, kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(s.stage.zoneIds).toContain('field_mid_2');
     expect(s.bands.find((b) => b.id === 'slimes_2')!.lethal).toBe(true);
     const a = s.actors.find((x) => x.id === 'slime_1_2')!;
@@ -261,7 +270,7 @@ describe('applyFallbackStage', () => {
     const s = makeVillage();
     s.stage.zoneIds = [];
     s.zones = [];
-    applyFallbackStage(s, { tier: 'Success', kind: 'scene', placeId: 'tavern' }, 'invalid_plan', [{ code: 'x', message: 'y', routineOnly: false }]);
+    applyFallbackStage(s, { tier: 0, kind: 'scene', placeId: 'tavern' }, 'invalid_plan', [{ code: 'x', message: 'y', routineOnly: false }]);
     expect(s.stage.zoneIds).toEqual(['tav_common', 'tav_counter', 'tav_cellar']);
     expect(s.hidden.stage.challenge).toBe('none');
     expect(s.stage.fallback).toEqual({ reason: 'invalid_plan', turn: 1 });
@@ -270,7 +279,7 @@ describe('applyFallbackStage', () => {
   it('extension: one empty zone named by the frontier label, no cast', () => {
     const s = makeVillage({ playerZone: 'field_far' });
     const n = s.actors.length;
-    applyFallbackStage(s, { tier: 'Success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, 'call_failed', []);
+    applyFallbackStage(s, { tier: 0, kind: 'extension', frontierKey: 'woods', placeId: 'field' }, 'call_failed', []);
     const z = s.zones.find((x) => x.id === 'woods')!;
     expect(z.name).toBe('into the woods');
     expect(z.links).toEqual([{ to: 'field_far', label: 'far side of the field', sight: false }]);
@@ -310,12 +319,12 @@ describe('stage', () => {
 });
 
 describe('SceneDirector', () => {
-  const situation = (tier: string) => vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 50, tier, modifiers: [] });
+  const situation = (tier: number) => vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 50, tier, modifiers: [] });
 
   it('scene start: one roll, repair retry with errors, then applies', async () => {
-    situation('Failure');
-    const bad = villageStagePlan('Success');
-    const good = villageStagePlan('Failure');
+    situation(-2);
+    const bad = villageStagePlan(0);
+    const good = villageStagePlan(-2);
     const weave = vi.fn().mockResolvedValueOnce(bad).mockResolvedValueOnce(good);
     const d = new SceneDirector({ weave, clock: new VirtualClock() });
     const s = fresh();
@@ -325,12 +334,12 @@ describe('SceneDirector', () => {
     expect(weave).toHaveBeenCalledTimes(2);
     expect(weave.mock.calls[1][1]).toEqual([expect.objectContaining({ code: 'grades_misfit' })]);
     expect(s.turn).toBe(0);
-    expect(s.stage).toMatchObject({ tier: 'Failure', sceneNumber: 1, sceneStartTurn: 0 });
+    expect(s.stage).toMatchObject({ tier: -2, sceneNumber: 1, sceneStartTurn: 0 });
     expect(r.events.map((e) => e.kind)).toEqual(['arrival', 'presence']);
-    expect(r.situation!.tier).toBe('Failure');
+    expect(r.situation!.tier).toBe(-2);
   });
   it('scene start past WEAVER_TIMEOUT gives the fallback', async () => {
-    situation('Success');
+    situation(0);
     const clock = new VirtualClock();
     const weave = vi.fn(() => clock.sleep(CONFIG.WEAVER_TIMEOUT_MS + 1).then(() => villageStagePlan()));
     const d = new SceneDirector({ weave, clock });

@@ -36,7 +36,7 @@ function duelState(build: CreationBuild): GameState {
     bands: [], hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: 1, rngState: 1, pending: { turn: 0, mode: 'tactical', engaged: [], fired: [] },
     places: [{ id: 'duel', storyId: 'preview', kind: 'place', parentId: null, names: { current: 'field', past: [] }, zones: [zone], state: {}, headlines: [] }],
-    facts: [], stage: { zoneIds: ['duel'], tier: 'Success', sceneNumber: 0, sceneStartTurn: 0 }, sceneCaps: { promotions: 0, minted: 0 },
+    facts: [], stage: { zoneIds: ['duel'], tier: 0, sceneNumber: 0, sceneStartTurn: 0 }, sceneCaps: { promotions: 0, minted: 0 },
     clocks: {}, flags: {}, quests: [], settings, libraryVersion: getLibrary().version, blueprints: [],
     meta: { storyId: 'preview', title: 'preview', schemaVersion: CONFIG.SCHEMA_VERSION, createdAt: '', settings },
   };

@@ -40,9 +40,9 @@ describe('play screen extras (Voyage UI check, 07/11/2026)', async () => {
     expect(JSON.stringify(g)).not.toMatch(/slime/i);
   });
   it('tier gap in words', () => {
-    expect(tierGap('Strong', 'Success')).toBe('1 tier ahead');
-    expect(tierGap('Failure', 'Strong')).toBe('3 tiers behind');
-    expect(tierGap('Success', 'Success')).toBe('same tier');
+    expect(tierGap(1, 0)).toBe('1 tier ahead');
+    expect(tierGap(-2, 1)).toBe('3 tiers behind');
+    expect(tierGap(0, 0)).toBe('same tier');
   });
   it('heard lines show word for word unless the narration already quotes them; packets become turn changes', () => {
     const s = makeVillage();

@@ -8,8 +8,8 @@ import { intent, play } from './w4-kit';
 
 afterEach(() => vi.restoreAllMocks());
 
-const roll = (actorId: string, skill: string, tierIndex: number, tier: string): RollResult =>
-  ({ actorId, skill, d100: 90, margin: 40, tierIndex, tier, natural: 0, modifiers: [], tierShifts: [] });
+const roll = (actorId: string, skill: string, tier: number): RollResult =>
+  ({ actorId, skill, d100: 90, margin: 40, tier, natural: 0, modifiers: [], tierShifts: [] });
 
 it('90 Destroyed arm drops', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
@@ -21,7 +21,7 @@ it('90 Destroyed arm drops', () => {
   expect(g.core.inventory.find((i) => i.id === sword)!.equippedIn).toEqual(['hand:right_arm']);
   // force the blow onto the sword arm; damage still goes through the real applyEffects
   vi.spyOn(ruleset, 'attack').mockImplementationOnce((req: AttackRequest): AttackResult => ({
-    attack: roll(req.attackerId, 'melee_medium', 5, 'Critical Success'), defense: roll(req.targetId, 'block', 1, 'Failure'), defenseType: 'block',
+    attack: roll(req.attackerId, 'melee_medium', 2), defense: roll(req.targetId, 'block', -2), defenseType: 'block',
     gap: -4, gapShifts: [], outcome: 'heavy_hit', location: 'right_arm', locationHow: 'aimed', multiplier: 1.5, damage: 30,
     deciding: { attack: [], defense: [], gap: [] }, attackerId: req.attackerId, targetId: req.targetId, weaponId: req.weaponId, modeId: req.modeId ?? 'cut',
   }));

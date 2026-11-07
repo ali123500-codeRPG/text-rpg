@@ -4,7 +4,7 @@ import { npcAction, speech, setupGame, narrateAll } from './_w7';
 
 async function converse(guarded: boolean) {
   const g = setupGame({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] }); // no wandering slime engages the guard (a next-turn background Planner)
-  if (guarded) g.state.hidden.secrets.push({ id: 'sec_cellar', holderId: 'trader', fact: 'smuggled goods in the cellar', leakTerms: ['smuggled'], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 'Critical Success', againstActorId: 'trader' } });
+  if (guarded) g.state.hidden.secrets.push({ id: 'sec_cellar', holderId: 'trader', fact: 'smuggled goods in the cellar', leakTerms: ['smuggled'], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 2, againstActorId: 'trader' } });
   g.start();
   g.claude.push('parser', speech('talk', 'trader', 'Quiet night?'), { delayMs: 1000 });
   const reply = { action: npcAction('talk', 'player'), gear: null, stance: null };

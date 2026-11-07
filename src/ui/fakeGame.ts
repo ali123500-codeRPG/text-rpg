@@ -44,7 +44,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
       log: [{ turn: 3, code: 'planner_late' }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
-      places: [], facts: [], stage: { zoneIds: [], tier: 'Success', sceneNumber: 2, sceneStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scene planning failed: placeholder area', turn: 2 } } : {}) },
+      places: [], facts: [], stage: { zoneIds: [], tier: 0, sceneNumber: 2, sceneStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scene planning failed: placeholder area', turn: 2 } } : {}) },
       sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
       quests: [{ id: 'q1', state: 'active', text: 'Clear the slimes from the field' }, { id: 'q2', state: 'active', text: 'Ask the barkeep about the woods' }, { id: 'q0', state: 'done', text: 'Find a bed for the night' }],
       settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
@@ -56,10 +56,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { turn: 2, kind: 'narration', text: NARRATION[1] },
       { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it' },
       { turn: 3, kind: 'narration', text: NARRATION[2],
-        check: { skill: 'melee_medium', tier: 'Strong', against: { what: 'slime’s dodge', tier: 'Success' }, result: 'full hit, body' },
+        check: { skill: 'melee_medium', tier: 1, against: { what: 'slime’s dodge', tier: 0 }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
         changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],
-        mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Strong', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Strong · dodge 0 · full hit · 25 damage to body'] },
+        mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Great Success', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Great Success · dodge 0 · full hit · 25 damage to body'] },
     ];
   }
   if (opts.autoStart) start({ name: 'Aldric', skills: { melee_medium: 50, block: 40, dodge: 30, endurance: 50, sight: 30, hearing: 30, feint: 10, riposte: 10 }, tagged: ['melee_medium', 'block', 'endurance'] });

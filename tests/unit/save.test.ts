@@ -24,7 +24,7 @@ async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: numb
 
 afterEach(() => {
   resetConfig();
-  delete MIGRATIONS[1];
+  delete MIGRATIONS[2];
 });
 
 describe('save and load', () => {
@@ -205,13 +205,13 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await play(st, s, 1, 2);
-    CONFIG.SCHEMA_VERSION = 2;
-    MIGRATIONS[1] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
+    CONFIG.SCHEMA_VERSION = 3;
+    MIGRATIONS[2] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
     const { state, report } = await loadStory(st, 'test', lib());
     expect(state.flags.migrated).toBe(true);
-    expect(report).toContain('migrated v1 -> v2');
+    expect(report).toContain('migrated v2 -> v3');
     const h = await head(st);
-    expect(h).toMatchObject({ schemaVersion: 2, undo: null, safety: { turn: 2 } });
+    expect(h).toMatchObject({ schemaVersion: 3, undo: null, safety: { turn: 2 } });
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
     // the safety bookmark can be taken back (it migrates again)
     expect((await useBookmark(st, 'test', 'safety', lib())).state.flags.migrated).toBe(true);
@@ -221,11 +221,23 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    CONFIG.SCHEMA_VERSION = 3;
-    MIGRATIONS[1] = () => {};
+    CONFIG.SCHEMA_VERSION = 4;
+    MIGRATIONS[2] = () => {};
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toContain('schema: no migration step v2 -> v3');
-    expect((await head(st)).schemaVersion).toBe(1);
+    expect(err.report).toContain('schema: no migration step v3 -> v4');
+    expect((await head(st)).schemaVersion).toBe(2);
+  });
+
+  it('v1 -> v2 turns tier names (old ones too) and roll tierIndex into tier IDs', () => {
+    const pages: Record<string, unknown> = {
+      engine: { stage: { tier: 'Strong' }, events: [{ tier: 'Partial', attack: { attack: { tierIndex: 6, tier: 'Critical Success' } } }] },
+      hidden: { secrets: [{ revealWhen: { type: 'check_passed', minTier: 'Success' } }] },
+    };
+    MIGRATIONS[1](pages);
+    expect(pages).toEqual({
+      engine: { stage: { tier: 1 }, events: [{ tier: -1, attack: { attack: { tier: 3 } } }] },
+      hidden: { secrets: [{ revealWhen: { type: 'check_passed', minTier: 0 } }] },
+    });
   });
 
   it('follows renamed entries, marks deleted ones dormant, syncs body parts', async () => {

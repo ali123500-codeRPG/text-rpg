@@ -1,5 +1,6 @@
 // GM debug view (Part 2, Leak prevention…; Part 4 §11): full state, hidden plans, rolls, beliefs, each agent's exact
 // input and output, the red fallback banner, the backup list with restore, and the "Download backup" button.
+import { tierName } from '../ruleset';
 import type { GameApi } from '../types';
 import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
 
@@ -52,7 +53,7 @@ export function gmPage(api: GameApi) {
         rolls.length ? h('table', { class: 'hs-tbl' },
           h('thead', {}, h('tr', {}, ['Actor', 'Kind', 'Target', 'Result', 'Detail'].map((t) => h('th', {}, t)))),
           h('tbody', {}, rolls.map((e) => h('tr', {}, h('td', {}, e.actorId), h('td', {}, e.kind), h('td', {}, e.target ?? '–'),
-            h('td', {}, e.attack ? `${e.attack.outcome} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.check ? (e.check.passed ? 'passed' : 'failed') : (e.tier ?? '–')),
+            h('td', {}, e.attack ? `${e.attack.outcome} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.check ? (e.check.passed ? 'passed' : 'failed') : (e.tier !== undefined ? tierName(e.tier) : '–')),
             h('td', {}, e.attack ? `d100 ${e.attack.attack.d100} vs ${e.attack.defense?.d100 ?? '–'} · gap ${e.attack.gap ?? '–'} · ${e.attack.location ?? '–'}` : '')))))
           : h('p', { class: 'empty' }, 'No rolls this turn.')),
 

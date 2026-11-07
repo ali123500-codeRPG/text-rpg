@@ -62,7 +62,7 @@ const DEFAULTS = {
   BACKUP_EVERY: 10, // Q2
   BACKUPS_KEPT: 3, // Q2
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 1,
+  SCHEMA_VERSION: 2, // v2: tiers stored as IDs
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
   ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
@@ -99,4 +99,9 @@ export function resetConfig(): void {
   Object.assign(CONFIG, structuredClone(DEFAULTS));
 }
 
-export const TIER_NAMES = ['Critical Failure', 'Failure', 'Partial', 'Success', 'Strong', 'Critical Success'] as const;
+/** Tier IDs to names: the only place tier names live. Code refers to tiers by ID (Part 1 §4). */
+export const TIER_NAMES: Record<number, string> = { [-3]: 'Critical Failure', [-2]: 'Failure', [-1]: 'Near Miss', 0: 'Success', 1: 'Great Success', 2: 'Critical Success' };
+/** Band tactics levels to the words Claude reads and writes (V2). Code uses only the level. */
+export const TACTICS_NAMES: Record<number, string> = { 1: 'simple', 2: 'competent', 3: 'cunning' };
+export const TIER_MIN = -3;
+export const TIER_MAX = 2;

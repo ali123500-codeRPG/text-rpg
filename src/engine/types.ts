@@ -1,4 +1,4 @@
-import type { Intent, Order, PlannerOutput, ResponderOutput, VoiceOutput, ContestResult, GameEvent } from '../types';
+import type { Intent, Order, PlannerOutput, ResponderOutput, VoiceOutput, ContestResult, GameEvent, Tier } from '../types';
 
 export type AcceptedAgentOutput =
   | { agent: 'planner'; actorId: string; output: PlannerOutput }
@@ -8,7 +8,7 @@ export type AcceptedAgentOutput =
 /** exchange slot part 1, computed after the Parser and before dialogue calls */
 export type ExchangeSpeech = {
   skill: string; // speech skill actually used (after substitution)
-  playerTier: string;
+  playerTier: Tier;
   impression: string | null; // fixed words from the tier (Dialogue input table)
   perSpokesperson: Record<string, { contest: ContestResult; slips: string[] }>;
 };

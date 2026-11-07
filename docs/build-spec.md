@@ -86,14 +86,14 @@ margin = d100 + SITUATION_BASE + net modifiers − 100
 
 Only three sources may modify the roll, each its own modifier type: perks, gear and statuses (blessings, buffs, curses, debuffs) whose library entry names the situation roll. A gear effect counts only when its library entry names the situation roll; it may be active while only carried (Part 5 §2). Code reads the player's inventory once, at scene setup step 2. Injury, place, difficulty, skills, terrain and tactics never modify it. With the placeholder base, the totals (d100 + net modifiers) read as follows:
 
-| Total (d100 + modifiers) | Tier | Stakes |
+| Total (d100 + modifiers) | Tier (ID) | Stakes |
 | --- | --- | --- |
-| Under 0 | Critical Failure | A real challenge with little gain; the harder of the two **\[Proposed\]** |
-| 0–24 | Failure | A real challenge with little gain |
-| 25–49 | Partial | A normal event, gain matched to challenge |
-| 50–74 | Success | A normal event, gain matched to challenge |
-| 75–99 | Strong | High gain with a matching high challenge |
-| 100+ | Critical Success | The biggest gain with the biggest challenge **\[Proposed\]** |
+| Under 0 | Critical Failure (−3) | A real challenge with little gain; the harder of the two **\[Proposed\]** |
+| 0–24 | Failure (−2) | A real challenge with little gain |
+| 25–49 | Near Miss (−1) | A normal event, gain matched to challenge |
+| 50–74 | Success (0) | A normal event, gain matched to challenge |
+| 75–99 | Great Success (1) | High gain with a matching high challenge |
+| 100+ | Critical Success (2) | The biggest gain with the biggest challenge **\[Proposed\]** |
 
 **Natural edges** apply after the bands, clamped at the ends of the scale: a natural 01 drops two tiers, 02–05 one tier, 96–99 raises one tier, 00 two tiers.
 
@@ -111,7 +111,9 @@ margin = d100 + SKILL_WEIGHT × effective skill + roll modifiers − ROLL_NEEDED
 SKILL_WEIGHT = 0.5, ROLL_NEEDED = 63.5 (placeholders); d100 runs 1–100 (00 = 100)
 ```
 
-Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to −1 Partial; 0 to 24 Success; 25 to 74 Strong; 75+ Critical Success. Margins may end in .5; compare exact values.
+Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to −1 Near Miss; 0 to 24 Success; 25 to 74 Great Success; 75+ Critical Success. Margins may end in .5; compare exact values.
+
+**Tier IDs.** Code refers to a tier only by its ID: Critical Failure −3, Failure −2, Near Miss −1, Success 0, Great Success 1, Critical Success 2. The names live in one table (config `TIER_NAMES`) and appear only in text for the player and for Claude, so renaming a tier changes no rule. Saves store IDs (schema v2; a v1 save is migrated on load).
 
 Modifier types (each type diminishes within itself; values per type are deferred):
 
@@ -126,7 +128,7 @@ Modifier types (each type diminishes within itself; values per type are deferred
 
 One roll point equals two skill points; write roll modifiers small.
 
-**Tier shifts**, applied after banding: natural edges (01 −2 tiers, 02–05 −1, 96–99 +1, 00 +2) and tier perks. They apply to attack and defense rolls, never to the location roll. There is no clamp: a shifted tier may go past Critical Success or below Critical Failure. Narration and the packet show the nearest of the six named tiers.
+**Tier shifts**, applied after banding: natural edges (01 −2 tiers, 02–05 −1, 96–99 +1, 00 +2) and tier perks. They apply to attack and defense rolls, never to the location roll. There is no clamp: a shifted tier may go past Critical Success or below Critical Failure. Narration and the packet show the nearest of the six named tiers with one + or − per step past the end: ID 3 is "Critical Success+", ID 4 "Critical Success++", ID −4 "Critical Failure−".
 
 **Gap shifts**, applied to the gap (Part 3, Damage flow): heavy weapon vs block −1, cover, and perks that add a tier to block or dodge.
 
@@ -267,9 +269,9 @@ A dialogue call receives, from this turn, only the words the player spoke and on
 | --- | --- | --- |
 | Critical Failure | insulting, plainly false | laughable |
 | Failure | unconvincing | unimpressive |
-| Partial | doubtful but possible | unsettling |
+| Near Miss | doubtful but possible | unsettling |
 | Success | convincing | threatening |
-| Strong | very convincing | frightening |
+| Great Success | very convincing | frightening |
 | Critical Success | completely convincing | terrifying |
 
 The tier names are the six tiers of Part 1 §4; the ruleset still owns them.
@@ -399,7 +401,7 @@ On a calm return:               the anchor saved in returnTo (Explore mode: Alar
 Tier comes from the ruleset. Health and body parts are Part 3's health track and per-creature body parts (SavedCondition, Part 4).
 
 ```ts
-type Tier = string;   // ruleset exports TIERS: readonly Tier[], ordered best to worst (six tiers, Part 1 §4)
+type Tier = number;   // tier ID, −3 Critical Failure … 2 Critical Success (Part 1 §4); names only via tierName(id). TIERS lists the IDs best to worst
 ```
 
 Six views are built from state:
@@ -589,7 +591,7 @@ Rules:
 2. To share what you know with allies, you must communicate: speak, shout, call for help or raise the alarm. Allies who don't perceive it don't learn it.
 3. Play your band's goals and your temperament, as given in CHARACTER. Your job is to be believable, not to beat the player or to help them. Guards guard, cowards flee, fanatics hold, friends stand by friends.
 4. Respect your condition and morale. If hurt or outnumbered you may retreat or call for help.
-5. Tactical skill: the level in CHARACTER. 1 = simple and predictable, 2 = competent, 3 = cunning.
+5. Tactical skill: tactics in CHARACTER: simple (predictable), competent, or cunning.
 6. Give exactly one action; "hold" is allowed. Talking is an action. A line given with any other action is only a passing remark that no one acts on.
 7. Change the plan only when it should change. Use triggers for things that should happen later without you, such as an ambush that springs when you see the player on the bridge. When things calm down, you may pick which of your routines to follow.
 8. If your line gives your own name or another character's, list them in introduces.
@@ -711,7 +713,7 @@ interface Ruleset {
 
 type CheckRequest = { actorId: string; skill: string; target?: string; modifiers: { source: string; value: number }[] };
 type CheckResult  = { actorId: string; skill: string; target: number; passed: boolean; modifiers: CheckRequest['modifiers'] };
-type ContestResult = { a: RollResult; b: RollResult; gap: number; winner: 'a' | 'b' | 'tie' };   // a = the acting side; gap = b.tierIndex − a.tierIndex (Part 1 §4, Contests)
+type ContestResult = { a: RollResult; b: RollResult; gap: number; winner: 'a' | 'b' | 'tie' };   // a = the acting side; gap = b.tier − a.tier (Part 1 §4, Contests)
 type SituationResult = {
   actorId: string;                    // always the player
   roll: number;                       // natural d100
@@ -726,8 +728,7 @@ type RollRequest = {
 };
 type RollResult = {
   actorId: string; skill: string; d100: number; margin: number;
-  tierIndex: number;                // 0 = Critical Failure … 5 = Critical Success; unclamped
-  tier: Tier;                       // nearest named tier
+  tier: Tier;                       // tier ID, −3 Critical Failure … 2 Critical Success; unclamped
   natural: -2 | -1 | 0 | 1 | 2;
   modifiers: RollRequest['modifiers']; tierShifts: RollRequest['tierShifts'];
 };
@@ -904,7 +905,7 @@ Per turn:
 3. **One order per actor.** A fired trigger's order replaces the agent's order for the same actor. When several of an owner's triggers fire in one turn, the first in its plan's order wins; the others stay armed unless they are once triggers.
 4. **Next view.** The owner's next OppositionView lists its fired triggers under "already happened", so the Planner doesn't order the same thing twice.
 5. **Plan updates.** A non-null planUpdate replaces that actor's plan; memoryNote replaces its memory. Updates from a turn that stopped on a clarify question are kept and apply when that turn resolves. A late Planner output is discarded whole, planUpdate included (interim; D-43).
-6. **Secrets.** A secret becomes player knowledge only when a resolved event meets revealWhen: minTier compares positions in ruleset.TIERS, and a check\_passed reveal needs the check aimed at againstActorId. A secret is also revealed when its holder's Responder lists it in reveals; code accepts only secrets that actor holds **\[Proposed\]**. When the player's speech check against a spokesperson meets one of its check\_passed reveals, its Responder is told so (SLIPS) before it answers **\[Proposed\]**. A revealed secret is added to the player's Journal (secretsKnown); only then can it appear in NarrationView.
+6. **Secrets.** A secret becomes player knowledge only when a resolved event meets revealWhen: minTier is a tier ID and the check must reach at least that ID (the Weaver writes it as a number, with the legend in its prompt), and a check\_passed reveal needs the check aimed at againstActorId. A secret is also revealed when its holder's Responder lists it in reveals; code accepts only secrets that actor holds **\[Proposed\]**. When the player's speech check against a spokesperson meets one of its check\_passed reveals, its Responder is told so (SLIPS) before it answers **\[Proposed\]**. A revealed secret is added to the player's Journal (secretsKnown); only then can it appear in NarrationView.
 7. **Save.** After resolution, the story is saved as described in Part 4 §10. Hidden fields are saved but shown only in the GM debug view.
 
 **onAlert** is not a trigger. Code fires a routine's onAlert order once, when its owner first leaves unaware of an opposed actor or first perceives an attack or alarm: this turn if the owner hasn't acted and has no agent order, otherwise next turn unless an agent order exists by then. An armed flag resets when the owner is calm again: unaware of every opposed actor, and DECAY\_TURNS turns with no attack or alarm perceived.
@@ -996,7 +997,7 @@ Output shape (notation, not literal JSON):
                    links: [ { to: zoneKey | zoneId | frontierKey, label, sight } ] } ],
   frontiers:   [ { key, label } ],
   bands:       [ { key, name: public text, goals: hidden text, temperament: hidden text,
-                   tacticsLevel: 1 | 2 | 3, lethal: true | false,
+                   tacticsLevel: 'simple' | 'competent' | 'cunning', lethal: true | false,   // code stores level 1 | 2 | 3 (config TACTICS_NAMES)
                    relations: { [bandKey | bandId]: opposed | neutral | friendly } } ],
                                     // new bands only; may also set relations toward existing bands
   cast:        [ { template: templateId | actor: actorId,
@@ -1030,8 +1031,8 @@ grade = none | minor | moderate | major | extreme
 | --- | --- | --- |
 | Critical Failure | Major or extreme | None or minor |
 | Failure | Moderate or higher | None or minor |
-| Partial, Success | Minor to major | Within one step of challenge |
-| Strong | At least major | Major |
+| Near Miss, Success | Minor to major | Within one step of challenge |
+| Great Success | At least major | Major |
 | Critical Success | Extreme | Extreme |
 
 Grades are hidden-side and never reach Agent Narrator. A computed cross-check (cast and rewards against the declared grades) is a stub that passes until NPC generation and the loot database are designed.
@@ -1045,7 +1046,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 - the grades fit the tier;
 - no public field contains a hiddenTerm or a secret's leakTerm;
 - free-text fields respect their length caps (placeholders).
-- every reward resolves; a minted variant's quality is at most the tier its gain grade allows (Part 5 §7) and the minted count stays within the per-scene cap; reward names and looks are public text and are scanned like other public fields;
+- rewards never fail a plan; code repairs them and logs each repair (reward\_repaired): a reward over the count cap, or with an unknown item, base or place, is dropped; a bad qty becomes 1; a minted variant past the per-scene cap, at a gain that allows none, or whose name or look is too long or uses a hidden term is placed as its plain base item; a quality above what the gain allows (Part 5 §7) is lowered to it; a weapon's boosts other than hitAdj or damageAdj becomes hitAdj (loot L1, V7);
 - every routineSetId resolves; a player-band entry names the companion set and binds no slots;
 - every slot the set lists is bound: a zone slot to one zone, a route slot to 2 to MAX\_ROUTE\_ZONES zones; bound keys are zones in the plan or on the stage, never frontiers; startAt names one of the set's slots;
 - every bound zone is reachable from the actor's other bound zones through zone links;
@@ -1329,7 +1330,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 74 | Import rejects | A shared routine that reads slot counter is not promoted, and the error names the slot |
 | 75 | Attack floor | An attack whose shifted tier is Failure or worse logs a miss and makes no defense roll |
 | 76 | Gap ladder | With forced dice, gap +1 against dodge gives 0.8×, and gap 0 against block lands on a Non-essential part or the general area |
-| 77 | No clamp | Strong plus a natural 00 gives a tier index above Critical Success; the packet shows Critical Success |
+| 77 | No clamp | Great Success plus a natural 00 gives tier ID 3; the packet shows Critical Success+ |
 | 78 | Ladder ends | A gap of +6 or −6 uses the ±5 entry |
 | 79 | Named part | At gap −2 a hit rolled on the general area moves to the named legs; one rolled on an arm stays |
 | 80 | Aim is code-set | The Parser output never carries aimed; /aim sets it for one turn only |
@@ -1350,7 +1351,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 95 | Stacked armor | A creature with natural armor wearing armor takes damage reduced by worn, then natural, floor 0, not rounded |
 | 96 | Armor pool | A head hit on a heavy helm drains the helm pool before the head pool; the health track ignores the helm pool |
 | 97 | Concealed blade | An NPC's view omits a concealed blade until the NPC perceives an attack with it; after that its belief keeps it |
-| 98 | Minted reward cap | A Weaver plan with a quality-3 variant on a moderate-gain scene fails validation; quality 2 passes |
+| 98 | Minted reward cap | A quality-3 variant on a moderate-gain scene is lowered to quality 2, and a weapon boosts of "keen edge" becomes hitAdj; the plan applies with no repair call |
 | 99 | Fallback attack | An engaged slime with the player in its zone attacks the player with unarmed\_natural, targetPart null; the order's source is fallback |
 | 100 | Fallback target | An engaged minor actor that a companion hit last turn attacks the companion, even with the player in the same zone |
 | 101 | Fallback close in | An engaged minor actor whose belief puts the player two links away moves one link along the shortest path, never into a frontier; in that zone with nobody there, it searches |
@@ -1679,7 +1680,7 @@ Visibility rules apply only to other characters: the player's own character is a
   "weapon": "arming sword",
   "armor":  null,
   "shield": null,
-  "attack":  { "tier": "Strong",  "natural": null, "deciding": [] },
+  "attack":  { "tier": "Great Success",  "natural": null, "deciding": [] },
   "defense": { "type": "dodge", "tier": "Success", "natural": null, "deciding": [] },
   "outcome": "full hit",
   "location": { "part": "legs", "how": "aimed" },
@@ -2415,7 +2416,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-51 | Companion warning on alert | 2 | Deferred | A one-off onAlert for companions (a warning shout), to revisit after stealth playtests |
 | D-52 | Band formations | 2 | Deferred | Coordinated band routines; folded into the existing shared-plans question |
 | D-53 | routineGap review | 2 | Deferred | How gap notes reach bank drafting: a GM-view list grouped by what the Weaver asked for |
-| D-54 | Player incapacitated | 2, 3 | Partly settled | What the next turn is when the player is down: death, capture or rescue. Tied to the Weaver and Healing. Settled for the first build: the stage plan marks each opposing band lethal or not (Part 2, Agent Weaver). Lethal, the default: the story ends on a "you fell" screen that offers /undo or reset. Not lethal: one survival roll, roll() with no skill and no modifiers; Partial or better survives and wakes in a safe place at Critical, Failure or worse ends the story the same way. Capture and rescue stay deferred |
+| D-54 | Player incapacitated | 2, 3 | Partly settled | What the next turn is when the player is down: death, capture or rescue. Tied to the Weaver and Healing. Settled for the first build: the stage plan marks each opposing band lethal or not (Part 2, Agent Weaver). Lethal, the default: the story ends on a "you fell" screen that offers /undo or reset. Not lethal: one survival roll, roll() with no skill and no modifiers; Near Miss or better survives and wakes in a safe place at Critical, Failure or worse ends the story the same way. Capture and rescue stay deferred |
 | D-55 | Triggers beyond the player | 2 | Deferred | player\_seen\_in\_zone and $player only watch the player; NPC-versus-NPC fights may need "enemy seen in zone" |
 | D-56 | Total HP and its split between body parts | 3 | Settled | Part 3, Total HP and Body parts; the values wait for the balance pass (D-77) |
 | D-57 | Damage calculation | 3 | Settled |  Part 3, Damage flow, and Part 5 §6, the damage step; values wait for D-77 |
@@ -2440,7 +2441,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-76 | Outnumbered and unaware values | 3 | Deferred | For the defense roll |
 | D-77 | Damage and HP balance pass | 3 | Deferred | After playtests: weapon damage and hit values, armor, HP\_BASE and HP\_PER\_END, part shares. Voyage playtest (07/11/2026): B7. Decided by Ali (07/11/2026): HP, part pools and damage may be fractional, with no rounding anywhere (was OQ-25) |
 | D-78 | Critical effects | 1 | Deferred | For Critical Failure and Critical Success; excluded from the hit roll review |
-| D-79 | Partial-hit cost | 3 | Deferred | Whether a Partial attack that lands leaves the attacker exposed; left out for now |
+| D-79 | Near-Miss-hit cost | 3 | Deferred | Whether a Near Miss attack that lands leaves the attacker exposed; left out for now |
 | D-80 | Tiny parts | 3 | Deferred | Their pool share, when the first Tiny part is used |
 | D-81 | Partial cover by part | 3 | Deferred | Such as a wall hiding the legs |
 | D-82 | Combat skill names | 1 | Deferred | For the melee, ranged and unarmed trees, set per setting |

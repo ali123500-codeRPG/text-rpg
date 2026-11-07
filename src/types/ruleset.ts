@@ -44,8 +44,7 @@ export type RollResult = {
   skill: string;
   d100: number;
   margin: number;
-  tierIndex: number; // 0 = Critical Failure … 5 = Critical Success; unclamped
-  tier: Tier; // nearest named tier
+  tier: Tier; // unclamped tier ID; tierName() gives the nearest named tier
   natural: -2 | -1 | 0 | 1 | 2;
   modifiers: Mod[];
   tierShifts: TierShift[];
@@ -56,7 +55,6 @@ export type SituationResult = {
   actorId: string;
   roll: number;
   tier: Tier;
-  tierIndex?: number;
   modifiers: { source: string; type: 'perk' | 'gear' | 'status'; value: number }[];
 };
 

@@ -5,6 +5,7 @@ import type { GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView } from '../views';
 import { tierGap } from '../agents/game';
+import { tierName } from '../ruleset';
 import { h } from './kit';
 import { sideSheet } from './charsheet';
 import { skillName } from './creation';
@@ -98,8 +99,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (l.kind !== 'narration') return [h('p', { class: 'ln-' + l.kind }, l.text)];
     const c = l.check;
     return [
-      c ? h('p', { class: 'check' }, `${skillName(c.skill)} `, h('b', {}, c.tier),
-        c.against ? [` vs ${c.against.what} ${c.against.tier}`, h('span', { class: 'sep' }, ' · '), tierGap(c.tier, c.against.tier)] : null,
+      c ? h('p', { class: 'check' }, `${skillName(c.skill)} `, h('b', {}, tierName(c.tier)),
+        c.against ? [` vs ${c.against.what} ${tierName(c.against.tier)}`, h('span', { class: 'sep' }, ' · '), tierGap(c.tier, c.against.tier)] : null,
         h('span', { class: 'sep' }, ' · '), h('b', {}, c.result)) : null,
       h('p', { class: 'ln-narration' }, l.text),
       ...(l.speech ?? []).map((sp) => h('div', { class: 'line' },

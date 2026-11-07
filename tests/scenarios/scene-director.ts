@@ -4,6 +4,7 @@ import type { AgentTurnLog, ClaudeClient, GameEvent, GameState, Rng, SituationRe
 import { SceneDirector, replaySceneStart } from '../../src/scene/director';
 import { openingEvents } from '../../src/scene';
 import { FITTING_GRADES, VirtualClock } from '../../src/scene/fixtures';
+import { tierIdOf } from '../../src/ruleset';
 
 export type SceneDirectorApi = {
   runSceneSetup(state: GameState, deps: { claude: ClaudeClient; rng: Rng }): Promise<{ situation: SituationResult; events: GameEvent[]; agentLog: AgentTurnLog[] }>;
@@ -55,5 +56,5 @@ export const MILL_PLAN: StagePlan = {
 /** a scripted Weaver answer: MILL_PLAN with grades that fit whatever tier the situation roll dealt */
 export function millWeaver(req: import('../../src/types').ClaudeRequest): import('../../src/types').ClaudeResponse {
   const tier = (JSON.parse(req.input[1].content) as { view: { tier: string } }).view.tier;
-  return { ok: true, value: { ...MILL_PLAN, event: { ...MILL_PLAN.event, ...FITTING_GRADES[tier] } } };
+  return { ok: true, value: { ...MILL_PLAN, event: { ...MILL_PLAN.event, ...FITTING_GRADES[tierIdOf(tier)!] } } };
 }

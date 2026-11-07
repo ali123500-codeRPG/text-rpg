@@ -1,5 +1,5 @@
 // Applying a stage plan (Scene setup steps 4–8), the fallback stage, opening events.
-import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
+import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { activity, itemDef } from '../library';
 import { spawnNpc } from '../library/spawn';
@@ -8,7 +8,7 @@ import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
 import { actorById, isActive, zoneById } from '../engine/relations';
 import type { PlanContext, PlanError } from './index';
-import { stageFrontiers } from './validate';
+import { stageFrontiers, tidyRewards } from './validate';
 
 function freshId(key: string, taken: Set<string>): string {
   let id = key;
@@ -96,7 +96,7 @@ function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'],
 }
 
 /** reset scene-scoped records at a scene start (Scenes: Start). */
-export function beginScene(state: GameState, tier: string): void {
+export function beginScene(state: GameState, tier: Tier): void {
   state.stage.tier = tier;
   state.stage.sceneNumber += 1;
   state.stage.sceneStartTurn = state.turn;
@@ -247,7 +247,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   }
 
   // ---- rewards ----
-  plan.rewards.forEach((r, i) => {
+  const { rewards, notes } = tidyRewards(state, plan);
+  if (notes.length) state.log.push({ turn, code: 'reward_repaired', detail: { notes: notes.map((e) => e.message) } });
+  rewards.forEach((r, i) => {
     const itemId = typeof r.item === 'string' ? r.item : mint(state, r.item, i);
     const def = itemDef(state, itemId);
     const qty = r.qty ?? 1;
