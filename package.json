@@ -7,6 +7,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build.mjs",
+    "perks-doc": "esbuild scripts/perks-doc.ts --bundle --platform=node --format=esm --outfile=dist/perks-doc.mjs --log-level=warning && node dist/perks-doc.mjs",
     "playtest": "esbuild scripts/playtest.ts --bundle --platform=node --format=esm --outfile=dist/playtest.mjs --log-level=warning && node dist/playtest.mjs"
   },
   "devDependencies": {
