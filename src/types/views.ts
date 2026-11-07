@@ -55,6 +55,7 @@ export type PlayerView = {
     inventory: OwnGearView[];
     posture: 'open' | 'sneaking';
     standingDefense: 'dodge' | 'block';
+    heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
@@ -77,6 +78,7 @@ export type ActorView = {
     active: boolean; broken: boolean; surrendered: boolean; fearless: boolean;
     control: 'agent' | 'code';
     standingDefense: 'dodge' | 'block';
+    heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
     attackSkill: string; // fallback.attackSkill (template, else creature type)
     routine?: { id: string; anchorTurn: number };

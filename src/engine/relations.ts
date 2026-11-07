@@ -17,6 +17,11 @@ export function bandById(state: GameState, id: string) {
 export function isActive(actor: Actor): boolean {
   return actor.core.condition.hpLostPct < 100;
 }
+/** A8 Hold: the actor holding `a`, while that hold still stands (the holder is active and in a's zone) */
+export function heldBy(state: GameState, a: Actor): Actor | undefined {
+  const h = a.heldBy ? actorById(state, a.heldBy) : undefined;
+  return h && isActive(h) && h.zone === a.zone && isActive(a) ? h : undefined;
+}
 /** broken and surrendered actors count on neither side of engagement (Part 3, Morale). */
 export function countsInFight(actor: Actor): boolean {
   return isActive(actor) && !actor.mind?.moraleState;

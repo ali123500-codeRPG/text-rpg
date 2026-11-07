@@ -7,7 +7,7 @@
 import type { Actor, AttackResult, GameState } from '../types';
 import { itemDef } from '../library';
 import { hasPerk } from '../ruleset/perks';
-import { blockItem, effectiveSkill } from '../ruleset/gear';
+import { blockItem, canBlock, effectiveSkill } from '../ruleset/gear';
 import { allActors, isActive, stance } from './relations';
 
 const HITS = new Set(['grazed', 'blocked', 'full_hit', 'heavy_hit', 'crushing_hit']);
@@ -58,6 +58,6 @@ export function coverFor(state: GameState, target: Actor): Actor | undefined {
   const own = (a: Actor) => effectiveSkill(state, a, a.core.standingDefense, a.core.standingDefense === 'block' ? { itemId: blockItem(state, a)?.id } : {}).value;
   const mine = own(target);
   return allActors(state).filter((c) => c !== target && c.zone === target.zone && isActive(c) && hasPerk(c, 'cover_ally') && !c.core.perksOff?.includes('cover_ally')
-    && stance(state, c, target) === 'friendly' && c.core.standingDefense === 'block' && !!blockItem(state, c) && own(c) > mine)
+    && stance(state, c, target) === 'friendly' && c.core.standingDefense === 'block' && canBlock(state, c) && own(c) > mine)
     .sort((x, y) => own(y) - own(x) || (x.id < y.id ? -1 : 1))[0];
 }
