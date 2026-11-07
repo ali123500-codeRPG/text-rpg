@@ -1048,7 +1048,7 @@ grade = none | minor | moderate | major | extreme
 | Great Success | At least major | Major |
 | Critical Success | Extreme | Extreme |
 
-Grades are hidden-side and never reach Agent Narrator. A computed cross-check (cast and rewards against the declared grades) is a stub that passes until NPC generation and the loot database are designed.
+Grades are hidden-side and never reach Agent Narrator. A computed cross-check (cast and rewards against the declared grades) is a stub that passes for the cast; rewards are held to the gain's Boon budget (Part 5 §7, loot V8).
 
 **Validation.** Code checks every stage plan before it touches state:
 
@@ -1059,7 +1059,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 - the grades fit the tier;
 - no public field contains a hiddenTerm or a secret's leakTerm, matched as whole words (as the Narrator's leak scan matches);
 - public text respects TEXT\_CAP (placeholder). Hidden-only notes (event summary, band goals and temperament, motive, routineGap, plan goal, secret fact, Weaver note) are not rejected for length: code trims them to NOTE\_CAP at a word boundary.
-- rewards never fail a plan; code repairs them and logs each repair (reward\_repaired): a reward over the count cap, or with an unknown item, base or place, is dropped; a bad qty becomes 1; a minted variant past the per-scene cap, at a gain that allows none, or whose name or look is too long or uses a hidden term is placed as its plain base item; a quality above what the gain allows (Part 5 §7) is lowered to it; a weapon's boosts other than hitAdj or damageAdj becomes hitAdj (loot L1, V7);
+- rewards never fail a plan; code repairs them and logs each repair (reward\_repaired): a reward with an unknown item, base or place, or one that would take the plan over its Boon budget (Part 5 §7), is dropped; a bad qty becomes 1; a minted variant past the per-scene cap, at a gain that allows none, or whose name or look is too long or uses a hidden term is placed as its plain base item; a quality above what the gain allows (Part 5 §7) is lowered to it; a weapon's boosts other than hitAdj or damageAdj becomes hitAdj (loot L1, V7);
 - every routineSetId resolves; a player-band entry names the companion set and binds no slots;
 - every slot the set lists is bound: a zone slot to one zone, a route slot to 1 to MAX\_ROUTE\_ZONES zones (one zone: the actor stays there); bound keys are zones in the plan or on the stage, never frontiers; startAt names one of the set's slots;
 - every bound zone is reachable from the actor's other bound zones through zone links;
@@ -2370,6 +2370,7 @@ Reduction before the multiplier bites light weapons hardest, so heavy weapons ea
 - **Concealed items** stay out of other actors' views while held or worn, until used in an event that actor perceives; that observer's Belief.revealed then keeps it. Accessories are hidden by default unless tagged visible.
 - **Minting** (for now): a variant = a base library item + quality tier 1–4 + public name and look. Code reads the tier's bonuses from QUALITY\_TABLE and writes a story blueprint, within the per-scene minted cap. A minted item with no close library match uses the nearest generic base: improvised\_light, improvised\_medium or improvised\_heavy for an odd weapon, curio (misc, no effects) for a thing with no game effect (Ali, 07/11/2026, loot L2).
 - **Improvised items** (Ali, 07/11/2026, loot L3): when the player fights with a scene object not in the view, the Parser names an improvised base by size and a short name. Code writes a story blueprint (that base, the given name as name and look), puts it in the player's inventory and swaps it into hand before the attack. Improvised bases roll the Improvisation skill (Combat – Unarmed), carry hitAdj IMPROVISED\_HIT\_ADJ (*placeholder*, −10) and no kit bonus.
+- **Boon** (Ali, 07/11/2026, loot V8): a reward's worth to the player. An item's Boon is its hand-set boon when it has one, else its value ÷ BOON\_COIN (20); a reward's Boon is that × qty, × BOON\_QUALITY (2/3/5/8) for a minted item of quality 1/2/3/4. Fractions are allowed. A plan's rewards together stay within BOON\_BUDGET by gain: none 0, minor 2, moderate 5, major 10, extreme 20. Boon is the only limit on rewards (no count cap). Only Weaver rewards count: NPCs' own template gear does not. All numbers are *placeholders*, to tune after playtests. The Weaver's item catalog lists each item's boon.
 - **Needs data.** Every story item blueprint (minted or improvised) is listed on the GM page under Needs data, so the designer can give it its own data and promote it.
 
 QUALITY\_TABLE (*placeholder*): per tier 1/2/3/4, weapon hitAdj +2/+4/+6/+8 or damageAdj +1/+2/+3/+4 (the variant names which); armor reduction +1/+1/+2/+2; tool skill bonus +5/+10/+15/+20. Highest tier allowed by the scene's gain grade: minor 1, moderate 2, major 3, extreme 4.
@@ -2421,7 +2422,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-29 | Who spawns enemies and weaves the story | 2–3 | Partly settled | Agent Weaver plans events, casts, stages and creature types. Still deferred: story beats and who calls sceneBreak (story-weaving thread) |
 | D-30 | Scene breaks | 2 | Partly settled | Settled 07/11/2026 (P7): rest, beats with endsScene, and the stall fallback (Scenes). Still open: time skip (with D-101); NPCs reacting on their own after a fight (P7 B2) |
 | D-31 | Random rolls during a scene | 2 | Deferred | Iliad Quest-style encounter rolls while travelling or mid-scene. For now only the scene-start situation roll exists |
-| D-32 | Computed grade check | 2 | Deferred | Measuring a plan's challenge and gain from its cast and rewards. NPC generation is settled (Part 4 §4); still waits for the loot database, a passing stub until then |
+| D-32 | Computed grade check | 2 | Partly settled | Measuring a plan's challenge and gain from its cast and rewards. Settled 07/11/2026 (loot V8): rewards are held to the gain's Boon budget (Part 5 §7). Still open: measuring the cast's challenge, a passing stub until then |
 | D-33 | Weaver effort | 2 | Deferred | Switch WEAVER\_EFFORT from high to xhigh once the artifact runtime accepts it |
 | D-34 | Definition of a major action | 2 | Deferred | Includes which actions end sneaking, and whether an observer arriving in view counts. Stub: every player action is major |
 | D-35 | Marks and missed check-ins | 2 | Deferred | Bodies, forced doors and missing colleagues that unaware actors could notice. Left out of the first prompt to keep it simple |

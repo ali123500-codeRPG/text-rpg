@@ -360,8 +360,9 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);
   const templates = new Map(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, creatureTypeId: t.creatureTypeId }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), creatureTypeId: String(b.data.creatureTypeId ?? '') });
-  const items = new Map<string, { id: string; name: string; kind: string }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind }]));
-  for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? '') });
+  const worth = (i: { boon?: number; value: number }) => i.boon ?? i.value / CONFIG.BOON_COIN; // loot V8
+  const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
+  for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });
   return {
     tier: tierName(state.stage.tier),
     stakes: STAKES[state.stage.tier] ?? '',

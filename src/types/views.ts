@@ -163,7 +163,7 @@ export type WeaverView = {
     templates: { id: string; label: string; creatureTypeId: string }[];
     creatureTypes: string[];
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
-    items: { id: string; name: string; kind: string }[];
+    items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: string[];
   };
   grades: Grade[];
