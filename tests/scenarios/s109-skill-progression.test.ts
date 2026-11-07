@@ -1,4 +1,4 @@
-// 107 Skill progression (Ali, 07/11/2026, SP1–SP11): a use marks a skill when the opposition is within MARK_WINDOW of
+// 109 Skill progression (Ali, 07/11/2026, SP1–SP11): a use marks a skill when the opposition is within MARK_WINDOW of
 // raw or true skill; a big hit marks endurance; marked skills make the Part 1 §6 roll and the marks clear.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
@@ -7,7 +7,7 @@ import { improveMarked, markEndurance } from '../../src/ruleset';
 import { markIfClose } from '../../src/ruleset/improve';
 import { mechanicsLines } from '../../src/agents/game';
 
-describe('107 skill progression', () => {
+describe('109 skill progression', () => {
   it('a use marks only when the opposition is close to raw or true skill, and only for the player', () => {
     const s = makeVillage();
     const p = s.player;
