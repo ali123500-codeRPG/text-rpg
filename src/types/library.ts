@@ -51,6 +51,7 @@ export type Library = {
   routines: Record<string, Routine>;
   routineSets: Record<string, RoutineSet>;
   perks: Record<string, PerkDef>;
+  races?: Record<string, RaceDef>; // Part 4 §4: a race sets the creature type; race perks come later
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
 };
 
@@ -66,4 +67,6 @@ export type PerkDef = {
  * defeats (first defeat = count 1). With `by`, it is earned once per creature type or race: the granted id is
  * <id>:<type or race> and {creature}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
+export type RaceDef = { id: string; name: string; creatureTypeId: string };
+
 export type AchievementDef = { id: string; name: string; xp: number; rule: 'defeats' | 'mastery'; count?: number; by?: 'creature' | 'race' };

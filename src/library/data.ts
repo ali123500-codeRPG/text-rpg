@@ -141,20 +141,20 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     fallback: { attackSkill: 'unarmed_natural' },
   },
   guard: {
-    id: 'guard', creatureTypeId: 'humanoid', generation: 'copy',
+    id: 'guard', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { melee_medium: 40, block: 30, dodge: 20, sight: 30, hearing: 30, intimidation: 30, persuasion: 20 },
     level: 2, bonusPoints: 10,
     focus: [{ treeId: 'melee', skill: 'melee_medium' }, { treeId: 'defense', skill: 'block' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
-    id: 'trader', creatureTypeId: 'humanoid', generation: 'copy',
+    id: 'trader', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { sight: 25, hearing: 25, barter: 40, persuasion: 30 }, level: 1, bonusPoints: 0,
     focus: [{ treeId: 'perception', skill: 'hearing' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
   patron: {
-    id: 'patron', creatureTypeId: 'humanoid', generation: 'copy',
+    id: 'patron', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { unarmed_strike: 20, sight: 20, persuasion: 30 }, level: 1, bonusPoints: 0,
     focus: [{ treeId: 'unarmed', skill: 'unarmed_strike' }, { treeId: 'defense', skill: 'dodge' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'timid', control: 'code', label: 'a tavern patron',
@@ -239,6 +239,8 @@ export function prototypeLibrary(): Library {
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false } },
     creatures: CREATURES,
+    // Ali (07/11/2026): humans and elves for now, identical
+    races: { human: { id: 'human', name: 'Human', creatureTypeId: 'humanoid' }, elf: { id: 'elf', name: 'Elf', creatureTypeId: 'humanoid' } },
     items: ITEMS,
     templates: TEMPLATES,
     activities: ACTIVITIES,

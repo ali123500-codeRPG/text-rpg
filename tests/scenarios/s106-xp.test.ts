@@ -39,6 +39,7 @@ describe('106 XP and levels', () => {
   });
   it('a foe with a race also earns the first race defeat', () => {
     const s = makeVillage();
+    expect(s.actors.filter((x) => x.core.templateId === 'guard').every((x) => x.core.raceId === 'human')).toBe(true);
     const a = actor(s, 'slime_1');
     a.core.raceId = 'elf';
     a.mind!.moraleState = 'surrendered';
