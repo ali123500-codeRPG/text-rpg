@@ -2,6 +2,7 @@
 // with the real Agent Weaver. Each Weaver call is one agent-log entry, so replay can feed the outputs back in order.
 import type { Clock, GameEvent, GameState, Rng, StagePlan } from '../types';
 import { SceneDirector as Director } from '../scene/director';
+import { openingEvents } from '../scene';
 import type { AgentCtx } from './call';
 import type { SceneDirector } from './game';
 import { runAgent } from './call';
@@ -40,7 +41,14 @@ export function createDirector(clock: Clock): SceneDirector {
     },
     async afterResolve(state: GameState, _events: GameEvent[], rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
       const key = state.scratch?.frontierCrossed as string | undefined;
-      if (!key) return []; // sceneBreak has no caller yet (D-30): a story is one scene
+      if (!key) {
+        // sceneBreak (P7, D-30): rest, a beat that ends the scene, or a stall. A frontier crossing goes first; the break waits a turn.
+        if (!state.stage.breakCause) return [];
+        ctx = c;
+        const r = await d.startScene(state, rng, 'open');
+        (state.scratch ??= {}).situation = r.situation;
+        return openingEvents(state, rng);
+      }
       ctx = c;
       delete (state.scratch as Record<string, unknown>).frontierCrossed;
       await d.cross(state, key, rng);

@@ -10,7 +10,7 @@ import type { PlanError, PlanContext } from './index';
 
 const STANCES = ['opposed', 'neutral', 'friendly'];
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
-const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
+const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard', 'quiet_turns'];
 
 const g = (x: Grade) => GRADES.indexOf(x);
 
@@ -286,6 +286,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     if (w.type === 'player_seen_in_zone' && !isZone(w.zone)) err('bad_trigger', `${where}: zone ${w.zone} unknown`);
     if (w.type === 'actor_down' && !isActor(w.actorId)) err('bad_trigger', `${where}: actor ${w.actorId} unknown`);
     if (w.type === 'turn_reached' && typeof w.turn !== 'number') err('bad_trigger', `${where}: turn is a number`);
+    if (w.type === 'quiet_turns' && !(Number.isInteger(w.turns) && w.turns >= 1)) err('bad_trigger', `${where}: turns is a whole number of at least 1`);
   };
   const checkTrigger = (where: string, t: StagePlan['seeds']['triggers'][number]) => {
     if (!t || !t.id) return err('bad_trigger', `${where}: trigger without an id`);

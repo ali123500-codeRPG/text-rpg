@@ -883,9 +883,11 @@ type Trigger = {
     | { type: 'player_seen_in_zone'; zone: string }   // the owner's own perception, not truth
     | { type: 'turn_reached'; turn: number }
     | { type: 'actor_down'; actorId: string }
-    | { type: 'alarm_heard' };                         // the owner perceived an alarm event
+    | { type: 'alarm_heard' }                          // the owner perceived an alarm event
+    | { type: 'quiet_turns'; turns: number };          // a beat: the scene has been quiet this many turns in a row (Scenes)
   then: OrderTemplate;               // exactly one order; the validator rejects lists
   once: boolean;
+  endsScene?: true;                  // a beat that ends the scene when it fires (Scenes)
 };
 
 type OrderTemplate = Omit<Order, 'source' | 'target'> & {
@@ -943,7 +945,11 @@ Every mode takes the same time after the player submits, except turns that start
 
 A scene is the stretch of play between two scene starts.
 
-- **Start.** A scene starts at story start, and whenever code calls sceneBreak(cause), where cause is rest, time\_skip or story\_beat. It ends when the next scene starts. Nothing calls sceneBreak until the story-weaving role's triggers are designed (D-30), so for now a story is one scene.
+- **Start.** A scene starts at story start, and whenever code calls sceneBreak(cause), where cause is rest, time\_skip or story\_beat. It ends when the next scene starts. Code calls sceneBreak after the turn's resolution (Ali, 07/11/2026, P7):
+  - **rest:** the player rests outside tactical mode;
+  - **story\_beat:** a beat with endsScene fires, or the scene stalls: STALL\_TURNS (*placeholder*, 8) quiet turns in a row with no beat left whose owner is active.
+  A frontier crossing in the same turn goes first; the break waits for the next turn. time\_skip waits for the game clock (D-101).
+- **Quiet turns and beats.** A quiet turn is one where nobody on the stage attacks, the player learns nothing new (no secret, witnessed fact or name), and no beat fires. The stage counts quiet turns in a row and resets after any other turn and at scene start. Agent Weaver seeds at least one beat per scene plan: a trigger with when quiet\_turns N, which fires at turn start once the count reaches N.
 - **Stage.** A scene is played on a stage: the set of zones currently loaded. A stage can span several neighbouring places; each zone belongs to exactly one place, and an actor's place is always the place of its zone. Moving between zones or places never starts a scene.
 - **Frontiers.** A stage grows through frontiers: labelled exits to areas not yet built. When the player crosses a frontier, code extends the stage (Stage extension) without a new situation roll, using the scene's tier. A place already set up in this scene is loaded, not planned again.
 - **Loading** a save resumes the current scene and stage. Encounter modes are chosen per turn inside a scene. Per-scene caps (fact promotions, minted items) reset at scene start.
@@ -1111,6 +1117,9 @@ Rules:
 7. Seed a plan only for a real agenda. Everyday behavior goes in routines;
    an actor with a plan stops being an ordinary NPC.
 8. Keep your note short: what the story is building toward and what you set up.
+9. Seed at least one beat: a trigger with when {"type":"quiet_turns","turns":N} that moves
+   the story when play goes quiet (someone arrives, the watch comes, an NPC acts). Set
+   "endsScene": true on a beat that should close the scene.
 
 Return only JSON matching the schema.
 ```
@@ -1368,6 +1377,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 102 | Late Planner fights on | A significant engaged actor whose Planner call is late runs its type's combat list that turn instead of holding |
 | 103 | Broken flees | A broken engaged actor with an exit slot moves one link toward it and holds once there; a slime never flees |
 | 104 | Improvised weapon | The Parser's improvised chair leg becomes a held improvised\_medium story item with hitAdj IMPROVISED\_HIT\_ADJ and no kit bonus, and the attack uses it |
+| 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScene, marks a break; rest marks a break; a stall marks one only with no live beat left; the director then starts a new scene with one Weaver call |
 
 ### Deliverables and acceptance criteria
 
@@ -2405,7 +2415,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-27 | Body-part targeting | 2 | Settled | targetPart and aimed in the agent outputs (Part 2); aim penalty, gap ladder and location (Part 3) |
 | D-28 | Event log retention | 2, 4 | Partly settled | Keep the last N turn records (placeholder); story history is never pruned. N stays deferred |
 | D-29 | Who spawns enemies and weaves the story | 2–3 | Partly settled | Agent Weaver plans events, casts, stages and creature types. Still deferred: story beats and who calls sceneBreak (story-weaving thread) |
-| D-30 | Scene breaks | 2 | Deferred | Who calls sceneBreak (rest, time skip, story beat). Until then a story is one scene. Belongs to the story-weaving thread |
+| D-30 | Scene breaks | 2 | Partly settled | Settled 07/11/2026 (P7): rest, beats with endsScene, and the stall fallback (Scenes). Still open: time skip (with D-101); NPCs reacting on their own after a fight (P7 B2) |
 | D-31 | Random rolls during a scene | 2 | Deferred | Iliad Quest-style encounter rolls while travelling or mid-scene. For now only the scene-start situation roll exists |
 | D-32 | Computed grade check | 2 | Deferred | Measuring a plan's challenge and gain from its cast and rewards. NPC generation is settled (Part 4 §4); still waits for the loot database, a passing stub until then |
 | D-33 | Weaver effort | 2 | Deferred | Switch WEAVER\_EFFORT from high to xhigh once the artifact runtime accepts it |

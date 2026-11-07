@@ -103,6 +103,8 @@ export function beginScene(state: GameState, tier: Tier): void {
   delete state.stage.fallback;
   delete state.stage.routineFallback;
   delete state.stage.partner;
+  state.stage.quiet = 0;
+  delete state.stage.breakCause;
   state.sceneCaps = { promotions: 0, minted: 0 };
 }
 

@@ -65,6 +65,13 @@ const PLAYER_BRIEF = `You are playtesting a text RPG as its player: a swordsman 
 talk to people, explore, take on any trouble you find, fight if it comes to that, and sometimes try unusual things to test
 the game. Reply with ONLY what you type next, one short line in plain words (no quotes). Now and then use a command:
 /stats, /inv, /quests, /help or /aim <text>.`;
+/** --persona eager: an over-enthusiastic adventurer who drives the story forward on their own (P7 pacing test) */
+const PERSONAS: Record<string, string> = {
+  eager: `You are an over-enthusiastic adventurer. Never wait for the story to come to you: chase every lead, follow anyone
+who leaves, go through every door, ask about rumours and jobs, pick fights you think are just, and when a place goes quiet,
+move on to somewhere new at once.`,
+};
+const PERSONA = PERSONAS[arg('persona', '')] ?? '';
 
 async function main() {
   mkdirSync(OUT, { recursive: true });
@@ -93,7 +100,7 @@ async function main() {
     const stop = game.notices().find((n) => n.kind === 'stop_play');
     if (stop) { console.log('stop_play:', stop.text); break; }
     const recent = game.lines().slice(-14).map((l) => `[${l.kind}] ${l.text}`).join('\n');
-    const pick = await claudeCli(`${PLAYER_BRIEF}\n\nThe story so far (latest last):\n${recent}`, 'claude-sonnet-5-5');
+    const pick = await claudeCli(`${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n\nThe story so far (latest last):\n${recent}`, 'claude-sonnet-5-5');
     const input = (pick.text || 'I look around.').split('\n')[0].trim().slice(0, 200);
     const aimed = input.startsWith('/aim');
     console.log(`turn ${t}: ${input}`);
