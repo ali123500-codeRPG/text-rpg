@@ -69,9 +69,8 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits a part with the Move role (a leg) and deals damage.
 - **Conditions:** It is a ranged attack with a medium or heavy ranged mode (skill ranged_medium or ranged_heavy) (Ali, 07/11/2026). The location is a part with the Move role. Damage after armor is above 0.
-- **Effect:** The leg's pool takes 1.5× the damage the hit puts on the health track. The target is slowed: it can move at most one zone link.
+- **Effect:** The leg's pool takes 1.5× the damage the hit puts on the health track. The target is slowed: it can't dash (AE2).
 - **Lasts:** The slow lasts until the end of the target's next turn.
-- **Needs first:** A slowed state; a move allowance per turn (part of the action-economy talk).
 
 ### Open-Hand Guard (Strike) · A7
 
@@ -103,7 +102,6 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 - **Effect:** An unarmed_improvised attack roll against the foe's dodge. If the foe does not win, its next roll that needs sight gets tier shift −2.
 - **Lasts:** Until that roll is made, or the end of the foe's next turn.
 - **Cooldown:** Once per engagement.
-- **Needs first:** Moves; engagement tracking.
 
 ### Make Them Stumble (Dodge) · A10
 

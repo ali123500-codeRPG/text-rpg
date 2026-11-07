@@ -10,7 +10,7 @@ import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, wary, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { hasPerk, healthLevel, partStates, tierName } from '../ruleset';
+import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { isComm } from '../perception';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
@@ -160,6 +160,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);
     if (f.kind === 'still_held') out.push(`${who} fails to break free of ${by}`);
+    if (f.kind === 'dirt_in_eyes') out.push(`${by} throws dirt in ${who}'s eyes`); // A9 Dirt in the Eyes
+    if (f.kind === 'dirt_dodged') out.push(`${who} turns away from ${by}'s thrown dirt`);
     if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
@@ -204,6 +206,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       classes: p.core.classes.map((c) => c.classId),
       skills: Object.keys(p.core.skills),
       perks: p.core.perks.map((x) => x.perkId),
+      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',

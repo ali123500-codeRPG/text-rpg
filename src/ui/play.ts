@@ -52,6 +52,11 @@ const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
 
+// AE8: how Ideas offers each perk move against someone in view
+const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
+  dirt_in_the_eyes: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
+};
+
 /** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Three per group. */
 export function ideas(pv: PlayerView): { group: string; items: { text: string; note?: string }[] }[] {
   const people = pv.actors.filter((a) => a.level === 'full' && a.health !== 'Incapacitated');
@@ -65,6 +70,8 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Use', items: [
       ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
       ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },
+    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.flatMap((p) => PERK_IDEA[p]
+      ? people.filter((a) => a.zone === pv.zone.id).map((a) => ({ text: PERK_IDEA[p].text(nm(a)), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ ...g, items: g.items.slice(0, 3) }));
 }
 

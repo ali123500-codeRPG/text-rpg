@@ -14,6 +14,13 @@ const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
 /** the actor owns this perk and it is not dormant: every coded perk checks this */
 export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks.some((p) => p.perkId === perkId && !p.dormant);
 
+/** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it */
+export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number }> = {
+  dirt_in_the_eyes: { free: true, perEngagement: 1 },
+};
+/** the perk moves an actor owns (shown to the Parser and in Commands) */
+export const ownPerkMoves = (a: Actor): string[] => Object.keys(PERK_MOVES).filter((id) => hasPerk(a, id));
+
 export function trueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];
   if (!e || e.dormant) return 0;

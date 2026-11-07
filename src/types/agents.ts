@@ -30,6 +30,8 @@ export type Intent = {
     /** a scene object not in the view, used as a weapon: code mints it on an improvised base (loot L3) */
     improvised?: { base: ImprovisedBase; name: string } | null;
   } | null;
+  /** AE5/AE8: an owned perk move by perk id (a free one resolves beside the main action) */
+  perkMove?: { perk: string; target: string | null } | null;
   gear: GearOp[] | null;
   spoken: string | null;
   addressees: string[] | null; // actor ids, band ids or "everyone"
