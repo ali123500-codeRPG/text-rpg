@@ -75,7 +75,7 @@ export function ladder(type: 'dodge' | 'block', gap: number): number {
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
 function locRule(type: 'dodge' | 'block', g: number): LocRule {
-  if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: OQ-17 build default, like the tie
+  if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: never essential, like the tie (OQ-17 settled 07/11/2026)
   return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block +1..+5 off-shield keep the gap-0 limit
 }
 function rowKey(type: 'dodge' | 'block', gap: number, shield: boolean): string {

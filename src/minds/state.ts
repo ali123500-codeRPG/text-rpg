@@ -148,7 +148,7 @@ export function detectPlayer(state: GameState, event: GameEvent, _rng: Rng): voi
   }
 }
 
-/** the attack skill for the weapon used (owner's recommendation for OQ-4 / ambush skill, pending Ali). */
+/** the attack skill for the weapon used (ambush skill; OQ-4 settled 07/11/2026: every attack on an unaware actor rolls). */
 function ambushSkill(state: GameState, attacker: Actor, itemId: string | undefined): string {
   const used = itemId ? usableModes(state, attacker).find((m) => m.itemId === itemId) : undefined;
   const m = used ?? defaultMode(state, attacker, 0);

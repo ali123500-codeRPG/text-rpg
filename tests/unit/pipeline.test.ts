@@ -182,6 +182,7 @@ describe('errors and commands', () => {
     expect(claude.callsFor('planner')).toHaveLength(0); // skipped after the save
     const out = H.resolved[0].input.agentOutputs[0];
     expect(out.agent === 'voice' && out.output.line).toBe(NEUTRAL_LINE);
+    expect(H.sets.find(([p]) => p.startsWith('bugs/'))?.[1]).toMatchObject({ code: 'agent_fallback', agent: 'voice', actorId: 'guard_1' }); // Q9: flagged for review
     claude.push('planner', plannerOut(), { actorId: 'trader' });
     claude.push('parser', intentOf()).pushResponse({ agent: 'narrator', response: { ok: false, error: 'upstream_error' } });
     await game.submit('look', { aimed: false });

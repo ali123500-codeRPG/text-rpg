@@ -70,7 +70,7 @@ A Flaw is something the character functionally struggles to improve. Near 100 a 
 
 Gear is a flat bonus to effective skill unless an item says otherwise. Standard kit (an average fighter's minimum equipment) gives one +25 per roll, shared by all kit pieces: pieces never stack (*placeholder*).
 
-Wounds are no longer part of effective skill: the health-track level and body-part role penalties are a roll modifier type (§4, Combat rolls). See OQ-15.
+Wounds are no longer part of effective skill: the health-track level and body-part role penalties are a roll modifier type (§4, Combat rolls). They apply to rolls only, never to no-dice checks (settles OQ-15, Ali, 07/11/2026).
 
 **Character fields:** defined in Part 4 §4 (a Core every actor has, plus Progression, Mind and Journal modules). Part 4 adds race, creature type and classes.
 
@@ -97,7 +97,7 @@ Only three sources may modify the roll, each its own modifier type: perks, gear 
 
 **Natural edges** apply after the bands, clamped at the ends of the scale: a natural 01 drops two tiers, 02–05 one tier, 96–99 raises one tier, 00 two tiers.
 
-**Layer 2 — skill checks.** No dice. Effective skill is compared with the scene's target number. Result is pass or fail only; the margin does not matter. The target comes from the stage plan's challenge grade through DIFFICULTY: none 20, minor 35, moderate 50, major 65, extreme 80 (placeholders). A check passes when effective skill plus situational modifiers is at least the target. The same rule applies to every actor. Wounds don't apply (OQ-15).
+**Layer 2 — skill checks.** No dice. Effective skill is compared with the scene's target number. Result is pass or fail only; the margin does not matter. The target comes from the stage plan's challenge grade through DIFFICULTY: none 20, minor 35, moderate 50, major 65, extreme 80 (placeholders). A check passes when effective skill plus situational modifiers is at least the target. The same rule applies to every actor. Wounds don't apply (settles OQ-15).
 
 - **Combined checks:** some perks let a check add several skills, or half of another skill.
 - **Gear:** flat skill bonuses from item effects that are active (Part 5 §2–3). They enter effective skill; item stats and the rare noted roll modifiers are read separately.
@@ -1182,7 +1182,7 @@ In Explore no Planner runs: unaware actors follow routines, the player is detect
   - Sneaking player: the observer's perception roll against the player's stealth roll (ruleset.contested).
   - Open player: no check or roll. The observer's perception level of the event (computePerception) decides: full makes it aware, partial makes it suspicious, none leaves it unaware.
 - One test per observer per action: for a hide or sneak, the stealth contest in the simultaneous-order rules (Resolution engine) is the detection test, and detectPlayer skips observers already contested on that event. To be revisited (D-40).
-- The result goes to updateBeliefs, which stays the only writer of Belief. Which results make an observer aware and which only suspicious is OQ-5.
+- The result goes to updateBeliefs, which stays the only writer of Belief. A won contest makes the observer aware and a tie makes it suspicious; against an open player, full perception makes it aware and partial makes it suspicious (settles OQ-5, Ali, 07/11/2026).
 - Observers unaware of the player don't perceive the player's minor actions at all.
 
 #### Ambush: attacking from Explore
@@ -1447,7 +1447,7 @@ Ask before you:
 
 Every successful hit damages the body part it lands on and, depending on that part's impact, the health track. Total HP comes from endurance and the creature type (Total HP); part pools are shares of total HP set by size (Body parts). Health-track levels and part states are % of those pools. Code owns all of it, including a database of creature types: Agent Weaver names the creature type, and code knows its parts.
 
-- **Health track (World of Darkness):** levels by % of HP lost; one wounds modifier on every roll (Part 1 §4, Layer 2b; checks: OQ-15); each level is a trigger for perks, tactics and story.
+- **Health track (World of Darkness):** levels by % of HP lost; one wounds modifier on every roll (Part 1 §4, Layer 2b; rolls only, not checks); each level is a trigger for perks, tactics and story.
 - **Body parts:** every creature has a general area plus a list of parts. Each part has a size (hit chance and aim penalty), an impact (how its damage counts on the health track) and a role (what its states do); a part can have several roles. Parts are Healthy, Damaged, Crippled or Destroyed.
 - **General area:** always present, stateless, normal impact, and always at least 30% of the hit table. Any damage that isn't aimed at, or doesn't land on, a specific part counts here.
 - Attack and defense are two rolls; damage is not rolled. The attack roll is contested by the defender's dodge or block roll, and the gap between their tiers sets the multiplier and can move or restrict the location. Damage is fixed by weapon and armor. Perks can act on the attack roll, the defense roll, the gap or the damage values, each on its own.
@@ -1477,13 +1477,13 @@ Total HP is divided into levels by the share of HP lost, following World of Dark
 | Critical | 76–99% | −30 | One action per turn; last-stand perks switch on |
 | Incapacitated | 100% | Out of the fight | Lethal fight: the story ends; otherwise a survival roll (D-54) |
 
-The penalty is a roll modifier of type wounds (Part 1 §4, Layer 2b), diminishing together with body-part role penalties. Whether it also applies to no-dice checks is OQ-15.
+The penalty is a roll modifier of type wounds (Part 1 §4, Layer 2b), diminishing together with body-part role penalties. It does not apply to no-dice checks (settles OQ-15).
 
 Bands are 15% wide; Critical takes the remaining 24% so a last stand lasts a little longer. Penalty values are placeholders; they stack by Part 1 §4, Stacking within a type. The health track never modifies the situation roll (Part 1 §4).
 
 **Morale.** An engaged NPC makes a morale check when its health track reaches a new level from Injured onwards, and when it perceives a bandmate become incapacitated. The check is roll() with Mind.morale as the skill and the actor's usual modifiers, with no target number; Failure or worse leaves the actor broken. Two thresholds skip the roll: reaching Critical always breaks the actor, and a fearless actor never makes the check (slimes are fearless). Morale and fearless come from the NPC template's personality; until templates set them, Mind.morale is 50 (placeholder). Broken lasts for the rest of the scene, and a broken actor takes the Flee move (Fallback behavior, rule 1). Broken is a win condition: a broken actor counts on neither side of engagement, so a fight ends when every hostile actor is broken or incapacitated. The player never makes a morale check. Surrender is part of the same check \[Proposed\]: on a Critical Failure, or when a broken actor has nowhere to flee, the actor surrenders instead. A surrendered actor holds, takes no hostile action and, like a broken one, counts on neither side for the rest of the scene. What the player can do with it is deferred (D-98).
 
-**Rest and clinics \[Proposed\].** A rest action (the turn's main action) in a zone with no active hostile actor restores 25% of total HP to the health track and 25% of each part's pool, at most once every REST\_COOLDOWN turns (placeholder 20). Resting in a clinic or infirmary (a place of that kind) restores HP too, by CLINIC\_HEAL (placeholder: all of it). A Destroyed part stays gone (OQ-6). All other healing stays with D-58.
+**Rest and clinics \[Proposed\].** A rest action (the turn's main action) in a zone with no active hostile actor restores 25% of total HP to the health track and 25% of each part's pool, at most once every REST\_COOLDOWN turns (placeholder 20). Resting in a clinic or infirmary (a place of that kind) restores HP too, by CLINIC\_HEAL (placeholder: all of it). A Destroyed part stays gone unless a special perk, item or story event brings it back (settles OQ-6, Ali, 07/11/2026). All other healing stays with D-58.
 
 **Visibility:** for other characters, Claude is told the level only from Wounded down; Bruised to Injured stay hidden, though code still applies their penalties.
 
@@ -1684,7 +1684,7 @@ The gap ladder is binding (gap = defense tier − attack tier; a gap past ±5 us
 | −2 | 1×; hit moves to the named part if adjacent | 1×; hit moves to the named part if adjacent |
 | −1 | 1×, no location limit | 1×, no essential parts |
 | 0 | 1×, no essential parts | 1×, Non-essential parts only, else general area |
-| +1 | 0.8× (graze; location: OQ-17) | 0.75× |
+| +1 | 0.8× (graze; never an essential part, like the tie: settles OQ-17) | 0.75× |
 | +2 | 0× | 0.5× |
 | +3 | 0× | 0.25× |
 | +4 | 0× | 0.2× |
@@ -2461,7 +2461,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-40 | Hide and detection tests | 2 | Deferred | One test per observer per action for now; revisit with the definition of a major action |
 | D-41 | Out-of-character agent (/ooc) | 1–2 | Deferred | Code-only /help for now. An OOC agent would add a Claude call. Voyage playtest (07/11/2026): F3 a plain-text OOC question in the action box used a turn; F4 a side chat that answers questions without a turn |
 | D-42 | Reloads and pending Planner outputs | 2, 4 | Deferred | Proposed: write each Planner output to a pending.\<turn> page outside the head bookmark and reuse it until the turn commits. This stops a reload from rerolling enemy plans and keeps test 13 across reloads. Until then a reload calls the Planners again |
-| D-43 | Late and failed agent outputs | 2 | Deferred | Proposed: a late Planner output is discarded whole (built that way for now); the Responder and Voice share one fallback: one retry, then a neutral line as a talk action |
+| D-43 | Late and failed agent outputs | 2 | Settled | Settled by Ali (07/11/2026) as built: a late Planner output is discarded whole and the actor uses its combat list; the Responder and Voice share one fallback: one retry, then a neutral line as a talk action. Every late or failed Planner, Responder or Voice call is also filed for review in the play artifact's db at bugs/\<storyId>\_t\<turn>\_\<agent>\_\<actorId> (code planner\_late or agent\_fallback) |
 | D-44 | Undo and Planner outputs | 2, 4 | Deferred | Proposed: the redone turn reuses the stored Planner outputs; Parser, dialogue and Narrator calls run fresh. Until then undo calls the Planners again |
 | D-45 | Retries and timing | 2 | Deferred | Any retry adds a call. Two are skewed: the Voice's fact-check regeneration happens only to NPCs without secrets, and the Narrator's leak-scan regeneration is likelier near secrets. Reviewed: no regeneration while the player waits; gates sized for one retry |
 | D-46 | Routines outside the stage | 2, 4 | Deferred | Whether actors off the stage keep running routines each turn, and whether a stage trim may cut off a zone bound to an active actor's slot. Interim: an actor with no path holds its zone (Part 2, Explore mode). Related: D-67 and OQ-13 |
@@ -2526,6 +2526,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-105 | Quests | 2, 4 | Deferred | Voyage playtest (07/11/2026): D8, a duplicate quest for a job already taken; G2, quest text revealed secrets. Who creates quests and writes their text, a leak check on that text, and de-duplication. Quests are only {id, state, text} for now (Part 4 §9) |
 | D-106 | Narration against NPC lines | 2 | Deferred | Voyage playtest (07/11/2026): D7, the narration contradicted an NPC line. A check that the narration agrees with the NPC lines it quotes |
 | D-107 | Action ideas on request | 2 | Built | Decided by Ali (07/11/2026, Voyage A4; was OQ-23): a code-built list from PlayerView, shown when the player asks: people in view to talk to, exits, items held, actors in reach, grouped by tab (Talk, Move, Fight, Use) and refreshed each turn. No Claude call, so nothing can leak. Narrator rule 7 ("Do not list options") stays for the narration. Built 07/11/2026 as the Ideas panel on the Play screen (Fight, Talk, Move, Use side by side, three each) |
+| D-108 | Achievement proposals | 1, 2 | Planned | Decided by Ali (07/11/2026, settles OQ-10): Claude may propose achievements, never grant them. A proposal goes to Ali for approval; once he approves, the feat is implemented as permanent code (a code rule that grants it), like the first-defeat achievement. Place state and promoted facts still come only from code rules. Which agent carries the proposal is open |
 
 ## Check on release
 
@@ -2538,28 +2539,12 @@ Decisions built as written for the first build, to be checked once the game is p
 
 ## Open questions (answer before sharing)
 
-These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-4 and OQ-5 come from Explore mode; OQ-6 and OQ-9 from the save data model (OQ-8 settled 07/11/2026 by XP X9); OQ-10 and OQ-11 are about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-15 to OQ-17 from the hit roll review; OQ-20 from the gear review; OQ-22 from the ruleset review. A question with a build default is built that way until it is answered.
+These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-9 comes from the save data model (OQ-8 settled 07/11/2026 by XP X9); OQ-11 is about how Claude and code interact; OQ-13 comes from scene setup; OQ-14 from the actor-control review; OQ-22 from the ruleset review. Settled by Ali on 07/11/2026 and retired: OQ-4 (every attack on an unaware actor makes the ambush roll), OQ-5, OQ-6, OQ-15 (wounds: rolls only), OQ-16 (conditions stay in effective skill), OQ-17 (a graze never hits an essential part), OQ-20 (placeholder skill ids, renamed through library aliases) and OQ-10 (see D-108). A question with a build default is built that way until it is answered.
 
-- OQ-4: Does every attack on an unaware actor make an ambush roll, or only an attack made while sneaking?
-  - Build default: every attack on an unaware actor.
-- OQ-5: Which detection results make an observer aware, and which only suspicious?
-  - Build default: a won contest makes it aware and a tie makes it suspicious. An open player is decided by perception level instead: full makes the observer aware, partial makes it suspicious.
-- OQ-6: Can a Destroyed part ever come back? The destroyed field is reserved until Healing decides.
-  - Build default: a Destroyed part stays gone unless a special rule (a perk, item or story event) brings it back.
 - OQ-9: The database holds at most 25,000 documents, shared by the library and every story. The caps on documents per collection, total size and write rate are not published. The build must measure them in a throwaway artifact (a full database refuses new documents) before N, the backup counts and the proposal caps are set.
-- OQ-10: Which agent sends Claude's proposals? Part 4 lets Claude propose set\_place\_state and promote\_fact, and Part 1 lets it propose achievements, but no agent's output shape (Parser, Planner, Responder, Voice, Narrator or Weaver) has a field for any of them.
-  - Build default: no agent sends proposals; place state and promoted facts come only from code rules, and there are no achievements.
 - OQ-11: Prompt caching in the Claude-call capability (sample). Settled by the runtime 0.2.96 type definitions: the capability takes no system prompt (input is a prompt string or user/assistant turns under fixed platform framing; standing instructions go in a leading user turn), has no cache\_control or other prompt-caching option, and reports no token usage. Its only documented cache is answer replay: a call with the same input (every turn), modelTier, model, effort, images and verb replays the stored answer without contacting Claude, for 5 minutes by default or up to 24 hours with cache.gcTime. Replay never helps a call whose input changes. Still open: whether the platform caches a long shared prefix on its own. The docs don't say. Measure it with the Prefix Cache Probe artifact (same prefix vs. prefix changed at the first line vs. short prompt, timed to first text, quick tier, both input forms) and record the result here. Until then, cost and latency estimates assume no prompt caching. Catalogs (templates, creature types, routine sets, items) change only with libraryVersion, so they sit right after the fixed instructions as a stable prefix; they gain from prefix caching only if the probe shows the platform does it, and a library edit refreshes the prefix.
 - OQ-13: Actors leaving the stage. Can NPCs follow the player across a frontier, or leave the stage on their own (pursuers, companions, fleeing enemies)? For now, orders into a frontier are dropped. Related: offscreen world changes (D-67).
 - OQ-14: Stealth for actors other than the player. Posture, detection and ambush are player-only. Can a companion sneak with the player, and can an ally ambush an enemy that hasn't noticed it?
-- OQ-15: Wounds and checks. Wounds left effective skill to become a roll modifier. Do the health-track and body-part penalties still apply to no-dice checks, as Part 3's "penalty to all checks" said?
-  - Build default: rolls only.
-- OQ-16: Conditions. Should conditions (blessings, buffs, curses, debuffs) stay as the last step of effective skill, or become a roll modifier type like wounds?
-  - Build default: stay in effective skill.
-- OQ-17: Graze location. At dodge +1, does the graze also forbid essential parts, like the tie at 0?
-  - Build default: yes.
-- OQ-20: Skill ids for tools and perception. Tools and charms name skills (lockpicking, perception, stealth) that the skills thread hasn't named.
-  - Build default: placeholder ids, renamed through library aliases later.
 - OQ-22: Changing objects and places. In the first build a check or a contest only changes beliefs and reveals secrets (Part 2, Resolution engine). How one changes an object or a place, such as a forced door, a picked lock or a stolen item, is not designed yet.
   - Build default: nothing changes; the attempt is only narrated.
 - OQ-28: Quests as a mechanic (Ali, 07/11/2026, Voyage UI check). Who creates a quest and writes its text, how the text is leak-checked and how duplicates are avoided (D-105). Until then the Play screen shows no quest line.
