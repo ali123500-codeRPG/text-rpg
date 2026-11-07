@@ -9,6 +9,8 @@ export type HiddenStore = {
   firedLog: { triggerId: string; turn: number; ownerId?: string }[];
   weaverNote: string;
   stage: { eventSummary: string; challenge: Grade; gain: Grade; hiddenTerms: string[] };
+  /** W6: per-actor hidden Weaver text (motive, routineGap); GM view only. Not an agenda (hasAgenda ignores it). */
+  castNotes?: Record<string, { motive: string; routineGap?: string }>;
 };
 
 export type Plan = { goal: string; steps: string[]; triggers: Trigger[]; createdTurn: number };

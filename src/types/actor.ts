@@ -10,6 +10,7 @@ export type Actor = {
   kind: 'player' | 'npc';
   names: NameHistory;
   label: string; // public stranger label
+  appearance?: string; // public text from the stage plan (W6)
   knownOnSight?: boolean;
   placeId: PlaceId; // always the place of `zone`
   zone: string;
