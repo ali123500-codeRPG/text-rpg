@@ -5,7 +5,7 @@ import type {
   WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
-import { CONFIG } from '../config';
+import { CONFIG, COVER_NAMES, LIGHT_NAMES } from '../config';
 import { actorById, allActors, atLeast, bandById, isActive, opposed, shortestPath, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { healthLevel, partStates, tierName } from '../ruleset';
@@ -21,7 +21,7 @@ const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneByI
 
 export function zoneView(state: GameState, z: Zone): ZoneView {
   return {
-    id: z.id, name: z.name, look: z.look, cover: z.cover, light: z.light,
+    id: z.id, name: z.name, look: z.look, cover: COVER_NAMES[z.cover], light: LIGHT_NAMES[z.light],
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })),
     groundItems: z.groundItems.map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })),
   };
@@ -85,6 +85,12 @@ function lookOf(events: GameEvent[], viewerId: string, actorId: string): string 
   return e?.activity ? activity(e.activity).look : undefined;
 }
 
+/** the viewer fully perceived an event by `aboutId` since the scene began (recent history included) */
+function seenClearly(state: GameState, viewerId: string, aboutId: string): boolean {
+  return [...(state.recentEvents ?? []), ...state.events].some((e) =>
+    e.actorId === aboutId && e.turn >= state.stage.sceneStartTurn && e.perception[viewerId]?.level === 'full');
+}
+
 /** actors the viewer perceives now: in its own or a sight-linked zone; dark zones give partial. NPCs perceive the player only once aware. */
 function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state.events): SeenActor[] {
   const zones = perceivedZoneIds(state, viewer.zone);
@@ -92,7 +98,9 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
   for (const a of allActors(state)) {
     if (a.id === viewer.id || !zones.includes(a.zone)) continue;
     if (a.id === state.player.id && !atLeast(viewer.mind?.knowledge[a.id]?.status, 'aware')) continue;
-    const level = zoneById(state, a.zone)?.light === 2 ? 'partial' : 'full';
+    // P3: in a dark zone someone is half seen, unless they share the viewer's zone and the viewer perceived them
+    // fully this scene (spoke face to face, say): then they stay seen
+    const level = zoneById(state, a.zone)?.light === 2 && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
     // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [] }); continue; }
     const name = viewer.id === state.player.id ? (nameKnown(state, a) ? a.names.current : undefined) : viewer.bandId === a.bandId ? a.names.current : undefined;
@@ -380,6 +388,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
         slots: Object.fromEntries(Object.entries(s.slots).map(([k, v]) => [k, { kind: v.kind, hint: v.hint }])),
       })),
       items: [...items.values()],
+      skills: Object.keys(lib.skills),
     },
     grades: [...GRADES],
   };

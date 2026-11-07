@@ -382,7 +382,7 @@ A routine is a desired-state function: from the turn number and the actor's own 
 
 Nothing is resumed: when control returns, the actor reads its desired state for the current turn.
 
-**Slots \[Proposed\].** Slot names belong to the actor, not to a routine: one binding per name, shared by every routine in the actor's routines list. A zone slot holds one zone id; a route slot holds 2 to MAX\_ROUTE\_ZONES (config, placeholder) zone ids; the here slot is written only by code. Shared routines, used by more than one set, read only the standard slots post, route, refuge, exit and here. A set may add its own slot names for its own routines.
+**Slots \[Proposed\].** Slot names belong to the actor, not to a routine: one binding per name, shared by every routine in the actor's routines list. A zone slot holds one zone id; a route slot holds 1 to MAX\_ROUTE\_ZONES (config, placeholder) zone ids; the here slot is written only by code. Shared routines, used by more than one set, read only the standard slots post, route, refuge, exit and here. A set may add its own slot names for its own routines.
 
 **Anchors \[Proposed\].** Code sets every anchorTurn; no agent sets one.
 
@@ -820,6 +820,8 @@ Rules for simultaneous orders, because the Parser and the Planner worked without
 
 Agent Narrator writes the prose the player reads, on the strongest model available. It receives only NarrationView, so the perception rule is enforced twice: structurally (it never gets hidden data) and in the prompt (it must not invent any). Its full text is checked before display; there is no streaming for now.
 
+**Seen actors in the dark (P3, 07/11/2026).** An actor in a dark zone is perceived partially, unless it shares the viewer's zone and the viewer fully perceived one of its events since the scene began (for example it spoke face to face): then it stays fully seen.
+
 Partial events reach the Narrator without actor names or intent, with the zone link's label and the cue, e.g. `{ kind: 'move', where: 'left of the gate', perception: 'partial', cue: 'sound' }`, so it can write "boots scrape somewhere to your left" and nothing more. Actors whose names the player doesn't know reach it by their public label.
 
 Output shape:
@@ -993,7 +995,7 @@ Output shape (notation, not literal JSON):
   event:       { summary: hidden text, challenge: grade, gain: grade },
   places:      [ { key, name, kind, parent: placeKey | placeId } ],   // new place nodes only
   zones:       [ { key, place: placeKey | placeId, name, look: public text,
-                   cover, light,
+                   cover: none | some | heavy, light: bright | dim | dark,   // code stores 0 | 1 | 2 (config COVER_NAMES, LIGHT_NAMES)
                    links: [ { to: zoneKey | zoneId | frontierKey, label, sight } ] } ],
   frontiers:   [ { key, label } ],
   bands:       [ { key, name: public text, goals: hidden text, temperament: hidden text,
@@ -1007,8 +1009,8 @@ Output shape (notation, not literal JSON):
                    slots: { <slot>: zoneKey | zoneId | [zoneKey | zoneId, ...] },   // every slot the set lists
                    startAt?: <slot>,                 // where in the loop to start; code computes the anchor
                    routineGap?: hidden text,         // what it wanted when no set fit; capped; GM view only
-                   openingBelief: unaware | suspicious | aware,          // about the player
-                   bandBeliefs?: [ { band: bandKey | bandId, status: unaware | suspicious | aware } ],
+                   awarenessOfPlayer: unaware | suspicious | aware,      // what this actor knows of the player
+                   awarenessOfBands?: [ { band: bandKey | bandId, awareness: unaware | suspicious | aware } ],
                                                                          // about every member of that band
                    overrides?: [ { actor: castKey | actorId, stance: opposed | neutral | friendly } ],
                    motive: hidden text } ],   // agenda is derived from seeded plans and secrets
@@ -1042,13 +1044,15 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 - every id resolves (story blueprints first, then the library); an unknown creature type fails (Part 3);
 - caps on cast size, zones and frontiers (placeholders); every cast entry names a band, every band reference resolves (the plan's new bands, then the story), and relations and stances use only opposed, neutral or friendly;
 - every zone link points to a zone in the plan, on the stage, or a frontier;
-- triggers use the trigger vocabulary and hold one order each; every secret has leakTerms;
+- triggers use the trigger vocabulary and hold one order each, of a type the engine knows (ORDER_TYPES); every secret has leakTerms; a check\_passed secret names a library skill;
 - the grades fit the tier;
-- no public field contains a hiddenTerm or a secret's leakTerm;
-- free-text fields respect their length caps (placeholders).
+- no public field contains a hiddenTerm or a secret's leakTerm, matched as whole words (as the Narrator's leak scan matches);
+- public text respects TEXT\_CAP (placeholder). Hidden-only notes (event summary, band goals and temperament, motive, routineGap, plan goal, secret fact, Weaver note) are not rejected for length: code trims them to NOTE\_CAP at a word boundary.
+
+**Defaults filled before validation.** A trigger inside an NPC plan with no ownerId belongs to the plan's owner; a trigger with no once fires once; a place with no parent (missing or null) is top-level, and a new place may name another new place as its parent; a plan with no steps gets an empty list. Validator errors are listed once each, with a hint where the Weaver mixes fields up (a stance in an awareness field; a secret in knows). The repair retry sends the rejected plan back with its errors and asks for only those fixes.
 - every reward resolves; a minted variant's quality is at most the tier its gain grade allows (Part 5 §7) and the minted count stays within the per-scene cap; reward names and looks are public text and are scanned like other public fields;
 - every routineSetId resolves; a player-band entry names the companion set and binds no slots;
-- every slot the set lists is bound: a zone slot to one zone, a route slot to 2 to MAX\_ROUTE\_ZONES zones; bound keys are zones in the plan or on the stage, never frontiers; startAt names one of the set's slots;
+- every slot the set lists is bound: a zone slot to one zone, a route slot to 1 to MAX\_ROUTE\_ZONES zones (one zone: the actor stays there); bound keys are zones in the plan or on the stage, never frontiers; startAt names one of the set's slots;
 - every bound zone is reachable from the actor's other bound zones through zone links;
 - routineGap respects its length cap (placeholder).
 - every knows fact is public text: it respects its length and count caps (placeholders) and is scanned like other public fields;
@@ -1190,7 +1194,7 @@ Every model output is checked before it touches state or the screen, and every f
 | Check | What it catches | On failure |
 | --- | --- | --- |
 | JSON schema on Parser, Planner, Responder, Voice, Narrator, Weaver | Malformed or missing fields | One repair retry with the error; then the fallback for that agent |
-| Legality on the Parser | Targets, items or skills not in PlayerView | Turn stops; ask the Parser's clarify question or a generic "What do you do?" (provisional, see D-21) |
+| Legality on the Parser | Targets, items or skills not in PlayerView (a speech action's skill is set by code from its type, so the Parser's is dropped) | Turn stops; ask the Parser's clarify question, else a question about the failed part ("Who do you mean? I can see …", "Which item do you mean?", "Where do you want to go?"), else a generic "What do you do?" (provisional, see D-21) |
 | Legality on Planner, Responder, Voice | An order targeting something the actor has no belief about | Drop the order: the Planner's actor uses its combat list; a Responder or Voice uses the fallback reply. Log view\_leak if the id is real but outside the view; log invalid\_target if it doesn't exist |
 | Gear legality on Parser, Planner, Responder, Voice | An item the actor doesn't hold or can't see, a mode the item lacks, a gear op on an item out of reach | Drop that op or field; the action stands if still legal; log invalid\_gear |
 | Planner timing | A Planner call not back by BACKGROUND\_WINDOW | Combat list this turn; discard the whole output; log planner\_late |

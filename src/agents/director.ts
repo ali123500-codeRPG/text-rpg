@@ -9,19 +9,24 @@ import { FIXED } from './prompts';
 import { checkStagePlan } from './schema';
 import { formatWeaverView } from './format';
 
+/** V11 switch: send the rejected plan back with the repair (set by the V11 test) */
+export let REPAIR_WITH_PLAN = true;
+export function setRepairWithPlan(on: boolean): void { REPAIR_WITH_PLAN = on; }
 export function createDirector(clock: Clock): SceneDirector {
   let ctx: AgentCtx | null = null; // the context of the turn that owns the next Weaver call
   const ctxOf = new WeakMap<object, AgentCtx>();
   const d = new Director({
     clock,
-    weave: async (view, errors) => {
+    weave: async (view, errors, rejected) => {
       // a repair call gets the same view object as its first call: log it under the turn that started that plan,
       // not whatever turn is current when a background extension's repair runs
       const own = ctxOf.get(view) ?? ctx;
       if (!own) return null;
       ctxOf.set(view, own);
       // the validator's errors go into the repair call's input (Agent Weaver: Failed stage plan)
-      const note = errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.map((e) => `- ${e.code}: ${e.message}`).join('\n')}` : '';
+      // V11: the rejected plan comes back with its errors, so the repair edits it instead of starting over
+      const note = errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.map((e) => `- ${e.code}: ${e.message}`).join('\n')}` +
+        (REPAIR_WITH_PLAN && rejected ? `\n\nREJECTED_PLAN:\n${JSON.stringify(rejected)}\n\nReturn the whole plan again with only these errors fixed; keep everything else as it is.` : '') : '';
       const run = await runAgent<StagePlan>(own, { agent: 'weaver', fixed: FIXED.weaver, data: formatWeaverView(view) + note, schema: checkStagePlan });
       return run.value;
     },

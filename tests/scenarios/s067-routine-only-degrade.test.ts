@@ -16,7 +16,7 @@ describe('67 Routine-only degrade', () => {
     const s = toStoryStart(makeVillage());
     const r = await new SceneDirector({ weave, clock: new VirtualClock() }).storyStart(s, createRng(s.rngState));
     expect(weave).toHaveBeenCalledTimes(2);
-    expect(weave.mock.calls[1]).toEqual([expect.anything(), [expect.objectContaining({ code: 'missing_slot', castKey: 'slime_1', routineOnly: true })]]);
+    expect(weave.mock.calls[1]).toEqual([expect.anything(), [expect.objectContaining({ code: 'missing_slot', castKey: 'slime_1', routineOnly: true })], p]); // V11: the rejected plan comes back
     expect(r.outcome).toBe('degraded');
     const slime = actor(s, 'slime_1');
     expect(slime.mind!.routine!.id).toBe('idle_here');

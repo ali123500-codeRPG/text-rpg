@@ -17,13 +17,13 @@ export function smugglerPlan(): StagePlan {
   const smuggler = (key: string, name: string) => ({
     template: 'patron', key, label: 'a hooded drinker', name, appearance: 'a hood pulled low',
     band: 'smugglers', routineSetId: 'patron', slots: { seat: 'tav_cellar', refuge: 'tav_cellar', exit: 'street_door' },
-    openingBelief: 'unaware' as const, motive: 'shift the goods tonight',
+    awarenessOfPlayer: 'unaware' as const, motive: 'shift the goods tonight',
   });
   p.cast.push(smuggler('smuggler_1', 'Rook'), smuggler('smuggler_2', 'Finch'));
   p.cast.push({ template: 'guard', key: 'guard_2', label: 'a young guard', name: 'Hal', appearance: 'a gangly youth with a spear',
-    band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'street_door' }, openingBelief: 'unaware', motive: 'eager',
+    band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'street_door' }, awarenessOfPlayer: 'unaware', motive: 'eager',
     overrides: [{ actor: 'smuggler_1', stance: 'opposed' }] });
-  for (const c of p.cast) if (c.band === 'village_watch') c.bandBeliefs = [{ band: 'smugglers', status: 'suspicious' }];
+  for (const c of p.cast) if (c.band === 'village_watch') c.awarenessOfBands = [{ band: 'smugglers', awareness: 'suspicious' }];
   return p;
 }
 

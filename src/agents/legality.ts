@@ -1,10 +1,23 @@
 // Legality checks on accepted agent outputs (Leak prevention, validation and failure handling).
 // Parser: against PlayerView. Planner / Responder / Voice: against the actor's own view.
 import type { ActorView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
+import { SPEECH_ACTIONS } from '../types';
 
 // ---------------- Parser ----------------
 
 export type ParserLegality = { illegal: string[]; gearErrors: string[]; intent: Intent };
+
+/** P2: a question about the part of the input that failed, instead of the generic one */
+export function illegalClarify(illegal: string[], view: PlayerView): string | null {
+  const first = illegal[0] ?? '';
+  const names = view.actors.map((a) => a.name || a.label).filter(Boolean);
+  const who = names.length ? ` I can see ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]}.` : '';
+  if (first.startsWith('action.target') || first.startsWith('addressee')) return `Who do you mean?${who}`;
+  if (first.startsWith('action.item')) return 'Which item do you mean?';
+  if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
+  if (first.startsWith('action.skill')) return 'How do you want to do that?';
+  return null;
+}
 
 /** Targets, items or skills not in PlayerView make the turn stop (illegal); a bad gear op or mode is dropped (invalid_gear). */
 export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: string[] = []): ParserLegality {
@@ -23,7 +36,9 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   if (a) {
     if (a.target !== null && a.target !== 'player' && !actors.has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
       illegal.push(`action.target ${a.target}`);
-    if (a.skill && !view.player.skills.includes(a.skill)) illegal.push(`action.skill ${a.skill}`);
+    // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
+    if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
+    else if (a.skill && !view.player.skills.includes(a.skill)) illegal.push(`action.skill ${a.skill}`);
     if (a.item !== null && !items.has(a.item)) illegal.push(`action.item ${a.item}`);
     if (a.mode !== null) {
       const modes = a.item ? own.find((i) => i.id === a.item)?.modes ?? [] : own.flatMap((i) => (i.equippedIn.length ? i.modes : []));

@@ -9,7 +9,7 @@ export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
 
 export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: string[]; classLabel?: string; weightLabel?: string; qty?: number };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' };
-export type ZoneView = { id: string; name: string; look: string; cover: 0 | 1 | 2; light: 0 | 1 | 2; links: { to: string; label: string; sight: boolean; frontier?: boolean }[]; groundItems: { id: string; name: string }[] };
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean }[]; groundItems: { id: string; name: string }[] };
 export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean }[] }; // geometry only, for code minds' pathing
 
 export type BeliefView = {
@@ -163,6 +163,7 @@ export type WeaverView = {
     creatureTypes: string[];
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string }[];
+    skills: string[];
   };
   grades: Grade[];
 };

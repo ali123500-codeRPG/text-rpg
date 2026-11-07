@@ -210,16 +210,16 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
 
   // ---- beliefs: opening (open entry only), then band beliefs (whatever the entry) ----
   if (opts.entry === 'open') {
-    plan.cast.forEach((c, i) => updateBeliefs(state, { kind: 'opening', observerId: castActors[i].id, aboutId: state.player.id, status: c.openingBelief, zone: state.player.zone, source: 'seen' }));
+    plan.cast.forEach((c, i) => updateBeliefs(state, { kind: 'opening', observerId: castActors[i].id, aboutId: state.player.id, status: c.awarenessOfPlayer, zone: state.player.zone, source: 'seen' }));
   }
   // GAP: arrival detection for a sneaking entry (step 7) waits on the Stealth tree (D-8); the caller runs detectPlayer.
   const onStage = new Set(state.stage.zoneIds);
   plan.cast.forEach((c, i) => {
-    for (const bb of c.bandBeliefs ?? []) {
+    for (const bb of c.awarenessOfBands ?? []) {
       const band = bandRef(bb.band);
       for (const m of [state.player, ...state.actors]) {
         if (m.bandId !== band || m.id === castActors[i].id || !onStage.has(m.zone)) continue;
-        updateBeliefs(state, { kind: 'opening', observerId: castActors[i].id, aboutId: m.id, status: bb.status, zone: m.zone, source: 'seen' });
+        updateBeliefs(state, { kind: 'opening', observerId: castActors[i].id, aboutId: m.id, status: bb.awareness, zone: m.zone, source: 'seen' });
       }
     }
   });

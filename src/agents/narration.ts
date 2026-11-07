@@ -43,16 +43,9 @@ export function buildLeakContext(state: GameState): LeakContext {
   return { terms: uniq(terms), names: uniq(names), ids: uniq(ids) };
 }
 
+export { mentions } from '../words';
+import { mentions } from '../words';
 const uniq = (xs: string[]) => [...new Set(xs.filter((x) => x && x.trim()))];
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-/** whole-word, case-insensitive phrase match */
-export function mentions(text: string, phrase: string): boolean {
-  const p = esc(phrase.trim());
-  const pre = /^\w/.test(phrase.trim()) ? '\\b' : '';
-  const post = /\w$/.test(phrase.trim()) ? '\\b' : '';
-  return new RegExp(`${pre}${p}${post}`, 'i').test(text);
-}
-
 /** every forbidden name, id or term found in `text` that the view (or other allowed text) does not itself hold */
 export function leakScan(text: string, allowedText: string, ctx: LeakContext): string[] {
   const hits: string[] = [];

@@ -156,3 +156,16 @@ describe('place facts and headlines', () => {
     for (const v of npcViews(s, 'patron_1')) expect(JSON.stringify(v)).not.toMatch(/FACT|HEADLINE/);
   });
 });
+
+describe('P3 seen clearly stays seen', () => {
+  it('someone in a dark zone is half seen until the player fully perceives them this scene', () => {
+    const s = makeVillage();
+    const zone = s.zones.find((z) => z.id === 'tav_common')!;
+    zone.light = 2;
+    const pat = actor(s, 'patron_1');
+    pat.zone = 'tav_common';
+    expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')!.level).toBe('partial');
+    s.events.push(ev({ actorId: 'patron_1', kind: 'speak', zone: 'tav_common', perception: { player: { level: 'full', cue: 'sound' } } }));
+    expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')!.level).toBe('full');
+  });
+});

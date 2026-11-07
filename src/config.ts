@@ -81,7 +81,8 @@ const DEFAULTS = {
   MAX_ROUTE_ZONES: 4, // Q2
   MAX_STAGE_ZONES: 12, // Q2
   PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, rewards: 4, knows: 5 }, // Q2
-  TEXT_CAP: 200, // Q2: free-text length cap
+  TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
+  NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
   SCENE_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 1, short: 3, medium: 6, long: 12 } as Record<string, number>,
   RECENT_EVENTS: 8, // compact views: last few relevant events
@@ -103,5 +104,8 @@ export function resetConfig(): void {
 export const TIER_NAMES: Record<number, string> = { [-3]: 'Critical Failure', [-2]: 'Failure', [-1]: 'Near Miss', 0: 'Success', 1: 'Great Success', 2: 'Critical Success' };
 /** Band tactics levels to the words Claude reads and writes (V2). Code uses only the level. */
 export const TACTICS_NAMES: Record<number, string> = { 1: 'simple', 2: 'competent', 3: 'cunning' };
+/** Zone light and cover levels to the words Claude reads and writes (V1). Code uses only the level. */
+export const LIGHT_NAMES: Record<number, string> = { 0: 'bright', 1: 'dim', 2: 'dark' };
+export const COVER_NAMES: Record<number, string> = { 0: 'none', 1: 'some', 2: 'heavy' };
 export const TIER_MIN = -3;
 export const TIER_MAX = 2;
