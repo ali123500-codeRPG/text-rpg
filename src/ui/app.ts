@@ -44,9 +44,11 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   };
   let creation: HTMLElement | null = null;
 
+  // until the saved story has been looked for, show a loading note, never the creation screen
+  let resuming = true;
   const current = () => {
     const p = location.hash.slice(1);
-    if (!api.state()) return 'create';
+    if (!api.state()) return resuming ? 'loading' : 'create';
     if (p === 'gm' && !gmOn) return 'play';
     return pages[p] ? p : 'play';
   };
@@ -74,9 +76,14 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     const page = current();
     drawRail(page);
     if (page !== lastPage) closePanel();
-    if (page === 'create') {
+    if (page === 'loading') {
+      view.replaceChildren(h('main', { class: 'playmain' }, h('p', { class: 'working', role: 'status' },
+        h('span', { class: 'spin', 'aria-hidden': 'true' }), 'Loading your story…')));
+    } else if (page === 'create') {
       if (lastPage !== 'create' || !creation) creation = creationScreen(api, () => go('play'));
-      view.replaceChildren(creation);
+      // a saved story that failed to load says so here, so a new story is never started by mistake
+      const refused = api.notices().find((n) => n.kind === 'load_refused');
+      view.replaceChildren(...(refused ? [h('div', { class: 'hs-hl bad', role: 'alert' }, h('span', { class: 'hs-hl-b' }, refused.text))] : []), creation);
     } else {
       creation = null;
       const pg = pages[page];
@@ -90,6 +97,6 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   window.addEventListener('hashchange', render);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePanel(); });
   api.subscribe(render);
-  void api.resume().then(render);
+  void api.resume().catch(() => false).finally(() => { resuming = false; render(); });
   render();
 }
