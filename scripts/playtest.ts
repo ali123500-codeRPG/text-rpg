@@ -78,6 +78,10 @@ move on to somewhere new at once.`,
   bloodthirsty: `You are a violent, bloodthirsty brute (a test of combat, XP and level-ups). You settle everything with your sword:
 insult people, threaten them, and attack anyone who looks at you wrong, starting within your first few turns. Keep fighting
 until your foes are down or flee, then look for the next fight. Use /aim now and then. Never talk your way out of a fight.`,
+  rester: `You are a weary, patient traveller (a test of the quiet-turn clock, story beats and resting). Mostly let time pass:
+sit, wait, nurse a drink, watch the room, doze, and rest often, including right after you just rested, and once while
+someone is threatening you. Take on one small scrap early if trouble comes so you have wounds to rest off, then go back to
+waiting. Do not chase leads or start conversations yourself; answer briefly if spoken to, and see what the story does on its own.`,
 };
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
 
@@ -122,12 +126,26 @@ async function main() {
     spendPerkPoints(game, t);
     const gm = game.gm();
     appendFileSync(agentLog, JSON.stringify({ step: t, input, notices: game.notices(), agentLog: gm.agentLog }) + '\n');
+    tracePacing(game, t, input);
     writeTranscript(game, storyId!, t0);
   }
   await game.settle();
   writeTranscript(game, storyId!, t0);
   writeFileSync(join(OUT, 'final-state.json'), JSON.stringify(game.state(), null, 1));
   console.log(`done: ${calls} game calls, ${Math.round((Date.now() - t0) / 60000)} min`);
+}
+
+/** pacing.jsonl: the quiet-turn clock, scene breaks, beats and rests after each step (P7 / resting tests) */
+let firedSeen = 0, logSeen = 0;
+function tracePacing(game: ReturnType<typeof createGame>, step: number, input: string) {
+  const st = game.state();
+  if (!st) return;
+  const fired = st.hidden.firedLog.slice(firedSeen); firedSeen = st.hidden.firedLog.length;
+  const codes = st.log.slice(logSeen).filter((l) => /rest|beat|stall|scene|break/i.test(l.code)); logSeen = st.log.length;
+  const p = st.player;
+  appendFileSync(join(OUT, 'pacing.jsonl'), JSON.stringify({ step, turn: st.turn, input, scene: st.stage.sceneNumber, quiet: st.stage.quiet,
+    breakCause: st.stage.breakCause ?? null, hpLostPct: p.core.condition.hpLostPct, restedTurn: st.clocks[`rest:${p.id}`] ?? null,
+    fired, codes, quietBeatsLeft: Object.values(st.hidden.plans).flatMap((pl) => pl.triggers).filter((tr) => tr.when.type === 'quiet_turns').map((tr) => tr.id) }) + '\n');
 }
 
 /** The test player can't open the Perks page, so it spends each perk point at once on the open milestone of its highest skill. */
