@@ -24,7 +24,7 @@ describe('player creation', () => {
     expect(p.progression!.startingTotal).toBe(250 - 50 - 40 - 40);
     expect(p.core.skills.block).toEqual({ raw: 40, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
-      ['arming_sword', 'hand:right_arm', undefined], ['round_shield', 'hand:left_arm', undefined], ['gambeson', 'armor', undefined], ['coin', undefined, CONFIG.STARTING_COIN],
+      ['arming_sword', 'hand:right_arm', undefined], ['round_shield', 'hand:left_arm', undefined], ['gambeson', 'armor', undefined], ['coin', undefined, CONFIG.STARTING_COIN], ['bandage', undefined, CONFIG.STARTING_BANDAGES],
     ]);
     expect(p.core.classes).toEqual([{ classId: 'swordsman', state: 'current', level: 1 }]);
     expect(() => createPlayer({ ...recommendedBuild(), tagged: [] }, 's1')).toThrow(/invalid build/);

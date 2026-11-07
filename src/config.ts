@@ -56,6 +56,7 @@ const DEFAULTS = {
   PERSONALITY_MORALE: { fearless: null, bold: 70, steady: 50, timid: 30 } as Record<string, number | null>,
   REST_COOLDOWN: 20,
   REST_HEAL_PCT: 25,
+  STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
   // ---- Part 4 ----
   POINTS_PER_LEVEL: 3,

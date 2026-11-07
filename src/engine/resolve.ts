@@ -1,7 +1,8 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
-import { activity } from '../library';
+import { activity, getLibrary, itemDef } from '../library';
+import { applyHealing } from './heal';
 import { defaultMode, healthLevel, improveMarked, markEndurance, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
@@ -243,16 +244,36 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
   if (threat || (last !== undefined && state.turn - last < CONFIG.REST_COOLDOWN)) {
     logCode(state, 'rest_blocked', { actorId: a.id, reason: threat ? 'hostile_in_zone' : 'cooldown' });
   } else {
-    const kind = state.places.find((p) => p.id === a.placeId)?.kind;
-    const pct = kind === 'clinic' || kind === 'infirmary' ? CONFIG.CLINIC_HEAL_PCT : CONFIG.REST_HEAL_PCT;
-    const c = a.core.condition;
-    c.hpLostPct = Math.max(0, c.hpLostPct - pct);
-    const gone = new Set(partStates(state, a).filter((p) => p.state === 'Destroyed').map((p) => p.id));
-    for (const id of Object.keys(c.parts)) if (!gone.has(id)) c.parts[id] = Math.min(100, c.parts[id] + CONFIG.REST_HEAL_PCT);
+    // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, else the rest row
+    const kind = state.places.find((p) => p.id === a.placeId)?.kind ?? '';
+    const placeRow = Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind));
+    applyHealing(state, a, placeRow?.id ?? 'rest');
     state.clocks[key] = state.turn;
     ev.effects.push({ kind: 'rested', actorId: a.id, data: {} });
   }
   emit(ctx, ev);
+}
+
+/** H2/H3: using a carried item that names a healing source applies that row and uses one up; works in a fight only
+ * if the row allows it. Returns false when the item doesn't heal, so the order resolves as before. */
+function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
+  const { state } = ctx;
+  const inst = a.core.inventory.find((i) => i.id === o.item || i.itemId === o.item);
+  const def = inst ? itemDef(state, inst.itemId) : undefined;
+  const row = def?.heal ? getLibrary().healing?.[def.heal] : undefined;
+  if (!inst || !row) return false;
+  const ev = bark(mk(ctx, a, 'use_item', { itemId: inst.itemId }), o);
+  const fight = allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (hostile(state, a, x) || hostile(state, x, a)));
+  if (fight && !row.inFight) {
+    logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'hostile_in_zone' });
+  } else {
+    applyHealing(state, a, row.id);
+    inst.qty = (inst.qty ?? 1) - 1;
+    if (inst.qty <= 0) a.core.inventory.splice(a.core.inventory.indexOf(inst), 1);
+    ev.effects.push({ kind: 'healed', actorId: a.id, data: { source: row.id } });
+  }
+  emit(ctx, ev);
+  return true;
 }
 
 function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
@@ -304,6 +325,9 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted'), o));
       return emit(ctx, bark(mk(ctx, a, 'equip', { itemId: o.item ?? undefined }), o));
     }
+    case 'use_item':
+      if (doHealItem(ctx, a, o)) return;
+      return doGeneric(ctx, a, o);
     default:
       if (isSpeech(o.type)) return doSpeak(ctx, a, o);
       return doGeneric(ctx, a, o);
