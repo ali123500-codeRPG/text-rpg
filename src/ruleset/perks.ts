@@ -45,6 +45,7 @@ export function canTake(a: Actor, perkId: string): string | null {
   const d = getLibrary().perks[perkId];
   if (!d?.ladder) return 'not a ladder perk';
   if (a.core.perks.some((p) => p.perkId === perkId)) return 'already taken';
+  if (d.built === false) return 'not in the game yet';
   if (!a.progression || a.progression.unspentPerkPoints < 1) return 'no perk point';
   if (trueSkill(a, d.ladder.skill) < d.ladder.milestone) return 'milestone not reached';
   if (gated(a, d.ladder.skill, d.ladder.milestone)) return 'too few perks in this skill';
