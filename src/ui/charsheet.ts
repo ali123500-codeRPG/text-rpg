@@ -1,6 +1,6 @@
 // Character sheet pieces (approved mock-up round 2, 07/11/2026): the character card, skill bars by tree, and the
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
-import type { Actor, GameState } from '../types';
+import type { Actor, GameState, LogLine } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
@@ -50,16 +50,6 @@ const tag = () => h('span', { class: 'tag', title: 'Tagged skill' }, '✦');
 /** V3a (Ali, 07/11/2026): a skill marked for an improvement roll */
 const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to improve when this fight ends', 'aria-label': 'marked to improve' });
 const marked = (p: Actor, id: string) => !!p.progression?.marks.includes(id);
-/** V1b (Ali, 07/11/2026): skill gains from the last played turn, by skill (SP10; failed rolls log nothing) */
-export function recentGains(s: GameState): Record<string, number> {
-  const out: Record<string, number> = {};
-  for (const l of s.log) {
-    if (l.code !== 'skill_improved' || l.turn < s.turn - 1) continue;
-    const d = l.detail as { skill: string; from: number; to: number };
-    out[d.skill] = (out[d.skill] ?? 0) + d.to - d.from;
-  }
-  return out;
-}
 const bar = (raw: number) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (raw / BAR_SCALE) * 100)}%` }));
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
@@ -123,12 +113,12 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
         bar(r.raw), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
 }
 
-const partOpen = { on: false }; // body-part list under the health bar, kept open across turns
+const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
 const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
 /** Body figure (Ali, 07/11/2026): the creature type's silhouette, each part tinted by its state; the general area shows
  * total health. Clicking a part names it with its state and amount. Null for body types without a figure. */
-export function bodyFigure(s: GameState, p: Actor): HTMLElement | null {
+export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set()): HTMLElement | null {
   const ct = safe(() => creatureType(s, p.core.creatureTypeId));
   if (!ct?.figure) return null;
   const { hp, total } = hpLeft(s, p);
@@ -141,7 +131,8 @@ export function bodyFigure(s: GameState, p: Actor): HTMLElement | null {
   };
   const shapes = Object.entries(ct.figure.parts).map(([id, d]) => {
     const i = info(id);
-    return `<path data-part="${esc(id)}" class="bf-${i.state.toLowerCase()}" d="${esc(d)}"><title>${esc(i.name)} · ${i.state}</title></path>`;
+    const hl = healed.has(id) ? ' · healed this turn' : '';
+    return `<path data-part="${esc(id)}" class="bf-${i.state.toLowerCase()}${hl ? ' bf-healed' : ''}" d="${esc(d)}"><title>${esc(i.name)} · ${i.state}${hl}</title></path>`;
   }).join('');
   const svg = h('div', { class: 'bf-svg' });
   svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#5a6488"/><rect width="2.5" height="6" fill="#0b1330" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
@@ -152,7 +143,7 @@ export function bodyFigure(s: GameState, p: Actor): HTMLElement | null {
     if (!el) { out.textContent = ''; return; }
     el.classList.add('on');
     const i = info(el.getAttribute('data-part')!);
-    out.textContent = [i.name, i.state, i.amount].filter(Boolean).join(' · ');
+    out.textContent = [i.name, i.state, i.amount, healed.has(el.getAttribute('data-part')!) ? 'healed this turn' : ''].filter(Boolean).join(' · ');
   });
   const key = h('p', { class: 'bf-key' }, ['Healthy', 'Damaged', 'Crippled', 'Destroyed'].map((st) => h('span', {}, h('i', { class: `bf-${st.toLowerCase()}` }), st)));
   return h('div', { class: 'bf' }, svg, out, key);
@@ -160,7 +151,8 @@ export function bodyFigure(s: GameState, p: Actor): HTMLElement | null {
 const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
 /** Health bar with the health-track thresholds (Part 3) marked; clicking it opens each body part's pool and state. */
-function healthBar(s: GameState, p: Actor): HTMLElement[] {
+function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): HTMLElement[] {
+  if (healed.size && partOpen.autoTurn !== turn) { partOpen.on = true; partOpen.autoTurn = turn; }
   const { hp, total } = hpLeft(s, p);
   const level = healthLevel(p);
   const left = Math.max(0, 100 - p.core.condition.hpLostPct);
@@ -169,7 +161,7 @@ function healthBar(s: GameState, p: Actor): HTMLElement[] {
   const at = Math.max(0, segs.findIndex((x) => x.l === level));
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
-    bodyFigure(s, p) ?? safe(() => creatureType(s, p.core.creatureTypeId).parts.map((d) => {
+    bodyFigure(s, p, healed) ?? safe(() => creatureType(s, p.core.creatureTypeId).parts.map((d) => {
       const pct = p.core.condition.parts[d.id] ?? 100;
       const pool = total === null ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
       const st = poolState(pct);
@@ -189,12 +181,13 @@ function healthBar(s: GameState, p: Actor): HTMLElement[] {
 }
 
 /** Compact sheet beside the story: health, standing defense and skills above 0. */
-export function sideSheet(s: GameState, p: Actor): HTMLElement[] {
+export function sideSheet(s: GameState, p: Actor, last?: LogLine): HTMLElement[] {
   const def = standing(s, p);
-  const gains = recentGains(s);
+  const gains = last?.gains ?? {}; // V1b: skill gains from the last played turn
+  const healed = new Set((last?.heals ?? []).flatMap((x) => x.parts.filter((pt) => pt.to !== pt.from).map((pt) => pt.id))); // H2 a
   const atk = attackOf(s, p);
   return [
-    ...healthBar(s, p),
+    ...healthBar(s, p, healed, last?.turn ?? -1),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },

@@ -16,7 +16,14 @@ export type LogLine = {
   speech?: { speaker: string; volume: Volume; text: string }[]; // lines the character heard, word for word
   changes?: { kind: 'combat' | 'condition' | 'health'; text: string }[]; // what changed this turn
   next?: string; // Q16: what the player put off this turn (the Parser's deferred), offered in the action box
+  // taken from the turn's code log before it is cleared (the log only lives until the next turn starts)
+  heals?: HealNote[]; // H11: the player's healing this turn
+  unlocks?: { skill: string; milestone: number }[]; // V2a: milestones a skill crossed this turn
+  gains?: Record<string, number>; // V1b: skill points gained this turn, by skill
 };
+
+/** one healing of the player: the health level and each body part that changed state */
+export type HealNote = { source: string; from: string; to: string; parts: { id: string; from: string; to: string }[] };
 
 export type LineCheck = {
   kind: 'attack' | 'contest' | 'roll';

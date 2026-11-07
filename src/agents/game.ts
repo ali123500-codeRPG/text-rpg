@@ -3,7 +3,7 @@
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import type { AgentName, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
-  GmSnapshot, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PlannerOutput, Rng, TurnRecord, Actor,
+  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PlannerOutput, Rng, TurnRecord, Actor,
 } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
@@ -328,11 +328,12 @@ export function createGame(deps: GameDeps): Game {
     const mechanics = mechanicsLines(s, events);
     const turn = s.turn;
     const narrLog = turnLog;
+    const notes = turnNotes(s);
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
-      ...lineExtras(s, events, nv, narr.output.text), ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
+      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
     await storeHistory(s.storyId);
@@ -636,6 +637,24 @@ function nameOf(s: GameState, itemId: string): string {
  * Play screen extras for a narration line, from what the player perceived (no numbers): the player's own check this
  * turn, the lines heard (word for word, unless the narration already quotes them) and the turn's visible changes.
  */
+/** H11, V1b, V2a: the player's healing, skill gains and milestones from this turn's code log, kept on the story line
+ * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. */
+export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains'> {
+  const heals: HealNote[] = [], unlocks: { skill: string; milestone: number }[] = [], gains: Record<string, number> = {};
+  for (const l of s.log) {
+    if (l.turn !== s.turn) continue;
+    if (l.code === 'healed') {
+      const d = l.detail as HealNote & { actorId: string };
+      if (d.actorId === s.player.id) heals.push({ source: d.source, from: d.from, to: d.to, parts: d.parts });
+    } else if (l.code === 'skill_improved') {
+      const d = l.detail as { skill: string; from: number; to: number; milestone?: number };
+      gains[d.skill] = (gains[d.skill] ?? 0) + d.to - d.from;
+      if (d.milestone) unlocks.push({ skill: d.skill, milestone: d.milestone });
+    }
+  }
+  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}) };
+}
+
 export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes'> {
   const out: Pick<LogLine, 'check' | 'speech' | 'changes'> = {};
   const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? n.charAt(0).toUpperCase() + n.slice(1) : n);
