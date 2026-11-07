@@ -51,6 +51,7 @@ export type Library = {
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
 };
 
-/** X6 (Ali, 07/11/2026): a library achievement. rule 'first_defeat' is earned once per creature type ({creature} in
- * the name); 'mastery' once per tree and tier (awarded when mastery perks exist). */
-export type AchievementDef = { id: string; name: string; xp: number; rule: 'first_defeat' | 'mastery' };
+/** X6/X11 (Ali, 07/11/2026): a library achievement, each with its own id and name. rule 'first_defeat' is earned
+ * once per creature type ({creature} in the name, id first_defeat:<type>); 'defeats' at `count` defeats in all;
+ * 'mastery' once per tree and tier (awarded when mastery perks exist). */
+export type AchievementDef = { id: string; name: string; xp: number; rule: 'first_defeat' | 'defeats' | 'mastery'; count?: number };

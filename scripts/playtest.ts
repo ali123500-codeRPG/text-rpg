@@ -1,6 +1,8 @@
 // Headless playtest: the real game engine with an in-memory save under its own story id (never the artifact db), and
 // every Claude call sent through the signed-in Claude Code CLI (`claude -p`), so it runs on the session's subscription.
 // A player agent (also `claude -p`) picks each action from the story so far.
+// F8: prompts here differ from the artifact's: the CLI joins the fixed and per-turn user turns into one prompt, adds its
+// own system prompt and picks the model per tier, so read prompt-behaviour results from playtests with that in mind.
 //   npm run playtest -- --turns 50 --out playtest-out
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, appendFileSync } from 'node:fs';

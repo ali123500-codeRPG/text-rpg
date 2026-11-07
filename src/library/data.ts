@@ -242,8 +242,12 @@ export function prototypeLibrary(): Library {
     routineSets: ROUTINE_SETS,
     perks: {},
     achievements: {
-      first_defeat: { id: 'first_defeat', name: 'First {creature} defeated', xp: 10, rule: 'first_defeat' }, // placeholder XP (X1, X6)
-      mastery: { id: 'mastery', name: 'Mastery: {tree} {tier}', xp: 25, rule: 'mastery' }, // not awarded until mastery perks exist
+      // XP: first defeat and mastery back to 100 and 250 (X11); the defeat counts are placeholders (X17)
+      first_defeat: { id: 'first_defeat', name: 'First {creature} defeated', xp: 100, rule: 'first_defeat' },
+      defeats_10: { id: 'defeats_10', name: 'Ten foes defeated', xp: 100, rule: 'defeats', count: 10 },
+      defeats_100: { id: 'defeats_100', name: 'A hundred foes defeated', xp: 250, rule: 'defeats', count: 100 },
+      defeats_1000: { id: 'defeats_1000', name: 'A thousand foes defeated', xp: 1000, rule: 'defeats', count: 1000 },
+      mastery: { id: 'mastery', name: 'Mastery: {tree} {tier}', xp: 250, rule: 'mastery' }, // not awarded until mastery perks exist
     },
   });
 }

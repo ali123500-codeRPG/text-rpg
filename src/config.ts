@@ -78,8 +78,10 @@ const DEFAULTS = {
   BOON_BUDGET: { none: 0, minor: 2, moderate: 5, major: 10, extreme: 20 } as Record<string, number>, // per plan, by gain
   // XP and levels (Ali, 07/11/2026, X1–X10). Placeholders, kept small at first (X1).
   LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × n
-  KILL_XP_DIV: 10, // interim kill XP = enemy Total ÷ this × taper, until X11 settles the measure
-  KILL_XP_TAPER: 2, // × min(1, TAPER × enemy Total ÷ player Total) (X3)
+  // Danger (X11 C): kill XP = the average share of the player's HP lost in sandbox duels × DANGER_XP
+  DANGER_XP: 50, // placeholder (X16)
+  DANGER_DUELS: 20, // sandbox duels per defeat
+  DANGER_ROUNDS: 30, // a duel stops after this many exchanges
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)

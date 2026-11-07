@@ -1,7 +1,10 @@
 // XP and levels (Ali, 07/11/2026, XP proposal X1–X10). Code only: no agent sees or sends XP.
 import type { Actor, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
-import { creatureType, getLibrary, npcTemplate } from '../library';
+import { creatureType, getLibrary } from '../library';
+import { fullParts } from '../library/spawn';
+import { defaultMode, ruleset } from '../ruleset';
+import { createRng } from '../rng';
 import { isActive, wary } from './relations';
 import { logCode } from './effects';
 
@@ -54,27 +57,57 @@ export function payDefeats(state: GameState, events: GameEvent[]): void {
     if (isActive(t) ? m.moraleState !== 'surrendered' : !m.hitByPlayer) continue; // fled or untouched: nothing
     m.xpPaid = true;
     awardXp(state, killXp(state, t), `defeat:${t.id}`);
-    firstDefeat(state, t);
+    defeatAchievements(state, t);
   }
 }
 
-/** Interim kill XP (X14) until X11 picks the measure: a template's own xp, else Total ÷ KILL_XP_DIV, tapered (X3). */
+/** X11 (C, Danger): kill XP = the average share of the player's HP lost in DANGER_DUELS sandbox duels against this
+ * foe, both at full health, × DANGER_XP. Weak foes taper on their own (X12); there is no hand-set override (X13). */
 export function killXp(state: GameState, t: Actor): number {
-  let tpl: { xp?: number } | undefined;
-  try { tpl = t.core.templateId ? npcTemplate(state, t.core.templateId) : undefined; } catch { /* none */ }
-  if (tpl?.xp !== undefined) return tpl.xp;
-  const mine = skillTotal(state.player), theirs = skillTotal(t);
-  const taper = mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1;
-  return Math.round(((theirs / CONFIG.KILL_XP_DIV) * taper) * 10) / 10;
+  return Math.round(danger(state, t) * CONFIG.DANGER_XP * 10) / 10;
 }
 
-function firstDefeat(state: GameState, t: Actor): void {
-  const def = getLibrary().achievements?.first_defeat;
-  if (!def) return;
-  const id = `first_defeat:${t.core.creatureTypeId}`;
-  let creature = t.core.creatureTypeId;
-  try { creature = (creatureType(state, creature) as { name?: string }).name ?? creature; } catch { /* keep the id */ }
-  grantAchievement(state, id, def.name.replace('{creature}', creature.replace(/_/g, ' ')), def.xp);
+/** Sandbox duels with the real attack rules on copies of the two actors. Seeded from the story seed, the turn and
+ * the foe, so it never touches the game's dice and a replay gives the same answer. Returns 0–1. */
+export function danger(state: GameState, foe: Actor): number {
+  let seed = (state.rngSeed ^ (state.turn * 2654435761)) >>> 0;
+  for (const c of foe.id) seed = (Math.imul(seed, 31) + c.charCodeAt(0)) >>> 0;
+  const rng = createRng(seed);
+  let lost = 0;
+  for (let i = 0; i < CONFIG.DANGER_DUELS; i++) {
+    const fresh = (a: Actor): Actor => {
+      const c = structuredClone(a);
+      c.zone = state.player.zone;
+      c.core.condition = { hpLostPct: 0, parts: fullParts(state, c.core.creatureTypeId), status: [] };
+      return c;
+    };
+    const me = fresh(state.player), them = fresh(foe);
+    const sand: GameState = { ...state, player: me, actors: [them], zones: structuredClone(state.zones), log: [], events: [] };
+    const order = i % 2 ? [them, me] : [me, them]; // take turns going first
+    for (let r = 0; r < CONFIG.DANGER_ROUNDS && isActive(me) && isActive(them); r++) {
+      for (const a of order) {
+        const d = a === me ? them : me;
+        const m = defaultMode(sand, a, 0);
+        if (!isActive(a) || !isActive(d) || !m) continue;
+        const res = ruleset.attack({ attackerId: a.id, targetId: d.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: null, aimed: false }, sand, rng);
+        ruleset.applyEffects(res, sand);
+      }
+    }
+    lost += Math.min(100, me.core.condition.hpLostPct) / 100;
+  }
+  return lost / CONFIG.DANGER_DUELS;
+}
+
+function defeatAchievements(state: GameState, t: Actor): void {
+  const lib = Object.values(getLibrary().achievements ?? {});
+  const fd = lib.find((d) => d.rule === 'first_defeat');
+  if (fd) {
+    let creature = t.core.creatureTypeId;
+    try { creature = (creatureType(state, creature) as { name?: string }).name ?? creature; } catch { /* keep the id */ }
+    grantAchievement(state, `${fd.id}:${t.core.creatureTypeId}`, fd.name.replace('{creature}', creature.replace(/_/g, ' ')), fd.xp);
+  }
+  const n = (state.player.progression?.xpLog ?? []).filter((x) => x.source.startsWith('defeat:')).length;
+  for (const d of lib) if (d.rule === 'defeats' && d.count !== undefined && n >= d.count) grantAchievement(state, d.id, d.name, d.xp);
 }
 
 /** Each achievement is granted once (B4). */
