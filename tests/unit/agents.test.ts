@@ -171,6 +171,16 @@ describe('Parser legality', () => {
     const r = await callParser('I creep up the stairs', playerView(), ctx);
     expect(r.clarify).toMatch(/aren't in the game yet/);
   });
+  it('a wait names a time of day, not a person (run 18); an unknown time asks until when', async () => {
+    const { claude, ctx } = setup();
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'Dusk' } }));
+    const r = await callParser('I wait until dusk', playerView(), ctx);
+    expect(r.clarify).toBeNull();
+    expect(r.intent!.action!.target).toBe('dusk');
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'late evening' } }))
+      .push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'late evening' } }));
+    expect((await callParser('I wait until late evening', playerView(), ctx)).clarify).toBe('Until when? You can wait until dawn, day, dusk or night.');
+  });
   it('a sneak with a move just moves, openly', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ move: { toZone: 'tav_counter' }, action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }));

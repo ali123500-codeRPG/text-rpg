@@ -2,6 +2,7 @@
 // Parser: against PlayerView. Planner / Responder / Voice: against the actor's own view.
 import type { ActorView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
 import { SPEECH_ACTIONS } from '../types';
+import { TIME_OF_DAY } from '../scales';
 
 // ---------------- Parser ----------------
 
@@ -15,6 +16,7 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
   if (first.startsWith('action.target') || first.startsWith('addressee')) return `Who do you mean?${who}`;
   if (first.startsWith('action.item')) return 'Which item do you mean?';
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
+  if (first.startsWith('action.time')) return `Until when? You can wait until ${TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' or $1')}.`;
   if (first.startsWith('action.stealth')) return 'Sneaking and hiding aren\'t in the game yet, so anyone nearby would see you. What do you do instead?';
   if (first.startsWith('action.skill')) return 'How do you want to do that?';
   return null;
@@ -37,7 +39,15 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   if (out.move && !view.zone.links.some((l) => l.to === out.move!.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
   const a = out.action;
   if (a) {
-    if (a.target !== null && a.target !== 'player' && !actors.has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
+    // T6 (run 18): a wait's target is a time of day, not an actor; "Who do you mean?" stopped every timed wait
+    if (a.type === 'wait' || a.type === 'sleep') {
+      if (a.type === 'sleep') a.target = null;
+      else if (a.target !== null) {
+        const k = TIME_OF_DAY.keyOf(a.target);
+        if (k) a.target = k;
+        else illegal.push(`action.time ${a.target}`);
+      }
+    } else if (a.target !== null && a.target !== 'player' && !actors.has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
       illegal.push(`action.target ${a.target}`);
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // hide and sneak wait for the Stealth tree (Part 2, Sneaking posture): with a move the player just goes, openly;
