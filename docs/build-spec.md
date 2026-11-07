@@ -965,7 +965,7 @@ Mode is computed after the previous turn is saved, from saved state; Dialogue is
 
 An attack from Explore resolves in the same turn (Explore mode, Ambush). Tactical no longer has an "or the player attacks" condition **\[Proposed\]**: observers of the attack become engaged anyway, and a kill nobody perceives leaves the game in Explore.
 
-Belief decay still returns actors to unaware. Because Planner calls follow engagement per actor, CALM\_TURNS no longer changes which calls run (D-38). Triggers are checked in every mode, so an ambush can start a tactical turn by itself.
+Belief decay still returns actors to unaware. Planner calls follow engagement per actor, so encounter mode doesn't change which calls run. Triggers are checked in every mode, so an ambush can start a tactical turn by itself.
 
 Every mode takes the same time after the player submits, except turns that start a scene or cross a frontier (Latency and cost).
 
@@ -1105,7 +1105,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 
 **Routine-only failures \[Proposed\].** After the repair retry, a plan whose only errors are routine errors still applies, minus those errors. Routine errors are an unresolved set, a missing or invalid slot binding, an unreachable bound zone or a bad startAt. Each actor with an error gets the library routine idle\_here: a wait routine with activity rest, here bound to its first valid bound zone, else the plan's first zone. Code logs routine\_fallback with the validator's errors, and sets the same four flags as a fallback stage.
 
-**Model.** Agent Weaver runs on Claude Opus 5.5 for both scene setup and stage extensions: model "claude-opus-5-5", with modelTier "complex" as the fallback, and effort always set explicitly (Opus 5.5 defaults to medium). Target effort is xhigh, never max. The artifact runtime (contract 0.2.96) accepts only low, medium and high and ignores other values, so the build sets WEAVER\_EFFORT = "high" (config) and changes it to "xhigh" once the runtime accepts it. The agent log records modelApplied for every Weaver call.
+**Model.** Agent Weaver runs on Claude Opus 5.5 for both scene setup and stage extensions: model "claude-opus-5-5", with modelTier "complex" as the fallback, and effort always set explicitly (Opus 5.5 defaults to medium). The artifact runtime (contract 0.2.96) accepts only low, medium and high, so the build sets WEAVER\_EFFORT = "high" (config), never max (D-33 closed). The agent log records modelApplied for every Weaver call.
 
 Fixed instructions (sent as the leading user turn) **\[Proposed\]**:
 
@@ -1232,7 +1232,7 @@ Without streaming, the player waits for the whole turn, so the parallel parts ma
 - **Prompt order.** Each agent's input starts with its fixed instructions (a leading user turn, since the capability has no system prompt) and ends with the per-turn data; nothing that changes per turn or per actor goes in the fixed part. If the platform caches prompt prefixes, this makes repeat calls faster; the runtime docs don't say it does (OQ-11), so estimates assume it doesn't. Pass cache:false on calls whose repeat must give a new answer.
 - **Waiting state.** Show the same short "…" indicator in every mode until the Narrator's checked text is ready.
 - **Streaming** is off for now; revisit after playtests (D-24).
-- **Timing rule.** Resolution never starts before the previous display plus BACKGROUND\_WINDOW (config), in every mode. In dialogue turns, results are also shown no earlier than DIALOGUE\_WINDOW (config) after submit, set at or above the Responder's usual latency, so guarded and ordinary NPCs answer in the same time. Known limits: the number of calls is visible in the browser's network tools, and retries still change timing (D-37, D-45).
+- **Timing rule.** Resolution never starts before the previous display plus BACKGROUND\_WINDOW (config), in every mode. In dialogue turns, results are also shown no earlier than DIALOGUE\_WINDOW (config) after submit, set at or above the Responder's usual latency, so guarded and ordinary NPCs answer in the same time. Known limit: retries still change timing (D-45). The call count is shown in the header on purpose.
 
 ### Leak prevention, validation and failure handling
 
@@ -1950,7 +1950,7 @@ Three things can change under a running story, and each has its own rule.
 | Replaced | Old id points to its successor; saves move to the new entry |
 | Deleted | Perk, skill or class stays dormant on the sheet: kept, not applied, shown in the GM view. A removed body part's pool is dropped |
 
-**Resets.** A change too big to migrate may reset the story, but only after the designer confirms it. Code never resets on its own. If a migration can't run, the game refuses to load, leaves the save untouched, and asks. Whether a confirmed reset archives or deletes the old story is deferred.
+**Resets.** A change too big to migrate may reset the story, but only after the designer confirms it. Code never resets on its own. If a migration can't run, the game refuses to load, leaves the save untouched, and asks. A confirmed reset archives the old story: its pages and backups stay under its own id, and play starts a new story id (D-73).
 
 **Safety bookmark.** Before migrating, load keeps the pre-migration bookmark. It is dropped after the next good turn.
 
@@ -2465,12 +2465,12 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-30 | Scene breaks | 2 | Partly settled | Settled 07/11/2026 (P7): rest, beats with endsScene, and the stall fallback (Scenes). Still open: time skip (with D-101); NPCs reacting on their own after a fight (P7 B2) |
 | D-31 | Random rolls during a scene | 2 | Deferred | Iliad Quest-style encounter rolls while travelling or mid-scene. For now only the scene-start situation roll exists |
 | D-32 | Computed grade check | 2 | Partly settled | Measuring a plan's challenge and gain from its cast and rewards. Settled 07/11/2026 (loot V8): rewards are held to the gain's Boon budget (Part 5 §7). Still open: measuring the cast's challenge, a passing stub until then |
-| D-33 | Weaver effort | 2 | Deferred | Switch WEAVER\_EFFORT from high to xhigh once the artifact runtime accepts it |
+| D-33 | Weaver effort | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q10). The runtime accepts only low, medium and high, and the Weaver already uses high. Reopen if the runtime adds a higher level |
 | D-34 | Definition of a major action | 2 | Deferred | Includes which actions end sneaking, and whether an observer arriving in view counts. Stub: every player action is major |
 | D-35 | Marks and missed check-ins | 2 | Deferred | Bodies, forced doors and missing colleagues that unaware actors could notice. Left out of the first prompt to keep it simple |
 | D-36 | Planner for failed ambushes | 2 | Deferred | Code onAlert order for now. Options reviewed: interrupt the turn at detection, a speculative Planner call in the background, or a fixed reaction stage in every turn |
-| D-37 | Call count visible in network tools | 2 | Deferred | Timing is equal across modes; only always-on placeholder Planner calls would hide the count |
-| D-38 | CALM\_TURNS | 2 | Deferred | Changes no calls now; keep only if mode drives something else, such as UI. The alarm calm-down uses DECAY\_TURNS; CALM\_TURNS could serve instead |
+| D-37 | Call count visible in network tools | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q11). The play screen header shows the call count on purpose, so hiding it from network tools no longer matters |
+| D-38 | CALM\_TURNS | 2 | Dropped | Deleted by Ali (07/11/2026, easy open questions Q12). Nothing used it; the alarm calm-down uses DECAY\_TURNS |
 | D-39 | BACKGROUND\_WINDOW value | 2 | Deferred | Config; set at or above Agent Planner's usual latency after playtests |
 | D-40 | Hide and detection tests | 2 | Deferred | One test per observer per action for now; revisit with the definition of a major action |
 | D-41 | Out-of-character agent (/ooc) | 1–2 | Deferred | Code-only /help for now. An OOC agent would add a Claude call. Voyage playtest (07/11/2026): F3 a plain-text OOC question in the action box used a turn; F4 a side chat that answers questions without a turn |
@@ -2505,7 +2505,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-70 | Setting-specific library content | 4 | Deferred | Tags so a story draws only fitting entries |
 | D-71 | Visibility of saved fields | 4 | Deferred | Separate thread, with "What code produces, agents see, player sees": tags plus builders, default for untagged fields, whether an NPC sees its own Damaged parts |
 | D-72 | Undo depth | 4 | Deferred | One turn for now |
-| D-73 | Reset: archive or delete | 4 | Deferred | Backups (Part 4 §11) also allow recovery from a reset |
+| D-73 | Reset: archive or delete | 4 | Settled | Settled by Ali (07/11/2026, easy open questions Q13): archive. A confirmed reset starts a new story id and keeps the old story's pages and backups under its own id, so a misclick can be recovered. Play shows only the newest story |
 | D-74 | Turn-record count N and proposal caps | 4 | Deferred | Placeholders; set after measuring the platform caps |
 | D-75 | Diminishing-returns values per modifier type | 1 | Deferred | Roll perks, wounds, situational, aim |
 | D-76 | Outnumbered and unaware values | 3 | Deferred | For the defense roll |
@@ -2538,7 +2538,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-103 | NPC self-interest in exchanges | 2 | Dropped | Dropped by Ali (07/11/2026, easy open questions Q15). Voyage playtest (07/11/2026): D1, NPCs refused tips and bonuses. Whether Agent Responder and Agent Voice are told to keep their own interests in deals |
 | D-104 | Attitude toward the player | 2, 4 | Deferred | Voyage playtest (07/11/2026): D4, a relationship score per NPC with labels; D5, threatening an NPC raised it. A Belief tracks awareness only and stance comes from bands (Part 2, Opposition); threats short of an attack have no lasting effect |
 | D-105 | Quests | 2, 4 | Deferred | Voyage playtest (07/11/2026): D8, a duplicate quest for a job already taken; G2, quest text revealed secrets. Who creates quests and writes their text, a leak check on that text, and de-duplication. Quests are only {id, state, text} for now (Part 4 §9) |
-| D-106 | Narration against NPC lines | 2 | Deferred | Voyage playtest (07/11/2026): D7, the narration contradicted an NPC line. A check that the narration agrees with the NPC lines it quotes |
+| D-106 | Narration against NPC lines | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q14). The Narrator no longer quotes lines and the play screen shows each heard line word for word, which removed the cause. Reopen if a playtest shows it again. Voyage playtest (07/11/2026): D7 |
 | D-107 | Action ideas on request | 2 | Built | Decided by Ali (07/11/2026, Voyage A4; was OQ-23): a code-built list from PlayerView, shown when the player asks: people in view to talk to, exits, items held, actors in reach, grouped by tab (Talk, Move, Fight, Use) and refreshed each turn. No Claude call, so nothing can leak. Narrator rule 7 ("Do not list options") stays for the narration. Built 07/11/2026 as the Ideas panel on the Play screen (Fight, Talk, Move, Use side by side, three each) |
 | D-108 | Achievement proposals | 1, 2 | Planned | Decided by Ali (07/11/2026, settles OQ-10): Claude may propose achievements, never grant them. A proposal goes to Ali for approval; once he approves, the feat is implemented as permanent code (a code rule that grants it), like the first-defeat achievement. Place state and promoted facts still come only from code rules. Which agent carries the proposal is open |
 

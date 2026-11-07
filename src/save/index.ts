@@ -225,7 +225,7 @@ export const acquireTurnLock = (store: Store, storyId: string, owner: string) =>
 export const releaseTurnLock = (store: Store, storyId: string, owner: string) => store.releaseLease(lockPath(storyId), owner);
 
 // ---------- stories ----------
-/** Every story's meta, newest first. A confirmed reset starts a new story id and leaves the old pages (D-73 stays open). */
+/** Every story's meta, newest first. A confirmed reset starts a new story id and archives the old story's pages under its own id (D-73). */
 export async function listStories(store: Store): Promise<StoryMeta[]> {
   const metas = await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)));
   // GAP: no "current story" pointer in the spec's paths; the newest createdAt is the one that runs
