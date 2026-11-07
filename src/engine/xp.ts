@@ -81,16 +81,25 @@ export function killXp(state: GameState, t: Actor): number {
   return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
 }
 
+const title = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 function defeatAchievements(state: GameState, t: Actor): void {
-  const lib = Object.values(getLibrary().achievements ?? {});
-  const fd = lib.find((d) => d.rule === 'first_defeat');
-  if (fd) {
-    let creature = t.core.creatureTypeId;
-    try { creature = (creatureType(state, creature) as { name?: string }).name ?? creature; } catch { /* keep the id */ }
-    grantAchievement(state, `${fd.id}:${t.core.creatureTypeId}`, fd.name.replace('{creature}', creature.replace(/_/g, ' ')), fd.xp);
+  const pr = state.player.progression;
+  if (!pr) return;
+  const type = t.core.creatureTypeId, race = t.core.raceId;
+  let creature = type;
+  try { creature = (creatureType(state, type) as { name?: string }).name ?? type; } catch { /* keep the id */ }
+  const n = (pr.defeats ??= {});
+  const keys = ['all', `creature:${type}`, ...(race ? [`race:${race}`] : [])];
+  for (const k of keys) n[k] = (n[k] ?? 0) + 1;
+  for (const d of Object.values(getLibrary().achievements ?? {})) {
+    if (d.rule !== 'defeats' || d.count === undefined) continue;
+    if (d.by === 'race' && !race) continue;
+    const of = d.by === 'race' ? race! : type;
+    if ((n[d.by ? `${d.by}:${of}` : 'all'] ?? 0) < d.count) continue;
+    const name = d.name.replace('{creature}', title(creature)).replace('{race}', title(race ?? ''));
+    grantAchievement(state, d.by ? `${d.id}:${of}` : d.id, name, d.xp);
   }
-  const n = (state.player.progression?.xpLog ?? []).filter((x) => x.source.startsWith('defeat:')).length;
-  for (const d of lib) if (d.rule === 'defeats' && d.count !== undefined && n >= d.count) grantAchievement(state, d.id, d.name, d.xp);
 }
 
 /** Each achievement is granted once (B4). */

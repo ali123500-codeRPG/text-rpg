@@ -66,7 +66,13 @@ A Flaw is something the character functionally struggles to improve. Near 100 a 
 - 100 is the mortal limit for raw skill. Above 99, improvement happens only on a 99+ roll. Workaround mechanics come later.
 - Soft cap on raw skill and hard cap on effective skill. Values and behaviour are *placeholders*.
 
-**Effective skill** (computed for every check and roll, in order): raw skill → + gear → + combined-check perks → + skill perks → apply hard cap → apply conditions.
+**Three skill values** (Ali, 07/11/2026):
+
+- **Raw skill:** what training gave. Burden, Total and skill improvement use raw skill only.
+- **True skill:** raw skill + perks that raise that one skill by a flat amount and are always on (e.g. a ladder's Training rung, +5). Ladder rungs and mastery perks read true skill. It has no cap of its own, so a ladder's boosts can carry a skill past the mortal limit of 100 toward the 120 and 140 rungs.
+- **Effective skill** (computed for every check and roll, in order): true skill → + gear → + combined-check perks → + situational skill perks → apply hard cap → apply conditions.
+
+Derived, never saved; the Character page shows true skill, with raw skill beside it when they differ.
 
 Gear is a flat bonus to effective skill unless an item says otherwise. Standard kit (an average fighter's minimum equipment) gives one +25 per roll, shared by all kit pieces: pieces never stack (*placeholder*).
 
@@ -117,7 +123,7 @@ Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to 
 
 Modifier types (each type diminishes within itself; values per type are deferred):
 
-- Gear and skill perks: inside effective skill (§3).
+- Gear and situational skill perks: inside effective skill; flat skill perks: inside true skill (§3).
 - Roll perks: flat roll points.
 - Gear roll modifiers: rare noted modifiers from items, such as the weapon hit adjustment, at full value (Part 5 §3).
 - Wounds: health-track level plus body-part role penalties, in roll points.
@@ -142,12 +148,13 @@ XP drives levels and perks only. Skills grow separately, through skill improveme
 
 - **XP** (Ali, 07/11/2026, XP proposal X1–X10; all numbers *placeholders*, kept small at first). Three sources, each logged on the source trail as {source, amount, turn} (B8):
   - **Defeats (main source).** An opposed or hostile NPC pays once (B4) when it is downed and the player hit it at least once, or when it surrenders. A broken (fleeing) foe pays nothing. Companions' defeats wait for companion XP. The amount comes from stats only (X18–X23, Ali 07/11/2026; Danger was dropped). Each skill carries an XP category in the library (`xpCategory`, set per skill because one tree may mix categories): offensive (attack skills and the Swordsman class skills), defensive (dodge, block), endurance (endurance, function tag hp), notice, influence, or misc (lockpicking). A skill's training effort is (100 ÷ 3) × ln(100 ÷ max(100 − s, 2)), so high skills weigh more (Part 1 §6). Within each category the efforts are ranked high to low and count at 1, ½, ¼…. The foe's **rating** is the sum over categories × XP\_CATEGORY\_WEIGHT: offensive, defensive and endurance 1, notice 0.5, influence 0.25, misc 0. Kill XP = rating × min(1, KILL\_XP\_TAPER (2) × foe rating ÷ player rating) × KILL\_XP\_MULT (1, X20). All numbers are *placeholders*, to be tuned later (X19). Example against the recommended swordsman (rating 72): a slime (rating 12) gives 4 XP, a guard (rating 46) 46.
-  - **Achievements**, each with an id and a name, each earned once. Library achievements are a data table that only code awards: the first defeat of each creature type (100 XP, id first\_defeat:<type>); 10, 100 and 1000 defeats in all (100, 250 and 1000 XP); and each mastery perk (250 XP, once mastery perks exist). Scene achievements seeded by the Weaver (up to 2 per plan, XP by gain 0/10/25/50/100) are agreed but not built yet (X7). The character sheet lists earned achievements.
+  - **Achievements**, each with an id and a name, each earned once. Library achievements are a data table that only code awards: the first defeat of each creature type (100 XP, id first\_defeat:<type>, e.g. "Slimebane") and of each race (100 XP, id first\_defeat\_race:<race>, "Bane of Elfkind"); 10 defeats of one creature type (100 XP, id defeats\_10:<type>, "Scourge of the Slime Hordes"); 10, 100 and 1000 defeats in all (100, 250 and 1000 XP: "Tenfold Reaper", "Calamity of a Hundred Blades", "Thousand-Slayer, Herald of Ruin"); and each mastery perk (250 XP, once mastery perks exist). Names are grand and name what was defeated (Ali, 07/11/2026). Progression keeps defeat counts per creature type and race. New achievements come only from Ali-approved proposals (D-108); Weaver-seeded scene achievements (X7) are dropped (Ali, 07/11/2026). The character sheet lists earned achievements.
   - **Quests** pay on completion by gain: 25/50/100/200. Held until quests exist (X8).
 - **Levels.** From level n to n+1 takes LEVEL\_XP × n XP (LEVEL\_XP 100). There is one XP bar. A level goes to the class picked on the sheet ("Next level goes to", shown when more than one class is current or unlocked), or else to the current class, with no waiting (X9; settles OQ-8). With mechanics shown, the turn lists "+n XP (source)" and "Level n!".
-- **Level perks:** one perk point on every even level, spent on perks. Some perks are trade-offs (e.g. give up a skill for a higher cap, faster training and bonuses to class skills).
+- **Level perks:** one perk point on every even level, spent on perks. Some perks are trade-offs (e.g. give up a skill for a higher cap, faster training and bonuses to class skills); these come later, on their own tab (S6).
+- **Skill ladders** (Ali, 07/11/2026, perk page S1–S9): every skill has a perk at each 20 points of true skill: rungs 20, 40, 60, 80, 100, 120 and 140. Reaching a rung unlocks its perk; taking it costs one perk point (S2). Rungs 20, 60, 100 and 140 give a new trick; rungs 40, 80 and 120 give a number boost, such as +5/+10/+15 true skill (S5). A perk is kept if the skill later drops below its rung (S4). Ladder perks are level perks (OwnedPerk source 'level'). Their content is not written yet.
 - **Mastery perks:** granted instantly, at no point cost, when all three skills in a tree reach 50, 100 and 150. Once granted they are never removed. They replace the LLtQ category bonus.
-- **Mastery check:** runs only when a skill crosses a threshold upward, and checks whether the other two skills in its tree already meet it. Uses raw skill **\[Proposed\]**.
+- **Mastery check:** runs only when a skill crosses a threshold upward, and checks whether the other two skills in its tree already meet it. Uses true skill (S9, Ali, 07/11/2026).
 
 With 100 as the mortal limit, the 150 mastery tier is unreachable through training alone until workaround mechanics are designed.
 
@@ -1287,6 +1294,7 @@ Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns
 * **Aim toggle:** marks this turn's attack as aimed (Part 1 §7).
 * **Mechanics panel:** under the narration while SHOW\_MECHANICS is on; dice, modifiers and damage from code.
 * **Out-of-character notices:** the scene-planning failure marker (Agent Weaver), the rate-limit notice and the stop-play message (Leak prevention, validation and failure handling).
+* **Perks (Character page)** (Ali, 07/11/2026, K1–K4, S1, S7): a perk point is spent any time on the Character page; the rail shows a dot while one is unspent, and the level-up line on Play links there (K2). A taken perk can be undone until the next turn is played, then it is permanent (K3). Two views behind a "By tree / By effect" switch. By tree: a tab per skill tree, each skill a ladder of its seven rungs on a gold line showing true skill, the mastery steps 50/100/150 as dotted lines across the tree; on narrow screens the ladders become horizontal tracks. By effect: tracks in the same style grouped by what the perks do (Attack, Defense, Health, Speed, Senses, Speech); each group folds when its name is tapped. Rungs not yet reached are sealed and show only their number; the page never hints at what comes next (K4). Tapping a taken or open rung shows a small card beside it with the perk's text and, when open, "Take · 1 point". Mock-ups: https://claude.ai/artifact/TVfF7qs3WnDdDZzzM6Yjf5
 * **Journal page:** People (actors seen clearly now, or whose name is known; a label until the name is known; health only from Wounded down), Places (the current place and those above it, plus places of facts the character witnessed, folded under their parent place, no drawn map) and a Timeline (turns played since the page was opened). Built from PlayerView, the Journal and the story log only, never the hidden store (Voyage U26, U28; Ali, 07/11/2026).
 * **Side sheet health:** the health bar marks the health-track thresholds and names the current level; clicking it opens each body part with its pool and state (Ali, 07/11/2026).
 * **"You fell" screen:** shown when a lethal fight incapacitates the player, offering /undo or reset (D-54).
@@ -1402,7 +1410,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 102 | Late Planner fights on | A significant engaged actor whose Planner call is late runs its type's combat list that turn instead of holding |
 | 103 | Broken flees | A broken engaged actor with an exit slot moves one link toward it and holds once there; a slime never flees |
 | 104 | Improvised weapon | The Parser's improvised chair leg becomes a held improvised\_medium story item with hitAdj IMPROVISED\_HIT\_ADJ and no kit bonus, and the attack uses it |
-| 106 | XP and levels | Rating: a slime's is the effort of its one offensive skill, a guard's is higher, misc skills add nothing; kill XP applies the taper and KILL\_XP\_MULT; a slime the player hit and downed pays its kill XP once, plus the first-defeat achievement; ten defeats earn defeats\_10 once; a foe downed by someone else or broken pays nothing, a surrender pays; LEVEL\_XP + 5 XP levels into the chosen unlocked class, which becomes current, with a perk point at level 2 |
+| 106 | XP and levels | Rating: a slime's is the effort of its one offensive skill, a guard's is higher, misc skills add nothing; kill XP applies the taper and KILL\_XP\_MULT; a slime the player hit and downed pays its kill XP once, plus the first-defeat achievement; ten defeats earn defeats\_10 and defeats\_10:slime once, named for the slime; a foe with a race also earns its first race defeat; a foe downed by someone else or broken pays nothing, a surrender pays; LEVEL\_XP + 5 XP levels into the chosen unlocked class, which becomes current, with a perk point at level 2 |
 | 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScene, marks a break; rest marks a break; a stall marks one only with no live beat left; the director then starts a new scene with one Weaver call |
 | 107 | Opposed standoff | An opposed guard who notices the player is alarmed (its onAlert fires) but not engaged, so the turn stays Explore; made hostile, it engages |
 
@@ -1783,7 +1791,7 @@ The save stores only what can't be rebuilt. Everything recomputable is derived o
 
 | Kind | Fields | Rule |
 | --- | --- | --- |
-| Derived | Effective skill, Total, Burden, cap in effect, health-track level, part states, hit table, active item effects, gear bonuses, protection per part, hands and slots in use, race perk, class perks, character level, excluded skills | Never saved. Effective skill differs per check, so it can't be cached |
+| Derived | True skill, effective skill, Total, Burden, cap in effect, health-track level, part states, hit table, active item effects, gear bonuses, protection per part, hands and slots in use, race perk, class perks, character level, excluded skills | Never saved. Effective skill differs per check, so it can't be cached |
 | History | Raw skills and their states, StartingTotal, mastery perks, level perks chosen, marks, classes and class levels, race, creature type, part pools, minted item blueprints, item instances, shield and armor pool states | Saved as plain fields |
 | Grey zone | XP, unspent perk points, Potential | Saved, with a source trail where the value can change |
 
@@ -2171,6 +2179,7 @@ type Progression = {
   marks: LibraryRef[];
   xpLog?: { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } }[];   // source trail (B8)
   achievements?: { id: string; name: string; turn: Turn }[];   // each once (B4)
+  defeats?: Record<string, number>;   // 'all', 'creature:<type>', 'race:<race>'
   nextClass?: LibraryRef;            // the class the next level goes to (X9)
 };
 
@@ -2430,7 +2439,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-7 | Difficulty tier names and target numbers | 1 | Deferred | Names are the challenge grades (Part 1 §4, Layer 2); values are placeholders until set |
 | D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Deferred | Skills are designed with character and mob generation; sneaking waits for the Stealth tree. Also open: what a larger contest gap does, and combined skill checks (such as sight with hearing) |
 | D-9 | Mastery checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |
-| D-10 | XP sources and achievements | 1–2 | Partly settled | Settled 07/11/2026 (XP proposal X1–X10, Part 1 §5): defeats, library achievements, levels into a chosen class; kill XP from stat ratings (X18–X23); still open: Weaver scene achievements (X7, agreed), quest XP (X8, held). Was: Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
+| D-10 | XP sources and achievements | 1–2 | Partly settled | Settled 07/11/2026 (XP proposal X1–X10, Part 1 §5): defeats, library achievements, levels into a chosen class; kill XP from stat ratings (X18–X23); Weaver scene achievements dropped for D-108 (Ali, 07/11/2026); still open: quest XP (X8, held). Was: Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
 | D-11 | Minting improvised items and NPCs | 1 | Partly settled | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22. Settled 07/11/2026: generic bases, improvised weapons and the Needs data list (Part 5 §7). Still open: NPCs, improvised tools and objects used other than as weapons |
 | D-12 | Content database for items, loot and prices | 1 | Partly settled | Part 5 (Gear) sets the item data shape (Part 4 §9) and a prototype bank. Still deferred: loot tables, shops, trade, prices beyond the value placeholder |
 | D-13 | Faction clocks | 1 | Deferred | Time advances with turns and faction clocks tick on their own. A faction here is a grand faction, unrelated to bands |

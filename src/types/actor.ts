@@ -69,6 +69,7 @@ export type Progression = {
   marks: LibraryRef[];
   xpLog?: XpAward[]; // source trail (B8); every award, in order
   achievements?: { id: string; name: string; turn: Turn }[]; // earned, each once (B4, X6)
+  defeats?: Record<string, number>; // defeat counts: 'all', 'creature:<type>', 'race:<race>'
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
 };
 
