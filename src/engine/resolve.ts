@@ -258,13 +258,17 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
     logCode(state, 'rest_blocked', { actorId: a.id, reason: threat ? 'hostile_in_zone' : 'cooldown' });
   } else {
     // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, else the rest row
-    const kind = state.places.find((p) => p.id === a.placeId)?.kind ?? '';
-    const placeRow = Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind));
-    applyHealing(state, a, placeRow?.id ?? 'rest');
+    applyHealing(state, a, restRow(state, a));
     state.clocks[key] = now(state);
     ev.effects.push({ kind: 'rested', actorId: a.id, data: {} });
   }
   emit(ctx, ev);
+}
+
+/** H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, else the rest row */
+function restRow(state: GameState, a: Actor): string {
+  const kind = state.places.find((p) => p.id === a.placeId)?.kind ?? '';
+  return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind))?.id ?? 'rest';
 }
 
 const threatHere = (state: GameState, a: Actor): boolean =>
@@ -284,6 +288,11 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     const minutes = o.type === 'sleep' ? getLibrary().durations?.sleep?.minutes ?? 0 : minutesUntil(t, until);
     passTime(state, minutes);
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
+    if (o.type === 'sleep') {
+      // Ali (07/11/2026): sleep gives the rest heal once per REST_COOLDOWN_MIN of sleep, and counts as the last rest
+      for (let i = 0; i < Math.floor(minutes / CONFIG.REST_COOLDOWN_MIN); i++) applyHealing(state, a, restRow(state, a));
+      state.clocks[`rest:${a.id}`] = now(state);
+    }
     ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } });
     state.stage.breakCause = 'time_skip';
   }

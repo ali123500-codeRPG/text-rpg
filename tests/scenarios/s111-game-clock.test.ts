@@ -46,12 +46,15 @@ describe('111 game clock', () => {
     expect(f.log.some((l) => l.code === 'wait_blocked')).toBe(true);
     expect(f.stage.breakCause).toBeUndefined();
   });
-  it('sleep takes the sleep row; a plain wait runs to the next time of day', () => {
+  it('sleep takes the sleep row and heals a rest per 4 hours; a plain wait runs to the next time of day', () => {
     const s = makeVillage();
     startClock(s, 'day');
+    s.player.core.condition.hpLostPct = 80;
     const t0 = now(s);
     turn(s, act('sleep'));
     expect(now(s) - t0).toBe(480 + 1);
+    expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === 'rest')).toHaveLength(2);
+    expect(s.player.core.condition.hpLostPct).toBeLessThan(80 - 2 * CONFIG.REST_HEAL_PCT);
     const w = makeVillage();
     startClock(w, 'day');
     turn(w, act('wait'));
