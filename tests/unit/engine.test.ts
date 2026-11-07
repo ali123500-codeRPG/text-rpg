@@ -112,7 +112,7 @@ vi.mock('../../src/minds', () => {
   };
 });
 
-import { computePending, firedOrders, fromIntent, resolveSpeech, resolveTurn, selectSpokespeople, impressionWords } from '../../src/engine';
+import { computePending, firedOrders, fromIntent, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee, impressionWords } from '../../src/engine';
 import type { TurnInput } from '../../src/engine';
 
 type IntentArg = Omit<Partial<Intent>, 'action'> & { action?: Partial<NonNullable<Intent['action']>> };
@@ -213,6 +213,17 @@ describe('dialogue', () => {
     actor(s, 'patron_1').core.condition.hpLostPct = 100;
     expect(selectSpokespeople(s, intent({ action: { type: 'talk' }, addressees: ['patron_1'] }))).toEqual([]);
     expect(selectSpokespeople(s, intent({ action: { type: 'talk' }, addressees: ['everyone'] }))).toEqual(['patron_2']);
+  });
+  it('OQ-27 (c): the sticky partner answers for its band; with no partner and two members in sight, ask', () => {
+    // patron_1 sits in the player's zone; the barkeep (trader) is one link away; both are tavern_folk
+    const talk = intent({ action: { type: 'talk' }, addressees: ['tavern_folk'], spoken: 'hi' });
+    expect(selectSpokespeople(s, talk)).toEqual(['patron_1']);
+    expect(unclearAddressee(s, talk, ['patron_1', 'trader'])).toEqual(['patron_1', 'trader']);
+    expect(unclearAddressee(s, talk, ['patron_1'])).toBeNull(); // only one seen
+    s.stage.partner = 'trader';
+    expect(selectSpokespeople(s, talk)).toEqual(['trader']);
+    expect(unclearAddressee(s, talk, ['patron_1', 'trader'])).toBeNull();
+    expect(unclearAddressee(s, intent({ action: { type: 'talk' }, addressees: ['everyone'] }), ['patron_1', 'trader'])).toBeNull();
   });
   it('one player roll, contested per spokesperson; SLIPS when the contest meets a check_passed reveal', () => {
     F.rollTier = { player: 4, trader: 2, patron_1: 5 };

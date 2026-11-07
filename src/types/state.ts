@@ -14,6 +14,8 @@ export type StageInfo = {
   sceneStartTurn: Turn;
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
+  /** OQ-27 (c): the NPC the player last spoke with this scene (sticky dialogue partner) */
+  partner?: string;
 };
 
 export type Settings = { difficulty: string; showMechanics: boolean; tone: string };

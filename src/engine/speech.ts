@@ -27,7 +27,11 @@ export function isSpeech(type: string | undefined | null): boolean {
   return !!type && (SPEECH_ACTIONS as readonly string[]).includes(type);
 }
 
-/** Dialogue turn step 2. GAP: "everyone in earshot" read as NPCs in the player's zone or one link away. */
+/**
+ * Dialogue turn step 2, with OQ-27 (c): for an addressed band, the sticky partner (state.stage.partner, the NPC the
+ * player last spoke with this scene) answers if it is an active member in reach; else the nearest member.
+ * GAP: "everyone in earshot" read as NPCs in the player's zone or one link away.
+ */
 export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   if (!isSpeech(intent.action?.type) || !intent.addressees?.length) return [];
   const dist = (a: Actor) => shortestPath(state, state.player.zone, a.zone)?.length ?? Infinity;
@@ -54,9 +58,29 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
       if (isActive(named)) take(named.bandId, named); // inactive actors are never picked
       continue;
     }
-    if (state.bands.some((b) => b.id === ad)) take(ad, nearest(live.filter((a) => a.bandId === ad)));
+    if (state.bands.some((b) => b.id === ad)) {
+      const members = live.filter((a) => a.bandId === ad);
+      const partner = members.find((a) => a.id === state.stage.partner && dist(a) < Infinity);
+      take(ad, partner ?? nearest(members));
+    }
   }
   return out;
+}
+
+/**
+ * OQ-27 (c) clarify: a band is addressed without a name, no sticky partner of it is in reach, and the player can see
+ * more than one of its members. Returns the ids to ask between (only actors the player sees), else null.
+ */
+export function unclearAddressee(state: GameState, intent: Intent, seen: string[]): string[] | null {
+  if (!isSpeech(intent.action?.type) || !intent.addressees?.length) return null;
+  const live = state.actors.filter(isActive);
+  for (const ad of intent.addressees) {
+    if (ad === 'everyone' || !state.bands.some((b) => b.id === ad)) continue;
+    const members = live.filter((a) => a.bandId === ad && seen.includes(a.id));
+    if (members.some((a) => a.id === state.stage.partner)) continue;
+    if (members.length > 1) return members.map((a) => a.id).sort();
+  }
+  return null;
 }
 
 function meetsReveal(s: Secret, sp: string, skills: string[], contest: ContestResult): boolean {

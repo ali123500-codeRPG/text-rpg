@@ -208,10 +208,17 @@ export function createGame(deps: GameDeps): Game {
       return;
     }
     const intent = parsed.intent;
+    // OQ-27 (c): ask who is meant, from code: no Claude call, no turn spent
+    const unclear = engine.unclearAddressee(s, intent, pv.actors.map((a) => a.id));
+    if (unclear) {
+      lines.push({ turn: s.turn, kind: 'clarify', text: `Who do you speak to: ${orList(unclear.map((id) => seenName(pv, id)))}?` });
+      return;
+    }
     const rngBefore = s.rngState;
     const rng = createRng(s.rngState);
     const speech = !!intent.action && (SPEECH_ACTIONS as readonly string[]).includes(intent.action.type) && !!intent.addressees?.length;
     const spokespeople = speech ? engine.selectSpokespeople(s, intent) : [];
+    if (spokespeople.length) s.stage.partner = spokespeople[0]; // OQ-27 (c): sticky partner for the next lines
     const agentOutputs: AcceptedAgentOutput[] = [];
     let exchange: ExchangeSpeech | undefined;
     if (spokespeople.length) {
@@ -490,6 +497,16 @@ export function worldIds(s: GameState): Set<string> {
 }
 
 /** names the Voice's line is checked against (allowed only where its own view holds them) */
+/** how the player sees an actor: its name if known, else its label, plus the zone when labels repeat */
+function seenName(pv: ReturnType<typeof views.buildPlayerView>, id: string): string {
+  const a = pv.actors.find((x) => x.id === id)!;
+  const base = a.name ?? a.label;
+  const twin = pv.actors.some((x) => x.id !== id && (x.name ?? x.label) === base);
+  const zone = pv.zones.find((z) => z.id === a.zone)?.name ?? (pv.zone.id === a.zone ? pv.zone.name : undefined);
+  return twin && zone ? `${base} at ${zone}` : base;
+}
+const orList = (xs: string[]) => (xs.length < 3 ? xs.join(' or ') : `${xs.slice(0, -1).join(', ')} or ${xs.at(-1)}`);
+
 function knownNames(s: GameState): string[] {
   return [s.player, ...s.actors].flatMap((a) => [a.names.current, ...a.names.past.map((p) => p.name)])
     .concat(s.places.map((p) => p.names.current));

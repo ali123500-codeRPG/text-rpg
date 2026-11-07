@@ -102,6 +102,7 @@ export function beginScene(state: GameState, tier: string): void {
   state.stage.sceneStartTurn = state.turn;
   delete state.stage.fallback;
   delete state.stage.routineFallback;
+  delete state.stage.partner;
   state.sceneCaps = { promotions: 0, minted: 0 };
 }
 
@@ -272,13 +273,18 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   }
 }
 
-export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: string, errors: PlanError[]): void {
-  let place = state.places.find((p) => p.id === ctx.placeId);
+/** GAP: at story start the player's place has no node yet; a bare one is made so the Weaver's plan (and the fallback) can use its id. */
+export function ensurePlace(state: GameState, placeId: string): Place {
+  let place = state.places.find((p) => p.id === placeId);
   if (!place) {
-    // GAP: the place is not built yet (story start): the fallback creates a bare place node for it.
-    place = { id: ctx.placeId, storyId: state.storyId, kind: 'place', parentId: null, names: { current: ctx.placeId, past: [] }, zones: [], state: {}, headlines: [] };
+    place = { id: placeId, storyId: state.storyId, kind: 'place', parentId: null, names: { current: placeId, past: [] }, zones: [], state: {}, headlines: [] };
     state.places.push(place);
   }
+  return place;
+}
+
+export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: string, errors: PlanError[]): void {
+  const place = ensurePlace(state, ctx.placeId);
   if (ctx.kind === 'extension' && ctx.frontierKey) {
     // one empty zone per frontier label: the crossed frontier's label (from the first link that names it)
     const link = state.zones.flatMap((z) => z.links).find((l) => l.frontier && l.to === ctx.frontierKey);

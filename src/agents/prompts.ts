@@ -37,13 +37,13 @@ export const VOICE_SHAPE = `{"action":${NPC_ACTION},"line":string,"volume":"whis
  "gear":${GEAR},"stance":{"toward":actor_id,"step":"friendlier"|"more_opposed"}|null,"routine":routine_id|null}`;
 export const NARRATOR_SHAPE = '{"text":string,"narrated":[event_id]}';
 export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain":grade},
- "places":[{"key","name","kind","parent"}],
+ "places":[{"key","name","kind","parent":placeKey|placeId}],
  "zones":[{"key","place","name","look","cover":0|1|2,"light":0|1|2,"links":[{"to","label","sight":boolean}]}],
  "frontiers":[{"key","label"}],
  "bands":[{"key","name","goals","temperament","tacticsLevel":1|2|3,"lethal":boolean,"relations":{bandKey:"opposed"|"neutral"|"friendly"}}],
  "cast":[{"template"?:templateId,"actor"?:actorId,"label","name","appearance","knownOnSight"?:true,"knows"?:[{"id","text"}],"key","band","routineSetId",
    "slots":{slot:zone|[zone]},"startAt"?:slot,"routineGap"?:string,"openingBelief":"unaware"|"suspicious"|"aware",
-   "bandBeliefs"?:[{"band","status"}],"overrides"?:[{"actor","stance"}],"motive":string}],
+   "bandBeliefs"?:[{"band":bandKey|bandId,"status":"unaware"|"suspicious"|"aware"}],"overrides"?:[{"actor","stance"}],"motive":string}],
  "seeds":{"plans":[{"ownerId","goal","steps":[string],"triggers":[],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string],"revealWhen":{}}]},
  "rewards":[{"item":itemId|{"base","quality":1|2|3|4,"boosts","name","look"},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone}}],
  "hiddenTerms":[string],"weaverNote":string}
