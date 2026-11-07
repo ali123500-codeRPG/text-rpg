@@ -2,9 +2,6 @@
 import type { Actor, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary } from '../library';
-import { fullParts } from '../library/spawn';
-import { defaultMode, ruleset } from '../ruleset';
-import { createRng } from '../rng';
 import { isActive, wary } from './relations';
 import { logCode } from './effects';
 
@@ -61,41 +58,27 @@ export function payDefeats(state: GameState, events: GameEvent[]): void {
   }
 }
 
-/** X11 (C, Danger): kill XP = the average share of the player's HP lost in DANGER_DUELS sandbox duels against this
- * foe, both at full health, × DANGER_XP. Weak foes taper on their own (X12); there is no hand-set override (X13). */
-export function killXp(state: GameState, t: Actor): number {
-  return Math.round(danger(state, t) * CONFIG.DANGER_XP * 10) / 10;
+/** Training effort to raise a skill from 0 to s (Part 1 §6: a point at s costs about 100 ÷ (3 × (100 − s)) trainings;
+ * the roll ≥ 99 rule keeps the chance at 2% or more). */
+export const effort = (s: number) => (100 / 3) * Math.log(100 / Math.max(100 - Math.max(0, s), 2));
+
+/** X18–X23: a foe's stat rating. Per category the skills' efforts, highest first, count at 1, ½, ¼…, × the category weight. */
+export function rating(a: Actor): number {
+  const lib = getLibrary();
+  const by: Record<string, number[]> = {};
+  for (const [id, e] of Object.entries(a.core.skills)) {
+    const cat = lib.skills[id]?.xpCategory ?? 'misc';
+    (by[cat] ??= []).push(effort(e.raw));
+  }
+  return Object.entries(by).reduce((n, [cat, es]) =>
+    n + (CONFIG.XP_CATEGORY_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
 }
 
-/** Sandbox duels with the real attack rules on copies of the two actors. Seeded from the story seed, the turn and
- * the foe, so it never touches the game's dice and a replay gives the same answer. Returns 0–1. */
-export function danger(state: GameState, foe: Actor): number {
-  let seed = (state.rngSeed ^ (state.turn * 2654435761)) >>> 0;
-  for (const c of foe.id) seed = (Math.imul(seed, 31) + c.charCodeAt(0)) >>> 0;
-  const rng = createRng(seed);
-  let lost = 0;
-  for (let i = 0; i < CONFIG.DANGER_DUELS; i++) {
-    const fresh = (a: Actor): Actor => {
-      const c = structuredClone(a);
-      c.zone = state.player.zone;
-      c.core.condition = { hpLostPct: 0, parts: fullParts(state, c.core.creatureTypeId), status: [] };
-      return c;
-    };
-    const me = fresh(state.player), them = fresh(foe);
-    const sand: GameState = { ...state, player: me, actors: [them], zones: structuredClone(state.zones), log: [], events: [] };
-    const order = i % 2 ? [them, me] : [me, them]; // take turns going first
-    for (let r = 0; r < CONFIG.DANGER_ROUNDS && isActive(me) && isActive(them); r++) {
-      for (const a of order) {
-        const d = a === me ? them : me;
-        const m = defaultMode(sand, a, 0);
-        if (!isActive(a) || !isActive(d) || !m) continue;
-        const res = ruleset.attack({ attackerId: a.id, targetId: d.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: null, aimed: false }, sand, rng);
-        ruleset.applyEffects(res, sand);
-      }
-    }
-    lost += Math.min(100, me.core.condition.hpLostPct) / 100;
-  }
-  return lost / CONFIG.DANGER_DUELS;
+/** Kill XP = rating × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13). */
+export function killXp(state: GameState, t: Actor): number {
+  const theirs = rating(t), mine = rating(state.player);
+  const taper = mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1;
+  return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
 }
 
 function defeatAchievements(state: GameState, t: Actor): void {
