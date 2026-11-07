@@ -5,6 +5,7 @@ import type { GameEvent } from '../../src/types';
 import { makeVillage, createRng } from '../harness';
 import { computePerception, updateBeliefs } from '../../src/perception';
 import { buildNarrationView } from '../../src/views';
+import { applyIntroduces } from '../../src/engine/effects';
 
 it('41 Labels until names are known', () => {
   const s = makeVillage();
@@ -19,6 +20,7 @@ it('41 Labels until names are known', () => {
   const line: GameEvent = { id: 'v1', turn: 1, actorId: 'patron_1', kind: 'speak', zone: 'tav_common', line: { text: "Name's Wim. Old Wim.", volume: 'normal', introduces: ['patron_1'] }, effects: [], noise: 1, visibility: 2, perception: {} };
   line.perception = computePerception(line, s, rng);
   updateBeliefs(s, { kind: 'event', event: line });
+  applyIntroduces(s, s.actors.find((a) => a.id === 'patron_1')!, line.line!.introduces); // as emit() does for a fully heard line
   const next = buildNarrationView(s, [line], null);
   expect(next.events[0].actor).toBe('Old Wim');
   expect(next.heard).toEqual([{ speaker: 'Old Wim', text: "Name's Wim. Old Wim.", volume: 'normal' }]);
