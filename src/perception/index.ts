@@ -5,8 +5,7 @@ import { CONFIG } from '../config';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
-import { hasPerk, trueSkill } from '../ruleset/perks';
-import { tierMult } from '../ruleset/gear';
+import { hasPerk } from '../ruleset/perks';
 
 export type BeliefUpdate =
   | { kind: 'event'; event: GameEvent; result?: CheckResult | ContestResult | AttackResult }
@@ -36,21 +35,6 @@ function reach([full, partial]: [number, number], d: number | null): Perception 
   return d === null ? null : d <= full ? 'full' : d <= partial ? 'partial' : null;
 }
 
-/** NV5: the observer's best skill with the 'hearing' situation tag (Hearing, Tremor), true skill × tier */
-export function hearingSkill(a: Actor): number {
-  const skills = getLibrary().skills;
-  return Math.max(0, ...Object.keys(skills).filter((id) => skills[id].tags?.includes('hearing')).map((id) => trueSkill(a, id) * tierMult(id)));
-}
-/** NV5: does the observer catch a Silent event `d` links away. The d100 comes from the event and observer ids, so every
- * perceptionOf call for the pair agrees and the turn's rng sequence is untouched. */
-function hearsSilence(event: GameEvent, observer: Actor, d: number | null): boolean {
-  const k = d === null ? undefined : CONFIG.SILENT_HEAR[d];
-  if (!k) return false;
-  let h = 2166136261; // FNV-1a
-  for (const c of `${event.id}|${observer.id}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-  return ((h >>> 0) % 100) + 1 <= hearingSkill(observer) * k;
-}
-
 /** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
 export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
   if (!isActive(observer)) return null;
@@ -64,11 +48,10 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     const d = dist(state, observer.zone, event.zone, true);
     if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
   }
-  // A14 Keen Ear: a sound reaches the owner one zone link further
+  // A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other (Ali, 08/11/2026): Silent becomes Hushed.
+  const up = hasPerk(observer, 'keen_ear') ? 1 : 0;
   const [full, heard] = CONFIG.NOISE_REACH[event.noise];
-  const sd = dist(state, observer.zone, event.zone, false);
-  const nl = reach([full, heard >= 0 && hasPerk(observer, 'keen_ear') ? heard + 1 : heard], sd)
-    ?? (heard < 0 && hearsSilence(event, observer, sd) ? 'partial' : null);
+  const nl = reach([full + up, heard + up], dist(state, observer.zone, event.zone, false));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.
