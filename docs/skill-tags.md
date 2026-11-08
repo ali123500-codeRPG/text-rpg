@@ -30,8 +30,11 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 | vanishing | stealth | stealth | move | | stealth, hide |
 | persuasion, intimidation, barter | speech | influence | speech | | |
 | feint, riposte, disarm (placeholders) | swordsman | | grip | | |
-| tremor, taste (slime only, tier 0) | slime_senses | notice | sense | sound / none | |
+| tremor (slime only, tier 0) | slime_senses | notice | sense | sound | hearing |
+| taste (slime only, tier 0) | slime_senses | notice | sense | none | |
 | lockpicking (placeholder) | tools | | grip | | |
+
+Persuasion and barter also need a speaking race (race tag `speaks`: Human, Elf); intimidation does not (SR1, Ali 08/11/2026).
 
 ## Substitutes
 

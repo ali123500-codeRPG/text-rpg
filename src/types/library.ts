@@ -23,10 +23,12 @@ export type SkillDef = {
   xpCategory: XpCategory;
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
   tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
+  access?: TreeAccess; // a skill's own rule on top of its tree's (SR1: persuasion and barter need a speaking race)
 };
 /** A source that opens or blocks a skill tree (Ali, 08/11/2026, TA1–TA11). 'class': the actor has that class, Current or
  * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
-export type AccessCond = { kind: 'race' | 'body' | 'class' | 'perk'; id: string; level?: number };
+/** raceTag: the actor's race carries that tag (RaceDef.tags), e.g. 'speaks' */
+export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk'; id: string; level?: number };
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
@@ -117,6 +119,7 @@ export type RaceDef = {
   id: string; name: string; bodyTypeId: string; hpMultiplier: number;
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
   innatePerks?: string[]; innateQuirks?: string[];
+  tags?: string[]; // 'speaks' (Ali, 08/11/2026): the race can talk, which opens persuasion and barter
 };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */

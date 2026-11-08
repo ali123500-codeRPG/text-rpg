@@ -3,7 +3,7 @@ import type { Actor, CreationBuild, GameApi } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { newPlayer } from '../library/spawn';
-import { classTree, treeOpen } from '../ruleset/access';
+import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
 import { preview } from './sheet';
 
@@ -36,7 +36,7 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
   const floors = lib.classes.swordsman?.floors ?? {};
   const who = { core: newPlayer() } as Actor;
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
-  const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []);
+  const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), name: 'Aldric', swings: 400 };
   const total = () => CONFIG.CREATION_POINTS, cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
@@ -59,7 +59,7 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
     const name = def?.name ?? 'Stealth';
     const sec = h('section', {}, h('div', { class: 'grp-h' }, h('i', { class: 'hs-sq', style: `background:var(--${t.c})` }), h('h2', { class: 'hs-section' }, name),
       classTree(def?.access) ? h('span', { class: 'hs-chip' }, 'Class tree') : null, sum));
-    for (const k of def?.skills ?? []) {
+    for (const k of (def?.skills ?? []).filter((k) => open.includes(k))) {
       const nm = h('div', { class: 'nm' }, h('b', {}, skillName(k)), SKILL_SUB[k] ? h('small', {}, SKILL_SUB[k]) : null, floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
       const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,

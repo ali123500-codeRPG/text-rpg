@@ -7,6 +7,7 @@ import { getLibrary } from '../library';
 function holds(a: Actor, c: AccessCond): boolean {
   switch (c.kind) {
     case 'race': return a.core.raceId === c.id;
+    case 'raceTag': return !!getLibrary().races?.[a.core.raceId ?? '']?.tags?.includes(c.id);
     case 'body': return a.core.bodyTypeId === c.id;
     case 'class': return a.core.classes.some((x) => x.classId === c.id && !x.dormant && x.state !== 'unlocked' && x.level >= (c.level ?? 1));
     case 'perk': return a.core.perks.some((p) => p.perkId === c.id && !p.dormant); // perks and quirks
@@ -21,9 +22,8 @@ export function condName(c: AccessCond): string {
   return c.kind === 'class' && (c.level ?? 1) > 1 ? `${n} ${c.level}` : n;
 }
 
-/** why the actor can't use the tree, or '' when it can. A block always wins (TA2). */
-export function treeBlock(a: Actor, treeId: string): string {
-  const r: TreeAccess | undefined = getLibrary().trees[treeId]?.access;
+/** why the actor fails the rule, or '' when it passes. A block always wins (TA2). */
+function ruleBlock(a: Actor, r?: TreeAccess): string {
   if (!r) return '';
   const block = r.blockedBy?.find((c) => holds(a, c));
   if (block) return `Blocked by: ${condName(block)}`;
@@ -33,8 +33,14 @@ export function treeBlock(a: Actor, treeId: string): string {
   return '';
 }
 
+/** why the actor can't use the tree, or '' when it can */
+export const treeBlock = (a: Actor, treeId: string): string => ruleBlock(a, getLibrary().trees[treeId]?.access);
 export const treeOpen = (a: Actor, treeId: string): boolean => !treeBlock(a, treeId);
-/** a skill is usable when its tree is open to the actor */
-export const skillOpen = (a: Actor, skill: string): boolean => treeOpen(a, getLibrary().skills[skill]?.treeId ?? '');
+/** why the actor can't use the skill: its tree's rule, then the skill's own */
+export const skillBlock = (a: Actor, skill: string): string => {
+  const s = getLibrary().skills[skill];
+  return treeBlock(a, s?.treeId ?? '') || ruleBlock(a, s?.access);
+};
+export const skillOpen = (a: Actor, skill: string): boolean => !skillBlock(a, skill);
 /** a class tree is a tree that needs a class */
 export const classTree = (r?: TreeAccess): boolean => [...(r?.must ?? []), ...(r?.either ?? [])].some((c) => c.kind === 'class');
