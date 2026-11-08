@@ -53,10 +53,12 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   melee_light: ['sight'], melee_medium: ['sight'], melee_heavy: ['sight'],
   ranged_light: ['sight', 'ranged'], ranged_medium: ['sight', 'ranged'], ranged_heavy: ['sight', 'ranged'],
   unarmed_strike: ['sight'], unarmed_grapple: ['sight'], unarmed_improvised: ['sight'], unarmed_natural: ['sight'],
-  dodge: ['sight'], block: ['sight'], sight: ['sight'], hearing: ['hearing'], // hearing: no table reads it yet
+  dodge: ['sight'], block: ['sight'], sight: ['sight'], hearing: ['hearing'], tremor: ['hearing'], // hearing: no table reads it yet
   sneaking: ['stealth'], combat_stealth: ['stealth'], vanishing: ['stealth', 'hide'],
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
+// SR1 (Ali, 08/11/2026): intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
+for (const id of ['persuasion', 'barter']) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
@@ -299,11 +301,11 @@ export function prototypeLibrary(): Library {
     // Ali (07/11/2026): humans and elves for now, identical
     // innate perks and quirks per race (Ali, 08/11/2026): lists, empty until chosen
     races: {
-      human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [] },
-      elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [] },
+      human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
+      elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
       // BR1–BR7 (Ali, 08/11/2026): slime and dragon were body types only; HP multipliers moved here unchanged
-      slime: { id: 'slime', name: 'Slime', bodyTypeId: 'amorphous', hpMultiplier: 0.6, innatePerks: [], innateQuirks: [] },
-      dragon: { id: 'dragon', name: 'Dragon', bodyTypeId: 'winged_quadruped', hpMultiplier: 3, innatePerks: [], innateQuirks: [] },
+      slime: { id: 'slime', name: 'Slime', bodyTypeId: 'amorphous', hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [] },
+      dragon: { id: 'dragon', name: 'Dragon', bodyTypeId: 'winged_quadruped', hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [] },
     },
     items: ITEMS,
     templates: TEMPLATES,

@@ -5,7 +5,7 @@ import { createRng, makeVillage } from '../harness';
 import { getLibrary, resetLibrary, setLibrary } from '../../src/library';
 import { prototypeLibrary } from '../../src/library/data';
 import { createPlayer, recommendedBuild, spawnNpc } from '../../src/library/spawn';
-import { skillOpen, treeBlock, treeOpen } from '../../src/ruleset/access';
+import { skillBlock, skillOpen, treeBlock, treeOpen } from '../../src/ruleset/access';
 import { trueSkill } from '../../src/ruleset/perks';
 import { markIfClose } from '../../src/ruleset/improve';
 import type { Actor } from '../../src/types';
@@ -17,8 +17,9 @@ const open = (a: Actor) => Object.keys(getLibrary().trees).filter((t) => treeOpe
 describe('skill tree access', () => {
   it('every rule names a real source, and every skill sits in exactly one tree', () => {
     const lib = getLibrary();
-    for (const t of Object.values(lib.trees)) for (const c of [...t.access?.must ?? [], ...t.access?.either ?? [], ...t.access?.blockedBy ?? []]) {
-      const table = { race: lib.races ?? {}, body: lib.bodyTypes, class: lib.classes, perk: lib.perks }[c.kind];
+    const raceTags = Object.fromEntries(Object.values(lib.races ?? {}).flatMap((r) => r.tags ?? []).map((t) => [t, true]));
+    for (const t of [...Object.values(lib.trees), ...Object.values(lib.skills)]) for (const c of [...t.access?.must ?? [], ...t.access?.either ?? [], ...t.access?.blockedBy ?? []]) {
+      const table: Record<string, unknown> = { race: lib.races ?? {}, raceTag: raceTags, body: lib.bodyTypes, class: lib.classes, perk: lib.perks }[c.kind];
       expect(table[c.id], `${t.id}: ${c.kind} ${c.id}`).toBeDefined();
     }
     const placed = Object.values(lib.trees).flatMap((t) => t.skills);
@@ -32,6 +33,14 @@ describe('skill tree access', () => {
     const slime = spawnNpc(null, 'slime', opts);
     expect(open(slime)).toEqual(['defense', 'natural', 'slime_senses', 'stealth']);
     expect(treeBlock(slime, 'perception')).toBe('Blocked by: Amorphous');
+  });
+
+  it('SR1: intimidation is open to any race with Speech; persuasion and barter need a speaking race', () => {
+    const p = createPlayer(recommendedBuild(), 's1');
+    expect(['persuasion', 'intimidation', 'barter'].filter((k) => skillOpen(p, k))).toEqual(['persuasion', 'intimidation', 'barter']);
+    const dragon = { ...p, core: { ...p.core, raceId: 'dragon', bodyTypeId: 'winged_quadruped' } };
+    expect(['persuasion', 'intimidation', 'barter'].filter((k) => skillOpen(dragon, k))).toEqual(['intimidation']);
+    expect(skillBlock(dragon, 'barter')).toBe('Needs: Speaks');
   });
 
   it('a block beats an opening (TA2), and a class counts only while Current or Previous at its level (TA3)', () => {
