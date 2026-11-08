@@ -9,6 +9,7 @@ import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements } from './engagement';
 import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
+import { grantAllSteps } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
@@ -600,6 +601,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
   if (updateEngagements(state, ctx.events) || state.stage.breakCause) improveMarked(state, rng);
   for (const x of allActors(state)) expireMarks(state, x);
+  for (const x of allActors(state)) grantAllSteps(state, x); // All-50 parts and mastery achievements
   releaseHolds(state, allActors(state));
   state.events.push(...ctx.events);
   return ctx.events;

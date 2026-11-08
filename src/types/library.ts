@@ -79,7 +79,7 @@ export type ZoneKind = { id: string; name: string; outdoor: boolean; cover: impo
 
 /** Perk page S1–S9 (Ali, 07/11/2026): a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
  * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */
-export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech';
+export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
@@ -97,12 +97,16 @@ export type PerkDef = {
   built?: boolean;
   /** a quirk: a perk that is negative in nature (Ali, 08/11/2026) */
   quirk?: boolean;
+  /** an All-XXX part (src/library/allPerks.ts): granted when every skill of the tree reaches `step` true skill */
+  allStep?: { treeId: string; step: 50 | 100 | 150 };
+  /** true skill added to every skill with this function (Hunter's Eye: +10 to the sight function) */
+  fnSkill?: { fn: SkillFunction; add: number };
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
 export type PerkRules = { kind: string; trigger: string; conditions: string[]; effect: string; lasts: string; cooldown?: string; needs?: string; open?: string };
 /** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
-export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked'; story: string; rules: PerkRules };
+export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules };
 
 /** X6/X11 (Ali, 07/11/2026): a library achievement, each with its own id and name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is

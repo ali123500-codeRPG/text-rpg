@@ -1,6 +1,7 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
 import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
+import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
@@ -61,9 +62,11 @@ export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number 
 
 /** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover tier
  * shift (the roller's zone) for one roll. A ranged attack's cover is a gap shift instead (ruleset attack). */
-export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[] }): { modifiers: Mod[]; tierShifts: TierShift[] } {
+export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
   const tags = rollTags(skill, at.add);
-  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[zoneLight(state, at.light)] ?? 0) : 0;
+  // All-50 Child of Night: light reads one step darker for the owner's stealth rolls
+  const darker = tags.includes('stealth') && hasPerk(at.actor, 'child_of_night') ? 1 : 0;
+  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[LIGHT.at(LIGHT.pos(zoneLight(state, at.light)) + darker)] ?? 0) : 0;
   const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[at.cover.cover] ?? 0) : 0;
   return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
 }

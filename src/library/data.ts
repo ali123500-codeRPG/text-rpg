@@ -6,6 +6,7 @@ import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, N
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
+import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
@@ -321,8 +322,8 @@ export function prototypeLibrary(): Library {
     activities: ACTIVITIES,
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,
-    // the 20 milestone picks; higher and banked perks stay in PERK_WRITEUPS until they get a milestone
-    perks: Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => d.ladder).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
+    // the 20 milestone picks; higher and banked perks stay in PERK_WRITEUPS until they get a milestone; All-50 parts (allStep) too
+    perks: Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS, ...ALL_PARTS].filter((d) => d.ladder || d.allStep).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
     achievements: {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
       // after = the lower level it builds on; earning it switches the lower one off (Ali, 08/11/2026).

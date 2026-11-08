@@ -7,7 +7,7 @@ import { ALL_STEPS, MILESTONES, canUndo, milestonePerk, milestoneState, trueSkil
 import { h } from './kit';
 import { skillName, TREE_VIEW } from './creation';
 
-const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech']];
+const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
 const TOP = 150;
 // Story or Rules (Ali, 07/11/2026): the player picks which write-up the perk card shows; kept per browser
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };

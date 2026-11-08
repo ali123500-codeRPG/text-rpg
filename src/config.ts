@@ -127,6 +127,9 @@ const DEFAULTS = {
   /** D-111 Bane bonuses (Ali, 08/11/2026): an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,
+  /** All-50 part numbers (src/library/allPerks.ts; placeholders, Ali 08/11/2026) */
+  FIGHTERS_FRAME_MULT: 0.9,
+  DODGY_SKILL: 5,
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests (Ali, 07/11/2026) */
   REWARD_XP: { i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
