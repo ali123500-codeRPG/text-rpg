@@ -55,11 +55,11 @@ describe('113 coded perks, batch 3', () => {
   it('Threaten for Answers: intimidation counts at full value against an opposed listener', () => {
     const s = setup('opposed');
     const plain = talk(s, 'persuade', [50, 50]).contest.a;
-    expect(plain.skill).toBe('intimidation'); // substitute at half value beats persuasion 10
+    expect(plain.skill).toBe('intimidation'); // stand-in at 0.3 (18) beats persuasion 10
     give(s.player, 'threaten_for_answers');
     const full = talk(s, 'persuade', [50, 50]).contest.a;
     expect(full.skill).toBe('intimidation');
-    expect(full.margin - plain.margin).toBeCloseTo(CONFIG.SKILL_WEIGHT * 30);
+    expect(full.margin - plain.margin).toBeCloseTo(CONFIG.SKILL_WEIGHT * 60 * (1 - CONFIG.SUBSTITUTE_EFFICIENCY));
   });
   it('Threaten for Answers: a winning threat gets information a persuasion check guards', () => {
     const s = setup('hostile');

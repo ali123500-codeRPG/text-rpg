@@ -67,7 +67,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "The owner's grapple attack is resolved.",
       conditions: ["The attack uses skill unarmed_grapple.", "The attack roll is Great Success or better.", "The attack hits (not missed or dodged)."],
-      effect: "The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses unarmed_grapple at full value, any skill tagged melee_attack at 0.2×, or any other skill tagged unarmed_attack at 0.4× (Ali, 07/11/2026; docs/skill-tags.md).",
+      effect: "The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses unarmed_grapple at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4× (Ali, 07/11/2026; docs/skill-tags.md).",
       lasts: "Until the target breaks free, the owner is downed, or the owner leaves the zone." } },
   { id: "dirt_in_the_eyes", ref: "A9", name: "Dirt in the Eyes", skill: "unarmed_improvised", place: "20",
     ladder: { skill: "unarmed_improvised", milestone: 20 }, effect: "attack",

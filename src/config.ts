@@ -4,7 +4,7 @@
 
 const DEFAULTS = {
   // ---- Part 1 ----
-  SUBSTITUTE_EFFICIENCY: 0.5,
+  SUBSTITUTE_EFFICIENCY: 0.3, // F4 (Ali, 08/11/2026): was 0.5; perks can change it (PerkDef.standIn)
   /** Skill tiers (Ali, 08/11/2026): the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder (Ali gave 0 and 2). */
   SKILL_TIER_MULT: { tier_0: 0.5, tier_1: 0.75, tier_2: 1 } as Record<string, number>,
   /** A7 Open-Hand Guard: share of a hit through an open-hand block that lands on the blocking arm; the rest goes to the general area (placeholder, Ali 07/11/2026) */
@@ -14,9 +14,7 @@ const DEFAULTS = {
   /** Per-check substitutes (Ali, 07/11/2026): a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
    * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
   SUBSTITUTES: {
-    unarmed_grapple: [{ fn: 'unarmed_attack', k: 0.4 }, { fn: 'melee_attack', k: 0.2 }],
-    // ST2: the two stealth skills stand in for each other at half value
-    sneaking: [{ fn: 'stealth', k: 0.5 }], combat_stealth: [{ fn: 'stealth', k: 0.5 }], vanishing: [{ fn: 'stealth', k: 0.5 }],
+    unarmed_grapple: [{ fn: 'unarmed', k: 0.4 }, { fn: 'arms', k: 0.2 }],
   } as Record<string, { fn: string; k: number }[]>,
   SITUATION_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
