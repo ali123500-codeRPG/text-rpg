@@ -9,7 +9,7 @@ export const SKILL_NAMES: Record<string, string> = {
   melee_light: 'Light weapons', melee_medium: 'Medium weapons', melee_heavy: 'Heavy weapons',
   ranged_light: 'Light ranged', ranged_medium: 'Medium ranged', ranged_heavy: 'Heavy ranged',
   unarmed_strike: 'Strike', unarmed_grapple: 'Grapple', unarmed_improvised: 'Improvisation', unarmed_natural: 'Natural weapons',
-  dodge: 'Dodge', block: 'Block', endurance: 'Endurance', sight: 'Sight', hearing: 'Hearing',
+  dodge: 'Dodge', block: 'Block', endurance: 'Endurance', sight: 'Sight', hearing: 'Hearing', sneaking: 'Sneaking', combat_stealth: 'Combat Stealth',
   persuasion: 'Persuasion', intimidation: 'Intimidation', barter: 'Barter', feint: 'Feint', riposte: 'Riposte', disarm: 'Disarm',
   tremor: 'Tremor', taste: 'Taste', lockpicking: 'Lockpicking',
 };
@@ -23,7 +23,7 @@ const LOCKED = new Set(['unarmed_natural']);
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
   { id: 'melee', c: 'c10' }, { id: 'defense', c: 'c1' }, { id: 'swordsman', c: 'c5' },
   { id: 'perception', c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: 'ranged', c: 'c7' }, { id: 'unarmed', c: 'c14' },
-  { id: 'stealth', c: 'c3', locked: ['No skills yet', 'Coming later'] }, { id: 'speech', c: 'c4' },
+  { id: 'stealth', c: 'c3' }, { id: 'speech', c: 'c4' },
 ];
 
 const STEP = 5;

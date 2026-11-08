@@ -32,12 +32,12 @@ Endurance sets total HP (Part 3, Total HP). An average fighter has 50 in a comba
 **Other skill trees** (placeholders; each is its own tree):
 
 - Perception: sight, hearing, and a third skill not chosen yet. Both are tagged with the Sense role.
-- Stealth: skills not set yet. Sneaking waits for this tree (Part 2, Explore mode).
+- Stealth (Ali, 08/11/2026, ST1–ST10): sneaking and combat\_stealth. Same use, split by engagement: Combat Stealth inside an active engagement or for an attack, Sneaking outside one. Each stands in for the other at 0.5×. For the character rating, Sneaking counts as a notice skill and Combat Stealth as a combat skill. Renaming, moving or adding skills stays a data edit (a tree lists its skills; a skill's tree is read from that list).
 - Speech: persuasion, intimidation, barter. No body-part role.
 
 The trees' skills are designed with character and mob generation. A perception roll uses sight for an event perceived by sight and hearing for one perceived only by sound (the cue from computePerception); when both apply, the higher. Combined checks (sight with hearing) are to be explored later.
 
-**First-build skill list.** The first build has these skills, by id: melee\_light, melee\_medium, melee\_heavy; ranged\_light, ranged\_medium, ranged\_heavy; unarmed\_strike, unarmed\_grapple, unarmed\_natural; dodge, block, endurance; sight, hearing; persuasion, intimidation, barter; plus the class trees (Swordsman: feint, riposte, disarm; Slime: tremor, taste). Perception's third skill and Stealth are left out of the first build. Every skill here except the Slime tree is open to the player's point-buy (Part 4 §4). Natural attacks and fallback.attackSkill name one of these ids.
+**First-build skill list.** The first build has these skills, by id: melee\_light, melee\_medium, melee\_heavy; ranged\_light, ranged\_medium, ranged\_heavy; unarmed\_strike, unarmed\_grapple, unarmed\_natural; dodge, block, endurance; sight, hearing; persuasion, intimidation, barter; plus the class trees (Swordsman: feint, riposte, disarm; Slime: tremor, taste). Perception's third skill is left out of the first build; sneaking and combat\_stealth are in. Every skill here except the Slime tree is open to the player's point-buy (Part 4 §4). Natural attacks and fallback.attackSkill name one of these ids.
 
 **Skill substitution.** Any roll or check may use another skill that shares a function with the named skill (Skill functions, below) at reduced efficiency: that skill's effective skill × SUBSTITUTE\_EFFICIENCY (placeholder 0.5). Code computes every candidate and uses only the highest value after efficiency. Example: intimidating with intimidation 20 and persuasion 60 uses persuasion at 30. The named skill counts at full value, and the roll is recorded against the skill actually used.
 
@@ -858,7 +858,7 @@ Rules for simultaneous orders, because the Parser and the Planner worked without
 - **Target moved first.** An attack resolves against the target's new zone if it is still within the weapon's reach; otherwise it becomes a wasted-action event ("swings at empty air"). Reach comes from the attack mode, in zone links with sight (Part 5 §5).
 - **Moves.** A move resolves at its actor's initiative like any other action. Provisional: how many actions a turn holds is part of the action-economy discussion.
 - **Same target or object.** Earlier initiative acts first; the later actor gets a contested check or a wasted action.
-- **Stealth.** A hide or sneak is contested once per observer in perception range. Each result sets that observer's belief separately. A hide or sneak also sets the player's posture to sneaking.
+- **Stealth.** A hide or sneak is contested once per observer in perception range. Each result sets that observer's belief separately. A hide or sneak also sets the player's posture to stealthy.
 - **Speech.** Talking is an action. A talk action resolves at the speaker's initiative and is perceived by volume and zone links, except addressed speech in a dialogue turn, which resolves in the exchange slot at the top of the turn, followed by the spokespeople's spoken replies. A bark rides on its action's event: perceived and narrated, but it copies no belief.
 - **Numbers.** Tier tables, caps, perk effects and skill gains come only from the ruleset module. Do not invent or tune them here.
 
@@ -1031,7 +1031,7 @@ Runs inside the turn that calls sceneBreak, after resolveTurn and before the sav
 4. Code validates the plan and instantiates the cast: templates, unique or copy, creature types from the database.
 5. Code checks the plan's challenge and gain grades against the tier, and nothing else, then applies it. Code computes each actor's anchorTurn (Anchors) and places the actor in its default routine's desired zone for the current turn, whose activity sets its attention. On open entry only, each opening belief about the player is written through updateBeliefs. New bands and personal stances (Mind.overrides) are installed; each belief about another band becomes one belief per member on the stage (lastKnownZone = that member's zone), written through updateBeliefs whatever the entry. A plan that fails gets one repair retry. After that, routine-only errors degrade the affected actors, and any other error gives the fallback stage (Agent Weaver: Failed stage plan).
 6. Code installs each actor's routines list (its set's routines), slot bindings, current routine and anchor, then its knows facts (Mind.knows), plans, triggers and secrets. Each routine carries its one onAlert order; there are no onAlert triggers.
-7. Arrival detection: if the player is sneaking, each observer in perception range runs the existing detection test against the player's last move; the plan sets no belief about the player for these observers.
+7. Arrival detection: if the player is stealthy, each observer in perception range runs the existing detection test against the player's last move; the plan sets no belief about the player for these observers.
 8. Code builds the opening perception events (Opening narration), saves the turn (Part 4 §10) and computes the first turn (Architecture step 1).
 9. The turn's Agent Narrator call narrates the arrival with the turn's other events.
 
@@ -1218,11 +1218,16 @@ In Explore no Planner runs: unaware actors follow routines, the player is detect
 - An activity's attention level is passed to the ruleset as a situational tag on perception rolls and checks. The ruleset owns its value (stub: 0).
 - Actors that aren't engaged keep following their routines during Tactical turns too.
 
-#### Sneaking posture
+#### Stealthy posture
 
-- A hide or sneak action sets player.posture = 'sneaking'. It stays until the player acts openly.
-- Which actions end sneaking is deferred, together with the definition of a major action (D-34).
-- Deferred for the first build: hide and sneak wait for the Stealth tree (Part 1 §3), so the player is always open. Scenario tests 3, 18 and 42 wait with them.
+Ali, 08/11/2026, ST1–ST10.
+
+- A hide or sneak action sets player.posture = 'stealthy' (display name "Stealthy", POSTURES scale). It stays over moves until the player acts openly.
+- Sneak costs nothing: it keeps the turn's move and main action. Hide is the main action. Both are offered in the Ideas panel; code picks the skill (Sneaking, or Combat Stealth while engaged or attacking).
+- What ends it: speaking above a whisper, any speech action, and a melee attack (the blow shows you). A ranged attack keeps it; the shot is noticed only through the stealth contest (Combat Stealth) per observer.
+- While stealthy, the player's events reach only observers already aware of them; everyone else is reached only through the contest.
+- Situational tables (CONFIG.SITUATION\_LINKS): both rolls use the zone's light (LIGHT\_MODS, darkness helps); a hide also uses the zone's cover (COVER\_GAP tier shifts). A sneak counts as movement, so leg wounds apply; a hide ignores them.
+- A hide is also contested by observers who are already aware: one who loses it drops to suspicious at the zone they last saw you in (test 3).
 
 #### Detecting the player
 
@@ -1462,7 +1467,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 
 ### Deliverables and acceptance criteria
 
-Done means every scenario test passes except those waiting on other work: 3, 18 and 42 wait on the Stealth tree (D-8), and 46 and 53 test rules still \[Proposed\]. Also, every non-dialogue turn that doesn't start a scene shows checked narration after one Parser call plus one full Narrator call.
+Done means every scenario test passes except those waiting on other work: 46 and 53 test rules still \[Proposed\]. Also, every non-dialogue turn that doesn't start a scene shows checked narration after one Parser call plus one full Narrator call.
 
 **First build scope.** A fantasy village with a guard, a trader and a tavern patron to talk to. The player is a swordsman, and slimes living around the village are hunted. Hunting gives XP (Part 1 §5) but no skill changes (recordUse() only logs). The slimes' routine set, slime\_wander, is the test of the Agent Weaver integration (Appendix: prototype routine bank).
 
@@ -2166,7 +2171,7 @@ type Actor = {
   knownOnSight?: boolean;            // name known without an introduction
   placeId: PlaceId;                  // always the place of `zone`
   zone: string;                      // zone id (Part 2)
-  posture?: 'open' | 'sneaking';     // player only (Part 2)
+  posture?: 'open' | 'stealthy';     // player only (Part 2)
   bandId: string;                    // moved from Mind; the player belongs to the player band
   core: Core;
   progression?: Progression;         // player; NPCs only if NPCs improve (deferred)
@@ -2489,7 +2494,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-5 | Potential at creation | 1 | Partly settled | A fixed POTENTIAL (300, placeholder) with a per-character override (Part 1 §6); the value waits for a balance pass |
 | D-6 | Beyond the mortal limit (100) | 1 | Deferred | Also makes the All-150 tier unreachable through training |
 | D-7 | Difficulty tier names and target numbers | 1 | Deferred | Names are the challenge grades (Part 1 §4, Layer 2); values are placeholders until set |
-| D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Deferred | Skills are designed with character and mob generation; sneaking waits for the Stealth tree. Also open: what a larger contest gap does, and combined skill checks (such as sight with hearing) |
+| D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Partly settled | Stealth tree settled (Ali, 08/11/2026, ST1–ST10; Part 2, Stealthy posture). Still open: Perception's third skill, what a larger contest gap does, combined skill checks (such as sight with hearing), and NPC stealth (OQ-14) |
 | D-9 | All-XXX checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |
 | D-10 | XP sources and achievements | 1–2 | Partly settled | Settled 07/11/2026 (XP proposal X1–X10, Part 1 §5): defeats, library achievements, levels into a chosen class; kill XP from stat ratings (X18–X23); Weaver scene achievements dropped for D-108 (Ali, 07/11/2026); still open: quest XP (X8, held). Was: Part 1 §5 has Claude propose achievements for XP, but no agent output in Part 2 includes an achievement request, so XP currently has no source. Decide which agent or engine rule awards XP. Voyage playtest (07/11/2026): B4, an achievement or milestone must be granted only once; B8, XP must reconcile against its source trail |
 | D-11 | Minting improvised items and NPCs | 1 | Partly settled | Claude proposes a new item or NPC and code assigns stats from a tier template. Minted content is a story blueprint, never written to the library. Items: a variant is a base library item + quality tier from QUALITY\_TABLE (Part 5 §7); further detail deferred with Loot and item creation. Voyage playtest (07/11/2026): C3, using the scene (terrain, objects) earned named modifiers; related OQ-22. Settled 07/11/2026: generic bases, improvised weapons and the Needs data list (Part 5 §7). Still open: NPCs, improvised tools and objects used other than as weapons |
@@ -2515,13 +2520,13 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-31 | Random rolls during a scene | 2 | Deferred | Iliad Quest-style encounter rolls while travelling or mid-scene. For now only the scene-start situation roll exists |
 | D-32 | Computed grade check | 2 | Partly settled | Measuring a plan's challenge and gain from its cast and rewards. Settled 07/11/2026 (loot V8): rewards are held to the gain's Boon budget (Part 5 §7). Still open: measuring the cast's challenge, a passing stub until then |
 | D-33 | Weaver effort | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q10). The runtime accepts only low, medium and high, and the Weaver already uses high. Reopen if the runtime adds a higher level |
-| D-34 | Definition of a major action | 2 | Deferred | Includes which actions end sneaking, and whether an observer arriving in view counts. Stub: every player action is major |
+| D-34 | Definition of a major action | 2 | Deferred | Which actions end the stealthy posture is settled (Part 2, Stealthy posture). Still open: whether an observer arriving in view counts. Stub: every player action is major |
 | D-35 | Marks and missed check-ins | 2 | Deferred | Bodies, forced doors and missing colleagues that unaware actors could notice. Left out of the first prompt to keep it simple |
 | D-36 | Planner for failed ambushes | 2 | Deferred | Code onAlert order for now. Options reviewed: interrupt the turn at detection, a speculative Planner call in the background, or a fixed reaction stage in every turn |
 | D-37 | Call count visible in network tools | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q11). The play screen header shows the call count on purpose, so hiding it from network tools no longer matters |
 | D-38 | CALM\_TURNS | 2 | Dropped | Deleted by Ali (07/11/2026, easy open questions Q12). Nothing used it; the alarm calm-down uses DECAY\_TURNS |
 | D-39 | BACKGROUND\_WINDOW value | 2 | Deferred | Config; set at or above Agent Planner's usual latency after playtests |
-| D-40 | Hide and detection tests | 2 | Deferred | One test per observer per action for now; revisit with the definition of a major action |
+| D-40 | Hide and detection tests | 2 | Partly settled | One stealth contest per observer per event (ST4, Ali, 08/11/2026); a hide also tests observers already aware. A shot from stealth gets its own notice contest (ST7). Still open: revisit with the definition of a major action |
 | D-41 | Out-of-character agent (/ooc) | 1–2 | Deferred | Code-only /help for now. An OOC agent would add a Claude call. Voyage playtest (07/11/2026): F3 a plain-text OOC question in the action box used a turn; F4 a side chat that answers questions without a turn |
 | D-42 | Reloads and pending Planner outputs | 2, 4 | Deferred | Proposed: write each Planner output to a pending.\<turn> page outside the head bookmark and reuse it until the turn commits. This stops a reload from rerolling enemy plans and keeps test 13 across reloads. Until then a reload calls the Planners again |
 | D-43 | Late and failed agent outputs | 2 | Settled | Settled by Ali (07/11/2026) as built: a late Planner output is discarded whole and the actor uses its combat list; the Responder and Voice share one fallback: one retry, then a neutral line as a talk action. Every late or failed Planner, Responder or Voice call is also filed for review in the play artifact's db at bugs/\<storyId>\_t\<turn>\_\<agent>\_\<actorId> (code planner\_late or agent\_fallback) |

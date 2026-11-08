@@ -59,5 +59,7 @@ export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
 export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);
 export type PartStateKey = (typeof PART_STATES.keys)[number];
+/** the player's posture (ST5, Ali 08/11/2026: not named like the Sneaking skill) */
+export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);

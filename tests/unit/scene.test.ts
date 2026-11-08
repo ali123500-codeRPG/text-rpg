@@ -242,7 +242,7 @@ describe('applyStagePlan', () => {
     const p = villageStagePlan();
     p.cast[0].awarenessOfBands = [{ band: 'slimes', awareness: 'suspicious' }];
     const s = fresh();
-    applyStagePlan(s, p, ctx, { entry: 'sneaking' }, createRng(1));
+    applyStagePlan(s, p, ctx, { entry: 'stealthy' }, createRng(1));
     const calls = vi.mocked(updateBeliefs).mock.calls.map((c) => c[1]);
     expect(calls).toEqual([
       expect.objectContaining({ kind: 'opening', observerId: 'guard_1', aboutId: 'slime_1', status: 'suspicious', zone: 'field_mid' }),

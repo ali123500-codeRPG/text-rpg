@@ -40,6 +40,8 @@ export type RollRequest = {
   rollKind?: import('./items').RollKind;
   /** skills that count at full value here instead of as substitutes (perks such as Threaten for Answers) */
   fullValue?: string[];
+  /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
+  roles?: import('./library').RoleId[];
 };
 export type RollResult = {
   actorId: string;

@@ -11,7 +11,8 @@ export type BeliefUpdate =
   | { kind: 'event'; event: GameEvent; result?: CheckResult | ContestResult | AttackResult }
   | { kind: 'detection'; observerId: string; aboutId: string; status: BeliefStatus; event: GameEvent }
   | { kind: 'opening'; observerId: string; aboutId: string; status: BeliefStatus; zone?: string; source?: 'seen' | 'heard' | 'told' }
-  | { kind: 'reveal'; observerId: string; aboutId: string; fact: string };
+  | { kind: 'reveal'; observerId: string; aboutId: string; fact: string }
+  | { kind: 'lost'; observerId: string; aboutId: string };
 
 /** communication events copy the sender's beliefs (Information model); barks never do */
 export const isComm = (e: GameEvent) =>
@@ -95,7 +96,9 @@ export function lookAround(state: GameState): string[] {
 export function computePerception(event: GameEvent, state: GameState, _rng: Rng): GameEvent['perception'] {
   const out: GameEvent['perception'] = {};
   for (const a of allActors(state)) {
-    if (event.actorId === state.player.id && a.id !== state.player.id && !atLeast(a.mind?.knowledge[state.player.id]?.status, 'suspicious')) continue;
+    // the player's events reach only those who already know of them; while stealthy, only those who see them (ST4)
+    const min = state.player.posture === 'stealthy' ? 'aware' : 'suspicious';
+    if (event.actorId === state.player.id && a.id !== state.player.id && !atLeast(a.mind?.knowledge[state.player.id]?.status, min)) continue;
     const p = perceptionOf(event, state, a);
     if (p) out[a.id] = p;
   }
@@ -123,6 +126,12 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
   if (update.kind === 'reveal') {
     const o = actorById(state, update.observerId);
     if (o) write(o, update.aboutId, { revealed: [update.fact] });
+    return;
+  }
+  if (update.kind === 'lost') {
+    // ST4 / scenario 3: someone who saw you loses you when you hide from them: suspicious, at the zone they last saw you in
+    const o = actorById(state, update.observerId);
+    if (o && atLeast(o.mind?.knowledge[update.aboutId]?.status, 'aware')) write(o, update.aboutId, { status: 'suspicious' });
     return;
   }
   if (update.kind === 'detection') {

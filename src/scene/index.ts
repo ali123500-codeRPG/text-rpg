@@ -6,7 +6,7 @@ export type PlanError = { code: string; message: string; routineOnly: boolean; c
 export type PlanContext = { tier: Tier; kind: 'scene' | 'extension'; frontierKey?: string; placeId: string };
 
 export { boon, gradesFitTier, tidyRewards, validateStagePlan } from './validate';
-/** applyStagePlan: apply a validated plan (minus routine-only errors when degrading). entry 'sneaking' skips opening beliefs.
+/** applyStagePlan: apply a validated plan (minus routine-only errors when degrading). entry 'stealthy' skips opening beliefs.
  *  applyFallbackStage: flagged fallback stage: the place's saved zones, or one empty zone per frontier label; grades none/none.
  *  openingEvents: arrival + presence events for the player's perception (scene setup step 8). */
 export { applyStagePlan, applyFallbackStage, openingEvents, beginScene } from './apply';

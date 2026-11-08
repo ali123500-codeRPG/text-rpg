@@ -5,7 +5,7 @@ import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
 import type { PartStateKey } from '../scales';
 
-export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' | 'defense' | 'notice' | 'influence' | 'hp';
+export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' | 'defense' | 'notice' | 'influence' | 'hp' | 'stealth';
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike';

@@ -8,7 +8,7 @@ import { buildWeaverView } from '../views';
 import { zoneById } from '../engine/relations';
 import type { PlanContext, PlanError } from './index';
 import { validateStagePlan } from './validate';
-import { applyFallbackStage, applyStagePlan, beginScene, ensurePlace, openingEvents } from './apply';
+import { applyFallbackStage, applyStagePlan, beginScene, ensurePlace, openingEvents, stealthyArrival } from './apply';
 import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
 
 /** one Agent Weaver call. `errors` set = the repair retry. null = the call failed. */
@@ -43,7 +43,7 @@ export class SceneDirector {
   }
 
   /** Scene setup (steps 1–8 minus the save): one situation roll, one Weaver call (+ one repair), apply or fallback. */
-  async startScene(state: GameState, rng: Rng, entry: 'open' | 'sneaking' = 'open'): Promise<SceneResult> {
+  async startScene(state: GameState, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
     const placeId = state.player.placeId; // step 1
     ensurePlace(state, placeId);
     const situation = ruleset.situation(state.player, state, rng); // step 2
@@ -78,7 +78,7 @@ export class SceneDirector {
   }
 
   /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no situation roll. */
-  async cross(state: GameState, key: string, rng: Rng, entry: 'open' | 'sneaking' = 'open'): Promise<SceneResult> {
+  async cross(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
     if (isSavedZone(state, key)) {
       loadSavedZone(state, key);
       const z = zoneById(state, key)!;
@@ -91,7 +91,9 @@ export class SceneDirector {
     const r = await h.result;
     // the stage may have changed since the plan came back: check it again (no retry for a background extension)
     const planned = r.plan ? { plan: r.plan, errors: validateStagePlan(state, r.plan, h.ctx) } : r;
-    return this.finish(state, h.ctx, planned, rng, entry);
+    const res = this.finish(state, h.ctx, planned, rng, entry);
+    if (entry === 'stealthy') stealthyArrival(state, rng);
+    return res;
   }
 
   private extension(state: GameState, key: string): Held {
@@ -120,7 +122,7 @@ export class SceneDirector {
     return { plan: second, errors: validateStagePlan(state, second, ctx), reason: 'invalid_plan' };
   }
 
-  private finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'sneaking'): SceneResult {
+  private finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'stealthy'): SceneResult {
     return finish(state, ctx, p, rng, entry);
   }
 
@@ -140,7 +142,7 @@ export class SceneDirector {
   }
 }
 
-function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'sneaking'): SceneResult {
+function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry: 'open' | 'stealthy'): SceneResult {
   if (p.plan && p.errors.every((e) => e.routineOnly || e.repaired)) {
     const degrade = p.errors.filter((e) => e.routineOnly);
     applyStagePlan(state, p.plan, ctx, { entry, ...(degrade.length ? { degrade } : {}) }, rng);
@@ -154,7 +156,7 @@ function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry:
  * Replay of a scene start (test 45): the same steps as startScene, fed the logged Weaver outputs in call order
  * (first answer, then the repair answer if one was made; null = the call failed or timed out). No Claude call.
  */
-export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | null)[], rng: Rng, entry: 'open' | 'sneaking' = 'open'): SceneResult {
+export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | null)[], rng: Rng, entry: 'open' | 'stealthy' = 'open'): SceneResult {
   const placeId = state.player.placeId;
   ensurePlace(state, placeId);
   const situation = ruleset.situation(state.player, state, rng);
