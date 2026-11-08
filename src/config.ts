@@ -152,7 +152,7 @@ const DEFAULTS = {
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex' } as Record<string, 'quick' | 'default' | 'complex'>,
-  STYLE: { tone: 'dark fantasy anime: dramatic, edgy and punchy, with cool one-liners and big moments, never silly', // Ali, 08/11/2026 (V5)
+  STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // Ali, 08/11/2026 (flavor voice V5)
     length: '2 to 4 short paragraphs' },
 };
 
