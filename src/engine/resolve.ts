@@ -3,11 +3,12 @@ import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEv
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
-import { defaultMode, hasPerk, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
+import { TIERS } from '../scales';
+import { defaultMode, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
-import { updateEngagements } from './engagement';
+import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
 import { grantAllSteps } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
@@ -51,6 +52,7 @@ type Ctx = {
   surprised: Set<string>;
   defenses: Map<string, number>;
   exchangeEvents: GameEvent[];
+  counters: Set<string>; // All-50 Counter: once per turn
 };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
@@ -230,7 +232,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const m = named ?? bySkill ?? defaultMode(state, a, dist);
   // target moved first: resolves only within the mode's reach (links with sight); else a wasted action
   if (!m || dist > m.mode.reach) return wasted();
-  const shows = a.posture === 'stealthy' && m.mode.tree !== 'ranged';
+  const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
+  const shows = fromHiding && m.mode.tree !== 'ranged';
   if (shows) a.posture = 'open'; // ST5: a melee blow shows you
   const ev = bark(mk(ctx, a, 'attack', { target: t.id, itemId: m.itemId }), o);
   ev.perception = computePerception(ev, state, rng);
@@ -282,6 +285,61 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     && isActive(t) && t.zone === a.zone && freeHand(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === 'unarmed_strike' && x.mode.reach >= 0);
     if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: 'unarmed_strike', targetPart: null, aimed: false, line: null }, true);
+  }
+  allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
+}
+
+/** an order the engine makes for a free attack (All-50 Counter and Volley) */
+const nullOrder = (actorId: string): Order => ({ actorId, type: 'hold', target: null, skill: null, intent: 'perk', source: 'trigger', line: null });
+
+/** an engagement-limited All-50 part can be used (a use outside an engagement starts one, as perk moves do) */
+function readyThisEngagement(state: GameState, a: Actor, id: string): boolean {
+  if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
+  return usableThisEngagement(a, id);
+}
+function onceThisEngagement(state: GameState, a: Actor, id: string): boolean {
+  if (!readyThisEngagement(state, a, id)) return false;
+  useThisEngagement(a, id);
+  return true;
+}
+
+/** All-50 parts that act after an attack (src/library/allPerks.ts, Ali 08/11/2026) */
+function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, itemId: string | null, res: AttackResult, fromHiding: boolean, followUp: boolean): void {
+  const { state, rng } = ctx;
+  // T4b Second Wind: once per engagement, at Wounded or worse (not down), the health track moves one level better
+  const L = CONFIG.HEALTH_TRACK;
+  const i = L.findIndex(([l]) => l === healthLevel(t));
+  if (isActive(t) && hasPerk(t, 'second_wind') && i >= L.findIndex(([l]) => l === 'Wounded') && !isDownLevel(L[i][0]) && onceThisEngagement(state, t, 'second_wind')) {
+    t.core.condition.hpLostPct = L[i - 1][1] as number;
+    emit(ctx, mk(ctx, t, 'perk_move', { effects: [{ kind: 'second_wind', actorId: t.id, data: { from: L[i][0], to: L[i - 1][0] } }] }));
+  }
+  if (followUp) return;
+  // T1c Counter: a melee attack on the owner that ends in Critical Failure or worse earns a free melee attack back, once per turn
+  if (!ranged && tierLevel(res.attack) <= TIERS.pos('critical_failure') && hasPerk(t, 'counter') && isActive(t) && isActive(a) && t.zone === a.zone
+    && !ctx.counters.has(t.id)) {
+    const back = defaultMode(state, t, 0);
+    if (back && back.mode.tree !== 'ranged') {
+      ctx.counters.add(t.id);
+      doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id }, true);
+    }
+  }
+  // T2b Volley: once per engagement, after a ranged hit, a free shot at a foe already hostile to the owner that it sees
+  if (ranged && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'volley') && isActive(a) && readyThisEngagement(state, a, 'volley')) {
+    const mode = usableModes(state, a).find((x) => x.itemId === itemId && x.mode.tree === 'ranged');
+    const foes = allActors(state).filter((x) => x !== a && isActive(x) && hostile(state, x, a) && atLeast(beliefStatus(state, a, x), 'aware')
+      && (shortestPath(state, a.zone, x.zone, true)?.length ?? Infinity) <= (mode?.mode.reach ?? -1));
+    if (mode && foes.length) {
+      useThisEngagement(a, 'volley');
+      const pick = foes[rng.int(0, foes.length - 1)];
+      doAttack(ctx, a, { ...nullOrder(a.id), type: 'attack', target: pick.id, item: mode.itemId, mode: mode.mode.id }, true);
+    }
+  }
+  // T6a Strike and Fade: right after an attack from hiding, a free Vanishing roll in place
+  if (fromHiding && hasPerk(a, 'strike_and_fade') && isActive(a)) {
+    if (a.posture !== 'stealthy') { a.posture = 'stealthy'; stealthStart(state, a); }
+    const ev = mk(ctx, a, 'hide', { vanish: true });
+    ev.effects.push({ kind: 'strike_and_fade', actorId: a.id, data: {} });
+    emit(ctx, ev);
   }
 }
 const ONE_TWO_HITS = new Set(['grazed', 'blocked', 'full_hit', 'heavy_hit', 'crushing_hit']);
@@ -547,7 +605,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
-    state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [],
+    state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(),
   };
   const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), rng);
 
