@@ -25,8 +25,12 @@ const none = (text = 'none yet') => h('span', { class: 'lv-none' }, text);
 const row = (k: string, ...v: (Node | string | null)[]) => h('div', { class: 'lv-row' }, h('span', { class: 'lv-k' }, k), h('span', { class: 'lv-v' }, ...v));
 const raw = (e: unknown) => h('details', { class: 'lv-raw' }, h('summary', {}, 'Code'), h('pre', {}, JSON.stringify(e, null, 2)));
 
+/** filter buttons (Ali, 08/11/2026): each section names [group, value] pairs per entry; generic tables get them from their short fields */
+type Facets = (e: any) => [string, string | number | boolean | undefined][];
+let facetOf: Facets = () => [];
 function card(sec: string, id: string, entry: unknown, title: string, chips: (HTMLElement | null)[], ...body: (Node | null)[]): HTMLElement {
-  return h('article', { class: 'lv-card', id: `${sec}/${id}`, 'data-q': `${title} ${JSON.stringify(entry)}`.toLowerCase() },
+  const f = facetOf(entry).filter(([, v]) => v !== undefined && v !== '').map(([g, v]) => `${g}\t${v}`);
+  return h('article', { class: 'lv-card', id: `${sec}/${id}`, 'data-q': `${title} ${JSON.stringify(entry)}`.toLowerCase(), 'data-f': [...new Set(f)].join('\n') },
     h('header', {}, h('h3', {}, title), h('code', { class: 'lv-id' }, id), ...chips), ...body, raw(entry));
 }
 
@@ -201,6 +205,26 @@ const CUSTOM: Section[] = [
   { key: 'achievements', title: 'Achievements', table: 'achievements', view: achievements },
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
 ];
+const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
+const FACETS: Record<string, Facets> = {
+  gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
+    ...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]).map((f): [string, string] => ['Flag', f]), ...(i.tags ?? []).map((t): [string, string] => ['Flag', t])],
+  perks: (d: PerkDef & { place?: string; skill?: string }) => [['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
+    ['State', d.quirk ? 'quirk' : undefined], ['Tree', treeOf(d.ladder?.skill ?? d.skill)]],
+  achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.by ? `per ${d.by}` : 'total defeats']],
+  creatures: (c: CreatureType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
+  skills: (t: { skills?: string[]; classId?: string }) => [['Tree', t.classId ? 'class tree' : 'general'],
+    ...(t.skills ?? []).flatMap((id) => lib.skills[id]?.functions.map((fn): [string, string] => ['Function', fn]) ?? [])],
+};
+/** generic tables: a short field with 2–8 values shared by entries becomes a filter group */
+function autoFacets(table: Record<string, Entry>): Facets {
+  const rows = Object.values(table);
+  const keys = [...new Set(rows.flatMap(Object.keys))].filter((k) => k !== 'id' && rows.every((r) => r[k] === undefined || ['string', 'number', 'boolean'].includes(typeof r[k])))
+    .filter((k) => { const n = new Set(rows.map((r) => r[k]).filter((v) => v !== undefined)).size; return n >= 2 && n <= 8 && n < rows.length; })
+    .sort((a, b) => Number(rows.some((r) => typeof r[a] !== 'string')) - Number(rows.some((r) => typeof r[b] !== 'string'))).slice(0, 4); // words before numbers
+  return (e: Entry) => keys.map((k) => [k, e[k] as string]);
+}
+
 const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', durations: 'Clock', routineSets: 'Routine sets' };
 const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[])
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
@@ -208,16 +232,47 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
   SECTIONS.map((s) => h('a', { href: `#${s.key}`, 'data-sec': s.key }, s.title, h('span', { class: 'lv-n' }, String(Object.keys(lib[s.table] as object).length)))));
+const picks = new Map<string, 'shown' | 'out'>();
+const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
 const titleEl = h('h1', {});
 const body = h('div', { class: 'lv-body' });
 const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl,
-  h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`)), search), body);
+  h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`)), search), bar, body);
 document.body.append(rail, main);
 
+const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card'))];
+const facetsOf = (c: HTMLElement) => (c.dataset.f ? c.dataset.f.split('\n') : []);
+/** buttons cycle off → Shown → Left out (several Shown in a group = either), as on the game's tiles */
+function drawBar(): void {
+  const groups = new Map<string, Map<string, number>>();
+  for (const c of cards()) for (const f of facetsOf(c)) {
+    const [g] = f.split('\t');
+    const vals = groups.get(g) ?? groups.set(g, new Map()).get(g)!;
+    vals.set(f, (vals.get(f) ?? 0) + 1);
+  }
+  const next = { off: 'shown', shown: 'out', out: 'off' } as const;
+  bar.replaceChildren(...[...groups].filter(([, v]) => v.size > 1).map(([g, vals]) => h('div', { class: 'lv-fg' }, h('span', { class: 'hs-label' }, g),
+    [...vals].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })).map(([f, n]) => {
+      const st = picks.get(f) ?? 'off';
+      return h('button', { type: 'button', class: 'lv-fb', 'data-st': st, 'aria-pressed': st === 'shown' ? 'true' : st === 'out' ? 'mixed' : 'false',
+        title: st === 'off' ? 'Click for Shown (several Shown = either)' : st === 'shown' ? 'Click for Left out' : 'Click to clear',
+        onclick: () => { const to = next[st]; if (to === 'off') picks.delete(f); else picks.set(f, to); drawBar(); filter(); } },
+      f.split('\t')[1], h('small', {}, String(n)), st === 'off' ? null : h('b', {}, st === 'shown' ? 'Shown' : 'Left out'));
+    }))),
+  ...(picks.size ? [h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { picks.clear(); drawBar(); filter(); } }, 'Clear filters')] : []));
+  bar.hidden = !bar.childElementCount;
+}
 function filter(): void {
   const q = search.value.trim().toLowerCase();
-  body.querySelectorAll<HTMLElement>('.lv-card').forEach((c) => { c.hidden = !!q && !c.dataset.q!.includes(q); });
+  const shownBy = new Map<string, string[]>();
+  for (const [f, st] of picks) if (st === 'shown') { const g = f.split('\t')[0]; shownBy.set(g, [...(shownBy.get(g) ?? []), f]); }
+  for (const c of cards()) {
+    const fs = new Set(facetsOf(c));
+    c.hidden = (!!q && !c.dataset.q!.includes(q)) || [...picks].some(([f, st]) => st === 'out' && fs.has(f)) || [...shownBy.values()].some((fs2) => !fs2.some((f) => fs.has(f)));
+  }
+  body.querySelectorAll<HTMLElement>('.lv-group').forEach((g) => { g.hidden = !g.querySelector('.lv-card:not([hidden])'); });
+  body.querySelectorAll<HTMLAnchorElement>('.lv-cell').forEach((a) => a.classList.toggle('dim', !!document.getElementById(a.hash.slice(1))?.hidden));
 }
 let shown = '';
 function route(): void {
@@ -226,8 +281,11 @@ function route(): void {
   if (sec.key !== shown) {
     shown = sec.key;
     titleEl.textContent = sec.title;
+    picks.clear();
+    facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
     body.replaceChildren(...(sec.view ? sec.view() : [h('div', { class: 'lv-grid' }, generic(sec.key, lib[sec.table] as Record<string, Entry>))]).filter(Boolean) as HTMLElement[]);
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
+    drawBar();
     filter();
     scrollTo(0, 0);
   }
