@@ -25,10 +25,10 @@ import type { TurnInput } from './types';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  attack: [2, 3], wasted: [2, 3], move: [1, 2], hold: [0, 1], speak: [2, 2], call_help: [3, 2], alarm: [3, 3],
-  rest: [0, 1], item_dropped: [1, 2], pick_up: [1, 2],
+  attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], alarm: ['deafening', 'high'],
+  rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
 };
-const VOLUME_NOISE = { whisper: 1, normal: 2, shout: 3 } as const;
+const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const; // NV5: a whisper isn't heard next door
 /** first build: checks only change beliefs (OQ-22). */
 const CHECK_TYPES = new Set(['observe', 'interact', 'use_item', 'other', 'search']);
 
@@ -51,7 +51,7 @@ type Ctx = {
 };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
-  const [noise, visibility] = SENSE[kind] ?? [1, 2];
+  const [noise, visibility] = SENSE[kind] ?? ['quiet', 'normal'];
   const n = ctx.state.events.length + ctx.events.length + 1;
   return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, effects: [], noise, visibility, perception: {}, ...extra };
 }

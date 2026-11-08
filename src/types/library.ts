@@ -9,8 +9,8 @@ export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' 
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 /** Situation tags (Ali, 08/11/2026, ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
-export type SituationTag = 'sight' | 'stealth' | 'hide' | 'ranged';
-export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike';
+export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
+export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike' | 'speech';
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
 
@@ -23,10 +23,12 @@ export type SkillDef = {
   xpCategory: XpCategory;
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
   tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
+  access?: TreeAccess; // a skill's own rule on top of its tree's (SR1: persuasion and barter need a speaking race)
 };
 /** A source that opens or blocks a skill tree (Ali, 08/11/2026, TA1–TA11). 'class': the actor has that class, Current or
  * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
-export type AccessCond = { kind: 'race' | 'body' | 'class' | 'perk'; id: string; level?: number };
+/** raceTag: the actor's race carries that tag (RaceDef.tags), e.g. 'speaks' */
+export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk'; id: string; level?: number };
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
@@ -65,7 +67,12 @@ export type Library = {
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
+  zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
 };
+
+/** Z1–Z3 (Ali, 08/11/2026): a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
+ * indoor or outdoor and gives the default cover and light, which the Weaver may change. */
+export type ZoneKind = { id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light };
 
 /** Perk page S1–S9 (Ali, 07/11/2026): a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
  * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */
@@ -117,6 +124,7 @@ export type RaceDef = {
   id: string; name: string; bodyTypeId: string; hpMultiplier: number;
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
   innatePerks?: string[]; innateQuirks?: string[];
+  tags?: string[]; // 'speaks' (Ali, 08/11/2026): the race can talk, which opens persuasion and barter
 };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */

@@ -95,8 +95,8 @@ export type StagePlan = {
   timeOfDay?: TimeOfDay;
   places: { key: string; name: string; kind: string; parent: string }[];
   zones: {
-    key: string; place: string; name: string; look: string;
-    cover: Cover; light: Light; outdoor?: boolean;
+    key: string; place: string; kind: string; name: string; look: string;
+    cover?: Cover; light?: Light; // Z3: default from the kind
     links: { to: string; label: string; sight: boolean }[];
   }[];
   frontiers: { key: string; label: string }[];

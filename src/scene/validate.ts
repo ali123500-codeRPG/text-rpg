@@ -182,7 +182,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`zone ${z.key} name`, z.name, true);
     text(`zone ${z.key} look`, z.look, true);
     if (!isPlace(z.place)) err('unresolved_place', `zone ${z.key}: place ${z.place} unknown`);
-    if (!COVER.has(z.cover) || !LIGHT.has(z.light)) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
+    const kinds = Object.keys(getLibrary().zoneKinds ?? {});
+    if (!kinds.includes(z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.join(', ')}`);
+    if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
       if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, or a frontier`);

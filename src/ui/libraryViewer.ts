@@ -196,7 +196,7 @@ function skills(): HTMLElement[] {
   const tree = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => card('skills', id, entry, title, chips,
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
-        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : ''), h('td', {}, s.functions.join(', ') || '—'), h('td', {}, s.roles.join(', ') || '—'),
+        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.join(', ') || '—'), h('td', {}, s.roles.join(', ') || '—'),
         h('td', {}, `${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`), h('td', {}, s.xpCategory), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   return [h('div', { class: 'lv-grid wide' },
     Object.values(lib.trees).map((t) => tree(t.id, t.name, t.skills, t, access(t.access))),

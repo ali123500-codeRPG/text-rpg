@@ -3,7 +3,7 @@ import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, St
 import { CONFIG } from '../config';
 import { TIME_OF_DAY } from '../scales';
 import { clockSet, startClock } from '../time';
-import { activity, itemDef } from '../library';
+import { activity, getLibrary, itemDef } from '../library';
 import { spawnNpc } from '../library/spawn';
 import { installRoutines, desiredState, detectPlayer } from '../minds';
 import { updateBeliefs, computePerception } from '../perception';
@@ -170,7 +170,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       const fr = frontierMap.get(l.to) ?? (!isZoneRef(l.to) ? l.to : undefined);
       return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight };
     });
-    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), name: z.name, look: z.look, links, cover: z.cover, light: z.light, ...(z.outdoor ? { outdoor: true as const } : {}), groundItems: [] };
+    const k = getLibrary().zoneKinds![z.kind]; // the validator checked it
+    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), groundItems: [] };
     state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
     putOnStage(state, zone);
     newZones.push(zone);
@@ -340,7 +341,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
  * the plan's opening beliefs were skipped for this entry. Returns the arrival event. */
 export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
   const p = state.player;
-  const ev: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 1, visibility: 2, perception: {} };
+  const ev: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   ev.perception = computePerception(ev, state, rng);
   detectPlayer(state, ev, rng);
   return ev;
@@ -349,7 +350,7 @@ export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
 export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
   const p = state.player;
   const out: GameEvent[] = [];
-  const arrival: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 1, visibility: 2, perception: {} };
+  const arrival: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   arrival.perception = computePerception(arrival, state, rng);
   out.push(arrival);
   const stage = new Set(state.stage.zoneIds);
@@ -359,7 +360,7 @@ export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
     const def = act ? activity(act) : undefined;
     const ev: GameEvent = {
       id: `t${state.turn}_presence_${a.id}`, turn: state.turn, actorId: a.id, kind: 'presence', zone: a.zone, effects: [],
-      noise: def?.noise ?? 1, visibility: def?.visibility ?? 2, perception: {}, ...(act ? { activity: act } : {}),
+      noise: def?.noise ?? 'quiet', visibility: def?.visibility ?? 'normal', perception: {}, ...(act ? { activity: act } : {}),
     };
     ev.perception = computePerception(ev, state, rng);
     if (ev.perception[p.id]) out.push(ev);

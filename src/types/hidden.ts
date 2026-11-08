@@ -1,6 +1,7 @@
 // Part 2, Hidden state persistence; routines from Game state model.
 import type { Grade, Tier } from './core';
 import type { Order } from './ruleset';
+import type { NoiseKey, VisibilityKey } from '../scales';
 
 export type HiddenStore = {
   plans: Record<string, Plan>; // actorId -> plan
@@ -76,6 +77,6 @@ export type ActivityDef = {
   id: string;
   look: string;
   attention: 'alert' | 'normal' | 'distracted' | 'asleep';
-  noise: 0 | 1 | 2 | 3;
-  visibility: 0 | 1 | 2 | 3;
+  noise: NoiseKey;
+  visibility: VisibilityKey;
 };

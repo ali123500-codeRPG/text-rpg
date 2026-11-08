@@ -120,7 +120,7 @@ SKILL_WEIGHT = 0.5, ROLL_NEEDED = 63.5 (placeholders); d100 runs 1–100 (00 = 1
 
 Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to −1 Near Miss; 0 to 24 Success; 25 to 74 Great Success; 75+ Critical Success. Margins may end in .5; compare exact values.
 
-**Scale keys.** Every ordered scale (tiers, band tactics, zone light and cover, stance, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load). Schema v5 split hostile from opposed: older saves' opposed becomes hostile, so they play as before, and a logged more\_opposed step becomes colder.
+**Scale keys.** Standing design rule for anything in the code with levels (Ali, 07/11/2026, restated 08/11/2026 NV3): every ordered scale (tiers, band tactics, zone light and cover, stance, noise, visibility, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Numbers that go with a level (a reach, a modifier) are keyed by the level's key in config, never by its position. Noise, quietest first: silent, faint, hushed, quiet, normal, loud, deafening. Visibility, least first: unseen, faint, close, low, normal, high, glaring. Each level reaches [full, partial] zone links in CONFIG.NOISE_REACH and SIGHT_REACH (NV1–NV6, Ali, 08/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load). Schema v5 split hostile from opposed: older saves' opposed becomes hostile, so they play as before, and a logged more\_opposed step becomes colder.
 
 Modifier types (each type diminishes within itself; values per type are deferred):
 
@@ -339,6 +339,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   relations: Record<string, 'hostile' | 'opposed' | 'neutral' | 'friendly'>;  // default stance toward other bands
 };
 
+// What a zone is (Z1–Z5, Ali, 08/11/2026): one open space with nothing in the way inside it, where anyone can reach anyone
+// else in a step or two, at most about a room (5 to 10 paces) across. A barrier (wall, counter, door, gate, steps) or more
+// distance starts a new zone, so every link is about one room of distance. A bigger space (a square, a field, a hall) is
+// several zones of the same kind joined by sight links. There are no positions inside a zone. Every Weaver zone names a
+// zone kind from the library (zoneKinds: room, corridor, stairs, cellar, street, square, gate, yard, field, woods); the kind
+// fixes indoor or outdoor and gives the default cover and light, which the plan may change. An unknown kind is a bad_zone.
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
               links: ZoneLink[]; cover: 'none' | 'some' | 'heavy'; light: 'bright' | 'dim' | 'dark';      // zone ids unique within a story
               groundItems: ItemInstance[] };                             // Part 5 §4
@@ -363,7 +369,7 @@ type GameEvent = {
   zone: string; target?: string;
   tier?: Tier;                  // absent for actions with no check, such as a plain move or speech
   effects: Effect[];            // structured; text is built per view, never stored
-  noise: 0 | 1 | 2 | 3; visibility: 0 | 1 | 2 | 3;
+  noise: NoiseKey; visibility: VisibilityKey;   // NOISE / VISIBILITY keys (src/scales.ts); reach per level: CONFIG.NOISE_REACH, SIGHT_REACH
   perception: Record<string, { level: Perception; cue: Cue }>;   // absent = not perceived
   bark?: boolean;               // speech flavor only: narrated, copies no belief, left out of every NPC view
 };
@@ -399,7 +405,7 @@ type ActivityDef = {
   id: string;
   look: string;                           // public text, e.g. 'dozing on a stool'
   attention: 'alert' | 'normal' | 'distracted' | 'asleep';   // a situational tag; the ruleset owns its value
-  noise: 0 | 1 | 2 | 3; visibility: 0 | 1 | 2 | 3;
+  noise: NoiseKey; visibility: VisibilityKey;
 };
 // Tag values come from the library tag catalog. Slot names: see Slots, below.
 ```
@@ -1011,7 +1017,7 @@ Settled by Ali 07/11/2026 ("Sense of time: options", T1–T11; settles D-101).
 
 - **One clock.** Code keeps game minutes since midnight before day 1 in `clocks.time`. Claude never sets it. Every turn costs its action's time from the library durations table (*placeholders*): a fight turn 0.1 min (6 s), any other action 1 min, a trade (barter) 10 min, rest 60 min, sleep 480 min. A save from before the clock starts on day 1 at the start of day.
 - **Time of day** is an ordered scale (TIME\_OF\_DAY: dawn, day, dusk, night); each starts at a minute of the day in CONFIG.TIME\_OF\_DAY\_FROM (*placeholders*: 5:00, 7:00, 18:00, 20:00). There is a day counter and no weekday or season names (T4).
-- **What it changes (T3):** a zone the Weaver marks `outdoor` is lit by the brighter of its own lamps or fires and the sky (CONFIG.SKY\_LIGHT: day bright, dawn and dusk dim, night dark); indoor zones keep their own light. A routine set's time tags must fit the time of day (CONFIG.TIME\_TAGS: dawn and dusk take day or night sets), otherwise it is a routine error. Shop hours come with shops (Stage 6). Routines that change mid-scene wait (D-49).
+- **What it changes (T3):** an outdoor zone (its zone kind says so, Z2) is lit by the brighter of its own lamps or fires and the sky (CONFIG.SKY\_LIGHT: day bright, dawn and dusk dim, night dark); indoor zones keep their own light. A routine set's time tags must fit the time of day (CONFIG.TIME\_TAGS: dawn and dusk take day or night sets), otherwise it is a routine error. Shop hours come with shops (Stage 6). Routines that change mid-scene wait (D-49).
 - **Who sees it (T5):** NPC views and the Narrator get `time: {day, timeOfDay}`, never minutes. No new Claude call.
 - **Waiting (T6):** the Parser reads "wait until dawn" as action wait with the time of day in target (none: the next time of day; the time of day it already is: nothing happens and the line says so, Q2 08/11/2026), and "sleep" as action sleep (the sleep row). Sleep also gives the rest heal (or the place's row, e.g. a clinic) once per REST\_COOLDOWN\_MIN of sleep, twice for 8 hours, and counts as the last rest (Ali, 07/11/2026). Code moves the clock and breaks the scene (time\_skip). A hostile in the zone or tactical mode blocks it, like rest. The turn shows "Time passes: 11 h (Day 2 · Dawn)".
 - **Starting time (T8):** the Weaver's first plan names `timeOfDay`, and code sets the clock to its start on day 1. After that a plan may only name the current one (bad\_time otherwise).
@@ -1083,8 +1089,8 @@ Output shape (notation, not literal JSON):
 {
   event:       { summary: hidden text, challenge: grade, gain: grade },
   places:      [ { key, name, kind, parent: placeKey | placeId } ],   // new place nodes only
-  zones:       [ { key, place: placeKey | placeId, name, look: public text,
-                   cover: none | some | heavy, light: bright | dim | dark,   // keys of COVER and LIGHT (src/scales.ts)
+  zones:       [ { key, place: placeKey | placeId, kind: zone kind id, name, look: public text,
+                   cover?: none | some | heavy, light?: bright | dim | dark,   // keys of COVER and LIGHT; default from the kind
                    links: [ { to: zoneKey | zoneId | frontierKey, label, sight } ] } ],
   frontiers:   [ { key, label } ],
   bands:       [ { key, name: public text, goals: hidden text, temperament: hidden text,
@@ -1237,7 +1243,7 @@ Ali, 08/11/2026, ST1–ST10.
 - Sneak costs nothing: it keeps the turn's move and main action. Hide is the main action. Both are offered in the Ideas panel; code picks the skill (Sneaking, or Combat Stealth while engaged or attacking).
 - What ends it: speaking above a whisper, any speech action, and a melee attack (the blow shows you). A ranged attack keeps it; the shot is noticed only through the stealth contest (Combat Stealth) per observer.
 - While stealthy, the player's events reach only observers already aware of them; everyone else is reached only through the contest.
-- **Situation tags** (ST21–ST22, Ali 08/11/2026). Situational modifiers apply by tag: each skill lists its situation tags (docs/skill-tags.md), and each situational table names the tags it reaches and the sign (CONFIG.SITUATION\_TAGS). Light (LIGHT\_MODS, read where the action is) hurts sight (every attack, Block, Dodge, Sight) and helps stealth (the three Stealth skills). Cover (COVER\_GAP, in tiers) helps hide (Vanishing) and hurts a ranged attack against a target in cover (a gap shift, as before). An action can add a tag: a Hide adds hide and ignores the move role, so leg wounds don't count (ST10). In a stealth contest both rolls get their own tags' tables, so darkness also hurts the observer's Sight. Darkness never hurts hearing, so against an observer who only hears the player, light gives the stealth roll no help either (Ali, 08/11/2026, P14). Leg wounds stay on body-part roles.
+- **Situation tags** (ST21–ST22, Ali 08/11/2026). Situational modifiers apply by tag: each skill lists its situation tags (docs/skill-tags.md), and each situational table names the tags it reaches and the sign (CONFIG.SITUATION\_TAGS). Light (LIGHT\_MODS, read where the action is) hurts sight (every attack, Block, Dodge, Sight) and helps stealth (the three Stealth skills). Cover (COVER\_GAP, in tiers) helps hide (Vanishing) and hurts a ranged attack against a target in cover (a gap shift, as before). An action can add a tag: a Hide adds hide and ignores the move role, so leg wounds don't count (ST10). In a stealth contest both rolls get their own tags' tables, so darkness also hurts the observer's Sight. Darkness never hurts hearing, so against an observer who only hears the player, light gives the stealth roll no help either (Ali, 08/11/2026, P14). Leg wounds stay on body-part roles. Hearing and Tremor carry a hearing tag (Ali, 08/11/2026); no table reads it yet (the noise work will).
 - **Unblinking** (ST23, the sight 60 perk): an observer with it who loses a Vanish must also lose a Sneaking or Combat Stealth contest before losing the player.
 - Hide and Sneak never shake off someone who already sees you (ST12): those observers get no roll.
 - **Vanish** (ST11–ST19) is active hiding: a move that breaks established sight, so it needs a destination one link away (with none, the Parser asks where). Which part of the turn it uses is a balance lever for later (ST13). Every observer who could perceive the move contests it against the player's Vanishing. One who saw the player and loses it drops to suspicious at the zone the player left (test 3); a tie or a win changes nothing for them. For everyone else a Vanish counts as a passed Sneaking or Combat Stealth check (ST16). Light and cover help it, and leg wounds count.
@@ -1632,6 +1638,7 @@ Size is set per body type, not per part name: one body type can have big arms an
 | Move (legs) | Yes | −10 | −20 to dodge (movement effects: D-99) | Dodge, athletics, stealth, fleeing |
 | Fly (wing) | Yes | −10 to flying | Can't fly | Flight |
 | Strike (tail, horns, bite) | No: per part | −10 to that attack | That attack is unavailable | Attacks made with the part |
+| Speech (head) | Yes | −10 | −20 | Speech rolls: persuasion, intimidation, barter (Ali, 08/11/2026). With a Crippled head a speech roll takes both −20s, stacked within the wounds type (SR4) |
 
 - **Several roles:** a part can carry more than one (a dragon's head is Sense and Strike, for its bite); each role's effects apply.
 - **Shared roles:** the penalty is split between the parts that have the role. A dragon has two Move parts, so one Damaged pair of legs gives −5, not −10.
@@ -1653,7 +1660,7 @@ On/off effects of shared roles (no running, can't fly) switch on when Crippled a
 
 | Part | Size | Impact | Roles | Location roll |
 | --- | --- | --- | --- | --- |
-| Head | Small | Essential | Sense | 01–07 |
+| Head | Small | Essential | Sense, Speech | 01–07 |
 | Left arm | Normal | Normal | Grip | 08–22 |
 | Right arm | Normal | Normal | Grip | 23–37 |
 | Left leg | Normal | Normal | Move | 38–52 |
@@ -1669,7 +1676,7 @@ The neck is adjacent to the head and the general area. Head and neck are separat
 
 | Part | Size | Impact | Roles | Location roll |
 | --- | --- | --- | --- | --- |
-| Head | Normal | Essential | Sense, Strike | 01–09 |
+| Head | Normal | Essential | Sense, Strike, Speech | 01–09 |
 | Left wing | Normal | Non-essential | Fly | 10–18 |
 | Right wing | Normal | Non-essential | Fly | 19–27 |
 | Forelegs | Normal | Normal | Move | 28–36 |
@@ -1690,7 +1697,8 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
     "grip": {"shared": false},
     "move": {"shared": true},
     "fly": {"shared": true},
-    "strike": {"shared": false}
+    "strike": {"shared": false},
+    "speech": {"shared": true}
   },
   "bodyTypes": {
     "humanoid": {
@@ -1698,7 +1706,7 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
       "naturalAttacks": [{"id": "punch", "tree": "unarmed", "class": "punch", "skill": "unarmed_strike", "reach": 0, "hands": 0},
                         {"id": "grapple", "tree": "unarmed", "class": "grapple", "skill": "unarmed_grapple", "reach": 0, "hands": 0}],
       "parts": [
-        {"id": "head", "size": "small", "impact": "essential", "roles": ["sense"], "adjacent": ["general", "neck"]},
+        {"id": "head", "size": "small", "impact": "essential", "roles": ["sense", "speech"], "adjacent": ["general", "neck"]},
         {"id": "left_arm", "size": "normal", "impact": "normal", "roles": ["grip"]},
         {"id": "right_arm", "size": "normal", "impact": "normal", "roles": ["grip"]},
         {"id": "left_leg", "size": "normal", "impact": "normal", "roles": ["move"]},
@@ -1714,7 +1722,7 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
     "winged_quadruped": {
       "general": {"name": "body", "size": "big"},
       "parts": [
-        {"id": "head", "size": "normal", "impact": "essential", "roles": ["sense", "strike"]},
+        {"id": "head", "size": "normal", "impact": "essential", "roles": ["sense", "strike", "speech"]},
         {"id": "left_wing", "size": "normal", "impact": "non_essential", "roles": ["fly"]},
         {"id": "right_wing", "size": "normal", "impact": "non_essential", "roles": ["fly"]},
         {"id": "forelegs", "size": "normal", "impact": "normal", "roles": ["move"]},
@@ -1892,7 +1900,7 @@ Promoting an NPC to recurring adds a module; it never converts the sheet. A comp
 
 **Skills.** General skills are open to every actor unless a perk or race excludes them. Each class adds its own tree of three skills. Exclusions are derived from the library and never stored.
 
-**Skill tree access** (Ali, 08/11/2026, "Skill tree access" TA1–TA11). Every tree has its own access rule in the library (TreeDef.access), and each tree is coded on its own. A rule has up to three lists of conditions: **Must** (every one holds), **Either of** (at least one holds, when listed) and **Blocked by** (any one closes the tree). A block always beats an opening (TA2). A tree with no rule is open to everyone. A condition names one source: a race, a body type, a class with a minimum class level (default 1; the class counts while Current or Previous, never Unlocked, TA3), or a perk (quirks included); a new kind of source is one more case in one check. A skill in a tree the actor can't use counts as 0 (rolls, HP, the rating) and can't be raised; its points are kept and come back with access (TA4 a). Rules are per tree only (TA8) and hold for the player and every NPC: a test fails if a template gives a skill its actor can't use (TA9). Trees a character can't use are hidden on the creation screen and the character sheet unless the character has points in them; those show "Blocked by: …" or "Needs: …" (TA10). Today's rules: Swordsman must have class Swordsman; Slime senses must have race Slime (BR7); Natural weapons (unarmed\_natural, TA5) needs either body type amorphous (its slam) or race Dragon (its own attacks); body type amorphous blocks Melee, Ranged, Unarmed, Perception, Speech and Tools (no hands, voice, eyes or ears, TA6). A block the shape gives is not repeated on the race (BR9). Banked: TA7 (Tools, lockpicking) and TA11 (nested groups of conditions), D-113.
+**Skill tree access** (Ali, 08/11/2026, "Skill tree access" TA1–TA11). Every tree has its own access rule in the library (TreeDef.access), and each tree is coded on its own. A rule has up to three lists of conditions: **Must** (every one holds), **Either of** (at least one holds, when listed) and **Blocked by** (any one closes the tree). A block always beats an opening (TA2). A tree with no rule is open to everyone. A condition names one source: a race, a body type, a class with a minimum class level (default 1; the class counts while Current or Previous, never Unlocked, TA3), or a perk (quirks included); a new kind of source is one more case in one check. A skill in a tree the actor can't use counts as 0 (rolls, HP, the rating) and can't be raised; its points are kept and come back with access (TA4 a). Rules are per tree (TA8), with one exception: a skill can carry its own rule on top of its tree's (SkillDef.access, SR1 below). Rules hold for the player and every NPC: a test fails if a template gives a skill its actor can't use (TA9). Trees a character can't use are hidden on the creation screen and the character sheet unless the character has points in them; those show "Blocked by: …" or "Needs: …" (TA10). Today's rules: Swordsman must have class Swordsman; Slime senses must have race Slime (BR7); Natural weapons (unarmed\_natural, TA5) needs either body type amorphous (its slam) or race Dragon (its own attacks); body type amorphous blocks Melee, Ranged, Unarmed, Perception, Speech and Tools (no hands, voice, eyes or ears, TA6). A block the shape gives is not repeated on the race (BR9). **Speaking races** (Ali, 08/11/2026, SR1): each race is tagged if it can speak (RaceDef.tags 'speaks': Human and Elf yes, Slime and Dragon no), and a condition can name a race tag. Intimidation is open to anyone with the Speech tree; persuasion and barter must have a speaking race. Banked: TA7 (Tools, lockpicking) and TA11 (nested groups of conditions), D-113.
 
 **Classes.** Each class an actor knows is saved with its state and its class level:
 
@@ -2674,16 +2682,16 @@ Standard slots: post, route, refuge, exit, here.
 
 | Id | Look (public) | Attention | Noise | Visibility |
 | --- | --- | --- | --- | --- |
-| stand\_watch | keeping watch | alert | 0 | 2 |
-| walk | walking | normal | 1 | 2 |
-| work | hard at work | normal | 2 | 2 |
-| tend\_counter | tending the counter | normal | 1 | 2 |
-| drink | nursing a drink | distracted | 1 | 2 |
-| chat | chatting | distracted | 2 | 2 |
-| sleep | asleep | asleep | 1 | 1 |
-| rest | resting | distracted | 0 | 1 |
-| cower | keeping out of sight | alert | 0 | 1 |
-| ooze | oozing across the grass | normal | 1 | 2 |
+| stand\_watch | keeping watch | alert | silent | normal |
+| walk | walking | normal | quiet | normal |
+| work | hard at work | normal | normal | normal |
+| tend\_counter | tending the counter | normal | quiet | normal |
+| drink | nursing a drink | distracted | quiet | normal |
+| chat | chatting | distracted | normal | normal |
+| sleep | asleep | asleep | quiet | low |
+| rest | resting | distracted | silent | low |
+| cower | keeping out of sight | alert | silent | close |
+| ooze | oozing across the grass | normal | quiet | normal |
 
 **Routines.** Steps read slot · duration · activity. A route step expands to one stop per bound zone.
 

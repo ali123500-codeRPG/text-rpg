@@ -34,9 +34,10 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('sneaking', 'stealth', ['stealth'], ['move'], undefined, 'notice'),
   sk('combat_stealth', 'stealth', ['stealth'], ['move'], undefined, 'offensive'),
   sk('vanishing', 'stealth', ['stealth'], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
-  sk('persuasion', 'speech', ['influence'], []),
-  sk('intimidation', 'speech', ['influence'], []),
-  sk('barter', 'speech', ['influence'], []),
+  // speech role (Ali, 08/11/2026): head wounds reduce speech rolls
+  sk('persuasion', 'speech', ['influence'], ['speech']),
+  sk('intimidation', 'speech', ['influence'], ['speech']),
+  sk('barter', 'speech', ['influence'], ['speech']),
   sk('feint', 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk('riposte', 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk('disarm', 'swordsman', [], ['grip'], undefined, 'offensive'),
@@ -52,10 +53,12 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   melee_light: ['sight'], melee_medium: ['sight'], melee_heavy: ['sight'],
   ranged_light: ['sight', 'ranged'], ranged_medium: ['sight', 'ranged'], ranged_heavy: ['sight', 'ranged'],
   unarmed_strike: ['sight'], unarmed_grapple: ['sight'], unarmed_improvised: ['sight'], unarmed_natural: ['sight'],
-  dodge: ['sight'], block: ['sight'], sight: ['sight'],
+  dodge: ['sight'], block: ['sight'], sight: ['sight'], hearing: ['hearing'], tremor: ['hearing'], // hearing: no table reads it yet
   sneaking: ['stealth'], combat_stealth: ['stealth'], vanishing: ['stealth', 'hide'],
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
+// SR1 (Ali, 08/11/2026): intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
+for (const id of ['persuasion', 'barter']) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
@@ -111,7 +114,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
     naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' },
       { id: 'grapple', tree: 'unarmed', class: 'grapple', skill: 'unarmed_grapple', reach: 0, hands: 0, name: 'grapple' }],
     parts: [
-      { id: 'head', size: 'small', impact: 'essential', roles: ['sense'], adjacent: ['general', 'neck'] },
+      { id: 'head', size: 'small', impact: 'essential', roles: ['sense', 'speech'], adjacent: ['general', 'neck'] },
       { id: 'left_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
       { id: 'right_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
       { id: 'left_leg', size: 'normal', impact: 'normal', roles: ['move'] },
@@ -145,7 +148,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
     id: 'winged_quadruped', general: { name: 'body', size: 'big' },
     naturalAttacks: [],
     parts: [
-      { id: 'head', size: 'normal', impact: 'essential', roles: ['sense', 'strike'] },
+      { id: 'head', size: 'normal', impact: 'essential', roles: ['sense', 'strike', 'speech'] },
       { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: ['fly'] },
       { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: ['fly'] },
       { id: 'forelegs', size: 'normal', impact: 'normal', roles: ['move'] },
@@ -193,17 +196,17 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
 const act = (id: string, look: string, attention: ActivityDef['attention'], noise: ActivityDef['noise'], visibility: ActivityDef['visibility']): ActivityDef =>
   ({ id, look, attention, noise, visibility });
 export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
-  act('stand_watch', 'keeping watch', 'alert', 0, 2),
-  act('walk', 'walking', 'normal', 1, 2),
-  act('work', 'hard at work', 'normal', 2, 2),
-  act('tend_counter', 'tending the counter', 'normal', 1, 2),
-  act('drink', 'nursing a drink', 'distracted', 1, 2),
-  act('chat', 'chatting', 'distracted', 2, 2),
-  act('sleep', 'asleep', 'asleep', 1, 1),
-  act('rest', 'resting', 'distracted', 0, 1),
-  act('cower', 'keeping out of sight', 'alert', 0, 1),
-  act('ooze', 'oozing across the grass', 'normal', 1, 2),
-  act('prowl', 'keeping to the shadows', 'alert', 0, 1),
+  act('stand_watch', 'keeping watch', 'alert', 'silent', 'normal'),
+  act('walk', 'walking', 'normal', 'quiet', 'normal'),
+  act('work', 'hard at work', 'normal', 'normal', 'normal'),
+  act('tend_counter', 'tending the counter', 'normal', 'quiet', 'normal'),
+  act('drink', 'nursing a drink', 'distracted', 'quiet', 'normal'),
+  act('chat', 'chatting', 'distracted', 'normal', 'normal'),
+  act('sleep', 'asleep', 'asleep', 'quiet', 'low'),
+  act('rest', 'resting', 'distracted', 'silent', 'low'),
+  act('cower', 'keeping out of sight', 'alert', 'silent', 'close'), // NV4
+  act('ooze', 'oozing across the grass', 'normal', 'quiet', 'normal'),
+  act('prowl', 'keeping to the shadows', 'alert', 'silent', 'close'), // NV4
 ].map((a) => [a.id, a]));
 
 const CALL_HELP = { type: 'call_help', target: null, skill: null, intent: 'call for help' } as const;
@@ -277,7 +280,7 @@ export function prototypeLibrary(): Library {
     classes: {
       swordsman: { id: 'swordsman', name: 'Swordsman', floors: { melee_medium: 25, block: 15 } },
     },
-    roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false } },
+    roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
     // Healing sources (Ali, 07/11/2026, H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
@@ -298,12 +301,19 @@ export function prototypeLibrary(): Library {
     // Ali (07/11/2026): humans and elves for now, identical
     // innate perks and quirks per race (Ali, 08/11/2026): lists, empty until chosen
     races: {
-      human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [] },
-      elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [] },
+      human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
+      elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
       // BR1–BR7 (Ali, 08/11/2026): slime and dragon were body types only; HP multipliers moved here unchanged
-      slime: { id: 'slime', name: 'Slime', bodyTypeId: 'amorphous', hpMultiplier: 0.6, innatePerks: [], innateQuirks: [] },
-      dragon: { id: 'dragon', name: 'Dragon', bodyTypeId: 'winged_quadruped', hpMultiplier: 3, innatePerks: [], innateQuirks: [] },
+      slime: { id: 'slime', name: 'Slime', bodyTypeId: 'amorphous', hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [] },
+      dragon: { id: 'dragon', name: 'Dragon', bodyTypeId: 'winged_quadruped', hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [] },
     },
+    // Z3 (Ali, 08/11/2026). Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
+    zoneKinds: Object.fromEntries(([
+      ['room', 'Room', false, 'some', 'dim'], ['corridor', 'Corridor', false, 'none', 'dim'], ['stairs', 'Stairs', false, 'none', 'dim'],
+      ['cellar', 'Cellar or cave', false, 'some', 'dark'], ['street', 'Street', true, 'none', 'dark'], ['square', 'Square', true, 'none', 'dark'],
+      ['gate', 'Gate', true, 'none', 'dark'], ['yard', 'Yard', true, 'some', 'dark'], ['field', 'Field', true, 'none', 'dark'],
+      ['woods', 'Woods', true, 'heavy', 'dark'],
+    ] as const).map(([id, name, outdoor, cover, light]) => [id, { id, name, outdoor, cover, light }])),
     items: ITEMS,
     templates: TEMPLATES,
     activities: ACTIVITIES,

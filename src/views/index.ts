@@ -457,6 +457,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
       })),
       items: [...items.values()],
       skills: Object.keys(lib.skills),
+      zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
     },
     grades: [...GRADES],
   };

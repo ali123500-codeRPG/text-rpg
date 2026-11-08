@@ -51,7 +51,7 @@ export const NARRATOR_SHAPE = '{"text":string,"narrated":[event_id]}';
 export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain":grade},
  "places":[{"key","name","kind","parent":placeKey|placeId|null}],
  "timeOfDay"?:${words(TIME_OF_DAY)},
- "zones":[{"key","place","name","look","cover":${words(COVER)},"light":${words(LIGHT)},"outdoor"?:true,"links":[{"to","label","sight":boolean}]}],
+ "zones":[{"key","place","kind":zone kind id from catalogs.zoneKinds,"name","look","cover"?:${words(COVER)},"light"?:${words(LIGHT)},"links":[{"to","label","sight":boolean}]}],
  "frontiers":[{"key","label"}],
  "bands":[{"key","name","goals","temperament","tactics":${words(TACTICS)},"lethal":boolean,"relations":{bandKey:${words(STANCES)}}}],
  "cast":[{"template"?:templateId,"actor"?:actorId,"label","name","appearance","pronouns":"he"|"she"|"they"|"it","knownOnSight"?:true,"knows"?:[{"id","text"}],"key","band","routineSetId",
@@ -70,8 +70,9 @@ Public text (every name, label, appearance, look, link label and knows text) is 
 No word or phrase from hiddenTerms or any secret's leakTerms may appear in public text, so list only words that public text never uses.
 Terms match whole words only.
 Grades must fit the tier: ${gradesFitText()}.
-In a dark zone people are only half seen. A zone's light is its own light (hearths and lamps are bright or dim, cellars are dark).
-Mark zones under the open sky "outdoor":true; their light is only their lamps or fires ("dark" if none): code adds daylight by the time of day (day bright, dawn and dusk dim).
+A zone is one open space with nothing in the way inside it: anyone in it can reach anyone else in a step or two, at most about a room (5 to 10 paces) across. A barrier (wall, counter, door, gate, steps) or more distance starts a new zone. Build a bigger space (a square, a field, a hall) as several zones of the same kind joined by sight links.
+Every zone has a kind from catalogs.zoneKinds. The kind sets indoor or outdoor and the default cover and light; give cover or light only to change them.
+In a dark zone people are only half seen. A zone's light is its own light (hearths and lamps are bright or dim, cellars are dark). Outdoor zones' light is only their lamps or fires: code adds daylight by the time of day (day bright, dawn and dusk dim).
 WEAVER_VIEW.time is the day and time of day. If it is null the story is starting: set "timeOfDay" to when it opens (${words(TIME_OF_DAY)}). Otherwise leave "timeOfDay" out or give the current one.
 Pick routine sets whose time tags fit the time of day.
 A healer's house or infirmary is a place of kind "clinic": resting there heals fully, crippled limbs included. Settlements may have one.

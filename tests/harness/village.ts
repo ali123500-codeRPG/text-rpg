@@ -54,7 +54,7 @@ export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId
     id: 'player', storyId, kind: 'player', names: { current: 'Aldric', past: [] }, label: 'a swordsman',
     placeId, zone, posture: 'open', bandId: 'player_band',
     core: {
-      bodyTypeId: 'humanoid',
+      bodyTypeId: 'humanoid', raceId: 'human',
       skills: Object.fromEntries(Object.entries(skills).map(([k, v]) => [k, { raw: v, state: tagged.includes(k) ? 'tagged' as const : 'normal' as const }])),
       classes: [{ classId: 'swordsman', state: 'current', level: 1 }],
       perks: [],

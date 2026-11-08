@@ -15,7 +15,7 @@ it('15 Perception at the moment', () => {
     return e;
   };
   const ev = (id: string, kind: string, actorId: string, target?: string): GameEvent =>
-    ({ id, turn: 1, actorId, kind, zone: 'gate_inner', ...(target ? { target } : {}), effects: [], noise: 1, visibility: 2, perception: {} });
+    ({ id, turn: 1, actorId, kind, zone: 'gate_inner', ...(target ? { target } : {}), effects: [], noise: 'quiet', visibility: 'normal', perception: {} });
   const e1 = step(ev('e1', 'idle', 'slime_1'));
   const e2 = step(ev('e2', 'attack', 'slime_1', 'guard_1'), () => { actor(s, 'guard_1').core.condition.hpLostPct = 100; });
   const e3 = step(ev('e3', 'move', 'slime_1'));

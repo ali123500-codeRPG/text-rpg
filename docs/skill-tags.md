@@ -7,8 +7,8 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 |---|---|---|
 | Tree | melee, ranged, unarmed, defense, perception, stealth, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
 | Functions | melee_attack, ranged_attack, unarmed_attack, defense, notice, influence, hp, stealth | Substitutes: a skill with a shared function stands in for a missing one |
-| Situation tags | sight, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. An action can add a tag (a Hide adds hide, ST22) |
-| Roles | grip, strike, move, sense, fly | Which wounded body parts lower the roll |
+| Situation tags | sight, hearing, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. No table reads hearing yet. An action can add a tag (a Hide adds hide, ST22) |
+| Roles | grip, strike, move, sense, fly, speech | Which wounded body parts lower the roll |
 | Cue | sight, sound (notice skills only) | Which cue a notice roll reads |
 | XP category | offensive, defensive, endurance, notice, influence, misc | XP ratings (X18–X23) |
 | Player open | yes / no | Whether the player can buy the skill |
@@ -25,13 +25,16 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 | block | defense | defense | grip | | sight |
 | endurance | defense | hp | | | |
 | sight | perception | notice | sense | sight | sight |
-| hearing | perception | notice | sense | sound | |
+| hearing | perception | notice | sense | sound | hearing |
 | sneaking, combat_stealth | stealth | stealth | move | | stealth |
 | vanishing | stealth | stealth | move | | stealth, hide |
-| persuasion, intimidation, barter | speech | influence | | | |
+| persuasion, intimidation, barter | speech | influence | speech | | |
 | feint, riposte, disarm (placeholders) | swordsman | | grip | | |
-| tremor, taste (slime only, tier 0) | slime_senses | notice | sense | sound / none | |
+| tremor (slime only, tier 0) | slime_senses | notice | sense | sound | hearing |
+| taste (slime only, tier 0) | slime_senses | notice | sense | none | |
 | lockpicking (placeholder) | tools | | grip | | |
+
+Persuasion and barter also need a speaking race (race tag `speaks`: Human, Elf); intimidation does not (SR1, Ali 08/11/2026).
 
 ## Substitutes
 
