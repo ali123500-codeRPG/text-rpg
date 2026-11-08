@@ -1,9 +1,11 @@
-// 124 D-111 Bane bonuses (Ali, 08/11/2026): an achievement earned against a race or body type gives +5 skill × its tier
-// (I = 1, II = 2, III = 3) on rolls against that race or type; only the best one counts.
+// 124 D-111 Bane bonuses (Ali, 08/11/2026): an achievement earned against a race or body type gives the lower level's bonus
+// plus +5 skill (I = +5, II = +10, III = +15) on rolls against that race or type. A higher level switches
+// the lower ones off. The best race one and the best body type one both count, the weaker at half (type stacking).
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';
-import { ruleset } from '../../src/ruleset';
+import { modTotal, ruleset } from '../../src/ruleset';
 import { grantAchievement } from '../../src/engine';
+import { baneSkill } from '../../src/ruleset/bane';
 import type { GameState } from '../../src/types';
 
 const arm = (s: GameState, id: string) => {
@@ -18,27 +20,38 @@ const bane = (s: GameState, target: string) => {
 };
 
 describe('124 Bane bonuses', () => {
+  it('linked levels add up: I = +5, II = +10, III = +15', () => {
+    expect([baneSkill('first_defeat_race'), baneSkill('defeats_10_race'), baneSkill('defeats_100_race')]).toEqual([5, 10, 15]);
+    expect([baneSkill('first_defeat'), baneSkill('defeats_10_body_type'), baneSkill('defeats_100_body_type')]).toEqual([5, 10, 15]);
+  });
   it('no achievement, no bonus', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     expect(bane(s, 'patron_1')).toEqual([]);
   });
-  it('a tier II race achievement gives +10 skill (+5 on the roll) against that race only', () => {
+  it('a higher level switches the lower off; only it is checked, and only against that race', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     grantAchievement(s, 'defeats_10_race', 'elf');
     expect(bane(s, 'patron_1')).toEqual([]);
+    grantAchievement(s, 'first_defeat_race', 'human');
     grantAchievement(s, 'defeats_10_race', 'human');
+    const earned = s.player.progression!.achievements!;
+    expect(earned.find((a) => a.id === 'first_defeat_race:human')?.replacedBy).toBe('defeats_10_race:human');
+    expect(earned.find((a) => a.id === 'defeats_10_race:elf')?.replacedBy).toBeUndefined();
     expect(bane(s, 'patron_1')).toEqual([{ source: 'bane: defeats_10_race:human', type: 'achievement', value: 5 }]);
   });
-  it('the best matching achievement counts, race or body type, and defenders get it too', () => {
+  it('the best race and best body type both count, the weaker at half; defenders get it too', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
-    grantAchievement(s, 'first_defeat_race', 'human'); // I
-    grantAchievement(s, 'defeats_100_body_type', 'humanoid'); // III
-    expect(bane(s, 'patron_1').map((m) => m.value)).toEqual([7.5]);
+    grantAchievement(s, 'first_defeat_race', 'human'); // +5 skill
+    grantAchievement(s, 'first_defeat', 'humanoid');
+    grantAchievement(s, 'defeats_10_body_type', 'humanoid'); // +10 skill
+    const mods = bane(s, 'patron_1');
+    expect(mods.map((m) => m.value).sort()).toEqual([2.5, 5]);
+    expect(modTotal(mods)).toBe(5 + 2.5 * 0.5); // 10 + 5 × 0.5 = 12.5 skill
     arm(s, 'patron_1');
     const d = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 50, 50, 50]));
-    expect(d.defense?.modifiers.filter((m) => m.type === 'achievement').map((m) => m.value)).toEqual([7.5]);
+    expect(modTotal(d.defense!.modifiers.filter((m) => m.type === 'achievement'))).toBe(6.25);
   });
 });

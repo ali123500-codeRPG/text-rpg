@@ -323,19 +323,20 @@ export function prototypeLibrary(): Library {
     perks: Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => d.ladder).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
     achievements: {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
+      // after = the lower level it builds on; earning it switches the lower one off (Ali, 08/11/2026).
       first_defeat: { id: 'first_defeat', name: 'First {body_type} Felled', level: 'i', rule: 'defeats', count: 1, by: 'body_type' },
-      defeats_10_body_type: { id: 'defeats_10', name: '{body_type}bane', level: 'ii', rule: 'defeats', count: 10, by: 'body_type' },
-      defeats_100_body_type: { id: 'defeats_100', name: 'Scourge of the {body_type} Hordes', level: 'iii', rule: 'defeats', count: 100, by: 'body_type' },
+      defeats_10_body_type: { id: 'defeats_10', name: '{body_type}bane', level: 'ii', rule: 'defeats', count: 10, by: 'body_type', after: 'first_defeat' },
+      defeats_100_body_type: { id: 'defeats_100', name: 'Scourge of the {body_type} Hordes', level: 'iii', rule: 'defeats', count: 100, by: 'body_type', after: 'defeats_10_body_type' },
       first_defeat_race: { id: 'first_defeat_race', name: 'First of {race}kind Felled', level: 'i', rule: 'defeats', count: 1, by: 'race' },
-      defeats_10_race: { id: 'defeats_10_race', name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', count: 10, by: 'race' },
-      defeats_100_race: { id: 'defeats_100_race', name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', count: 100, by: 'race' },
+      defeats_10_race: { id: 'defeats_10_race', name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', count: 10, by: 'race', after: 'first_defeat_race' },
+      defeats_100_race: { id: 'defeats_100_race', name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', count: 100, by: 'race', after: 'defeats_10_race' },
       defeats_10: { id: 'defeats_10', name: 'Blooded Fighter', level: 'i', rule: 'defeats', count: 10 },
-      defeats_100: { id: 'defeats_100', name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', count: 100 },
-      defeats_1000: { id: 'defeats_1000', name: 'Thousand-Slayer, Herald of Ruin', level: 'iii', rule: 'defeats', count: 1000 },
+      defeats_100: { id: 'defeats_100', name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', count: 100, after: 'defeats_10' },
+      defeats_1000: { id: 'defeats_1000', name: 'Thousand-Slayer, Herald of Ruin', level: 'iii', rule: 'defeats', count: 1000, after: 'defeats_100' },
       // one per tree and mastery step, id <id>:<tree>; not awarded until mastery perks exist
       mastery_50: { id: 'mastery_50', name: 'Adept of {tree}', level: 'ii', rule: 'mastery', count: 50 },
-      mastery_100: { id: 'mastery_100', name: 'Ascendant of {tree}', level: 'iii', rule: 'mastery', count: 100 },
-      mastery_150: { id: 'mastery_150', name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', count: 150 },
+      mastery_100: { id: 'mastery_100', name: 'Ascendant of {tree}', level: 'iii', rule: 'mastery', count: 100, after: 'mastery_50' },
+      mastery_150: { id: 'mastery_150', name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', count: 150, after: 'mastery_100' },
     },
   });
   // ST1 (Ali, 08/11/2026): a skill's tree is wherever the trees table lists it, so moving a skill is one edit there
