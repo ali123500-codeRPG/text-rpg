@@ -110,7 +110,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (req.auto !== false) {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
-    modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // boost perks: Keen Edge, Steady Draw, Iron Grip
+    modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
   }
   const d = rng.d100();
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
@@ -160,7 +160,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const am: Mod[] = [];
   const skill = modeSkill(mode);
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
-  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // boost perk aimMult (none uses it today)
+  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // 40/80/120 perk aimMult (none uses it today)
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
   // GAP: the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value
   const hit = cls.hit + (mode.hitAdj ?? 0);
@@ -259,13 +259,13 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
   const worn = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
-  const pierce = boostAdd(A, skill, 'armorPierce'); // boost perk: Armor Piercer
+  const pierce = boostAdd(A, skill, 'armorPierce'); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
   };
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult'); // boost perk: Heavy Hand
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult'); // 40/80/120 perk: Heavy Hand
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
   const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
