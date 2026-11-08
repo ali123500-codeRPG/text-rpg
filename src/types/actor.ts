@@ -63,7 +63,7 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race'; // 'race': innate, from the race's innatePerks / innateQuirks
+  source: 'level' | 'mastery' | 'race' | 'template'; // 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
@@ -129,6 +129,8 @@ export type NpcTemplate = {
   control: 'agent' | 'code';
   label: string;
   fallback?: { attackSkill: LibraryRef }; // overrides the body type's (Fallback behavior)
+  /** perks every NPC made from this template has (Ali, 08/11/2026: any patrolling template has Keen Ear) */
+  perks?: LibraryRef[];
 };
 
 export type Journal = {

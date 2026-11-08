@@ -1940,9 +1940,12 @@ A copy does not roll: its skills are the template's minimums, read live.
 
 **Village templates** (first build; every number a placeholder). All three are copies of race Human (body type humanoid) with no class:
 
-- **guard:** level 2, bonus points 10; minimums melee\_medium 40, block 30, dodge 20, sight 30, hearing 30, intimidation 30, persuasion 20; focus picks melee/melee\_medium, defense/block, perception/sight; personality steady; loadout arming\_sword, mail\_hauberk; control agent.
-- **trader** (the barkeep): level 1; minimums sight 25, hearing 25, barter 40, persuasion 30; focus picks perception/hearing, melee/melee\_light, defense/dodge; personality timid; no loadout; control code.
-- **patron:** level 1; minimums unarmed\_strike 20, sight 20, persuasion 30; focus picks unarmed/unarmed\_strike, defense/dodge, perception/sight; personality timid; no loadout; control code.
+**Template rules** (Ali, 08/11/2026). Anyone with fighting experience (guard, thief) is at least level 4, and a villager at least level 2. A template can list perks (`perks`) that every NPC made from it has. Any template that patrols (its role has a routine set with the patrol routine), now and later, lists Keen Ear, and a test enforces it. Copy templates don't use their level yet: their skills are the minimums.
+
+
+- **guard:** level 4, bonus points 10, perk Keen Ear; minimums melee\_medium 40, block 30, dodge 20, sight 30, hearing 30, intimidation 30, persuasion 20; focus picks melee/melee\_medium, defense/block, perception/sight; personality steady; loadout arming\_sword, mail\_hauberk; control agent.
+- **trader** (the barkeep): level 2; minimums sight 25, hearing 25, barter 40, persuasion 30; focus picks perception/hearing, melee/melee\_light, defense/dodge; personality timid; no loadout; control code.
+- **patron:** level 2; minimums unarmed\_strike 20, sight 20, persuasion 30; focus picks unarmed/unarmed\_strike, defense/dodge, perception/sight; personality timid; no loadout; control code.
 
 ### 5. Locations and story memory
 
