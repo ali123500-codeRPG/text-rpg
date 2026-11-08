@@ -33,8 +33,9 @@ export function trueSkill(a: Actor, skill: string): number {
     if (!d) return n;
     let v = d.trueSkill && own === skill ? d.trueSkill : 0;
     v += d.trueSkillTo?.[skill] ?? 0; // 40/80/120 perks: true skill spent on skills that work well with the ladder skill
-    // 40/80/120 perks: +functionBoost to every other skill sharing a function with the ladder skill (docs/skill-tags.md)
-    if (d.functionBoost && own && own !== skill && (skills[own]?.functions ?? []).some((f: string) => fns.includes(f))) v += d.functionBoost;
+    // 40/80/120 perks: +functionBoost to the ladder skill itself and every other skill sharing a function with it
+    // (docs/skill-tags.md; Ali, 08/11/2026: "+1 function (including itself)")
+    if (d.functionBoost && own && (own === skill || (skills[own]?.functions ?? []).some((f: string) => fns.includes(f)))) v += d.functionBoost;
     return n + v;
   }, 0);
 }
