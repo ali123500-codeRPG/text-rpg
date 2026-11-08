@@ -101,6 +101,15 @@ function writeup(d: PerkDef) {
   return t ? [h('p', {}, t)] : [];
 }
 
+// innate perks and quirks (Ali, 08/11/2026): what the race gives; nothing shows while the race gives none
+function innate(p: Actor) {
+  const lib = getLibrary();
+  const list = p.core.perks.filter((o) => o.source === 'race').map((o) => lib.perks[o.perkId]).filter((d): d is PerkDef => !!d);
+  if (!list.length) return null;
+  return h('section', { class: 'pk-inn', 'aria-label': 'Innate perks and quirks' }, h('h3', {}, 'Innate'),
+    list.map((d) => h('div', { class: `pk-in${d.quirk ? ' quirk' : ''}` }, h('b', {}, d.name), h('span', { class: 'pk-tag' }, d.quirk ? 'Quirk' : 'Perk'), ...writeup(d))));
+}
+
 let redraw = () => {};
 
 export function perksSection(api: GameApi): HTMLElement {
@@ -120,6 +129,7 @@ export function perksSection(api: GameApi): HTMLElement {
       h('div', { class: 'pk-h' }, h('h2', {}, 'Perks'), h('div', { class: 'hs-picker pk-vt' }, vt('tree', 'By tree'), vt('effect', 'By effect')),
         h('div', { class: 'hs-picker pk-vt', 'aria-label': 'Perk write-up' }, tt('story', 'Story'), tt('rules', 'Rules')),
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
+      innate(p),
       ...(ui.view === 'tree'
         ? [h('div', { class: 'pk-tabs', role: 'tablist' }, trees.map((t) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(t.id === ui.tree), onclick: () => { ui.tree = t.id; ui.sel = null; redraw(); } }, t.name))),
           tree ? h('div', { class: 'pk-board' }, ladders(p, tree.skills), h('div', { class: 'pk-trk' }, tree.skills.map((k) => track(p, k, (_r, st) => st)))) : null]
