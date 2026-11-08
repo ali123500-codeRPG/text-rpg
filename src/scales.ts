@@ -67,6 +67,9 @@ export type NoiseKey = (typeof NOISE.keys)[number];
 /** how far an event is seen, least first; reach per level is CONFIG.SIGHT_REACH */
 export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];
+/** worn armor weight, lightest first (AN3, Ali 08/11/2026); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
+export const ARMOR_WEIGHTS = scale([['light', 'Light'], ['medium', 'Medium'], ['heavy', 'Heavy']]);
+export type ArmorWeightKey = (typeof ARMOR_WEIGHTS.keys)[number];
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
 

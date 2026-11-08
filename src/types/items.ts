@@ -1,5 +1,6 @@
 // Part 4 §9 (ItemDef, ItemInstance) and Part 5.
 import type { LibraryRef } from './core';
+import type { ArmorWeightKey } from '../scales';
 
 export type ItemDef = {
   id: LibraryRef;
@@ -22,7 +23,7 @@ export type ItemDef = {
     covers: string[];
     reduction: number;
     multiplier: number;
-    weight: 'light' | 'medium' | 'heavy';
+    weight: ArmorWeightKey;
     pools?: Record<string, number>;
   };
   shield?: { pool: number };
