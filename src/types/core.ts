@@ -83,6 +83,7 @@ export type GameEvent = {
   // structured payload (code only; views decide what to copy):
   line?: { text: string; volume: 'whisper' | 'normal' | 'shout'; introduces?: string[] };
   fromZone?: string; // moves
+  vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
   activity?: string; // idle / presence: ActivityDef id
   itemId?: string; // item instance involved (gear, give, thrown, dropped)
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view

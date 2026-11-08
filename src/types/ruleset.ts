@@ -117,7 +117,7 @@ export interface Ruleset {
 export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine' | 'fallback' | 'broken';
 
 /** every order type the engine knows (trigger orders are checked against it) */
-export const ORDER_TYPES = ['attack', 'move', 'search', 'hide', 'sneak', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
+export const ORDER_TYPES = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
   'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'other'] as const;
 export type Order = {
   actorId: string;
@@ -128,6 +128,7 @@ export type Order = {
   source: OrderSource;
   move?: string | null; // player: the turn's one move (toZone), resolved before the main action
   moveAfter?: boolean; // AE3: the player's move comes after the main action
+  vanish?: true; // ST13: the player's move is a Vanish
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;
   aimed?: boolean;

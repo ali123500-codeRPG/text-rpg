@@ -12,7 +12,7 @@ export type BeliefUpdate =
   | { kind: 'detection'; observerId: string; aboutId: string; status: BeliefStatus; event: GameEvent }
   | { kind: 'opening'; observerId: string; aboutId: string; status: BeliefStatus; zone?: string; source?: 'seen' | 'heard' | 'told' }
   | { kind: 'reveal'; observerId: string; aboutId: string; fact: string }
-  | { kind: 'lost'; observerId: string; aboutId: string };
+  | { kind: 'lost'; observerId: string; aboutId: string; zone?: string };
 
 /** communication events copy the sender's beliefs (Information model); barks never do */
 export const isComm = (e: GameEvent) =>
@@ -129,9 +129,9 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     return;
   }
   if (update.kind === 'lost') {
-    // ST4 / scenario 3: someone who saw you loses you when you hide from them: suspicious, at the zone they last saw you in
+    // ST15: someone who saw you loses you when you vanish from them: suspicious, at the zone they last saw you in
     const o = actorById(state, update.observerId);
-    if (o && atLeast(o.mind?.knowledge[update.aboutId]?.status, 'aware')) write(o, update.aboutId, { status: 'suspicious' });
+    if (o && atLeast(o.mind?.knowledge[update.aboutId]?.status, 'aware')) write(o, update.aboutId, { status: 'suspicious', ...(update.zone ? { lastKnownZone: update.zone } : {}) });
     return;
   }
   if (update.kind === 'detection') {
