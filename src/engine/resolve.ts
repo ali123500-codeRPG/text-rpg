@@ -581,6 +581,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       (views.get(id)?.perceived ?? []).some((e) => e.kind === 'speak' && e.actorId === toward && e.turn >= state.turn - 1) ||
       (input.spokespeople.includes(id) && toward === state.player.id && ctx.exchangeEvents.length > 0),
     heardExchange: (id) => ctx.exchangeEvents.some((e) => !!e.perception[id]),
+    heardNow: (listener, speaker) => ctx.events.some((e) => e.actorId === speaker && !!e.line && !!e.perception[listener]),
   });
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   payDefeats(state, ctx.events);

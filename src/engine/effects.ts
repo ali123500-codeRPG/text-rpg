@@ -7,6 +7,7 @@ import { actorById, isActive, isEngaged, stance } from './relations';
 import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
 import type { TurnInput } from './types';
+import { applyMemoryOps, endAgreements, makeAgreement } from './memory';
 
 const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
 
@@ -36,6 +37,8 @@ export type EffectsCtx = {
   heardSpeech(actorId: string, toward: string): boolean;
   /** perceived this turn's exchange (player's speech or a spoken reply) */
   heardExchange(actorId: string): boolean;
+  /** PM3: `listener` perceived a line spoken by `speaker` this turn */
+  heardNow(listener: string, speaker: string): boolean;
 };
 
 export function applyAgentEffects(state: GameState, input: TurnInput, ctx: EffectsCtx): void {
@@ -55,14 +58,19 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
       }
     }
     let routineId: string | null = null;
-    if (o.agent === 'voice') routineId = o.output.routine;
-    else {
+    if (o.agent === 'voice') {
+      routineId = o.output.routine;
+      // PM3: the Voice can strike a deal with the player only
+      if (o.output.agreement) makeAgreement(state, a, { ...o.output.agreement, with: state.player.id }, ctx.heardNow);
+    } else {
       const pu = o.output.planUpdate;
       if (pu) {
         state.hidden.plans[a.id] = { goal: pu.goal, steps: pu.steps, triggers: sanitizeTriggers(pu.triggers, a.id), createdTurn: state.turn };
-        state.hidden.memory[a.id] = pu.memoryNote;
         routineId = pu.routine;
       }
+      applyMemoryOps(state, a, o.output.memory, pu?.memoryNote); // PM1/PM2
+      endAgreements(state, a, o.output.endAgreements);
+      if (o.output.agreement) makeAgreement(state, a, o.output.agreement, ctx.heardNow); // PM3/PM4
     }
     if (o.agent === 'responder') {
       for (const id of o.output.reveals ?? []) {

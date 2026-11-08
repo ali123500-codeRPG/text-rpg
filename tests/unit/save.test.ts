@@ -24,7 +24,7 @@ async function play(st: ReturnType<typeof memoryStore>, s: GameState, from: numb
 
 afterEach(() => {
   resetConfig();
-  delete MIGRATIONS[5];
+  delete MIGRATIONS[6];
 });
 
 describe('save and load', () => {
@@ -205,13 +205,13 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await play(st, s, 1, 2);
-    CONFIG.SCHEMA_VERSION = 6;
-    MIGRATIONS[5] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
+    CONFIG.SCHEMA_VERSION = 7;
+    MIGRATIONS[6] = (pages) => { (pages.engine as { flags: Record<string, unknown> }).flags.migrated = true; };
     const { state, report } = await loadStory(st, 'test', lib());
     expect(state.flags.migrated).toBe(true);
-    expect(report).toContain('migrated v5 -> v6');
+    expect(report).toContain('migrated v6 -> v7');
     const h = await head(st);
-    expect(h).toMatchObject({ schemaVersion: 6, undo: null, safety: { turn: 2 } });
+    expect(h).toMatchObject({ schemaVersion: 7, undo: null, safety: { turn: 2 } });
     expect((await listBackups(st, 'test')).map((b) => b.turn)).toEqual([2]);
     // the safety bookmark can be taken back (it migrates again)
     expect((await useBookmark(st, 'test', 'safety', lib())).state.flags.migrated).toBe(true);
@@ -221,11 +221,11 @@ describe('migration and reconcile', () => {
     const s = makeVillage();
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
-    CONFIG.SCHEMA_VERSION = 7;
-    MIGRATIONS[5] = () => {};
+    CONFIG.SCHEMA_VERSION = 8;
+    MIGRATIONS[6] = () => {};
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
-    expect(err.report).toContain('schema: no migration step v6 -> v7');
-    expect((await head(st)).schemaVersion).toBe(5);
+    expect(err.report).toContain('schema: no migration step v7 -> v8');
+    expect((await head(st)).schemaVersion).toBe(6);
   });
 
   it('v3 -> v4 gives humanoids two legs from the old pool and widens armor that covered legs', () => {
@@ -254,6 +254,12 @@ describe('migration and reconcile', () => {
       'actor.g': { mind: { overrides: { player: 'hostile', trader: 'friendly' } } },
       hidden: { stage: { plan: { cast: [{ overrides: [{ actor: 'player', stance: 'hostile' }] }] } }, log: [{ stance: { toward: 'player', step: 'colder' } }] },
     });
+  });
+
+  it('v5 -> v6 turns each memory note into a one-entry memory list (PM1)', () => {
+    const pages: Record<string, unknown> = { hidden: { memory: { a: 'saw a stranger', b: '' } } };
+    MIGRATIONS[5](pages);
+    expect(pages).toEqual({ hidden: { memory: { a: [{ turn: 0, text: 'saw a stranger' }], b: [] } } });
   });
 
   it('v1 -> v2 turns tier names (old ones too) and roll tierIndex into tier IDs', () => {

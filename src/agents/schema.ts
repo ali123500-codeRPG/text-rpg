@@ -94,21 +94,28 @@ const planUpdate = nul(obj<NonNullable<PlannerOutput['planUpdate']>>({
   steps: arr(str),
   // the engine drops any trigger it can't parse (Hidden state persistence); we check only the envelope
   triggers: (v, p, e) => (v === undefined || v === null ? [] : (arr(trigger)(v, p, e) as unknown as NonNullable<PlannerOutput['planUpdate']>['triggers'])),
-  memoryNote: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
+  memoryNote: (v, p, e) => (v === undefined || v === null ? undefined : str(v, p, e)) as string,
   routine: nul(str),
-}));
+}, ['memoryNote']));
 const dialogue = nul(obj<NonNullable<PlannerOutput['dialogue']>>({ line: str, volume: VOLUME, introduces: arr(str) }, ['introduces']));
 
-const planner = obj<PlannerOutput>({ action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate });
+const memory = nul(obj<NonNullable<PlannerOutput['memory']>>({
+  add: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
+  drop: (v, p, e) => (v === undefined || v === null ? [] : arr(num)(v, p, e)),
+}));
+const agreement = nul(obj<NonNullable<PlannerOutput['agreement']>>({ with: str, text: str }));
+const endAgreements = (v: unknown, p: string, e: string[]) => (v === undefined || v === null ? [] : arr(obj<NonNullable<PlannerOutput['endAgreements']>[number]>({ id: str, outcome: oneOf(['done', 'broken'] as const) }))(v, p, e));
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements'] as ('memory' | 'agreement' | 'endAgreements')[];
+const planner = obj<PlannerOutput>({ action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements }, MEMORY_KEYS);
 const responder = obj<ResponderOutput>({
-  action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate,
+  action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
-});
+}, MEMORY_KEYS);
 const voice = obj<VoiceOutput>({
   action: npcAction, line: str, volume: VOLUME,
   shares: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
-  introduces: optArr(str), gear: GEAR, stance: STANCE, routine: nul(str),
-}, ['introduces']);
+  introduces: optArr(str), gear: GEAR, stance: STANCE, routine: nul(str), agreement,
+}, ['introduces', 'agreement']);
 const narrator = obj<NarratorOutput>({
   text: (v, p, e) => {
     const s = str(v, p, e);

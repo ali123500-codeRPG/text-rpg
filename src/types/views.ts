@@ -64,7 +64,11 @@ export type PlayerView = {
   actors: SeenActor[];
   facts: string[];
   headlines: string[];
+  agreements?: AgreementView[]; // PM5: the player's deals with NPCs
 };
+
+/** PM3: one deal as a party sees it; with = what the viewer calls the other party */
+export type AgreementView = { id: string; with: string; withId: string; text: string; madeTurn: number };
 
 // ---------- ActorView: code minds ----------
 /** T4/T5: the day number and time of day; never minutes */
@@ -95,8 +99,10 @@ export type ActorView = {
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
   told: EventView[]; // communication events it perceived
   said: string[]; // its own last spoken lines, latest last (P5)
+  earlier?: string[]; // PM6: code-made lines about perceived events older than `perceived`, oldest first
   plan?: Plan;
-  memory?: string;
+  memory?: { n: number; turn: number; text: string }[]; // PM1: its memory list, numbered for memory.drop
+  agreements?: AgreementView[]; // PM3: the deals it is in
   secrets: Secret[]; // its own
   firedTriggers: { triggerId: string; turn: number }[]; // "already happened"
   band: { id: string; name: string; goals: string; temperament: string; tactics: Tactics; relations: Record<string, Stance> };
@@ -110,7 +116,7 @@ export type OppositionView = ActorView; // formatted for the prompt by the agent
 
 // ---------- DialogueView: Agent Voice ----------
 export type DialogueInput = { spoken: string; impression: string | null }[]; // one entry per speech action this turn
-export type DialogueView = Omit<ActorView, 'plan' | 'memory' | 'secrets' | 'firedTriggers'> & {
+export type DialogueView = Omit<ActorView, 'plan' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'> & {
   knows: Fact[];
   dialogue: DialogueInput;
 };

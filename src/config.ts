@@ -95,7 +95,7 @@ const DEFAULTS = {
   BACKUPS_KEPT: 3, // Q2
   HISTORY_CHUNK_TURNS: 20, // Q18: story text saved in documents of this many turns each
   LOCK_LEASE_MS: 60_000, // Q2
-  SCHEMA_VERSION: 5, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed
+  SCHEMA_VERSION: 6, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1)
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
   ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
@@ -134,6 +134,8 @@ const DEFAULTS = {
   SCENE_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 1, short: 3, medium: 6, long: 12 } as Record<string, number>,
   RECENT_EVENTS: 8, // compact views: last few relevant events
+  MEMORY_ENTRIES: 8, // PM1 (Ali, 08/11/2026): an NPC's memory list holds at most this many entries (placeholder)
+  EARLIER_LINES: 6, // PM6 (Ali, 08/11/2026): code-made lines about events older than RECENT_EVENTS (placeholder)
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
   SHOW_MECHANICS: true,

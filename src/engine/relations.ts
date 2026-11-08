@@ -59,12 +59,13 @@ export function isEngaged(state: GameState, actor: Actor): boolean {
   });
 }
 
-/** hasAgenda is derived, never stored: holds a secret, has a plan or has a memory note. */
+/** hasAgenda is derived, never stored: holds a secret, has a plan, remembers something or is in a deal (PM3). */
 export function hasAgenda(state: GameState, actorId: string): boolean {
   return (
     state.hidden.secrets.some((s) => s.holderId === actorId) ||
     !!state.hidden.plans[actorId] ||
-    !!state.hidden.memory[actorId]
+    !!state.hidden.memory[actorId]?.length ||
+    !!state.hidden.agreements?.some((g) => g.parties.includes(actorId))
   );
 }
 

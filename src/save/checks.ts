@@ -71,11 +71,18 @@ export function splitLegs(v: unknown): void {
   Object.values(o).forEach(splitLegs);
 }
 
+// v5 -> v6 (Ali, 08/11/2026, PM1): an NPC's one memory note becomes the first entry of its memory list.
+export function notesToLists(pages: Pages): void {
+  const h = pages.hidden as { memory?: Record<string, unknown> } | undefined;
+  for (const [id, m] of Object.entries(h?.memory ?? {})) if (typeof m === 'string') h!.memory![id] = m ? [{ turn: 0, text: m }] : [];
+}
+
 export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
   2: (pages) => Object.values(pages).forEach(levelsToKeys),
   3: (pages) => Object.values(pages).forEach(splitLegs),
   4: (pages) => Object.values(pages).forEach(opposedToHostile),
+  5: notesToLists,
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */
@@ -267,6 +274,7 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       const h = page as HiddenPage;
       for (const id of Object.keys(h.plans)) if (!actorIds.has(id)) { delete h.plans[id]; fix(k, `dropped plan of ${id}`); }
       for (const id of Object.keys(h.memory)) if (!actorIds.has(id)) { delete h.memory[id]; fix(k, `dropped memory of ${id}`); }
+      if (h.agreements) h.agreements = keep(k, h.agreements, (g) => g.parties.every((p) => actorIds.has(p)), 'agreements with unknown actors');
     }
   }
 }
