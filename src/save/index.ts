@@ -1,5 +1,5 @@
 // W1 — Save, load, undo, backups (Part 4 §6–8, §10–11).
-import type { Bookmark, EnginePage, GameState, Head, LogLine, PageRef, StoryMeta, TurnRecord } from '../types';
+import type { CreationBuild, Bookmark, EnginePage, GameState, Head, LogLine, PageRef, StoryMeta, TurnRecord } from '../types';
 import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
@@ -258,6 +258,17 @@ export async function listStories(store: Store): Promise<StoryMeta[]> {
   // GAP: no "current story" pointer in the spec's paths; the newest createdAt is the one that runs
   return metas.filter((m): m is StoryMeta => !!m).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
 }
+
+// ---------- a story still starting ----------
+/** Ali (08/11/2026): closing the game during turn 0 lost the new story, because nothing is saved until the opening
+ * scene is planned and narrated. The build is written first; resume finds it and starts the opening again. */
+export type PendingStart = { storyId: string; build: CreationBuild; at: string };
+const PENDING_START = 'pending/start';
+export const savePendingStart = (store: Store, p: PendingStart) => guard(() => store.set(PENDING_START, p));
+export const loadPendingStart = (store: Store) => guard(() => store.get<PendingStart>(PENDING_START));
+export const clearPendingStart = (store: Store) => guard(() => store.delete(PENDING_START));
+/** has this story's first turn been saved (a head exists)? */
+export const storySaved = async (store: Store, storyId: string) => !!(await guard(() => store.get(headPath(storyId))));
 
 // ---------- backups (§11) ----------
 type BackupDoc = { storyId: string; turn: number; schemaVersion: number; libraryVersion: number; refs: Record<string, PageRef>; parts: number; pages: Pages };

@@ -115,11 +115,12 @@ export function beginScene(state: GameState, tier: Tier): void {
  * yielded to, its surrender ends (Morale: it lasts the scene), and it leaves for its exit slot if it has one.
  * GAP: there is no off-stage yet (D-46, D-67), so "leaves" means it goes to its exit zone. */
 function endYields(state: GameState): void {
+  // Q4 (Ali, 08/11/2026): broken and surrendered last only the scene (Morale)
+  for (const a of state.actors) if (a.mind?.moraleState) delete a.mind.moraleState;
   for (const a of state.actors) {
     const o = a.mind?.overrides;
     if (!o || !Object.values(o).includes('yielded')) continue;
     for (const k of Object.keys(o)) if (o[k] === 'yielded') o[k] = 'opposed';
-    if (a.mind!.moraleState === 'surrendered') delete a.mind!.moraleState;
     const slot = a.mind!.slots?.exit;
     const exit = Array.isArray(slot) ? slot[0] : slot;
     if (isActive(a) && exit && zoneById(state, exit) && exit !== a.zone) moveTo(state, a, exit);
