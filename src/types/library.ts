@@ -19,14 +19,19 @@ export type SkillDef = {
   treeId: string;
   functions: SkillFunction[];
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
-  playerOpen: boolean; // open to the player's point-buy
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   xpCategory: XpCategory;
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
   tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
 };
-export type TreeDef = { id: string; name: string; skills: string[]; classId?: string };
-export type ClassDef = { id: string; name: string; treeId: string; floors: Record<string, number> };
+/** A source that opens or blocks a skill tree (Ali, 08/11/2026, TA1–TA11). 'class': the actor has that class, Current or
+ * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
+export type AccessCond = { kind: 'race' | 'body' | 'class' | 'perk'; id: string; level?: number };
+/** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
+ * closes it, and a block always wins. No access rule: open to everyone. */
+export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
+export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess };
+export type ClassDef = { id: string; name: string; floors: Record<string, number> };
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
 export type NaturalArmor = { covers: string[]; reduction: number; multiplier: number; pools?: Record<string, number> };

@@ -5,6 +5,7 @@ import { bodyType, getLibrary } from '../library';
 import { isActive, stance, wary } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
+import { skillOpen } from '../ruleset/access';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
 export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
@@ -70,7 +71,7 @@ export function rating(a: Actor): number {
   const by: Record<string, number[]> = {};
   for (const [id, e] of Object.entries(a.core.skills)) {
     const cat = lib.skills[id]?.xpCategory ?? 'misc';
-    (by[cat] ??= []).push(effort(e.raw * tierMult(id))); // the tier counts in the rating (Ali, 08/11/2026)
+    (by[cat] ??= []).push(effort(skillOpen(a, id) ? e.raw * tierMult(id) : 0)); // the tier counts in the rating (Ali, 08/11/2026)
   }
   return Object.entries(by).reduce((n, [cat, es]) =>
     n + (CONFIG.XP_CATEGORY_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);

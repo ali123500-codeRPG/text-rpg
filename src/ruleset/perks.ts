@@ -3,6 +3,7 @@
 // perk point and can be undone until the next turn is played (K3).
 import type { Actor, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
+import { skillOpen } from './access';
 
 export const MILESTONES = [20, 40, 60, 80, 100, 120, 140] as const;
 /** all-XXX perks (formerly mastery perks; save key 'mastery'): granted when all three skills of a tree reach 50/100/150 */
@@ -23,7 +24,7 @@ export const ownPerkMoves = (a: Actor): string[] => Object.keys(PERK_MOVES).filt
 
 export function trueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];
-  if (!e || e.dormant) return 0;
+  if (!e || e.dormant || !skillOpen(a, skill)) return 0; // a closed tree counts as 0 (TA4)
   const { perks, skills } = getLibrary();
   const fns: string[] = skills[skill]?.functions ?? [];
   return e.raw + owned(a).reduce((n, p) => {
