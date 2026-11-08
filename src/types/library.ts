@@ -97,6 +97,8 @@ export type DurationDef = { id: string; name: string; minutes: number; orders?: 
  * ItemDef.heal). `hourly` makes it passive: per game hour it restores skill × pctPerPoint % (H12). */
 export type HealingDef = {
   id: string; name: string; hpPct: number; partPct: number; reach: PartStateKey; inFight: boolean; placeKinds?: string[];
+  /** heals a Dead actor (Ali, 08/11/2026: no for every row for now; a lever for resurrection later) */
+  revivesDead: boolean;
   hourly?: { skill: string; pctPerPoint: number };
 };
 
