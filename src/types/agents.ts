@@ -8,7 +8,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
-  | 'attack' | 'hide' | 'sneak' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
+  | 'attack' | 'hide' | 'sneak' | 'vanish' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
   | 'use_item' | 'equip' | 'give' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 

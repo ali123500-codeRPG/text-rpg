@@ -18,6 +18,7 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   if (first.startsWith('action.time')) return `Until when? You can wait until ${TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' or $1')}.`;
   if (first.startsWith('action.skill')) return 'How do you want to do that?';
+  if (first.startsWith('action.vanish')) return `Where do you slip away to? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   return null;
 }
 
@@ -50,7 +51,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
       illegal.push(`action.target ${a.target}`);
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
-    if (a.type === 'hide' || a.type === 'sneak') a.skill = '';
+    if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish') a.skill = '';
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.includes(a.skill)) illegal.push(`action.skill ${a.skill}`);
     if (a.item !== null && !items.has(a.item)) illegal.push(`action.item ${a.item}`);
@@ -64,6 +65,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     }
   }
   // AE8: a perk move the player doesn't own, or aimed at no one in view, is dropped (the rest of the turn stands)
+  // ST13/ST20: a Vanish moves you; with no move it asks where to
+  if (a?.type === 'vanish' && !out.move) illegal.push('action.vanish');
   if (out.perkMove && (!view.player.perkMoves?.includes(out.perkMove.perk) || (out.perkMove.target !== null && !actors.has(out.perkMove.target)))) {
     gearErrors.push(`perkMove ${out.perkMove.perk}`);
     out.perkMove = null;

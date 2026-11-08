@@ -68,10 +68,12 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Fight', items: people.map((a) => ({ text: `Attack ${nm(a)}`, note: a.health })) },
     { group: 'Talk', items: people.map((a) => ({ text: `Talk to ${nm(a)}` })) },
     { group: 'Move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined })) },
-    // ST3: sneaking is free; hiding takes the action
-    { group: 'Stealth', items: pv.player.posture === 'stealthy'
-      ? [{ text: 'Hide', note: 'your action' }, ...pv.zone.links.filter((l) => !l.frontier).map((l) => ({ text: `Sneak ${l.label}` }))]
-      : [{ text: 'Sneak', note: 'free' }, { text: 'Hide', note: 'your action' }] },
+    // ST3: sneaking is free; hiding takes the action; ST13: a Vanish slips away by a link, out of sight of those who see you
+    { group: 'Stealth', items: [
+      ...(pv.player.posture === 'stealthy'
+        ? [{ text: 'Hide', note: 'your action' }, ...pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Sneak ${l.label}` }))]
+        : [{ text: 'Sneak', note: 'free' }, { text: 'Hide', note: 'your action' }]),
+      ...pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Vanish ${l.label}`, note: 'breaks sight' }))] },
     { group: 'Use', items: [
       ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
       ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },

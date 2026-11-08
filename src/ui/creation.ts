@@ -9,7 +9,7 @@ export const SKILL_NAMES: Record<string, string> = {
   melee_light: 'Light weapons', melee_medium: 'Medium weapons', melee_heavy: 'Heavy weapons',
   ranged_light: 'Light ranged', ranged_medium: 'Medium ranged', ranged_heavy: 'Heavy ranged',
   unarmed_strike: 'Strike', unarmed_grapple: 'Grapple', unarmed_improvised: 'Improvisation', unarmed_natural: 'Natural weapons',
-  dodge: 'Dodge', block: 'Block', endurance: 'Endurance', sight: 'Sight', hearing: 'Hearing', sneaking: 'Sneaking', combat_stealth: 'Combat Stealth',
+  dodge: 'Dodge', block: 'Block', endurance: 'Endurance', sight: 'Sight', hearing: 'Hearing', sneaking: 'Sneaking', combat_stealth: 'Combat Stealth', vanishing: 'Vanishing',
   persuasion: 'Persuasion', intimidation: 'Intimidation', barter: 'Barter', feint: 'Feint', riposte: 'Riposte', disarm: 'Disarm',
   tremor: 'Tremor', taste: 'Taste', lockpicking: 'Lockpicking',
 };

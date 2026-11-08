@@ -16,7 +16,7 @@ const DEFAULTS = {
   SUBSTITUTES: {
     unarmed_grapple: [{ fn: 'unarmed_attack', k: 0.4 }, { fn: 'melee_attack', k: 0.2 }],
     // ST2: the two stealth skills stand in for each other at half value
-    sneaking: [{ fn: 'stealth', k: 0.5 }], combat_stealth: [{ fn: 'stealth', k: 0.5 }],
+    sneaking: [{ fn: 'stealth', k: 0.5 }], combat_stealth: [{ fn: 'stealth', k: 0.5 }], vanishing: [{ fn: 'stealth', k: 0.5 }],
   } as Record<string, { fn: string; k: number }[]>,
   SITUATION_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
@@ -69,7 +69,7 @@ const DEFAULTS = {
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   /** ST6 (Ali, 08/11/2026): which situational tables a roll uses, and the sign. light reads LIGHT_MODS by the zone's light
    * (−1: darkness helps); cover reads COVER_GAP by the zone's cover as tier shifts. Linking a roll is one row here. */
-  SITUATION_LINKS: { sneak: { light: -1 }, hide: { light: -1, cover: 1 } } as Record<string, { light?: number; cover?: number }>,
+  SITUATION_LINKS: { sneak: { light: -1 }, hide: { light: -1, cover: 1 }, vanish: { light: -1, cover: 1 } } as Record<string, { light?: number; cover?: number }>,
   MORALE_DEFAULT: 50,
   PERSONALITY_MORALE: { fearless: null, bold: 70, steady: 50, timid: 30 } as Record<string, number | null>,
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
