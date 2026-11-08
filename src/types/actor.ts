@@ -18,7 +18,7 @@ export type Actor = {
   knownOnSight?: boolean;
   placeId: PlaceId; // always the place of `zone`
   zone: string;
-  posture?: 'open' | 'sneaking'; // player only
+  posture?: 'open' | 'stealthy'; // player only
   bandId: string;
   core: Core;
   progression?: Progression;

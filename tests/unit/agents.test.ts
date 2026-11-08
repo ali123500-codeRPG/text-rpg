@@ -164,12 +164,12 @@ describe('Parser legality', () => {
     expect(r.intent!.move).toBeNull();
     expect(r.run.log.errors).toEqual([]);
   });
-  it('hide and sneak say that stealth isn\'t in the game yet (runs 11–13)', async () => {
+  it('hide and sneak pass the Parser; code picks the stealth skill (ST2)', async () => {
     const { claude, ctx } = setup();
-    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }))
-      .push('parser', intentOf({ action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }));
-    const r = await callParser('I creep up the stairs', playerView(), ctx);
-    expect(r.clarify).toMatch(/aren't in the game yet/);
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'hide', skill: 'sneak', target: null } }));
+    const r = await callParser('I duck behind the barrels', playerView(), ctx);
+    expect(r.clarify).toBeNull();
+    expect(r.intent!.action).toMatchObject({ type: 'hide', skill: '' });
   });
   it('a wait names a time of day, not a person (run 18); an unknown time asks until when', async () => {
     const { claude, ctx } = setup();
@@ -181,13 +181,13 @@ describe('Parser legality', () => {
       .push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'late evening' } }));
     expect((await callParser('I wait until late evening', playerView(), ctx)).clarify).toBe('Until when? You can wait until dawn, day, dusk or night.');
   });
-  it('a sneak with a move just moves, openly', async () => {
+  it('a sneak with a move keeps both (ST3: the posture is free)', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ move: { toZone: 'tav_counter' }, action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }));
     const r = await callParser('I creep over to the counter', playerView(), ctx);
     expect(r.clarify).toBeNull();
     expect(r.intent!.move).toEqual({ toZone: 'tav_counter' });
-    expect(r.intent!.action).toBeNull();
+    expect(r.intent!.action!.type).toBe('sneak');
   });
   it('the Parser\'s own clarify is passed on', async () => {
     const { claude, ctx } = setup();

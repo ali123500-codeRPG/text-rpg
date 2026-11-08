@@ -17,7 +17,6 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
   if (first.startsWith('action.item')) return 'Which item do you mean?';
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   if (first.startsWith('action.time')) return `Until when? You can wait until ${TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' or $1')}.`;
-  if (first.startsWith('action.stealth')) return 'Sneaking and hiding aren\'t in the game yet, so anyone nearby would see you. What do you do instead?';
   if (first.startsWith('action.skill')) return 'How do you want to do that?';
   return null;
 }
@@ -50,9 +49,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     } else if (a.target !== null && a.target !== 'player' && !actors.has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
       illegal.push(`action.target ${a.target}`);
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
-    // hide and sneak wait for the Stealth tree (Part 2, Sneaking posture): with a move the player just goes, openly;
-    // without one, say so instead of "How do you want to do that?"
-    if (a.type === 'hide' || a.type === 'sneak') { if (out.move) out.action = null; else illegal.push(`action.stealth ${a.type}`); }
+    // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
+    if (a.type === 'hide' || a.type === 'sneak') a.skill = '';
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.includes(a.skill)) illegal.push(`action.skill ${a.skill}`);
     if (a.item !== null && !items.has(a.item)) illegal.push(`action.item ${a.item}`);

@@ -109,7 +109,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId, fullValue: req.fullValue });
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
-    modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId }));
+    modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
   }
   const d = rng.d100();

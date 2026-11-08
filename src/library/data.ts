@@ -28,6 +28,10 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('endurance', 'defense', ['hp'], []), // hp: endurance sets total HP
   sk('sight', 'perception', ['notice'], ['sense'], true, 'sight'),
   sk('hearing', 'perception', ['notice'], ['sense'], true, 'sound'),
+  // Stealth (Ali, 08/11/2026, ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
+  // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
+  sk('sneaking', 'stealth', ['stealth'], ['move'], true, undefined, 'notice'),
+  sk('combat_stealth', 'stealth', ['stealth'], ['move'], true, undefined, 'offensive'),
   sk('persuasion', 'speech', ['influence'], []),
   sk('intimidation', 'speech', ['influence'], []),
   sk('barter', 'speech', ['influence'], []),
@@ -222,7 +226,7 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
 ].map((s) => [s.id, s]));
 
 export function prototypeLibrary(): Library {
-  return structuredClone({
+  const lib: Library = structuredClone({
     version: 1,
     status: {},
     skills: SKILLS,
@@ -232,6 +236,7 @@ export function prototypeLibrary(): Library {
       unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'] },
       defense: { id: 'defense', name: 'Combat – Defense', skills: ['dodge', 'block', 'endurance'] },
       perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'] },
+      stealth: { id: 'stealth', name: 'Stealth', skills: ['sneaking', 'combat_stealth'] },
       speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'] },
       swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], classId: 'swordsman' },
       slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor', 'taste'], classId: 'slime' },
@@ -285,4 +290,7 @@ export function prototypeLibrary(): Library {
       mastery_150: { id: 'mastery_150', name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', count: 150 },
     },
   });
+  // ST1 (Ali, 08/11/2026): a skill's tree is wherever the trees table lists it, so moving a skill is one edit there
+  for (const t of Object.values(lib.trees)) for (const id of t.skills) if (lib.skills[id]) lib.skills[id].treeId = t.id;
+  return lib;
 }

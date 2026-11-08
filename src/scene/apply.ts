@@ -5,7 +5,7 @@ import { TIME_OF_DAY } from '../scales';
 import { clockSet, startClock } from '../time';
 import { activity, itemDef } from '../library';
 import { spawnNpc } from '../library/spawn';
-import { installRoutines, desiredState } from '../minds';
+import { installRoutines, desiredState, detectPlayer } from '../minds';
 import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
 import { actorById, isActive, zoneById } from '../engine/relations';
@@ -127,7 +127,7 @@ function endYields(state: GameState): void {
   }
 }
 
-export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext, opts: { entry: 'open' | 'sneaking'; degrade?: PlanError[] }, rng: Rng): void {
+export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext, opts: { entry: 'open' | 'stealthy'; degrade?: PlanError[] }, rng: Rng): void {
   const turn = state.turn;
   // T8: the story's first plan sets the clock (to the start of day if it names no time)
   if (!clockSet(state)) startClock(state, TIME_OF_DAY.has(plan.timeOfDay) ? plan.timeOfDay : 'day');
@@ -236,7 +236,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (opts.entry === 'open') {
     plan.cast.forEach((c, i) => updateBeliefs(state, { kind: 'opening', observerId: castActors[i].id, aboutId: state.player.id, status: c.awarenessOfPlayer, zone: state.player.zone, source: 'seen' }));
   }
-  // GAP: arrival detection for a sneaking entry (step 7) waits on the Stealth tree (D-8); the caller runs detectPlayer.
+  // arrival detection for a stealthy entry (step 7): the caller runs stealthyArrival
   const onStage = new Set(state.stage.zoneIds);
   plan.cast.forEach((c, i) => {
     for (const bb of c.awarenessOfBands ?? []) {
@@ -336,6 +336,16 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
 }
 
 /** arrival + presence events for the player's perception (scene setup step 8). */
+/** Scene setup step 7 (scenario 42): a stealthy player arriving through a frontier is tested by every observer in range;
+ * the plan's opening beliefs were skipped for this entry. Returns the arrival event. */
+export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
+  const p = state.player;
+  const ev: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 1, visibility: 2, perception: {} };
+  ev.perception = computePerception(ev, state, rng);
+  detectPlayer(state, ev, rng);
+  return ev;
+}
+
 export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
   const p = state.player;
   const out: GameEvent[] = [];

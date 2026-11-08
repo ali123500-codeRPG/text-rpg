@@ -54,14 +54,14 @@ function rolePenalty(a: Actor, raw: PartState): number {
  * ctx.itemId picks the limb (the hands holding that item, worse arm for two hands; 'natural:<mode>' its Strike part);
  * without an item, the best Grip arm is used.
  */
-export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string } = {}): Mod[] {
+export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; roles?: RoleId[] } = {}): Mod[] {
   const out: Mod[] = [];
   const level = healthLevel(actor);
   const lv = woundsOfLevel(level);
   if (lv) out.push({ source: `health: ${level}`, type: 'wounds', value: lv });
   const lib = getLibrary();
   const ct = creatureType(state, actor.core.creatureTypeId);
-  const uses = lib.skills[skill]?.roles ?? [];
+  const uses = ctx.roles ?? lib.skills[skill]?.roles ?? [];
   const st = (id: string) => poolState(partPct(actor, id));
   const inst = actor.core.inventory.find((i) => i.id === ctx.itemId);
   for (const role of Object.keys(lib.roles) as RoleId[]) {
