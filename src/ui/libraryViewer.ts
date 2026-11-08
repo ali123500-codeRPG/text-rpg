@@ -200,7 +200,13 @@ function skills(): HTMLElement[] {
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.join(', ') || '—'), h('td', {}, groupsOf(s).map((g) => GROUP_NAMES[g]).join(', ') || '—'), h('td', {}, s.roles.join(', ') || '—'),
         h('td', {}, `${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`), h('td', {}, s.xpCategory), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   return [h('div', { class: 'lv-grid wide' },
-    Object.values(lib.trees).map((t) => tree(t.id, t.name, t.skills, t, access(t.access))),
+    Object.values(lib.trees).map((t) => {
+      // the tree's own id, and the skill groups its skills belong to (from FUNCTION_GROUP, F1) so the two don't get mixed up
+      const groups = [...new Set(t.skills.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`group: ${GROUP_NAMES[g]}`, '--c3'));
+      const el = tree(t.id, t.name, t.skills, t, [...groups, ...access(t.access)]);
+      el.querySelector('.lv-id')!.textContent = `tree id: ${t.id}`;
+      return el;
+    }),
     loose.length ? tree('no_tree', 'In no tree', loose, loose, []) : null)];
 }
 
