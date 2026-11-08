@@ -14,7 +14,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Hidden Strike (Light weapons) · A1
 
-*Story:* Strike someone who never sees you coming. Any attack you make on someone who hasn't noticed you lands one outcome better.
+*Story:* Too slow. By the time they sense you, it's already over. Any attack you make on someone who hasn't noticed you lands one outcome better.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an attack.
@@ -24,7 +24,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Turn the Blade (Medium weapons) · A2
 
-*Story:* You catch their swing on your own blade and turn it aside. When you block a melee attack cleanly with any melee weapon, the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
+*Story:* Their steel meets yours and slides away, and for one heartbeat they are wide open. When you block a melee attack cleanly with any melee weapon, the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
 
 - **Kind:** Always on
 - **Trigger:** The owner blocks a melee attack.
@@ -34,7 +34,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Shield Breaker (Heavy weapons) · A3
 
-*Story:* Your heavy weapon has no patience for shields. When a foe blocks your heavy weapon with a shield, the shield takes double damage and soon splinters.
+*Story:* A shield is a polite request. Your heavy weapon declines. When a foe blocks your heavy weapon with a shield, the shield takes double damage and soon splinters.
 
 - **Kind:** Always on
 - **Trigger:** The owner's melee attack is resolved.
@@ -44,7 +44,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Point Blank (Light ranged) · A4
 
-*Story:* Most archers panic when a foe closes in. You keep your nerve: with any ranged weapon you take no penalty for shooting while a hostile is in your zone.
+*Story:* Most archers panic when a blade closes in. You just smile: with any ranged weapon you take no penalty for shooting while a hostile is in your zone.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
@@ -54,7 +54,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Hunter's Mark (Medium ranged) · A5
 
-*Story:* Once your shot has found a foe, you have its measure. After any ranged hit, your next shot at that foe lands one outcome better, as long as it comes in the same fight.
+*Story:* The first arrow tastes their blood. The next one already knows the way. After any ranged hit, your next shot at that foe lands one outcome better, as long as it comes in the same fight.
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits (outcome grazed, blocked, full, heavy or crushing hit).
@@ -64,7 +64,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Leg Bolt (Heavy ranged) · A6
 
-*Story:* Your bolts and arrows go for the legs. With a medium or heavy ranged weapon, a shot that wounds a leg hurts it one and a half times as much as usual, and the target is slowed: it can move only one zone link until the end of its next turn.
+*Story:* Prey that cannot run is prey already caught. Your bolts and arrows go for the legs. With a medium or heavy ranged weapon, a shot that wounds a leg hurts it one and a half times as much as usual, and the target is slowed: it can move only one zone link until the end of its next turn.
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits a part with the Move role (a leg) and deals damage.
@@ -74,7 +74,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Open-Hand Guard (Strike) · A7
 
-*Story:* You catch and turn blows on your hands and forearms. With empty hands and no weapon or shield, you can still block. A blow that gets through lands half on your arm and half on your body.
+*Story:* Who said you need a weapon to stop one? You catch and turn blows on bare hands and forearms. With empty hands and no weapon or shield, you can still block. A blow that gets through lands half on your arm and half on your body.
 
 - **Kind:** Always on
 - **Trigger:** The owner defends with block.
@@ -82,9 +82,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner may block (block normally needs a held shield or weapon). The block uses the block column of the gap ladder. A hit that gets through is split: 0.5× of its damage goes to the blocking arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test (Ali, 07/11/2026).
 - **Lasts:** Each defense.
 
-### Hold (Grapple) · A8
+### Don't Let Go (Grapple) · A8
 
-*Story:* When your grapple lands with a Great Success or better, you lock on. The target is held: it can't leave your zone or use a two-handed weapon until it wins a grapple contest against you (a tie is enough), you go down, or you leave the zone. Anyone can grapple: without the skill, a fighter uses a weapon skill at a fifth of its value, or another unarmed skill at two fifths.
+*Story:* Once you have them, there is no escape. When your grapple lands with a Great Success or better, you lock on. The target is held: it can't leave your zone or use a two-handed weapon until it wins a grapple contest against you (a tie is enough), you go down, or you leave the zone. Anyone can grapple: without the skill, a fighter uses a weapon skill at a fifth of its value, or another unarmed skill at two fifths.
 
 - **Kind:** Always on
 - **Trigger:** The owner's grapple attack is resolved.
@@ -94,7 +94,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Dirt in the Eyes (Improvisation) · A9
 
-*Story:* A fistful of dirt, a splash of ale, whatever is close. Once per fight, with a free hand and without giving up your action, you throw it in the face of a foe in your zone. It tries to dodge; if it fails, its next roll that needs sight is two outcomes worse.
+*Story:* Honor is for those who can afford to lose. A fistful of dirt, a splash of ale, whatever is close. Once per fight, with a free hand and without giving up your action, you throw it in the face of a foe in your zone. It tries to dodge; if it fails, its next roll that needs sight is two outcomes worse.
 
 - **Kind:** Free move
 - **Trigger:** The owner uses the move on a foe in the owner's zone. It does not use the owner's action (Ali, 07/11/2026).
@@ -105,7 +105,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Make Them Stumble (Dodge) · A10
 
-*Story:* Slip a melee blow cleanly and the attacker lurches past you, off balance. Its next defense, before the end of its next turn, is one outcome worse.
+*Story:* They swing at an afterimage and stumble into nothing. Slip a melee blow cleanly and the attacker lurches past you, off balance. Its next defense, before the end of its next turn, is one outcome worse.
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges a melee attack.
@@ -115,7 +115,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Cover Ally (Block) · A11
 
-*Story:* You step in front of a friend. When an arrow or bolt flies at an ally in your zone and your block is better than the ally's own defense, you block it in their place; anything that gets through hits you. It counts as one of your defenses that turn. You can switch it off for any character.
+*Story:* Not while you still stand. You step in front of a friend. When an arrow or bolt flies at an ally in your zone and your block is better than the ally's own defense, you block it in their place; anything that gets through hits you. It counts as one of your defenses that turn. You can switch it off for any character.
 
 - **Kind:** Always on; can be switched off per character (on by default)
 - **Trigger:** A ranged attack targets an actor friendly to the owner in the owner's zone.
@@ -123,9 +123,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner defends in the ally's place with the owner's own block roll. A hit that gets through lands on the owner, who stepped into its path. It counts as one of the owner's defenses this turn (outnumbered).
 - **Lasts:** Each attack.
 
-### Iron Frame (Endurance) · A12
+### Iron Body (Endurance) · A12
 
-*Story:* Bruises and sprains don't slow you. A body part that counts as Damaged gives you no penalty; worse wounds still hold you back. With Tough It Out, even a Crippled part no longer slows you.
+*Story:* Pain is just information, and you stopped listening long ago. A body part that counts as Damaged gives you no penalty; worse wounds still hold you back. With Tough It Out, even a Crippled part no longer slows you.
 
 - **Kind:** Always on
 - **Trigger:** Any roll by the owner.
@@ -135,7 +135,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Read Wounds (Sight) · A13
 
-*Story:* You notice a limp, a favoured arm, a bleeding hand. You can see which of a foe's body parts are Damaged, and you can tell a foe is hurt one step sooner than others can: from Injured instead of Wounded.
+*Story:* A limp, a favoured arm, a bleeding hand: every weakness shows itself to you. You can see which of a foe's body parts are Damaged, and you can tell a foe is hurt one step sooner than others can: from Injured instead of Wounded.
 
 - **Kind:** Always on
 - **Trigger:** The owner perceives a foe by sight.
@@ -145,7 +145,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Keen Ear (Hearing) · A14
 
-*Story:* You hear footsteps and voices from farther away than most. Your hearing reaches one zone link further.
+*Story:* A whisper two rooms away might as well be a shout. Your hearing reaches one zone link further.
 
 - **Kind:** Always on
 - **Trigger:** A perception check for the owner by sound.
@@ -154,7 +154,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Quick Word (Persuasion) · A15
 
-*Story:* In the heat of a fight, a short line costs you nothing. Once a turn, a one-sentence remark is spoken without using up your action, and the answer it gets costs the other side nothing either.
+*Story:* Blades clash, and you still have time for the last word. Once a turn, a one-sentence remark is spoken without using up your action, and the answer it gets costs the other side nothing either.
 
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner both speaks and acts.
@@ -166,7 +166,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Threaten for Answers (Intimidation) · A16
 
-*Story:* When someone won't help you willingly, fear works as well as charm. Asking an unfriendly or hostile person for information, your intimidation counts at its full value instead of half.
+*Story:* Charm is a request. Fear is an answer. Asking an unfriendly or hostile person for information, your intimidation counts at its full value instead of half.
 
 - **Kind:** Always on
 - **Trigger:** The owner tries to get information from an NPC.
@@ -174,9 +174,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Intimidation counts as a named skill for the request (full value), not a substitute at half value.
 - **Lasts:** Each request.
 
-### Haggler (Barter) · A17
+### Hard Bargain (Barter) · A17
 
-*Story:* Merchants sigh when they see you coming. You buy for 10% less and sell for 10% more.
+*Story:* Merchants go pale when your shadow falls across their stall. You buy for 10% less and sell for 10% more.
 
 - **Kind:** Always on
 - **Trigger:** The owner buys or sells.
@@ -189,7 +189,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Keen Edge (Light weapons) · P1
 
-*Story:* +5 Light weapons, +1 Melee. Your light weapons find their mark: +10 to hit with them.
+*Story:* +5 Light weapons, +1 Melee. Your blade has learned where flesh is softest: +10 to hit with light weapons.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -198,7 +198,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Guard Drill (Medium weapons) · P2
 
-*Story:* +5 Medium weapons, +1 Melee. Your blocks get better too: +10 Block.
+*Story:* +5 Medium weapons, +1 Melee. Every guard you hold makes the next one harder to break: +10 Block.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -207,7 +207,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Heavy Hand (Heavy weapons) · P3
 
-*Story:* +5 Heavy weapons, +1 Melee. Your heavy weapons hit 20% harder.
+*Story:* +5 Heavy weapons, +1 Melee. Armor dents, bones give: your heavy weapons hit 20% harder.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -216,7 +216,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Sharp Eyes (Light ranged) · P4
 
-*Story:* +5 Light ranged, +1 Ranged. You spot more: +10 Sight.
+*Story:* +5 Light ranged, +1 Ranged. Nothing escapes the archer's eye: +10 Sight.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -225,7 +225,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Steady Draw (Medium ranged) · P5
 
-*Story:* +5 Medium ranged, +1 Ranged. A little of both: +5 to hit with medium ranged weapons, and they hit 10% harder.
+*Story:* +5 Medium ranged, +1 Ranged. Steady hands, a heavier bite: +5 to hit with medium ranged weapons, and they hit 10% harder.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -234,7 +234,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Armor Piercer (Heavy ranged) · P6
 
-*Story:* +5 Heavy ranged, +1 Ranged. Your bolts punch through armor: it stops 2 less of each hit.
+*Story:* +5 Heavy ranged, +1 Ranged. Steel plate is just a suggestion to your bolts: it stops 2 less of each hit.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -243,7 +243,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Street Fighter (Strike) · P7
 
-*Story:* +5 Strike, +1 Melee. Anything in reach becomes a weapon: +10 Improvisation.
+*Story:* +5 Strike, +1 Melee. Fists taught you that anything in reach is a weapon: +10 Improvisation.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -252,7 +252,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Iron Grip (Grapple) · P8
 
-*Story:* +5 Grapple, +1 Melee. Your holds are harder to escape: +10 on every grapple roll, breaking free included.
+*Story:* +5 Grapple, +1 Melee. Once you take hold, struggling only tires them out: +10 on every grapple roll, breaking free included.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -261,7 +261,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Brawler's Eye (Improvisation) · P9
 
-*Story:* +5 Improvisation, +1 Melee. Your fists and your eyes sharpen: +5 Strike, +5 Sight.
+*Story:* +5 Improvisation, +1 Melee. A brawler sees the opening before the punch: +5 Strike, +5 Sight.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -270,25 +270,25 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Light Feet (Dodge) · P10
 
-*Story:* +5 Dodge, +1 Defense. Quick feet are quiet feet: +10 Sneaking.
+*Story:* +5 Dodge, +1 Defense. Feet that never get hit never make a sound: +10 Sneaking.
 
 - **Kind:** Always on
 - **Trigger:** Always.
 - **Effect:** +5 true skill in dodge. +1 true skill in every skill of group defense. +10 true skill in sneaking.
 - **Lasts:** Always.
 
-### Braced (Block) · P11
+### Take the Hit (Block) · P11
 
-*Story:* +5 Block, +1 Defense. Taking blows hardens you: +10 Endurance.
+*Story:* +5 Block, +1 Defense. Every blow you stop leaves you harder: +10 Endurance.
 
 - **Kind:** Always on
 - **Trigger:** Always.
 - **Effect:** +5 true skill in block. +1 true skill in every skill of group defense. +10 true skill in endurance.
 - **Lasts:** Always.
 
-### Quick Mend (Endurance) · P12
+### Fast Healer (Endurance) · P12
 
-*Story:* +5 Endurance, +1 Health. Your body heals twice as fast on its own.
+*Story:* +5 Endurance, +1 Health. Your flesh knits itself shut, twice as fast as it has any right to.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -297,7 +297,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Marksman's Eye (Sight) · P13
 
-*Story:* +5 Sight, +1 Notice. A good eye guides your shots: +5 Light ranged, +5 Medium ranged.
+*Story:* +5 Sight, +1 Notice. What your eye finds, your arrow follows: +5 Light ranged, +5 Medium ranged.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -306,7 +306,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Soft Step (Hearing) · P14
 
-*Story:* +5 Hearing, +1 Notice. Knowing what others hear, you move quieter: +10 Sneaking.
+*Story:* +5 Hearing, +1 Notice. You know what every footstep sounds like, so yours make none: +10 Sneaking.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -315,9 +315,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## Higher milestone
 
-### Precise (Light weapons) · B1
+### Find the Gap (Light weapons) · B1
 
-*Story:* You pick your spot. With any attack, aiming at a small body part costs you only half the usual penalty.
+*Story:* There is a gap in every guard, and you see it. With any attack, aiming at a small body part costs you only half the usual penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an aimed attack.
@@ -327,7 +327,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Disarming Cut (Medium weapons) · B2
 
-*Story:* A cut to the arm makes the hand open. When your medium or heavy weapon wounds an arm, the target drops whatever that hand holds, shield included.
+*Story:* A cut to the arm, and the hand forgets what it was holding. When your medium or heavy weapon wounds an arm, the target drops whatever that hand holds, shield included.
 
 - **Kind:** Always on
 - **Trigger:** The owner's melee attack hits a part with the Grip role (an arm) and deals damage.
@@ -337,7 +337,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Cleave (Heavy weapons) · B3
 
-*Story:* When your heavy swing fells a foe, it carries on. Once a turn, you get a free attack at another foe in reach in your zone.
+*Story:* One falls. The swing doesn't stop. Once a turn, you get a free attack at another foe in reach in your zone.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy melee attack downs its target.
@@ -348,7 +348,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Shoot and Move (Light ranged) · B4
 
-*Story:* You loose a shot and change position in the same breath. On a turn you shoot a light or medium ranged weapon, you can also move one zone link.
+*Story:* Loose, step, gone. They aim at where you were. On a turn you shoot a light or medium ranged weapon, you can also move one zone link.
 
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner's order is a light or medium ranged attack (Ali, 07/11/2026).
@@ -358,18 +358,18 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Human Shield (Grapple) · B6
 
-*Story:* While you hold someone, you turn them into the path of incoming arrows. A ranged attack at you that doesn't beat your defense hits the person you hold instead.
+*Story:* Allies, enemies, shields: in your hands they are all the same thing. While you hold someone, you turn them into the path of incoming arrows. A ranged attack at you that doesn't beat your defense hits the person you hold instead.
 
 - **Kind:** Always on
 - **Trigger:** A ranged attack targets the owner.
-- **Conditions:** The owner is holding an actor (Hold).
+- **Conditions:** The owner is holding an actor (Don't Let Go).
 - **Effect:** If the gap is 0 or better for the owner, the attack resolves against the held actor instead, with no defense from it.
 - **Lasts:** Each attack.
-- **Needs first:** Hold.
+- **Needs first:** Don't Let Go.
 
 ### Anything Goes (Improvisation) · B7
 
-*Story:* A chair leg or a bottle serves you as well as a proper weapon. Improvised weapons lose their hit penalty.
+*Story:* A chair leg, a bottle, a candlestick. In your hands everything is a weapon. Improvised weapons lose their hit penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner attacks with an improvised weapon.
@@ -378,7 +378,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Slip the Crowd (Dodge) · B8
 
-*Story:* Surrounded, you slip blows as if you faced only one foe. Your dodge never takes the outnumbered penalty.
+*Story:* Surrounded? You've got them right where you want them. Your dodge never takes the outnumbered penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges.
@@ -387,7 +387,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Shield Wall (Block) · B9
 
-*Story:* Behind your shield, numbers don't matter. Your shield blocks never take the outnumbered penalty.
+*Story:* Bring an army. The wall does not care. Your shield blocks never take the outnumbered penalty.
 
 - **Kind:** Always on
 - **Trigger:** The owner blocks.
@@ -397,7 +397,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Refuse to Fall (Endurance) · B10
 
-*Story:* Once per fight, when a blow should drop you, you stay on your feet at the last health level before going down, unless the blow destroyed your head or neck.
+*Story:* Not here. Not like this. Once per fight, when a blow should drop you, you stay on your feet at the last health level before going down, unless the blow destroyed your head or neck.
 
 - **Kind:** Always on
 - **Trigger:** Damage would down the owner.
@@ -409,7 +409,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Calm Words (Persuasion) · B11
 
-*Story:* Talk well enough and a foe who wanted you dead lowers its weapon. Winning a persuasion contest by two outcomes or more against someone hostile makes it only wary of you: it stops attacking on sight.
+*Story:* Words cut deeper than steel, and sometimes they cut the will to fight. Winning a persuasion contest by two outcomes or more against someone hostile makes it only wary of you: it stops attacking on sight.
 
 - **Kind:** Always on
 - **Trigger:** The owner wins a persuasion contest against an NPC hostile to the owner.
@@ -417,9 +417,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The NPC's stance toward the owner becomes opposed: it stops attacking on sight.
 - **Lasts:** Until something changes it again.
 
-### Plead (Persuasion) · B12
+### Beg for Mercy (Persuasion) · B12
 
-*Story:* Beaten and about to fall, you beg for mercy. At the last health level before going down, you can plead with a hostile foe; win a persuasion contest and it stops attacking you for the rest of the fight.
+*Story:* Pride is for the living. Beaten and about to fall, you beg for mercy. At the last health level before going down, you can plead with a hostile foe; win a persuasion contest and it stops attacking you for the rest of the fight.
 
 - **Kind:** Move
 - **Trigger:** The owner pleads for mercy with a foe.
@@ -428,9 +428,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** For the rest of the engagement.
 - **Needs first:** Moves.
 
-### Menace (Intimidation) · B13
+### Make an Example (Intimidation) · B13
 
-*Story:* When you cut a foe down, those who see or hear it lose heart. Every other foe that sees or hears it makes a morale check at once.
+*Story:* One falls, and the rest remember they can die too. Every other foe that sees or hears it makes a morale check at once.
 
 - **Kind:** Always on
 - **Trigger:** The owner's attack downs a foe.
@@ -440,7 +440,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Unblinking (Sight) · B14
 
-*Story:* Once you have someone in your sights, they don't slip away easily. When someone you can see vanishes and gets past you, they still have to sneak past you as well before you lose them.
+*Story:* Once your eyes are on someone, there is nowhere left to run. When someone you can see vanishes and gets past you, they still have to sneak past you as well before you lose them.
 
 - **Kind:** Always on
 - **Trigger:** A character the owner sees (aware or tracking) vanishes, and the owner loses the Vanishing contest.
@@ -451,7 +451,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Set Them Up (Strike) · B15
 
-*Story:* Fists and whatever's at hand work together. Every punch you throw at a foe, landed or not, sets up your next improvised attack on it, and every improvised attack sets up your next punch: that attack lands one outcome better.
+*Story:* Left, right, bottle, fist. Every blow opens the door for the next. Every punch you throw at a foe, landed or not, sets up your next improvised attack on it, and every improvised attack sets up your next punch: that attack lands one outcome better.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an attack with skill unarmed_strike or unarmed_improvised, hit or miss (Ali, 08/11/2026: it counts on the attempt).
@@ -460,7 +460,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### One-Two (Improvisation) · B16
 
-*Story:* A bottle in one hand, a fist in the other. When you hit a foe with an improvised weapon and your other hand is empty, you follow up with a free punch at the same foe.
+*Story:* A bottle in one hand, a fist in the other, and no mercy in either. When you hit a foe with an improvised weapon and your other hand is empty, you follow up with a free punch at the same foe.
 
 - **Kind:** Always on
 - **Trigger:** The owner's attack with skill unarmed_improvised hits (outcome grazed, blocked, full, heavy or crushing hit).
@@ -472,7 +472,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Never Surprised (Hearing) · C1
 
-*Story:* If you could hear it coming, it can't catch you off guard. An attacker within your hearing range never counts as unseen: you lose no initiative or defense for being unaware.
+*Story:* If you can hear it coming, it was never a surprise. An attacker within your hearing range never counts as unseen: you lose no initiative or defense for being unaware.
 
 - **Kind:** Always on
 - **Trigger:** An attack on the owner while the owner is unaware of the attacker.
@@ -482,7 +482,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar shakes the nerve of every foe close by. Once per fight, every hostile in your zone that hears it makes a morale check.
+*Story:* Your roar tells every foe close by exactly how this ends. Once per fight, every hostile in your zone that hears it makes a morale check.
 
 - **Kind:** Move
 - **Trigger:** The owner uses the move.
@@ -493,7 +493,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Buy Them Off (Barter) · C3
 
-*Story:* In the middle of a fight you offer coin, as much as you choose; a bigger offer is harder to refuse. Win a barter contest and the foe takes the coin and stops attacking you for the rest of the fight.
+*Story:* Everyone has a price, even mid-swing. In the middle of a fight you offer coin, as much as you choose; a bigger offer is harder to refuse. Win a barter contest and the foe takes the coin and stops attacking you for the rest of the fight.
 
 - **Kind:** Move
 - **Trigger:** The owner offers coin to a foe in a fight.
@@ -504,7 +504,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Tough It Out (Endurance) · D6
 
-*Story:* Pain slows you later than it slows others. Your wound penalty is taken as if you were one health level less hurt, and every wounded body part hinders you as if it were one step better: a destroyed arm works like a crippled one.
+*Story:* Broken bones are a problem for later. Your wound penalty is taken as if you were one health level less hurt, and every wounded body part hinders you as if it were one step better: a destroyed arm works like a crippled one.
 
 - **Kind:** Always on
 - **Trigger:** Any roll by the owner.
@@ -515,7 +515,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Held Shot (Medium ranged) · D8
 
-*Story:* You hold your shot and wait. Instead of acting, you ready a ranged weapon: the first hostile to enter your zone before the end of your next turn takes a shot before it can act.
+*Story:* Patience is a blade too. You hold your shot and wait. Instead of acting, you ready a ranged weapon: the first hostile to enter your zone before the end of your next turn takes a shot before it can act.
 
 - **Kind:** Move
 - **Trigger:** The owner readies any ranged weapon instead of acting (Ali, 07/11/2026).
@@ -525,7 +525,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Crushing Blow (Heavy weapons) · D1
 
-*Story:* Your heavy blows drive through a block harder than anyone else's. Against a block, your heavy weapon pushes the outcome two steps your way instead of one.
+*Story:* A block only delays the inevitable. Against a block, your heavy weapon pushes the outcome two steps your way instead of one.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy melee attack is blocked.
@@ -534,7 +534,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Punch Through (Heavy ranged) · D2
 
-*Story:* Your bolt hits a shield so hard that the arm behind it is hurt too. The shield arm takes half the damage the shield took.
+*Story:* Hiding behind a shield only moves the wound. The shield arm takes half the damage the shield took.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy ranged attack is blocked with a shield.
@@ -543,7 +543,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Staggering Bolt (Heavy ranged) · D3
 
-*Story:* A solid hit from your bolt knocks a foe back. On a full hit or better, the target acts last on its next turn.
+*Story:* The bolt hits, and the world stops for them a moment. On a full hit or better, the target acts last on its next turn.
 
 - **Kind:** Always on
 - **Trigger:** The owner's heavy ranged attack is a full hit or better.
@@ -552,7 +552,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Flurry (Strike) · D4
 
-*Story:* With both hands free, you throw two quick punches a turn; the second is one outcome less sure.
+*Story:* Faster than the eye can follow. With both hands free, you throw two quick punches a turn; the second is one outcome less sure.
 
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner's order is an unarmed strike.
@@ -563,7 +563,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Roll With It (Dodge) · D5
 
-*Story:* A blow that only grazes you does no harm at all.
+*Story:* Was that supposed to hurt? A blow that only grazes you does no harm at all.
 
 - **Kind:** Always on
 - **Trigger:** The owner dodges and the gap is +1 (a graze).
@@ -572,7 +572,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Night Eyes (Sight) · D7
 
-*Story:* Darkness doesn't hinder your eyes. Dim light and darkness give you no penalty to anything that needs sight.
+*Story:* The dark hides others. It never hid anything from you. Dim light and darkness give you no penalty to anything that needs sight.
 
 - **Kind:** Always on
 - **Trigger:** A roll by the owner that needs sight.
