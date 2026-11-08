@@ -211,8 +211,8 @@ const FACETS: Record<string, Facets> = {
     ...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]).map((f): [string, string] => ['Flag', f]), ...(i.tags ?? []).map((t): [string, string] => ['Flag', t])],
   perks: (d: PerkDef & { place?: string; skill?: string }) => [['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', treeOf(d.ladder?.skill ?? d.skill)]],
-  achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.by ? `per ${d.by}` : 'total defeats']],
-  creatures: (c: CreatureType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
+  achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.by ? `per ${d.by.replace('_', ' ')}` : 'total defeats']],
+  bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; classId?: string }) => [['Tree', t.classId ? 'class tree' : 'general'],
     ...(t.skills ?? []).flatMap((id) => lib.skills[id]?.functions.map((fn): [string, string] => ['Function', fn]) ?? [])],
 };
