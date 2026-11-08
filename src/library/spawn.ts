@@ -90,7 +90,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       generation: t.generation,
       skills,
       classes: t.classId ? [{ classId: t.classId, state: 'current', level: t.level }] : [],
-      perks: racePerks(t.raceId, state?.turn ?? 0),
+      perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 }))],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
       standingDefense: (skills.block?.raw ?? 0) >= (skills.dodge?.raw ?? 0) ? 'block' : 'dodge', // GAP: raw skill; a tie goes to block like the player

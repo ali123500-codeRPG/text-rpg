@@ -38,7 +38,7 @@ describe('unique generation', () => {
   it('is seeded: minimums plus level x POINTS_PER_LEVEL + bonus, preferred skills tagged', () => {
     const a = rollUniqueSkills(bandit, createRng(5));
     expect(rollUniqueSkills(bandit, createRng(5))).toEqual(a);
-    expect(sum(a)).toBe(sum(Object.fromEntries(Object.entries(bandit.minimums).map(([k, v]) => [k, { raw: v }]))) + 2 * 3 + 10);
+    expect(sum(a)).toBe(sum(Object.fromEntries(Object.entries(bandit.minimums).map(([k, v]) => [k, { raw: v }]))) + bandit.level * 3 + 10);
     expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual(['block', 'melee_medium', 'sight']);
     const seeds = new Set([1, 2, 3, 4, 5, 6].map((n) => JSON.stringify(rollUniqueSkills(bandit, createRng(n)))));
     expect(seeds.size).toBeGreaterThan(1); // spending is uneven across seeds
@@ -58,7 +58,7 @@ describe('unique generation', () => {
     const b = spawnNpc(null, 'bandit', opts, createRng(5));
     expect(b.core.generation).toBe('unique');
     expect(b.core.skills).toEqual(rollUniqueSkills(bandit, createRng(5)));
-    expect(b.progression!.unspentPerkPoints).toBe(1);
+    expect(b.progression!.unspentPerkPoints).toBe(Math.floor(bandit.level / 2));
     expect(spawnNpc(null, 'guard', opts).core.skills.melee_medium).toEqual({ raw: 40, state: 'normal' });
   });
 });

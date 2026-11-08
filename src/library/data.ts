@@ -169,26 +169,27 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   guard: {
     id: 'guard', raceId: 'human', generation: 'copy',
     minimums: { melee_medium: 40, block: 30, dodge: 20, sight: 30, hearing: 30, intimidation: 30, persuasion: 20 },
-    level: 2, bonusPoints: 10,
+    // Ali (08/11/2026): anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
+    level: 4, bonusPoints: 10, perks: ['keen_ear'],
     focus: [{ treeId: 'melee', skill: 'melee_medium' }, { treeId: 'defense', skill: 'block' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
     id: 'trader', raceId: 'human', generation: 'copy',
-    minimums: { sight: 25, hearing: 25, barter: 40, persuasion: 30 }, level: 1, bonusPoints: 0,
+    minimums: { sight: 25, hearing: 25, barter: 40, persuasion: 30 }, level: 2, bonusPoints: 0, // Ali (08/11/2026): villagers are at least level 2
     focus: [{ treeId: 'perception', skill: 'hearing' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
   // NS7 (Ali, 08/11/2026): a village thief, the first stealthy NPC
   thief: {
     id: 'thief', raceId: 'human', generation: 'copy',
-    minimums: { sneaking: 40, combat_stealth: 30, vanishing: 30, melee_light: 35, dodge: 30, sight: 30, hearing: 30 }, level: 2, bonusPoints: 10,
+    minimums: { sneaking: 40, combat_stealth: 30, vanishing: 30, melee_light: 35, dodge: 30, sight: 30, hearing: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
     focus: [{ treeId: 'stealth', skill: 'sneaking' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', loadout: ['dagger', 'gambeson'], control: 'agent', label: 'a shifty villager',
   },
   patron: {
     id: 'patron', raceId: 'human', generation: 'copy',
-    minimums: { unarmed_strike: 20, sight: 20, persuasion: 30 }, level: 1, bonusPoints: 0,
+    minimums: { unarmed_strike: 20, sight: 20, persuasion: 30 }, level: 2, bonusPoints: 0,
     focus: [{ treeId: 'unarmed', skill: 'unarmed_strike' }, { treeId: 'defense', skill: 'dodge' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'timid', control: 'code', label: 'a tavern patron',
   },
