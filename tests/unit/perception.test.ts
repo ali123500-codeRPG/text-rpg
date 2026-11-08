@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';
 import { makeVillage, actor, place, createRng } from '../harness';
-import { applyBeliefDecay, computePerception, updateBeliefs } from '../../src/perception';
-import { CONFIG } from '../../src/config';
+import { applyBeliefDecay, computePerception, hearingSkill, updateBeliefs } from '../../src/perception';
+import { CONFIG, resetConfig } from '../../src/config';
 
 let n = 0;
 const ev = (e: Partial<GameEvent> & Pick<GameEvent, 'actorId' | 'kind' | 'zone'>): GameEvent =>
@@ -37,6 +37,17 @@ describe('computePerception', () => {
     const hid = ev({ actorId: 'slime_1', kind: 'idle', zone: 'gate_inner', noise: 'silent', visibility: 'close' });
     expect(computePerception(hid, v, createRng(1)).player).toBeUndefined();
     expect(computePerception({ ...hid, zone: 'street_square' }, v, createRng(1)).player).toEqual({ level: 'full', cue: 'sight' });
+  });
+  it('NV5: a Silent event is half heard by chance (hearing-tag skill × SILENT_HEAR), only in the same or the next zone', () => {
+    const s = makeVillage({ playerZone: 'street_door' });
+    expect(hearingSkill(s.player)).toBe(20); // the harness player's Hearing
+    const e = ev({ actorId: 'trader', kind: 'idle', zone: 'tav_common', noise: 'silent', visibility: 'unseen' });
+    CONFIG.SILENT_HEAR = [0, 0];
+    expect(computePerception(e, s, createRng(1)).player).toBeUndefined();
+    CONFIG.SILENT_HEAR = [5, 5]; // 20 × 5 = 100%: always heard, always half
+    expect(computePerception(e, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
+    expect(computePerception({ ...e, zone: 'tav_counter' }, s, createRng(1)).player).toBeUndefined(); // 2 links
+    resetConfig();
   });
   it('dark zone caps sight at partial', () => {
     const s = makeVillage({ playerZone: 'tav_cellar' });

@@ -53,7 +53,7 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   melee_light: ['sight'], melee_medium: ['sight'], melee_heavy: ['sight'],
   ranged_light: ['sight', 'ranged'], ranged_medium: ['sight', 'ranged'], ranged_heavy: ['sight', 'ranged'],
   unarmed_strike: ['sight'], unarmed_grapple: ['sight'], unarmed_improvised: ['sight'], unarmed_natural: ['sight'],
-  dodge: ['sight'], block: ['sight'], sight: ['sight'], hearing: ['hearing'], // hearing: no table reads it yet
+  dodge: ['sight'], block: ['sight'], sight: ['sight'], hearing: ['hearing'], // hearing: the Silent-event chance reads it (NV5)
   sneaking: ['stealth'], combat_stealth: ['stealth'], vanishing: ['stealth', 'hide'],
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
