@@ -107,7 +107,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let open: 'commands' | 'ideas' | null = null;
   const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
   const st = stealthButtons(pick);
-  const aimPicker = h('div', { class: 'hs-picker' }, aimBtn, st.sneak, st.hide, healBtn);
+  const aimPicker = h('div', { class: 'hs-picker' }, aimBtn, st.sneak, st.hide, st.vanish, healBtn);
   const helpBtn = (id: 'commands' | 'ideas', label: string) => h('button', { type: 'button', onclick: () => { open = open === id ? null : id; update(); } }, label);
   const cmdBtn = helpBtn('commands', 'Commands'), ideaBtn = helpBtn('ideas', 'Ideas');
   const helpPanel = h('div', { class: 'helps', hidden: true });
