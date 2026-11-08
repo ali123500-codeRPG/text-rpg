@@ -48,9 +48,10 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     const d = dist(state, observer.zone, event.zone, true);
     if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
   }
-  // A14 Keen Ear: a sound reaches the owner one zone link further
+  // A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other (Ali, 08/11/2026): Silent becomes Hushed.
+  const up = hasPerk(observer, 'keen_ear') ? 1 : 0;
   const [full, heard] = CONFIG.NOISE_REACH[event.noise];
-  const nl = reach([full, heard >= 0 && hasPerk(observer, 'keen_ear') ? heard + 1 : heard], dist(state, observer.zone, event.zone, false));
+  const nl = reach([full + up, heard + up], dist(state, observer.zone, event.zone, false));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.

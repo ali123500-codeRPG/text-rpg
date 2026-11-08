@@ -70,7 +70,8 @@ const DEFAULTS = {
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
-  // GAP (placeholders): zone links an event reaches, [full, partial], per NOISE / VISIBILITY key; −1 = not at all.
+  // GAP (placeholders): zone links an event reaches, [full, partial], per NOISE / VISIBILITY key. −1 = nowhere, the step
+  // below 0 (same zone), so a +1 link bonus turns nowhere into same zone (Ali, 08/11/2026).
   // Sound from another zone is partial except Deafening (NV6). A dark zone caps sight at partial.
   // NV1–NV6 (Ali, 08/11/2026): Loud and Deafening carry further (NV6); Deafening is heard clearly one link away.
   NOISE_REACH: { silent: [-1, -1], faint: [-1, 0], hushed: [0, 0], quiet: [0, 1], normal: [0, 2], loud: [0, 4], deafening: [1, 6] } as Record<string, [number, number]>,
