@@ -14,7 +14,7 @@ import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { markShifts } from '../engine/perkMarks';
 import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 
-export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
+export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
@@ -333,8 +333,9 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     }
   }
   const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
-  const lost = destroyedEssential ? 100 : T.core.condition.hpLostPct + (counted / hp) * 100;
-  T.core.condition.hpLostPct = Math.min(100, lost);
+  const add = T.core.condition.hpLostPct + (counted / hp) * 100;
+  const lost = destroyedEssential ? Math.max(100, add) : add;
+  T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
   const levelAfter = healthLevel(T);
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
   return out;

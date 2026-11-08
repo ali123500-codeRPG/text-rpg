@@ -4,7 +4,7 @@ import type { Actor, GameState, LogLine } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
-import { poolState } from '../ruleset/body';
+import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { achievementName, charLevel, xpToNext } from '../engine/xp';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
@@ -56,8 +56,8 @@ const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2)))
 
 export function charCard(s: GameState, p: Actor): HTMLElement {
   const { hp } = hpLeft(s, p);
-  const level = healthLevel(p);
-  const levels = CONFIG.HEALTH_TRACK.map(([l]) => l as string);
+  const level = shownLevel(healthLevel(p));
+  const levels = SHOWN_LEVELS().map(([l]) => l as string);
   const lit = Math.round(levels.length * (1 - Math.min(100, p.core.condition.hpLostPct) / 100));
   const place = s.places.find((x) => x.id === p.placeId)?.names.current;
   const cls = p.core.classes.find((c) => c.state === 'current')?.classId ?? '';
@@ -154,10 +154,10 @@ const partName = (id: string) => cap(id.replace(/_/g, ' '));
 function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): HTMLElement[] {
   if (healed.size && partOpen.autoTurn !== turn) { partOpen.on = true; partOpen.autoTurn = turn; }
   const { hp, total } = hpLeft(s, p);
-  const level = healthLevel(p);
+  const level = shownLevel(healthLevel(p));
   const left = Math.max(0, 100 - p.core.condition.hpLostPct);
   // segments by % left: Bruised 85–100, Hurt 70–85 … Critical 0–25 (Unhurt is only the full bar, Incapacitated the empty one)
-  const segs = CONFIG.HEALTH_TRACK.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
+  const segs = SHOWN_LEVELS().slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
   const at = Math.max(0, segs.findIndex((x) => x.l === level));
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
