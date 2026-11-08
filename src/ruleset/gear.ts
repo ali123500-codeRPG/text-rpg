@@ -4,7 +4,7 @@ import { zoneLight } from '../time';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
-import { hasPerk, trueSkill } from './perks';
+import { hasPerk, standInAdd, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 
@@ -74,8 +74,10 @@ export const tierMult = (skill: string): number => CONFIG.SKILL_TIER_MULT[getLib
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[] } = {}) {
   const skills = getLibrary().skills;
-  // substitutes: skills sharing a function at the flat efficiency, or the skill's own table (CONFIG.SUBSTITUTES)
-  const table = CONFIG.SUBSTITUTES[skill] ?? (skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }));
+  // stand-ins: skills sharing a function at the flat efficiency, or the skill's own table (CONFIG.SUBSTITUTES); the
+  // owner's perks move each share (F4, PerkDef.standIn), kept within 0–1
+  const table = (CONFIG.SUBSTITUTES[skill] ?? (skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY })))
+    .map((t) => ({ fn: t.fn, k: Math.min(1, Math.max(0, t.k + standInAdd(actor, t.fn))) }));
   const share = (id: string) => (id === skill || (ctx.fullValue?.includes(id) && skills[id]) ? 1 : Math.max(0, ...table.filter((t) => (skills[id]?.functions as string[] ?? []).includes(t.fn)).map((t) => t.k)));
   const cands = [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)];
   let best: { skill: string; value: number; gear: { source: string; value: number }[] } | null = null;

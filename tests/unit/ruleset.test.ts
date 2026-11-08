@@ -14,16 +14,16 @@ describe('ruleset maths', () => {
     expect(stackType([6, 4, 2])).toBe(8.5);
     expect(stackType([-8, -3])).toBe(-9.5);
     expect(stackType([6, 4, 2, -8, -3])).toBe(-1);
-    expect(stackType([5, 5, 5, 5])).toBe(8.75); // fourth counts 0
+    expect(stackType([8, 8, 8, 8, 8])).toBe(15.5); // 8 + 4 + 2 + 1 + 0.5: the x-th counts at 0.5^(x−1) (Ali, 08/11/2026)
   });
   it('bands margins exactly, .5 included', () => {
     expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map((m) => TIERS.at(band(m)))).toEqual(
       ['critical_failure', 'failure', 'failure', 'failure', 'near_miss', 'near_miss', 'success', 'success', 'great_success', 'great_success', 'critical_success']);
   });
-  it('substitutes at half efficiency, highest candidate', () => {
+  it('stand-ins at SUBSTITUTE_EFFICIENCY (0.3, F4), highest candidate', () => {
     const s = makeVillage();
     s.player.core.skills.intimidation = { raw: 20, state: 'normal' };
-    s.player.core.skills.persuasion = { raw: 60, state: 'normal' };
+    s.player.core.skills.persuasion = { raw: 100, state: 'normal' };
     expect(effectiveSkill(s, s.player, 'intimidation')).toMatchObject({ skill: 'persuasion', value: 30 });
     const c = ruleset.check({ actorId: 'player', skill: 'intimidation', modifiers: [{ source: 'x', value: 20 }] }, s, createRng(1));
     expect(c).toMatchObject({ skill: 'persuasion', target: 50, passed: true });
@@ -36,7 +36,7 @@ describe('ruleset maths', () => {
     expect(effectiveSkill(s, s.player, 'unarmed_grapple')).toMatchObject({ skill: 'melee_heavy', value: 20 });
     sk.unarmed_strike = { raw: 60, state: 'normal' };
     expect(effectiveSkill(s, s.player, 'unarmed_grapple')).toMatchObject({ skill: 'unarmed_strike', value: 24 });
-    expect(effectiveSkill(s, s.player, 'unarmed_improvised')).toMatchObject({ skill: 'unarmed_strike', value: 30 }); // flat 0.5 elsewhere
+    expect(effectiveSkill(s, s.player, 'unarmed_improvised')).toMatchObject({ skill: 'unarmed_strike', value: 18 }); // flat 0.3 elsewhere (F4)
   });
   it('kit pieces share one +25', () => {
     const s = makeVillage();

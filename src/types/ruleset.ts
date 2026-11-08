@@ -15,7 +15,7 @@ export interface Rng {
   d100(): number;
 }
 
-export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear';
+export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement';
 export type Mod = { source: string; type: ModType; value: number };
 export type TierShift = { source: string; value: number };
 
@@ -42,6 +42,8 @@ export type RollRequest = {
   fullValue?: string[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
+  /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
+  against?: string;
 };
 export type RollResult = {
   actorId: string;

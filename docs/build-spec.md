@@ -22,7 +22,7 @@ Skills are grouped into trees of exactly three. Example only: Tactics = Preparat
 
 **Combat skill trees** (minimum for the first build; skill names are *placeholders*):
 
-- Combat – Melee: light weapons, medium weapons, heavy weapons
+- Combat – Arms: light weapons, medium weapons, heavy weapons
 - Combat – Ranged: light ranged, medium ranged, heavy ranged
 - Combat – Unarmed: strike, grapple, improvisation; they behave the same for now (Part 5 §5). Improvisation is fighting with whatever is at hand: improvised weapons (Part 5 §7) roll it (Ali, 07/11/2026). Natural weapons is a creature-only skill outside every player tree (creatures' natural attacks roll it)
 - Combat – Defense: dodge, block, endurance
@@ -39,17 +39,18 @@ The trees' skills are designed with character and mob generation. A perception r
 
 **First-build skill list.** The first build has these skills, by id: melee\_light, melee\_medium, melee\_heavy; ranged\_light, ranged\_medium, ranged\_heavy; unarmed\_strike, unarmed\_grapple, unarmed\_natural; dodge, block, endurance; sight, hearing; persuasion, intimidation, barter; plus the class trees (Swordsman: feint, riposte, disarm; Slime: tremor). Perception's third skill is left out of the first build; sneaking and combat\_stealth are in. Which trees an actor can use comes from each tree's access rule (Part 4 §4, Skill tree access); the creation screen offers the trees a new swordsman can use. Natural attacks and fallback.attackSkill name one of these ids.
 
-**Skill substitution.** Any roll or check may use another skill that shares a function with the named skill (Skill functions, below) at reduced efficiency: that skill's effective skill × SUBSTITUTE\_EFFICIENCY (placeholder 0.5). Code computes every candidate and uses only the highest value after efficiency. Example: intimidating with intimidation 20 and persuasion 60 uses persuasion at 30. The named skill counts at full value, and the roll is recorded against the skill actually used.
+**Skill substitution.** Any roll or check may use another skill that shares a function with the named skill (Skill functions, below) at reduced efficiency: that skill's effective skill × SUBSTITUTE\_EFFICIENCY (0.3, Ali 08/11/2026, F4; perks can raise or lower it). Code computes every candidate and uses only the highest value after efficiency. Example: intimidating with intimidation 20 and persuasion 100 uses persuasion at 30. The named skill counts at full value, and the roll is recorded against the skill actually used.
 
-**Skill functions**. Each skill's library entry lists its functions, and a skill may have several. First build:
+**Skill functions and groups** (Ali, 08/11/2026, F1–F8). Each skill's library entry lists its narrow functions, and a skill may have several; stand-ins read functions. Each function sits in one broad group; a 40 perk's +1 and the XP category read the group. Current list: docs/skill-tags.md.
 
-- Melee attack: melee\_light, melee\_medium, melee\_heavy
-- Ranged attack: ranged\_light, ranged\_medium, ranged\_heavy
-- Unarmed attack: unarmed\_strike, unarmed\_grapple, unarmed\_natural
-- Defense: dodge, block
-- Notice: sight, hearing, tremor
-- Influence: persuasion, intimidation, barter
-- No function yet: endurance (never rolled; it sets HP), and feint, riposte and disarm (no effects designed yet)
+- Melee group: arms (melee\_light, melee\_medium, melee\_heavy), unarmed (unarmed\_strike, unarmed\_grapple, unarmed\_improvised, unarmed\_natural)
+- Ranged group: ranged (ranged\_light, ranged\_medium, ranged\_heavy)
+- Defense group: defense (dodge, block)
+- Health group: health (endurance)
+- Notice group: sight (sight, tremor), hearing (hearing, tremor)
+- Stealth group: stealth (sneaking, combat\_stealth, vanishing)
+- Influence group: influence (persuasion, intimidation, barter)
+- No function yet: feint, riposte and disarm (no effects designed yet), lockpicking
 
 **Skill states** (one per skill):
 
@@ -120,7 +121,7 @@ SKILL_WEIGHT = 0.5, ROLL_NEEDED = 63.5 (placeholders); d100 runs 1–100 (00 = 1
 
 Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to −1 Near Miss; 0 to 24 Success; 25 to 74 Great Success; 75+ Critical Success. Margins may end in .5; compare exact values.
 
-**Scale keys.** Standing design rule for anything in the code with levels (Ali, 07/11/2026, restated 08/11/2026 NV3): every ordered scale (tiers, band tactics, zone light and cover, stance, noise, visibility, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Numbers that go with a level (a reach, a modifier) are keyed by the level's key in config, never by its position. Noise, quietest first: silent, faint, hushed, quiet, normal, loud, deafening. Visibility, least first: unseen, faint, close, low, normal, high, glaring. Each level reaches [full, partial] zone links in CONFIG.NOISE_REACH and SIGHT_REACH (NV1–NV6, Ali, 08/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load). Schema v5 split hostile from opposed: older saves' opposed becomes hostile, so they play as before, and a logged more\_opposed step becomes colder.
+**Scale keys.** Standing design rule for anything in the code with levels (Ali, 07/11/2026, restated 08/11/2026 NV3): every ordered scale (tiers, band tactics, zone light and cover, stance, noise, visibility, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Numbers that go with a level (a reach, a modifier) are keyed by the level's key in config, never by its position. Noise, quietest first: silent, faint, hushed, quiet, normal, loud, deafening. Visibility, least first: unseen, faint, close, low, normal, high, glaring. Each level reaches [full, partial] zone links in CONFIG.NOISE_REACH and SIGHT_REACH (NV1–NV6, Ali, 08/11/2026). Armor weight, lightest first: light, medium, heavy. Worn armor makes body-moving events (move, attack, perk move, break free, pick up) louder by CONFIG.ARMOR\_NOISE\_STEPS noise steps: light +0, medium +1, heavy +2 (placeholders); a stealthy posture doesn't cancel it (AN1–AN4, Ali, 08/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load). Schema v5 split hostile from opposed: older saves' opposed becomes hostile, so they play as before, and a logged more\_opposed step becomes colder.
 
 Modifier types (each type diminishes within itself; values per type are deferred):
 
@@ -131,7 +132,7 @@ Modifier types (each type diminishes within itself; values per type are deferred
 - Situational: flanking, outnumbered, unaware, terrain, range, light, dodge vs missiles.
 - Aim: its own type, so it never diminishes with situational modifiers.
 
-**Stacking within a type.** Within one modifier type, bonuses and penalties are ranked separately by size. In each group the largest counts in full, the second at STACK\_2 and the third at STACK\_3; any further ones count 0. The type's value is the bonus total plus the penalty total. STACK\_2 0.5 and STACK\_3 0.25 are placeholders. Example: bonuses +6, +4, +2 give +8.5; penalties −8, −3 give −9.5; the type adds −1.
+**Stacking within a type.** Within one modifier type, bonuses and penalties are ranked separately by size. In each group the x-th largest counts at STACK\_RATIO^(x−1): the largest in full, the second at 0.5, the third at 0.25, the fourth at 0.125 and so on (Ali, 08/11/2026; was: a fourth counted 0). The type's value is the bonus total plus the penalty total. STACK\_RATIO 0.5 is a placeholder. Example: bonuses +6, +4, +2 give +8.5; penalties −8, −3 give −9.5; the type adds −1.
 
 One roll point equals two skill points; write roll modifiers small.
 
@@ -2111,7 +2112,7 @@ type ItemDef = {                       // library entry or story blueprint (kind
   effects?: ItemEffect[];
   weapon?: { modes: AttackMode[] };
   armor?: { covers: string[]; reduction: number; multiplier: number;
-            weight: 'light' | 'medium' | 'heavy';
+            weight: ArmorWeightKey;   // ARMOR_WEIGHTS: light, medium, heavy
             pools?: Record<string, number> };   // part id -> pool in points, the same for every wearer
   shield?: { pool: number };                     // pool in points, the same in any hand
   base?: { itemId: LibraryRef; quality: 1 | 2 | 3 | 4; boosts: string };   // minted variants
@@ -2606,7 +2607,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-85 | Initiative as a gear target | 5 | Deferred | Heavy armor slowing initiative, and similar |
 | D-86 | Conditional and granted effects | 5 | Deferred | Effects that apply only vs a body type or in darkness; gear that grants statuses, perks or actions; movement and flight modifiers |
 | D-87 | Dual wielding and versatile grips | 5 | Deferred | Off-hand attacks and penalties; weapons usable one- or two-handed with a bonus for two |
-| D-88 | Armor depth | 5 | Deferred | Layers, armor-piercing weapons, damage types (already excluded for now), armor stealth penalties |
+| D-88 | Armor depth | 5 | Deferred | Layers, armor-piercing weapons, damage types (already excluded for now). Armor noise settled (AN1–AN4, Ali, 08/11/2026); quieter-armor perks later (AN5) |
 | D-89 | Durability and repair | 5 | Deferred | Wear on items other than pools; refilling shield and armor pools |
 | D-90 | Containers, charges, keys, crafting | 5 | Deferred | Bags inside bags, items with uses, keys bound to doors, making items. Crafting plan (Ali, 07/11/2026, loot L4): a recipe consumes inputs and makes a check; outcome tier ID sets the quality (−1 plain base, 0 → 1, 1 → 2, 2 → 3, 3 → 4); failure tiers lose the inputs |
 | D-91 | Consumable effects | 5 | Deferred | Healing and timed buffs; waits for Healing and Status effects |
@@ -2629,7 +2630,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-108 | Achievement proposals | 1, 2 | Planned | Decided by Ali (07/11/2026, settles OQ-10): Claude may propose achievements, never grant them. A proposal goes to Ali for approval; once he approves, the feat is implemented as permanent code (a code rule that grants it), like the first-defeat achievement. Place state and promoted facts still come only from code rules. Which agent carries the proposal is open |
 | D-109 | Whole-engagement perk effects | 1 | Planned | Decided by Ali (08/11/2026, AGG comparison A1): some 60 and 100 perks last the whole engagement instead of one roll, as AGG's do. First case: a 60 or 80 Improvisation perk that grows Dirt in the Eyes into a blinding that lasts the fight (AGG's Pocket Sand) |
 | D-110 | Auto-success perks | 1 | Planned | Decided by Ali (08/11/2026, AGG comparison A2): a perk kind where the owner's first roll of one kind in each engagement counts as at least Success. Used for 60 perks in Speech and Stealth |
-| D-111 | Bane bonuses | 1, 2 | Planned | Decided by Ali (08/11/2026, AGG comparison A3, from AGG's deed-earned Feats): race and body-type achievements such as "Bane of {race}kind" also give a small bonus against that race or type. The size is open |
+| D-111 | Bane bonuses | 1, 2 | Built | Decided by Ali (08/11/2026, AGG comparison A3, from AGG's deed-earned Feats): race and body-type achievements such as "Bane of {race}kind" also give a bonus against that race or type: the bonus of the lower level it builds on plus +5 skill (CONFIG.BANE_SKILL_PER_LEVEL), so I = +5, II = +10, III = +15, on attack, defense and contested rolls against an actor of that race or body type. Levels are linked (AchievementDef.after): earning a higher level switches the lower ones off, so only the highest is checked. The best race achievement and the best body type achievement both count, as one modifier type, so the weaker one counts at half (Ali, 08/11/2026; src/ruleset/bane.ts) |
 | D-112 | Downtime unlock perks | 1, 5 | Deferred | Banked by Ali (08/11/2026, AGG comparison A5): perks that unlock downtime actions (rumors, importing, a market, more actions per day) wait until trade (D-93) and long rests exist |
 | D-113 | Skill tree access extras | 1, 4 | Deferred | Banked by Ali (08/11/2026, Skill tree access TA7, TA11): who can use the Tools tree (lockpicking, OQ-20 placeholder; open to all but Slime for now, and off the creation screen), and nested groups of conditions beyond Must and Either of |
 

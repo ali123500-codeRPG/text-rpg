@@ -4,6 +4,7 @@
 import type { Actor, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { skillOpen } from './access';
+import { groupsOf } from '../library/functionNames';
 
 export const MILESTONES = [20, 40, 60, 80, 100, 120, 140] as const;
 /** all-XXX perks (formerly mastery perks; save key 'mastery'): granted when all three skills of a tree reach 50/100/150 */
@@ -26,19 +27,23 @@ export function trueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];
   if (!e || e.dormant || !skillOpen(a, skill)) return 0; // a closed tree counts as 0 (TA4)
   const { perks, skills } = getLibrary();
-  const fns: string[] = skills[skill]?.functions ?? [];
+  const groups = groupsOf(skills[skill]);
   return e.raw + owned(a).reduce((n, p) => {
     const d = perks[p.perkId];
     const own = d?.ladder?.skill;
     if (!d) return n;
     let v = d.trueSkill && own === skill ? d.trueSkill : 0;
     v += d.trueSkillTo?.[skill] ?? 0; // 40/80/120 perks: true skill spent on skills that work well with the ladder skill
-    // 40/80/120 perks: +functionBoost to the ladder skill itself and every other skill sharing a function with it
-    // (docs/skill-tags.md; Ali, 08/11/2026: "+1 function (including itself)")
-    if (d.functionBoost && own && (own === skill || (skills[own]?.functions ?? []).some((f: string) => fns.includes(f)))) v += d.functionBoost;
+    // 40/80/120 perks: +functionBoost to the ladder skill itself and every other skill sharing a group with it
+    // (docs/skill-tags.md; Ali, 08/11/2026: "+1 function (including itself)"; F1: the broad group)
+    if (d.functionBoost && own && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g)))) v += d.functionBoost;
     return n + v;
   }, 0);
 }
+
+/** F4: the owner's perk change to the stand-in share for a function (PerkDef.standIn) */
+export const standInAdd = (a: Actor, fn: string): number =>
+  owned(a).reduce((n, p) => { const s = getLibrary().perks[p.perkId]?.standIn; return n + (s && (!s.fn || s.fn === fn) ? s.add : 0); }, 0);
 
 /** a 40/80/120 perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
 export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult' | 'recoveryMult'): number {
