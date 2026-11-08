@@ -71,9 +71,10 @@ const DEFAULTS = {
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   // GAP (placeholders): zone links an event reaches, [full, partial], per NOISE / VISIBILITY key; −1 = not at all.
-  // Sound from another zone is only ever partial. A dark zone caps sight at partial.
-  NOISE_REACH: { silent: [-1, -1], quiet: [0, 1], normal: [0, 2], loud: [0, 3] } as Record<string, [number, number]>,
-  SIGHT_REACH: { unseen: [-1, -1], low: [0, 1], normal: [1, 2], high: [2, 3] } as Record<string, [number, number]>,
+  // Sound from another zone is partial except Deafening (NV6). A dark zone caps sight at partial.
+  // NV1–NV6 (Ali, 08/11/2026): Loud and Deafening carry further (NV6); Deafening is heard clearly one link away.
+  NOISE_REACH: { silent: [-1, -1], faint: [-1, 0], hushed: [0, 0], quiet: [0, 1], normal: [0, 2], loud: [0, 4], deafening: [1, 6] } as Record<string, [number, number]>,
+  SIGHT_REACH: { unseen: [-1, -1], faint: [-1, 0], close: [0, 0], low: [0, 1], normal: [1, 2], high: [2, 3], glaring: [3, 4] } as Record<string, [number, number]>,
   /** ST21 (Ali, 08/11/2026): which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */

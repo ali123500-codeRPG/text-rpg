@@ -27,6 +27,17 @@ describe('computePerception', () => {
     expect(computePerception(e, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
     expect(computePerception({ ...e, noise: 'quiet' }, s, createRng(1)).player).toBeUndefined();
   });
+  it('NV1–NV6: hushed stays in its zone, deafening is clear one link away, close is seen in its zone only', () => {
+    const s = makeVillage({ playerZone: 'street_door' });
+    const e = ev({ actorId: 'trader', kind: 'speak', zone: 'tav_common', noise: 'hushed', visibility: 'unseen' });
+    expect(computePerception(e, s, createRng(1)).player).toBeUndefined();
+    expect(computePerception({ ...e, noise: 'deafening' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
+    expect(computePerception({ ...e, zone: 'street_door' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
+    const v = makeVillage({ playerZone: 'street_square' });
+    const hid = ev({ actorId: 'slime_1', kind: 'idle', zone: 'gate_inner', noise: 'silent', visibility: 'close' });
+    expect(computePerception(hid, v, createRng(1)).player).toBeUndefined();
+    expect(computePerception({ ...hid, zone: 'street_square' }, v, createRng(1)).player).toEqual({ level: 'full', cue: 'sight' });
+  });
   it('dark zone caps sight at partial', () => {
     const s = makeVillage({ playerZone: 'tav_cellar' });
     place(s, 'patron_1', 'tav_cellar');
