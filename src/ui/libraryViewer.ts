@@ -200,7 +200,9 @@ function skills(): HTMLElement[] {
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.join(', ') || '—'), h('td', {}, groupsOf(s).map((g) => GROUP_NAMES[g]).join(', ') || '—'), h('td', {}, s.roles.join(', ') || '—'),
         h('td', {}, `${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`), h('td', {}, s.xpCategory), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   return [h('div', { class: 'lv-grid wide' },
-    Object.values(lib.trees).map((t) => tree(t.id, t.name, t.skills, t, access(t.access))),
+    // a tree's group chips come from its skills' functions in code (Ali, 08/11/2026: the id alone read like a group)
+    Object.values(lib.trees).map((t) => tree(t.id, t.name, t.skills, t, [
+      ...[...new Set(t.skills.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`group: ${GROUP_NAMES[g]}`, '--c2')), ...access(t.access)])),
     loose.length ? tree('no_tree', 'In no tree', loose, loose, []) : null)];
 }
 
