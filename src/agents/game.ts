@@ -745,6 +745,13 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     const bits = [...(d.from !== d.to ? [`${d.from} → ${d.to}`] : []), ...d.parts.map((p) => `${p.id.replace(/_/g, ' ')} ${p.from} → ${p.to}`)];
     out.push(`${engine.healingName(d.source)}: ${bits.length ? bits.join(', ') : d.better ? 'a little better' : 'no change'}`);
   }
+  // a healing item the rules refuse says why, and stays in the pack (Q3, Ali 08/11/2026)
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'heal_blocked') continue;
+    const d = l.detail as { actorId: string; source: string; reason: string };
+    if (d.actorId !== s.player.id) continue;
+    out.push(`${engine.healingName(d.source)}: ${d.reason === 'nothing_to_heal' ? 'nothing to heal, so you keep it' : 'not while someone hostile is near you'}`);
+  }
   // run 17: a rest or wait that the rules refuse says why, so the player doesn't keep trying
   for (const l of s.log) {
     if (l.turn !== turn || (l.code !== 'rest_blocked' && l.code !== 'wait_blocked')) continue;

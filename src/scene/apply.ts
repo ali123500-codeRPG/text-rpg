@@ -108,6 +108,22 @@ export function beginScene(state: GameState, tier: Tier): void {
   state.stage.quiet = 0;
   delete state.stage.breakCause;
   state.sceneCaps = { promotions: 0, minted: 0 };
+  endYields(state);
+}
+
+/** Q1 (Ali, 08/11/2026, option A): when the scene ends, a yielded actor holds a grudge (opposed) toward those it
+ * yielded to, its surrender ends (Morale: it lasts the scene), and it leaves for its exit slot if it has one.
+ * GAP: there is no off-stage yet (D-46, D-67), so "leaves" means it goes to its exit zone. */
+function endYields(state: GameState): void {
+  for (const a of state.actors) {
+    const o = a.mind?.overrides;
+    if (!o || !Object.values(o).includes('yielded')) continue;
+    for (const k of Object.keys(o)) if (o[k] === 'yielded') o[k] = 'opposed';
+    if (a.mind!.moraleState === 'surrendered') delete a.mind!.moraleState;
+    const slot = a.mind!.slots?.exit;
+    const exit = Array.isArray(slot) ? slot[0] : slot;
+    if (isActive(a) && exit && zoneById(state, exit) && exit !== a.zone) moveTo(state, a, exit);
+  }
 }
 
 export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext, opts: { entry: 'open' | 'sneaking'; degrade?: PlanError[] }, rng: Rng): void {
