@@ -310,6 +310,17 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 - **Effect:** Each of those foes makes a morale check at once.
 - **Lasts:** Each time.
 
+### Unblinking (Sight) · B14
+
+*Story:* Once you have someone in your sights, they don't slip away easily. When someone you can see vanishes and gets past you, they still have to sneak past you as well before you lose them.
+
+- **Kind:** Always on
+- **Trigger:** A character the owner sees (aware or tracking) vanishes, and the owner loses the Vanishing contest.
+- **Conditions:** The owner saw the character before the Vanish.
+- **Effect:** The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.
+- **Lasts:** That Vanish.
+- **Open:** Milestone not chosen yet (Ali, 08/11/2026, ST23). Coded, so an NPC can have it now.
+
 ## Very high milestone
 
 ### Never Surprised (Hearing) · C1

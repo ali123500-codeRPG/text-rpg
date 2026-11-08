@@ -8,6 +8,8 @@ import type { PartStateKey, SkillTierKey } from '../scales';
 export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' | 'defense' | 'notice' | 'influence' | 'hp' | 'stealth';
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
+/** Situation tags (Ali, 08/11/2026, ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
+export type SituationTag = 'sight' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike';
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
@@ -21,6 +23,7 @@ export type SkillDef = {
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   xpCategory: XpCategory;
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
+  tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
 };
 export type TreeDef = { id: string; name: string; skills: string[]; classId?: string };
 export type ClassDef = { id: string; name: string; treeId: string; floors: Record<string, number> };
