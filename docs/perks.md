@@ -82,7 +82,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner may block (block normally needs a held shield or weapon). The block uses the block column of the gap ladder. A hit that gets through is split: 0.5× of its damage goes to the blocking arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test (Ali, 07/11/2026).
 - **Lasts:** Each defense.
 
-### Hold (Grapple) · A8
+### Don't Let Go (Grapple) · A8
 
 *Story:* Once you have them, there is no escape. When your grapple lands with a Great Success or better, you lock on. The target is held: it can't leave your zone or use a two-handed weapon until it wins a grapple contest against you (a tie is enough), you go down, or you leave the zone. Anyone can grapple: without the skill, a fighter uses a weapon skill at a fifth of its value, or another unarmed skill at two fifths.
 
@@ -174,7 +174,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Intimidation counts as a named skill for the request (full value), not a substitute at half value.
 - **Lasts:** Each request.
 
-### Haggler (Barter) · A17
+### Hard Bargain (Barter) · A17
 
 *Story:* Merchants go pale when your shadow falls across their stall. You buy for 10% less and sell for 10% more.
 
@@ -277,7 +277,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** +5 true skill in dodge. +1 true skill in every skill of group defense. +10 true skill in sneaking.
 - **Lasts:** Always.
 
-### Braced (Block) · P11
+### Take the Hit (Block) · P11
 
 *Story:* +5 Block, +1 Defense. Every blow you stop leaves you harder: +10 Endurance.
 
@@ -286,7 +286,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** +5 true skill in block. +1 true skill in every skill of group defense. +10 true skill in endurance.
 - **Lasts:** Always.
 
-### Quick Mend (Endurance) · P12
+### Fast Healer (Endurance) · P12
 
 *Story:* +5 Endurance, +1 Health. Your flesh knits itself shut, twice as fast as it has any right to.
 
@@ -315,7 +315,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## Higher milestone
 
-### Precise (Light weapons) · B1
+### Find the Gap (Light weapons) · B1
 
 *Story:* There is a gap in every guard, and you see it. With any attack, aiming at a small body part costs you only half the usual penalty.
 
@@ -362,10 +362,10 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** A ranged attack targets the owner.
-- **Conditions:** The owner is holding an actor (Hold).
+- **Conditions:** The owner is holding an actor (Don't Let Go).
 - **Effect:** If the gap is 0 or better for the owner, the attack resolves against the held actor instead, with no defense from it.
 - **Lasts:** Each attack.
-- **Needs first:** Hold.
+- **Needs first:** Don't Let Go.
 
 ### Anything Goes (Improvisation) · B7
 
@@ -417,7 +417,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The NPC's stance toward the owner becomes opposed: it stops attacking on sight.
 - **Lasts:** Until something changes it again.
 
-### Plead (Persuasion) · B12
+### Beg for Mercy (Persuasion) · B12
 
 *Story:* Pride is for the living. Beaten and about to fall, you beg for mercy. At the last health level before going down, you can plead with a hostile foe; win a persuasion contest and it stops attacking you for the rest of the fight.
 
@@ -428,7 +428,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** For the rest of the engagement.
 - **Needs first:** Moves.
 
-### Menace (Intimidation) · B13
+### Make an Example (Intimidation) · B13
 
 *Story:* One falls, and the rest remember they can die too. Every other foe that sees or hears it makes a morale check at once.
 
