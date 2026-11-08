@@ -132,7 +132,7 @@ Modifier types (each type diminishes within itself; values per type are deferred
 - Situational: flanking, outnumbered, unaware, terrain, range, light, dodge vs missiles.
 - Aim: its own type, so it never diminishes with situational modifiers.
 
-**Stacking within a type.** Within one modifier type, bonuses and penalties are ranked separately by size. In each group the largest counts in full, the second at STACK\_2 and the third at STACK\_3; any further ones count 0. The type's value is the bonus total plus the penalty total. STACK\_2 0.5 and STACK\_3 0.25 are placeholders. Example: bonuses +6, +4, +2 give +8.5; penalties −8, −3 give −9.5; the type adds −1.
+**Stacking within a type.** Within one modifier type, bonuses and penalties are ranked separately by size. In each group the x-th largest counts at STACK\_RATIO^(x−1): the largest in full, the second at 0.5, the third at 0.25, the fourth at 0.125 and so on (Ali, 08/11/2026; was: a fourth counted 0). The type's value is the bonus total plus the penalty total. STACK\_RATIO 0.5 is a placeholder. Example: bonuses +6, +4, +2 give +8.5; penalties −8, −3 give −9.5; the type adds −1.
 
 One roll point equals two skill points; write roll modifiers small.
 
