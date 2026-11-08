@@ -81,8 +81,11 @@ describe('body', () => {
     expect(woundsMods(s, s.player, 'persuasion').map((m) => m.value)).toEqual([-5]);
     const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: 'dragon', condition: { hpLostPct: 0, parts: { forelegs: 40 }, status: [] } } };
     expect(woundsMods(s, dragon, 'dodge')).toEqual([{ source: 'move wounds', type: 'wounds', value: -5 }]);
-    s.player.core.condition.parts.head = -10; // Sense Crippled: every roll
-    expect(woundsMods(s, s.player, 'persuasion').map((m) => m.value)).toEqual([-5, -20]);
+    s.player.core.condition.parts.head = 40; // Damaged head: speech rolls only
+    expect(woundsMods(s, s.player, 'persuasion')).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -10 });
+    expect(woundsMods(s, s.player, 'dodge').map((m) => m.value)).toEqual([-5]);
+    s.player.core.condition.parts.head = -10; // Sense Crippled: every roll, plus speech on speech rolls
+    expect(woundsMods(s, s.player, 'persuasion').map((m) => m.value)).toEqual([-5, -20, -20]);
   });
 });
 
