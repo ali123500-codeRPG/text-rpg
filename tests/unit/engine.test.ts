@@ -287,7 +287,7 @@ describe('agent side effects', () => {
     const p = planner('guard_1', npcAction('hold'), { stance: { toward: 'player', step: 'colder' } });
     resolveTurn(s, input({ intent: intent({ action: { type: 'talk' }, spoken: 'hi' }), spokespeople: ['trader'], exchange: ex, agentOutputs: [resp, p] }), createRng(1));
     expect(s.hidden.plans.trader).toEqual({ goal: 'sell', steps: [], triggers: [], createdTurn: 1 });
-    expect(s.hidden.memory.trader).toBe('met them');
+    expect(s.hidden.memory.trader).toEqual([{ turn: 1, text: 'met them' }]);
     expect(actor(s, 'trader').mind!.overrides).toEqual({ player: 'friendly' });
     expect(actor(s, 'guard_1').mind!.overrides).toBeUndefined();
     expect(s.player.journal!.secretsKnown).toEqual(['mine']);

@@ -1,7 +1,7 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState,
-  HealthLevel, Intent, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, HealthLevel, Intent, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -222,11 +222,12 @@ export function buildPlayerView(state: GameState): PlayerView {
     actors,
     facts: factsFor(state, p.placeId, actors.filter((a) => a.level === 'full').map((a) => a.id)),
     headlines: headlinesFor(state, p.placeId, false),
+    ...(agreementViews(state, p.id).length ? { agreements: agreementViews(state, p.id) } : {}),
   };
 }
 
 // ---------- ActorView / OppositionView / DialogueView ----------
-type BaseView = Omit<ActorView, 'plan' | 'memory' | 'secrets' | 'firedTriggers'>;
+type BaseView = Omit<ActorView, 'plan' | 'memory' | 'agreements' | 'secrets' | 'firedTriggers'>;
 
 /** everything an NPC view holds that is not in state.hidden */
 function baseView(state: GameState, actorId: string): BaseView {
@@ -276,6 +277,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
     },
     beliefs, perceived, told, said,
+    ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
@@ -292,11 +294,32 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
   return {
     ...base,
     ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
-    ...(h.memory[actorId] !== undefined ? { memory: h.memory[actorId] } : {}),
+    ...(h.memory[actorId]?.length ? { memory: h.memory[actorId].map((m, i) => ({ n: i + 1, turn: m.turn, text: m.text })) } : {}),
+    ...(agreementViews(state, actorId).length ? { agreements: agreementViews(state, actorId) } : {}),
     secrets: h.secrets.filter((s) => s.holderId === actorId).map((s) => ({ id: s.id, holderId: s.holderId, fact: s.fact, leakTerms: [...s.leakTerms], revealWhen: { ...s.revealWhen } })),
     firedTriggers: h.firedLog.filter((f) => f.ownerId === actorId).map((f) => ({ triggerId: f.triggerId, turn: f.turn })),
   };
 }
+/** PM3: the deals `viewerId` is a party to, naming the other party as the viewer calls it */
+function agreementViews(state: GameState, viewerId: string): AgreementView[] {
+  return (state.hidden.agreements ?? []).filter((g) => g.parties.includes(viewerId)).map((g) => {
+    const other = g.parties[0] === viewerId ? g.parties[1] : g.parties[0];
+    return { id: g.id, with: callName(state, viewerId, other), withId: other, text: g.text, madeTurn: g.madeTurn };
+  });
+}
+
+/** PM6: one plain line about a perceived event, as `viewer` saw or heard it; null for idle kinds */
+export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): string | null {
+  if (['hold', 'idle', 'wait', 'rest', 'sleep', 'presence'].includes(e.kind)) return null;
+  const v = eventView(state, viewer, e);
+  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} something${v.where ? ` ${v.where}` : ''}`;
+  const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
+  const who = name(e.actorId);
+  const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
+  const where = e.kind === 'move' || e.kind === 'flee' ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';
+  return `${who} ${e.kind.replace(/_/g, ' ')}${v.target ? ` ${name(v.target)}` : ''}${where}${v.outcome ? ` (${v.outcome})` : ''}${said}`;
+}
+
 export function buildOppositionView(state: GameState, actorId: string): OppositionView {
   return buildActorView(state, actorId);
 }

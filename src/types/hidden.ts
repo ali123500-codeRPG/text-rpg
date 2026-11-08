@@ -4,7 +4,9 @@ import type { Order } from './ruleset';
 
 export type HiddenStore = {
   plans: Record<string, Plan>; // actorId -> plan
-  memory: Record<string, string>; // actorId -> memory note
+  memory: Record<string, MemoryEntry[]>; // actorId -> memory list (PM1, at most CONFIG.MEMORY_ENTRIES)
+  /** PM3/PM4: deals between two actors (the player or NPCs), kept until done or broken */
+  agreements?: Agreement[];
   secrets: Secret[];
   firedLog: { triggerId: string; turn: number; ownerId?: string }[];
   weaverNote: string;
@@ -12,6 +14,9 @@ export type HiddenStore = {
   /** W6: per-actor hidden Weaver text (motive, routineGap); GM view only. Not an agenda (hasAgenda ignores it). */
   castNotes?: Record<string, { motive: string; routineGap?: string }>;
 };
+
+export type MemoryEntry = { turn: number; text: string };
+export type Agreement = { id: string; parties: [string, string]; text: string; madeTurn: number; madeBy: string };
 
 export type Plan = { goal: string; steps: string[]; triggers: Trigger[]; createdTurn: number };
 

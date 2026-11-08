@@ -72,7 +72,7 @@ describe('NPC views', () => {
   it('DialogueView whitelists nothing from state.hidden', () => {
     const s = makeVillage();
     s.hidden.plans.patron_1 = { goal: 'PLANGOAL', steps: ['STEP'], triggers: [], createdTurn: 1 };
-    s.hidden.memory.patron_1 = 'MEMNOTE';
+    s.hidden.memory.patron_1 = [{ turn: 1, text: 'MEMNOTE' }];
     s.hidden.secrets.push({ id: 'sec1', holderId: 'patron_1', fact: 'SECRETFACT', leakTerms: ['LEAKTERM'], revealWhen: { type: 'event_in_zone', kind: 'search', zone: 'tav_cellar' } });
     s.hidden.firedLog.push({ triggerId: 'TRIGID', turn: 1, ownerId: 'patron_1' });
     s.hidden.weaverNote = 'WEAVERNOTE';
@@ -83,7 +83,7 @@ describe('NPC views', () => {
     expect(dv).not.toHaveProperty('secrets');
     const ov = buildOppositionView(s, 'patron_1');
     expect(ov.plan?.goal).toBe('PLANGOAL');
-    expect(ov.memory).toBe('MEMNOTE');
+    expect(ov.memory).toEqual([{ n: 1, turn: 1, text: 'MEMNOTE' }]);
     expect(ov.secrets.map((x) => x.id)).toEqual(['sec1']);
     expect(ov.firedTriggers).toEqual([{ triggerId: 'TRIGID', turn: 1 }]);
   });

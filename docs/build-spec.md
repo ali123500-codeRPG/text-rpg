@@ -441,7 +441,7 @@ Six views are built from state:
 | PlayerView | Agent Parser | Player sheet, current zone, zones and actors the player perceives | Hidden store, NPC beliefs, unperceived actors |
 | ActorView | Code minds: routines, combat lists | The same fields as OppositionView, as structured data | The same as OppositionView |
 | OppositionView | Agent Planner and Agent Responder, one per actor | That actor's condition and position, its beliefs, events it perceived (including the last few exchanges it heard), what it was told, its own last few spoken lines (SAID_LINES, so it does not repeat itself), its plan and memory note, its own secrets, its band's goals and relations; the brief of each routine in its routines list | This turn's player input (a Responder gets only the dialogue input), other actors' private knowledge, the player's true zone unless perceived, the player sheet beyond revealed, place facts and headlines, barks |
-| DialogueView | Agent Voice | ActorView minus plan and memory note, plus its knows facts and the dialogue input | Hidden store, other actors' knowledge, place facts and headlines, barks |
+| DialogueView | Agent Voice | ActorView minus plan, memory list and agreements, plus its knows facts and the dialogue input | Hidden store, other actors' knowledge, place facts and headlines, barks |
 | NarrationView | Agent Narrator | This turn's events the player perceived, with level and cue; player condition; visible surroundings; NPC lines the player heard; public stage text only; a label for each actor whose name the player does not know; the activity look of each actor in a presence event | Hidden store, NPC plans and beliefs, unperceived events, any number from a roll, damage, a pool or HP (code shows them in the mechanics panel); the tier, grades and hidden stage-plan fields; any tone hint from the tier |
 | WeaverView | Agent Weaver | Tier and stakes group; the place or frontier being planned and its ancestors' headlines; the stage's zones; actors on the stage with their plans and secrets; quests, flags, band goals; player level, current class, health-track level; the previous Weaver note; catalog ids, including routine sets with their brief, tags and slot hints | Skill growth, Burden, Potential; this turn's player text |
 
@@ -612,8 +612,11 @@ Output shape:
             // the words if action.type is talk; otherwise a bark
   gear:     [ { op, item, from? } ] | null,   // as the Parser: free gear ops, before the action
   stance:   { toward: actor_id, step: friendlier | colder } | null,
-  planUpdate: { goal, steps, triggers, memoryNote,
-                routine: routine_id | null } | null   // routine: next turn; null = keep the current plan
+  planUpdate: { goal, steps, triggers,
+                routine: routine_id | null } | null,  // routine: next turn; null = keep the current plan
+  memory:   { add: [string], drop: [number] } | null,  // PM1: edit the memory list; drop by its number in the view
+  agreement: { with: actor_id, text } | null,          // PM3/PM4: a deal said aloud this turn
+  endAgreements: [ { id, outcome: done | broken } ]    // a party ends its own deal
 }
 ```
 
@@ -624,7 +627,7 @@ Fixed instructions (sent as the leading user turn):
 ```
 You play the character described in CHARACTER, in a text RPG. You decide what this one character does this turn. You never narrate outcomes and never roll dice.
 
-You receive CHARACTER (who you are) and OPPOSITION_VIEW. OPPOSITION_VIEW holds only what your character knows: your condition and position, the zones, your plan and memory note, events you noticed, what others told you, and what you believe about the player (status, last known zone, what you have learned). It may be wrong or out of date. Other characters, even allies, know things you don't.
+You receive CHARACTER (who you are) and OPPOSITION_VIEW. OPPOSITION_VIEW holds only what your character knows: your condition and position, the zones, your plan, memory list and agreements, events you noticed (and earlier ones, briefly), what others told you, and what you believe about the player (status, last known zone, what you have learned). It may be wrong or out of date. Other characters, even allies, know things you don't.
 
 Rules:
 1. Act only on what OPPOSITION_VIEW contains. You may guess, search, set traps or wait, but you cannot target what you have not perceived or been told. If you lost track of the player, act on the last known zone.
@@ -651,7 +654,7 @@ Shared plans between actors (a coordinated ambush across several guards) are an 
 
 ### Agent Responder
 
-Agent Responder plays one addressed spokesperson that has an agenda (it holds a secret, has a plan or has a memory note). It runs after the Parser, on the same model as the Planner, and decides that actor's one action for the turn: a reply or something else.
+Agent Responder plays one addressed spokesperson that has an agenda (it holds a secret, has a plan, has memory entries or is in an agreement). It runs after the Parser, on the same model as the Planner, and decides that actor's one action for the turn: a reply or something else.
 
 Input: CHARACTER (name, role, band, band goals, temperament); OPPOSITION\_VIEW; DIALOGUE\_INPUT (the spoken words and the impression); COMMITTED (a turn-start trigger's order, or none); SLIPS (a secret that comes out this turn whatever it intends, or none) **\[Proposed\]**.
 
@@ -701,7 +704,7 @@ Agent Voice plays one addressed spokesperson with no agenda, such as a shopkeepe
 
 - Receives DialogueView: its own view plus only this turn's spoken words and its impression (Dialogue input).
 - Shares only listed facts. It may share facts from the NPC's knows list and nothing else. This closes the hole where the Narrator, voicing NPCs itself, could invent directions, prices or clues.
-- Never sees the hidden store. An NPC that gains a secret, a plan or a memory note has an agenda, and from then on Agent Responder voices it.
+- Never sees the hidden store. An NPC that gains a secret, a plan, a memory entry or an agreement has an agenda, and from then on Agent Responder voices it.
 
 Output shape:
 
@@ -919,7 +922,8 @@ Plans and secrets live in state.hidden, so they survive between turns even when 
 ```ts
 type HiddenStore = {
   plans: Record<string, Plan>;       // actorId -> plan
-  memory: Record<string, string>;    // actorId -> rolling memory note from the Planner or Responder
+  memory: Record<string, MemoryEntry[]>; // actorId -> memory list { turn, text }, at most MEMORY_ENTRIES (PM1)
+  agreements?: Agreement[];          // PM3: { id, parties: [a, b], text, madeTurn, madeBy }, kept until done or broken
   secrets: Secret[];
   firedLog: { triggerId: string; turn: number }[];
   weaverNote: string;                // Agent Weaver's rolling note; replaced each call
@@ -965,7 +969,13 @@ Per turn:
 2. **Mid-turn.** After each event, player\_seen\_in\_zone and actor\_down triggers are checked again. One that fires while its owner hasn't acted yet replaces that owner's order this turn; otherwise it fires next turn. An ambush springs while the player is still on the bridge.
 3. **One order per actor.** A fired trigger's order replaces the agent's order for the same actor. When several of an owner's triggers fire in one turn, the first in its plan's order wins; the others stay armed unless they are once triggers.
 4. **Next view.** The owner's next OppositionView lists its fired triggers under "already happened", so the Planner doesn't order the same thing twice.
-5. **Plan updates.** A non-null planUpdate replaces that actor's plan; memoryNote replaces its memory. Updates from a turn that stopped on a clarify question are kept and apply when that turn resolves. A late Planner output is discarded whole, planUpdate included (interim; D-43).
+5. **Plan updates.** A non-null planUpdate replaces that actor's plan. memory edits the actor's memory list on its own, with no plan update (PM1): drops by number first, then adds; past CONFIG.MEMORY\_ENTRIES (8, a placeholder) the oldest entries go (PM2). An older output's memoryNote is read as one added entry. Updates from a turn that stopped on a clarify question are kept and apply when that turn resolves. A late Planner output is discarded whole, planUpdate included (interim; D-43).
+5a. **Memory and agreements** (PM1–PM8, Ali 08/11/2026, schema v6).
+   - An agreement is recorded only when the other party (the player or an NPC) perceived a line spoken by its maker this turn; otherwise it is logged invalid\_agreement. The Planner and the Responder make deals with anyone (PM4); the Voice only with the player. Only a party can end a deal (done or broken).
+   - Both parties' views list the deal (AgreementView: with, withId, text, madeTurn). The PlayerView lists the player's deals for the screen (PM5; the panel is the designer's).
+   - PM8: an agent-controlled NPC in an open deal gets a Planner call each turn even when not engaged, so a companion can act on the deal instead of only following.
+   - PM6: when events an NPC perceived fall out of its RECENT\_EVENTS window, code writes one short line for each into Mind.earlier (no Claude call): "turn 12: player attack you (hit)". A line that repeats the one before it becomes a count (turn 12–14: … ×3). Only the last CONFIG.EARLIER\_LINES (6, a placeholder) stay. Every NPC view shows them as earlier.
+   - Deferred (PM7): the Voice writing memory entries.
 6. **Secrets.** A secret becomes player knowledge only when a resolved event meets revealWhen: minTier is a tier key and the check must reach at least that tier (the Weaver writes the tier's name; code keeps the key), and a check\_passed reveal needs the check aimed at againstActorId. A secret is also revealed when its holder's Responder lists it in reveals; code accepts only secrets that actor holds **\[Proposed\]**. When the player's speech check against a spokesperson meets one of its check\_passed reveals, its Responder is told so (SLIPS) before it answers **\[Proposed\]**. A revealed secret is added to the player's Journal (secretsKnown); only then can it appear in NarrationView.
 7. **Save.** After resolution, the story is saved as described in Part 4 §10. Hidden fields are saved but shown only in the GM debug view.
 
@@ -1842,7 +1852,7 @@ The save has two layers. The library holds blueprints shared by every story. A s
 | Temporary NPCs | Story | Yes | Core, Mind (section 4) |
 | Recurring NPCs | Story | Deferred | Every NPC gets a stable id so it can be promoted later |
 | Places, state slots, facts | Story | Yes | Skeleton and canon, never descriptive prose (section 5) |
-| Hidden store, quests, flags | Story | Yes | Plans, triggers, secrets, memory notes, fired log |
+| Hidden store, quests, flags | Story | Yes | Plans, triggers, secrets, memory lists, agreements, fired log |
 | Bands, clocks, settings | Story | Yes | Settings: difficulty, SHOW\_MECHANICS, tone |
 | Engine state | Story | Yes | Turn, mode, RNG seed and state, pending, stage, scene caps |
 | Turn records | Story | Last N | N is a placeholder (section 6) |

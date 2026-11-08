@@ -11,6 +11,7 @@ import { now, timeOfDay, timeView } from '../time';
 import { TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
 import * as engine from '../engine';
+import { hasAgenda } from '../engine/relations';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
 import * as views from '../views';
 import * as save from '../save';
@@ -557,10 +558,7 @@ export function createGame(deps: GameDeps): Game {
 
 // ---------------- helpers (code only) ----------------
 
-/** hasAgenda is derived, never stored: a secret, a plan or a memory note */
-export function hasAgenda(s: GameState, id: string): boolean {
-  return s.hidden.secrets.some((x) => x.holderId === id) || !!s.hidden.plans[id] || !!s.hidden.memory[id];
-}
+export { hasAgenda };
 
 function zoneDistances(s: GameState, from: string): Map<string, number> {
   const dist = new Map([[from, 0]]);
@@ -576,10 +574,12 @@ function zoneDistances(s: GameState, from: string): Map<string, number> {
   return dist;
 }
 
-/** engaged significant actors, not broken, nearest the player first (ties by id). Minor and over-cap actors use combat lists. */
+/** engaged significant actors, not broken, nearest the player first (ties by id), then (PM8) agent actors in an open deal,
+ * so a companion can act on one instead of only following. Minor and over-cap actors use combat lists. */
 export function plannerActors(s: GameState): string[] {
   const dist = zoneDistances(s, s.player.zone);
-  return s.pending.engaged
+  const dealt = (s.hidden.agreements ?? []).flatMap((g) => g.parties).filter((id) => id !== s.player.id && !s.pending.engaged.includes(id));
+  return [...s.pending.engaged, ...new Set(dealt)]
     .map((id) => s.actors.find((a) => a.id === id))
     .filter((a): a is Actor => !!a && a.mind?.control === 'agent' && a.mind.moraleState !== 'broken')
     .sort((a, b) => (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
@@ -614,11 +614,34 @@ const orList = (xs: string[]) => (xs.length < 3 ? xs.join(' or ') : `${xs.slice(
  * per actor, its last RECENT_EVENTS perceived non-bark events, its last RECENT_EVENTS communication events, and the
  * last hit on it. Bounded by actors × 2 × RECENT_EVENTS.
  */
+const eventOrd = (id: string) => {
+  const m = /^t(\d+)(?:\.(\d+))?/.exec(id);
+  return m ? Number(m[1]) * 1e5 + Number(m[2] ?? 0) : -1;
+};
+const EARLIER = /^turn (\d+)(?:–(\d+))?: (.*?)(?: ×(\d+))?$/;
+/** PM6 (Ali, 08/11/2026): events an NPC perceived that fall out of its recent window become short code-made lines
+ * (no Claude call). A line that repeats the one before it is counted instead (×n); only the last EARLIER_LINES stay. */
+function noteEarlier(s: GameState, a: Actor, dropping: GameEvent[]): void {
+  const m = a.mind;
+  if (!m || !dropping.length) return;
+  const upTo = eventOrd(m.earlier?.upTo ?? '');
+  const lines = [...(m.earlier?.lines ?? [])];
+  for (const e of dropping.filter((x) => eventOrd(x.id) > upTo)) {
+    const text = views.earlierLine(s, a, e);
+    if (!text) continue;
+    const last = lines.length ? EARLIER.exec(lines[lines.length - 1]) : null;
+    if (last && last[3] === text) lines[lines.length - 1] = `turn ${last[1]}${String(e.turn) === last[1] ? '' : `–${e.turn}`}: ${text} ×${Number(last[4] ?? 1) + 1}`;
+    else lines.push(`turn ${e.turn}: ${text}`);
+  }
+  m.earlier = { upTo: dropping[dropping.length - 1].id, lines: lines.slice(-CONFIG.EARLIER_LINES) };
+}
+
 export function pruneRecent(s: GameState, all: GameEvent[]): GameEvent[] {
   const keep = new Set<GameEvent>();
   const n = CONFIG.RECENT_EVENTS;
   for (const a of [s.player, ...s.actors]) {
     const seen = all.filter((e) => e.perception[a.id]);
+    if (a.mind) noteEarlier(s, a, seen.filter((e) => !e.bark).slice(0, -n));
     for (const e of seen.filter((e) => !e.bark).slice(-n)) keep.add(e);
     for (const e of seen.filter(isComm).slice(-n)) keep.add(e);
     const hit = [...seen].reverse().find((e) => e.kind === 'attack' && e.target === a.id);

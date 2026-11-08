@@ -54,7 +54,12 @@ export type NpcAction = {
   mode: string | null;
   intent: string;
 };
-export type PlanUpdate = { goal: string; steps: string[]; triggers: Trigger[]; memoryNote: string; routine: string | null };
+export type PlanUpdate = { goal: string; steps: string[]; triggers: Trigger[]; memoryNote?: string; routine: string | null }; // memoryNote: older outputs, read as one memory entry
+/** PM1/PM2: memory list changes; drop names entries by their number in the view (n) */
+export type MemoryOps = { add: string[]; drop: number[] };
+/** PM3/PM4: a deal struck this turn, said aloud to the other party */
+export type AgreementMade = { with: string; text: string };
+export type AgreementEnd = { id: string; outcome: 'done' | 'broken' };
 export type StanceStep = { toward: string; step: 'friendlier' | 'colder' };
 
 export type PlannerOutput = {
@@ -63,6 +68,9 @@ export type PlannerOutput = {
   gear: GearOp[] | null;
   stance: StanceStep | null;
   planUpdate: PlanUpdate | null;
+  memory?: MemoryOps | null;
+  agreement?: AgreementMade | null;
+  endAgreements?: AgreementEnd[];
 };
 export type ResponderOutput = PlannerOutput & { reveals: string[] };
 export type VoiceOutput = {
@@ -74,6 +82,7 @@ export type VoiceOutput = {
   gear: GearOp[] | null;
   stance: StanceStep | null;
   routine: string | null;
+  agreement?: AgreementMade | null; // PM3: a deal with the player struck in talk
 };
 
 // ---- Agent Narrator ----
