@@ -65,3 +65,12 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-pop-head .hs-label { margin-right: auto; }
 .lv-pop-body { overflow: auto; padding: var(--space-3); }
 .lv-pop-body .lv-card { border: 0; background: none; padding: 0; }
+/* colour coding: a card takes its colour group's tone; the group's buttons carry the same swatch, so they are the key */
+.lv-card.lv-toned { border-color: color-mix(in srgb, var(--tone) 65%, var(--border)); background: color-mix(in srgb, var(--tone) 12%, color-mix(in srgb, var(--surface) 88%, transparent)); }
+.lv-card.lv-toned h3 { color: color-mix(in srgb, var(--tone) 35%, var(--text)); }
+.lv-pop-body .lv-card.lv-toned { background: none; }
+.lv-sw { width: 10px; height: 10px; border-radius: var(--r-sm); background: var(--tone); }
+.lv-fb[style*="--tone"] { border-color: color-mix(in srgb, var(--tone) 55%, var(--rule)); }
+.lv-cb { background: none; border: 0; padding: 0 var(--space-2); min-height: var(--control-h); color: var(--faint); font: inherit; font-size: 12px; cursor: pointer; }
+.lv-cb:hover { color: var(--accent); text-decoration: underline; }
+.lv-cb[aria-pressed="true"] { color: var(--scene-mark); font-weight: 700; cursor: default; text-decoration: none; }
