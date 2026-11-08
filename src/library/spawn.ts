@@ -1,8 +1,12 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import type { Actor, CreationBuild, GameState, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
-import { bodyType, race, getLibrary, itemDef, npcTemplate } from './index';
+import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
+import { createRng } from '../rng';
+
+/** a fixed seed per template id, so every copy of a template spends its level points the same way */
+const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
 
 let seq = 0;
 export function newInstanceId(prefix = 'it'): string {
@@ -37,7 +41,6 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
 
 export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string };
 
-/** Copy NPC: skills are the template's minimums (read live in principle; copied here for the sheet). */
 /** Unique generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
 export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
   const raw: Record<string, number> = { ...t.minimums };
@@ -59,7 +62,7 @@ export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, Skill
   return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, { raw: v, state: tagged.has(k) ? 'tagged' as const : 'normal' as const }]));
 }
 
-/** Copy NPC: skills are the template's minimums (read live in principle; copied here for the sheet). Unique: rolled once, frozen. */
+/** Copy NPC: minimums plus level points spent with the template's fixed seed (alike for every copy). Unique: rolled once, frozen. */
 /** the perks a member of this race is born with: its innate perks and innate quirks (Ali, 08/11/2026) */
 export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
   const r = raceId ? getLibrary().races?.[raceId] : undefined;
@@ -71,7 +74,8 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   if (t.generation === 'unique' && !rng) throw new Error(`unique template ${t.id} needs the seeded rng`);
   const skills = t.generation === 'unique'
     ? rollUniqueSkills(t, rng!)
-    : Object.fromEntries(Object.entries(t.minimums).map(([k, v]) => [k, { raw: v, state: 'normal' as const }]));
+    // Q3 (Ali, 08/11/2026): copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
+    : rollUniqueSkills(t, createRng(templateSeed(t.id)));
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
   const morale = CONFIG.PERSONALITY_MORALE[t.personality];
   return {
@@ -184,4 +188,17 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     },
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };
+}
+
+/** Copy NPCs follow their template live (Ali, 08/11/2026: the level × POINTS_PER_LEVEL lever must reach existing
+ * templates and NPCs). On load, each copy's skills are rebuilt from its template with the current CONFIG, and the
+ * template's perks are added if missing. Unique NPCs keep what they rolled. */
+export function refreshCopies(state: GameState): void {
+  for (const a of state.actors) {
+    if (a.kind !== 'npc' || a.core.generation !== 'copy' || !a.core.templateId) continue;
+    if (!hasTemplate(state, a.core.templateId)) continue;
+    const t = npcTemplate(state, a.core.templateId);
+    a.core.skills = rollUniqueSkills(t, createRng(templateSeed(t.id)));
+    for (const perkId of t.perks ?? []) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
+  }
 }

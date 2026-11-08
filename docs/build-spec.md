@@ -1927,7 +1927,7 @@ A template may carry a loadout: a list of library item ids given to every NPC ma
 **Unique generation** (code, seeded), modelled on Iliad Quest's NPC rolls:
 
 1. Every skill starts at the template's minimum; a skill with no minimum is raw 0. Minimums give each NPC its basic function, so a lopsided NPC is fine.
-2. Points = level × POINTS\_PER\_LEVEL + bonusPoints (POINTS\_PER\_LEVEL 3, placeholder). The level is fixed per template for now; level rules come later. bonusPoints lets a well-trained template (a guard) outskill a higher-level one (a bandit).
+2. Points = level × POINTS\_PER\_LEVEL + bonusPoints (POINTS\_PER\_LEVEL 10, a balance lever in CONFIG; Ali, 08/11/2026). The level is fixed per template for now; level rules come later. bonusPoints lets a well-trained template (a guard) outskill a higher-level one (a bandit).
 3. The template names three focus picks, each a tree and a preferred skill in it (Iliad Quest rolls three focused skill groups and the GM picks the skill).
 4. Points go out in 5-point chunks, and a seeded d3 picks the focus pick for each chunk, so spending is uneven. No skill goes above 100.
 5. The three preferred skills are Tagged. Perk points from the level are saved; NPC perks are deferred.
@@ -1940,7 +1940,7 @@ A copy does not roll: its skills are the template's minimums, read live.
 
 **Village templates** (first build; every number a placeholder). All three are copies of race Human (body type humanoid) with no class:
 
-**Template rules** (Ali, 08/11/2026). Anyone with fighting experience (guard, thief) is at least level 4, and a villager at least level 2. A template can list perks (`perks`) that every NPC made from it has. Any template that patrols (its role has a routine set with the patrol routine), now and later, lists Keen Ear, and a test enforces it. Copy templates don't use their level yet: their skills are the minimums.
+**Template rules** (Ali, 08/11/2026). Anyone with fighting experience (guard, thief) is at least level 4, and a villager at least level 2. A template can list perks (`perks`) that every NPC made from it has. Any template that patrols (its role has a routine set with the patrol routine), now and later, lists Keen Ear, and a test enforces it. Copy templates spend their level points too (Q3, Ali 08/11/2026), with a seed fixed per template id, so every copy of a template is alike. Copies follow their template live: on load, each copy's skills are rebuilt from the template and the current POINTS\_PER\_LEVEL, and missing template perks are added (`refreshCopies`), so changing the lever reaches existing templates and NPCs. Unique NPCs keep what they rolled. With the lever at 10 a guard has melee\_medium 60, block 50, sight 40 and pays 72.8 kill XP.
 
 
 - **guard:** level 4, bonus points 10, perk Keen Ear; minimums melee\_medium 40, block 30, dodge 20, sight 30, hearing 30, intimidation 30, persuasion 20; focus picks melee/melee\_medium, defense/block, perception/sight; personality steady; loadout arming\_sword, mail\_hauberk; control agent.
