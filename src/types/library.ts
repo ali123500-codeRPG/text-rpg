@@ -3,7 +3,7 @@ import type { AttackMode, ItemDef } from './items';
 import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
-import type { PartStateKey } from '../scales';
+import type { PartStateKey, SkillTierKey } from '../scales';
 
 export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' | 'defense' | 'notice' | 'influence' | 'hp' | 'stealth';
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
@@ -20,6 +20,7 @@ export type SkillDef = {
   playerOpen: boolean; // open to the player's point-buy
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   xpCategory: XpCategory;
+  tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
 };
 export type TreeDef = { id: string; name: string; skills: string[]; classId?: string };
 export type ClassDef = { id: string; name: string; treeId: string; floors: Record<string, number> };

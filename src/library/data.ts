@@ -9,8 +9,8 @@ import { BUILT_PERKS } from './builtPerks';
 const CATEGORY_OF: Partial<Record<SkillDef['functions'][number], XpCategory>> = {
   melee_attack: 'offensive', ranged_attack: 'offensive', unarmed_attack: 'offensive', defense: 'defensive', hp: 'endurance', notice: 'notice', influence: 'influence',
 };
-const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], playerOpen = true, cue?: 'sight' | 'sound', xpCategory?: XpCategory): SkillDef =>
-  ({ id, treeId, functions, roles, playerOpen, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[functions[0]] ?? 'misc' });
+const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], playerOpen = true, cue?: 'sight' | 'sound', xpCategory?: XpCategory, tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
+  ({ id, treeId, functions, roles, playerOpen, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[functions[0]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('melee_light', 'melee', ['melee_attack'], ['grip']),
@@ -38,8 +38,9 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('feint', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
   sk('riposte', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
   sk('disarm', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
-  sk('tremor', 'slime_senses', ['notice'], ['sense'], false, 'sound'),
-  sk('taste', 'slime_senses', ['notice'], ['sense'], false),
+  // slime class skills are tier 0 (Ali, 08/11/2026)
+  sk('tremor', 'slime_senses', ['notice'], ['sense'], false, 'sound', undefined, 'tier_0'),
+  sk('taste', 'slime_senses', ['notice'], ['sense'], false, undefined, undefined, 'tier_0'),
   // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk('lockpicking', 'tools', [], ['grip'], false),
 ].map((s) => [s.id, s]));

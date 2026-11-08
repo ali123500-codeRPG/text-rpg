@@ -63,3 +63,7 @@ export type PartStateKey = (typeof PART_STATES.keys)[number];
 export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
+
+/** Skill tiers (Ali, 08/11/2026): a skill's tier sets its final efficiency multiplier (CONFIG.SKILL_TIER_MULT). */
+export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
+export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];
