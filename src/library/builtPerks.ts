@@ -2,6 +2,13 @@
 // A perk listed here can be taken; the rest show on the Perks screen but can't be taken yet.
 export const BUILT_PERKS = new Set<string>([
   'hidden_strike', // A1: src/ruleset/index.ts attack()
+  // All-50 parts (src/library/allPerks.ts), granted by src/ruleset/allSteps.ts
+  'hunters_eye', // T2d: src/ruleset/perks.ts trueSkill() fnSkill
+  'fighters_frame', // T1d: attack()
+  'past_the_cover', // T2c: attack()
+  'child_of_night', // T6c: src/ruleset/gear.ts situational()
+  'curiouser', // T5d: roll()
+  'dodgy', // T4d: src/ruleset/allSteps.ts foeMods(), roll()
   'shield_breaker', // A3: attack() and applyEffects()
   'point_blank', // A4: attack()
   'iron_frame', // A12: src/ruleset/body.ts rolePenalty()

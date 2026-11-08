@@ -15,7 +15,7 @@ export interface Rng {
   d100(): number;
 }
 
-export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement';
+export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk';
 export type Mod = { source: string; type: ModType; value: number };
 export type TierShift = { source: string; value: number };
 

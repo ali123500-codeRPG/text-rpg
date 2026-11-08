@@ -127,5 +127,6 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   let what = a.of ?? '';
   if (d.by === 'body_type' && a.of) try { what = (bodyType(state, a.of) as { name?: string }).name ?? a.of; } catch { /* keep the id */ }
   if (d.by === 'race' && a.of) what = lib.races?.[a.of]?.name ?? a.of;
+  if (d.rule === 'mastery' && a.of) what = lib.trees?.[a.of]?.name ?? a.of;
   return d.name.replace(/\{(body_type|race|tree)\}/g, title(what));
 }

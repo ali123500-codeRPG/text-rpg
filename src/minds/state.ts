@@ -153,7 +153,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const skill = vanish ? 'vanishing' : stealthSkill(s, event);
   // ST21/ST22: light and cover reach the rolls by situation tag; a Hide adds the hide tag and ignores leg wounds (ST10)
   // P14 (Ali, 08/11/2026): darkness never hurts hearing, so it gives no help against an observer who only hears
-  const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [] }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}) });
+  const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}) });
   const theirs = (a: Actor, sk: string) => ({ actorId: a.id, skill: sk, ...situational(state, sk, { light: zone }), rollKind: 'perception' as const });
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
   const sc = (state.scratch ??= {});

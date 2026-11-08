@@ -2,10 +2,15 @@
 // all come from one source (Ali, 07/11/2026). A test fails if the doc is out of date.
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
+import { ALL_BUNDLES, ALL_PARTS } from '../library/allPerks';
+import { getLibrary } from '../library';
+import { BUILT_PERKS } from '../library/builtPerks';
 import type { PerkWriteup } from '../types';
 import { skillName } from './creation';
 
-const PLACES: [PerkWriteup['place'], string][] = [['20', '20 milestone'], ['40', '40 milestone'], ['higher', 'Higher milestone'], ['very_high', 'Very high milestone'], ['banked', 'Banked, no milestone yet']];
+const PLACES: [PerkWriteup['place'], string][] = [['20', '20 milestone'], ['40', '40 milestone'], ['higher', 'Higher milestone'], ['very_high', 'Very high milestone'], ['banked', 'Banked, no milestone yet'], ['all50', 'All-50 parts']];
+
+const treeName = (id: string) => getLibrary().trees[id]?.name ?? id;
 
 export function perksMarkdown(): string {
   const out = ['# Perks: chosen and banked', '',
@@ -16,15 +21,18 @@ export function perksMarkdown(): string {
     '', 'The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120 perks raise numbers only, with no conditions: +5 true skill in the skill, +1 to every skill of its function, itself included, and one more number (Ali, 08/11/2026). Swordsman, lockpicking and slime skills have no perks for now.', ''];
   for (const [place, title] of PLACES) {
     out.push(`## ${title}`, '');
-    for (const p of [...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => d.place === place)) {
+    if (place === 'all50') out.push('Granted free when every skill of the tree reaches 50 true skill, each part once it is built (Ali, 08/11/2026). Bundles: ' +
+      ALL_BUNDLES.map((b) => `${treeName(b.treeId)} All-50: ${b.name}`).join('; ') + '.', '');
+    for (const p of [...PERK_WRITEUPS, ...BOOST_PERKS, ...ALL_PARTS].filter((d) => d.place === place)) {
       const r = p.rules;
-      out.push(`### ${p.name} (${skillName(p.skill)}) · ${p.ref}`, '', `*Story:* ${p.story}`, '',
+      out.push(`### ${p.name} (${p.allStep ? treeName(p.skill) : skillName(p.skill)}) · ${p.ref}`, '', `*Story:* ${p.story}`, '',
         `- **Kind:** ${r.kind}`, `- **Trigger:** ${r.trigger}`);
       if (r.conditions.length) out.push(`- **Conditions:** ${r.conditions.join(' ')}`);
       out.push(`- **Effect:** ${r.effect}`, `- **Lasts:** ${r.lasts}`);
       if (r.cooldown) out.push(`- **Cooldown:** ${r.cooldown}`);
       if (r.needs) out.push(`- **Needs first:** ${r.needs}`);
       if (r.open) out.push(`- **Open:** ${r.open}`);
+      if (p.allStep) out.push(`- **Built:** ${BUILT_PERKS.has(p.id) ? 'yes' : 'not yet'}`);
       out.push('');
     }
   }

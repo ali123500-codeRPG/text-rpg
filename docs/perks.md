@@ -578,3 +578,149 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** A roll by the owner that needs sight.
 - **Effect:** Light is read two steps brighter on the light scale, by position in the names table (dark counts as bright, dim counts as bright). It is coded as +2 steps, not as 'no penalty', so light levels added later shift the same way (Ali, 07/11/2026).
 - **Lasts:** Always.
+
+## All-50 parts
+
+Granted free when every skill of the tree reaches 50 true skill, each part once it is built (Ali, 08/11/2026). Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
+
+### Weapon Drill (Combat – Arms) · T1b
+
+*Story:* Steel finds your hand on its own. Drawing, switching or picking up a melee weapon costs you no time.
+
+- **Kind:** Always on
+- **Trigger:** The owner draws, switches to or picks up a melee weapon.
+- **Conditions:** The weapon has a melee mode.
+- **Effect:** That draw, switch or pick-up does not use the owner's action.
+- **Lasts:** Always.
+- **Built:** not yet
+
+### Counter (Combat – Arms) · T1c
+
+*Story:* A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.
+
+- **Kind:** Always on
+- **Trigger:** A melee attack on the owner is resolved.
+- **Conditions:** The attack roll ends in Critical Failure or worse (Ali, 08/11/2026). The owner holds a melee weapon or can strike unarmed, and is active. Once per turn.
+- **Effect:** The owner makes one melee attack at the attacker at once, with its current weapon. It does not use the owner's action.
+- **Lasts:** That attack.
+- **Built:** not yet
+
+### Fighter's Frame (Combat – Arms) · T1d
+
+*Story:* A body hardened by a thousand bouts. Melee blows on you land a tenth lighter.
+
+- **Kind:** Always on
+- **Trigger:** A melee or unarmed attack hits the owner.
+- **Conditions:** The attack mode is not ranged.
+- **Effect:** The hit's damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
+### Volley (Combat – Ranged) · T2b
+
+*Story:* One shot is never the last. Once a fight, after a ranged hit, your next shot is already on its way to another foe.
+
+- **Kind:** Automatic
+- **Trigger:** The owner's ranged attack hits.
+- **Conditions:** Once per engagement. Code picks a target the owner sees that is already hostile to the owner; none, no shot (Ali, 08/11/2026). The weapon can still shoot.
+- **Effect:** The owner makes one more ranged attack at that target with the same weapon. It does not use the owner's action.
+- **Lasts:** That attack.
+- **Cooldown:** Once per engagement.
+- **Built:** not yet
+
+### Past the Cover (Combat – Ranged) · T2c
+
+*Story:* Cover only hides most of a body. Cover counts one step lighter against your ranged attacks.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a ranged attack.
+- **Effect:** The target zone's cover is read one step lighter (heavy as some, some as none).
+- **Lasts:** That attack.
+- **Built:** yes
+
+### Hunter's Eye (Combat – Ranged) · T2d
+
+*Story:* An archer lives by the eye: +10 to every skill you see with.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +10 true skill in every skill with the sight function (Ali, 08/11/2026: "+10 to sight, the function").
+- **Lasts:** Always.
+- **Built:** yes
+
+### Second Wind (Combat – Defense) · T4b
+
+*Story:* When the blood starts to run, you find more in you. Once a fight, at your first serious wound, you shake one off.
+
+- **Kind:** Automatic
+- **Trigger:** The owner's health track reaches Wounded or worse.
+- **Conditions:** Once per engagement. The owner is not downed.
+- **Effect:** The owner's health track moves one level better at once.
+- **Lasts:** Permanent (it is healing).
+- **Cooldown:** Once per engagement.
+- **Built:** not yet
+
+### Dodgy (Combat – Defense) · T4d
+
+*Story:* You are never quite where they aim. Attacks on you lose 5 skill.
+
+- **Kind:** Always on
+- **Trigger:** An attack roll is made against the owner.
+- **Effect:** That attack roll gets −5 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Curiouser and Curiouser (Perception) · T5d
+
+*Story:* Once you notice something, you notice everything. A good Eyesight or Earshot roll counts one outcome better.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes an Eyesight or Earshot roll.
+- **Conditions:** The roll ends in Success or better.
+- **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Strike and Fade (Stealth – Conventional) · T6a
+
+*Story:* They see the blow, never the hand. Right after you strike from hiding, you try to vanish again.
+
+- **Kind:** Automatic
+- **Trigger:** The owner attacks from hiding (stealthy posture).
+- **Conditions:** The owner is still active after the attack.
+- **Effect:** The owner makes a free Vanishing roll at once, contested as a Vanish. It does not use the owner's action.
+- **Lasts:** That roll.
+- **Built:** not yet
+
+### Child of Night (Stealth – Conventional) · T6c
+
+*Story:* The dark knows you. Light counts one step darker for all your stealth.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a roll of a stealth skill (Sneaking, Combat Stealth, Vanishing).
+- **Effect:** The light there is read one step darker (bright as dim, dim as dark).
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Hushed Steps (Stealth – Conventional) · T6d
+
+*Story:* Even your mistakes are quiet. A Sneaking slip that only just fails makes no sound.
+
+- **Kind:** Always on
+- **Trigger:** The owner's Sneaking roll is resolved.
+- **Conditions:** The roll ends in a Near Miss.
+- **Effect:** The move makes no noise; only Failure or worse is heard.
+- **Lasts:** That roll.
+- **Open:** Renamed from the doc's "Light Feet", which is already a 40 perk.
+- **Built:** not yet
+
+### Easy Speaker (Speech) · T7d
+
+*Story:* Words slide off you. Threats and coaxing aimed at you land one outcome worse.
+
+- **Kind:** Always on
+- **Trigger:** An NPC makes a Persuasion or Intimidation roll at the owner.
+- **Effect:** Tier shift −1 on that roll.
+- **Lasts:** That roll.
+- **Needs first:** NPC speech aimed at the player.
+- **Built:** not yet
