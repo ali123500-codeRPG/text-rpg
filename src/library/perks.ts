@@ -244,7 +244,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       conditions: ["The owner saw the character before the Vanish."],
       effect: "The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.",
       lasts: "That Vanish.",
-      open: "Sight 60 (Ali, 08/11/2026: \"link it\"). Works for the player too since NPC stealth (NS10)." } },
+      open: "Eyesight 60 (Ali, 08/11/2026: \"link it\"). Works for the player too since NPC stealth (NS10)." } },
   { id: "set_them_up", ref: "B15", name: "Set Them Up", skill: "unarmed_strike", place: "higher",
     ladder: { skill: "unarmed_strike", milestone: 60 }, effect: "attack",
     story: "Left, right, bottle, fist. Every blow opens the door for the next. Every punch you throw at a foe, landed or not, sets up your next improvised attack on it, and every improvised attack sets up your next punch: that attack lands one outcome better.",

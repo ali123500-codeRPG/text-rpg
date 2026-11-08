@@ -133,7 +133,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Part states are read on their reference scale, by position in the part-state names table (Healthy, Damaged, Crippled, Destroyed). A part's effective state is its state after any perk that shifts it (Tough It Out moves each one step milder). A part whose effective state is at the Damaged position or milder gives no role penalty; worse effective states still do. So with Tough It Out a Crippled part counts as Damaged and gives no penalty.
 - **Lasts:** Always.
 
-### Read Wounds (Sight) · A13
+### Read Wounds (Eyesight) · A13
 
 *Story:* A limp, a favoured arm, a bleeding hand: every weakness shows itself to you. You can see which of a foe's body parts are Damaged, and you can tell a foe is hurt one step sooner than others can: from Injured instead of Wounded.
 
@@ -143,7 +143,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The foe's Damaged body parts are shown to the owner (foes' part states are otherwise never shown). The foe's health level also shows one step earlier on the health track: the level where it starts to show moves one position milder in the health-track names table (from Wounded to Injured today) (Ali, 07/11/2026).
 - **Lasts:** While the owner sees it.
 
-### Keen Ear (Hearing) · A14
+### Keen Ear (Earshot) · A14
 
 *Story:* A whisper two rooms away might as well be a shout. Your hearing reaches one zone link further.
 
@@ -216,7 +216,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Sharp Eyes (Light ranged) · P4
 
-*Story:* +5 Light ranged, +1 Ranged. Nothing escapes the archer's eye: +10 Sight.
+*Story:* +5 Light ranged, +1 Ranged. Nothing escapes the archer's eye: +10 Eyesight.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -261,7 +261,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Brawler's Eye (Improvisation) · P9
 
-*Story:* +5 Improvisation, +1 Melee. A brawler sees the opening before the punch: +5 Strike, +5 Sight.
+*Story:* +5 Improvisation, +1 Melee. A brawler sees the opening before the punch: +5 Strike, +5 Eyesight.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -295,18 +295,18 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** +5 true skill in endurance. +1 true skill in every skill of group health. Natural recovery (the hourly healing row read from endurance) is ×2.
 - **Lasts:** Always.
 
-### Marksman's Eye (Sight) · P13
+### Marksman's Eye (Eyesight) · P13
 
-*Story:* +5 Sight, +1 Notice. What your eye finds, your arrow follows: +5 Light ranged, +5 Medium ranged.
+*Story:* +5 Eyesight, +1 Notice. What your eye finds, your arrow follows: +5 Light ranged, +5 Medium ranged.
 
 - **Kind:** Always on
 - **Trigger:** Always.
 - **Effect:** +5 true skill in sight. +1 true skill in every skill of group notice. +5 true skill in ranged_light and +5 in ranged_medium.
 - **Lasts:** Always.
 
-### Soft Step (Hearing) · P14
+### Soft Step (Earshot) · P14
 
-*Story:* +5 Hearing, +1 Notice. You know what every footstep sounds like, so yours make none: +10 Sneaking.
+*Story:* +5 Earshot, +1 Notice. You know what every footstep sounds like, so yours make none: +10 Sneaking.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -438,7 +438,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Each of those foes makes a morale check at once.
 - **Lasts:** Each time.
 
-### Unblinking (Sight) · B14
+### Unblinking (Eyesight) · B14
 
 *Story:* Once your eyes are on someone, there is nowhere left to run. When someone you can see vanishes and gets past you, they still have to sneak past you as well before you lose them.
 
@@ -447,7 +447,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner saw the character before the Vanish.
 - **Effect:** The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.
 - **Lasts:** That Vanish.
-- **Open:** Sight 60 (Ali, 08/11/2026: "link it"). Works for the player too since NPC stealth (NS10).
+- **Open:** Eyesight 60 (Ali, 08/11/2026: "link it"). Works for the player too since NPC stealth (NS10).
 
 ### Set Them Up (Strike) · B15
 
@@ -470,7 +470,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## Very high milestone
 
-### Never Surprised (Hearing) · C1
+### Never Surprised (Earshot) · C1
 
 *Story:* If you can hear it coming, it was never a surprise. An attacker within your hearing range never counts as unseen: you lose no initiative or defense for being unaware.
 
@@ -570,7 +570,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The multiplier is 0× instead of 0.8×.
 - **Lasts:** Always.
 
-### Night Eyes (Sight) · D7
+### Night Eyes (Eyesight) · D7
 
 *Story:* The dark hides others. It never hid anything from you. Dim light and darkness give you no penalty to anything that needs sight.
 

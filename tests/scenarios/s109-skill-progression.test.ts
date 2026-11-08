@@ -42,8 +42,8 @@ describe('109 skill progression', () => {
     expect(p.core.skills.hearing.raw).toBe(30);
     expect(p.progression!.marks).toEqual([]);
     const lines = mechanicsLines(s, []);
-    expect(lines).toContain('Sight 38 → 41');
-    expect(lines).toContain('New perk unlocked: sight 40');
-    expect(lines.some((l) => l.startsWith('Hearing'))).toBe(false);
+    expect(lines).toContain('Eyesight 38 → 41');
+    expect(lines).toContain('New perk unlocked: Eyesight 40');
+    expect(lines.some((l) => l.startsWith('Earshot'))).toBe(false);
   });
 });

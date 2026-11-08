@@ -272,7 +272,7 @@ export function prototypeLibrary(): Library {
       natural: { id: 'natural', name: 'Natural weapons', skills: ['unarmed_natural'], access: { either: [AMORPHOUS, { kind: 'race', id: 'dragon' }] } /* the shape's slam; the dragon's own attacks */ },
       defense: { id: 'defense', name: 'Combat – Defense', skills: ['dodge', 'block', 'endurance'] },
       perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
-      stealth: { id: 'stealth', name: 'Stealth', skills: ['sneaking', 'combat_stealth', 'vanishing'] },
+      stealth: { id: 'stealth', name: 'Stealth – Conventional', skills: ['sneaking', 'combat_stealth', 'vanishing'] },
       speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'], access: { blockedBy: [AMORPHOUS] } },
       swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], access: { must: [{ kind: 'class', id: 'swordsman' }] } },
       // BR7 (Ali, 08/11/2026): from being a slime, not from a class
