@@ -75,8 +75,8 @@ export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 
 export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
-  /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to every other skill sharing a function
-   * with the ladder skill, and the ladder skill's own numbers (src/library/boostPerks.ts) */
+  /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
+   * skill sharing a function with it, and the ladder skill's own numbers (src/library/boostPerks.ts) */
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
   /** player-facing write-up (the Story view); must say the same thing as `rules` */
   story?: string;
