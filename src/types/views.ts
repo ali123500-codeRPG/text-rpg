@@ -179,7 +179,7 @@ export type WeaverView = {
   player: { level: number; currentClass: string | null; health: HealthLevel };
   previousNote: string;
   catalogs: {
-    templates: { id: string; label: string; bodyTypeId: string }[];
+    templates: { id: string; label: string; raceId: string }[];
     bodyTypes: string[];
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)

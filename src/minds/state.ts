@@ -1,7 +1,7 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
-import { routine as getRoutine, routineSet, bodyType, npcTemplate } from '../library';
+import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
 import { actorById, allActors, atLeast, isActive, isEngaged, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
@@ -210,7 +210,7 @@ function ambushSkill(state: GameState, attacker: Actor, itemId: string | undefin
   const m = used ?? defaultMode(state, attacker, 0);
   if (m) return modeSkill(m.mode);
   const tpl = attacker.core.templateId ? npcTemplate(state, attacker.core.templateId) : undefined;
-  return tpl?.fallback?.attackSkill ?? bodyType(state, attacker.core.bodyTypeId).fallback.attackSkill;
+  return tpl?.fallback?.attackSkill ?? actorBody(state, attacker).fallback.attackSkill;
 }
 
 export function resolveAmbush(state: GameState, attackerId: string, targetId: string, attackEvent: GameEvent, rng: Rng): { surprised: boolean } {

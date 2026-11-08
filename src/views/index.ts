@@ -9,7 +9,7 @@ import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, stance, wary, zoneById } from '../engine/relations';
-import { activity, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
+import { activity, actorBody, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
 
@@ -234,7 +234,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const a = need(state, actorId);
   if (!a.mind) throw new Error(`actor ${actorId} has no mind`);
   const m = a.mind;
-  const ct = bodyType(state, a.core.bodyTypeId);
+  const ct = actorBody(state, a);
   const attackSkill = (a.core.templateId ? npcTemplate(state, a.core.templateId).fallback?.attackSkill : undefined) ?? ct.fallback.attackSkill;
   // never copy bark events into an NPC view (Leak prevention)
   const history = [...(state.recentEvents ?? []), ...state.events];
@@ -422,8 +422,8 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   const bandIds = new Set([state.player.bandId, ...onStage.map((a) => a.bandId)]);
   const cur = state.player.core.classes.find((c) => c.state === 'current');
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);
-  const templates = new Map(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, bodyTypeId: t.bodyTypeId }]));
-  for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), bodyTypeId: String(b.data.bodyTypeId ?? '') });
+  const templates = new Map(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId }]));
+  for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
   const worth = (i: { boon?: number; value: number }) => i.boon ?? i.value / CONFIG.BOON_COIN; // loot V8
   const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });
@@ -469,7 +469,7 @@ function modeOf(state: GameState, attacker: Actor, weaponId: string, modeId: str
     const d = itemDef(state, inst.itemId);
     return { mode: d.weapon?.modes.find((m) => m.id === modeId) ?? d.weapon?.modes[0], weapon: d.name };
   }
-  const nat = bodyType(state, attacker.core.bodyTypeId).naturalAttacks;
+  const nat = actorBody(state, attacker).naturalAttacks;
   const id = weaponId.startsWith('natural:') ? weaponId.slice(8) : modeId;
   const mode = nat.find((m) => m.id === id) ?? nat[0];
   return { mode, weapon: mode?.name ?? null };
@@ -496,7 +496,7 @@ export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: 
     ? target.core.inventory.find((i) => i.equippedIn?.includes('armor') && itemDef(state, i.itemId).armor?.covers.includes(r.location!))
     : undefined;
   const shield = r.location === 'shield' && r.shieldItemId ? target.core.inventory.find((i) => i.id === r.shieldItemId) : undefined;
-  const partName = r.location === 'general' ? bodyType(state, target.core.bodyTypeId).general.name : r.location;
+  const partName = r.location === 'general' ? actorBody(state, target).general.name : r.location;
   return {
     event: event.id,
     actor: callName(state, viewerId, attacker.id),

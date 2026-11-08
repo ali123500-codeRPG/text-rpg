@@ -71,7 +71,7 @@ A Flaw is something the character functionally struggles to improve. Near 100 a 
 - **Raw skill:** what training gave. Burden, Total and skill improvement use raw skill only.
 - **True skill:** raw skill + perks that raise that one skill by a flat amount and are always on (e.g. a ladder's Training milestone, +5). Ladder milestones and all-XXX perks read true skill. It has no cap of its own, so a ladder's boosts can carry a skill past the mortal limit of 100 toward the 120 and 140 milestones.
 - **Effective skill** (computed for every check and roll, in order): true skill → + gear → × the skill's tier multiplier → + combined-check perks → + situational skill perks → apply hard cap → apply conditions.
-- **Skill tiers** (Ali, 08/11/2026). Each skill has a tier on the SKILL\_TIERS scale (tier\_0, tier\_1, tier\_2), set in the library. The tier gives the skill's final efficiency multiplier (CONFIG.SKILL\_TIER\_MULT): tier 2 is 1×, tier 0 is 0.5×, and tier 1 is 0.75× (a placeholder). Every skill is tier 2 except the Slime class skills (tremor, taste), which are tier 0. The rating reads the skill at its tier (X18–X23).
+- **Skill tiers** (Ali, 08/11/2026). Each skill has a tier on the SKILL\_TIERS scale (tier\_0, tier\_1, tier\_2), set in the library. The tier gives the skill's final efficiency multiplier (CONFIG.SKILL\_TIER\_MULT): tier 2 is 1×, tier 0 is 0.5×, and tier 1 is 0.75× (a placeholder). Every skill is tier 2 except the Slime senses skills (tremor, taste), which are tier 0. The rating reads the skill at its tier (X18–X23).
 
 Derived, never saved; the Character page shows true skill, with raw skill beside it when they differ.
 
@@ -1467,7 +1467,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 92 | Reach | A reach-1 spear hits a target one linked zone away with sight; the same attack through a link without sight becomes a wasted action |
 | 93 | Thrown | A thrown dagger ends on the ground of the target's zone, hit or miss |
 | 94 | Uncovered part | A hauberk covering general area and arms: an aimed head hit takes no armor, a torso hit does |
-| 95 | Stacked armor | An actor whose body type has natural armor wearing armor takes damage reduced by worn, then natural, floor 0, not rounded |
+| 95 | Stacked armor | An actor whose race has natural armor wearing armor takes damage reduced by worn, then natural, floor 0, not rounded |
 | 96 | Armor pool | A head hit on a heavy helm drains the helm pool before the head pool; the health track ignores the helm pool |
 | 97 | Concealed blade | An NPC's view omits a concealed blade until the NPC perceives an attack with it; after that its belief keeps it |
 | 98 | Minted reward cap | A quality-3 variant on a moderate-gain scene is lowered to quality 2, and a weapon boosts of "keen edge" becomes hitAdj; the plan applies with no repair call |
@@ -1540,10 +1540,10 @@ Every successful hit damages the body part it lands on and, depending on that pa
 ### Total HP
 
 ```
-HP = (HP_BASE + HP_PER_END × endurance) × body type HP multiplier
+HP = (HP_BASE + HP_PER_END × endurance) × race HP multiplier
 ```
 
-HP\_BASE 50, HP\_PER\_END 1 (*placeholders*); body type HP multiplier humanoid ×1, dragon ×3; every body type has one. Endurance 0 → 50 HP, 50 → 100 HP, 100 → 150 HP.
+HP\_BASE 50, HP\_PER\_END 1 (*placeholders*); race HP multiplier Human and Elf ×1, Slime ×0.6, Dragon ×3; every race has one (BR2, Ali 08/11/2026). Endurance 0 → 50 HP, 50 → 100 HP, 100 → 150 HP.
 
 ### Health track
 
@@ -1694,7 +1694,6 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
   },
   "bodyTypes": {
     "humanoid": {
-      "hpMultiplier": 1,
       "general": {"name": "torso", "size": "normal"},
       "naturalAttacks": [{"id": "punch", "tree": "unarmed", "class": "punch", "skill": "unarmed_strike", "reach": 0, "hands": 0},
                         {"id": "grapple", "tree": "unarmed", "class": "grapple", "skill": "unarmed_grapple", "reach": 0, "hands": 0}],
@@ -1707,14 +1706,12 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
         {"id": "neck", "size": "extra_small", "impact": "essential", "roles": [], "adjacent": ["head", "general"]}
       ]
     },
-    "slime": {
-      "hpMultiplier": 0.6,
+    "amorphous": {
       "general": {"name": "body", "size": "normal"},
       "naturalAttacks": [{"id": "slam", "tree": "unarmed", "class": "slam", "skill": "unarmed_natural", "reach": 0, "hands": 0}],
       "parts": []
     },
-    "dragon": {
-      "hpMultiplier": 3,
+    "winged_quadruped": {
       "general": {"name": "body", "size": "big"},
       "parts": [
         {"id": "head", "size": "normal", "impact": "essential", "roles": ["sense", "strike"]},
@@ -1729,7 +1726,7 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
 }
 ```
 
-adjacent lists the parts a hit can move to at gap −2. Default when absent: the general area only. The general area is adjacent to every part. Every body type sets hpMultiplier (placeholder values: humanoid 1, dragon 3).
+adjacent lists the parts a hit can move to at gap −2. Default when absent: the general area only. The general area is adjacent to every part. A body type is the shape only (BR1, Ali 08/11/2026): parts, general area, silhouette and the natural attacks the shape always has. Shape names are generic so later races can reuse them (BR4): the Slime race is amorphous and the Dragon race is a winged quadruped. Toughness (hpMultiplier), natural armor and a race's own natural attacks are on the race (BR2, BR3, BR6).
 
 **Body types not in the database**
 
@@ -1891,11 +1888,11 @@ The player and every NPC share one sheet shape: a Core every actor has, plus opt
 
 Promoting an NPC to recurring adds a module; it never converts the sheet. A companion needs no module: it is any member of the player's band.
 
-**Race and body type.** Race is separate from body plan. A race sets a body type and grants a race perk; more race content comes later. Actors without a race (a wolf, a slime) have a body type only.
+**Race and body type** (BR1–BR9, Ali 08/11/2026). The body type is the shape; the race is what the being is. Every race names exactly one body type (BR5), its HP multiplier (BR2), optional natural armor (BR6), its own natural attacks and fallback attack skill on top of the shape's (BR3), and innate perks and quirks. An NPC template and the player's build name a race, and the body type comes from it. Races today: Human and Elf (humanoid, ×1), Slime (amorphous, ×0.6), Dragon (winged quadruped, ×3). Defeat achievements count both the body type and the race (BR8). Tree access rules may name either (BR9); a tree the shape already blocks is not blocked again on the race.
 
 **Skills.** General skills are open to every actor unless a perk or race excludes them. Each class adds its own tree of three skills. Exclusions are derived from the library and never stored.
 
-**Skill tree access** (Ali, 08/11/2026, "Skill tree access" TA1–TA11). Every tree has its own access rule in the library (TreeDef.access), and each tree is coded on its own. A rule has up to three lists of conditions: **Must** (every one holds), **Either of** (at least one holds, when listed) and **Blocked by** (any one closes the tree). A block always beats an opening (TA2). A tree with no rule is open to everyone. A condition names one source: a race, a body type, a class with a minimum class level (default 1; the class counts while Current or Previous, never Unlocked, TA3), or a perk (quirks included); a new kind of source is one more case in one check. A skill in a tree the actor can't use counts as 0 (rolls, HP, the rating) and can't be raised; its points are kept and come back with access (TA4 a). Rules are per tree only (TA8) and hold for the player and every NPC: a test fails if a template gives a skill its actor can't use (TA9). Trees a character can't use are hidden on the creation screen and the character sheet unless the character has points in them; those show "Blocked by: …" or "Needs: …" (TA10). Today's rules: Swordsman must have class Swordsman; Slime senses must have class Slime at level 0 or more (slimes are class level 0); Natural weapons (unarmed\_natural, TA5) needs either of body type Slime or Dragon; body type Slime blocks Melee, Ranged, Unarmed, Perception, Speech and Tools (no hands, voice, eyes or ears, TA6). The Slime and Dragon conditions name body types until the race split lands. Banked: TA7 (Tools, lockpicking) and TA11 (nested groups of conditions), D-113.
+**Skill tree access** (Ali, 08/11/2026, "Skill tree access" TA1–TA11). Every tree has its own access rule in the library (TreeDef.access), and each tree is coded on its own. A rule has up to three lists of conditions: **Must** (every one holds), **Either of** (at least one holds, when listed) and **Blocked by** (any one closes the tree). A block always beats an opening (TA2). A tree with no rule is open to everyone. A condition names one source: a race, a body type, a class with a minimum class level (default 1; the class counts while Current or Previous, never Unlocked, TA3), or a perk (quirks included); a new kind of source is one more case in one check. A skill in a tree the actor can't use counts as 0 (rolls, HP, the rating) and can't be raised; its points are kept and come back with access (TA4 a). Rules are per tree only (TA8) and hold for the player and every NPC: a test fails if a template gives a skill its actor can't use (TA9). Trees a character can't use are hidden on the creation screen and the character sheet unless the character has points in them; those show "Blocked by: …" or "Needs: …" (TA10). Today's rules: Swordsman must have class Swordsman; Slime senses must have race Slime (BR7); Natural weapons (unarmed\_natural, TA5) needs either body type amorphous (its slam) or race Dragon (its own attacks); body type amorphous blocks Melee, Ranged, Unarmed, Perception, Speech and Tools (no hands, voice, eyes or ears, TA6). A block the shape gives is not repeated on the race (BR9). Banked: TA7 (Tools, lockpicking) and TA11 (nested groups of conditions), D-113.
 
 **Classes.** Each class an actor knows is saved with its state and its class level:
 
@@ -1930,9 +1927,9 @@ A copy does not roll: its skills are the template's minimums, read live.
 
 **Personality.** Each template names one personality, which sets Mind.morale for the morale check (Part 3, Morale): fearless (never checks), bold 70, steady 50, timid 30.
 
-**Slime template** (first build): a copy of body type slime with class Slime, level 0, personality fearless. Skills: unarmed\_natural 30, dodge 0, everything else 0. HP multiplier 0.6 (30 HP). Its slam uses the slam class: damage 20, hit +10, reach 0.
+**Slime template** (first build): a copy of race Slime (body type amorphous) with no class (BR7: the Slime class is gone; the Slime senses tree needs race Slime), level 0, personality fearless. Skills: unarmed\_natural 30, dodge 0, everything else 0. HP multiplier 0.6 (30 HP). Its slam uses the slam class: damage 20, hit +10, reach 0.
 
-**Village templates** (first build; every number a placeholder). All three are copies of body type humanoid with no class:
+**Village templates** (first build; every number a placeholder). All three are copies of race Human (body type humanoid) with no class:
 
 - **guard:** level 2, bonus points 10; minimums melee\_medium 40, block 30, dodge 20, sight 30, hearing 30, intimidation 30, persuasion 20; focus picks melee/melee\_medium, defense/block, perception/sight; personality steady; loadout arming\_sword, mail\_hauberk; control agent.
 - **trader** (the barkeep): level 1; minimums sight 25, hearing 25, barter 40, persuasion 30; focus picks perception/hearing, melee/melee\_light, defense/dodge; personality timid; no loadout; control code.
@@ -2455,7 +2452,7 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 - **Attack modes.** A weapon lists one or more modes, each with its own tree, class, reach and hands, plus optional bonuses on top of the class table (damageAdj, hitAdj). Dagger: melee light, and thrown ranged light. \[Proposed\]
 - **Reach.** Counted in zone links: 0 = same zone; N = up to N links, every link with sight. Ranged modes take the range modifiers in Part 3 (Reach, range, cover and light). \[Proposed\]
 - **Thrown.** A thrown mode moves the item to the ground of the target's zone. There is no other ammunition.
-- **Natural attacks.** A body type lists natural attack modes in the Combat-Unarmed tree. A mode tied to a Strike part follows Part 3's Strike role (Damaged −10, Crippled unavailable). A humanoid's unarmed mode has no part. \[Proposed\]
+- **Natural attacks.** A body type lists the natural attack modes its shape always has, and a race may add its own (BR3). A mode tied to a Strike part follows Part 3's Strike role (Damaged −10, Crippled unavailable). A humanoid's unarmed mode has no part. \[Proposed\]
 - **Blocking.** Any held melee mode can block, which meets the "shield or weapon" rule. Ranged, thrown and unarmed modes can't.
 - **Default mode.** If an order names no mode, code uses the first held mode whose reach covers the target, else the unarmed mode.
 
@@ -2465,7 +2462,7 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 - **Protection.** One reduction and one multiplier per armor item. Placeholders: light 2 and ×0.8, medium 4 and ×0.65, heavy 6 and ×0.55.
 - **Armor pools.** An armor item may add a pool to a covered part (a heavy helm on the head). The pool is a fixed number of points on the item entry, the same whoever wears it. After protection, damage drains that pool first; the rest reaches the part. The pool never counts on the health track. An empty pool absorbs nothing until repaired (D-89). \[Proposed\]
 - **Shields.** A held shield adds its Non-essential part to the holder, off the hit table; a block at gap 0 or better sends the hit to it (Part 3, Weapons, armor and shields). Its pool is a fixed number of points on the item entry, the same in any hand. The pool's state is saved on the item instance, so damage survives swaps. A Destroyed shield is lost.
-- **Natural armor.** A body type may list natural armor with the same fields. It stacks with worn armor: worn first, then natural.
+- **Natural armor.** A race may list natural armor with the same fields (BR6). It stacks with worn armor: worn first, then natural.
 - **Damage step** (replaces Part 3's damage roll):
 
 ```

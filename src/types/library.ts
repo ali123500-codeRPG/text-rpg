@@ -35,12 +35,12 @@ export type ClassDef = { id: string; name: string; floors: Record<string, number
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
 export type NaturalArmor = { covers: string[]; reduction: number; multiplier: number; pools?: Record<string, number> };
+/** BR1 (Ali, 08/11/2026): a body type is the shape only: parts, general area, silhouette, and the attacks the shape
+ * always has (BR3). Toughness, natural armor and a being's own attacks are on its race. */
 export type BodyType = {
   id: string;
-  hpMultiplier: number;
   general: { name: string; size: SizeId };
   naturalAttacks: AttackMode[];
-  naturalArmor?: NaturalArmor;
   parts: PartDef[];
   fallback: { attackSkill: string };
   /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
@@ -111,7 +111,13 @@ export type HealingDef = {
 
 /** innatePerks / innateQuirks (Ali, 08/11/2026): perk ids every member of the race is born with (OwnedPerk source 'race').
  * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
-export type RaceDef = { id: string; name: string; bodyTypeId: string; innatePerks?: string[]; innateQuirks?: string[] };
+/** BR1–BR6 (Ali, 08/11/2026): a race is what the being is. It names exactly one body type (BR5), its HP multiplier
+ * (BR2) and natural armor (BR6), and adds its own natural attacks and fallback skill to the shape's (BR3). */
+export type RaceDef = {
+  id: string; name: string; bodyTypeId: string; hpMultiplier: number;
+  naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
+  innatePerks?: string[]; innateQuirks?: string[];
+};
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */
 export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'body_type' | 'race' };

@@ -1,7 +1,7 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import type { Actor, CreationBuild, GameState, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
-import { bodyType, getLibrary, itemDef, npcTemplate } from './index';
+import { bodyType, race, getLibrary, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
 
 let seq = 0;
@@ -72,7 +72,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   const skills = t.generation === 'unique'
     ? rollUniqueSkills(t, rng!)
     : Object.fromEntries(Object.entries(t.minimums).map(([k, v]) => [k, { raw: v, state: 'normal' as const }]));
-  const ct = bodyType(state, t.bodyTypeId);
+  const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
   const morale = CONFIG.PERSONALITY_MORALE[t.personality];
   return {
     id: opts.id,
@@ -85,7 +85,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     bandId: opts.bandId,
     core: {
       bodyTypeId: ct.id,
-      ...(t.raceId ? { raceId: t.raceId } : {}),
+      raceId: t.raceId,
       templateId: t.id,
       generation: t.generation,
       skills,
