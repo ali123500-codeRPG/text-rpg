@@ -307,6 +307,13 @@ export function prototypeLibrary(): Library {
       slime: { id: 'slime', name: 'Slime', bodyTypeId: 'amorphous', hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [] },
       dragon: { id: 'dragon', name: 'Dragon', bodyTypeId: 'winged_quadruped', hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [] },
     },
+    // Z3 (Ali, 08/11/2026). Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
+    zoneKinds: Object.fromEntries(([
+      ['room', 'Room', false, 'some', 'dim'], ['corridor', 'Corridor', false, 'none', 'dim'], ['stairs', 'Stairs', false, 'none', 'dim'],
+      ['cellar', 'Cellar or cave', false, 'some', 'dark'], ['street', 'Street', true, 'none', 'dark'], ['square', 'Square', true, 'none', 'dark'],
+      ['gate', 'Gate', true, 'none', 'dark'], ['yard', 'Yard', true, 'some', 'dark'], ['field', 'Field', true, 'none', 'dark'],
+      ['woods', 'Woods', true, 'heavy', 'dark'],
+    ] as const).map(([id, name, outdoor, cover, light]) => [id, { id, name, outdoor, cover, light }])),
     items: ITEMS,
     templates: TEMPLATES,
     activities: ACTIVITIES,
