@@ -1,16 +1,17 @@
 // The prototype library: skills (Part 1 §3), creatures (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
-import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SkillDef, XpCategory } from '../types';
+import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, XpCategory } from '../types';
 import { PERK_WRITEUPS } from './perks';
+import { BOOST_PERKS } from './boostPerks';
 import { BUILT_PERKS } from './builtPerks';
 
 /** XP category from the skill's function (X21); a skill with no deciding function names its own. */
 const CATEGORY_OF: Partial<Record<SkillDef['functions'][number], XpCategory>> = {
   melee_attack: 'offensive', ranged_attack: 'offensive', unarmed_attack: 'offensive', defense: 'defensive', hp: 'endurance', notice: 'notice', influence: 'influence',
 };
-const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], playerOpen = true, cue?: 'sight' | 'sound', xpCategory?: XpCategory): SkillDef =>
-  ({ id, treeId, functions, roles, playerOpen, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[functions[0]] ?? 'misc' });
+const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], playerOpen = true, cue?: 'sight' | 'sound', xpCategory?: XpCategory, tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
+  ({ id, treeId, functions, roles, playerOpen, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[functions[0]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('melee_light', 'melee', ['melee_attack'], ['grip']),
@@ -32,17 +33,29 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
   sk('sneaking', 'stealth', ['stealth'], ['move'], true, undefined, 'notice'),
   sk('combat_stealth', 'stealth', ['stealth'], ['move'], true, undefined, 'offensive'),
+  sk('vanishing', 'stealth', ['stealth'], ['move'], true, undefined, 'offensive'), // ST11/ST18: breaks established sight
   sk('persuasion', 'speech', ['influence'], []),
   sk('intimidation', 'speech', ['influence'], []),
   sk('barter', 'speech', ['influence'], []),
   sk('feint', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
   sk('riposte', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
   sk('disarm', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
-  sk('tremor', 'slime_senses', ['notice'], ['sense'], false, 'sound'),
-  sk('taste', 'slime_senses', ['notice'], ['sense'], false),
+  // slime class skills are tier 0 (Ali, 08/11/2026)
+  sk('tremor', 'slime_senses', ['notice'], ['sense'], false, 'sound', undefined, 'tier_0'),
+  sk('taste', 'slime_senses', ['notice'], ['sense'], false, undefined, undefined, 'tier_0'),
   // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk('lockpicking', 'tools', [], ['grip'], false),
 ].map((s) => [s.id, s]));
+
+/** ST21 (Ali, 08/11/2026): situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
+const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
+  melee_light: ['sight'], melee_medium: ['sight'], melee_heavy: ['sight'],
+  ranged_light: ['sight', 'ranged'], ranged_medium: ['sight', 'ranged'], ranged_heavy: ['sight', 'ranged'],
+  unarmed_strike: ['sight'], unarmed_grapple: ['sight'], unarmed_improvised: ['sight'], unarmed_natural: ['sight'],
+  dodge: ['sight'], block: ['sight'], sight: ['sight'],
+  sneaking: ['stealth'], combat_stealth: ['stealth'], vanishing: ['stealth', 'hide'],
+};
+for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
@@ -144,7 +157,7 @@ export const CREATURES: Record<string, CreatureType> = {
 
 export const TEMPLATES: Record<string, NpcTemplate> = {
   slime: {
-    id: 'slime', creatureTypeId: 'slime', classId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30 },
+    id: 'slime', creatureTypeId: 'slime', classId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30, tremor: 50, taste: 50 },
     level: 0, bonusPoints: 0, focus: [], personality: 'fearless', control: 'code', label: 'a slime',
     fallback: { attackSkill: 'unarmed_natural' },
   },
@@ -236,7 +249,7 @@ export function prototypeLibrary(): Library {
       unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'] },
       defense: { id: 'defense', name: 'Combat – Defense', skills: ['dodge', 'block', 'endurance'] },
       perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'] },
-      stealth: { id: 'stealth', name: 'Stealth', skills: ['sneaking', 'combat_stealth'] },
+      stealth: { id: 'stealth', name: 'Stealth', skills: ['sneaking', 'combat_stealth', 'vanishing'] },
       speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'] },
       swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], classId: 'swordsman' },
       slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor', 'taste'], classId: 'slime' },
@@ -272,7 +285,7 @@ export function prototypeLibrary(): Library {
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,
     // the 20 milestone picks; higher and banked perks stay in PERK_WRITEUPS until they get a milestone
-    perks: Object.fromEntries(PERK_WRITEUPS.filter((d) => d.ladder).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
+    perks: Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => d.ladder).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
     achievements: {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
       first_defeat: { id: 'first_defeat', name: 'First {creature} Felled', level: 'i', rule: 'defeats', count: 1, by: 'creature' },

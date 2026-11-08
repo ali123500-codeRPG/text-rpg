@@ -1,5 +1,6 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
-import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind } from '../types';
+import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, TierShift, Zone } from '../types';
+import { zoneLight } from '../time';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
@@ -52,6 +53,23 @@ function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: 
   return out;
 }
 
+/** ST21/ST22: a roll's situation tags: its skill's tags plus any an action adds (a Hide adds hide) */
+export const rollTags = (skill: string, add: SituationTag[] = []): SituationTag[] => [...new Set([...(getLibrary().skills[skill]?.tags ?? []), ...add])];
+/** the summed sign a situational table gives a roll's tags (+ helps the roll's owner) */
+export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number => tags.reduce((n, t) => n + (CONFIG.SITUATION_TAGS[table][t] ?? 0), 0);
+
+/** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover tier
+ * shift (the roller's zone) for one roll. A ranged attack's cover is a gap shift instead (ruleset attack). */
+export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[] }): { modifiers: Mod[]; tierShifts: TierShift[] } {
+  const tags = rollTags(skill, at.add);
+  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[zoneLight(state, at.light)] ?? 0) : 0;
+  const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[at.cover.cover] ?? 0) : 0;
+  return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
+}
+
+/** a skill's final efficiency multiplier from its tier (1 for an unknown skill) */
+export const tierMult = (skill: string): number => CONFIG.SKILL_TIER_MULT[getLibrary().skills[skill]?.tier ?? 'tier_2'] ?? 1;
+
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[] } = {}) {
   const skills = getLibrary().skills;
@@ -64,7 +82,10 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     const k = share(id);
     const entry = actor.core.skills[id];
     const gear = gearFor(state, actor, id, ctx).map((g) => ({ ...g, value: g.value * k }));
-    const value = (entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0); // true skill (S3)
+    // true skill (S3) and gear, × the skill's tier multiplier (final efficiency, Ali 08/11/2026)
+    const tier = tierMult(id);
+    const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier;
+    for (const g of gear) g.value *= tier;
     if (!best || value > best.value) best = { skill: id, value, gear };
   }
   return best!; // GAP: hard cap (D-3) and condition effects not designed yet

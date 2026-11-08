@@ -27,7 +27,8 @@ const words = (day: number, key: string) => `Day ${day} · ${TIME_OF_DAY.name(ke
 
 /** T1: the header's icon, coloured by time of day; the words are its tip and its label */
 export const todBadge = (day: number, key: string) =>
-  h('span', { class: `tod tod-${key}`, title: words(day, key), role: 'img', 'aria-label': words(day, key) }, todIcon(key));
+  // its own tip, shown at once on hover or focus: the header is rebuilt often, which cancels the browser's slow title tip
+  h('span', { class: `tod tod-${key}`, 'data-tip': words(day, key), tabindex: '0', role: 'img', 'aria-label': words(day, key) }, todIcon(key));
 
 /** T2: "11 hours later · Day 2 · Dawn" between story lines */
 export function timePassedRow(t: { minutes: number; day: number; timeOfDay: string }): HTMLElement {

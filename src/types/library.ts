@@ -3,11 +3,13 @@ import type { AttackMode, ItemDef } from './items';
 import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
-import type { PartStateKey } from '../scales';
+import type { PartStateKey, SkillTierKey } from '../scales';
 
 export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' | 'defense' | 'notice' | 'influence' | 'hp' | 'stealth';
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
+/** Situation tags (Ali, 08/11/2026, ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
+export type SituationTag = 'sight' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike';
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
@@ -20,6 +22,8 @@ export type SkillDef = {
   playerOpen: boolean; // open to the player's point-buy
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   xpCategory: XpCategory;
+  tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
+  tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
 };
 export type TreeDef = { id: string; name: string; skills: string[]; classId?: string };
 export type ClassDef = { id: string; name: string; treeId: string; floors: Record<string, number> };
@@ -64,6 +68,9 @@ export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 
 export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
+  /** boost perks (40/80/120): true skill added to other skills, +functionBoost to every other skill sharing a function
+   * with the ladder skill, and the ladder skill's own numbers (src/library/boostPerks.ts) */
+  trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
   /** player-facing write-up (the Story view); must say the same thing as `rules` */
   story?: string;
   /** exact rules code applies (the Rules view, and the basis for building the perk) */
@@ -71,9 +78,11 @@ export type PerkDef = {
   /** false: written down but not coded yet, so it can't be taken */
   built?: boolean;
 };
+/** a boost perk's numbers; each applies only to rolls of the perk's own ladder skill */
+export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
 export type PerkRules = { kind: string; trigger: string; conditions: string[]; effect: string; lasts: string; cooldown?: string; needs?: string; open?: string };
 /** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
-export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | 'higher' | 'very_high' | 'banked'; story: string; rules: PerkRules };
+export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked'; story: string; rules: PerkRules };
 
 /** X6/X11 (Ali, 07/11/2026): a library achievement, each with its own id and name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per creature type or race: the granted id is

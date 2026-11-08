@@ -24,11 +24,37 @@ export const ownPerkMoves = (a: Actor): string[] => Object.keys(PERK_MOVES).filt
 export function trueSkill(a: Actor, skill: string): number {
   const e = a.core.skills[skill];
   if (!e || e.dormant) return 0;
-  const perks = getLibrary().perks;
+  const { perks, skills } = getLibrary();
+  const fns: string[] = skills[skill]?.functions ?? [];
   return e.raw + owned(a).reduce((n, p) => {
     const d = perks[p.perkId];
-    return n + (d?.trueSkill && d.ladder?.skill === skill ? d.trueSkill : 0);
+    const own = d?.ladder?.skill;
+    if (!d) return n;
+    let v = d.trueSkill && own === skill ? d.trueSkill : 0;
+    v += d.trueSkillTo?.[skill] ?? 0; // boost perks: true skill spent on skills that work well with the ladder skill
+    // boost perks: +functionBoost to every other skill sharing a function with the ladder skill (docs/skill-tags.md)
+    if (d.functionBoost && own && own !== skill && (skills[own]?.functions ?? []).some((f: string) => fns.includes(f))) v += d.functionBoost;
+    return n + v;
   }, 0);
+}
+
+/** a boost perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
+export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult' | 'recoveryMult'): number {
+  const perks = getLibrary().perks;
+  return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return d?.ladder?.skill === skill ? m * (d.numbers?.[key] ?? 1) : m; }, 1);
+}
+/** boost perk roll modifiers for one skill: rollAdd on every roll, hitAdd on attack rolls only, each named by its perk */
+export function boostRollMods(a: Actor, skill: string, attack: boolean): { source: string; type: 'roll_perk'; value: number }[] {
+  const perks = getLibrary().perks;
+  return owned(a).flatMap((p) => {
+    const d = perks[p.perkId];
+    const v = d?.ladder?.skill === skill ? (d.numbers?.rollAdd ?? 0) + (attack ? d.numbers?.hitAdd ?? 0 : 0) : 0;
+    return v ? [{ source: d!.name, type: 'roll_perk' as const, value: v }] : [];
+  });
+}
+export function boostAdd(a: Actor, skill: string, key: 'armorPierce'): number {
+  const perks = getLibrary().perks;
+  return owned(a).reduce((n, p) => { const d = perks[p.perkId]; return d?.ladder?.skill === skill ? n + (d.numbers?.[key] ?? 0) : n; }, 0);
 }
 
 /** ladder perks this actor owns in one skill */

@@ -15,14 +15,15 @@ const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action
 const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const status = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!.mind!.knowledge.player?.status ?? 'unaware';
 /** forces each stealth contest's gap by observer id (others: the player wins); records the requests */
-function rig(gaps: Record<string, number> = {}) {
+function rig(gaps: Record<string, number | number[]> = {}) {
   const calls: [RollRequest, RollRequest][] = [];
   const real = ruleset.contested;
   vi.spyOn(ruleset, 'contested').mockImplementation((a, b, st, rng) => {
     if (a.rollKind !== 'stealth') return real(a, b, st, rng);
     calls.push([a, b]);
     const r = real(a, b, st, rng);
-    const gap = gaps[b.actorId] ?? -1;
+    const g = gaps[b.actorId] ?? -1;
+    const gap = Array.isArray(g) ? g.shift() ?? -1 : g;
     return { ...r, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' } as ContestResult;
   });
   return calls;
@@ -34,19 +35,42 @@ const aware = (s: GameState, id: string, zone: string) => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('117 stealth', () => {
-  it('3 hide, per observer: the guard who loses it drops to suspicious at the old zone, the one who wins stays aware', () => {
+  it('3 vanish, per observer: the guard who loses it drops to suspicious where it last saw you, the one who wins stays aware (ST15)', () => {
     const s = makeVillage();
     s.actors.push(spawnNpc(null, 'guard', { id: 'guard_2', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch', name: 'Hal', storyId: 'test' }));
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
     aware(s, 'guard_2', 'gate_inner');
-    rig({ guard_1: -1, guard_2: 1 });
-    turn(s, intent(null, { type: 'hide' }));
+    const calls = rig({ guard_1: -1, guard_2: 1 });
+    turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
+    expect(s.player.zone).toBe('street_square');
     expect(s.player.posture).toBe('stealthy');
+    expect(calls.every(([a]) => a.skill === 'vanishing')).toBe(true);
     const b1 = s.actors.find((a) => a.id === 'guard_1')!.mind!.knowledge.player!;
     expect(b1.status).toBe('suspicious');
     expect(b1.lastKnownZone).toBe('gate_inner');
     expect(['aware', 'tracking']).toContain(status(s, 'guard_2'));
+  });
+  it('a hide never rolls against someone who already sees you (ST12)', () => {
+    const s = makeVillage();
+    place(s, 'player', 'gate_inner');
+    aware(s, 'guard_1', 'gate_inner');
+    const calls = rig({ guard_1: -1 });
+    turn(s, intent(null, { type: 'hide' }));
+    expect(calls.some(([, b]) => b.actorId === 'guard_1')).toBe(false);
+    expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
+  });
+  it('a shot target that loses the notice contest still turns suspicious, at the shooter\'s zone (ST19)', () => {
+    const s = makeVillage();
+    place(s, 'player', 'field_edge');
+    for (const i of s.player.core.inventory) delete i.equippedIn;
+    s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.posture = 'stealthy';
+    rig({ slime_1: -1 });
+    turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
+    const b = s.actors.find((a) => a.id === 'slime_1')!.mind!.knowledge.player;
+    expect(b?.status).toBe('suspicious');
+    expect(b?.lastKnownZone).toBe('field_edge');
   });
   it('18 sneaking persists over moves; detection on turn 3 is the contest', () => {
     const s = makeVillage();
@@ -105,10 +129,38 @@ describe('117 stealth', () => {
     s.player.core.condition.parts.left_leg = -30;
     const calls = rig();
     turn(s, intent(null, { type: 'hide' }));
-    const [a] = calls.find(([, b]) => b.actorId === 'trader')!;
+    const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
     expect(a.skill).toBe('sneaking');
-    expect(a.modifiers).toEqual([{ source: 'light', type: 'situational', value: 10 }]);
+    // P14 (Ali, 08/11/2026): darkness gives no help against a listener
+    expect(a.modifiers).toEqual(o.skill === 'sight' ? [{ source: 'light', type: 'situational', value: 10 }] : []);
     expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
     expect(a.roles).toEqual([]);
+    const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
+    expect(b.modifiers).toEqual(b.skill === 'sight' ? [{ source: 'light', type: 'situational', value: -10 }] : []); // ST21: sight is hurt
+  });
+  it('tags decide the tables (ST21): a sneak gets no cover, a vanish does (Vanishing has the hide tag)', () => {
+    const s = makeVillage();
+    place(s, 'player', 'tav_counter');
+    place(s, 'trader', 'tav_cellar');
+    s.player.posture = 'stealthy';
+    const calls = rig();
+    turn(s, intent({ toZone: 'tav_cellar' }, { type: 'sneak' }));
+    expect(calls.find(([, b]) => b.actorId === 'trader')![0].tierShifts).toEqual([]);
+    const v = makeVillage();
+    place(v, 'player', 'tav_counter');
+    place(v, 'trader', 'tav_cellar');
+    const vc = rig();
+    turn(v, intent({ toZone: 'tav_cellar' }, { type: 'vanish' }));
+    expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: 'vanishing', tierShifts: [{ source: 'cover', value: 1 }] });
+  });
+  it('an observer with Unblinking who loses a Vanish must also lose a stealth contest (ST23)', () => {
+    const s = makeVillage();
+    place(s, 'player', 'gate_inner');
+    aware(s, 'guard_1', 'gate_inner');
+    s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: 'unblinking' } as never);
+    const calls = rig({ guard_1: [-1, 0] });
+    turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
+    expect(calls.map(([a]) => a.skill)).toEqual(['vanishing', 'sneaking']);
+    expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
   });
 });

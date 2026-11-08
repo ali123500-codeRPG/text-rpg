@@ -3,14 +3,14 @@ import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEv
 import { CONFIG } from '../config';
 import { activity, creatureType, getLibrary, itemDef } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
-import { defaultMode, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, hasPerk, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
 import { updateEngagements } from './engagement';
 import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
 import { applyHold, breakFree, releaseHolds } from './held';
-import { perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -19,7 +19,7 @@ import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './g
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats } from './xp';
-import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
+import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay } from '../time';
 import { TIME_OF_DAY } from '../scales';
 import type { TurnInput } from './types';
 
@@ -172,7 +172,7 @@ function doMove(ctx: Ctx, a: Actor, to: string, o: Order, withBark: boolean): bo
   const zone = zoneById(state, path[0])!;
   a.zone = zone.id;
   a.placeId = zone.placeId;
-  let ev = withActivity(mk(ctx, a, 'move', { fromZone: from }), o.activity);
+  let ev = withActivity(mk(ctx, a, 'move', { fromZone: from, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return true;
@@ -205,7 +205,8 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   emit(ctx, ev);
 }
 
-function doAttack(ctx: Ctx, a: Actor, o: Order): void {
+/** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
+function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const { state, rng } = ctx;
   let t = o.target ? actorById(state, o.target) : undefined;
   const wasted = () => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
@@ -241,7 +242,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   );
   if (res.defense) ctx.defenses.set(t.id, (ctx.defenses.get(t.id) ?? 0) + 1);
   ev.effects = [...ev.effects, ...ruleset.applyEffects(res, state)];
-  afterAttack(state, a, t, res, m.mode.tree === 'ranged'); // perk marks (A2, A5, A10)
+  afterAttack(state, a, t, res, m.mode.tree === 'ranged', modeSkill(m.mode)); // perk marks (A2, A5, A10, B15)
   const hold = applyHold(a, t, res, modeSkill(m.mode)); // A8 Hold
   if (hold) ev.effects.push(hold);
   ruleset.recordUse(a, res.attack.skill, res, state);
@@ -261,7 +262,14 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   if (!isActive(t)) {
     for (const p of state.actors) if (p !== t && p.bandId === t.bandId && ev.perception[p.id]) morale(ctx, p, 'bandmate_down');
   }
+  // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
+  if (!followUp && modeSkill(m.mode) === 'unarmed_improvised' && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'one_two')
+    && isActive(t) && t.zone === a.zone && freeHand(state, a)) {
+    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === 'unarmed_strike' && x.mode.reach >= 0);
+    if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: 'unarmed_strike', targetPart: null, aimed: false, line: null }, true);
+  }
 }
+const ONE_TWO_HITS = new Set(['grazed', 'blocked', 'full_hit', 'heavy_hit', 'crushing_hit']);
 
 /** Rest [Proposed]: no active hostile actor in the zone, at most once every REST_COOLDOWN_MIN game minutes (T7). */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {
@@ -366,10 +374,9 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
     // Q17 (Ali, 07/11/2026): looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
-    const light = CONFIG.LIGHT_MODS[zoneLight(state, zoneById(state, a.zone))] ?? 0;
     const modifiers = [
       ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
-      ...(light ? [{ source: 'light', type: 'situational' as const, value: light }] : []),
+      ...situational(state, o.skill, { light: zoneById(state, a.zone) }).modifiers, // ST21: light by tag (sight)
     ];
     const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [] }, state, rng);
     ev.roll = r;
@@ -502,6 +509,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (isActive(state.player)) {
     // ST3/ST5: sneaking is a free posture switch; a hide is the main action; words above a whisper end the posture
     if (playerOrder.type === 'sneak') { state.player.posture = 'stealthy'; playerOrder.type = 'hold'; }
+    // ST13: a Vanish is the turn's move, contested with Vanishing (stealthDetect)
+    if (playerOrder.type === 'vanish') { state.player.posture = 'stealthy'; playerOrder.type = 'hold'; if (playerOrder.move) playerOrder.vanish = true; }
     if (playerOrder.type === 'hide') state.player.posture = 'stealthy';
     if ((playerOrder.line && playerOrder.line.volume !== 'whisper') || isSpeech(playerOrder.type)) state.player.posture = 'open';
     orders.set(state.player.id, playerOrder);

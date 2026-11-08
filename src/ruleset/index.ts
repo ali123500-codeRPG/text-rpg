@@ -6,20 +6,19 @@ import type {
 } from '../types';
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
-import { zoneLight } from '../time';
 import { creatureType, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
-import { hasPerk } from './perks';
+import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { markShifts } from '../engine/perkMarks';
-import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, situationMods } from './gear';
+import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
-export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
+export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
-export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool } from './gear';
+export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational } from './gear';
 
 // Tiers are keys of the TIERS table (src/scales.ts). Arithmetic (shifts, gaps) works on a tier's level: its row
 // position plus `beyond`, the steps a shifted roll went past either end (Part 1 §4: shifted tiers are not clamped).
@@ -111,6 +110,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (req.auto !== false) {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
+    modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // boost perks: Keen Edge, Steady Draw, Iron Grip
   }
   const d = rng.d100();
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
@@ -158,8 +158,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
 
   // 2. attack roll
   const am: Mod[] = [];
+  const skill = modeSkill(mode);
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
-  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] });
+  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // boost perk aimMult (none uses it today)
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
   // GAP: the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value
   const hit = cls.hit + (mode.hitAdj ?? 0);
@@ -169,12 +170,10 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && hostile(state, A, o));
     if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, 'point_blank')) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
   }
-  const lightA = CONFIG.LIGHT_MODS[zoneLight(state, zoneD)];
-  if (lightA) am.push({ source: 'light', type: 'situational', value: lightA });
+  am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));
-  const skill = modeSkill(mode);
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
-  const marks = markShifts(state, A, D, ranged); // A2, A5, A10
+  const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : []), ...marks.attack];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit' }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });
@@ -195,8 +194,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if ((req.context?.defensesThisTurn ?? 0) >= 1) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
-  const lightD = CONFIG.LIGHT_MODS[zoneLight(state, zoneA)];
-  if (lightD) dm.push({ source: 'light', type: 'situational', value: lightD });
+  dm.push(...situational(state, type, { light: zoneA }).modifiers); // ST21: light by tag (sight)
   dm.push(...(req.context?.defenderMods ?? []));
   const def = ruleset.roll({ actorId: D.id, skill: type, modifiers: dm, tierShifts: marks.defense, itemId: blocker?.id, rollKind: type }, state, rng);
   const defEff = effectiveSkill(state, D, type, { itemId: blocker?.id });
@@ -205,7 +203,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // 4. gap
   const gapShifts: TierShift[] = [];
   if (mode.class === 'heavy' && type === 'block') gapShifts.push({ source: 'heavy vs block', value: CONFIG.HEAVY_VS_BLOCK_GAP });
-  if (ranged && zoneD && CONFIG.COVER_GAP[zoneD.cover]) gapShifts.push({ source: 'cover', value: CONFIG.COVER_GAP[zoneD.cover] });
+  // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
+  const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[zoneD.cover] ?? 0) : 0;
+  if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
   const g = Math.max(-5, Math.min(5, gap));
   const multiplier = ladder(type, g);
@@ -259,12 +259,13 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
   const worn = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
+  const pierce = boostAdd(A, skill, 'armorPierce'); // boost perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
-    for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - a.reduction) * a.multiplier;
+    for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
   };
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier;
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult'); // boost perk: Heavy Hand
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
   const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role

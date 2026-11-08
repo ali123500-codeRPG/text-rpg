@@ -16,7 +16,8 @@ describe('106 XP and levels', () => {
   it('rating: categories ranked 1, ½, ¼, weighted; weak foes taper (X18–X23)', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
-    expect(rating(slime)).toBeCloseTo(effort(30), 5); // one offensive skill
+    // one offensive skill, plus tremor and taste (50, tier 0 so read as 25) ranked 1 and ½ at the notice weight
+    expect(rating(slime)).toBeCloseTo(effort(30) + CONFIG.XP_CATEGORY_WEIGHT.notice * 1.5 * effort(25), 5);
     const g = actor(s, 'guard_1');
     expect(rating(g)).toBeGreaterThan(rating(slime));
     const t = Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / rating(s.player));
