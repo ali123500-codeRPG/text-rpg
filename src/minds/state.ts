@@ -150,7 +150,8 @@ function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
   const zone = zoneById(state, p.zone);
   const skill = vanish ? 'vanishing' : stealthSkill(state, event);
   // ST21/ST22: light and cover reach the rolls by situation tag; a Hide adds the hide tag and ignores leg wounds (ST10)
-  const mine = (sk: string) => ({ actorId: p.id, skill: sk, ...situational(state, sk, { light: zone, cover: zone, add: hide ? ['hide'] : [] }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}) });
+  // P14 (Ali, 08/11/2026): darkness never hurts hearing, so it gives no help against an observer who only hears the player
+  const mine = (sk: string, sense: string) => ({ actorId: p.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [] }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}) });
   const theirs = (a: Actor, sk: string) => ({ actorId: a.id, skill: sk, ...situational(state, sk, { light: zone }), rollKind: 'perception' as const });
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
   const sc = (state.scratch ??= {});
@@ -164,7 +165,7 @@ function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
     const seen = perceptionOf(event, state, a);
     if (!seen) continue;
     const sense = seen.cue === 'sound' ? 'hearing' : 'sight';
-    const r = ruleset.contested(mine(skill), theirs(a, sense), state, rng);
+    const r = ruleset.contested(mine(skill, sense), theirs(a, sense), state, rng);
     done.ids.push(a.id);
     markUse(state, p, skill, r); // ST8
     log(state, 'stealth_contest', { observerId: a.id, skill, kind: event.kind, gap: r.gap });
@@ -174,7 +175,7 @@ function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
       // ST23: an observer with Unblinking who loses the Vanish still needs beating with Sneaking or Combat Stealth
       if (hasPerk(a, 'unblinking')) {
         const second = stealthSkill(state);
-        const r2 = ruleset.contested(mine(second), theirs(a, sense), state, rng);
+        const r2 = ruleset.contested(mine(second, sense), theirs(a, sense), state, rng);
         markUse(state, p, second, r2);
         log(state, 'stealth_contest', { observerId: a.id, skill: second, kind: event.kind, gap: r2.gap, perk: 'unblinking' });
         if (r2.gap >= 0) continue;

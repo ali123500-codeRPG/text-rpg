@@ -129,9 +129,10 @@ describe('117 stealth', () => {
     s.player.core.condition.parts.left_leg = -30;
     const calls = rig();
     turn(s, intent(null, { type: 'hide' }));
-    const [a] = calls.find(([, b]) => b.actorId === 'trader')!;
+    const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
     expect(a.skill).toBe('sneaking');
-    expect(a.modifiers).toEqual([{ source: 'light', type: 'situational', value: 10 }]);
+    // P14 (Ali, 08/11/2026): darkness gives no help against a listener
+    expect(a.modifiers).toEqual(o.skill === 'sight' ? [{ source: 'light', type: 'situational', value: 10 }] : []);
     expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
     expect(a.roles).toEqual([]);
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;

@@ -8,7 +8,7 @@ Each perk has two views that must say the same thing (Ali, 07/11/2026). **Story*
 
 **Terms.** *Owner*: the actor who has the perk. *Hits*: an attack whose outcome is grazed, blocked, full hit, heavy hit or crushing hit (not missed or dodged). *Light/medium/heavy melee or ranged mode*: the attack mode's tree and class (Part 5 §5); thrown weapons are ranged. *Gap* and *tier shift*: Part 1 §4 and Part 3, Defense. *Next turn*: until the end of that actor's next turn. *Engagement*: Part 2, Encounter modes (E1). *Move*: an action the owner chooses on its turn.
 
-The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill). Swordsman, lockpicking and slime skills have no perks for now.
+Ability perks sit on 20/60/100/140 and change what a character can do. Boost perks sit on 40/80/120 and raise numbers only, with no conditions: +5 true skill in the skill, +1 in every other skill sharing a function with it, and one more number (Ali, 08/11/2026). Swordsman, lockpicking and slime skills have no perks for now.
 
 ## 20 milestone
 
@@ -184,6 +184,107 @@ The 40, 80 and 120 perks are simple number boosts (such as +5/+10/+15 true skill
 - **Lasts:** Always.
 - **Needs first:** Buying and selling (D-93).
 - **Open:** Kept only if trade prices make a sale at 1.1× still pay less than buying the same item at 0.9× (Ali, 07/11/2026). That needs the price a merchant pays the player to be under 0.81× of the price it charges (1.1 × sell < 0.9 × buy).
+
+## 40 milestone (boost perks)
+
+### Fine Point (Light weapons) · P1
+
+*Story:* +5 Light weapons and +1 in Medium weapons, Heavy weapons. Aiming at a part with a light weapon costs you half the usual penalty.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in melee_light. +1 true skill in every other skill sharing a function with it (Medium weapons, Heavy weapons). The aim penalty on an aimed attack with skill melee_light is ×0.5.
+- **Lasts:** Always.
+
+### Guard Drill (Medium weapons) · P2
+
+*Story:* +5 Medium weapons and +1 in Light weapons, Heavy weapons. Your blocks get better too: +10 Block.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in melee_medium. +1 true skill in every other skill sharing a function with it (Light weapons, Heavy weapons). +10 true skill in block.
+- **Lasts:** Always.
+
+### Heavy Hand (Heavy weapons) · P3
+
+*Story:* +5 Heavy weapons and +1 in Light weapons, Medium weapons. Your heavy weapons hit 20% harder.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in melee_heavy. +1 true skill in every other skill sharing a function with it (Light weapons, Medium weapons). Damage of an attack with skill melee_heavy is ×1.2, before armor.
+- **Lasts:** Always.
+
+### Sharp Eyes (Light ranged) · P4
+
+*Story:* +5 Light ranged and +1 in Medium ranged, Heavy ranged. You spot more: +10 Sight.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in ranged_light. +1 true skill in every other skill sharing a function with it (Medium ranged, Heavy ranged). +10 true skill in sight.
+- **Lasts:** Always.
+
+### Armor Piercer (Heavy ranged) · P6
+
+*Story:* +5 Heavy ranged and +1 in Light ranged, Medium ranged. Your bolts punch through armor: it stops 2 less of each hit.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in ranged_heavy. +1 true skill in every other skill sharing a function with it (Light ranged, Medium ranged). On a hit with skill ranged_heavy, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
+- **Lasts:** Always.
+
+### Street Fighter (Strike) · P7
+
+*Story:* +5 Strike and +1 in Grapple, Improvisation. Anything in reach becomes a weapon: +10 Improvisation.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in unarmed_strike. +1 true skill in every other skill sharing a function with it (Grapple, Improvisation). +10 true skill in unarmed_improvised.
+- **Lasts:** Always.
+
+### Brawler's Eye (Improvisation) · P9
+
+*Story:* +5 Improvisation and +1 in Strike, Grapple. Your fists and your eyes sharpen: +5 Strike, +5 Sight.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in unarmed_improvised. +1 true skill in every other skill sharing a function with it (Strike, Grapple). +5 true skill in unarmed_strike and +5 in sight.
+- **Lasts:** Always.
+
+### Braced (Block) · P11
+
+*Story:* +5 Block and +1 in Dodge. Taking blows hardens you: +10 Endurance.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in block. +1 true skill in every other skill sharing a function with it (Dodge). +10 true skill in endurance.
+- **Lasts:** Always.
+
+### Quick Mend (Endurance) · P12
+
+*Story:* +5 Endurance. Your body heals twice as fast on its own.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in endurance. +1 true skill in every other skill sharing a function with it (none today). Natural recovery (the hourly healing row read from endurance) is ×2.
+- **Lasts:** Always.
+
+### Marksman's Eye (Sight) · P13
+
+*Story:* +5 Sight and +1 in Hearing. A good eye guides your shots: +5 Light ranged, +5 Medium ranged.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in sight. +1 true skill in every other skill sharing a function with it (Hearing). +5 true skill in ranged_light and +5 in ranged_medium.
+- **Lasts:** Always.
+
+### Soft Step (Hearing) · P14
+
+*Story:* +5 Hearing and +1 in Sight. Knowing what others hear, you move quieter: +10 Sneaking.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in hearing. +1 true skill in every other skill sharing a function with it (Sight). +10 true skill in sneaking.
+- **Lasts:** Always.
 
 ## Higher milestone
 

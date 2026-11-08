@@ -3,7 +3,7 @@
 import type { Actor, GameState } from '../types';
 import { getLibrary } from '../library';
 import { PART_STATES } from '../scales';
-import { healthLevel, partStates, trueSkill } from '../ruleset';
+import { boostMult, healthLevel, partStates, trueSkill } from '../ruleset';
 import { isActive } from './relations';
 import { logCode } from './effects';
 
@@ -59,7 +59,7 @@ export function passiveHealing(state: GameState, minutes: number): void {
   for (const a of [state.player, ...state.actors]) {
     if (!isActive(a) || (a !== state.player && !stage.has(a.zone))) continue;
     for (const h of rows) {
-      const pct = trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60);
+      const pct = trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // boost perk: Quick Mend
       if (pct > 0) applyHealing(state, a, h.id, { pct, quiet: true });
     }
   }
