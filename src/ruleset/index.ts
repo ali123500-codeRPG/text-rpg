@@ -45,8 +45,7 @@ export function tierName(t: Tier | Tiered): string {
 
 /** Stacking within one modifier type (Part 1 §4). */
 export function stackType(values: number[]): number {
-  const w = [1, CONFIG.STACK_2, CONFIG.STACK_3];
-  const part = (xs: number[]) => xs.reduce((s, x, i) => s + x * (w[i] ?? 0), 0);
+  const part = (xs: number[]) => xs.reduce((s, x, i) => s + x * CONFIG.STACK_RATIO ** i, 0);
   return part(values.filter((v) => v > 0).sort((a, b) => b - a)) + part(values.filter((v) => v < 0).sort((a, b) => a - b));
 }
 /** sum of all modifiers, each type stacked within itself */

@@ -20,8 +20,8 @@ const DEFAULTS = {
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
-  STACK_2: 0.5,
-  STACK_3: 0.25,
+  /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … (Ali, 08/11/2026) */
+  STACK_RATIO: 0.5,
   KIT_BONUS: 25,
   POTENTIAL: 300,
   K: 20,
