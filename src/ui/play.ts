@@ -5,7 +5,7 @@ import type { GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView } from '../views';
 import { tierGap } from '../agents/game';
-import { tierAtLeast, tierName } from '../ruleset';
+import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
 import type { TierRoll } from '../types';
 import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
@@ -60,7 +60,7 @@ const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }>
 
 /** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Three per group. */
 export function ideas(pv: PlayerView): { group: string; items: { text: string; note?: string }[] }[] {
-  const people = pv.actors.filter((a) => a.level === 'full' && a.health !== 'Incapacitated');
+  const people = pv.actors.filter((a) => a.level === 'full' && !(a.health && isDownLevel(a.health)));
   const nm = (a: PlayerView['actors'][number]) => a.name ?? a.label;
   const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('hand:')) && i.kind === 'weapon');
   const stowed = pv.player.inventory.filter((i) => !i.equippedIn.length && i.kind === 'weapon');
@@ -192,7 +192,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
     who.hidden = !seen.length;
     who.replaceChildren(h('span', { class: 'hs-label' }, 'Who’s here'), ...seen.map((a) => h('span', { class: 'pp' }, h('b', {}, cap(a.name ?? a.label)),
-      a.health ? h('span', { class: a.health === 'Incapacitated' ? 'st down' : 'st warn' }, a.health === 'Incapacitated' ? 'Down' : a.health)
+      a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, isDownLevel(a.health) ? 'Down' : a.health)
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
       // A13 Read Wounds: a foe's Damaged parts
       ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${pt.replace(/_/g, ' ')} damaged`)))));
