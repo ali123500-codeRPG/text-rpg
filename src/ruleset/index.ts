@@ -119,7 +119,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
   const shifts = [...req.tierShifts];
   let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
-  if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
+  if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
   return { actorId: actor.id, skill: eff.skill, d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
 }
 
