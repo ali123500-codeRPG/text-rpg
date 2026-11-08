@@ -38,6 +38,11 @@ describe('111 game clock', () => {
     expect(timeView(s)).toEqual({ day: 2, timeOfDay: 'Dawn' });
     expect(s.stage.breakCause).toBe('time_skip');
     expect(mechanicsLines(s, ev)).toContain('Time passes: 11 h (Day 2 · Dawn)');
+    // Q2 (Ali, 08/11/2026): waiting until the time of day it already is moves nothing
+    const at = now(s);
+    const again = turn(s, act('wait', 'dawn'));
+    expect(now(s) - at).toBeLessThan(60);
+    expect(mechanicsLines(s, again)).toContain("Wait: it's already dawn");
 
     const f = makeVillage();
     startClock(f, 'day');
