@@ -77,12 +77,26 @@ export function notesToLists(pages: Pages): void {
   for (const [id, m] of Object.entries(h?.memory ?? {})) if (typeof m === 'string') h!.memory![id] = m ? [{ turn: 0, text: m }] : [];
 }
 
+// v6 -> v7: event noise and visibility levels 0..3 become NOISE / VISIBILITY keys (coding rule). The v6 levels are fixed here,
+// not read from the tables, which have grown since.
+const V6_NOISE = ['silent', 'quiet', 'normal', 'loud'] as const;
+const V6_VISIBILITY = ['unseen', 'low', 'normal', 'high'] as const;
+export function senseToKeys(v: unknown): void {
+  if (Array.isArray(v)) return v.forEach(senseToKeys);
+  if (!v || typeof v !== 'object') return;
+  const o = v as Record<string, unknown>;
+  if (typeof o.noise === 'number') o.noise = V6_NOISE[o.noise] ?? 'normal';
+  if (typeof o.visibility === 'number') o.visibility = V6_VISIBILITY[o.visibility] ?? 'normal';
+  Object.values(o).forEach(senseToKeys);
+}
+
 export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
   2: (pages) => Object.values(pages).forEach(levelsToKeys),
   3: (pages) => Object.values(pages).forEach(splitLegs),
   4: (pages) => Object.values(pages).forEach(opposedToHostile),
   5: notesToLists,
+  6: (pages) => Object.values(pages).forEach(senseToKeys),
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */

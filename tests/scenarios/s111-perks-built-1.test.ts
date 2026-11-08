@@ -87,7 +87,7 @@ describe('111 coded perks, batch 1', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     const far = npc(s, 'slime_2');
-    const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, effects: [], noise: 1, visibility: 0, perception: {} };
+    const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
     const before = perceptionOf(ev, s, s.player);
     give(s.player, 'keen_ear');
     const after = perceptionOf(ev, s, s.player);

@@ -7,8 +7,8 @@ import { computePending } from '../../src/engine';
 import { lookAround, noteSightings, perceptionOf } from '../../src/perception';
 import { intent, play } from './w4-kit';
 
-const ev = (s: GameState, actorId: string, kind: string, zone: string, visibility = 1): GameEvent =>
-  ({ id: `x${kind}`, turn: s.turn, actorId, kind, zone, effects: [], noise: 0, visibility, perception: {} }) as GameEvent;
+const ev = (s: GameState, actorId: string, kind: string, zone: string, visibility: GameEvent['visibility'] = 'low'): GameEvent =>
+  ({ id: `x${kind}`, turn: s.turn, actorId, kind, zone, effects: [], noise: 'silent', visibility, perception: {} }) as GameEvent;
 
 it('108 a clear look keeps a still figure seen until it moves', () => {
   const s = makeVillage();

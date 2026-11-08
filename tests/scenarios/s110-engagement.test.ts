@@ -8,7 +8,7 @@ import { updateEngagements, usableThisEngagement, useThisEngagement } from '../.
 import type { GameEvent, GameState } from '../../src/types';
 
 const speak = (s: GameState, from: string, to: string): GameEvent => ({
-  id: `e${s.turn}`, turn: s.turn, actorId: from, kind: 'speak', zone: 'tav_common', effects: [], noise: 1, visibility: 1, perception: {},
+  id: `e${s.turn}`, turn: s.turn, actorId: from, kind: 'speak', zone: 'tav_common', effects: [], noise: 'quiet', visibility: 'low', perception: {},
   speech: { skill: 'persuasion', addressees: [to] },
 });
 const next = (s: GameState, events: GameEvent[] = []) => { s.turn += 1; return updateEngagements(s, events); };

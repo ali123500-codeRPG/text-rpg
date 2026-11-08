@@ -108,7 +108,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
 
 export const BODY_TYPES: Record<string, BodyType> = {
   humanoid: {
-    id: 'humanoid', hpMultiplier: 1, general: { name: 'torso', size: 'normal' },
+    id: 'humanoid', general: { name: 'torso', size: 'normal' },
     naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' },
       { id: 'grapple', tree: 'unarmed', class: 'grapple', skill: 'unarmed_grapple', reach: 0, hands: 0, name: 'grapple' }],
     parts: [
@@ -135,14 +135,15 @@ export const BODY_TYPES: Record<string, BodyType> = {
       },
     },
   },
-  slime: {
-    id: 'slime', hpMultiplier: 0.6, general: { name: 'body', size: 'normal' },
+  // BR4 (Ali, 08/11/2026): shape names, so later races can reuse them; Slime and Dragon are races
+  amorphous: {
+    id: 'amorphous', general: { name: 'body', size: 'normal' },
     naturalAttacks: [{ id: 'slam', tree: 'unarmed', class: 'slam', skill: 'unarmed_natural', reach: 0, hands: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: 'unarmed_natural' },
   },
-  dragon: {
-    id: 'dragon', hpMultiplier: 3, general: { name: 'body', size: 'big' },
+  winged_quadruped: {
+    id: 'winged_quadruped', general: { name: 'body', size: 'big' },
     naturalAttacks: [],
     parts: [
       { id: 'head', size: 'normal', impact: 'essential', roles: ['sense', 'strike', 'speech'] },
@@ -158,32 +159,32 @@ export const BODY_TYPES: Record<string, BodyType> = {
 
 export const TEMPLATES: Record<string, NpcTemplate> = {
   slime: {
-    id: 'slime', bodyTypeId: 'slime', classId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30, tremor: 50, taste: 50 },
+    id: 'slime', raceId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30, tremor: 50, taste: 50 },
     level: 0, bonusPoints: 0, focus: [], personality: 'fearless', control: 'code', label: 'a slime',
     fallback: { attackSkill: 'unarmed_natural' },
   },
   guard: {
-    id: 'guard', bodyTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    id: 'guard', raceId: 'human', generation: 'copy',
     minimums: { melee_medium: 40, block: 30, dodge: 20, sight: 30, hearing: 30, intimidation: 30, persuasion: 20 },
     level: 2, bonusPoints: 10,
     focus: [{ treeId: 'melee', skill: 'melee_medium' }, { treeId: 'defense', skill: 'block' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
-    id: 'trader', bodyTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    id: 'trader', raceId: 'human', generation: 'copy',
     minimums: { sight: 25, hearing: 25, barter: 40, persuasion: 30 }, level: 1, bonusPoints: 0,
     focus: [{ treeId: 'perception', skill: 'hearing' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
   // NS7 (Ali, 08/11/2026): a village thief, the first stealthy NPC
   thief: {
-    id: 'thief', bodyTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    id: 'thief', raceId: 'human', generation: 'copy',
     minimums: { sneaking: 40, combat_stealth: 30, vanishing: 30, melee_light: 35, dodge: 30, sight: 30, hearing: 30 }, level: 2, bonusPoints: 10,
     focus: [{ treeId: 'stealth', skill: 'sneaking' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', loadout: ['dagger', 'gambeson'], control: 'agent', label: 'a shifty villager',
   },
   patron: {
-    id: 'patron', bodyTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    id: 'patron', raceId: 'human', generation: 'copy',
     minimums: { unarmed_strike: 20, sight: 20, persuasion: 30 }, level: 1, bonusPoints: 0,
     focus: [{ treeId: 'unarmed', skill: 'unarmed_strike' }, { treeId: 'defense', skill: 'dodge' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'timid', control: 'code', label: 'a tavern patron',
@@ -193,17 +194,17 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
 const act = (id: string, look: string, attention: ActivityDef['attention'], noise: ActivityDef['noise'], visibility: ActivityDef['visibility']): ActivityDef =>
   ({ id, look, attention, noise, visibility });
 export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
-  act('stand_watch', 'keeping watch', 'alert', 0, 2),
-  act('walk', 'walking', 'normal', 1, 2),
-  act('work', 'hard at work', 'normal', 2, 2),
-  act('tend_counter', 'tending the counter', 'normal', 1, 2),
-  act('drink', 'nursing a drink', 'distracted', 1, 2),
-  act('chat', 'chatting', 'distracted', 2, 2),
-  act('sleep', 'asleep', 'asleep', 1, 1),
-  act('rest', 'resting', 'distracted', 0, 1),
-  act('cower', 'keeping out of sight', 'alert', 0, 1),
-  act('ooze', 'oozing across the grass', 'normal', 1, 2),
-  act('prowl', 'keeping to the shadows', 'alert', 0, 1),
+  act('stand_watch', 'keeping watch', 'alert', 'silent', 'normal'),
+  act('walk', 'walking', 'normal', 'quiet', 'normal'),
+  act('work', 'hard at work', 'normal', 'normal', 'normal'),
+  act('tend_counter', 'tending the counter', 'normal', 'quiet', 'normal'),
+  act('drink', 'nursing a drink', 'distracted', 'quiet', 'normal'),
+  act('chat', 'chatting', 'distracted', 'normal', 'normal'),
+  act('sleep', 'asleep', 'asleep', 'quiet', 'low'),
+  act('rest', 'resting', 'distracted', 'silent', 'low'),
+  act('cower', 'keeping out of sight', 'alert', 'silent', 'close'), // NV4
+  act('ooze', 'oozing across the grass', 'normal', 'quiet', 'normal'),
+  act('prowl', 'keeping to the shadows', 'alert', 'silent', 'close'), // NV4
 ].map((a) => [a.id, a]));
 
 const CALL_HELP = { type: 'call_help', target: null, skill: null, intent: 'call for help' } as const;
@@ -250,7 +251,8 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['creature'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
 ].map((s) => [s.id, s]));
 
-const SLIME: AccessCond = { kind: 'body', id: 'slime' };
+// BR9 (Ali, 08/11/2026): a rule names a body type or a race; a block the shape already gives is not repeated on the race
+const AMORPHOUS: AccessCond = { kind: 'body', id: 'amorphous' }; // no hands, eyes, ears or voice
 
 export function prototypeLibrary(): Library {
   const lib: Library = structuredClone({
@@ -260,22 +262,21 @@ export function prototypeLibrary(): Library {
     // Skill tree access (Ali, 08/11/2026, TA1–TA11): each tree's own rule; no rule = open to everyone.
     // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.
     trees: {
-      melee: { id: 'melee', name: 'Combat – Melee', skills: ['melee_light', 'melee_medium', 'melee_heavy'], access: { blockedBy: [SLIME] } },
-      ranged: { id: 'ranged', name: 'Combat – Ranged', skills: ['ranged_light', 'ranged_medium', 'ranged_heavy'], access: { blockedBy: [SLIME] } },
-      unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'], access: { blockedBy: [SLIME] } },
-      natural: { id: 'natural', name: 'Natural weapons', skills: ['unarmed_natural'], access: { either: [SLIME, { kind: 'body', id: 'dragon' }] } },
+      melee: { id: 'melee', name: 'Combat – Melee', skills: ['melee_light', 'melee_medium', 'melee_heavy'], access: { blockedBy: [AMORPHOUS] } },
+      ranged: { id: 'ranged', name: 'Combat – Ranged', skills: ['ranged_light', 'ranged_medium', 'ranged_heavy'], access: { blockedBy: [AMORPHOUS] } },
+      unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'], access: { blockedBy: [AMORPHOUS] } },
+      natural: { id: 'natural', name: 'Natural weapons', skills: ['unarmed_natural'], access: { either: [AMORPHOUS, { kind: 'race', id: 'dragon' }] } /* the shape's slam; the dragon's own attacks */ },
       defense: { id: 'defense', name: 'Combat – Defense', skills: ['dodge', 'block', 'endurance'] },
-      perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'], access: { blockedBy: [SLIME] } }, // no eyes or ears (TA6)
+      perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
       stealth: { id: 'stealth', name: 'Stealth', skills: ['sneaking', 'combat_stealth', 'vanishing'] },
-      speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'], access: { blockedBy: [SLIME] } },
+      speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'], access: { blockedBy: [AMORPHOUS] } },
       swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], access: { must: [{ kind: 'class', id: 'swordsman' }] } },
-      // level 0: slime NPCs are class level 0 (template level 0)
-      slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor', 'taste'], access: { must: [{ kind: 'class', id: 'slime', level: 0 }] } },
-      tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: ['lockpicking'], access: { blockedBy: [SLIME] } },
+      // BR7 (Ali, 08/11/2026): from being a slime, not from a class
+      slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor', 'taste'], access: { must: [{ kind: 'race', id: 'slime' }] } },
+      tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: ['lockpicking'], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       swordsman: { id: 'swordsman', name: 'Swordsman', floors: { melee_medium: 25, block: 15 } },
-      slime: { id: 'slime', name: 'Slime', floors: {} },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
@@ -298,8 +299,11 @@ export function prototypeLibrary(): Library {
     // Ali (07/11/2026): humans and elves for now, identical
     // innate perks and quirks per race (Ali, 08/11/2026): lists, empty until chosen
     races: {
-      human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
-      elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
+      human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [] },
+      elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [] },
+      // BR1–BR7 (Ali, 08/11/2026): slime and dragon were body types only; HP multipliers moved here unchanged
+      slime: { id: 'slime', name: 'Slime', bodyTypeId: 'amorphous', hpMultiplier: 0.6, innatePerks: [], innateQuirks: [] },
+      dragon: { id: 'dragon', name: 'Dragon', bodyTypeId: 'winged_quadruped', hpMultiplier: 3, innatePerks: [], innateQuirks: [] },
     },
     items: ITEMS,
     templates: TEMPLATES,

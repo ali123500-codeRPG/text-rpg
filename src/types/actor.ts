@@ -116,8 +116,7 @@ export type Mind = {
 
 export type NpcTemplate = {
   id: LibraryRef;
-  bodyTypeId: LibraryRef;
-  raceId?: LibraryRef;
+  raceId: LibraryRef; // BR5: the body type comes from the race
   classId?: LibraryRef;
   generation: 'unique' | 'copy';
   minimums: Record<LibraryRef, number>;

@@ -14,7 +14,7 @@ it('40 Nothing hidden in the opening', () => {
   updateBeliefs(s, { kind: 'opening', observerId: 'trader', aboutId: 'player', status: 'aware', zone: 'tav_common' });
   const rng = createRng(1);
   const ev = (id: string, actorId: string, kind: string, zone: string, activity?: string): GameEvent => {
-    const e: GameEvent = { id, turn: 0, actorId, kind, zone, effects: [], noise: 1, visibility: 2, perception: {}, ...(activity ? { activity } : {}) };
+    const e: GameEvent = { id, turn: 0, actorId, kind, zone, effects: [], noise: 'quiet', visibility: 'normal', perception: {}, ...(activity ? { activity } : {}) };
     e.perception = computePerception(e, s, rng);
     return e;
   };

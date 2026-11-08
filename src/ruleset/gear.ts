@@ -2,7 +2,7 @@
 import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
 import { CONFIG } from '../config';
-import { bodyType, getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, trueSkill } from './perks';
 import { skillOpen } from './access';
@@ -148,7 +148,7 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
     if (!isHeld(inst) || !handsOf(inst).every((h) => grips.includes(h))) continue;
     for (const mode of itemDef(state, inst.itemId).weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode });
   }
-  const ct = bodyType(state, actor.core.bodyTypeId);
+  const ct = actorBody(state, actor);
   for (const mode of ct.naturalAttacks) {
     if (!mode.partId || working(poolState(partPct(actor, mode.partId)))) out.push({ itemId: `natural:${mode.id}`, mode });
   }
@@ -163,7 +163,7 @@ export function defaultMode(state: GameState, actor: Actor, distance: number): {
 
 /** the mode an attack request names (item instance, 'natural:<id>' or 'unarmed') */
 export function resolveMode(state: GameState, actor: Actor, weaponId: string, modeId: string | undefined, distance: number): { mode: AttackMode; name: string } {
-  const ct = bodyType(state, actor.core.bodyTypeId);
+  const ct = actorBody(state, actor);
   if (weaponId === 'unarmed' || weaponId.startsWith('natural:')) {
     const id = weaponId === 'unarmed' ? modeId : weaponId.slice(8);
     const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !m.partId) ?? UNARMED_MODE : undefined);

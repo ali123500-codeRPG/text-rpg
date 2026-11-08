@@ -28,10 +28,10 @@ describe('skill tree access', () => {
   it('a new swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
     const p = createPlayer(recommendedBuild(), 's1');
     expect(open(p)).toEqual(['defense', 'melee', 'perception', 'ranged', 'speech', 'stealth', 'swordsman', 'tools', 'unarmed']);
-    expect(treeBlock(p, 'natural')).toBe('Needs one of: Slime, Dragon');
+    expect(treeBlock(p, 'natural')).toBe('Needs one of: Amorphous, Dragon');
     const slime = spawnNpc(null, 'slime', opts);
     expect(open(slime)).toEqual(['defense', 'natural', 'slime_senses', 'stealth']);
-    expect(treeBlock(slime, 'perception')).toBe('Blocked by: Slime');
+    expect(treeBlock(slime, 'perception')).toBe('Blocked by: Amorphous');
   });
 
   it('a block beats an opening (TA2), and a class counts only while Current or Previous at its level (TA3)', () => {

@@ -88,7 +88,7 @@ describe('122 NPC memory and agreements', () => {
   it('PM6: events that fall out of the window become earlier lines; repeats are counted', () => {
     const s = makeVillage();
     const ev = (n: number, extra: Partial<GameEvent> = {}): GameEvent => ({
-      id: `t${n}.1`, turn: n, actorId: 'player', kind: 'search', zone: 'gate_inner', effects: [], noise: 1, visibility: 2,
+      id: `t${n}.1`, turn: n, actorId: 'player', kind: 'search', zone: 'gate_inner', effects: [], noise: 'quiet', visibility: 'normal',
       perception: { guard_1: { level: 'full', cue: 'sight' } }, ...extra,
     });
     const all = [ev(1, { kind: 'speak', line: { text: 'Seen any slimes?', volume: 'normal' } }), ev(2), ev(3),
