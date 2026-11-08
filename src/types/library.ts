@@ -67,7 +67,12 @@ export type Library = {
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
+  zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
 };
+
+/** Z1–Z3 (Ali, 08/11/2026): a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
+ * indoor or outdoor and gives the default cover and light, which the Weaver may change. */
+export type ZoneKind = { id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light };
 
 /** Perk page S1–S9 (Ali, 07/11/2026): a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
  * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */

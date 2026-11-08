@@ -339,6 +339,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   relations: Record<string, 'hostile' | 'opposed' | 'neutral' | 'friendly'>;  // default stance toward other bands
 };
 
+// What a zone is (Z1–Z5, Ali, 08/11/2026): one open space with nothing in the way inside it, where anyone can reach anyone
+// else in a step or two, at most about a room (5 to 10 paces) across. A barrier (wall, counter, door, gate, steps) or more
+// distance starts a new zone, so every link is about one room of distance. A bigger space (a square, a field, a hall) is
+// several zones of the same kind joined by sight links. There are no positions inside a zone. Every Weaver zone names a
+// zone kind from the library (zoneKinds: room, corridor, stairs, cellar, street, square, gate, yard, field, woods); the kind
+// fixes indoor or outdoor and gives the default cover and light, which the plan may change. An unknown kind is a bad_zone.
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
               links: ZoneLink[]; cover: 'none' | 'some' | 'heavy'; light: 'bright' | 'dim' | 'dark';      // zone ids unique within a story
               groundItems: ItemInstance[] };                             // Part 5 §4
@@ -1011,7 +1017,7 @@ Settled by Ali 07/11/2026 ("Sense of time: options", T1–T11; settles D-101).
 
 - **One clock.** Code keeps game minutes since midnight before day 1 in `clocks.time`. Claude never sets it. Every turn costs its action's time from the library durations table (*placeholders*): a fight turn 0.1 min (6 s), any other action 1 min, a trade (barter) 10 min, rest 60 min, sleep 480 min. A save from before the clock starts on day 1 at the start of day.
 - **Time of day** is an ordered scale (TIME\_OF\_DAY: dawn, day, dusk, night); each starts at a minute of the day in CONFIG.TIME\_OF\_DAY\_FROM (*placeholders*: 5:00, 7:00, 18:00, 20:00). There is a day counter and no weekday or season names (T4).
-- **What it changes (T3):** a zone the Weaver marks `outdoor` is lit by the brighter of its own lamps or fires and the sky (CONFIG.SKY\_LIGHT: day bright, dawn and dusk dim, night dark); indoor zones keep their own light. A routine set's time tags must fit the time of day (CONFIG.TIME\_TAGS: dawn and dusk take day or night sets), otherwise it is a routine error. Shop hours come with shops (Stage 6). Routines that change mid-scene wait (D-49).
+- **What it changes (T3):** an outdoor zone (its zone kind says so, Z2) is lit by the brighter of its own lamps or fires and the sky (CONFIG.SKY\_LIGHT: day bright, dawn and dusk dim, night dark); indoor zones keep their own light. A routine set's time tags must fit the time of day (CONFIG.TIME\_TAGS: dawn and dusk take day or night sets), otherwise it is a routine error. Shop hours come with shops (Stage 6). Routines that change mid-scene wait (D-49).
 - **Who sees it (T5):** NPC views and the Narrator get `time: {day, timeOfDay}`, never minutes. No new Claude call.
 - **Waiting (T6):** the Parser reads "wait until dawn" as action wait with the time of day in target (none: the next time of day; the time of day it already is: nothing happens and the line says so, Q2 08/11/2026), and "sleep" as action sleep (the sleep row). Sleep also gives the rest heal (or the place's row, e.g. a clinic) once per REST\_COOLDOWN\_MIN of sleep, twice for 8 hours, and counts as the last rest (Ali, 07/11/2026). Code moves the clock and breaks the scene (time\_skip). A hostile in the zone or tactical mode blocks it, like rest. The turn shows "Time passes: 11 h (Day 2 · Dawn)".
 - **Starting time (T8):** the Weaver's first plan names `timeOfDay`, and code sets the clock to its start on day 1. After that a plan may only name the current one (bad\_time otherwise).
@@ -1083,8 +1089,8 @@ Output shape (notation, not literal JSON):
 {
   event:       { summary: hidden text, challenge: grade, gain: grade },
   places:      [ { key, name, kind, parent: placeKey | placeId } ],   // new place nodes only
-  zones:       [ { key, place: placeKey | placeId, name, look: public text,
-                   cover: none | some | heavy, light: bright | dim | dark,   // keys of COVER and LIGHT (src/scales.ts)
+  zones:       [ { key, place: placeKey | placeId, kind: zone kind id, name, look: public text,
+                   cover?: none | some | heavy, light?: bright | dim | dark,   // keys of COVER and LIGHT; default from the kind
                    links: [ { to: zoneKey | zoneId | frontierKey, label, sight } ] } ],
   frontiers:   [ { key, label } ],
   bands:       [ { key, name: public text, goals: hidden text, temperament: hidden text,

@@ -184,6 +184,7 @@ export type WeaverView = {
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: string[];
+    zoneKinds: import('./library').ZoneKind[]; // Z2
   };
   grades: Grade[];
 };

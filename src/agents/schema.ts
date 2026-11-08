@@ -141,10 +141,10 @@ const weaver = obj<StagePlan>({
   timeOfDay: level(TIME_OF_DAY),
   places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)) })), // no parent = top level (V5)
   zones: arr(obj<StagePlan['zones'][number]>({
-    key: str, place: str, name: str, look: str,
-    cover: level(COVER), light: level(LIGHT), outdoor: bool,
+    key: str, place: str, kind: str, name: str, look: str,
+    cover: level(COVER), light: level(LIGHT),
     links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool })),
-  }, ['outdoor'])),
+  }, ['cover', 'light'])),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
