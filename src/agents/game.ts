@@ -8,6 +8,7 @@ import type { AgentName, TierRoll,
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
+import { TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
@@ -747,10 +748,12 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   // run 17: a rest or wait that the rules refuse says why, so the player doesn't keep trying
   for (const l of s.log) {
     if (l.turn !== turn || (l.code !== 'rest_blocked' && l.code !== 'wait_blocked')) continue;
-    const d = l.detail as { actorId: string; reason: string };
+    const d = l.detail as { actorId: string; reason: string; timeOfDay?: string };
     if (d.actorId !== s.player.id) continue;
     const what = l.code === 'rest_blocked' ? 'Rest' : 'Wait';
-    out.push(`${what}: ${d.reason === 'cooldown' ? 'too soon after your last rest' : 'not while someone hostile is near you'}`);
+    const why = d.reason === 'cooldown' ? 'too soon after your last rest'
+      : d.reason === 'already' ? `it's already ${TIME_OF_DAY.name(d.timeOfDay as TimeOfDay).toLowerCase()}` : 'not while someone hostile is near you';
+    out.push(`${what}: ${why}`);
   }
   // T6: a wait or sleep says how long it took and where the clock is now
   for (const l of s.log) {

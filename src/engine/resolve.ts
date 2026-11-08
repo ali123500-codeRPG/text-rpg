@@ -296,7 +296,13 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     logCode(state, 'wait_blocked', { actorId: a.id, reason: 'hostile_in_zone' });
   } else {
     const t = now(state);
-    const until = TIME_OF_DAY.keyOf(o.target) ?? nextTimeOfDay(timeOfDay(t));
+    const named = TIME_OF_DAY.keyOf(o.target);
+    // Q2 (Ali, 08/11/2026): waiting until the time of day it already is does nothing, rather than skipping a day
+    if (o.type === 'wait' && named && named === timeOfDay(t)) {
+      logCode(state, 'wait_blocked', { actorId: a.id, reason: 'already', timeOfDay: named });
+      return emit(ctx, ev);
+    }
+    const until = named ?? nextTimeOfDay(timeOfDay(t));
     const minutes = o.type === 'sleep' ? getLibrary().durations?.sleep?.minutes ?? 0 : minutesUntil(t, until);
     passTime(state, minutes);
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
