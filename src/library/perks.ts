@@ -94,7 +94,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       conditions: ["The owner's standing defense is block and the owner can block (working Grip arm with a shield or weapon).", "The owner is active.", "The owner's block value is higher than the value of the ally's own standing defense.", "Cover Ally is switched on for the owner (a per-character switch, on by default)."],
       effect: "The owner defends in the ally's place with the owner's own block roll. A hit that gets through lands on the owner, who stepped into its path. It counts as one of the owner's defenses this turn (outnumbered).",
       lasts: "Each attack." } },
-  { id: "iron_frame", ref: "A12", name: "Iron Frame", skill: "endurance", place: "20",
+  { id: "iron_frame", ref: "A12", name: "Iron Body", skill: "endurance", place: "20",
     ladder: { skill: "endurance", milestone: 20 }, effect: "health",
     story: "Pain is just information, and you stopped listening long ago. A body part that counts as Damaged gives you no penalty; worse wounds still hold you back. With Tough It Out, even a Crippled part no longer slows you.",
     rules: { kind: "Always on",

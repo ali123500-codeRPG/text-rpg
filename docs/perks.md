@@ -123,7 +123,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner defends in the ally's place with the owner's own block roll. A hit that gets through lands on the owner, who stepped into its path. It counts as one of the owner's defenses this turn (outnumbered).
 - **Lasts:** Each attack.
 
-### Iron Frame (Endurance) · A12
+### Iron Body (Endurance) · A12
 
 *Story:* Pain is just information, and you stopped listening long ago. A body part that counts as Damaged gives you no penalty; worse wounds still hold you back. With Tough It Out, even a Crippled part no longer slows you.
 
