@@ -10,13 +10,13 @@ import { creatureType, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
-import { hasPerk } from './perks';
+import { boostAdd, boostMult, hasPerk } from './perks';
 import { markShifts } from '../engine/perkMarks';
 import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 
 export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
-export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
+export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational } from './gear';
 
@@ -157,8 +157,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
 
   // 2. attack roll
   const am: Mod[] = [];
+  const skill = modeSkill(mode);
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
-  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] });
+  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // boost perk: Fine Point
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
   // GAP: the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value
   const hit = cls.hit + (mode.hitAdj ?? 0);
@@ -168,7 +169,6 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && hostile(state, A, o));
     if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, 'point_blank')) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
   }
-  const skill = modeSkill(mode);
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
@@ -258,12 +258,13 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
   const worn = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
+  const pierce = boostAdd(A, skill, 'armorPierce'); // boost perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
-    for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - a.reduction) * a.multiplier;
+    for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
   };
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier;
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult'); // boost perk: Heavy Hand
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
   const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role

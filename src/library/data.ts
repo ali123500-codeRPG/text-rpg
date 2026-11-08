@@ -3,6 +3,7 @@
 import { CONFIG } from '../config';
 import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, XpCategory } from '../types';
 import { PERK_WRITEUPS } from './perks';
+import { BOOST_PERKS } from './boostPerks';
 import { BUILT_PERKS } from './builtPerks';
 
 /** XP category from the skill's function (X21); a skill with no deciding function names its own. */
@@ -284,7 +285,7 @@ export function prototypeLibrary(): Library {
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,
     // the 20 milestone picks; higher and banked perks stay in PERK_WRITEUPS until they get a milestone
-    perks: Object.fromEntries(PERK_WRITEUPS.filter((d) => d.ladder).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
+    perks: Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => d.ladder).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
     achievements: {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
       first_defeat: { id: 'first_defeat', name: 'First {creature} Felled', level: 'i', rule: 'defeats', count: 1, by: 'creature' },
