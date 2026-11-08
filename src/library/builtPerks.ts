@@ -19,6 +19,6 @@ export const BUILT_PERKS = new Set<string>([
   'unblinking', // B14 (sight 60, ST23): src/minds/state.ts stealthDetect()
   'quick_word', // A15 (trial): src/engine/speech.ts quickWord(), the exchange slot in resolveTurn()
   // boost perks (40 milestone): src/library/boostPerks.ts; trueSkill() and boostMult()/boostAdd() in src/ruleset/perks.ts
-  'fine_point', 'guard_drill', 'heavy_hand', 'sharp_eyes', 'armor_piercer', 'street_fighter', 'brawlers_eye', 'braced',
+  'keen_edge', 'steady_draw', 'iron_grip', 'light_feet', 'guard_drill', 'heavy_hand', 'sharp_eyes', 'armor_piercer', 'street_fighter', 'brawlers_eye', 'braced',
   'quick_mend', 'marksmans_eye', 'soft_step',
 ]);

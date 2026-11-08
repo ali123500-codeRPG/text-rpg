@@ -24,7 +24,7 @@ const hit = (itemId: string, target: string, perk?: string, part?: string, armor
   const spy = vi.spyOn(ruleset, 'roll').mockImplementation((req, st, rng) => { rolls.push(req); return real(req, st, rng); });
   const r = ruleset.attack({ attackerId: 'player', targetId: target, weaponId: 'w', targetPart: part ?? null, aimed: !!part }, s, forcedRng([95, 5, 50, 50]));
   spy.mockRestore();
-  return { r, aim: rolls[0].modifiers.find((m) => m.source.startsWith('aim'))?.value };
+  return { r, aim: rolls[0].modifiers.find((m) => m.source.startsWith('aim'))?.value, perkMods: r.attack.modifiers.filter((m) => m.type === 'roll_perk') };
 };
 afterEach(() => vi.restoreAllMocks());
 
@@ -53,11 +53,22 @@ describe('118 boost perks', () => {
     expect(trueSkill(p, 'dodge')).toBe(before.dodge);
     expect(trueSkill(p, 'sight')).toBe(before.sight);
   });
-  it('Fine Point halves the aim penalty with a light weapon only', () => {
-    const plain = hit('dagger', 'patron_1', undefined, 'head').aim!;
-    expect(plain).toBeLessThan(0);
-    expect(hit('dagger', 'patron_1', 'fine_point', 'head').aim).toBe(plain * 0.5);
-    expect(hit('greataxe', 'patron_1', 'fine_point', 'head').aim).toBe(plain);
+  it('Keen Edge: +10 to hit with light weapons only; Steady Draw: +5 to hit and ×1.1 damage with medium ranged', () => {
+    expect(hit('dagger', 'patron_1', 'keen_edge').perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
+    expect(hit('greataxe', 'patron_1', 'keen_edge').perkMods).toEqual([]);
+    expect(hit('dagger', 'patron_1').perkMods).toEqual([]);
+    expect(hit('longbow', 'patron_1', 'steady_draw').perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
+    const plain = hit('longbow', 'patron_1').r.damage;
+    expect(plain).toBeGreaterThan(0);
+    expect(hit('longbow', 'patron_1', 'steady_draw').r.damage).toBeCloseTo(plain * 1.1, 5);
+  });
+  it('Iron Grip: +10 on every grapple roll, attack or not', () => {
+    const s = makeVillage();
+    give(s.player, 'iron_grip');
+    const r = ruleset.roll({ actorId: 'player', skill: 'unarmed_grapple', modifiers: [], tierShifts: [] }, s, forcedRng([50]));
+    expect(r.modifiers).toContainEqual({ source: 'Iron Grip', type: 'roll_perk', value: 10 });
+    const d = ruleset.roll({ actorId: 'player', skill: 'dodge', modifiers: [], tierShifts: [] }, s, forcedRng([50]));
+    expect(d.modifiers.some((m) => m.type === 'roll_perk')).toBe(false);
   });
   it('Heavy Hand: heavy melee damage ×1.2', () => {
     const plain = hit('greataxe', 'patron_1').r, boosted = hit('greataxe', 'patron_1', 'heavy_hand').r;

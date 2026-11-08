@@ -10,7 +10,7 @@ import { creatureType, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
-import { boostAdd, boostMult, hasPerk } from './perks';
+import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { markShifts } from '../engine/perkMarks';
 import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 
@@ -110,6 +110,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (req.auto !== false) {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
+    modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // boost perks: Keen Edge, Steady Draw, Iron Grip
   }
   const d = rng.d100();
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
@@ -159,7 +160,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const am: Mod[] = [];
   const skill = modeSkill(mode);
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
-  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // boost perk: Fine Point
+  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // boost perk aimMult (none uses it today)
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
   // GAP: the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value
   const hit = cls.hit + (mode.hitAdj ?? 0);
