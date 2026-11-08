@@ -1542,7 +1542,10 @@ Total HP is divided into levels by the share of HP lost, following World of Dark
 | Wounded | 46–60% | −15 | Perk: +10 to melee hit rolls while Wounded or worse. Story flag "visibly hurt": NPCs react |
 | Mauled | 61–75% | −20 | +20 to intimidate a Mauled foe; Mauled enemies may surrender |
 | Critical | 76–99% | −30 | One action per turn; last-stand perks switch on |
-| Incapacitated | 100% | Out of the fight | Lethal fight: the story ends; otherwise a survival roll (D-54) |
+| Incapacitated | 100–199% | Out of the fight | Lethal fight: the story ends; otherwise a survival roll (D-54) |
+| Dead | 200% | Out for good | Never shown in the UI (a dead actor shows as Incapacitated, "Down" for others); nothing heals it |
+
+HP lost keeps counting past 100% while an actor is down, up to 200%, where it is Dead (Ali, 08/11/2026). A destroyed essential part sets at least 100%.
 
 The penalty is a roll modifier of type wounds (Part 1 §4, Layer 2b), diminishing together with body-part role penalties. It does not apply to no-dice checks (settles OQ-15).
 

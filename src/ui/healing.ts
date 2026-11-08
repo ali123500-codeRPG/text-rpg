@@ -2,7 +2,7 @@
 // whose healed segment glows; H3 b, one quick-use slot beside Aim for a healing item, picked in the Inventory
 // (default: the strongest, ties to the one carried most). H2 a (the healed body part glows) is in charsheet.ts.
 import type { Actor, GameState, HealNote, HealingDef } from '../types';
-import { CONFIG } from '../config';
+import { SHOWN_LEVELS } from '../ruleset/body';
 import { getLibrary, itemDef } from '../library';
 import { h } from './kit';
 
@@ -11,7 +11,7 @@ const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 export const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
 /** a health level's or part state's colour class: by its position in its names table */
-const LEVELS = () => CONFIG.HEALTH_TRACK.map(([l]) => l);
+const LEVELS = () => SHOWN_LEVELS().map(([l]) => l);
 const PART_STATES = ['Healthy', 'Damaged', 'Crippled', 'Destroyed'];
 const lvTag = (l: string) => h('span', { class: `htag lv${Math.max(0, LEVELS().indexOf(l))}` }, l);
 const psTag = (st: string) => h('span', { class: `htag ps${Math.max(0, PART_STATES.indexOf(st))}` }, st);

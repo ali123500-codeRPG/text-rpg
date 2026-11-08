@@ -3,6 +3,7 @@
 import { PART_STATES } from '../scales';
 import type { Actor, GameApi, GameState } from '../types';
 import { itemDef } from '../library';
+import { isDownLevel } from '../ruleset';
 import { buildPlayerView, factText } from '../views';
 import { groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
@@ -176,7 +177,7 @@ export function journalPeople(s: GameState): { id: string; name: string; label: 
     const v = seen.get(id);
     const zone = v ? pv?.zones.find((z) => z.id === v.zone)?.name : undefined;
     return [{ id, name: v?.name ?? (s.player.journal?.namesKnown.includes(id) ? a.names.current : '–'), label: a.label,
-      where: v ? (zone ? `In view · ${zone}` : 'In view') : 'Not in view', health: v?.health === 'Incapacitated' ? 'Down' : v?.health ?? '–' }];
+      where: v ? (zone ? `In view · ${zone}` : 'In view') : 'Not in view', health: v?.health && isDownLevel(v.health) ? 'Down' : v?.health ?? '–' }];
   });
 }
 
