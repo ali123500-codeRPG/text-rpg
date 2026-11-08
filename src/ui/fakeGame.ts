@@ -7,9 +7,9 @@ import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 
 const NARRATION = [
-  'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
-  'You step out past the gate. The field is streaked with silver trails, and something low and glistening shifts in the long grass by the trees.',
-  'The slime lurches at you. You bring the round shield across, and the blow slaps wetly against the boards; your counter cuts a long furrow through its body.',
+  'Rain hammers the thatch of the Crooked Kettle. The common room reeks of wet wool and old ale, and the barkeep watches you over a cup she stopped pretending to wipe long ago.',
+  'You step out past the gate. Silver trails scar the field, and in the long grass by the trees something low and glistening shifts, hungry and patient.',
+  'The slime lunges. Too slow. Your shield snaps across, the blow bursts wetly against the boards, and your counter rips a furrow clean through its body.',
 ];
 
 export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);

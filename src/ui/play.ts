@@ -162,7 +162,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.heals ?? []).map(healCard),
       // V2a (Ali, 07/11/2026): milestones a skill crossed on this turn; the card never names the perk
       ...(l.unlocks ?? []).map((u) => h('div', { class: 'perk-new', role: 'status' }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
-        h('div', {}, 'New perk unlocked', h('small', {}, `${skillName(u.skill)} reached ${u.milestone}`)),
+        h('div', {}, 'Awakening!', h('small', {}, `${skillName(u.skill)} reached ${u.milestone}: a new perk stirs`)),
         h('button', { type: 'button', class: 'hs-btn-text', onclick: seePerks }, 'See perks'))),
       l.changes?.length ? h('details', { class: 'changes' },
         h('summary', {}, h('span', { class: 'hs-label' }, `Turn ${l.turn}`), h('span', { class: 'hs-chip' }, `↻${l.changes.length}`),
@@ -281,7 +281,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (fallen) {
       fell.replaceChildren(
         h('h2', {}, 'You fell'),
-        h('p', { class: 'hs-note' }, 'The fight left you incapacitated. Rewind one turn, or start a new story.'),
+        h('p', { class: 'hs-note' }, 'You fall, and the world goes dark. Rewind one turn, or start a new story.'),
         h('div', { class: 'confirm' },
           h('button', { class: 'hs-btn-main', type: 'button', onclick: () => api.submit('/undo', { aimed: false }) }, 'Undo one turn'),
           confirmReset

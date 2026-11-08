@@ -152,7 +152,8 @@ const DEFAULTS = {
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex' } as Record<string, 'quick' | 'default' | 'complex'>,
-  STYLE: { tone: 'grounded low fantasy', length: '2 to 4 short paragraphs' },
+  STYLE: { tone: 'dark fantasy anime: dramatic, edgy and punchy, with cool one-liners and big moments, never silly', // Ali, 08/11/2026 (V5)
+    length: '2 to 4 short paragraphs' },
 };
 
 export type Config = typeof DEFAULTS;
