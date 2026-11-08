@@ -8,6 +8,7 @@ import { tierGap } from '../agents/game';
 import { tierAtLeast, tierName } from '../ruleset';
 import type { TierRoll } from '../types';
 import { h } from './kit';
+import { POSTURES } from '../scales';
 import { now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { sideSheet } from './charsheet';
@@ -67,6 +68,10 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Fight', items: people.map((a) => ({ text: `Attack ${nm(a)}`, note: a.health })) },
     { group: 'Talk', items: people.map((a) => ({ text: `Talk to ${nm(a)}` })) },
     { group: 'Move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined })) },
+    // ST3: sneaking is free; hiding takes the action
+    { group: 'Stealth', items: pv.player.posture === 'stealthy'
+      ? [{ text: 'Hide' }, ...pv.zone.links.filter((l) => !l.frontier).map((l) => ({ text: `Sneak ${l.label}` }))]
+      : [{ text: 'Sneak', note: 'free' }, { text: 'Hide' }] },
     { group: 'Use', items: [
       ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
       ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },
@@ -174,7 +179,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   function update() {
     const s = api.state();
     const pv = s ? safe(() => buildPlayerView(s)) : null;
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
+    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}${s.player.posture === 'stealthy' ? ` · ${POSTURES.name('stealthy')}` : ''}`, ...placeLine(s, pv)] : 'No story yet')),
       h('p', { class: 'hs-note calls', title: 'Every request this page sent to Claude since it was opened, counted by code. Repairs and background calls count too.' },
         `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`),
       bgNote() ?? '');

@@ -51,7 +51,7 @@ export function createDirector(clock: Clock): SceneDirector {
       }
       ctx = c;
       delete (state.scratch as Record<string, unknown>).frontierCrossed;
-      await d.cross(state, key, rng);
+      await d.cross(state, key, rng, state.player.posture === 'stealthy' ? 'stealthy' : 'open');
       return [];
     },
     afterSave(state: GameState, c: AgentCtx): void {

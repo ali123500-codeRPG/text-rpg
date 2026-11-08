@@ -216,6 +216,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   const m = named ?? bySkill ?? defaultMode(state, a, dist);
   // target moved first: resolves only within the mode's reach (links with sight); else a wasted action
   if (!m || dist > m.mode.reach) return wasted();
+  if (a === state.player && a.posture === 'stealthy' && m.mode.tree !== 'ranged') a.posture = 'open'; // ST5: a melee blow shows you
   const ev = bark(mk(ctx, a, 'attack', { target: t.id, itemId: m.itemId }), o);
   ev.perception = computePerception(ev, state, rng);
   let surprised = false;
@@ -397,6 +398,10 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doAttack(ctx, a, o);
     case 'rest':
       return doRest(ctx, a, o);
+    case 'hide':
+      // ST3: the player's hide is a stealth contest per observer (detectPlayer); an NPC's hide stays generic (OQ-14)
+      if (a === state.player) return emit(ctx, bark(mk(ctx, a, 'hide'), o));
+      return doGeneric(ctx, a, o);
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -493,7 +498,13 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     playerOrder.item = improvise(state, state.player, imp);
     playerOrder.gear = [{ op: 'swap', item: playerOrder.item }, ...(playerOrder.gear ?? [])];
   }
-  if (isActive(state.player)) orders.set(state.player.id, playerOrder);
+  if (isActive(state.player)) {
+    // ST3/ST5: sneaking is a free posture switch; a hide is the main action; words above a whisper end the posture
+    if (playerOrder.type === 'sneak') { state.player.posture = 'stealthy'; playerOrder.type = 'hold'; }
+    if (playerOrder.type === 'hide') state.player.posture = 'stealthy';
+    if ((playerOrder.line && playerOrder.line.volume !== 'whisper') || isSpeech(playerOrder.type)) state.player.posture = 'open';
+    orders.set(state.player.id, playerOrder);
+  }
   const ctx: Ctx = {
     state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [],
   };

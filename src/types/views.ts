@@ -54,7 +54,7 @@ export type PlayerView = {
     perkMoves?: string[]; // AE8: owned perk moves by perk id (the Parser's perkMove.perk)
     health: HealthLevel; parts: { id: string; state: PartState }[];
     inventory: OwnGearView[];
-    posture: 'open' | 'sneaking';
+    posture: 'open' | 'stealthy';
     standingDefense: 'dodge' | 'block';
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
   };
@@ -146,7 +146,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string };
+  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true }; // ST3: moving or hiding unseen
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
