@@ -145,7 +145,7 @@ export const CREATURES: Record<string, CreatureType> = {
 
 export const TEMPLATES: Record<string, NpcTemplate> = {
   slime: {
-    id: 'slime', creatureTypeId: 'slime', classId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30 },
+    id: 'slime', creatureTypeId: 'slime', classId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30, tremor: 50, taste: 50 },
     level: 0, bonusPoints: 0, focus: [], personality: 'fearless', control: 'code', label: 'a slime',
     fallback: { attackSkill: 'unarmed_natural' },
   },
