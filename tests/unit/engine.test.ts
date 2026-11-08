@@ -83,6 +83,10 @@ vi.mock('../../src/perception', () => ({
   },
   applyBeliefDecay: () => {},
   noteSightings: () => {},
+  // the old rule: NPCs read their knowledge; the player sees everyone
+  beliefStatus: (_s: GameState, o: Actor, about: Actor) => (o.kind === 'player' ? 'aware' : o.mind?.knowledge[about.id]?.status ?? 'unaware'),
+  stealthStart: () => {},
+  stealthEnd: () => {},
   lookAround: () => [],
   noticeCue: () => undefined,
 }));

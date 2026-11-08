@@ -1,12 +1,12 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
-import { activity, creatureType, getLibrary, itemDef } from '../library';
+import { activity, creatureType, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { defaultMode, hasPerk, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
-import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
+import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements } from './engagement';
 import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
 import { applyHold, breakFree, releaseHolds } from './held';
@@ -83,6 +83,7 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   noteSightings(ev, state);
   updateBeliefs(state, { kind: 'event', event: ev, result });
   if (ev.actorId === state.player.id && isMajorAction(ev)) detectPlayer(state, ev, rng);
+  else if (isMajorAction(ev) && actorById(state, ev.actorId)?.posture === 'stealthy') stealthDetect(state, ev, rng); // NS2
   if (ev.kind === 'attack' && ev.target) setAttackOverrides(state, ev);
   ctx.events.push(ev);
   if (ev.kind === 'speak' && !ev.bark && ev.line?.introduces && ev.perception[state.player.id]?.level === 'full') {
@@ -218,14 +219,17 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const m = named ?? bySkill ?? defaultMode(state, a, dist);
   // target moved first: resolves only within the mode's reach (links with sight); else a wasted action
   if (!m || dist > m.mode.reach) return wasted();
-  if (a === state.player && a.posture === 'stealthy' && m.mode.tree !== 'ranged') a.posture = 'open'; // ST5: a melee blow shows you
+  const shows = a.posture === 'stealthy' && m.mode.tree !== 'ranged';
+  if (shows) a.posture = 'open'; // ST5: a melee blow shows you
   const ev = bark(mk(ctx, a, 'attack', { target: t.id, itemId: m.itemId }), o);
   ev.perception = computePerception(ev, state, rng);
   let surprised = false;
-  if (t.kind === 'npc' && !atLeast(t.mind?.knowledge[a.id]?.status, 'suspicious')) {
+  // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
+  if (!atLeast(beliefStatus(state, t, a), 'suspicious')) {
     surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised;
     if (surprised) ctx.surprised.add(t.id);
   }
+  if (shows) stealthEnd(state, a);
   // A11 Cover Ally: a friend in the zone steps into the path of a ranged attack and defends in the target's place
   const cover = m.mode.tree === 'ranged' ? coverFor(state, t) : undefined;
   if (cover) {
@@ -407,9 +411,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'rest':
       return doRest(ctx, a, o);
     case 'hide':
-      // ST3: the player's hide is a stealth contest per observer (detectPlayer); an NPC's hide stays generic (OQ-14)
-      if (a === state.player) return emit(ctx, bark(mk(ctx, a, 'hide'), o));
-      return doGeneric(ctx, a, o);
+      // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
+      return emit(ctx, bark(mk(ctx, a, 'hide'), o));
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -491,6 +494,29 @@ const lame = (state: GameState, a: Actor) => {
   return creatureType(state, a.core.creatureTypeId).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
 };
 
+/** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a
+ * Vanish is the turn's move, contested with Vanishing (ST13); words above a whisper end the posture. An NPC's sneak or
+ * vanish names the zone it goes to. A stealthy routine (the thief's prowl) keeps the actor stealthy, and a companion
+ * following the player copies the player's posture (NS9). */
+function setPosture(state: GameState, a: Actor, o: Order): void {
+  const was = a.posture ?? 'open';
+  const npc = a !== state.player;
+  const goTo = npc && o.target && o.target !== a.zone && zoneById(state, o.target) ? o.target : null;
+  if (o.type === 'sneak' || o.type === 'vanish') {
+    a.posture = 'stealthy';
+    if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
+    o.type = goTo ? 'move' : 'hold';
+  }
+  if (o.type === 'hide') a.posture = 'stealthy';
+  const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;
+  if (npc && o.source === 'routine' && r?.posture === 'stealthy') a.posture = 'stealthy';
+  if (npc && r?.kind === 'follow' && a.bandId === state.player.bandId) a.posture = state.player.posture ?? 'open';
+  if ((o.line && o.line.volume !== 'whisper') || isSpeech(o.type)) a.posture = 'open';
+  if (!npc || a.posture === was) return;
+  if (a.posture === 'stealthy') stealthStart(state, a);
+  else stealthEnd(state, a);
+}
+
 // ---------- the turn ----------
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
@@ -506,15 +532,9 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     playerOrder.item = improvise(state, state.player, imp);
     playerOrder.gear = [{ op: 'swap', item: playerOrder.item }, ...(playerOrder.gear ?? [])];
   }
-  if (isActive(state.player)) {
-    // ST3/ST5: sneaking is a free posture switch; a hide is the main action; words above a whisper end the posture
-    if (playerOrder.type === 'sneak') { state.player.posture = 'stealthy'; playerOrder.type = 'hold'; }
-    // ST13: a Vanish is the turn's move, contested with Vanishing (stealthDetect)
-    if (playerOrder.type === 'vanish') { state.player.posture = 'stealthy'; playerOrder.type = 'hold'; if (playerOrder.move) playerOrder.vanish = true; }
-    if (playerOrder.type === 'hide') state.player.posture = 'stealthy';
-    if ((playerOrder.line && playerOrder.line.volume !== 'whisper') || isSpeech(playerOrder.type)) state.player.posture = 'open';
-    orders.set(state.player.id, playerOrder);
-  }
+  if (isActive(state.player)) orders.set(state.player.id, playerOrder);
+  // the player first: a companion copies the player's new posture
+  for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
     state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [],
   };

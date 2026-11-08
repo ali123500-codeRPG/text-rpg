@@ -160,6 +160,9 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
 const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
 /** Health bar with the health-track thresholds (Part 3) marked; clicking it opens each body part's pool and state. */
+/** width of the side sheet bar's Unhurt section, in % of the bar */
+const UNHURT_SECTION = 12;
+
 function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): HTMLElement[] {
   if (healed.size && partOpen.autoTurn !== turn) { partOpen.on = true; partOpen.autoTurn = turn; }
   const { hp, total } = hpLeft(s, p);
@@ -170,7 +173,11 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
   const segs = track.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
   // each segment's level named mid-segment, alternating one above the bar and one below; Unhurt (the full bar) and
   // Incapacitated (the empty one) are not named (Ali, 08/11/2026)
-  const marks = [...segs].reverse().map((x) => ({ l: x.l, at: (x.from + x.to) / 2 }));
+  // the Unhurt section is the bar's 7th section, on the right; the six damage sections share the rest by their % ranges
+  // (Ali, 08/11/2026: a separate box read as detached)
+  const scale = (100 - UNHURT_SECTION) / 100;
+  const marks = [...segs].reverse().map((x) => ({ l: x.l, at: ((x.from + x.to) / 2) * scale }));
+  const fill = level === 'Unhurt' ? 100 : left * scale;
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
     bodyFigure(s, p, healed) ?? safe(() => creatureType(s, p.core.creatureTypeId).parts.map((d) => {
@@ -188,10 +195,9 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
     // the current level sits beside the HP number, as on the character card (Ali, 08/11/2026)
     h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${level} · ${whole(hp)} HP`)),
     sideSteps(0),
-    // a separate 7th box on the right lights only when Unhurt, so a full Bruised bar can't be read as Unhurt (Ali, 08/11/2026)
-    h('span', { class: 'cs-hpline' },
-      h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` }), segs.slice(0, -1).map((x) => h('i', { style: `left:${x.from}%` }))),
-      h('span', { class: 'cs-hpunhurt' + (level === 'Unhurt' ? ' on' : ''), title: 'Unhurt', 'aria-label': 'Unhurt' })),
+    // the 7th section lights only when Unhurt, so a full Bruised bar can't be read as Unhurt (Ali, 08/11/2026)
+    h('span', { class: 'cs-hptrack', title: 'Health track, Unhurt on the right' }, h('b', { style: `width:${fill}%` }),
+      [...segs.slice(0, -1).map((x) => x.from * scale), 100 - UNHURT_SECTION].map((at) => h('i', { style: `left:${at}%` }))),
     sideSteps(1));
   btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health ${partOpen.on ? '⌄' : '›'}`; });
   return [btn, parts];

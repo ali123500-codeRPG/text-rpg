@@ -11,7 +11,7 @@ import { timeView, zoneLight, clockSet } from '../time';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, stance, wary, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
-import { isComm } from '../perception';
+import { beliefStatus, isComm } from '../perception';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -105,6 +105,10 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
   for (const a of allActors(state)) {
     if (a.id === viewer.id || !zones.includes(a.zone)) continue;
     if (a.id === state.player.id && !atLeast(viewer.mind?.knowledge[a.id]?.status, 'aware')) continue;
+    // NS2/NS4: a stealthy NPC outside the viewer's band shows only to those who see it; a suspicious viewer half sees someone
+    const hidden = a.id !== state.player.id && a.posture === 'stealthy' && a.bandId !== viewer.bandId ? beliefStatus(state, viewer, a) : 'aware';
+    if (hidden === 'unaware') continue;
+    if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [] }); continue; }
     // P3: in a dark zone someone is half seen, unless they share the viewer's zone and the viewer perceived them
     // fully this scene (spoke face to face, say): then they stay seen
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
@@ -269,6 +273,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       slots: Object.fromEntries(Object.entries(m.slots ?? {}).map(([k, v]) => [k, Array.isArray(v) ? [...v] : v])),
       ...(m.alarm ? { alarm: { armed: m.alarm.armed, ...(m.alarm.lastAlarmTurn !== undefined ? { lastAlarmTurn: m.alarm.lastAlarmTurn } : {}), ...(m.alarm.returnTo ? { returnTo: { id: m.alarm.returnTo.id, anchorTurn: m.alarm.returnTo.anchorTurn } } : {}) } } : {}),
       ...(lastHitBy ? { lastHitBy } : {}),
+      ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
     },
     beliefs, perceived, told, said,
     band: band
