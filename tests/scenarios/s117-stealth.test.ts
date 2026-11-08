@@ -67,7 +67,7 @@ describe('117 stealth', () => {
     turn(s, intent({ toZone: 'street_square' }, { type: 'sneak' }));
     expect(s.player.zone).toBe('street_square');
     expect(s.player.posture).toBe('stealthy');
-    turn(s, intent(null, null, { text: 'Hello!', volume: 'normal' } as Intent['spoken']));
+    turn(s, intent(null, null, 'Hello!'));
     expect(s.player.posture).toBe('open');
   });
   it('42 a stealthy frontier arrival is tested by each observer in range', () => {
