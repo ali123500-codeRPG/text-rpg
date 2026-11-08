@@ -7,7 +7,7 @@ import type { PartStateKey, SkillTierKey } from '../scales';
 
 /** F1–F8 (Ali, 08/11/2026): a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
-export type SkillFunction = 'arms' | 'unarmed' | 'ranged' | 'defense' | 'health' | 'sight' | 'hearing' | 'stealth' | 'influence';
+export type SkillFunction = 'arms' | 'unarmed' | 'ranged' | 'defense' | 'armor' | 'health' | 'sight' | 'hearing' | 'stealth' | 'influence';
 export type SkillGroup = 'melee' | 'ranged' | 'defense' | 'health' | 'notice' | 'stealth' | 'influence';
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';

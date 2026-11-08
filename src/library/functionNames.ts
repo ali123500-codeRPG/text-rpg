@@ -5,7 +5,7 @@
 import type { SkillDef, SkillFunction, SkillGroup } from '../types';
 
 export const FUNCTION_GROUP: Record<SkillFunction, SkillGroup> = {
-  arms: 'melee', unarmed: 'melee', ranged: 'ranged', defense: 'defense', health: 'health',
+  arms: 'melee', unarmed: 'melee', ranged: 'ranged', defense: 'defense', armor: 'defense', health: 'health',
   sight: 'notice', hearing: 'notice', stealth: 'stealth', influence: 'influence',
 };
 export const GROUP_NAMES: Record<SkillGroup, string> = {
