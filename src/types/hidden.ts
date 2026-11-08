@@ -65,6 +65,7 @@ export type Routine = {
   activity?: string; // follow and wait only
   alert?: string;
   onAlert: OrderTemplate | null;
+  posture?: 'stealthy'; // NS: the actor keeps stealthy while on this routine (the thief's prowl)
 };
 export type ActivityDef = {
   id: string;

@@ -1,12 +1,13 @@
 // detectPlayer and resolveAmbush with local fakes for W3's updateBeliefs and W2's roll.
 import type { Tier } from '../../src/types';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import type { GameEvent, GameState, RollRequest } from '../../src/types';
+import type { Actor, GameEvent, GameState, RollRequest } from '../../src/types';
 
 const tiers: Record<string, Tier> = {};
 vi.mock('../../src/perception', () => ({
   computePerception: vi.fn(() => ({})),
   perceptionOf: vi.fn(() => null), // unit tests give levels through event.perception
+  beliefStatus: (_s: GameState, o: Actor, about: Actor) => (o.kind === 'player' ? 'aware' : o.mind?.knowledge[about.id]?.status ?? 'unaware'),
   updateBeliefs: vi.fn((state: GameState, u: { kind: string; observerId: string; aboutId: string; status: 'aware' }) => {
     const a = state.actors.find((x) => x.id === u.observerId)!;
     a.mind!.knowledge[u.aboutId] = { status: u.status, source: 'seen', revealed: [] };

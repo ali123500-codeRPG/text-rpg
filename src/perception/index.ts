@@ -63,7 +63,8 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   return best;
 }
 
-/** Q17: the player's clear sightings. A full sight of an actor records its zone; a move the player did not see clearly forgets it. */
+/** Q17: the player's clear sightings. A full sight of an actor records its zone; a move the player did not see clearly forgets it.
+ * NS2: a stealthy actor's move the player does not perceive at all loses it: aware drops to suspicious. */
 export function noteSightings(event: GameEvent, state: GameState): void {
   const p = state.player;
   if (!p.journal || event.actorId === p.id) return;
@@ -71,6 +72,29 @@ export function noteSightings(event: GameEvent, state: GameState): void {
   const cs = (p.journal.clearSight ??= {});
   if (per?.level === 'full' && per.cue === 'sight') cs[event.actorId] = event.zone;
   else if (event.kind === 'move' || event.kind === 'flee') delete cs[event.actorId];
+  if (!per && (event.kind === 'move' || event.kind === 'flee') && actorById(state, event.actorId)?.posture === 'stealthy') updateBeliefs(state, { kind: 'lost', observerId: p.id, aboutId: event.actorId });
+}
+
+/** NS2–NS4 (Ali, 08/11/2026): what `o` believes about `about`. NPCs read their knowledge; the player simply sees open actors and
+ * keeps a belief (journal.stealthSeen) only about stealthy ones. */
+export function beliefStatus(state: GameState, o: Actor, about: Actor): BeliefStatus {
+  if (o.kind !== 'player') return o.mind?.knowledge[about.id]?.status ?? 'unaware';
+  // an entry outlives the posture until stealthEnd (a melee blow from stealth is resolved as an ambush first)
+  return o.journal?.stealthSeen?.[about.id] ?? (about.posture === 'stealthy' ? 'unaware' : 'aware');
+}
+
+/** NS2: an actor turning stealthy shakes off no one who sees it (ST12). The player keeps it as far as they see it now:
+ * in their zone or one sight link away, half seen in the dark. NPC observers keep their knowledge as it is. */
+export function stealthStart(state: GameState, a: Actor): void {
+  const p = state.player;
+  if (!p.journal || a.id === p.id) return;
+  const d = isActive(p) ? dist(state, p.zone, a.zone, true) : null;
+  const status: BeliefStatus = d === null || d > 1 ? 'unaware' : zoneLight(state, zoneById(state, a.zone)) === 'dark' ? 'suspicious' : 'aware';
+  (p.journal.stealthSeen ??= {})[a.id] = status;
+}
+/** NS2: an actor turning open is simply seen again */
+export function stealthEnd(state: GameState, a: Actor): void {
+  delete state.player.journal?.stealthSeen?.[a.id];
 }
 
 /** Q17: is this a notice skill read by sight or sound (sight, hearing) */
@@ -95,10 +119,13 @@ export function lookAround(state: GameState): string[] {
 /** who perceives `event`, at the moment it happens (level and cue). The player's own events reach observers unaware of the player only through detection. */
 export function computePerception(event: GameEvent, state: GameState, _rng: Rng): GameEvent['perception'] {
   const out: GameEvent['perception'] = {};
+  const s = actorById(state, event.actorId);
   for (const a of allActors(state)) {
     // the player's events reach only those who already know of them; while stealthy, only those who see them (ST4)
     const min = state.player.posture === 'stealthy' ? 'aware' : 'suspicious';
     if (event.actorId === state.player.id && a.id !== state.player.id && !atLeast(a.mind?.knowledge[state.player.id]?.status, min)) continue;
+    // NS2: a stealthy NPC's events reach only its band and those who see it
+    if (s && s.kind !== 'player' && s.posture === 'stealthy' && a.id !== s.id && a.bandId !== s.bandId && !atLeast(beliefStatus(state, a, s), 'aware')) continue;
     const p = perceptionOf(event, state, a);
     if (p) out[a.id] = p;
   }
@@ -128,15 +155,20 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     if (o) write(o, update.aboutId, { revealed: [update.fact] });
     return;
   }
+  const ss = (o: Actor | undefined) => (o?.kind === 'player' && o.journal ? (o.journal.stealthSeen ??= {}) : undefined);
   if (update.kind === 'lost') {
     // ST15: someone who saw you loses you when you vanish from them: suspicious, at the zone they last saw you in
     const o = actorById(state, update.observerId);
+    const seen = ss(o); // NS2: the player loses a stealthy NPC the same way
+    if (seen) { if (atLeast(seen[update.aboutId], 'aware')) seen[update.aboutId] = 'suspicious'; return; }
     if (o && atLeast(o.mind?.knowledge[update.aboutId]?.status, 'aware')) write(o, update.aboutId, { status: 'suspicious', ...(update.zone ? { lastKnownZone: update.zone } : {}) });
     return;
   }
   if (update.kind === 'detection') {
     const o = actorById(state, update.observerId);
     if (!o || update.status === 'unaware') return;
+    const seen = ss(o);
+    if (seen) { seen[update.aboutId] = raise(seen[update.aboutId], update.status); return; }
     const cue = perceptionOf(update.event, state, o)?.cue;
     write(o, update.aboutId, {
       status: raise(o.mind?.knowledge[update.aboutId]?.status, update.status),
