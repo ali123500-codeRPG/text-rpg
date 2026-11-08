@@ -30,13 +30,13 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
         links: [L('tav_common', 'the common room'), L('tav_cellar', 'down the cellar steps', false)] },
       { key: 'tav_cellar', place: 'tavern', kind: 'cellar', name: 'cellar', look: 'a damp cellar of barrels', cover: 'some', light: 'dark',
         links: [L('tav_counter', 'up the cellar steps', false)] },
-      { key: 'street_door', place: 'street', kind: 'street', name: 'outside the tavern', look: 'a muddy street before the tavern door', cover: 'none', light: 'bright',
+      { key: 'street_door', place: 'street', kind: 'street', name: 'outside the tavern', look: 'a muddy street before the tavern door', cover: 'none',
         links: [L('tav_common', 'inside the tavern', false), L('gate_inner', 'toward the gate')] },
-      { key: 'gate_inner', place: 'street', kind: 'gate', name: 'the gate', look: 'a timber gate in the palisade', cover: 'none', light: 'bright',
+      { key: 'gate_inner', place: 'street', kind: 'gate', name: 'the gate', look: 'a timber gate in the palisade', cover: 'none',
         links: [L('street_door', 'back toward the tavern'), L('field_mid', 'through the gate')] },
-      { key: 'field_mid', place: 'field', kind: 'field', name: 'the open field', look: 'wet grass streaked with slime trails', cover: 'none', light: 'bright',
+      { key: 'field_mid', place: 'field', kind: 'field', name: 'the open field', look: 'wet grass streaked with slime trails', cover: 'none',
         links: [L('gate_inner', 'back toward the gate'), L('field_far', 'the far side of the field')] },
-      { key: 'field_far', place: 'field', kind: 'field', name: 'far side of the field', look: 'long grass by a line of trees', cover: 'some', light: 'bright',
+      { key: 'field_far', place: 'field', kind: 'field', name: 'far side of the field', look: 'long grass by a line of trees', cover: 'some',
         links: [L('field_mid', 'back across the field'), L('woods', 'into the woods', false)] },
     ],
     frontiers: [{ key: 'woods', label: 'the woods' }],
@@ -71,7 +71,7 @@ export function grovePlan(tier: Tier = 'success'): StagePlan {
   return {
     ...villageStagePlan(tier), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
     event: { summary: 'a quiet grove', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.success) },
-    zones: [{ key: 'grove', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove of birches', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back to the field', sight: true }] }],
+    zones: [{ key: 'grove', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove of birches', cover: 'some', links: [{ to: 'field_far', label: 'back to the field', sight: true }] }],
   };
 }
 
