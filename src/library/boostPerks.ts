@@ -49,10 +49,10 @@ export const BOOST_PERKS: PerkWriteup[] = ROWS.map((r) => ({
   id: r.id, ref: r.ref, name: r.name, skill: r.skill, place: '40',
   ladder: { skill: r.skill, milestone: 40 }, effect: r.effect, trueSkill: 5, functionBoost: 1,
   ...(r.extra.numbers ? { numbers: r.extra.numbers } : {}), ...(r.extra.trueSkillTo ? { trueSkillTo: r.extra.trueSkillTo } : {}),
-  story: `+5 ${r.label}, and +1 ${FUNCTION_NAMES[r.fn]} (${r.label} included). ${r.extra.story}`,
+  story: `+5 ${r.label}, +1 ${FUNCTION_NAMES[r.fn]}. ${r.extra.story}`,
   rules: {
     kind: 'Always on', trigger: 'Always.', conditions: [],
-    effect: `+5 true skill in ${r.skill}. +1 true skill in every skill with function ${r.fn}, ${r.skill} included. ${r.extra.rule}`,
+    effect: `+5 true skill in ${r.skill}. +1 true skill in every skill with function ${r.fn}. ${r.extra.rule}`,
     lasts: 'Always.',
   },
 }));
