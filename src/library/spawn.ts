@@ -2,6 +2,7 @@
 import type { Actor, CreationBuild, GameState, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, getLibrary, itemDef, npcTemplate } from './index';
+import { skillOpen } from '../ruleset/access';
 
 let seq = 0;
 export function newInstanceId(prefix = 'it'): string {
@@ -112,6 +113,13 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
 
 // ---------- player creation (Part 4 §4) ----------
 const PLAYER_CLASS = 'swordsman'; // first build: the player's class
+/** who a new player is: body type, race, class and race perks. Tree access (TA1) reads these before the sheet exists. */
+export const newPlayer = (): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> => ({
+  bodyTypeId: 'humanoid',
+  raceId: 'human', // GAP: no race choice at creation yet
+  classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],
+  perks: racePerks('human'),
+});
 const STARTING_GEAR = ['arming_sword', 'round_shield', 'gambeson'];
 
 /** The creation screen's opening build: satisfies every creation rule. */
@@ -123,14 +131,15 @@ export function recommendedBuild(): CreationBuild {
   };
 }
 
-/** Empty = valid. Every point spent, open skills only, none above the cap, class floors met, exactly CREATION_TAGS tags. */
+/** Empty = valid. Every point spent, skills in trees open to a new player only (TA1), none above the cap, class floors met, exactly CREATION_TAGS tags. */
 export function validateBuild(build: CreationBuild): string[] {
   const lib = getLibrary();
   const errs: string[] = [];
+  const who = { core: newPlayer() } as Actor;
   if (!build.name?.trim()) errs.push('Name the character');
   let spent = 0;
   for (const [id, v] of Object.entries(build.skills)) {
-    if (!lib.skills[id]?.playerOpen) errs.push(`${id} is not open to the point-buy`);
+    if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${id} is not open to the point-buy`);
     if (!Number.isInteger(v) || v < 0) errs.push(`${id} must be a whole number of points, 0 or more`);
     else if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${id} is above ${CONFIG.CREATION_MAX_SKILL}`);
     spent += v;
@@ -141,7 +150,7 @@ export function validateBuild(build: CreationBuild): string[] {
   const tags = new Set(build.tagged);
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
   if (tags.size !== CONFIG.CREATION_TAGS) errs.push(`Tag exactly ${CONFIG.CREATION_TAGS} skills (${tags.size} tagged)`);
-  for (const id of tags) if (!lib.skills[id]?.playerOpen) errs.push(`${id} cannot be tagged`);
+  for (const id of tags) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${id} cannot be tagged`);
   return errs;
 }
 
@@ -161,11 +170,8 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     placeId: '', zone: '', // GAP: set by story-start scene setup (the village tavern, Part 2 Scene setup)
     posture: 'open', bandId: 'player_band',
     core: {
-      bodyTypeId: 'humanoid',
-      raceId: 'human', // GAP: no race choice at creation yet
+      ...newPlayer(),
       skills,
-      classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],
-      perks: racePerks('human'),
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
       inventory: [...equipLoadout(null, STARTING_GEAR, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN },
         { id: 'player_bandage', itemId: 'bandage', qty: CONFIG.STARTING_BANDAGES }],

@@ -3,10 +3,11 @@ import type { Actor, GameState, HealthLevel, Mod, PartState, RoleId } from '../t
 import { CONFIG } from '../config';
 import { bodyType, getLibrary, itemDef } from '../library';
 import { hasPerk } from './perks';
+import { skillOpen } from './access';
 
 export function totalHp(state: GameState, actor: Actor): number {
   const end = actor.core.skills.endurance;
-  const raw = end && !end.dormant ? end.raw : 0;
+  const raw = end && !end.dormant && skillOpen(actor, 'endurance') ? end.raw : 0;
   return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * bodyType(state, actor.core.bodyTypeId).hpMultiplier;
 }
 

@@ -1,7 +1,9 @@
 // Creation screen (Part 4 §4, approved layout B: tree grid). Point-buy over the open skills.
-import type { CreationBuild, GameApi } from '../types';
+import type { Actor, CreationBuild, GameApi } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
+import { newPlayer } from '../library/spawn';
+import { classTree, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
 import { preview } from './sheet';
 
@@ -17,8 +19,6 @@ export const skillName = (id: string) => SKILL_NAMES[id] ?? id;
 export const SKILL_SUB: Record<string, string> = { endurance: 'sets HP', feint: 'effect not designed', riposte: 'effect not designed', disarm: 'effect not designed' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
-// Skills the approved layout shows as a locked row instead of a slider.
-const LOCKED = new Set(['unarmed_natural']);
 
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
   { id: 'melee', c: 'c10' }, { id: 'defense', c: 'c1' }, { id: 'swordsman', c: 'c5' },
@@ -34,7 +34,9 @@ const REC_TAGS = ['melee_medium', 'block', 'endurance'];
 export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement {
   const lib = getLibrary();
   const floors = lib.classes.swordsman?.floors ?? {};
-  const open = TREE_VIEW.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => lib.skills[k]?.playerOpen && !LOCKED.has(k));
+  const who = { core: newPlayer() } as Actor;
+  const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
+  const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []);
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), name: 'Aldric', swings: 400 };
   const total = () => CONFIG.CREATION_POINTS, cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
@@ -50,14 +52,14 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
   const rows = new Map<string, HTMLElement>();
   const sums = new Map<string, HTMLElement>();
 
-  const groups = h('div', { class: 'groups' }, TREE_VIEW.map((t) => {
+  const groups = h('div', { class: 'groups' }, view.map((t) => {
     const def = lib.trees[t.id];
     const sum = h('span', { class: 'tot hs-num' });
     sums.set(t.id, sum);
     const name = def?.name ?? 'Stealth';
     const sec = h('section', {}, h('div', { class: 'grp-h' }, h('i', { class: 'hs-sq', style: `background:var(--${t.c})` }), h('h2', { class: 'hs-section' }, name),
-      def?.classId ? h('span', { class: 'hs-chip' }, 'Class tree') : null, sum));
-    for (const k of (def?.skills ?? []).filter((x) => !LOCKED.has(x))) {
+      classTree(def?.access) ? h('span', { class: 'hs-chip' }, 'Class tree') : null, sum));
+    for (const k of def?.skills ?? []) {
       const nm = h('div', { class: 'nm' }, h('b', {}, skillName(k)), SKILL_SUB[k] ? h('small', {}, SKILL_SUB[k]) : null, floors[k] ? h('small', {}, `class floor ${floors[k]}`) : null);
       const range = h('input', { type: 'range', min: '0', max: '100', 'aria-label': skillName(k), oninput: (e: Event) => setVal(k, +(e.target as HTMLInputElement).value) });
       const row = h('div', { class: 'row', 'data-k': k }, nm,

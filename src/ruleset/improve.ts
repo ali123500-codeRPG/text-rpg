@@ -6,10 +6,11 @@ import type { Actor, AttackResult, CheckResult, ContestResult, GameState, Rng } 
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
 import { MILESTONES, trueSkill } from './perks';
+import { skillOpen } from './access';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
-  if (pr && actor.core.skills[skill] && !pr.marks.includes(skill)) pr.marks.push(skill);
+  if (pr && actor.core.skills[skill] && skillOpen(actor, skill) && !pr.marks.includes(skill)) pr.marks.push(skill); // a closed tree can't be raised (TA4)
 }
 
 /** mark `skill` if the opposition is within MARK_WINDOW of the actor's raw or true skill (SP2) */
@@ -53,7 +54,7 @@ export function improveMarked(state: GameState, rng: Rng): { skill: string; from
   const gains: { skill: string; from: number; to: number; milestone?: number }[] = [];
   for (const id of pr.marks) {
     const s = a.core.skills[id];
-    if (!s) continue;
+    if (!s || !skillOpen(a, id)) continue;
     const target = s.state === 'tagged' ? s.raw : s.raw + burden;
     const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
     if (!(roll > target || roll >= 99)) continue;

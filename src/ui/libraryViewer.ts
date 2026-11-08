@@ -3,7 +3,8 @@
 // get the generic cards, so a new table shows up with no edit here.
 import './styles.css';
 import './libraryViewer.css';
-import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup } from '../types';
+import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import { classTree, condName } from '../ruleset/access';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
@@ -182,17 +183,21 @@ function achievements(): HTMLElement[] {
 }
 
 // ---------- Skills, by tree ----------
+/** tree access (TA1–TA11): Must, Either of and Blocked by as chips; a tree with no rule is open to everyone */
+const access = (r?: TreeAccess): HTMLElement[] => !r ? [chip('open to everyone', '--c1')] : [
+  ...(r.must ?? []).map((c) => chip(`must: ${condName(c)}`, '--c5')),
+  ...(r.either?.length ? [chip(`either of: ${r.either.map(condName).join(', ')}`, '--c5')] : []),
+  ...(r.blockedBy ?? []).map((c) => chip(`blocked by: ${condName(c)}`, '--c10'))];
 function skills(): HTMLElement[] {
   const inTree = new Set(Object.values(lib.trees).flatMap((t) => t.skills));
   const loose = Object.keys(lib.skills).filter((s) => !inTree.has(s));
   const tree = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => card('skills', id, entry, title, chips,
-    h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Roles', 'Tier', 'XP', 'Tags', 'Player'].map((x) => h('th', {}, x)))),
+    h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : ''), h('td', {}, s.functions.join(', ') || '—'), h('td', {}, s.roles.join(', ') || '—'),
-        h('td', {}, `${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`), h('td', {}, s.xpCategory), h('td', {}, (s.tags ?? []).join(', ') || '—'),
-        h('td', {}, s.playerOpen ? 'yes' : 'no'))))));
+        h('td', {}, `${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`), h('td', {}, s.xpCategory), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   return [h('div', { class: 'lv-grid wide' },
-    Object.values(lib.trees).map((t) => tree(t.id, t.name, t.skills, t, t.classId ? [chip(`class: ${lib.classes[t.classId]?.name ?? t.classId}`, '--c5')] : [])),
+    Object.values(lib.trees).map((t) => tree(t.id, t.name, t.skills, t, access(t.access))),
     loose.length ? tree('no_tree', 'In no tree', loose, loose, []) : null)];
 }
 
@@ -211,9 +216,10 @@ const FACETS: Record<string, Facets> = {
     ...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]).map((f): [string, string] => ['Flag', f]), ...(i.tags ?? []).map((t): [string, string] => ['Flag', t])],
   perks: (d: PerkDef & { place?: string; skill?: string }) => [['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', treeOf(d.ladder?.skill ?? d.skill)]],
-  achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.by ? `per ${d.by}` : 'total defeats']],
-  creatures: (c: CreatureType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
-  skills: (t: { skills?: string[]; classId?: string }) => [['Tree', t.classId ? 'class tree' : 'general'],
+  achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.by ? `per ${d.by.replace('_', ' ')}` : 'total defeats']],
+  bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
+  skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Tree', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
+    ...(t.access?.blockedBy ?? []).map((c): [string, string] => ['Blocked by', condName(c)]),
     ...(t.skills ?? []).flatMap((id) => lib.skills[id]?.functions.map((fn): [string, string] => ['Function', fn]) ?? [])],
 };
 /** generic tables: a short field with 2–8 values shared by entries becomes a filter group */
