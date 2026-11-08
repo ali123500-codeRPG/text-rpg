@@ -1,14 +1,15 @@
-// 120 Dead (Ali, 08/11/2026): health lost keeps counting past 100% (Incapacitated) up to 200%, which is Dead.
+// 120 Dead (Ali, 08/11/2026): health lost keeps counting past 100% (Incapacitated) up to 150%, which is Dead.
 // Dead is never shown in the UI: the shown track stops at Incapacitated, and nothing heals the dead.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, actor } from '../harness';
 import { healthLevel, isDownLevel, ruleset, SHOWN_LEVELS, shownLevel } from '../../src/ruleset';
 import { applyHealing, wouldHeal } from '../../src/engine/heal';
 import { isActive } from '../../src/engine/relations';
+import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
 
 describe('120 dead', () => {
-  it('damage past Incapacitated counts up to 200% and then the actor is Dead', () => {
+  it('damage past Incapacitated counts up to 150% and then the actor is Dead', () => {
     const s = makeVillage();
     const g = actor(s, 'guard_1');
     g.core.condition.hpLostPct = 100;
@@ -18,7 +19,7 @@ describe('120 dead', () => {
     expect(g.core.condition.hpLostPct).toBeGreaterThan(100);
     expect(healthLevel(g)).toBe('Incapacitated');
     ruleset.applyEffects({ ...hit, location: 'general', damage: 10000 }, s);
-    expect(g.core.condition.hpLostPct).toBe(200);
+    expect(g.core.condition.hpLostPct).toBe(CONFIG.HP_LOST_MAX);
     expect(healthLevel(g)).toBe('Dead');
     expect(isActive(g)).toBe(false);
     expect(isDownLevel('Dead') && isDownLevel('Incapacitated') && !isDownLevel('Critical')).toBe(true);
@@ -28,16 +29,16 @@ describe('120 dead', () => {
     expect(SHOWN_LEVELS().map(([l]) => l)).not.toContain('Dead');
     expect(SHOWN_LEVELS()).toHaveLength(8);
     expect(shownLevel('Dead')).toBe('Incapacitated');
-    s.player.core.condition.hpLostPct = 200;
+    s.player.core.condition.hpLostPct = CONFIG.HP_LOST_MAX;
     expect(wouldHeal(s, s.player, 'clinic')).toBe(false);
     expect(applyHealing(s, s.player, 'clinic')).toBe(false);
-    expect(s.player.core.condition.hpLostPct).toBe(200);
+    expect(s.player.core.condition.hpLostPct).toBe(CONFIG.HP_LOST_MAX);
   });
   it('the healing table carries the lever: no row heals the dead now; a row with revivesDead would', () => {
     const s = makeVillage();
     const rows = Object.values(getLibrary().healing!);
     expect(rows.every((r) => r.revivesDead === false)).toBe(true);
-    s.player.core.condition.hpLostPct = 200;
+    s.player.core.condition.hpLostPct = CONFIG.HP_LOST_MAX;
     const clinic = getLibrary().healing!.clinic;
     clinic.revivesDead = true;
     try {

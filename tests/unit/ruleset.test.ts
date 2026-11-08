@@ -59,7 +59,7 @@ describe('body', () => {
     expect(totalHp(s, s.player)).toBe(90); // endurance 40
     expect(totalHp(s, actor(s, 'slime_1'))).toBe(30);
     const lv = (pct: number) => { s.player.core.condition.hpLostPct = pct; return healthLevel(s.player); };
-    expect([0, 10, 16, 45, 46, 75, 76, 99.5, 100, 199.5, 200].map(lv)).toEqual(['Unhurt', 'Bruised', 'Hurt', 'Injured', 'Wounded', 'Mauled', 'Critical', 'Critical', 'Incapacitated', 'Incapacitated', 'Dead']);
+    expect([0, 10, 16, 45, 46, 75, 76, 99.5, 100, 149.5, 150].map(lv)).toEqual(['Unhurt', 'Bruised', 'Hurt', 'Injured', 'Wounded', 'Mauled', 'Critical', 'Critical', 'Incapacitated', 'Incapacitated', 'Dead']);
   });
   it('builds the spec hit tables and rebuilds without a Destroyed part', () => {
     const s = makeVillage();
@@ -117,7 +117,7 @@ describe('ruleset methods', () => {
     expect(dropped[0].equippedIn).toBeUndefined();
     g.core.condition.parts.neck = -95;
     ruleset.applyEffects({ ...hit, location: 'neck', damage: 1 }, s);
-    expect(g.core.condition.hpLostPct).toBe(200);
+    expect(g.core.condition.hpLostPct).toBe(150);
     expect(healthLevel(g)).toBe('Dead');
   });
   it('checks and contests: applyEffects returns []; recordUse only logs', () => {
