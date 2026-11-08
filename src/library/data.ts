@@ -43,7 +43,6 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('disarm', 'swordsman', [], ['grip'], undefined, 'offensive'),
   // slime class skills are tier 0 (Ali, 08/11/2026)
   sk('tremor', 'slime_senses', ['notice'], ['sense'], 'sound', undefined, 'tier_0'),
-  sk('taste', 'slime_senses', ['notice'], ['sense'], undefined, undefined, 'tier_0'),
   // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk('lockpicking', 'tools', [], ['grip']),
 ].map((s) => [s.id, s]));
@@ -161,7 +160,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
 
 export const TEMPLATES: Record<string, NpcTemplate> = {
   slime: {
-    id: 'slime', raceId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30, tremor: 50, taste: 50 },
+    id: 'slime', raceId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30, tremor: 50 },
     level: 0, bonusPoints: 0, focus: [], personality: 'fearless', control: 'code', label: 'a slime',
     fallback: { attackSkill: 'unarmed_natural' },
   },
@@ -274,7 +273,7 @@ export function prototypeLibrary(): Library {
       speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'], access: { blockedBy: [AMORPHOUS] } },
       swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], access: { must: [{ kind: 'class', id: 'swordsman' }] } },
       // BR7 (Ali, 08/11/2026): from being a slime, not from a class
-      slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor', 'taste'], access: { must: [{ kind: 'race', id: 'slime' }] } },
+      slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor'], access: { must: [{ kind: 'race', id: 'slime' }] } },
       tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: ['lockpicking'], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
