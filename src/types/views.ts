@@ -20,6 +20,7 @@ export type BeliefView = {
   source: 'seen' | 'heard' | 'told';
   revealed: string[];
   hostile: boolean; // hostile(self, about): attacks on sight
+  yielded?: true; // Q1/Q4: self yielded to (broke or surrendered before) this actor; a broken actor still flees from it
   active: boolean;
   label: string; // public label or known name
 };

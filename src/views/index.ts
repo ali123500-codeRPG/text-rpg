@@ -8,7 +8,7 @@ import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
-import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, stance, wary, zoneById } from '../engine/relations';
 import { activity, creatureType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { isComm } from '../perception';
@@ -248,7 +248,8 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}),
       ...(b.lastSeenTurn !== undefined ? { lastSeenTurn: b.lastSeenTurn } : {}),
       source: b.source, revealed: [...b.revealed],
-      hostile: hostile(state, a, other), active: isActive(other), label: callName(state, a.id, about),
+      hostile: hostile(state, a, other), ...(stance(state, a, other) === 'yielded' ? { yielded: true as const } : {}),
+      active: isActive(other), label: callName(state, a.id, about),
     });
   }
   const band = bandById(state, a.bandId);

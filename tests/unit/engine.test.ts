@@ -348,6 +348,7 @@ describe('gear and combat', () => {
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }), agentOutputs: [planner('patron_1', npcAction('attack', 'guard_1'))] }), createRng(1));
     expect(F.attacks.map((a) => a.context?.defensesThisTurn)).toEqual([0, 1]);
     expect(actor(s, 'guard_1').mind!.moraleState).toBe('broken');
+    expect(actor(s, 'guard_1').mind!.overrides?.player).toBe('yielded'); // Q4: broken shares the yielded stance
   });
   it('a surrender yields (Q1): no more blocking rest, still pays XP; attacked again it is hostile; at the scene end a grudge and it leaves', async () => {
     place(s, 'guard_1', 'tav_common');
