@@ -449,6 +449,25 @@ Ability perks sit on 20/60/100/140 and change what a character can do. Boost per
 - **Lasts:** That Vanish.
 - **Open:** Sight 60 (Ali, 08/11/2026: "link it"). For the player it waits on NPC stealth (OQ-14): only NPCs vanish from the player then.
 
+### Set Them Up (Strike) · B15
+
+*Story:* Fists and whatever's at hand work together. Every punch you throw at a foe, landed or not, sets up your next improvised attack on it, and every improvised attack sets up your next punch: that attack lands one outcome better.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes an attack with skill unarmed_strike or unarmed_improvised, hit or miss (Ali, 08/11/2026: it counts on the attempt).
+- **Effect:** A Strike attack marks the target for the owner's next unarmed_improvised attack on it; an improvised attack marks the target for the owner's next unarmed_strike attack on it. That attack gets tier shift +1, and the mark clears.
+- **Lasts:** Until it is used or the engagement ends.
+
+### One-Two (Improvisation) · B16
+
+*Story:* A bottle in one hand, a fist in the other. When you hit a foe with an improvised weapon and your other hand is empty, you follow up with a free punch at the same foe.
+
+- **Kind:** Always on
+- **Trigger:** The owner's attack with skill unarmed_improvised hits (outcome grazed, blocked, full, heavy or crushing hit).
+- **Conditions:** The owner has a working Grip arm with an empty hand. The target is still active and in the owner's zone.
+- **Effect:** The owner makes one extra attack with skill unarmed_strike (fists) at the same target at once. It doesn't use the owner's action, and can't trigger One-Two again.
+- **Lasts:** That attack.
+
 ## Very high milestone
 
 ### Never Surprised (Hearing) · C1

@@ -3,14 +3,14 @@ import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEv
 import { CONFIG } from '../config';
 import { activity, creatureType, getLibrary, itemDef } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
-import { defaultMode, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, hasPerk, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
 import { updateEngagements } from './engagement';
 import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
 import { applyHold, breakFree, releaseHolds } from './held';
-import { perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -205,7 +205,8 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   emit(ctx, ev);
 }
 
-function doAttack(ctx: Ctx, a: Actor, o: Order): void {
+/** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
+function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const { state, rng } = ctx;
   let t = o.target ? actorById(state, o.target) : undefined;
   const wasted = () => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
@@ -241,7 +242,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   );
   if (res.defense) ctx.defenses.set(t.id, (ctx.defenses.get(t.id) ?? 0) + 1);
   ev.effects = [...ev.effects, ...ruleset.applyEffects(res, state)];
-  afterAttack(state, a, t, res, m.mode.tree === 'ranged'); // perk marks (A2, A5, A10)
+  afterAttack(state, a, t, res, m.mode.tree === 'ranged', modeSkill(m.mode)); // perk marks (A2, A5, A10, B15)
   const hold = applyHold(a, t, res, modeSkill(m.mode)); // A8 Hold
   if (hold) ev.effects.push(hold);
   ruleset.recordUse(a, res.attack.skill, res, state);
@@ -261,7 +262,14 @@ function doAttack(ctx: Ctx, a: Actor, o: Order): void {
   if (!isActive(t)) {
     for (const p of state.actors) if (p !== t && p.bandId === t.bandId && ev.perception[p.id]) morale(ctx, p, 'bandmate_down');
   }
+  // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
+  if (!followUp && modeSkill(m.mode) === 'unarmed_improvised' && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'one_two')
+    && isActive(t) && t.zone === a.zone && freeHand(state, a)) {
+    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === 'unarmed_strike' && x.mode.reach >= 0);
+    if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: 'unarmed_strike', targetPart: null, aimed: false, line: null }, true);
+  }
 }
+const ONE_TWO_HITS = new Set(['grazed', 'blocked', 'full_hit', 'heavy_hit', 'crushing_hit']);
 
 /** Rest [Proposed]: no active hostile actor in the zone, at most once every REST_COOLDOWN_MIN game minutes (T7). */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {

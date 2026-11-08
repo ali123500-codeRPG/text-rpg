@@ -16,6 +16,8 @@ export const BUILT_PERKS = new Set<string>([
   'hold', // A8: src/engine/held.ts, the grapple mode in src/library/data.ts
   'leg_bolt', // A6: attack(), applyEffects(), src/engine/perkMarks.ts slowed()
   'dirt_in_the_eyes', // A9: src/engine/perkMoves.ts, the Parser's perkMove
+  'set_them_up', // B15 (strike 60): src/engine/perkMarks.ts markShifts() and afterAttack()
+  'one_two', // B16 (improvisation 60): src/engine/resolve.ts doAttack()
   'unblinking', // B14 (sight 60, ST23): src/minds/state.ts stealthDetect()
   'quick_word', // A15 (trial): src/engine/speech.ts quickWord(), the exchange slot in resolveTurn()
   // boost perks (40 milestone): src/library/boostPerks.ts; trueSkill() and boostMult()/boostAdd() in src/ruleset/perks.ts
