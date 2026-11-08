@@ -5,8 +5,9 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 
 | Tag | Values | Used for |
 |---|---|---|
-| Tree | melee, ranged, unarmed, defense, perception, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
-| Functions | melee_attack, ranged_attack, unarmed_attack, defense, notice, influence, hp | Substitutes: a skill with a shared function stands in for a missing one |
+| Tree | melee, ranged, unarmed, defense, perception, stealth, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
+| Functions | melee_attack, ranged_attack, unarmed_attack, defense, notice, influence, hp, stealth | Substitutes: a skill with a shared function stands in for a missing one |
+| Situation tags | sight, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. An action can add a tag (a Hide adds hide, ST22) |
 | Roles | grip, strike, move, sense, fly | Which wounded body parts lower the roll |
 | Cue | sight, sound (notice skills only) | Which cue a notice roll reads |
 | XP category | offensive, defensive, endurance, notice, influence, misc | XP ratings (X18–X23) |
@@ -14,21 +15,23 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 
 ## Every skill
 
-| Skill | Tree | Functions | Roles | Cue |
-|---|---|---|---|---|
-| melee_light, melee_medium, melee_heavy | melee | melee_attack | grip | |
-| ranged_light, ranged_medium, ranged_heavy | ranged | ranged_attack | grip | |
-| unarmed_strike, unarmed_grapple, unarmed_improvised | unarmed | unarmed_attack | grip | |
-| unarmed_natural (creatures only) | unarmed | unarmed_attack | strike | |
-| dodge | defense | defense | move | |
-| block | defense | defense | grip | |
-| endurance | defense | hp | | |
-| sight | perception | notice | sense | sight |
-| hearing | perception | notice | sense | sound |
-| persuasion, intimidation, barter | speech | influence | | |
-| feint, riposte, disarm (placeholders) | swordsman | | grip | |
-| tremor, taste (slime only) | slime_senses | notice | sense | sound / none |
-| lockpicking (placeholder) | tools | | grip | |
+| Skill | Tree | Functions | Roles | Cue | Situation tags |
+|---|---|---|---|---|---|
+| melee_light, melee_medium, melee_heavy | melee | melee_attack | grip | | sight |
+| ranged_light, ranged_medium, ranged_heavy | ranged | ranged_attack | grip | | sight, ranged |
+| unarmed_strike, unarmed_grapple, unarmed_improvised | unarmed | unarmed_attack | grip | | sight |
+| unarmed_natural (creatures only) | unarmed | unarmed_attack | strike | | sight |
+| dodge | defense | defense | move | | sight |
+| block | defense | defense | grip | | sight |
+| endurance | defense | hp | | | |
+| sight | perception | notice | sense | sight | sight |
+| hearing | perception | notice | sense | sound | |
+| sneaking, combat_stealth | stealth | stealth | move | | stealth |
+| vanishing | stealth | stealth | move | | stealth, hide |
+| persuasion, intimidation, barter | speech | influence | | | |
+| feint, riposte, disarm (placeholders) | swordsman | | grip | | |
+| tremor, taste (slime only, tier 0) | slime_senses | notice | sense | sound / none | |
+| lockpicking (placeholder) | tools | | grip | | |
 
 ## Substitutes
 

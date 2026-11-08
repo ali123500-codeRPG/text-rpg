@@ -3,7 +3,7 @@ import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEv
 import { CONFIG } from '../config';
 import { activity, creatureType, getLibrary, itemDef } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
-import { defaultMode, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, updateAlarms } from '../minds';
@@ -19,7 +19,7 @@ import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './g
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats } from './xp';
-import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
+import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay } from '../time';
 import { TIME_OF_DAY } from '../scales';
 import type { TurnInput } from './types';
 
@@ -366,10 +366,9 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
     // Q17 (Ali, 07/11/2026): looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
-    const light = CONFIG.LIGHT_MODS[zoneLight(state, zoneById(state, a.zone))] ?? 0;
     const modifiers = [
       ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
-      ...(light ? [{ source: 'light', type: 'situational' as const, value: light }] : []),
+      ...situational(state, o.skill, { light: zoneById(state, a.zone) }).modifiers, // ST21: light by tag (sight)
     ];
     const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [] }, state, rng);
     ev.roll = r;

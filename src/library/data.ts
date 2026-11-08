@@ -1,7 +1,7 @@
 // The prototype library: skills (Part 1 §3), creatures (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
-import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SkillDef, XpCategory } from '../types';
+import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, XpCategory } from '../types';
 import { PERK_WRITEUPS } from './perks';
 import { BUILT_PERKS } from './builtPerks';
 
@@ -45,6 +45,16 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk('lockpicking', 'tools', [], ['grip'], false),
 ].map((s) => [s.id, s]));
+
+/** ST21 (Ali, 08/11/2026): situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
+const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
+  melee_light: ['sight'], melee_medium: ['sight'], melee_heavy: ['sight'],
+  ranged_light: ['sight', 'ranged'], ranged_medium: ['sight', 'ranged'], ranged_heavy: ['sight', 'ranged'],
+  unarmed_strike: ['sight'], unarmed_grapple: ['sight'], unarmed_improvised: ['sight'], unarmed_natural: ['sight'],
+  dodge: ['sight'], block: ['sight'], sight: ['sight'],
+  sneaking: ['stealth'], combat_stealth: ['stealth'], vanishing: ['stealth', 'hide'],
+};
+for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
