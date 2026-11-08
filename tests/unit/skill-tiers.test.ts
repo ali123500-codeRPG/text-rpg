@@ -10,7 +10,7 @@ describe('skill tiers', () => {
   it('every skill is tier 2 (1×) except the slime class skills (tier 0, 0.5×)', () => {
     makeVillage();
     const skills = getLibrary().skills;
-    expect(Object.values(skills).filter((s) => s.tier !== 'tier_2').map((s) => s.id).sort()).toEqual(['taste', 'tremor']);
+    expect(Object.values(skills).filter((s) => s.tier !== 'tier_2').map((s) => s.id).sort()).toEqual(['tremor']);
     expect(CONFIG.SKILL_TIER_MULT.tier_0).toBe(0.5);
     expect(CONFIG.SKILL_TIER_MULT.tier_2).toBe(1);
   });
@@ -19,7 +19,6 @@ describe('skill tiers', () => {
     const slime = s.actors.find((a) => a.id === 'slime_1')!;
     slime.core.skills.tremor = { raw: 60, state: 'normal' };
     expect(effectiveSkill(s, slime, 'tremor').value).toBe(30);
-    slime.core.skills.taste = { raw: 0, state: 'normal' };
     const before = rating(slime);
     slime.core.skills.tremor = { raw: 0, state: 'normal' };
     // tremor 60 rates as a 30 (slimes can't use Perception, TA6, so a tier 2 notice skill can't stand in)
