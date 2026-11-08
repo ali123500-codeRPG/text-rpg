@@ -54,16 +54,19 @@ const bar = (raw: number) => h('div', { class: 'cs-bar' }, h('b', { style: `widt
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
 
-/** one row of level names over the card's equal segments, alternating above (0) and below (1) the bar. Unhurt and
- * Incapacitated (the first and last) are not named (Ali, 08/11/2026). */
-const steps = (levels: string[], level: string, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
-  levels.map((l, i) => (i > 0 && i < levels.length - 1 && i % 2 !== below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, l) : null)));
+/** one row of level names over the card's equal boxes, alternating above (0) and below (1) the bar. The boxes run
+ * Critical on the left to Bruised, then a 7th box for Unhurt on the right (Ali, 08/11/2026), so the bar empties from the
+ * right like the side sheet's. Unhurt and Incapacitated are not named. */
+const steps = (boxes: string[], level: string, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
+  boxes.map((l, i) => (l !== 'Unhurt' && i % 2 === below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, l) : null)));
 
 export function charCard(s: GameState, p: Actor): HTMLElement {
   const { hp } = hpLeft(s, p);
   const level = shownLevel(healthLevel(p));
   const levels = SHOWN_LEVELS().map(([l]) => l as string);
-  const lit = Math.round(levels.length * (1 - Math.min(100, p.core.condition.hpLostPct) / 100));
+  // boxes left to right: Critical … Bruised, then Unhurt; a box is lit while the character is at its level or better
+  const boxes = [...levels.slice(1, -1).reverse(), levels[0]];
+  const at = levels.indexOf(level);
   const place = s.places.find((x) => x.id === p.placeId)?.names.current;
   const cls = p.core.classes.find((c) => c.state === 'current')?.classId ?? '';
   const def = standing(s, p);
@@ -76,9 +79,9 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
     h('div', { class: 'cs-track' },
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${level} · ${whole(hp)} HP`)),
       // each level named at its segment, alternating one above the bar and one below (Ali, 08/11/2026)
-      steps(levels, level, 0),
-      h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, levels.map((l, i) => h('i', { class: i < lit ? 'on' : '', 'aria-label': l }))),
-      steps(levels, level, 1),
+      steps(boxes, level, 0),
+      h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: l, 'aria-label': l }))),
+      steps(boxes, level, 1),
       bodyFigure(s, p)),
     xpTrack(p),
     h('div', { class: 'cs-figs' },
@@ -185,7 +188,10 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
     // the current level sits beside the HP number, as on the character card (Ali, 08/11/2026)
     h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${level} · ${whole(hp)} HP`)),
     sideSteps(0),
-    h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` }), segs.slice(0, -1).map((x) => h('i', { style: `left:${x.from}%` }))),
+    // a separate 7th box on the right lights only when Unhurt, so a full Bruised bar can't be read as Unhurt (Ali, 08/11/2026)
+    h('span', { class: 'cs-hpline' },
+      h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` }), segs.slice(0, -1).map((x) => h('i', { style: `left:${x.from}%` }))),
+      h('span', { class: 'cs-hpunhurt' + (level === 'Unhurt' ? ' on' : ''), title: 'Unhurt', 'aria-label': 'Unhurt' })),
     sideSteps(1));
   btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health ${partOpen.on ? '⌄' : '›'}`; });
   return [btn, parts];
