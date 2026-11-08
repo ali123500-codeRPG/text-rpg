@@ -451,11 +451,14 @@ export function createGame(deps: GameDeps): Game {
     turnLog = [];
     busy = true;
     emit();
+    // the build is kept until turn 0 is saved, so closing the game during the opening doesn't lose it (resume restarts it)
+    await save.savePendingStart(store, { storyId, build, at: new Date(now).toISOString() }).catch(() => {});
     try {
       const rng = createRng(seed);
       const events = await director.startStory(state, rng, ctxFor(0, turnLog));
       state.rngState = rng.state;
       await finishTurn(state, events, { playerInput: '', rngBefore: seed, aimed: false, intent: null }, null);
+      if (await save.storySaved(store, storyId).catch(() => false)) await save.clearPendingStart(store).catch(() => {});
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
       else throw e;
@@ -467,7 +470,16 @@ export function createGame(deps: GameDeps): Game {
 
   async function resume(): Promise<boolean> {
     // the newest story runs (same order as save.listStories)
-    const storyId = (await save.listStories(store))[0]?.storyId;
+    const latest = (await save.listStories(store))[0];
+    // a story closed during its opening (turn 0 never saved): start that opening again from the kept build
+    const pending = await save.loadPendingStart(store).catch(() => null);
+    const pendingLive = !!pending && !(await save.storySaved(store, pending.storyId).catch(() => false)) && !(latest && latest.createdAt > pending.at);
+    if (pending && pendingLive) {
+      void newStory(pending.build).catch((e) => notice({ kind: 'load_refused', text: `The story could not start: ${(e as Error).message}` }));
+      return true;
+    }
+    if (pending) await save.clearPendingStart(store).catch(() => {});
+    const storyId = latest?.storyId;
     if (!storyId) return false;
     try {
       const loaded = await save.loadStory(store, storyId, getLibrary());

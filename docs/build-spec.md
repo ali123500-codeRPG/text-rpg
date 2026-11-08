@@ -1035,7 +1035,7 @@ Runs inside the turn that calls sceneBreak, after resolveTurn and before the sav
 8. Code builds the opening perception events (Opening narration), saves the turn (Part 4 §10) and computes the first turn (Architecture step 1).
 9. The turn's Agent Narrator call narrates the arrival with the turn's other events.
 
-Story start has no triggering turn: setup runs alone, is saved as turn 0, and one opening Agent Narrator call narrates it. Turn 0's premise and starting place come from the story's setting, chosen per story (D-1).
+Story start has no triggering turn: setup runs alone, is saved as turn 0, and one opening Agent Narrator call narrates it. Until turn 0 is saved, the build is kept at pending/start; reopening the game with it there starts the opening again (Ali, 08/11/2026). Turn 0's premise and starting place come from the story's setting, chosen per story (D-1).
 
 **First build:** the premise is the config value STORY\_PREMISE, "A swordsman arrives at a village troubled by slimes", and the story starts in the village tavern.
 
@@ -1458,6 +1458,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 110 | Healing | Rest heals HP and working parts but not a Crippled part; a clinic lifts it; a bandage heals its row in the turn it is used, is used up, and shows "Bandage: Hurt → Bruised"; with nothing to heal it stays in the pack and says so (Q3, 08/11/2026) |
 | 111 | Game clock | Each action costs its durations row; waiting until dawn moves the clock to dawn, breaks the scene and shows "Time passes: 11 h (Day 2 · Dawn)"; a hostile in the zone blocks it; outdoor zones are dark at night unless lit; the Narrator sees the day and time of day; the Weaver picks the hour only at story start; a night-only routine set by day is a routine error; rest cools down in game minutes; natural recovery heals 0.5% an hour at endurance 50, never a Crippled part, fights included |
 | 113 | Action economy | A ranged attack in reach drops the move; out of reach the move stands and the attack is dropped; a move two links away with no action is a dash, stopped by a Crippled leg; "after" resolves the action before the move |
+| 117 | Closing during the opening | The player's build is kept until turn 0 is saved; a game closed during the opening starts that opening again when reopened, instead of returning to character creation |
 
 ### Deliverables and acceptance criteria
 
