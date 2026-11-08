@@ -2,7 +2,7 @@
 import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, HiddenPage, ItemDef, Library, Place } from '../types';
 import { resolveAlias } from '../library';
 import type { Pages } from './pages';
-import { COVER, LIGHT, NOISE, TACTICS, TIERS, VISIBILITY } from '../scales';
+import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
 import { tierAt } from '../ruleset';
 
 export type CheckReport = { errors: string[]; repairs: string[]; warnings: string[]; changed: Set<string> };
@@ -77,13 +77,16 @@ export function notesToLists(pages: Pages): void {
   for (const [id, m] of Object.entries(h?.memory ?? {})) if (typeof m === 'string') h!.memory![id] = m ? [{ turn: 0, text: m }] : [];
 }
 
-// v6 -> v7: event noise and visibility levels 0..3 become NOISE / VISIBILITY keys (coding rule).
+// v6 -> v7: event noise and visibility levels 0..3 become NOISE / VISIBILITY keys (coding rule). The v6 levels are fixed here,
+// not read from the tables, which have grown since.
+const V6_NOISE = ['silent', 'quiet', 'normal', 'loud'] as const;
+const V6_VISIBILITY = ['unseen', 'low', 'normal', 'high'] as const;
 export function senseToKeys(v: unknown): void {
   if (Array.isArray(v)) return v.forEach(senseToKeys);
   if (!v || typeof v !== 'object') return;
   const o = v as Record<string, unknown>;
-  if (typeof o.noise === 'number') o.noise = NOISE.at(o.noise);
-  if (typeof o.visibility === 'number') o.visibility = VISIBILITY.at(o.visibility);
+  if (typeof o.noise === 'number') o.noise = V6_NOISE[o.noise] ?? 'normal';
+  if (typeof o.visibility === 'number') o.visibility = V6_VISIBILITY[o.visibility] ?? 'normal';
   Object.values(o).forEach(senseToKeys);
 }
 

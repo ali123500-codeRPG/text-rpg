@@ -29,7 +29,7 @@ function dist(state: GameState, from: string, to: string, sightOnly: boolean): n
 
 // GAP: the spec gives no reach table. Each NOISE / VISIBILITY level reaches [full, partial] zone links (CONFIG.NOISE_REACH,
 // CONFIG.SIGHT_REACH): sight counts sight links only, sound any links. Dark zone: sight at most partial.
-// Sound from another zone is always partial: you hear something, not who (test 4: a noisy move out of sight gives no name).
+// Sound from another zone is partial (you hear something, not who; test 4), except a Deafening one link away (NV6).
 // The event is perceived at its own zone (a move: the destination zone).
 function reach([full, partial]: [number, number], d: number | null): Perception | null {
   return d === null ? null : d <= full ? 'full' : d <= partial ? 'partial' : null;

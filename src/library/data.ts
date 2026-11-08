@@ -201,9 +201,9 @@ export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('chat', 'chatting', 'distracted', 'normal', 'normal'),
   act('sleep', 'asleep', 'asleep', 'quiet', 'low'),
   act('rest', 'resting', 'distracted', 'silent', 'low'),
-  act('cower', 'keeping out of sight', 'alert', 'silent', 'low'),
+  act('cower', 'keeping out of sight', 'alert', 'silent', 'close'), // NV4
   act('ooze', 'oozing across the grass', 'normal', 'quiet', 'normal'),
-  act('prowl', 'keeping to the shadows', 'alert', 'silent', 'low'),
+  act('prowl', 'keeping to the shadows', 'alert', 'silent', 'close'), // NV4
 ].map((a) => [a.id, a]));
 
 const CALL_HELP = { type: 'call_help', target: null, skill: null, intent: 'call for help' } as const;

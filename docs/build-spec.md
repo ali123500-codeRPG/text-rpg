@@ -120,7 +120,7 @@ SKILL_WEIGHT = 0.5, ROLL_NEEDED = 63.5 (placeholders); d100 runs 1–100 (00 = 1
 
 Tiers on margin: below −75 Critical Failure; −75 to −26 Failure; −25 to −1 Near Miss; 0 to 24 Success; 25 to 74 Great Success; 75+ Critical Success. Margins may end in .5; compare exact values.
 
-**Scale keys.** Every ordered scale (tiers, band tactics, zone light and cover, stance, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load). Schema v5 split hostile from opposed: older saves' opposed becomes hostile, so they play as before, and a logged more\_opposed step becomes colder.
+**Scale keys.** Standing design rule for anything in the code with levels (Ali, 07/11/2026, restated 08/11/2026 NV3): every ordered scale (tiers, band tactics, zone light and cover, stance, noise, visibility, and in turn the others) has one table in `src/scales.ts`: a row per level, lowest first, each a stable key and its display name. Code and saves use only the key, a level's order is its row position, and display names appear only in text for the player and for Claude, so adding or renaming a level edits only the table (Ali, 07/11/2026). Numbers that go with a level (a reach, a modifier) are keyed by the level's key in config, never by its position. Noise, quietest first: silent, faint, hushed, quiet, normal, loud, deafening. Visibility, least first: unseen, faint, close, low, normal, high, glaring. Each level reaches [full, partial] zone links in CONFIG.NOISE_REACH and SIGHT_REACH (NV1–NV6, Ali, 08/11/2026). Tier keys, worst first: critical_failure, failure, near_miss, success, great_success, critical_success. Tier arithmetic (shifts, gaps) works on a tier's level, its row position; a roll shifted past either end keeps the end key plus `beyond`, the steps past it, shown as one + or − per step (Critical Success+). Saves store keys (schema v3; v1 and v2 saves are migrated on load). Schema v5 split hostile from opposed: older saves' opposed becomes hostile, so they play as before, and a logged more\_opposed step becomes colder.
 
 Modifier types (each type diminishes within itself; values per type are deferred):
 
@@ -2682,7 +2682,7 @@ Standard slots: post, route, refuge, exit, here.
 | chat | chatting | distracted | normal | normal |
 | sleep | asleep | asleep | quiet | low |
 | rest | resting | distracted | silent | low |
-| cower | keeping out of sight | alert | silent | low |
+| cower | keeping out of sight | alert | silent | close |
 | ooze | oozing across the grass | normal | quiet | normal |
 
 **Routines.** Steps read slot · duration · activity. A route step expands to one stop per bound zone.
