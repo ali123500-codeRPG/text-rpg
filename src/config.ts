@@ -126,6 +126,9 @@ const DEFAULTS = {
   KILL_XP_MULT: 1, // X20 (Ali, 07/11/2026): ×1 for now
   KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests (Ali, 07/11/2026) */
+  /** D-111 Bane bonuses (Ali, 08/11/2026): an achievement earned against a race or body type gives this much skill per
+   * reward tier (I = 1, II = 2 …, by position in REWARD_LEVELS) on rolls against that race or type; only the best one counts */
+  BANE_SKILL_PER_TIER: 5,
   REWARD_XP: { i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
