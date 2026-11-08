@@ -40,7 +40,8 @@ export function hostile(state: GameState, a: Actor, b: Actor): boolean {
 }
 /** wary: opposed or colder. a's alert fires when it notices b, but only hostile attacks. */
 export function wary(state: GameState, a: Actor, b: Actor): boolean {
-  return STANCES.pos(stance(state, a, b)) <= STANCES.pos('opposed');
+  const s = stance(state, a, b);
+  return s !== 'yielded' && STANCES.pos(s) <= STANCES.pos('opposed');
 }
 
 export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): boolean {

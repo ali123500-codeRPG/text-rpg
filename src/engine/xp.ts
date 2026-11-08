@@ -2,7 +2,7 @@
 import type { Actor, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary } from '../library';
-import { isActive, wary } from './relations';
+import { isActive, stance, wary } from './relations';
 import { logCode } from './effects';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
@@ -50,7 +50,8 @@ export function payDefeats(state: GameState, events: GameEvent[]): void {
   }
   for (const t of state.actors) {
     const m = t.mind;
-    if (!m || m.xpPaid || !wary(state, t, state.player)) continue;
+    // a surrendered foe has yielded (Q1): it still pays
+    if (!m || m.xpPaid || !(wary(state, t, state.player) || stance(state, t, state.player) === 'yielded')) continue;
     if (isActive(t) ? m.moraleState !== 'surrendered' : !m.hitByPlayer) continue; // fled or untouched: nothing
     m.xpPaid = true;
     awardXp(state, killXp(state, t), `defeat:${t.id}`);

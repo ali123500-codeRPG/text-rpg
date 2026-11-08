@@ -25,7 +25,10 @@ export type Tactics = (typeof TACTICS.keys)[number];
 export type Mode = 'explore' | 'dialogue' | 'tactical';
 export type Perception = 'full' | 'partial';
 export type Cue = 'sight' | 'sound' | 'smell' | 'touch';
-export type Stance = (typeof STANCES.keys)[number];
+/** yielded (Q1, Ali 08/11/2026): a surrendered actor's stance toward those it was fighting. Never attacks, blocks
+ * nothing; attacked again it turns hostile; at the scene's end it turns opposed (a grudge) and leaves. Not on the
+ * STANCES scale: agents can't choose it, only a surrender sets it. */
+export type Stance = (typeof STANCES.keys)[number] | 'yielded';
 export type BeliefStatus = 'unaware' | 'suspicious' | 'aware' | 'tracking';
 export const BELIEF_ORDER: readonly BeliefStatus[] = ['unaware', 'suspicious', 'aware', 'tracking'];
 

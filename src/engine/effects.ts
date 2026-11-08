@@ -48,7 +48,9 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
       const other = actorById(state, st.toward);
       if (!other || !ctx.heardSpeech(a.id, st.toward)) logCode(state, 'invalid_stance', { actorId: a.id, toward: st.toward });
       else {
-        const i = STANCES.pos(stance(state, a, other)) + (st.step === 'friendlier' ? 1 : -1);
+        // a yielded actor steps from opposed: talked colder it fights again, warmer it lets the grudge go (Q1)
+        const cur = stance(state, a, other);
+        const i = STANCES.pos(cur === 'yielded' ? 'opposed' : cur) + (st.step === 'friendlier' ? 1 : -1);
         a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [other.id]: STANCES.at(i) };
       }
     }

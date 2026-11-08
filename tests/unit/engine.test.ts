@@ -349,6 +349,35 @@ describe('gear and combat', () => {
     expect(F.attacks.map((a) => a.context?.defensesThisTurn)).toEqual([0, 1]);
     expect(actor(s, 'guard_1').mind!.moraleState).toBe('broken');
   });
+  it('a surrender yields (Q1): no more blocking rest, still pays XP; attacked again it is hostile; at the scene end a grudge and it leaves', async () => {
+    place(s, 'guard_1', 'tav_common');
+    engage('guard_1');
+    F.init = { player: 90, guard_1: 10 };
+    F.damage = 45;
+    F.morale = 'surrendered';
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
+    const g = actor(s, 'guard_1');
+    expect(g.mind!.moraleState).toBe('surrendered');
+    expect(g.mind!.overrides?.player).toBe('yielded');
+    expect(s.player.progression!.xpLog?.some((x) => x.source === 'defeat:guard_1')).toBe(true);
+    s.turn += 1;
+    s.player.core.condition.hpLostPct = 50;
+    resolveTurn(s, input({ intent: intent({ action: { type: 'rest' } }) }), createRng(1));
+    expect(s.log.some((l) => l.code === 'rest_blocked' && l.turn === s.turn)).toBe(false);
+    // scene end: opposed, surrender over, off to its exit
+    const { beginScene } = await import('../../src/scene/apply');
+    g.mind!.slots = { ...(g.mind!.slots ?? {}), exit: 'street_door' };
+    beginScene(s, 'success');
+    expect(g.mind!.overrides?.player).toBe('opposed');
+    expect(g.mind!.moraleState).toBeUndefined();
+    expect(g.zone).toBe('street_door');
+  });
+  it('a yielded actor attacked again turns hostile (Q1)', () => {
+    place(s, 'guard_1', 'tav_common');
+    actor(s, 'guard_1').mind!.overrides = { player: 'yielded' };
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
+    expect(actor(s, 'guard_1').mind!.overrides?.player).toBe('hostile');
+  });
   it('rest heals once per cooldown, never beside an opposed actor', () => {
     s.player.core.condition.hpLostPct = 50;
     resolveTurn(s, input({ intent: intent({ action: { type: 'rest' } }) }), createRng(1));

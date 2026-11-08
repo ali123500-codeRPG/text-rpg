@@ -130,6 +130,8 @@ function morale(ctx: Ctx, a: Actor, reason: 'level' | 'bandmate_down'): void {
   logCode(state, 'morale_check', { actorId: a.id, reason, result: r });
   if (r === 'steady') return;
   a.mind!.moraleState = r;
+  // Q1 (Ali, 08/11/2026): a surrender replaces hostile with yielded toward everyone it was fighting
+  if (r === 'surrendered') for (const x of allActors(state)) if (x !== a && hostile(state, a, x)) a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [x.id]: 'yielded' };
   if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) ctx.orders.set(a.id, brokenOrder(buildActorView(state, a.id)));
 }
 
