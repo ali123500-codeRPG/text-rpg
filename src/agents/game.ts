@@ -518,7 +518,11 @@ export function createGame(deps: GameDeps): Game {
     submit,
     async reset() {
       abortBackground();
-      if (state) await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
+      if (state) {
+        // D-73: archive, so a reload starts fresh instead of loading the old story again
+        await save.archiveStory(store, state.storyId, new Date(clock.now()).toISOString());
+        await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
+      }
       state = null;
       lines = [];
       savedLines = 0;

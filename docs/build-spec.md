@@ -2035,7 +2035,7 @@ Three things can change under a running story, and each has its own rule.
 | Replaced | Old id points to its successor; saves move to the new entry |
 | Deleted | Perk, skill or class stays dormant on the sheet: kept, not applied, shown in the GM view. A removed body part's pool is dropped |
 
-**Resets.** A change too big to migrate may reset the story, but only after the designer confirms it. Code never resets on its own. If a migration can't run, the game refuses to load, leaves the save untouched, and asks. A confirmed reset archives the old story: its pages and backups stay under its own id, and play starts a new story id (D-73).
+**Resets.** A change too big to migrate may reset the story, but only after the designer confirms it. Code never resets on its own. If a migration can't run, the game refuses to load, leaves the save untouched, and asks. A confirmed reset archives the old story: its pages and backups stay under its own id, and play starts a new story id (D-73). The GM view has a **Start a new save…** button (Ali, 08/11/2026): it warns that the current story ends and play can't return to it, offers Download backup, and only a second click archives the story (its meta gets `archivedAt`, so the newest story list skips it) and goes to Create. The "You fell" screen's Reset does the same.
 
 **Safety bookmark.** Before migrating, load keeps the pre-migration bookmark. It is dropped after the next good turn.
 
