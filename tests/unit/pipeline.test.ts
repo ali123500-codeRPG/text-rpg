@@ -151,7 +151,7 @@ describe('clarify and dialogue', () => {
 
   it('an agenda routes to the Responder; a failed dialogue call gives the neutral line', async () => {
     start();
-    state.hidden.memory.guard_1 = 'saw a stranger';
+    state.hidden.memory.guard_1 = [{ turn: 1, text: 'saw a stranger' }];
     claude.push('parser', parserTalk('guard_1')).pushResponse({ agent: 'responder', response: { ok: false, error: 'upstream_error' } }).push('narrator', narr);
     await game.submit('Hello there.', { aimed: false });
     const out = H.resolved[0].input.agentOutputs[0];
@@ -161,7 +161,7 @@ describe('clarify and dialogue', () => {
 
   it('COMMITTED names the fired order; an unlisted secret is revealed, logged and filed as a bug (F6, Q3)', async () => {
     start();
-    state.hidden.memory.guard_1 = 'saw a stranger';
+    state.hidden.memory.guard_1 = [{ turn: 1, text: 'saw a stranger' }];
     state.hidden.firedLog.push({ triggerId: 't_grab', turn: state.turn, ownerId: 'guard_1' });
     H.firedOrders = [{ actorId: 'guard_1', type: 'attack', target: 'player', skill: null, intent: '', source: 'trigger', triggerId: 't_grab' }];
     H.secrets = [{ id: 's_bribe', holderId: 'guard_1', fact: 'took a bribe', leakTerms: ['bribe'], revealWhen: { type: 'event_in_zone', kind: 'k', zone: 'z' } }];

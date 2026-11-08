@@ -96,6 +96,8 @@ export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { 
 
 export type Mind = {
   control: 'agent' | 'code';
+  /** PM6: code-made lines about perceived events that fell out of its recent window; upTo = last summarized event id */
+  earlier?: { upTo: string; lines: string[] };
   behavior: string;
   morale?: number;
   fearless?: boolean; // from the template's personality
