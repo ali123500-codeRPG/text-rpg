@@ -75,6 +75,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       busy = true; emit();
       await new Promise((r) => setTimeout(r, 600));
       state.turn = t;
+      if (/^(sneak|hide)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`] }];
       busy = false; emit();
     },
