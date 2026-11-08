@@ -32,7 +32,7 @@ Endurance sets total HP (Part 3, Total HP). An average fighter has 50 in a comba
 **Other skill trees** (placeholders; each is its own tree):
 
 - Perception: sight, hearing, and a third skill not chosen yet. Both are tagged with the Sense role.
-- Stealth (Ali, 08/11/2026, ST1–ST10): sneaking and combat\_stealth. Same use, split by engagement: Combat Stealth inside an active engagement or for an attack, Sneaking outside one. Each stands in for the other at 0.5×. For the character rating, Sneaking counts as a notice skill and Combat Stealth as a combat skill. Renaming, moving or adding skills stays a data edit (a tree lists its skills; a skill's tree is read from that list).
+- Stealth (Ali, 08/11/2026, ST1–ST19): sneaking, combat\_stealth and vanishing. Sneaking and Combat Stealth have the same use, split by engagement: Combat Stealth inside an active engagement or for an attack, Sneaking outside one. Vanishing breaks the sight of someone who already sees you, in or out of an engagement, and counts as a combat skill for the rating. Each stands in for the others at 0.5×. For the character rating, Sneaking counts as a notice skill and Combat Stealth as a combat skill. Renaming, moving or adding skills stays a data edit (a tree lists its skills; a skill's tree is read from that list).
 - Speech: persuasion, intimidation, barter. No body-part role.
 
 The trees' skills are designed with character and mob generation. A perception roll uses sight for an event perceived by sight and hearing for one perceived only by sound (the cue from computePerception); when both apply, the higher. Combined checks (sight with hearing) are to be explored later.
@@ -1228,7 +1228,11 @@ Ali, 08/11/2026, ST1–ST10.
 - What ends it: speaking above a whisper, any speech action, and a melee attack (the blow shows you). A ranged attack keeps it; the shot is noticed only through the stealth contest (Combat Stealth) per observer.
 - While stealthy, the player's events reach only observers already aware of them; everyone else is reached only through the contest.
 - Situational tables (CONFIG.SITUATION\_LINKS): both rolls use the zone's light (LIGHT\_MODS, darkness helps); a hide also uses the zone's cover (COVER\_GAP tier shifts). A sneak counts as movement, so leg wounds apply; a hide ignores them.
-- A hide is also contested by observers who are already aware: one who loses it drops to suspicious at the zone they last saw you in (test 3).
+- Hide and Sneak never shake off someone who already sees you (ST12): those observers get no roll.
+- **Vanish** (ST11–ST19) is active hiding: a move that breaks established sight, so it needs a destination one link away (with none, the Parser asks where). Which part of the turn it uses is a balance lever for later (ST13). Every observer who could perceive the move contests it against the player's Vanishing. One who saw the player and loses it drops to suspicious at the zone the player left (test 3); a tie or a win changes nothing for them. For everyone else a Vanish counts as a passed Sneaking or Combat Stealth check (ST16). Light and cover help it, and leg wounds count.
+- For a foe who still sees you, being Stealthy changes nothing: they keep seeing you and the engagement goes on (ST15).
+- A shot's target that loses the notice contest still turns suspicious, at the shooter's zone (ST19).
+- Each observer gets at most one stealth contest per turn.
 
 #### Detecting the player
 

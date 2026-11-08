@@ -34,19 +34,42 @@ const aware = (s: GameState, id: string, zone: string) => {
 afterEach(() => vi.restoreAllMocks());
 
 describe('117 stealth', () => {
-  it('3 hide, per observer: the guard who loses it drops to suspicious at the old zone, the one who wins stays aware', () => {
+  it('3 vanish, per observer: the guard who loses it drops to suspicious where it last saw you, the one who wins stays aware (ST15)', () => {
     const s = makeVillage();
     s.actors.push(spawnNpc(null, 'guard', { id: 'guard_2', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch', name: 'Hal', storyId: 'test' }));
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
     aware(s, 'guard_2', 'gate_inner');
-    rig({ guard_1: -1, guard_2: 1 });
-    turn(s, intent(null, { type: 'hide' }));
+    const calls = rig({ guard_1: -1, guard_2: 1 });
+    turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
+    expect(s.player.zone).toBe('street_square');
     expect(s.player.posture).toBe('stealthy');
+    expect(calls.every(([a]) => a.skill === 'vanishing')).toBe(true);
     const b1 = s.actors.find((a) => a.id === 'guard_1')!.mind!.knowledge.player!;
     expect(b1.status).toBe('suspicious');
     expect(b1.lastKnownZone).toBe('gate_inner');
     expect(['aware', 'tracking']).toContain(status(s, 'guard_2'));
+  });
+  it('a hide never rolls against someone who already sees you (ST12)', () => {
+    const s = makeVillage();
+    place(s, 'player', 'gate_inner');
+    aware(s, 'guard_1', 'gate_inner');
+    const calls = rig({ guard_1: -1 });
+    turn(s, intent(null, { type: 'hide' }));
+    expect(calls.some(([, b]) => b.actorId === 'guard_1')).toBe(false);
+    expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
+  });
+  it('a shot target that loses the notice contest still turns suspicious, at the shooter\'s zone (ST19)', () => {
+    const s = makeVillage();
+    place(s, 'player', 'field_edge');
+    for (const i of s.player.core.inventory) delete i.equippedIn;
+    s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.posture = 'stealthy';
+    rig({ slime_1: -1 });
+    turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
+    const b = s.actors.find((a) => a.id === 'slime_1')!.mind!.knowledge.player;
+    expect(b?.status).toBe('suspicious');
+    expect(b?.lastKnownZone).toBe('field_edge');
   });
   it('18 sneaking persists over moves; detection on turn 3 is the contest', () => {
     const s = makeVillage();

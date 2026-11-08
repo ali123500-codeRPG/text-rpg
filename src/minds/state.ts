@@ -136,32 +136,41 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
 /** ST2 (Ali, 08/11/2026): Combat Stealth in an engagement, or for a shot, which starts one (ST5); Sneaking otherwise */
 export const stealthSkill = (state: GameState, event?: GameEvent): string => (state.player.engagement || event?.kind === 'attack' ? 'combat_stealth' : 'sneaking');
 
-/** ST3–ST8: while the player is stealthy, every observer who could perceive the event (and who doesn't already see the
- * player, unless it is a hide) contests its sight or hearing against the player's stealth, once per event. Observer wins:
- * aware. Tie: an unaware observer turns suspicious. Player wins: no change, but a hide shakes off someone who saw them
- * (suspicious at the old zone). Light and, for a hide, cover help through CONFIG.SITUATION_LINKS; a hide ignores leg wounds. */
+/** ST3–ST8, ST11–ST19: while the player is stealthy, every observer who could perceive the event and doesn't already see the
+ * player contests its sight or hearing against the player's stealth, once per event. Observer wins: aware. Tie: an unaware
+ * observer turns suspicious. A Vanish (a move) is contested with Vanishing by everyone, those who see the player included:
+ * one who loses it drops to suspicious at the zone the player left (ST15); for the rest it counts as a passed stealth check
+ * (ST16). A shot's target that loses still turns suspicious, at the shooter's zone (ST19). Light and cover reach the
+ * rolls through CONFIG.SITUATION_LINKS; a hide ignores leg wounds (ST10). */
 function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
   const p = state.player;
   const hide = event.kind === 'hide';
-  const link = CONFIG.SITUATION_LINKS[hide ? 'hide' : 'sneak'] ?? {};
+  const vanish = !!event.vanish;
+  const link = CONFIG.SITUATION_LINKS[vanish ? 'vanish' : hide ? 'hide' : 'sneak'] ?? {};
   const zone = zoneById(state, p.zone);
   const light = link.light ? link.light * (CONFIG.LIGHT_MODS[zoneLight(state, zone)] ?? 0) : 0;
   const cover = link.cover ? link.cover * (CONFIG.COVER_GAP[zone?.cover ?? 'none'] ?? 0) : 0;
-  const skill = stealthSkill(state, event);
+  const skill = vanish ? 'vanishing' : stealthSkill(state, event);
+  // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
+  const sc = (state.scratch ??= {});
+  const done = (sc.stealthContested as { turn: number; ids: string[] } | undefined)?.turn === state.turn ? (sc.stealthContested as { turn: number; ids: string[] }) : { turn: state.turn, ids: [] };
+  sc.stealthContested = done;
   for (const a of state.actors) {
-    if (!a.mind || !isActive(a)) continue;
+    if (!a.mind || !isActive(a) || done.ids.includes(a.id)) continue;
     const cur = a.mind.knowledge.player?.status ?? 'unaware';
-    if (!hide && atLeast(cur, 'aware')) continue;
+    const sees = atLeast(cur, 'aware');
+    if (sees && !vanish) continue; // ST12: Hide and Sneak never shake off someone who sees you
     const seen = perceptionOf(event, state, a);
     if (!seen) continue;
     const r = ruleset.contested(
       { actorId: p.id, skill, modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [], rollKind: 'stealth', ...(hide ? { roles: [] } : {}) },
       { actorId: a.id, skill: seen.cue === 'sound' ? 'hearing' : 'sight', modifiers: [], tierShifts: [], rollKind: 'perception' }, state, rng);
+    done.ids.push(a.id);
     markUse(state, p, skill, r); // ST8
     log(state, 'stealth_contest', { observerId: a.id, skill, kind: event.kind, gap: r.gap });
     if (r.gap > 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: 'player', status: 'aware', event });
-    else if (r.gap === 0 && !atLeast(cur, 'aware')) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: 'player', status: 'suspicious', event });
-    else if (r.gap < 0 && hide && atLeast(cur, 'aware')) updateBeliefs(state, { kind: 'lost', observerId: a.id, aboutId: 'player' });
+    else if (sees) { if (r.gap < 0) updateBeliefs(state, { kind: 'lost', observerId: a.id, aboutId: 'player', zone: event.fromZone }); }
+    else if (r.gap === 0 || (event.kind === 'attack' && event.target === a.id)) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: 'player', status: 'suspicious', event });
   }
 }
 

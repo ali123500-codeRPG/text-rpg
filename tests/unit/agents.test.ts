@@ -189,6 +189,12 @@ describe('Parser legality', () => {
     expect(r.intent!.move).toEqual({ toZone: 'tav_counter' });
     expect(r.intent!.action!.type).toBe('sneak');
   });
+  it('a vanish with no move asks where to slip away (ST13)', async () => {
+    const { claude, ctx } = setup();
+    const v = intentOf({ action: { ...intentOf().action!, type: 'vanish', skill: '', target: null } });
+    claude.push('parser', v).push('parser', v);
+    expect((await callParser('I vanish', playerView(), ctx)).clarify).toMatch(/^Where do you slip away to\?/);
+  });
   it('the Parser\'s own clarify is passed on', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ action: null, clarify: 'Which mug?' }));

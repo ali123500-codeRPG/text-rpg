@@ -32,6 +32,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
   sk('sneaking', 'stealth', ['stealth'], ['move'], true, undefined, 'notice'),
   sk('combat_stealth', 'stealth', ['stealth'], ['move'], true, undefined, 'offensive'),
+  sk('vanishing', 'stealth', ['stealth'], ['move'], true, undefined, 'offensive'), // ST11/ST18: breaks established sight
   sk('persuasion', 'speech', ['influence'], []),
   sk('intimidation', 'speech', ['influence'], []),
   sk('barter', 'speech', ['influence'], []),
@@ -237,7 +238,7 @@ export function prototypeLibrary(): Library {
       unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'] },
       defense: { id: 'defense', name: 'Combat – Defense', skills: ['dodge', 'block', 'endurance'] },
       perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'] },
-      stealth: { id: 'stealth', name: 'Stealth', skills: ['sneaking', 'combat_stealth'] },
+      stealth: { id: 'stealth', name: 'Stealth', skills: ['sneaking', 'combat_stealth', 'vanishing'] },
       speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'] },
       swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], classId: 'swordsman' },
       slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor', 'taste'], classId: 'slime' },

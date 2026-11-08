@@ -172,7 +172,7 @@ function doMove(ctx: Ctx, a: Actor, to: string, o: Order, withBark: boolean): bo
   const zone = zoneById(state, path[0])!;
   a.zone = zone.id;
   a.placeId = zone.placeId;
-  let ev = withActivity(mk(ctx, a, 'move', { fromZone: from }), o.activity);
+  let ev = withActivity(mk(ctx, a, 'move', { fromZone: from, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return true;
@@ -502,6 +502,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (isActive(state.player)) {
     // ST3/ST5: sneaking is a free posture switch; a hide is the main action; words above a whisper end the posture
     if (playerOrder.type === 'sneak') { state.player.posture = 'stealthy'; playerOrder.type = 'hold'; }
+    // ST13: a Vanish is the turn's move, contested with Vanishing (stealthDetect)
+    if (playerOrder.type === 'vanish') { state.player.posture = 'stealthy'; playerOrder.type = 'hold'; if (playerOrder.move) playerOrder.vanish = true; }
     if (playerOrder.type === 'hide') state.player.posture = 'stealthy';
     if ((playerOrder.line && playerOrder.line.volume !== 'whisper') || isSpeech(playerOrder.type)) state.player.posture = 'open';
     orders.set(state.player.id, playerOrder);
