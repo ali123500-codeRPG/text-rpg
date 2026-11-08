@@ -19,6 +19,8 @@ export type TurnInput = {
   agentOutputs: AcceptedAgentOutput[]; // validated; merged in actor-id order
   spokespeople: string[];
   exchange?: ExchangeSpeech;
+  /** A15 Quick Word: the exchange rides beside the player's action, and the replies are free */
+  quickWord?: boolean;
   /** orders fired at turn start (from pending), already bound */
   fired?: Order[];
 };

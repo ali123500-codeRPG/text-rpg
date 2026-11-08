@@ -39,4 +39,12 @@ describe('110 healing', () => {
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(false);
     expect(mechanicsLines(s, ev)).toContain('Bandage: Hurt → Bruised');
   });
+  it('a bandage that heals without changing the level says "a little better", not "no change" (run 17)', () => {
+    const s = makeVillage();
+    s.player.core.inventory.push({ id: 'b1', itemId: 'bandage', qty: 1 });
+    s.player.core.condition.hpLostPct = 75;
+    const ev = turn(s, use('bandage'));
+    expect(s.player.core.condition.hpLostPct).toBeLessThan(75);
+    expect(mechanicsLines(s, ev).find((l) => l.startsWith('Bandage:'))).toBe('Bandage: a little better');
+  });
 });

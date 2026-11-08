@@ -21,6 +21,7 @@ vi.mock('../../src/engine', () => ({
   computePending: (s: GameState): Pending => ({ turn: s.turn + 1, mode: H.engagedNext.length ? 'tactical' : 'explore', engaged: [...H.engagedNext], fired: [] }),
   selectSpokespeople: (s: GameState, i: Intent) => (i.addressees ?? []).filter((id) => s.actors.some((a) => a.id === id)),
   unclearAddressee: () => null,
+  quickWord: () => false,
   resolveSpeech: () => ({ skill: 'persuasion', playerTier: 'success', impression: 'convincing', perSpokesperson: {} }),
   firedOrders: () => H.firedOrders,
   resolveTurn: (_s: GameState, input: TurnInput) => {

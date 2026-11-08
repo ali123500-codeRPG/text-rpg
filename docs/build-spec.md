@@ -295,13 +295,13 @@ Settled by Ali 07/11/2026 ("Action economy: options", AE1–AE12; settles D-19, 
 
 - **Slots (AE1).** A turn is one move (one zone link), one main action, and free things: gear ops, defenses (each after the first in a turn takes the outnumbered modifier) and barks. Perks and class skills change a slot: add one, swap one, or make one free. A fight turn stays 6 seconds whatever it holds (AE12).
 - **Ranged (AE1).** A ranged attack and a move don't share a turn. If the attack reaches from where the actor stands, the move is dropped (move\_dropped, ranged\_attack); otherwise the move stands and the attack is dropped. Shoot and Move (B4) lifts this.
-- **Dash (AE2).** A player with no main action whose move's zone is two links away spends the action on the second link. A Crippled or Destroyed part with the move role stops a dash (dash\_blocked); slowed (Leg Bolt) will too.
+- **Dash (AE2).** A player with no main action whose move's zone is two links away spends the action on the second link. A Crippled or Destroyed part with the move role stops a dash (dash\_blocked), and so does Leg Bolt's slow.
 - **Order (AE3).** The move comes first unless the Parser marks it `after` ("strike, then step back"). NPCs keep move first for now (parked: the Planner would need the same field).
 - **Extra attacks (AE4)** come only from perks and class skills (Flurry: a second attack at tier shift −1), never from a high skill alone.
 - **Free actions (AE5)** stay as above; a perk can make one action free a limited number of times per engagement (Dirt in the Eyes).
 - **Readying (AE6)** is a perk move (Held Shot), not something everyone can do; anyone can still hold.
-- **Speech (AE7)** in a fight stays the main action; a free one-line remark is a perk (Quick Word); barks persuade no one.
-- **Perk moves (AE8)** (Plead, Battle Cry, Buy Them Off) are main actions of their own type: the Parser picks an owned one by name, and Commands and Ideas list the ones the player has.
+- **Speech (AE7)** in a fight stays the main action; a free one-line remark is a perk (Quick Word); barks persuade no one. With Quick Word, a one-sentence line said beside a non-speech action in a fight is an exchange like talk (same spokespeople, contest and dialogue calls), but the player's action still resolves in turn order; each spokesperson's spoken reply is free too, and the action its dialogue call chose still resolves in turn order.
+- **Perk moves (AE8)** (Plead, Battle Cry, Buy Them Off) are main actions of their own type: the Parser picks an owned one by name (its perkMove), and Commands and Ideas list the ones the player has. A free perk move (Dirt in the Eyes) rides beside the move and the main action and resolves just before the main action; one that fails its conditions is dropped (perk\_move\_dropped).
 - **NPCs (AE9)** use the same slots and perks. The Planner still returns one move and one action; an extra slot with no choice in it (Flurry's second attack) is filled by code, and one with a choice gets a Planner field the NPC fills only when it owns the perk.
 - **Armor (AE10):** putting armor on or off stays one main action. **Criticals (AE11):** "lose your next action" means the next main action.
 
@@ -526,7 +526,7 @@ Output shape (notation, not literal JSON):
 
 ```
 {
-  move:    { toZone: zone_id } | null,
+  move:    { toZone: zone_id, after?: true } | null,
   action:  {
     type:     attack | hide | sneak | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | other | rest,
     skill:    skill_id,
@@ -538,6 +538,7 @@ Output shape (notation, not literal JSON):
     stance:   careful | normal | reckless,         // flavor only
     improvised: { base: improvised_light | improvised_medium | improvised_heavy, name: short phrase } | null   // a scene object used as a weapon (Part 5 §7)
   } | null,
+  perkMove:   { perk: perk_id, target: actor_id | null } | null,   // an owned perk move (AE8); a free one rides beside the action
   gear:       [ { op: draw | stow | swap | wear_acc | remove_acc | pick_up,
                   item: item_instance_id, from?: actor_id } ] | null,   // free; before the action
   spoken:     words said aloud | null,   // the speech if the main action is a
@@ -579,6 +580,9 @@ Rules:
    improvised_heavy) and a short name for the object. Leave "item" null.
 11. If the player goes to someone who is not in PLAYER_VIEW to talk to them or act on them, give only
    the move toward where they are and put what they meant to say or do in "deferred". Do not ask who they mean.
+12. Passing time is "wait" (put the time of day to wait for in "target": "dawn", "day", "dusk" or "night"; null waits until the next one) or "sleep". A short rest to recover is "rest".
+13. The move comes before the action unless the player acts first and then moves ("strike, then step back"): then set "after": true on the move. A zone two links away with no action is a dash. A ranged attack and a move cannot share a turn.
+14. If the player uses one of PLAYER_VIEW's perkMoves (by its name or by what it does, e.g. "throw dirt in his eyes"), put it in "perkMove" with its target, beside any move and action.
 
 Return only JSON matching the schema.
 ```
@@ -998,7 +1002,7 @@ Settled by Ali 07/11/2026 ("Sense of time: options", T1–T11; settles D-101).
 - **Time of day** is an ordered scale (TIME\_OF\_DAY: dawn, day, dusk, night); each starts at a minute of the day in CONFIG.TIME\_OF\_DAY\_FROM (*placeholders*: 5:00, 7:00, 18:00, 20:00). There is a day counter and no weekday or season names (T4).
 - **What it changes (T3):** a zone the Weaver marks `outdoor` is lit by the brighter of its own lamps or fires and the sky (CONFIG.SKY\_LIGHT: day bright, dawn and dusk dim, night dark); indoor zones keep their own light. A routine set's time tags must fit the time of day (CONFIG.TIME\_TAGS: dawn and dusk take day or night sets), otherwise it is a routine error. Shop hours come with shops (Stage 6). Routines that change mid-scene wait (D-49).
 - **Who sees it (T5):** NPC views and the Narrator get `time: {day, timeOfDay}`, never minutes. No new Claude call.
-- **Waiting (T6):** the Parser reads "wait until dawn" as action wait with the time of day in target (none: the next time of day), and "sleep" as action sleep (the sleep row). Sleep also gives the rest heal (or the place's row, e.g. a clinic) once per REST\_COOLDOWN\_MIN of sleep, twice for 8 hours, and counts as the last rest (Ali, 07/11/2026). Code moves the clock and breaks the scene (time\_skip). A hostile in the zone or tactical mode blocks it, like rest. The turn shows "Time passes: 11 h (Day 2 · Dawn)".
+- **Waiting (T6):** the Parser reads "wait until dawn" as action wait with the time of day in target (none: the next time of day; the time of day it already is: nothing happens and the line says so, Q2 08/11/2026), and "sleep" as action sleep (the sleep row). Sleep also gives the rest heal (or the place's row, e.g. a clinic) once per REST\_COOLDOWN\_MIN of sleep, twice for 8 hours, and counts as the last rest (Ali, 07/11/2026). Code moves the clock and breaks the scene (time\_skip). A hostile in the zone or tactical mode blocks it, like rest. The turn shows "Time passes: 11 h (Day 2 · Dawn)".
 - **Starting time (T8):** the Weaver's first plan names `timeOfDay`, and code sets the clock to its start on day 1. After that a plan may only name the current one (bad\_time otherwise).
 - **Shown (T11):** the Play header reads "Turn 5 · Day 2 · Evening · …"; its look is the designer's.
 - **Later:** travel time for long journeys (Voyage E1), NPC needs such as hunger and sleep (T10, not planned).

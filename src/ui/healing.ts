@@ -35,7 +35,7 @@ export function healCard(n: HealNote): HTMLElement {
   const bits: (HTMLElement | string)[] = [h('span', { class: 'src' }, name)];
   if (n.from !== n.to) bits.push(lvTag(n.from), arrow(), lvTag(n.to));
   for (const p of n.parts) bits.push(h('span', { class: 'pt' }, `· ${partName(p.id).toLowerCase()}`), psTag(p.from), arrow(), psTag(p.to));
-  if (n.from === n.to && !n.parts.length) bits.push(h('span', { class: 'pt' }, '· no change'));
+  if (n.from === n.to && !n.parts.length) bits.push(h('span', { class: 'pt' }, n.better ? '· a little better' : '· no change'));
   if (QUIET.has(n.source)) return h('p', { class: 'hquiet', role: 'status' }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✚'), bits);
   return h('div', { class: 'hcard', role: 'status' }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✚'),
     h('div', {}, TITLE[n.source] ?? 'Patched up', h('p', { class: 'hl' }, bits)), trackBar(n));

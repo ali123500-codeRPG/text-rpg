@@ -171,6 +171,16 @@ describe('Parser legality', () => {
     const r = await callParser('I creep up the stairs', playerView(), ctx);
     expect(r.clarify).toMatch(/aren't in the game yet/);
   });
+  it('a wait names a time of day, not a person (run 18); an unknown time asks until when', async () => {
+    const { claude, ctx } = setup();
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'Dusk' } }));
+    const r = await callParser('I wait until dusk', playerView(), ctx);
+    expect(r.clarify).toBeNull();
+    expect(r.intent!.action!.target).toBe('dusk');
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'late evening' } }))
+      .push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'late evening' } }));
+    expect((await callParser('I wait until late evening', playerView(), ctx)).clarify).toBe('Until when? You can wait until dawn, day, dusk or night.');
+  });
   it('a sneak with a move just moves, openly', async () => {
     const { claude, ctx } = setup();
     claude.push('parser', intentOf({ move: { toZone: 'tav_counter' }, action: { ...intentOf().action!, type: 'sneak', skill: 'sneak', target: null } }));
@@ -342,6 +352,10 @@ describe('browser client', () => {
     // the schema's "|null" copied into a value (run 16); a "|null" inside a string is left alone
     expect(parseTolerant('{"move":{"toZone":"bar"}|null,"action":{"t":"x|null"}|null,"n":1 | null}'))
       .toEqual({ ok: true, value: { move: { toZone: 'bar' }, action: { t: 'x|null' }, n: 1 } });
+    // a reply that corrects itself: the last whole object wins (run 17)
+    expect(parseTolerant('{"line":"Hm? Cat got your\n\nWait, correction:\n\n{"action":{"a":1},"line":"Hm?"}'))
+      .toEqual({ ok: true, value: { action: { a: 1 }, line: 'Hm?' } });
+    expect(parseTolerant('{"a":1,"b":{"c":2}')).toEqual({ ok: false }); // cut off: not mistaken for {"c":2}
   });
   it('maps runtime codes and passes tier, model, effort, signal', async () => {
     expect(mapCode('capability_removed')).toBe('not_granted');

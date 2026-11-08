@@ -38,13 +38,22 @@ describe('111 game clock', () => {
     expect(timeView(s)).toEqual({ day: 2, timeOfDay: 'Dawn' });
     expect(s.stage.breakCause).toBe('time_skip');
     expect(mechanicsLines(s, ev)).toContain('Time passes: 11 h (Day 2 · Dawn)');
+    // Q2 (Ali, 08/11/2026): waiting until the time of day it already is moves nothing
+    const at = now(s);
+    const again = turn(s, act('wait', 'dawn'));
+    expect(now(s) - at).toBeLessThan(60);
+    expect(mechanicsLines(s, again)).toContain("Wait: it's already dawn");
 
     const f = makeVillage();
     startClock(f, 'day');
     f.player.zone = 'field_mid'; // slime_1 is here
     turn(f, act('sleep'));
+    const fev = f.events.slice(-5);
     expect(f.log.some((l) => l.code === 'wait_blocked')).toBe(true);
+    expect(mechanicsLines(f, fev)).toContain('Wait: not while someone hostile is near you');
     expect(f.stage.breakCause).toBeUndefined();
+    turn(f, act('rest'));
+    expect(mechanicsLines(f, f.events.slice(-5))).toContain('Rest: not while someone hostile is near you');
   });
   it('sleep takes the sleep row and heals a rest per 4 hours; a plain wait runs to the next time of day', () => {
     const s = makeVillage();
