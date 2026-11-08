@@ -289,7 +289,11 @@ export function prototypeLibrary(): Library {
       sleep: { id: 'sleep', name: 'Sleep', minutes: 480 },
     },
     // Ali (07/11/2026): humans and elves for now, identical
-    races: { human: { id: 'human', name: 'Human', creatureTypeId: 'humanoid' }, elf: { id: 'elf', name: 'Elf', creatureTypeId: 'humanoid' } },
+    // innate perks and quirks per race (Ali, 08/11/2026): lists, empty until chosen
+    races: {
+      human: { id: 'human', name: 'Human', creatureTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
+      elf: { id: 'elf', name: 'Elf', creatureTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
+    },
     items: ITEMS,
     templates: TEMPLATES,
     activities: ACTIVITIES,

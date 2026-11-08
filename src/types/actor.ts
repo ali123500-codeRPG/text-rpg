@@ -63,7 +63,7 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery';
+  source: 'level' | 'mastery' | 'race'; // 'race': innate, from the race's innatePerks / innateQuirks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
