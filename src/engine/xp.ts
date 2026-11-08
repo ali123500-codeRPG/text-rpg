@@ -109,6 +109,10 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   if (!pr || !d) return;
   const id = of ? `${d.id}:${of}` : d.id;
   if (pr.achievements?.some((x) => x.id === id)) return;
+  // a higher level switches off every lower level of its chain (Ali, 08/11/2026), so only the highest one is checked
+  const lib = getLibrary().achievements ?? {};
+  for (let k = d.after, i = 0; k && i < 20; k = lib[k]?.after, i++)
+    for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
   (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), turn: state.turn });
   const xp = CONFIG.REWARD_XP[d.level] ?? 0;
   logCode(state, 'achievement', { id, xp });

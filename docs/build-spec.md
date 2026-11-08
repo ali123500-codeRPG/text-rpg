@@ -22,7 +22,7 @@ Skills are grouped into trees of exactly three. Example only: Tactics = Preparat
 
 **Combat skill trees** (minimum for the first build; skill names are *placeholders*):
 
-- Combat – Melee: light weapons, medium weapons, heavy weapons
+- Combat – Arms: light weapons, medium weapons, heavy weapons
 - Combat – Ranged: light ranged, medium ranged, heavy ranged
 - Combat – Unarmed: strike, grapple, improvisation; they behave the same for now (Part 5 §5). Improvisation is fighting with whatever is at hand: improvised weapons (Part 5 §7) roll it (Ali, 07/11/2026). Natural weapons is a creature-only skill outside every player tree (creatures' natural attacks roll it)
 - Combat – Defense: dodge, block, endurance
@@ -39,17 +39,18 @@ The trees' skills are designed with character and mob generation. A perception r
 
 **First-build skill list.** The first build has these skills, by id: melee\_light, melee\_medium, melee\_heavy; ranged\_light, ranged\_medium, ranged\_heavy; unarmed\_strike, unarmed\_grapple, unarmed\_natural; dodge, block, endurance; sight, hearing; persuasion, intimidation, barter; plus the class trees (Swordsman: feint, riposte, disarm; Slime: tremor). Perception's third skill is left out of the first build; sneaking and combat\_stealth are in. Which trees an actor can use comes from each tree's access rule (Part 4 §4, Skill tree access); the creation screen offers the trees a new swordsman can use. Natural attacks and fallback.attackSkill name one of these ids.
 
-**Skill substitution.** Any roll or check may use another skill that shares a function with the named skill (Skill functions, below) at reduced efficiency: that skill's effective skill × SUBSTITUTE\_EFFICIENCY (placeholder 0.5). Code computes every candidate and uses only the highest value after efficiency. Example: intimidating with intimidation 20 and persuasion 60 uses persuasion at 30. The named skill counts at full value, and the roll is recorded against the skill actually used.
+**Skill substitution.** Any roll or check may use another skill that shares a function with the named skill (Skill functions, below) at reduced efficiency: that skill's effective skill × SUBSTITUTE\_EFFICIENCY (0.3, Ali 08/11/2026, F4; perks can raise or lower it). Code computes every candidate and uses only the highest value after efficiency. Example: intimidating with intimidation 20 and persuasion 100 uses persuasion at 30. The named skill counts at full value, and the roll is recorded against the skill actually used.
 
-**Skill functions**. Each skill's library entry lists its functions, and a skill may have several. First build:
+**Skill functions and groups** (Ali, 08/11/2026, F1–F8). Each skill's library entry lists its narrow functions, and a skill may have several; stand-ins read functions. Each function sits in one broad group; a 40 perk's +1 and the XP category read the group. Current list: docs/skill-tags.md.
 
-- Melee attack: melee\_light, melee\_medium, melee\_heavy
-- Ranged attack: ranged\_light, ranged\_medium, ranged\_heavy
-- Unarmed attack: unarmed\_strike, unarmed\_grapple, unarmed\_natural
-- Defense: dodge, block
-- Notice: sight, hearing, tremor
-- Influence: persuasion, intimidation, barter
-- No function yet: endurance (never rolled; it sets HP), and feint, riposte and disarm (no effects designed yet)
+- Melee group: arms (melee\_light, melee\_medium, melee\_heavy), unarmed (unarmed\_strike, unarmed\_grapple, unarmed\_improvised, unarmed\_natural)
+- Ranged group: ranged (ranged\_light, ranged\_medium, ranged\_heavy)
+- Defense group: defense (dodge, block)
+- Health group: health (endurance)
+- Notice group: sight (sight, tremor), hearing (hearing, tremor)
+- Stealth group: stealth (sneaking, combat\_stealth, vanishing)
+- Influence group: influence (persuasion, intimidation, barter)
+- No function yet: feint, riposte and disarm (no effects designed yet), lockpicking
 
 **Skill states** (one per skill):
 
@@ -131,7 +132,7 @@ Modifier types (each type diminishes within itself; values per type are deferred
 - Situational: flanking, outnumbered, unaware, terrain, range, light, dodge vs missiles.
 - Aim: its own type, so it never diminishes with situational modifiers.
 
-**Stacking within a type.** Within one modifier type, bonuses and penalties are ranked separately by size. In each group the largest counts in full, the second at STACK\_2 and the third at STACK\_3; any further ones count 0. The type's value is the bonus total plus the penalty total. STACK\_2 0.5 and STACK\_3 0.25 are placeholders. Example: bonuses +6, +4, +2 give +8.5; penalties −8, −3 give −9.5; the type adds −1.
+**Stacking within a type.** Within one modifier type, bonuses and penalties are ranked separately by size. In each group the x-th largest counts at STACK\_RATIO^(x−1): the largest in full, the second at 0.5, the third at 0.25, the fourth at 0.125 and so on (Ali, 08/11/2026; was: a fourth counted 0). The type's value is the bonus total plus the penalty total. STACK\_RATIO 0.5 is a placeholder. Example: bonuses +6, +4, +2 give +8.5; penalties −8, −3 give −9.5; the type adds −1.
 
 One roll point equals two skill points; write roll modifiers small.
 
@@ -2629,7 +2630,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-108 | Achievement proposals | 1, 2 | Planned | Decided by Ali (07/11/2026, settles OQ-10): Claude may propose achievements, never grant them. A proposal goes to Ali for approval; once he approves, the feat is implemented as permanent code (a code rule that grants it), like the first-defeat achievement. Place state and promoted facts still come only from code rules. Which agent carries the proposal is open |
 | D-109 | Whole-engagement perk effects | 1 | Planned | Decided by Ali (08/11/2026, AGG comparison A1): some 60 and 100 perks last the whole engagement instead of one roll, as AGG's do. First case: a 60 or 80 Improvisation perk that grows Dirt in the Eyes into a blinding that lasts the fight (AGG's Pocket Sand) |
 | D-110 | Auto-success perks | 1 | Planned | Decided by Ali (08/11/2026, AGG comparison A2): a perk kind where the owner's first roll of one kind in each engagement counts as at least Success. Used for 60 perks in Speech and Stealth |
-| D-111 | Bane bonuses | 1, 2 | Built | Decided by Ali (08/11/2026, AGG comparison A3, from AGG's deed-earned Feats): race and body-type achievements such as "Bane of {race}kind" also give a bonus against that race or type: +5 skill × the achievement's tier (I = 1, II = 2, III = 3; CONFIG.BANE_SKILL_PER_TIER), on attack, defense and contested rolls against an actor of that race or body type. Only the best matching achievement counts (src/ruleset/bane.ts) |
+| D-111 | Bane bonuses | 1, 2 | Built | Decided by Ali (08/11/2026, AGG comparison A3, from AGG's deed-earned Feats): race and body-type achievements such as "Bane of {race}kind" also give a bonus against that race or type: the bonus of the lower level it builds on plus +5 skill (CONFIG.BANE_SKILL_PER_LEVEL), so I = +5, II = +10, III = +15, on attack, defense and contested rolls against an actor of that race or body type. Levels are linked (AchievementDef.after): earning a higher level switches the lower ones off, so only the highest is checked. The best race achievement and the best body type achievement both count, as one modifier type, so the weaker one counts at half (Ali, 08/11/2026; src/ruleset/bane.ts) |
 | D-112 | Downtime unlock perks | 1, 5 | Deferred | Banked by Ali (08/11/2026, AGG comparison A5): perks that unlock downtime actions (rumors, importing, a market, more actions per day) wait until trade (D-93) and long rests exist |
 | D-113 | Skill tree access extras | 1, 4 | Deferred | Banked by Ali (08/11/2026, Skill tree access TA7, TA11): who can use the Tools tree (lockpicking, OQ-20 placeholder; open to all but Slime for now, and off the creation screen), and nested groups of conditions beyond Must and Either of |
 

@@ -4,7 +4,7 @@
 
 const DEFAULTS = {
   // ---- Part 1 ----
-  SUBSTITUTE_EFFICIENCY: 0.5,
+  SUBSTITUTE_EFFICIENCY: 0.3, // F4 (Ali, 08/11/2026): was 0.5; perks can change it (PerkDef.standIn)
   /** Skill tiers (Ali, 08/11/2026): the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder (Ali gave 0 and 2). */
   SKILL_TIER_MULT: { tier_0: 0.5, tier_1: 0.75, tier_2: 1 } as Record<string, number>,
   /** A7 Open-Hand Guard: share of a hit through an open-hand block that lands on the blocking arm; the rest goes to the general area (placeholder, Ali 07/11/2026) */
@@ -14,16 +14,14 @@ const DEFAULTS = {
   /** Per-check substitutes (Ali, 07/11/2026): a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
    * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
   SUBSTITUTES: {
-    unarmed_grapple: [{ fn: 'unarmed_attack', k: 0.4 }, { fn: 'melee_attack', k: 0.2 }],
-    // ST2: the two stealth skills stand in for each other at half value
-    sneaking: [{ fn: 'stealth', k: 0.5 }], combat_stealth: [{ fn: 'stealth', k: 0.5 }], vanishing: [{ fn: 'stealth', k: 0.5 }],
+    unarmed_grapple: [{ fn: 'unarmed', k: 0.4 }, { fn: 'arms', k: 0.2 }],
   } as Record<string, { fn: string; k: number }[]>,
   SITUATION_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
-  STACK_2: 0.5,
-  STACK_3: 0.25,
+  /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … (Ali, 08/11/2026) */
+  STACK_RATIO: 0.5,
   KIT_BONUS: 25,
   POTENTIAL: 300,
   K: 20,
@@ -125,10 +123,10 @@ const DEFAULTS = {
   XP_CATEGORY_WEIGHT: { offensive: 1, defensive: 1, endurance: 1, notice: 0.5, influence: 0.25, misc: 0 } as Record<string, number>,
   KILL_XP_MULT: 1, // X20 (Ali, 07/11/2026): ×1 for now
   KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
+  /** D-111 Bane bonuses (Ali, 08/11/2026): an achievement earned against a race or body type gives this much skill on
+   * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
+  BANE_SKILL_PER_LEVEL: 5,
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests (Ali, 07/11/2026) */
-  /** D-111 Bane bonuses (Ali, 08/11/2026): an achievement earned against a race or body type gives this much skill per
-   * reward tier (I = 1, II = 2 …, by position in REWARD_LEVELS) on rolls against that race or type; only the best one counts */
-  BANE_SKILL_PER_TIER: 5,
   REWARD_XP: { i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
@@ -154,7 +152,8 @@ const DEFAULTS = {
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex' } as Record<string, 'quick' | 'default' | 'complex'>,
-  STYLE: { tone: 'grounded low fantasy', length: '2 to 4 short paragraphs' },
+  STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // Ali, 08/11/2026 (flavor voice V5)
+    length: '2 to 4 short paragraphs' },
 };
 
 export type Config = typeof DEFAULTS;

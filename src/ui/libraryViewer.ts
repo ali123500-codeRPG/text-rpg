@@ -8,6 +8,7 @@ import { classTree, condName } from '../ruleset/access';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
+import { GROUP_NAMES, groupsOf } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { REWARD_LEVELS, SKILL_TIERS } from '../scales';
 import { fmtDate, h } from './kit';
@@ -115,7 +116,7 @@ function toneOf(group: string, value: string): string {
   return PALETTE[vals.indexOf(value) % PALETTE.length];
 }
 /** the filter group each table is coloured by at first; any group can be picked with its "Colour" button */
-const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Tree' };
+const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Group' };
 let colourBy = '';
 const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : 'no milestone');
 function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
@@ -129,7 +130,7 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   r ? h('div', { class: 'lv-rules' }, row('Kind', r.kind), row('Trigger', r.trigger), r.conditions.length ? row('Conditions', h('div', { class: 'lv-sub' }, r.conditions.map((c) => h('div', {}, c)))) : null,
     row('Effect', r.effect), row('Lasts', r.lasts), r.cooldown ? row('Cooldown', r.cooldown) : null, r.needs ? row('Needs first', r.needs) : null, r.open ? row('Open', r.open) : null) : null,
   d.trueSkill ? row('True skill', `+${d.trueSkill} ${d.ladder ? skillName(d.ladder.skill) : ''}`) : null,
-  d.functionBoost ? row('Same-function skills (itself too)', `+${d.functionBoost} each`) : null,
+  d.functionBoost ? row('Same-group skills (itself too)', `+${d.functionBoost} each`) : null,
   d.trueSkillTo ? row('True skill to', val(Object.fromEntries(Object.entries(d.trueSkillTo).map(([k, v]) => [skillName(k), `+${v}`])))) : null,
   d.numbers ? row('Numbers', val(d.numbers)) : null,
   ...fields(d as Entry, ['id', 'name', 'story', 'rules', 'ladder', 'effect', 'built', 'quirk', 'trueSkill', 'functionBoost', 'trueSkillTo', 'numbers', 'ref', 'skill', 'place']));
@@ -214,13 +215,23 @@ function skills(): HTMLElement[] {
   const inTree = new Set(Object.values(lib.trees).flatMap((t) => t.skills));
   const loose = Object.keys(lib.skills).filter((s) => !inTree.has(s));
   const tree = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => card('skills', id, entry, title, chips,
-    h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
+    h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Group', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
-        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(f, toneOf('Function', f)))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
+        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(f, toneOf('Function', f)))) : '—'),
+        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
         h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneOf('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
-  return [h('div', { class: 'lv-grid wide' },
-    Object.values(lib.trees).map((t) => tree(t.id, t.name, t.skills, t, access(t.access))),
-    loose.length ? tree('no_tree', 'In no tree', loose, loose, []) : null)];
+  // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP), next to the tree's own id
+  const groupChips = (ids: string[]) => [...new Set(ids.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`${GROUP_NAMES[g]} group`, toneOf('Group', GROUP_NAMES[g])));
+  const treeCard = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => {
+    const c = tree(id, title, ids, entry, [...groupChips(ids), ...chips]);
+    const code = c.querySelector('.lv-id');
+    if (code && id !== 'no_tree') code.textContent = `tree ${id}`;
+    return c;
+  };
+  return [h('p', { class: 'hs-note' }, 'A tree is where a skill is learned (its id is the tree id). The group comes from the skill\'s functions (FUNCTION_GROUP in functionNames.ts) and decides the 40 perk +1 and the XP category, so a tree and its group can differ.'),
+    h('div', { class: 'lv-grid wide' },
+      Object.values(lib.trees).map((t) => treeCard(t.id, t.name, t.skills, t, access(t.access))),
+      loose.length ? treeCard('no_tree', 'In no tree', loose, loose, []) : null)];
 }
 
 // ---------- Page ----------
@@ -242,7 +253,7 @@ const FACETS: Record<string, Facets> = {
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Tree', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
     ...(t.access?.blockedBy ?? []).map((c): [string, string] => ['Blocked by', condName(c)]),
-    ...(t.skills ?? []).flatMap((id) => lib.skills[id]?.functions.map((fn): [string, string] => ['Function', fn]) ?? [])],
+    ...(t.skills ?? []).flatMap((id) => groupsOf(lib.skills[id]).map((g): [string, string] => ['Group', GROUP_NAMES[g]]))],
 };
 /** generic tables: a short field with 2–8 values shared by entries becomes a filter group */
 function autoFacets(table: Record<string, Entry>): Facets {
