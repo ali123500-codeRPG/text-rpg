@@ -136,4 +136,4 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
 }
 
 /** skills tagged influence (persuasion, intimidation, barter) */
-const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => (k.functions as string[] | undefined)?.includes('influence')).map(([id]) => id);
+const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes('influence')).map(([id]) => id);

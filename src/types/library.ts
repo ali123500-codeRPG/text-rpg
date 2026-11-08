@@ -5,7 +5,10 @@ import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
 import type { PartStateKey, SkillTierKey } from '../scales';
 
-export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' | 'defense' | 'notice' | 'influence' | 'hp' | 'stealth';
+/** F1–F8 (Ali, 08/11/2026): a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
+ * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
+export type SkillFunction = 'arms' | 'unarmed' | 'ranged' | 'defense' | 'health' | 'sight' | 'hearing' | 'stealth' | 'influence';
+export type SkillGroup = 'melee' | 'ranged' | 'defense' | 'health' | 'notice' | 'stealth' | 'influence';
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 /** Situation tags (Ali, 08/11/2026, ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
@@ -81,8 +84,11 @@ export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
-   * skill sharing a function with it, and the ladder skill's own numbers (src/library/boostPerks.ts) */
+   * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
+  /** F4 (Ali, 08/11/2026): raises (or, negative, lowers) the owner's stand-in share for skills of function `fn` (every
+   * function if left out), on top of CONFIG.SUBSTITUTE_EFFICIENCY or the skill's own table; the share stays within 0–1 */
+  standIn?: { add: number; fn?: SkillFunction };
   /** player-facing write-up (the Story view); must say the same thing as `rules` */
   story?: string;
   /** exact rules code applies (the Rules view, and the basis for building the perk) */

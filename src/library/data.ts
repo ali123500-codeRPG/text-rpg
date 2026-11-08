@@ -2,34 +2,35 @@
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
 import type { ArmorWeightKey } from '../scales';
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, XpCategory } from '../types';
+import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, SkillGroup, XpCategory } from '../types';
+import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
 import { BUILT_PERKS } from './builtPerks';
 
-/** XP category from the skill's function (X21); a skill with no deciding function names its own. */
-const CATEGORY_OF: Partial<Record<SkillDef['functions'][number], XpCategory>> = {
-  melee_attack: 'offensive', ranged_attack: 'offensive', unarmed_attack: 'offensive', defense: 'defensive', hp: 'endurance', notice: 'notice', influence: 'influence',
+/** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
+const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
+  melee: 'offensive', ranged: 'offensive', defense: 'defensive', health: 'endurance', notice: 'notice', influence: 'influence',
 };
 const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', xpCategory?: XpCategory, tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
-  ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[functions[0]] ?? 'misc', tier });
+  ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[FUNCTION_GROUP[functions[0]]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
-  sk('melee_light', 'melee', ['melee_attack'], ['grip']),
-  sk('melee_medium', 'melee', ['melee_attack'], ['grip']),
-  sk('melee_heavy', 'melee', ['melee_attack'], ['grip']),
-  sk('ranged_light', 'ranged', ['ranged_attack'], ['grip']),
-  sk('ranged_medium', 'ranged', ['ranged_attack'], ['grip']),
-  sk('ranged_heavy', 'ranged', ['ranged_attack'], ['grip']),
-  sk('unarmed_strike', 'unarmed', ['unarmed_attack'], ['grip']),
-  sk('unarmed_grapple', 'unarmed', ['unarmed_attack'], ['grip']),
-  sk('unarmed_improvised', 'unarmed', ['unarmed_attack'], ['grip']), // fighting with whatever is at hand (Ali, 07/11/2026)
-  sk('unarmed_natural', 'natural', ['unarmed_attack'], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
+  sk('melee_light', 'melee', ['arms'], ['grip']),
+  sk('melee_medium', 'melee', ['arms'], ['grip']),
+  sk('melee_heavy', 'melee', ['arms'], ['grip']),
+  sk('ranged_light', 'ranged', ['ranged'], ['grip']),
+  sk('ranged_medium', 'ranged', ['ranged'], ['grip']),
+  sk('ranged_heavy', 'ranged', ['ranged'], ['grip']),
+  sk('unarmed_strike', 'unarmed', ['unarmed'], ['grip']),
+  sk('unarmed_grapple', 'unarmed', ['unarmed'], ['grip']),
+  sk('unarmed_improvised', 'unarmed', ['unarmed'], ['grip']), // fighting with whatever is at hand (Ali, 07/11/2026)
+  sk('unarmed_natural', 'natural', ['unarmed'], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
   sk('dodge', 'defense', ['defense'], ['move']),
   sk('block', 'defense', ['defense'], ['grip']),
-  sk('endurance', 'defense', ['hp'], []), // hp: endurance sets total HP
-  sk('sight', 'perception', ['notice'], ['sense'], 'sight'),
-  sk('hearing', 'perception', ['notice'], ['sense'], 'sound'),
+  sk('endurance', 'defense', ['health'], []), // endurance sets total HP
+  sk('sight', 'perception', ['sight'], ['sense'], 'sight'),
+  sk('hearing', 'perception', ['hearing'], ['sense'], 'sound'),
   // Stealth (Ali, 08/11/2026, ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
   sk('sneaking', 'stealth', ['stealth'], ['move'], undefined, 'notice'),
@@ -42,8 +43,8 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('feint', 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk('riposte', 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk('disarm', 'swordsman', [], ['grip'], undefined, 'offensive'),
-  // slime class skills are tier 0 (Ali, 08/11/2026)
-  sk('tremor', 'slime_senses', ['notice'], ['sense'], 'sound', undefined, 'tier_0'),
+  // slime class skills are tier 0 (Ali, 08/11/2026); F1: tremor is both a sight and a hearing function
+  sk('tremor', 'slime_senses', ['sight', 'hearing'], ['sense'], 'sound', undefined, 'tier_0'),
   // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk('lockpicking', 'tools', [], ['grip']),
 ].map((s) => [s.id, s]));
@@ -264,7 +265,7 @@ export function prototypeLibrary(): Library {
     // Skill tree access (Ali, 08/11/2026, TA1–TA11): each tree's own rule; no rule = open to everyone.
     // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.
     trees: {
-      melee: { id: 'melee', name: 'Combat – Melee', skills: ['melee_light', 'melee_medium', 'melee_heavy'], access: { blockedBy: [AMORPHOUS] } },
+      melee: { id: 'melee', name: 'Combat – Arms', skills: ['melee_light', 'melee_medium', 'melee_heavy'], access: { blockedBy: [AMORPHOUS] } },
       ranged: { id: 'ranged', name: 'Combat – Ranged', skills: ['ranged_light', 'ranged_medium', 'ranged_heavy'], access: { blockedBy: [AMORPHOUS] } },
       unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'], access: { blockedBy: [AMORPHOUS] } },
       natural: { id: 'natural', name: 'Natural weapons', skills: ['unarmed_natural'], access: { either: [AMORPHOUS, { kind: 'race', id: 'dragon' }] } /* the shape's slam; the dragon's own attacks */ },

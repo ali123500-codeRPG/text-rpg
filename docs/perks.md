@@ -89,7 +89,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** The owner's grapple attack is resolved.
 - **Conditions:** The attack uses skill unarmed_grapple. The attack roll is Great Success or better. The attack hits (not missed or dodged).
-- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses unarmed_grapple at full value, any skill tagged melee_attack at 0.2×, or any other skill tagged unarmed_attack at 0.4× (Ali, 07/11/2026; docs/skill-tags.md).
+- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses unarmed_grapple at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4× (Ali, 07/11/2026; docs/skill-tags.md).
 - **Lasts:** Until the target breaks free, the owner is downed, or the owner leaves the zone.
 
 ### Dirt in the Eyes (Improvisation) · A9
@@ -189,83 +189,83 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Keen Edge (Light weapons) · P1
 
-*Story:* +5 Light weapons, +1 Melee attack. Your light weapons find their mark: +10 to hit with them.
+*Story:* +5 Light weapons, +1 Melee. Your light weapons find their mark: +10 to hit with them.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_light. +1 true skill in every skill with function melee_attack. +10 on attack rolls with skill melee_light.
+- **Effect:** +5 true skill in melee_light. +1 true skill in every skill of group melee. +10 on attack rolls with skill melee_light.
 - **Lasts:** Always.
 
 ### Guard Drill (Medium weapons) · P2
 
-*Story:* +5 Medium weapons, +1 Melee attack. Your blocks get better too: +10 Block.
+*Story:* +5 Medium weapons, +1 Melee. Your blocks get better too: +10 Block.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_medium. +1 true skill in every skill with function melee_attack. +10 true skill in block.
+- **Effect:** +5 true skill in melee_medium. +1 true skill in every skill of group melee. +10 true skill in block.
 - **Lasts:** Always.
 
 ### Heavy Hand (Heavy weapons) · P3
 
-*Story:* +5 Heavy weapons, +1 Melee attack. Your heavy weapons hit 20% harder.
+*Story:* +5 Heavy weapons, +1 Melee. Your heavy weapons hit 20% harder.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_heavy. +1 true skill in every skill with function melee_attack. Damage of an attack with skill melee_heavy is ×1.2, before armor.
+- **Effect:** +5 true skill in melee_heavy. +1 true skill in every skill of group melee. Damage of an attack with skill melee_heavy is ×1.2, before armor.
 - **Lasts:** Always.
 
 ### Sharp Eyes (Light ranged) · P4
 
-*Story:* +5 Light ranged, +1 Ranged attack. You spot more: +10 Sight.
+*Story:* +5 Light ranged, +1 Ranged. You spot more: +10 Sight.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_light. +1 true skill in every skill with function ranged_attack. +10 true skill in sight.
+- **Effect:** +5 true skill in ranged_light. +1 true skill in every skill of group ranged. +10 true skill in sight.
 - **Lasts:** Always.
 
 ### Steady Draw (Medium ranged) · P5
 
-*Story:* +5 Medium ranged, +1 Ranged attack. A little of both: +5 to hit with medium ranged weapons, and they hit 10% harder.
+*Story:* +5 Medium ranged, +1 Ranged. A little of both: +5 to hit with medium ranged weapons, and they hit 10% harder.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_medium. +1 true skill in every skill with function ranged_attack. +5 on attack rolls with skill ranged_medium, and its damage is ×1.1, before armor.
+- **Effect:** +5 true skill in ranged_medium. +1 true skill in every skill of group ranged. +5 on attack rolls with skill ranged_medium, and its damage is ×1.1, before armor.
 - **Lasts:** Always.
 
 ### Armor Piercer (Heavy ranged) · P6
 
-*Story:* +5 Heavy ranged, +1 Ranged attack. Your bolts punch through armor: it stops 2 less of each hit.
+*Story:* +5 Heavy ranged, +1 Ranged. Your bolts punch through armor: it stops 2 less of each hit.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_heavy. +1 true skill in every skill with function ranged_attack. On a hit with skill ranged_heavy, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
+- **Effect:** +5 true skill in ranged_heavy. +1 true skill in every skill of group ranged. On a hit with skill ranged_heavy, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
 - **Lasts:** Always.
 
 ### Street Fighter (Strike) · P7
 
-*Story:* +5 Strike, +1 Unarmed attack. Anything in reach becomes a weapon: +10 Improvisation.
+*Story:* +5 Strike, +1 Melee. Anything in reach becomes a weapon: +10 Improvisation.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_strike. +1 true skill in every skill with function unarmed_attack. +10 true skill in unarmed_improvised.
+- **Effect:** +5 true skill in unarmed_strike. +1 true skill in every skill of group melee. +10 true skill in unarmed_improvised.
 - **Lasts:** Always.
 
 ### Iron Grip (Grapple) · P8
 
-*Story:* +5 Grapple, +1 Unarmed attack. Your holds are harder to escape: +10 on every grapple roll, breaking free included.
+*Story:* +5 Grapple, +1 Melee. Your holds are harder to escape: +10 on every grapple roll, breaking free included.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_grapple. +1 true skill in every skill with function unarmed_attack. +10 on every roll with skill unarmed_grapple (grapple attacks, and both sides of a break-free contest).
+- **Effect:** +5 true skill in unarmed_grapple. +1 true skill in every skill of group melee. +10 on every roll with skill unarmed_grapple (grapple attacks, and both sides of a break-free contest).
 - **Lasts:** Always.
 
 ### Brawler's Eye (Improvisation) · P9
 
-*Story:* +5 Improvisation, +1 Unarmed attack. Your fists and your eyes sharpen: +5 Strike, +5 Sight.
+*Story:* +5 Improvisation, +1 Melee. Your fists and your eyes sharpen: +5 Strike, +5 Sight.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_improvised. +1 true skill in every skill with function unarmed_attack. +5 true skill in unarmed_strike and +5 in sight.
+- **Effect:** +5 true skill in unarmed_improvised. +1 true skill in every skill of group melee. +5 true skill in unarmed_strike and +5 in sight.
 - **Lasts:** Always.
 
 ### Light Feet (Dodge) · P10
@@ -274,7 +274,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in dodge. +1 true skill in every skill with function defense. +10 true skill in sneaking.
+- **Effect:** +5 true skill in dodge. +1 true skill in every skill of group defense. +10 true skill in sneaking.
 - **Lasts:** Always.
 
 ### Braced (Block) · P11
@@ -283,7 +283,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in block. +1 true skill in every skill with function defense. +10 true skill in endurance.
+- **Effect:** +5 true skill in block. +1 true skill in every skill of group defense. +10 true skill in endurance.
 - **Lasts:** Always.
 
 ### Quick Mend (Endurance) · P12
@@ -292,7 +292,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in endurance. +1 true skill in every skill with function hp. Natural recovery (the hourly healing row read from endurance) is ×2.
+- **Effect:** +5 true skill in endurance. +1 true skill in every skill of group health. Natural recovery (the hourly healing row read from endurance) is ×2.
 - **Lasts:** Always.
 
 ### Marksman's Eye (Sight) · P13
@@ -301,7 +301,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in sight. +1 true skill in every skill with function notice. +5 true skill in ranged_light and +5 in ranged_medium.
+- **Effect:** +5 true skill in sight. +1 true skill in every skill of group notice. +5 true skill in ranged_light and +5 in ranged_medium.
 - **Lasts:** Always.
 
 ### Soft Step (Hearing) · P14
@@ -310,7 +310,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in hearing. +1 true skill in every skill with function notice. +10 true skill in sneaking.
+- **Effect:** +5 true skill in hearing. +1 true skill in every skill of group notice. +10 true skill in sneaking.
 - **Lasts:** Always.
 
 ## Higher milestone
