@@ -61,13 +61,13 @@ describe('validateStagePlan', () => {
   });
   it('unknown template and unknown body type fail (not routine-only)', () => {
     const s = fresh();
-    s.blueprints.push({ storyId: 'test', id: 'wyvern_rider', kind: 'npcTemplate', data: { id: 'wyvern_rider', bodyTypeId: 'wyvern' } });
+    s.blueprints.push({ storyId: 'test', id: 'wyvern_rider', kind: 'npcTemplate', data: { id: 'wyvern_rider', raceId: 'wyvern' } });
     const p = villageStagePlan();
     p.cast[0].template = 'ogre';
     p.cast[1].template = 'wyvern_rider';
     const e = validateStagePlan(s, p, ctx);
     expect(e.map((x) => x.code)).toEqual(expect.arrayContaining(['unknown_template', 'unknown_body_type']));
-    expect(e.find((x) => x.code === 'unknown_body_type')!.message).toContain('humanoid');
+    expect(e.find((x) => x.code === 'unknown_body_type')!.message).toContain('human, elf, slime, dragon');
     expect(e.every((x) => !x.routineOnly)).toBe(true);
   });
   it('caps on cast, zones and knows', () => {

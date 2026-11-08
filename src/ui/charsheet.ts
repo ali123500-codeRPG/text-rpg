@@ -2,7 +2,7 @@
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
 import type { Actor, GameState, LogLine } from '../types';
 import { CONFIG } from '../config';
-import { bodyType, getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { achievementName, charLevel, xpToNext } from '../engine/xp';
@@ -129,7 +129,7 @@ const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 /** Body figure (Ali, 07/11/2026): the body type's silhouette, each part tinted by its state; the general area shows
  * total health. Clicking a part names it with its state and amount. Null for body types without a figure. */
 export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set()): HTMLElement | null {
-  const ct = safe(() => bodyType(s, p.core.bodyTypeId));
+  const ct = safe(() => actorBody(s, p));
   if (!ct?.figure) return null;
   const { hp, total } = hpLeft(s, p);
   const info = (id: string): { name: string; state: string; amount: string } => {
@@ -181,7 +181,7 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
   const fill = level === 'Unhurt' ? 100 : left * scale;
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
-    bodyFigure(s, p, healed) ?? safe(() => bodyType(s, p.core.bodyTypeId).parts.map((d) => {
+    bodyFigure(s, p, healed) ?? safe(() => actorBody(s, p).parts.map((d) => {
       const pct = p.core.condition.parts[d.id] ?? 100;
       const pool = total === null ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
       const st = poolState(pct);
