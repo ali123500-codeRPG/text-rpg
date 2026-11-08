@@ -58,7 +58,7 @@ export type Library = {
   perks: Record<string, PerkDef>;
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
-  races?: Record<string, RaceDef>; // Part 4 §4: a race sets the creature type; race perks come later
+  races?: Record<string, RaceDef>; // Part 4 §4: a race sets the creature type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
 };
 
@@ -77,6 +77,8 @@ export type PerkDef = {
   rules?: PerkRules;
   /** false: written down but not coded yet, so it can't be taken */
   built?: boolean;
+  /** a quirk: a perk that is negative in nature (Ali, 08/11/2026) */
+  quirk?: boolean;
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
@@ -102,7 +104,9 @@ export type HealingDef = {
   hourly?: { skill: string; pctPerPoint: number };
 };
 
-export type RaceDef = { id: string; name: string; creatureTypeId: string };
+/** innatePerks / innateQuirks (Ali, 08/11/2026): perk ids every member of the race is born with (OwnedPerk source 'race').
+ * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
+export type RaceDef = { id: string; name: string; creatureTypeId: string; innatePerks?: string[]; innateQuirks?: string[] };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */
 export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'creature' | 'race' };

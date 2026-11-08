@@ -1,5 +1,5 @@
 // NPC generation from templates (Part 4 §4) and player creation.
-import type { Actor, CreationBuild, GameState, ItemInstance, NpcTemplate, Rng, SkillEntry } from '../types';
+import type { Actor, CreationBuild, GameState, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef, npcTemplate } from './index';
 
@@ -59,6 +59,12 @@ export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, Skill
 }
 
 /** Copy NPC: skills are the template's minimums (read live in principle; copied here for the sheet). Unique: rolled once, frozen. */
+/** the perks a member of this race is born with: its innate perks and innate quirks (Ali, 08/11/2026) */
+export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
+  const r = raceId ? getLibrary().races?.[raceId] : undefined;
+  return [...(r?.innatePerks ?? []), ...(r?.innateQuirks ?? [])].map((perkId) => ({ perkId, source: 'race', gainedTurn: turn }));
+}
+
 export function spawnNpc(state: GameState | null, templateId: string, opts: SpawnOpts, rng?: Rng): Actor {
   const t = npcTemplate(state, templateId);
   if (t.generation === 'unique' && !rng) throw new Error(`unique template ${t.id} needs the seeded rng`);
@@ -83,7 +89,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       generation: t.generation,
       skills,
       classes: t.classId ? [{ classId: t.classId, state: 'current', level: t.level }] : [],
-      perks: [],
+      perks: racePerks(t.raceId, state?.turn ?? 0),
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
       standingDefense: (skills.block?.raw ?? 0) >= (skills.dodge?.raw ?? 0) ? 'block' : 'dodge', // GAP: raw skill; a tie goes to block like the player
@@ -159,7 +165,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       raceId: 'human', // GAP: no race choice at creation yet
       skills,
       classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],
-      perks: [],
+      perks: racePerks('human'),
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
       inventory: [...equipLoadout(null, STARTING_GEAR, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN },
         { id: 'player_bandage', itemId: 'bandage', qty: CONFIG.STARTING_BANDAGES }],

@@ -62,3 +62,23 @@ describe('unique generation', () => {
     expect(spawnNpc(null, 'guard', opts).core.skills.melee_medium).toEqual({ raw: 40, state: 'normal' });
   });
 });
+
+describe('race innate perks and quirks (Ali, 08/11/2026)', () => {
+  it('every listed innate perk exists and is not a quirk; every innate quirk is one', () => {
+    const lib = getLibrary();
+    for (const r of Object.values(lib.races ?? {})) {
+      for (const id of r.innatePerks ?? []) expect(lib.perks[id]?.quirk, `${r.id} perk ${id}`).toBeFalsy();
+      for (const id of r.innatePerks ?? []) expect(lib.perks[id], `${r.id} perk ${id}`).toBeDefined();
+      for (const id of r.innateQuirks ?? []) expect(lib.perks[id]?.quirk, `${r.id} quirk ${id}`).toBe(true);
+    }
+  });
+  it('NPCs and the player are born with their race\'s lists, as race perks', () => {
+    const lib = getLibrary();
+    const perk = { id: 'keen_nose', name: 'Keen Nose', quirk: false }, perk2 = { id: 'tall', name: 'Tall' }, quirk = { id: 'sun_shy', name: 'Sun Shy', quirk: true };
+    setLibrary({ ...lib, perks: { ...lib.perks, keen_nose: perk, tall: perk2, sun_shy: quirk } as typeof lib.perks,
+      races: { ...lib.races, human: { ...lib.races!.human, innatePerks: ['keen_nose', 'tall'], innateQuirks: ['sun_shy'] } } });
+    const want = ['keen_nose', 'tall', 'sun_shy'].map((perkId) => ({ perkId, source: 'race', gainedTurn: 0 }));
+    expect(createPlayer(recommendedBuild(), 's1').core.perks).toEqual(want);
+    expect(spawnNpc(null, 'patron', { id: 'p1', zone: 'tav_common', placeId: 'tavern', bandId: 'tavern_folk' }).core.perks).toEqual(want);
+  });
+});
