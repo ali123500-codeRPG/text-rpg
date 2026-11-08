@@ -50,6 +50,12 @@ const SLOW_AFTER_S = 90; // past this a running call gets a "taking longer than 
 const secs = (since: number) => Math.max(0, Math.round((Date.now() - since) / 1000));
 
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+/** Two hands meeting: the mark on the deals chip (K1 c). */
+function dealIcon(): HTMLElement {
+  const i = h('span', { class: 'dl-i', 'aria-hidden': 'true' });
+  i.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 5 3 3-2 6 5"/><path d="M7 8l-4 4 6 6 2-2 2 2 2-2 2 2 3-3"/><path d="M11 16l2 2"/></svg>';
+  return i;
+}
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
 const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) % SPEAKER_COLOURS.length];
 
@@ -117,6 +123,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const title = h('div', { class: 'head' });
   const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
   let folded = false;
+  let dealsOpen = false;
+  document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
   try { folded = localStorage.getItem('sheetFolded') === '1'; } catch { /* storage blocked: start open */ }
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
   const el = h('main', { class: 'playmain' }, title, who, h('div', { class: 'play-wrap' }, body, sheet), fell);
@@ -184,7 +193,18 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const pv = s ? safe(() => buildPlayerView(s)) : null;
     const stealthy = s?.player.posture === 'stealthy';
     bar.classList.toggle('stealthy', stealthy);
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
+    // PM5/K1 c (Ali, 08/11/2026): the player's deals with NPCs, as an "N deals" chip beside the scene title that opens
+    // the list (gold-edged and tinted like the K1 b card). No chip while there are none. A deal leaves when a party ends
+    // it as done or broken.
+    const deals = pv?.agreements ?? [];
+    if (!deals.length) dealsOpen = false;
+    const dealChip = deals.length ? h('span', { class: 'dl-wrap' },
+      h('button', { type: 'button', class: 'dl-chip', 'aria-expanded': String(dealsOpen), onclick: (e: Event) => { e.stopPropagation(); dealsOpen = !dealsOpen; update(); } },
+        dealIcon(), `${deals.length} deal${deals.length === 1 ? '' : 's'}`),
+      dealsOpen ? h('section', { class: 'dl-pop', 'aria-label': 'Your deals', onclick: (e: Event) => e.stopPropagation() },
+        h('p', { class: 'hs-section' }, 'Your deals'),
+        deals.map((d) => h('div', { class: 'dl-row' }, h('b', {}, cap(d.with)), h('span', {}, d.text), h('small', {}, `Made turn ${d.madeTurn}`)))) : null) : null;
+    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
       h('p', { class: 'hs-note calls', title: 'Every request this page sent to Claude since it was opened, counted by code. Repairs and background calls count too.' },
         `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`),
       bgNote() ?? '');
@@ -251,13 +271,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const fold = h('button', { class: 'hs-btn-text cs-fold', type: 'button', 'aria-expanded': String(!folded),
       onclick: () => { folded = !folded; try { localStorage.setItem('sheetFolded', folded ? '1' : '0'); } catch { /* not saved */ } update(); } }, folded ? 'Sheet ‹' : 'Hide ›');
     sheet.classList.toggle('folded', folded);
-    // PM5/K1 b (Ali, 08/11/2026): the player's deals with NPCs, in their own card above the sheet; shown even when the
-    // sheet is hidden, absent while there are none. A deal leaves when a party ends it as done or broken.
-    const deals = pv?.agreements ?? [];
-    const dealCard = deals.length ? h('section', { class: 'dl-card', 'aria-label': 'Your deals' },
-      h('p', { class: 'hs-section' }, 'Your deals', h('span', {}, String(deals.length))),
-      deals.map((d) => h('div', { class: 'dl-row' }, h('b', {}, cap(d.with)), h('span', {}, d.text), h('small', {}, `Made turn ${d.madeTurn}`)))) : null;
-    sheet.replaceChildren(...(dealCard ? [dealCard] : []), h('div', { class: 'cs-side-h' }, folded ? null : h('p', { class: 'hs-section' }, 'Your sheet'), fold), ...(s && !folded ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration')) : []));
+    sheet.replaceChildren(h('div', { class: 'cs-side-h' }, folded ? null : h('p', { class: 'hs-section' }, 'Your sheet'), fold), ...(s && !folded ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration')) : []));
 
     const fallen = api.fell();
     body.hidden = fallen;
