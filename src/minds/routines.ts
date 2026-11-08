@@ -93,6 +93,8 @@ export function routineOrder(view: ActorView): Order {
 function hostileBeliefs(view: ActorView) {
   return view.beliefs.filter((b) => b.hostile && b.active && b.status !== 'unaware');
 }
+/** whom a broken actor runs from: those it is hostile to, and those it yielded to (Q4) */
+const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b.yielded) && b.active && b.status !== 'unaware');
 
 export function brokenOrder(view: ActorView): Order {
   return flee(view, 'broken');
@@ -112,7 +114,7 @@ function flee(view: ActorView, source: Order['source']): Order {
   }
   // away from the nearest hostile actor it believes in: a linked zone farther from it than here; else hold.
   const dist = (a: string, b: string) => mapPath(view.map, a, b)?.length ?? Infinity;
-  const threats = hostileBeliefs(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
+  const threats = fleeFrom(view).filter((b) => b.lastKnownZone).map((b) => b.lastKnownZone!);
   if (!threats.length) return hold();
   const threat = threats.reduce((best, z) => (dist(here, z) < dist(here, best) ? z : best));
   const links = view.map.find((z) => z.id === here)?.links ?? [];
