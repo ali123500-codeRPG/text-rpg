@@ -149,7 +149,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** A perception check for the owner by sound.
-- **Effect:** Sound reaches the owner one zone link further: an event with noise n is heard (partially) up to n+1 links away instead of n. Same-zone sounds are heard in full, as before.
+- **Effect:** Sound reaches the owner one zone link further: a sound is heard (partially) one link further than its noise level reaches (CONFIG.NOISE_REACH). Same-zone sounds are heard in full, as before.
 - **Lasts:** Always.
 
 ### Quick Word (Persuasion) · A15

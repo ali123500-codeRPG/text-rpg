@@ -9,7 +9,7 @@ import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
 import type { GameEvent } from '../../src/types';
 
-const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'player', kind: 'attack', zone: 'field_mid', effects: [], noise: 1, visibility: 1, perception: {},
+const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'player', kind: 'attack', zone: 'field_mid', effects: [], noise: 'quiet', visibility: 'low', perception: {},
   attack: { attackerId: 'player', targetId: target, damage: 5 } as never });
 
 describe('106 XP and levels', () => {

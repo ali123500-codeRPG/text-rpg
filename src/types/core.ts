@@ -13,7 +13,7 @@ export const GRADES: readonly Grade[] = ['none', 'minor', 'moderate', 'major', '
 /** a tier's display name, only in text for people and for Claude */
 export type TierName = string;
 
-import type { COVER, LIGHT, STANCES, TACTICS, TIERS } from '../scales';
+import type { COVER, LIGHT, NoiseKey, STANCES, TACTICS, TIERS, VisibilityKey } from '../scales';
 /** keys of the ordered scales in src/scales.ts (code and saves use only keys) */
 export type Light = (typeof LIGHT.keys)[number];
 export type Cover = (typeof COVER.keys)[number];
@@ -76,8 +76,8 @@ export type GameEvent = {
   target?: string;
   tier?: Tier;
   effects: Effect[]; // structured; text is built per view, never stored
-  noise: 0 | 1 | 2 | 3;
-  visibility: 0 | 1 | 2 | 3;
+  noise: NoiseKey;
+  visibility: VisibilityKey;
   perception: Record<string, { level: Perception; cue: Cue }>; // absent = not perceived
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):

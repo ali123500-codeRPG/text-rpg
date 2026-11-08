@@ -61,6 +61,12 @@ export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged']
 export type PartStateKey = (typeof PART_STATES.keys)[number];
 /** the player's posture (ST5, Ali 08/11/2026: not named like the Sneaking skill) */
 export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
+/** how far an event is heard, quietest first; reach per level is CONFIG.NOISE_REACH */
+export const NOISE = scale([['silent', 'Silent'], ['quiet', 'Quiet'], ['normal', 'Normal'], ['loud', 'Loud']]);
+export type NoiseKey = (typeof NOISE.keys)[number];
+/** how far an event is seen, least first; reach per level is CONFIG.SIGHT_REACH */
+export const VISIBILITY = scale([['unseen', 'Unseen'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High']]);
+export type VisibilityKey = (typeof VISIBILITY.keys)[number];
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
 

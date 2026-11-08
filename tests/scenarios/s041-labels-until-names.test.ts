@@ -10,14 +10,14 @@ import { applyIntroduces } from '../../src/engine/effects';
 it('41 Labels until names are known', () => {
   const s = makeVillage();
   const rng = createRng(1);
-  const presence: GameEvent = { id: 'p1', turn: 0, actorId: 'patron_1', kind: 'presence', zone: 'tav_common', activity: 'drink', effects: [], noise: 1, visibility: 2, perception: {} };
+  const presence: GameEvent = { id: 'p1', turn: 0, actorId: 'patron_1', kind: 'presence', zone: 'tav_common', activity: 'drink', effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   presence.perception = computePerception(presence, s, rng);
   const opening = buildNarrationView(s, [presence], null);
   expect(opening.events[0].actor).toBe('a tavern patron');
   expect(opening.actors).toContainEqual({ label: 'a tavern patron', zone: 'common room', activityLook: 'nursing a drink' });
   expect(JSON.stringify(opening)).not.toContain('Old Wim');
 
-  const line: GameEvent = { id: 'v1', turn: 1, actorId: 'patron_1', kind: 'speak', zone: 'tav_common', line: { text: "Name's Wim. Old Wim.", volume: 'normal', introduces: ['patron_1'] }, effects: [], noise: 1, visibility: 2, perception: {} };
+  const line: GameEvent = { id: 'v1', turn: 1, actorId: 'patron_1', kind: 'speak', zone: 'tav_common', line: { text: "Name's Wim. Old Wim.", volume: 'normal', introduces: ['patron_1'] }, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   line.perception = computePerception(line, s, rng);
   updateBeliefs(s, { kind: 'event', event: line });
   applyIntroduces(s, s.actors.find((a) => a.id === 'patron_1')!, line.line!.introduces); // as emit() does for a fully heard line

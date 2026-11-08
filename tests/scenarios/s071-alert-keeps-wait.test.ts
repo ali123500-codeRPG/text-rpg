@@ -14,7 +14,7 @@ it('71 Alert keeps the wait: wait_alert in the same zone, back to wait after DEC
   switchRoutine(s, c, 'wait', 'agent');
   const anchor = c.mind!.routine!.anchorTurn;
   s.turn = 5;
-  const fight: GameEvent = { id: 'ev_1', turn: 5, actorId: 'slime_1', kind: 'attack', zone: 'field_mid', target: 'player', effects: [], noise: 2, visibility: 2, perception: { comp: { level: 'partial', cue: 'sound' } } };
+  const fight: GameEvent = { id: 'ev_1', turn: 5, actorId: 'slime_1', kind: 'attack', zone: 'field_mid', target: 'player', effects: [], noise: 'normal', visibility: 'normal', perception: { comp: { level: 'partial', cue: 'sound' } } };
   updateAlarms(s, [fight]);
   expect(c.mind!.routine).toEqual({ id: 'wait_alert', anchorTurn: 5 });
   expect(desiredState(buildActorView(s, 'comp'))).toEqual({ zone: 'field_edge', activity: 'stand_watch' });

@@ -14,9 +14,9 @@ it('48 Barks copy nothing', () => {
   const s = makeVillage({ playerZone: 'street_square' });
   place(s, 'slime_1', 'gate_inner');
   actor(s, 'guard_1').mind!.knowledge.slime_1 = { status: 'tracking', lastKnownZone: 'gate_inner', lastSeenTurn: 1, source: 'seen', revealed: [] };
-  run(s, { id: 'e1', turn: 1, actorId: 'guard_1', kind: 'attack', zone: 'gate_inner', target: 'slime_1', effects: [], noise: 2, visibility: 2, perception: {} });
+  run(s, { id: 'e1', turn: 1, actorId: 'guard_1', kind: 'attack', zone: 'gate_inner', target: 'slime_1', effects: [], noise: 'normal', visibility: 'normal', perception: {} });
   const before = structuredClone(s.actors.map((a) => [a.id, a.mind?.knowledge]));
-  const bark = run(s, { id: 'e2', turn: 1, actorId: 'guard_1', kind: 'speak', zone: 'gate_inner', bark: true, line: { text: 'Slime at the gate!', volume: 'shout' }, effects: [], noise: 3, visibility: 2, perception: {} });
+  const bark = run(s, { id: 'e2', turn: 1, actorId: 'guard_1', kind: 'speak', zone: 'gate_inner', bark: true, line: { text: 'Slime at the gate!', volume: 'shout' }, effects: [], noise: 'loud', visibility: 'normal', perception: {} });
   expect(Object.keys(bark.perception).length).toBeGreaterThan(1); // it was heard (and is narrated)
   expect(s.actors.map((a) => [a.id, a.mind?.knowledge])).toEqual(before);
   expect(actor(s, 'trader').mind!.knowledge.slime_1).toBeUndefined();
