@@ -592,6 +592,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Conditions:** The weapon has a melee mode.
 - **Effect:** That draw, switch or pick-up does not use the owner's action.
 - **Lasts:** Always.
+- **Open:** Does nothing today: draw, switch and pick-up are already free for everyone (AE1, test 91). A replacement is asked in the All-50 doc.
 - **Built:** not yet
 
 ### Counter (Combat – Arms) · T1c
@@ -600,10 +601,10 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Always on
 - **Trigger:** A melee attack on the owner is resolved.
-- **Conditions:** The attack roll ends in Critical Failure or worse (Ali, 08/11/2026). The owner holds a melee weapon or can strike unarmed, and is active. Once per turn.
-- **Effect:** The owner makes one melee attack at the attacker at once, with its current weapon. It does not use the owner's action.
+- **Conditions:** The attack roll ends in Critical Failure or worse (Ali, 08/11/2026). The attack was not itself a free attack. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed. Once per turn.
+- **Effect:** The owner makes one attack at the attacker at once, with that mode. It does not use the owner's action.
 - **Lasts:** That attack.
-- **Built:** not yet
+- **Built:** yes
 
 ### Fighter's Frame (Combat – Arms) · T1d
 
@@ -622,11 +623,11 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Automatic
 - **Trigger:** The owner's ranged attack hits.
-- **Conditions:** Once per engagement. Code picks a target the owner sees that is already hostile to the owner; none, no shot (Ali, 08/11/2026). The weapon can still shoot.
+- **Conditions:** Once per engagement. Not after a free attack. Code picks at random among actors already hostile to the owner that the owner is aware of and the weapon reaches; none, no shot (Ali, 08/11/2026).
 - **Effect:** The owner makes one more ranged attack at that target with the same weapon. It does not use the owner's action.
 - **Lasts:** That attack.
 - **Cooldown:** Once per engagement.
-- **Built:** not yet
+- **Built:** yes
 
 ### Past the Cover (Combat – Ranged) · T2c
 
@@ -653,12 +654,12 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 *Story:* When the blood starts to run, you find more in you. Once a fight, at your first serious wound, you shake one off.
 
 - **Kind:** Automatic
-- **Trigger:** The owner's health track reaches Wounded or worse.
-- **Conditions:** Once per engagement. The owner is not downed.
-- **Effect:** The owner's health track moves one level better at once.
+- **Trigger:** An attack leaves the owner at Wounded or worse on the health track.
+- **Conditions:** Once per engagement. The owner is not down (Incapacitated or worse).
+- **Effect:** The owner's health lost drops to the top of the level one better (Wounded to Injured: 45% lost). Body parts are unchanged.
 - **Lasts:** Permanent (it is healing).
 - **Cooldown:** Once per engagement.
-- **Built:** not yet
+- **Built:** yes
 
 ### Dodgy (Combat – Defense) · T4d
 
@@ -686,11 +687,11 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 *Story:* They see the blow, never the hand. Right after you strike from hiding, you try to vanish again.
 
 - **Kind:** Automatic
-- **Trigger:** The owner attacks from hiding (stealthy posture).
+- **Trigger:** The owner attacks while stealthy.
 - **Conditions:** The owner is still active after the attack.
-- **Effect:** The owner makes a free Vanishing roll at once, contested as a Vanish. It does not use the owner's action.
-- **Lasts:** That roll.
-- **Built:** not yet
+- **Effect:** The owner is stealthy again and vanishes in place: each observer makes a Vanishing contest against the owner, as a Vanish does, which can break the sight of those who see the owner. It does not use the owner's action or move.
+- **Lasts:** That contest.
+- **Built:** yes
 
 ### Child of Night (Stealth – Conventional) · T6c
 
@@ -704,15 +705,15 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 ### Hushed Steps (Stealth – Conventional) · T6d
 
-*Story:* Even your mistakes are quiet. A Sneaking slip that only just fails makes no sound.
+*Story:* Even your mistakes are quiet. Against someone who can only hear you, a Sneaking slip that only just fails still counts as a success.
 
 - **Kind:** Always on
-- **Trigger:** The owner's Sneaking roll is resolved.
-- **Conditions:** The roll ends in a Near Miss.
-- **Effect:** The move makes no noise; only Failure or worse is heard.
+- **Trigger:** The owner makes a Sneaking roll in a stealth contest.
+- **Conditions:** The observer perceives the owner by sound (hearing), not sight. The roll ends in a Near Miss.
+- **Effect:** Tier shift +1 on that roll, so it counts as a Success. Only Failure or worse is heard.
 - **Lasts:** That roll.
 - **Open:** Renamed from the doc's "Light Feet", which is already a 40 perk.
-- **Built:** not yet
+- **Built:** yes
 
 ### Easy Speaker (Speech) · T7d
 
@@ -722,5 +723,5 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Trigger:** An NPC makes a Persuasion or Intimidation roll at the owner.
 - **Effect:** Tier shift −1 on that roll.
 - **Lasts:** That roll.
-- **Needs first:** NPC speech aimed at the player.
+- **Needs first:** NPC speech aimed at the player: today only the player rolls speech, and NPCs answer with a contest roll.
 - **Built:** not yet
