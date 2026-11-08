@@ -8,7 +8,7 @@ import { tierGap } from '../agents/game';
 import { tierAtLeast, tierName } from '../ruleset';
 import type { TierRoll } from '../types';
 import { h } from './kit';
-import { POSTURES } from '../scales';
+import { stealthBadge, stealthButtons } from './stealth';
 import { now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { sideSheet } from './charsheet';
@@ -70,8 +70,8 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined })) },
     // ST3: sneaking is free; hiding takes the action
     { group: 'Stealth', items: pv.player.posture === 'stealthy'
-      ? [{ text: 'Hide' }, ...pv.zone.links.filter((l) => !l.frontier).map((l) => ({ text: `Sneak ${l.label}` }))]
-      : [{ text: 'Sneak', note: 'free' }, { text: 'Hide' }] },
+      ? [{ text: 'Hide', note: 'your action' }, ...pv.zone.links.filter((l) => !l.frontier).map((l) => ({ text: `Sneak ${l.label}` }))]
+      : [{ text: 'Sneak', note: 'free' }, { text: 'Hide', note: 'your action' }] },
     { group: 'Use', items: [
       ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
       ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },
@@ -102,8 +102,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', placeholder: 'What do you do? A line starting with / is a command (/help)', 'aria-label': 'What do you do' });
   const send = h('button', { class: 'hs-btn-main', type: 'submit' }, 'Send');
   const healBtn = h('button', { type: 'button', class: 'itm' });
-  const aimPicker = h('div', { class: 'hs-picker' }, aimBtn, healBtn);
   let open: 'commands' | 'ideas' | null = null;
+  const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
+  const st = stealthButtons(pick);
+  const aimPicker = h('div', { class: 'hs-picker' }, aimBtn, st.sneak, st.hide, healBtn);
   const helpBtn = (id: 'commands' | 'ideas', label: string) => h('button', { type: 'button', onclick: () => { open = open === id ? null : id; update(); } }, label);
   const cmdBtn = helpBtn('commands', 'Commands'), ideaBtn = helpBtn('ideas', 'Ideas');
   const helpPanel = h('div', { class: 'helps', hidden: true });
@@ -118,7 +120,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const el = h('main', { class: 'playmain' }, title, who, h('div', { class: 'play-wrap' }, body, sheet), fell);
 
   let offered: LogLine | null = null;
-  const pick = (text: string) => { input.value = text; open = null; update(); input.focus(); };
 
   async function submit() {
     const text = input.value.trim();
@@ -179,7 +180,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   function update() {
     const s = api.state();
     const pv = s ? safe(() => buildPlayerView(s)) : null;
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}${s.player.posture === 'stealthy' ? ` · ${POSTURES.name('stealthy')}` : ''}`, ...placeLine(s, pv)] : 'No story yet')),
+    const stealthy = s?.player.posture === 'stealthy';
+    bar.classList.toggle('stealthy', stealthy);
+    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
       h('p', { class: 'hs-note calls', title: 'Every request this page sent to Claude since it was opened, counted by code. Repairs and background calls count too.' },
         `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`),
       bgNote() ?? '');
@@ -225,6 +228,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     input.disabled = stopped || api.busy();
     send.disabled = stopped || api.busy();
     aimBtn.disabled = stopped;
+    st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
     if (!input.disabled && !el.hidden && el.isConnected && (document.activeElement === document.body || document.activeElement === send)) input.focus();
     aimBtn.setAttribute('aria-pressed', String(aimed));

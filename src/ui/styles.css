@@ -435,3 +435,21 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .inbar button.itm[hidden] { display: none; }
 .hico svg { width: 20px; height: 20px; display: block; }
 .itm b { font-weight: 600; color: #cfd8f5; }
+/* Stealth (src/ui/stealth.ts): Sneak and Hide in the action bar; a filled badge and an outlined bar while stealthy, in the Stealth tree's colour */
+.st-i { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.inbar button.st-act { color: var(--text); }
+.inbar button.st-act .st-i { color: var(--c3); }
+.stealthy-b { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; margin-left: 10px; position: relative; top: -2px;
+  padding: 3px 10px 3px 8px; border-radius: var(--r-pill); background: var(--c3); color: #10141a; font-size: 13px; font-weight: 700; letter-spacing: .02em;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--c3) 25%, transparent); }
+.stealthy-b .st-i { width: 15px; height: 15px; }
+.inbar.stealthy .hs-input { border-color: var(--c3); border-style: dashed; box-shadow: 0 0 0 3px color-mix(in oklch, var(--c3) 18%, transparent); }
+@media (max-width: 760px) {
+  .inbar { flex-wrap: wrap; }
+  .inbar .hs-input { flex: 1 0 100%; order: -1; }
+  .inbar button.st-act .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
+.tod[data-tip]:hover::after, .tod[data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%);
+  white-space: nowrap; padding: 4px 10px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid color-mix(in oklch, var(--tod) 55%, transparent);
+  color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: 0; z-index: 5; pointer-events: none; }
+.tod:focus-visible { outline: none; }
