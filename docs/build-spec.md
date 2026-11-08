@@ -1237,7 +1237,7 @@ Ali, 08/11/2026, ST1–ST10.
 - Sneak costs nothing: it keeps the turn's move and main action. Hide is the main action. Both are offered in the Ideas panel; code picks the skill (Sneaking, or Combat Stealth while engaged or attacking).
 - What ends it: speaking above a whisper, any speech action, and a melee attack (the blow shows you). A ranged attack keeps it; the shot is noticed only through the stealth contest (Combat Stealth) per observer.
 - While stealthy, the player's events reach only observers already aware of them; everyone else is reached only through the contest.
-- **Situation tags** (ST21–ST22, Ali 08/11/2026). Situational modifiers apply by tag: each skill lists its situation tags (docs/skill-tags.md), and each situational table names the tags it reaches and the sign (CONFIG.SITUATION\_TAGS). Light (LIGHT\_MODS, read where the action is) hurts sight (every attack, Block, Dodge, Sight) and helps stealth (the three Stealth skills). Cover (COVER\_GAP, in tiers) helps hide (Vanishing) and hurts a ranged attack against a target in cover (a gap shift, as before). An action can add a tag: a Hide adds hide and ignores the move role, so leg wounds don't count (ST10). In a stealth contest both rolls get their own tags' tables, so darkness also hurts the observer's Sight. Darkness never hurts hearing, so against an observer who only hears the player, light gives the stealth roll no help either (Ali, 08/11/2026, P14). Leg wounds stay on body-part roles.
+- **Situation tags** (ST21–ST22, Ali 08/11/2026). Situational modifiers apply by tag: each skill lists its situation tags (docs/skill-tags.md), and each situational table names the tags it reaches and the sign (CONFIG.SITUATION\_TAGS). Light (LIGHT\_MODS, read where the action is) hurts sight (every attack, Block, Dodge, Sight) and helps stealth (the three Stealth skills). Cover (COVER\_GAP, in tiers) helps hide (Vanishing) and hurts a ranged attack against a target in cover (a gap shift, as before). An action can add a tag: a Hide adds hide and ignores the move role, so leg wounds don't count (ST10). In a stealth contest both rolls get their own tags' tables, so darkness also hurts the observer's Sight. Darkness never hurts hearing, so against an observer who only hears the player, light gives the stealth roll no help either (Ali, 08/11/2026, P14). Leg wounds stay on body-part roles. Hearing carries a hearing tag (Ali, 08/11/2026); no table reads it yet.
 - **Unblinking** (ST23, the sight 60 perk): an observer with it who loses a Vanish must also lose a Sneaking or Combat Stealth contest before losing the player.
 - Hide and Sneak never shake off someone who already sees you (ST12): those observers get no roll.
 - **Vanish** (ST11–ST19) is active hiding: a move that breaks established sight, so it needs a destination one link away (with none, the Parser asks where). Which part of the turn it uses is a balance lever for later (ST13). Every observer who could perceive the move contests it against the player's Vanishing. One who saw the player and loses it drops to suspicious at the zone the player left (test 3); a tie or a win changes nothing for them. For everyone else a Vanish counts as a passed Sneaking or Combat Stealth check (ST16). Light and cover help it, and leg wounds count.
@@ -1632,6 +1632,7 @@ Size is set per body type, not per part name: one body type can have big arms an
 | Move (legs) | Yes | −10 | −20 to dodge (movement effects: D-99) | Dodge, athletics, stealth, fleeing |
 | Fly (wing) | Yes | −10 to flying | Can't fly | Flight |
 | Strike (tail, horns, bite) | No: per part | −10 to that attack | That attack is unavailable | Attacks made with the part |
+| Speech (head) | Yes | −10 | −20 | Speech rolls: persuasion, intimidation, barter (Ali, 08/11/2026) |
 
 - **Several roles:** a part can carry more than one (a dragon's head is Sense and Strike, for its bite); each role's effects apply.
 - **Shared roles:** the penalty is split between the parts that have the role. A dragon has two Move parts, so one Damaged pair of legs gives −5, not −10.
@@ -1653,7 +1654,7 @@ On/off effects of shared roles (no running, can't fly) switch on when Crippled a
 
 | Part | Size | Impact | Roles | Location roll |
 | --- | --- | --- | --- | --- |
-| Head | Small | Essential | Sense | 01–07 |
+| Head | Small | Essential | Sense, Speech | 01–07 |
 | Left arm | Normal | Normal | Grip | 08–22 |
 | Right arm | Normal | Normal | Grip | 23–37 |
 | Left leg | Normal | Normal | Move | 38–52 |
@@ -1669,7 +1670,7 @@ The neck is adjacent to the head and the general area. Head and neck are separat
 
 | Part | Size | Impact | Roles | Location roll |
 | --- | --- | --- | --- | --- |
-| Head | Normal | Essential | Sense, Strike | 01–09 |
+| Head | Normal | Essential | Sense, Strike, Speech | 01–09 |
 | Left wing | Normal | Non-essential | Fly | 10–18 |
 | Right wing | Normal | Non-essential | Fly | 19–27 |
 | Forelegs | Normal | Normal | Move | 28–36 |
@@ -1690,7 +1691,8 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
     "grip": {"shared": false},
     "move": {"shared": true},
     "fly": {"shared": true},
-    "strike": {"shared": false}
+    "strike": {"shared": false},
+    "speech": {"shared": true}
   },
   "bodyTypes": {
     "humanoid": {
@@ -1698,7 +1700,7 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
       "naturalAttacks": [{"id": "punch", "tree": "unarmed", "class": "punch", "skill": "unarmed_strike", "reach": 0, "hands": 0},
                         {"id": "grapple", "tree": "unarmed", "class": "grapple", "skill": "unarmed_grapple", "reach": 0, "hands": 0}],
       "parts": [
-        {"id": "head", "size": "small", "impact": "essential", "roles": ["sense"], "adjacent": ["general", "neck"]},
+        {"id": "head", "size": "small", "impact": "essential", "roles": ["sense", "speech"], "adjacent": ["general", "neck"]},
         {"id": "left_arm", "size": "normal", "impact": "normal", "roles": ["grip"]},
         {"id": "right_arm", "size": "normal", "impact": "normal", "roles": ["grip"]},
         {"id": "left_leg", "size": "normal", "impact": "normal", "roles": ["move"]},
@@ -1714,7 +1716,7 @@ Code keeps every body type, its parts and the role table. Agent Weaver names the
     "winged_quadruped": {
       "general": {"name": "body", "size": "big"},
       "parts": [
-        {"id": "head", "size": "normal", "impact": "essential", "roles": ["sense", "strike"]},
+        {"id": "head", "size": "normal", "impact": "essential", "roles": ["sense", "strike", "speech"]},
         {"id": "left_wing", "size": "normal", "impact": "non_essential", "roles": ["fly"]},
         {"id": "right_wing", "size": "normal", "impact": "non_essential", "roles": ["fly"]},
         {"id": "forelegs", "size": "normal", "impact": "normal", "roles": ["move"]},

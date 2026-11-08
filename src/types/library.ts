@@ -9,8 +9,8 @@ export type SkillFunction = 'melee_attack' | 'ranged_attack' | 'unarmed_attack' 
 /** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 /** Situation tags (Ali, 08/11/2026, ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
-export type SituationTag = 'sight' | 'stealth' | 'hide' | 'ranged';
-export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike';
+export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
+export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike' | 'speech';
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
 

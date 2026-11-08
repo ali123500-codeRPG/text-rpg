@@ -34,9 +34,10 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('sneaking', 'stealth', ['stealth'], ['move'], undefined, 'notice'),
   sk('combat_stealth', 'stealth', ['stealth'], ['move'], undefined, 'offensive'),
   sk('vanishing', 'stealth', ['stealth'], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
-  sk('persuasion', 'speech', ['influence'], []),
-  sk('intimidation', 'speech', ['influence'], []),
-  sk('barter', 'speech', ['influence'], []),
+  // speech role (Ali, 08/11/2026): head wounds reduce speech rolls
+  sk('persuasion', 'speech', ['influence'], ['speech']),
+  sk('intimidation', 'speech', ['influence'], ['speech']),
+  sk('barter', 'speech', ['influence'], ['speech']),
   sk('feint', 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk('riposte', 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk('disarm', 'swordsman', [], ['grip'], undefined, 'offensive'),
@@ -52,7 +53,7 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   melee_light: ['sight'], melee_medium: ['sight'], melee_heavy: ['sight'],
   ranged_light: ['sight', 'ranged'], ranged_medium: ['sight', 'ranged'], ranged_heavy: ['sight', 'ranged'],
   unarmed_strike: ['sight'], unarmed_grapple: ['sight'], unarmed_improvised: ['sight'], unarmed_natural: ['sight'],
-  dodge: ['sight'], block: ['sight'], sight: ['sight'],
+  dodge: ['sight'], block: ['sight'], sight: ['sight'], hearing: ['hearing'], // hearing: no table reads it yet
   sneaking: ['stealth'], combat_stealth: ['stealth'], vanishing: ['stealth', 'hide'],
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
@@ -111,7 +112,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
     naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' },
       { id: 'grapple', tree: 'unarmed', class: 'grapple', skill: 'unarmed_grapple', reach: 0, hands: 0, name: 'grapple' }],
     parts: [
-      { id: 'head', size: 'small', impact: 'essential', roles: ['sense'], adjacent: ['general', 'neck'] },
+      { id: 'head', size: 'small', impact: 'essential', roles: ['sense', 'speech'], adjacent: ['general', 'neck'] },
       { id: 'left_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
       { id: 'right_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
       { id: 'left_leg', size: 'normal', impact: 'normal', roles: ['move'] },
@@ -145,7 +146,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
     id: 'winged_quadruped', general: { name: 'body', size: 'big' },
     naturalAttacks: [],
     parts: [
-      { id: 'head', size: 'normal', impact: 'essential', roles: ['sense', 'strike'] },
+      { id: 'head', size: 'normal', impact: 'essential', roles: ['sense', 'strike', 'speech'] },
       { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: ['fly'] },
       { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: ['fly'] },
       { id: 'forelegs', size: 'normal', impact: 'normal', roles: ['move'] },
@@ -277,7 +278,7 @@ export function prototypeLibrary(): Library {
     classes: {
       swordsman: { id: 'swordsman', name: 'Swordsman', floors: { melee_medium: 25, block: 15 } },
     },
-    roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false } },
+    roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
     // Healing sources (Ali, 07/11/2026, H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
