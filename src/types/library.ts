@@ -1,4 +1,4 @@
-// Library content shapes (Part 1 §3 skills, Part 3 creature database, Part 4 classes/templates, Part 5 items, routine bank).
+// Library content shapes (Part 1 §3 skills, Part 3 body type database, Part 4 classes/templates, Part 5 items, routine bank).
 import type { AttackMode, ItemDef } from './items';
 import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
@@ -30,7 +30,7 @@ export type ClassDef = { id: string; name: string; treeId: string; floors: Recor
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
 export type NaturalArmor = { covers: string[]; reduction: number; multiplier: number; pools?: Record<string, number> };
-export type CreatureType = {
+export type BodyType = {
   id: string;
   hpMultiplier: number;
   general: { name: string; size: SizeId };
@@ -49,7 +49,7 @@ export type Library = {
   trees: Record<string, TreeDef>;
   classes: Record<string, ClassDef>;
   roles: Record<RoleId, { shared: boolean }>;
-  creatures: Record<string, CreatureType>;
+  bodyTypes: Record<string, BodyType>;
   items: Record<string, ItemDef>;
   templates: Record<string, NpcTemplate>;
   activities: Record<string, ActivityDef>;
@@ -58,7 +58,7 @@ export type Library = {
   perks: Record<string, PerkDef>;
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
-  races?: Record<string, RaceDef>; // Part 4 §4: a race sets the creature type and its innate perks and quirks
+  races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
 };
 
@@ -87,8 +87,8 @@ export type PerkRules = { kind: string; trigger: string; conditions: string[]; e
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked'; story: string; rules: PerkRules };
 
 /** X6/X11 (Ali, 07/11/2026): a library achievement, each with its own id and name. 'defeats' is earned at `count`
- * defeats (first defeat = count 1). With `by`, it is earned once per creature type or race: the granted id is
- * <id>:<type or race> and {creature}/{race} in the name become what was defeated. 'mastery' once per tree when all three
+ * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
+ * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
 /** How long an action takes on the game clock (T1, Ali 07/11/2026). `orders` lists the order types the row covers;
  * the row with no `orders` named 'action' is the default; 'fight_turn' is every turn of a fight; 'sleep' is one sleep. */
@@ -106,7 +106,7 @@ export type HealingDef = {
 
 /** innatePerks / innateQuirks (Ali, 08/11/2026): perk ids every member of the race is born with (OwnedPerk source 'race').
  * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
-export type RaceDef = { id: string; name: string; creatureTypeId: string; innatePerks?: string[]; innateQuirks?: string[] };
+export type RaceDef = { id: string; name: string; bodyTypeId: string; innatePerks?: string[]; innateQuirks?: string[] };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */
-export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'creature' | 'race' };
+export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'body_type' | 'race' };

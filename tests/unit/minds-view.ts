@@ -14,7 +14,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
       id: a.id, label: a.label, name: a.names.current, kind: 'npc', zone: a.zone, placeId: a.placeId, bandId: a.bandId,
       health: 'Unhurt', parts: [], active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       fearless: !!m.fearless, control: m.control, standingDefense: a.core.standingDefense, gear: [],
-      attackSkill: tpl?.fallback?.attackSkill ?? getLibrary().creatures[a.core.creatureTypeId].fallback.attackSkill,
+      attackSkill: tpl?.fallback?.attackSkill ?? getLibrary().bodyTypes[a.core.bodyTypeId].fallback.attackSkill,
       routine: m.routine ? { ...m.routine } : undefined,
       routines: (m.routines ?? []).map((r) => ({ id: r, brief: '' })),
       routineSetId: m.routineSetId, slots: { ...(m.slots ?? {}) }, alarm: m.alarm ? { ...m.alarm } : undefined,

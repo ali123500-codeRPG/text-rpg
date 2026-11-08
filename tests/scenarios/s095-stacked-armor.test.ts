@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
-import { creatureType } from '../../src/library';
+import { bodyType } from '../../src/library';
 
 describe('95 Stacked armor', () => {
   it('worn armor, then natural armor, floor 0, not rounded', () => {
     const s = makeVillage();
-    const scaled = { ...structuredClone(creatureType(null, 'humanoid')), id: 'scaled_man', naturalArmor: { covers: ['general'], reduction: 2, multiplier: 0.5 } };
-    s.blueprints.push({ storyId: 'test', id: 'scaled_man', kind: 'creature', data: scaled });
+    const scaled = { ...structuredClone(bodyType(null, 'humanoid')), id: 'scaled_man', naturalArmor: { covers: ['general'], reduction: 2, multiplier: 0.5 } };
+    s.blueprints.push({ storyId: 'test', id: 'scaled_man', kind: 'body_type', data: scaled });
     const t = s.actors.find((a) => a.id === 'patron_1')!;
-    t.core.creatureTypeId = 'scaled_man';
+    t.core.bodyTypeId = 'scaled_man';
     t.core.inventory.push({ id: 'gam', itemId: 'gambeson', equippedIn: ['armor'] });
     // player 50 → Success; patron dodge 0 − 5 (gambeson): 30 − 2.5 − 63.5 → Failure; gap −2; location 80 → general
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false };

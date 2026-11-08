@@ -1,7 +1,7 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import type { Actor, CreationBuild, GameState, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
-import { creatureType, getLibrary, itemDef, npcTemplate } from './index';
+import { bodyType, getLibrary, itemDef, npcTemplate } from './index';
 
 let seq = 0;
 export function newInstanceId(prefix = 'it'): string {
@@ -12,8 +12,8 @@ export function resetInstanceIds(): void {
   seq = 0;
 }
 
-export function fullParts(state: GameState | null, creatureTypeId: string): Record<string, number> {
-  return Object.fromEntries(creatureType(state, creatureTypeId).parts.map((p) => [p.id, 100]));
+export function fullParts(state: GameState | null, bodyTypeId: string): Record<string, number> {
+  return Object.fromEntries(bodyType(state, bodyTypeId).parts.map((p) => [p.id, 100]));
 }
 
 /** equip a loadout the obvious way: weapons/shields into free hands, armor worn. */
@@ -71,7 +71,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   const skills = t.generation === 'unique'
     ? rollUniqueSkills(t, rng!)
     : Object.fromEntries(Object.entries(t.minimums).map(([k, v]) => [k, { raw: v, state: 'normal' as const }]));
-  const ct = creatureType(state, t.creatureTypeId);
+  const ct = bodyType(state, t.bodyTypeId);
   const morale = CONFIG.PERSONALITY_MORALE[t.personality];
   return {
     id: opts.id,
@@ -83,7 +83,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     zone: opts.zone,
     bandId: opts.bandId,
     core: {
-      creatureTypeId: ct.id,
+      bodyTypeId: ct.id,
       ...(t.raceId ? { raceId: t.raceId } : {}),
       templateId: t.id,
       generation: t.generation,
@@ -161,7 +161,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     placeId: '', zone: '', // GAP: set by story-start scene setup (the village tavern, Part 2 Scene setup)
     posture: 'open', bandId: 'player_band',
     core: {
-      creatureTypeId: 'humanoid',
+      bodyTypeId: 'humanoid',
       raceId: 'human', // GAP: no race choice at creation yet
       skills,
       classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],

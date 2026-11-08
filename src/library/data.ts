@@ -1,7 +1,7 @@
-// The prototype library: skills (Part 1 §3), creatures (Part 3), classes and templates (Part 4 §4),
+// The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
-import type { ActivityDef, CreatureType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, XpCategory } from '../types';
+import type { ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, XpCategory } from '../types';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
 import { BUILT_PERKS } from './builtPerks';
@@ -105,7 +105,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: 'coin', kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
-export const CREATURES: Record<string, CreatureType> = {
+export const BODY_TYPES: Record<string, BodyType> = {
   humanoid: {
     id: 'humanoid', hpMultiplier: 1, general: { name: 'torso', size: 'normal' },
     naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' },
@@ -157,32 +157,32 @@ export const CREATURES: Record<string, CreatureType> = {
 
 export const TEMPLATES: Record<string, NpcTemplate> = {
   slime: {
-    id: 'slime', creatureTypeId: 'slime', classId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30, tremor: 50, taste: 50 },
+    id: 'slime', bodyTypeId: 'slime', classId: 'slime', generation: 'copy', minimums: { unarmed_natural: 30, tremor: 50, taste: 50 },
     level: 0, bonusPoints: 0, focus: [], personality: 'fearless', control: 'code', label: 'a slime',
     fallback: { attackSkill: 'unarmed_natural' },
   },
   guard: {
-    id: 'guard', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    id: 'guard', bodyTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { melee_medium: 40, block: 30, dodge: 20, sight: 30, hearing: 30, intimidation: 30, persuasion: 20 },
     level: 2, bonusPoints: 10,
     focus: [{ treeId: 'melee', skill: 'melee_medium' }, { treeId: 'defense', skill: 'block' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
-    id: 'trader', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    id: 'trader', bodyTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { sight: 25, hearing: 25, barter: 40, persuasion: 30 }, level: 1, bonusPoints: 0,
     focus: [{ treeId: 'perception', skill: 'hearing' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
   // NS7 (Ali, 08/11/2026): a village thief, the first stealthy NPC
   thief: {
-    id: 'thief', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    id: 'thief', bodyTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { sneaking: 40, combat_stealth: 30, vanishing: 30, melee_light: 35, dodge: 30, sight: 30, hearing: 30 }, level: 2, bonusPoints: 10,
     focus: [{ treeId: 'stealth', skill: 'sneaking' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', loadout: ['dagger', 'gambeson'], control: 'agent', label: 'a shifty villager',
   },
   patron: {
-    id: 'patron', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    id: 'patron', bodyTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { unarmed_strike: 20, sight: 20, persuasion: 30 }, level: 1, bonusPoints: 0,
     focus: [{ treeId: 'unarmed', skill: 'unarmed_strike' }, { treeId: 'defense', skill: 'dodge' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'timid', control: 'code', label: 'a tavern patron',
@@ -271,7 +271,7 @@ export function prototypeLibrary(): Library {
       slime: { id: 'slime', name: 'Slime', treeId: 'slime_senses', floors: {} },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false } },
-    creatures: CREATURES,
+    bodyTypes: BODY_TYPES,
     // Healing sources (Ali, 07/11/2026, H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
       rest: { id: 'rest', name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, reach: 'damaged', revivesDead: false, inFight: false },
@@ -291,8 +291,8 @@ export function prototypeLibrary(): Library {
     // Ali (07/11/2026): humans and elves for now, identical
     // innate perks and quirks per race (Ali, 08/11/2026): lists, empty until chosen
     races: {
-      human: { id: 'human', name: 'Human', creatureTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
-      elf: { id: 'elf', name: 'Elf', creatureTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
+      human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
+      elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
     },
     items: ITEMS,
     templates: TEMPLATES,
@@ -303,9 +303,9 @@ export function prototypeLibrary(): Library {
     perks: Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => d.ladder).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
     achievements: {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
-      first_defeat: { id: 'first_defeat', name: 'First {creature} Felled', level: 'i', rule: 'defeats', count: 1, by: 'creature' },
-      defeats_10_creature: { id: 'defeats_10', name: '{creature}bane', level: 'ii', rule: 'defeats', count: 10, by: 'creature' },
-      defeats_100_creature: { id: 'defeats_100', name: 'Scourge of the {creature} Hordes', level: 'iii', rule: 'defeats', count: 100, by: 'creature' },
+      first_defeat: { id: 'first_defeat', name: 'First {body_type} Felled', level: 'i', rule: 'defeats', count: 1, by: 'body_type' },
+      defeats_10_body_type: { id: 'defeats_10', name: '{body_type}bane', level: 'ii', rule: 'defeats', count: 10, by: 'body_type' },
+      defeats_100_body_type: { id: 'defeats_100', name: 'Scourge of the {body_type} Hordes', level: 'iii', rule: 'defeats', count: 100, by: 'body_type' },
       first_defeat_race: { id: 'first_defeat_race', name: 'First of {race}kind Felled', level: 'i', rule: 'defeats', count: 1, by: 'race' },
       defeats_10_race: { id: 'defeats_10_race', name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', count: 10, by: 'race' },
       defeats_100_race: { id: 'defeats_100_race', name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', count: 100, by: 'race' },

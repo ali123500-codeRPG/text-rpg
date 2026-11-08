@@ -308,7 +308,7 @@ describe('migration and reconcile', () => {
     delete l.skills.melee_medium;
     delete l.skills.barter;
     l.status = { melee_medium: { state: 'renamed', to: 'blades' }, barter: { state: 'deleted' } };
-    l.creatures.humanoid.parts.push({ id: 'tail', size: 'small', impact: 'non_essential', roles: [] });
+    l.bodyTypes.humanoid.parts.push({ id: 'tail', size: 'small', impact: 'non_essential', roles: [] });
     const { state, report } = await loadStory(st, 'test', l);
     expect(state.player.core.skills.blades).toEqual({ raw: 50, state: 'tagged' });
     expect(state.player.core.skills.melee_medium).toBeUndefined();

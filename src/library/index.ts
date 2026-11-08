@@ -1,5 +1,5 @@
 // Library access. Lookup order: the story's blueprints first, then the library (Part 4 §2), following aliases.
-import type { ActivityDef, CreatureType, GameState, ItemDef, Library, NpcTemplate, Routine, RoutineSet } from '../types';
+import type { ActivityDef, BodyType, GameState, ItemDef, Library, NpcTemplate, Routine, RoutineSet } from '../types';
 import { prototypeLibrary } from './data';
 
 let current: Library = prototypeLibrary();
@@ -26,7 +26,7 @@ export function resolveAlias(id: string, lib: Library = current): string {
   return cur;
 }
 
-function blueprint<T>(state: GameState | null | undefined, kind: 'item' | 'creature' | 'npcTemplate', id: string): T | undefined {
+function blueprint<T>(state: GameState | null | undefined, kind: 'item' | 'body_type' | 'npcTemplate', id: string): T | undefined {
   const bp = state?.blueprints?.find((b) => b.kind === kind && b.id === id);
   return bp ? (bp.data as T) : undefined;
 }
@@ -36,9 +36,9 @@ export function itemDef(state: GameState | null | undefined, itemId: string): It
   if (!d) throw new Error(`unknown item ${itemId}`);
   return d;
 }
-export function creatureType(state: GameState | null | undefined, id: string): CreatureType {
-  const d = blueprint<CreatureType>(state, 'creature', id) ?? current.creatures[resolveAlias(id)];
-  if (!d) throw new Error(`unknown creature type ${id}`);
+export function bodyType(state: GameState | null | undefined, id: string): BodyType {
+  const d = blueprint<BodyType>(state, 'body_type', id) ?? current.bodyTypes[resolveAlias(id)];
+  if (!d) throw new Error(`unknown body type ${id}`);
   return d;
 }
 export function npcTemplate(state: GameState | null | undefined, id: string): NpcTemplate {

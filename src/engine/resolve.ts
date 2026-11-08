@@ -1,7 +1,7 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
-import { activity, creatureType, getLibrary, itemDef, routine } from '../library';
+import { activity, bodyType, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { defaultMode, hasPerk, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -491,7 +491,7 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 const lame = (state: GameState, a: Actor) => {
   if (slowed(state, a)) return true;
   const parts = new Map(partStates(state, a).map((p) => [p.id, p.state]));
-  return creatureType(state, a.core.creatureTypeId).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
+  return bodyType(state, a.core.bodyTypeId).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
 };
 
 /** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a

@@ -6,7 +6,7 @@ import type {
 } from '../types';
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
-import { creatureType, itemDef } from '../library';
+import { bodyType, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
@@ -152,7 +152,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const dist = path ? path.length : Infinity;
   const { mode, name } = resolveMode(state, A, req.weaponId, req.modeId, dist);
   const ranged = mode.tree === 'ranged';
-  const ct = creatureType(state, D.core.creatureTypeId);
+  const ct = bodyType(state, D.core.bodyTypeId);
   const zoneA = zoneById(state, A.zone);
   const zoneD = zoneById(state, D.zone);
 
@@ -295,7 +295,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     return out;
   }
 
-  const ct = creatureType(state, T.core.creatureTypeId);
+  const ct = bodyType(state, T.core.bodyTypeId);
   const hp = totalHp(state, T);
   const levelBefore = healthLevel(T);
   // armor pool on the struck part drains first; it never counts on the health track

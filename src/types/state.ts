@@ -106,7 +106,7 @@ export type HiddenPage = { storyId: StoryId } & HiddenStore;
 export type BlueprintPage = {
   storyId: StoryId;
   id: LibraryRef;
-  kind: 'item' | 'creature' | 'npcTemplate';
+  kind: 'item' | 'body_type' | 'npcTemplate';
   data: Record<string, unknown>;
 };
 

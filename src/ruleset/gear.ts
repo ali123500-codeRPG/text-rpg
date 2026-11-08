@@ -2,7 +2,7 @@
 import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
 import { CONFIG } from '../config';
-import { creatureType, getLibrary, itemDef } from '../library';
+import { bodyType, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, trueSkill } from './perks';
 import { heldBy } from '../engine/relations';
@@ -135,7 +135,7 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
   return { itemId: best.id, stowed: off.id };
 }
 
-/** fallback unarmed mode for a creature with no natural attacks (UNARMED_PROFILE = class punch) */
+/** fallback unarmed mode for a body type with no natural attacks (UNARMED_PROFILE = class punch) */
 export const UNARMED_MODE: AttackMode = { id: 'unarmed', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
@@ -147,7 +147,7 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
     if (!isHeld(inst) || !handsOf(inst).every((h) => grips.includes(h))) continue;
     for (const mode of itemDef(state, inst.itemId).weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode });
   }
-  const ct = creatureType(state, actor.core.creatureTypeId);
+  const ct = bodyType(state, actor.core.bodyTypeId);
   for (const mode of ct.naturalAttacks) {
     if (!mode.partId || working(poolState(partPct(actor, mode.partId)))) out.push({ itemId: `natural:${mode.id}`, mode });
   }
@@ -162,7 +162,7 @@ export function defaultMode(state: GameState, actor: Actor, distance: number): {
 
 /** the mode an attack request names (item instance, 'natural:<id>' or 'unarmed') */
 export function resolveMode(state: GameState, actor: Actor, weaponId: string, modeId: string | undefined, distance: number): { mode: AttackMode; name: string } {
-  const ct = creatureType(state, actor.core.creatureTypeId);
+  const ct = bodyType(state, actor.core.bodyTypeId);
   if (weaponId === 'unarmed' || weaponId.startsWith('natural:')) {
     const id = weaponId === 'unarmed' ? modeId : weaponId.slice(8);
     const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !m.partId) ?? UNARMED_MODE : undefined);

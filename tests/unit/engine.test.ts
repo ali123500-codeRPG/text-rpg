@@ -18,7 +18,7 @@ const F = vi.hoisted(() => ({
 
 vi.mock('../../src/ruleset', async (orig) => {
   const real = await orig<typeof import('../../src/ruleset')>();
-  const { itemDef, creatureType } = await import('../../src/library');
+  const { itemDef, bodyType } = await import('../../src/library');
   const roll = (req: RollRequest) => {
     const tier = F.rollTier[req.actorId] ?? 'success';
     return { actorId: req.actorId, skill: req.skill, d100: 50, margin: 0, tier, natural: 0 as const, modifiers: [], tierShifts: [] };
@@ -26,7 +26,7 @@ vi.mock('../../src/ruleset', async (orig) => {
   const usableModes = (_s: GameState, a: Actor) => {
     const held = a.core.inventory.filter((i) => i.equippedIn?.some((x) => x.startsWith('hand:')));
     const modes = held.flatMap((i) => (itemDef(null, i.itemId).weapon?.modes ?? []).map((mode) => ({ itemId: i.id, mode })));
-    const nat = creatureType(null, a.core.creatureTypeId).naturalAttacks.map((mode) => ({ itemId: `natural:${mode.id}`, mode }));
+    const nat = bodyType(null, a.core.bodyTypeId).naturalAttacks.map((mode) => ({ itemId: `natural:${mode.id}`, mode }));
     return [...modes, ...nat];
   };
   return {

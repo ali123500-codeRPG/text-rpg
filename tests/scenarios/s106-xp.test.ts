@@ -27,7 +27,7 @@ describe('106 XP and levels', () => {
     s.player.core.skills.lockpicking = { raw: 90, state: 'normal' }; // misc counts 0
     expect(rating(s.player)).toBe(before);
   });
-  it('ten defeats earn defeats_10 and defeats_10:<creature> once each, named for what was defeated', () => {
+  it('ten defeats earn defeats_10 and defeats_10:<body type> once each, named for what was defeated', () => {
     const s = makeVillage();
     for (let i = 0; i < 11; i++) {
       const a = structuredClone(actor(s, 'slime_1'));
@@ -39,9 +39,9 @@ describe('106 XP and levels', () => {
     const ids = s.player.progression!.achievements!.map((a) => a.id);
     expect(ids).toEqual(['first_defeat:slime', 'defeats_10:slime', 'defeats_10']);
     expect(s.player.progression!.achievements!.map((a) => achievementName(s, a))).toEqual(['First Slime Felled', 'Slimebane', 'Blooded Fighter']);
-    getLibrary().achievements!.defeats_10_creature.name = 'Slime Hunter {creature}'; // renaming edits only the table
+    getLibrary().achievements!.defeats_10_body_type.name = 'Slime Hunter {body_type}'; // renaming edits only the table
     expect(achievementName(s, s.player.progression!.achievements![1])).toBe('Slime Hunter Slime');
-    getLibrary().achievements!.defeats_10_creature.name = '{creature}bane';
+    getLibrary().achievements!.defeats_10_body_type.name = '{body_type}bane';
   });
   it('every achievement pays the XP of its reward level', () => {
     const lib = getLibrary().achievements!;
