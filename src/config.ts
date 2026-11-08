@@ -106,6 +106,9 @@ const DEFAULTS = {
   ACCESSORY_SLOTS: 3,
   ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
   ARMOR_DODGE: { light: -5, medium: -10, heavy: -20 } as Record<string, number>,
+  // GAP (placeholders, AN1–AN4 Ali 08/11/2026): worn armor makes body-moving events this many NOISE steps louder, per
+  // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
+  ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
     hitAdj: [2, 4, 6, 8], damageAdj: [1, 2, 3, 4], reduction: [1, 1, 2, 2], tool: [5, 10, 15, 20],
   },
