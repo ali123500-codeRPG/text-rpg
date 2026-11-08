@@ -251,7 +251,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const fold = h('button', { class: 'hs-btn-text cs-fold', type: 'button', 'aria-expanded': String(!folded),
       onclick: () => { folded = !folded; try { localStorage.setItem('sheetFolded', folded ? '1' : '0'); } catch { /* not saved */ } update(); } }, folded ? 'Sheet ‹' : 'Hide ›');
     sheet.classList.toggle('folded', folded);
-    sheet.replaceChildren(h('div', { class: 'cs-side-h' }, folded ? null : h('p', { class: 'hs-section' }, 'Your sheet'), fold), ...(s && !folded ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration')) : []));
+    // PM5/K1 b (Ali, 08/11/2026): the player's deals with NPCs, in their own card above the sheet; shown even when the
+    // sheet is hidden, absent while there are none. A deal leaves when a party ends it as done or broken.
+    const deals = pv?.agreements ?? [];
+    const dealCard = deals.length ? h('section', { class: 'dl-card', 'aria-label': 'Your deals' },
+      h('p', { class: 'hs-section' }, 'Your deals', h('span', {}, String(deals.length))),
+      deals.map((d) => h('div', { class: 'dl-row' }, h('b', {}, cap(d.with)), h('span', {}, d.text), h('small', {}, `Made turn ${d.madeTurn}`)))) : null;
+    sheet.replaceChildren(...(dealCard ? [dealCard] : []), h('div', { class: 'cs-side-h' }, folded ? null : h('p', { class: 'hs-section' }, 'Your sheet'), fold), ...(s && !folded ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration')) : []));
 
     const fallen = api.fell();
     body.hidden = fallen;

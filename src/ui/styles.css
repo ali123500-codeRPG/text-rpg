@@ -296,6 +296,16 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .play-wrap:has(.cs-side.folded) { grid-template-columns: minmax(0, 1fr) auto; }
 .cs-side { border-left: 1px solid var(--border); padding-left: var(--space-6); display: grid; gap: 14px; align-content: start; overflow-y: auto; min-height: 0; }
 .cs-side-h { display: flex; justify-content: space-between; align-items: center; }
+/* Deals (PM5, K1 b): the player's deals with NPCs, gold-edged as promises, above the sheet */
+.dl-card { border: 1px solid color-mix(in oklch, var(--scene-mark) 45%, transparent); border-radius: var(--r-lg); padding: 10px 12px; display: grid; gap: 8px;
+  background: color-mix(in oklch, var(--scene-mark) 5%, transparent); }
+.cs-side.folded .dl-card { width: 260px; }
+.dl-card .hs-section { display: flex; align-items: center; }
+.dl-card .hs-section span { margin-left: auto; letter-spacing: 0; }
+.dl-row { display: grid; gap: 2px; padding: 7px 10px; border-left: 2px solid var(--scene-mark); background: color-mix(in oklch, var(--scene-mark) 7%, transparent); border-radius: 0 var(--r-lg) var(--r-lg) 0; }
+.dl-row b { font-size: 13px; }
+.dl-row span { font-size: 13px; color: var(--muted); line-height: 1.35; }
+.dl-row small { font-size: 11px; color: var(--faint); }
 .cs-hpbtn { display: grid; gap: 6px; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .cs-hpbtn:hover .cs-row span { color: var(--text); }
 .cs-hptrack { position: relative; display: block; height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; }
