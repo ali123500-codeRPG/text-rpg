@@ -187,13 +187,13 @@ Ability perks sit on 20/60/100/140 and change what a character can do. Boost per
 
 ## 40 milestone (boost perks)
 
-### Fine Point (Light weapons) · P1
+### Keen Edge (Light weapons) · P1
 
-*Story:* +5 Light weapons and +1 in Medium weapons, Heavy weapons. Aiming at a part with a light weapon costs you half the usual penalty.
+*Story:* +5 Light weapons and +1 in Medium weapons, Heavy weapons. Your light weapons find their mark: +10 to hit with them.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_light. +1 true skill in every other skill sharing a function with it (Medium weapons, Heavy weapons). The aim penalty on an aimed attack with skill melee_light is ×0.5.
+- **Effect:** +5 true skill in melee_light. +1 true skill in every other skill sharing a function with it (Medium weapons, Heavy weapons). +10 on attack rolls with skill melee_light.
 - **Lasts:** Always.
 
 ### Guard Drill (Medium weapons) · P2
@@ -223,6 +223,15 @@ Ability perks sit on 20/60/100/140 and change what a character can do. Boost per
 - **Effect:** +5 true skill in ranged_light. +1 true skill in every other skill sharing a function with it (Medium ranged, Heavy ranged). +10 true skill in sight.
 - **Lasts:** Always.
 
+### Steady Draw (Medium ranged) · P5
+
+*Story:* +5 Medium ranged and +1 in Light ranged, Heavy ranged. A little of both: +5 to hit with medium ranged weapons, and they hit 10% harder.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in ranged_medium. +1 true skill in every other skill sharing a function with it (Light ranged, Heavy ranged). +5 on attack rolls with skill ranged_medium, and its damage is ×1.1, before armor.
+- **Lasts:** Always.
+
 ### Armor Piercer (Heavy ranged) · P6
 
 *Story:* +5 Heavy ranged and +1 in Light ranged, Medium ranged. Your bolts punch through armor: it stops 2 less of each hit.
@@ -241,6 +250,15 @@ Ability perks sit on 20/60/100/140 and change what a character can do. Boost per
 - **Effect:** +5 true skill in unarmed_strike. +1 true skill in every other skill sharing a function with it (Grapple, Improvisation). +10 true skill in unarmed_improvised.
 - **Lasts:** Always.
 
+### Iron Grip (Grapple) · P8
+
+*Story:* +5 Grapple and +1 in Strike, Improvisation. Your holds are harder to escape: +10 on every grapple roll, breaking free included.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in unarmed_grapple. +1 true skill in every other skill sharing a function with it (Strike, Improvisation). +10 on every roll with skill unarmed_grapple (grapple attacks, and both sides of a break-free contest).
+- **Lasts:** Always.
+
 ### Brawler's Eye (Improvisation) · P9
 
 *Story:* +5 Improvisation and +1 in Strike, Grapple. Your fists and your eyes sharpen: +5 Strike, +5 Sight.
@@ -248,6 +266,15 @@ Ability perks sit on 20/60/100/140 and change what a character can do. Boost per
 - **Kind:** Always on
 - **Trigger:** Always.
 - **Effect:** +5 true skill in unarmed_improvised. +1 true skill in every other skill sharing a function with it (Strike, Grapple). +5 true skill in unarmed_strike and +5 in sight.
+- **Lasts:** Always.
+
+### Light Feet (Dodge) · P10
+
+*Story:* +5 Dodge and +1 in Block. Quick feet are quiet feet: +10 Sneaking.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in dodge. +1 true skill in every other skill sharing a function with it (Block). +10 true skill in sneaking.
 - **Lasts:** Always.
 
 ### Braced (Block) · P11

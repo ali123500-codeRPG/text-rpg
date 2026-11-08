@@ -43,6 +43,15 @@ export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult'
   const perks = getLibrary().perks;
   return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return d?.ladder?.skill === skill ? m * (d.numbers?.[key] ?? 1) : m; }, 1);
 }
+/** boost perk roll modifiers for one skill: rollAdd on every roll, hitAdd on attack rolls only, each named by its perk */
+export function boostRollMods(a: Actor, skill: string, attack: boolean): { source: string; type: 'roll_perk'; value: number }[] {
+  const perks = getLibrary().perks;
+  return owned(a).flatMap((p) => {
+    const d = perks[p.perkId];
+    const v = d?.ladder?.skill === skill ? (d.numbers?.rollAdd ?? 0) + (attack ? d.numbers?.hitAdd ?? 0 : 0) : 0;
+    return v ? [{ source: d!.name, type: 'roll_perk' as const, value: v }] : [];
+  });
+}
 export function boostAdd(a: Actor, skill: string, key: 'armorPierce'): number {
   const perks = getLibrary().perks;
   return owned(a).reduce((n, p) => { const d = perks[p.perkId]; return d?.ladder?.skill === skill ? n + (d.numbers?.[key] ?? 0) : n; }, 0);
