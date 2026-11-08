@@ -97,6 +97,26 @@ function gear(): HTMLElement[] {
 
 // ---------- Perks: the ladder grid (skill × milestone), then every perk ----------
 const EFFECT_TONE: Record<string, string> = { attack: '--c10', defense: '--c1', health: '--c2', speed: '--c15', senses: '--c5', speech: '--c4' };
+/** colour coding (Ali, 08/11/2026): fixed colours where a value has a meaning, else the palette in value order */
+const PALETTE = ['--c1', '--c2', '--c7', '--c5', '--c12', '--c4', '--c15', '--c10', '--c14', '--c3'];
+const FIXED: Record<string, Record<string, string>> = {
+  Effect: EFFECT_TONE,
+  State: { built: '--ok', 'not built': '--warn', 'written only': '--c3', quirk: '--danger' },
+  Level: { 'Level I': '--c12', 'Level II': '--c1', 'Level III': '--c5', 'Level IV': '--c15' },
+  Class: { light: '--c12', medium: '--c1', heavy: '--c10' },
+  XP: { offensive: '--c10', defensive: '--c1', endurance: '--c2', notice: '--c5', influence: '--c4', misc: '--c3' },
+};
+const TIER_TONE: Record<string, string> = { tier_0: '--warn', tier_1: '--c15', tier_2: '--c3' };
+const seen = new Map<string, string[]>();
+function toneOf(group: string, value: string): string {
+  if (FIXED[group]?.[value]) return FIXED[group][value];
+  const vals = seen.get(group) ?? seen.set(group, []).get(group)!;
+  if (!vals.includes(value)) vals.push(value);
+  return PALETTE[vals.indexOf(value) % PALETTE.length];
+}
+/** the filter group each table is coloured by at first; any group can be picked with its "Colour" button */
+const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Tree' };
+let colourBy = '';
 const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : 'no milestone');
 function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   const r = d.rules;
@@ -196,8 +216,8 @@ function skills(): HTMLElement[] {
   const tree = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => card('skills', id, entry, title, chips,
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
-        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.join(', ') || '—'), h('td', {}, s.roles.join(', ') || '—'),
-        h('td', {}, `${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`), h('td', {}, s.xpCategory), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
+        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(f, toneOf('Function', f)))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
+        h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneOf('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   return [h('div', { class: 'lv-grid wide' },
     Object.values(lib.trees).map((t) => tree(t.id, t.name, t.skills, t, access(t.access))),
     loose.length ? tree('no_tree', 'In no tree', loose, loose, []) : null)];
@@ -260,16 +280,30 @@ function drawBar(): void {
     vals.set(f, (vals.get(f) ?? 0) + 1);
   }
   const next = { off: 'shown', shown: 'out', out: 'off' } as const;
-  bar.replaceChildren(...[...groups].filter(([, v]) => v.size > 1).map(([g, vals]) => h('div', { class: 'lv-fg' }, h('span', { class: 'hs-label' }, g),
+  const shownGroups = [...groups].filter(([, v]) => v.size > 1);
+  if (!shownGroups.some(([g]) => g === colourBy)) colourBy = shownGroups[0]?.[0] ?? '';
+  bar.replaceChildren(...shownGroups.map(([g, vals]) => h('div', { class: 'lv-fg' }, h('span', { class: 'hs-label' }, g),
+    h('button', { type: 'button', class: 'lv-cb', 'aria-pressed': String(g === colourBy), title: g === colourBy ? 'Cards are coloured by this group' : `Colour the cards by ${g}`,
+      onclick: () => { colourBy = g; drawBar(); paint(); } }, g === colourBy ? 'Colour key' : 'Colour by this'),
     [...vals].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })).map(([f, n]) => {
       const st = picks.get(f) ?? 'off';
+      const v = f.split('\t')[1];
       return h('button', { type: 'button', class: 'lv-fb', 'data-st': st, 'aria-pressed': st === 'shown' ? 'true' : st === 'out' ? 'mixed' : 'false',
+        style: g === colourBy ? `--tone: var(${toneOf(g, v)})` : undefined,
         title: st === 'off' ? 'Click for Shown (several Shown = either)' : st === 'shown' ? 'Click for Left out' : 'Click to clear',
         onclick: () => { const to = next[st]; if (to === 'off') picks.delete(f); else picks.set(f, to); drawBar(); filter(); } },
-      f.split('\t')[1], h('small', {}, String(n)), st === 'off' ? null : h('b', {}, st === 'shown' ? 'Shown' : 'Left out'));
+      g === colourBy ? h('i', { class: 'lv-sw' }) : null, v, h('small', {}, String(n)), st === 'off' ? null : h('b', {}, st === 'shown' ? 'Shown' : 'Left out'));
     }))),
   ...(picks.size ? [h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { picks.clear(); drawBar(); filter(); } }, 'Clear filters')] : []));
   bar.hidden = !bar.childElementCount;
+}
+/** tint each card by its value in the colour group */
+function paint(): void {
+  for (const c of cards()) {
+    const f = facetsOf(c).find((x) => x.split('\t')[0] === colourBy);
+    c.classList.toggle('lv-toned', !!f);
+    if (f) c.style.setProperty('--tone', `var(${toneOf(colourBy, f.split('\t')[1])})`);
+  }
 }
 function filter(): void {
   const q = search.value.trim().toLowerCase();
@@ -344,10 +378,12 @@ function route(): void {
     shown = sec.key;
     titleEl.textContent = sec.title;
     picks.clear();
+    colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
     body.replaceChildren(...viewOf(sec));
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
     drawBar();
+    paint();
     filter();
     scrollTo(0, 0);
   }
