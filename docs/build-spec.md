@@ -363,7 +363,7 @@ type GameEvent = {
   zone: string; target?: string;
   tier?: Tier;                  // absent for actions with no check, such as a plain move or speech
   effects: Effect[];            // structured; text is built per view, never stored
-  noise: 0 | 1 | 2 | 3; visibility: 0 | 1 | 2 | 3;
+  noise: NoiseKey; visibility: VisibilityKey;   // NOISE / VISIBILITY keys (src/scales.ts); reach per level: CONFIG.NOISE_REACH, SIGHT_REACH
   perception: Record<string, { level: Perception; cue: Cue }>;   // absent = not perceived
   bark?: boolean;               // speech flavor only: narrated, copies no belief, left out of every NPC view
 };
@@ -399,7 +399,7 @@ type ActivityDef = {
   id: string;
   look: string;                           // public text, e.g. 'dozing on a stool'
   attention: 'alert' | 'normal' | 'distracted' | 'asleep';   // a situational tag; the ruleset owns its value
-  noise: 0 | 1 | 2 | 3; visibility: 0 | 1 | 2 | 3;
+  noise: NoiseKey; visibility: VisibilityKey;
 };
 // Tag values come from the library tag catalog. Slot names: see Slots, below.
 ```
@@ -2674,16 +2674,16 @@ Standard slots: post, route, refuge, exit, here.
 
 | Id | Look (public) | Attention | Noise | Visibility |
 | --- | --- | --- | --- | --- |
-| stand\_watch | keeping watch | alert | 0 | 2 |
-| walk | walking | normal | 1 | 2 |
-| work | hard at work | normal | 2 | 2 |
-| tend\_counter | tending the counter | normal | 1 | 2 |
-| drink | nursing a drink | distracted | 1 | 2 |
-| chat | chatting | distracted | 2 | 2 |
-| sleep | asleep | asleep | 1 | 1 |
-| rest | resting | distracted | 0 | 1 |
-| cower | keeping out of sight | alert | 0 | 1 |
-| ooze | oozing across the grass | normal | 1 | 2 |
+| stand\_watch | keeping watch | alert | silent | normal |
+| walk | walking | normal | quiet | normal |
+| work | hard at work | normal | normal | normal |
+| tend\_counter | tending the counter | normal | quiet | normal |
+| drink | nursing a drink | distracted | quiet | normal |
+| chat | chatting | distracted | normal | normal |
+| sleep | asleep | asleep | quiet | low |
+| rest | resting | distracted | silent | low |
+| cower | keeping out of sight | alert | silent | low |
+| ooze | oozing across the grass | normal | quiet | normal |
 
 **Routines.** Steps read slot · duration · activity. A route step expands to one stop per bound zone.
 

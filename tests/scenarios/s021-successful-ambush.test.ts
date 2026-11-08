@@ -17,7 +17,7 @@ it('21 Successful ambush: the target keeps its routine order; next turn only eng
   vi.spyOn(ruleset, 'roll').mockImplementation((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, d100: 50, margin: 0, tier: tiers[req.actorId] ?? 'critical_failure', natural: 0, modifiers: [], tierShifts: [] }));
   const attack: GameEvent = {
     id: 'ev_1', turn: s.turn, actorId: 'player', kind: 'attack', zone: 'gate_inner', target: 'guard_1', itemId: 'player_arming_sword_1',
-    effects: [], noise: 2, visibility: 2, perception: { guard_1: { level: 'full', cue: 'sight' } },
+    effects: [], noise: 'normal', visibility: 'normal', perception: { guard_1: { level: 'full', cue: 'sight' } },
   };
   expect(resolveAmbush(s, 'player', 'guard_1', attack, createRng(1)).surprised).toBe(true);
   expect(actor(s, 'guard_1').mind!.knowledge.player?.status ?? 'unaware').toBe('unaware');

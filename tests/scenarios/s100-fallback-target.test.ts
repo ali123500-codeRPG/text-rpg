@@ -15,7 +15,7 @@ it('100 Fallback target: the companion that hit it last turn is attacked, even w
   sl.mind!.knowledge.player = b('field_mid');
   sl.mind!.knowledge.comp = b('field_mid');
   // last turn the companion hit the slime
-  const hit: GameEvent = { id: 'ev_1', turn: s.turn, actorId: 'comp', kind: 'attack', zone: 'field_mid', target: 'slime_1', effects: [], noise: 2, visibility: 2, perception: { slime_1: { level: 'full', cue: 'sight' } } };
+  const hit: GameEvent = { id: 'ev_1', turn: s.turn, actorId: 'comp', kind: 'attack', zone: 'field_mid', target: 'slime_1', effects: [], noise: 'normal', visibility: 'normal', perception: { slime_1: { level: 'full', cue: 'sight' } } };
   s.events.push(hit);
   s.scratch = { slime_1: ['comp'] };
   s.turn += 1;

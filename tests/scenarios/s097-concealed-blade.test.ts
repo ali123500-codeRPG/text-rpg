@@ -13,7 +13,7 @@ it('97 Concealed blade', () => {
   expect(buildActorView(s, 'trader').seen.some((x) => x.id === 'patron_1')).toBe(true);
   expect(gearSeen()).not.toContain('blade_1');
 
-  const e: GameEvent = { id: 'a1', turn: 1, actorId: 'patron_1', kind: 'attack', zone: 'tav_common', target: 'slime_1', itemId: 'blade_1', effects: [], noise: 2, visibility: 2, perception: {} };
+  const e: GameEvent = { id: 'a1', turn: 1, actorId: 'patron_1', kind: 'attack', zone: 'tav_common', target: 'slime_1', itemId: 'blade_1', effects: [], noise: 'normal', visibility: 'normal', perception: {} };
   e.perception = computePerception(e, s, createRng(1));
   updateBeliefs(s, { kind: 'event', event: e });
   s.events.push(e);

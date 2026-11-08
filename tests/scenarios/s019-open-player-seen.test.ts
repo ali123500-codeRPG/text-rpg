@@ -9,7 +9,7 @@ it('19 Open player is seen: full → aware, partial → suspicious, with no chec
   s.actors.push(spawnNpc(null, 'guard', { id: 'guard_2', zone: 'street_door', placeId: 'street', bandId: 'village_watch' }));
   place(s, 'guard_1', 'gate_inner');
   const event: GameEvent = {
-    id: 'ev_1', turn: s.turn, actorId: 'player', kind: 'interact', zone: 'street_square', effects: [], noise: 1, visibility: 2,
+    id: 'ev_1', turn: s.turn, actorId: 'player', kind: 'interact', zone: 'street_square', effects: [], noise: 'quiet', visibility: 'normal',
     perception: { guard_1: { level: 'full', cue: 'sight' }, guard_2: { level: 'partial', cue: 'sound' } },
   };
   const rng = createRng(99);

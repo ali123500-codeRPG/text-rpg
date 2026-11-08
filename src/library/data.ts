@@ -193,17 +193,17 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
 const act = (id: string, look: string, attention: ActivityDef['attention'], noise: ActivityDef['noise'], visibility: ActivityDef['visibility']): ActivityDef =>
   ({ id, look, attention, noise, visibility });
 export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
-  act('stand_watch', 'keeping watch', 'alert', 0, 2),
-  act('walk', 'walking', 'normal', 1, 2),
-  act('work', 'hard at work', 'normal', 2, 2),
-  act('tend_counter', 'tending the counter', 'normal', 1, 2),
-  act('drink', 'nursing a drink', 'distracted', 1, 2),
-  act('chat', 'chatting', 'distracted', 2, 2),
-  act('sleep', 'asleep', 'asleep', 1, 1),
-  act('rest', 'resting', 'distracted', 0, 1),
-  act('cower', 'keeping out of sight', 'alert', 0, 1),
-  act('ooze', 'oozing across the grass', 'normal', 1, 2),
-  act('prowl', 'keeping to the shadows', 'alert', 0, 1),
+  act('stand_watch', 'keeping watch', 'alert', 'silent', 'normal'),
+  act('walk', 'walking', 'normal', 'quiet', 'normal'),
+  act('work', 'hard at work', 'normal', 'normal', 'normal'),
+  act('tend_counter', 'tending the counter', 'normal', 'quiet', 'normal'),
+  act('drink', 'nursing a drink', 'distracted', 'quiet', 'normal'),
+  act('chat', 'chatting', 'distracted', 'normal', 'normal'),
+  act('sleep', 'asleep', 'asleep', 'quiet', 'low'),
+  act('rest', 'resting', 'distracted', 'silent', 'low'),
+  act('cower', 'keeping out of sight', 'alert', 'silent', 'low'),
+  act('ooze', 'oozing across the grass', 'normal', 'quiet', 'normal'),
+  act('prowl', 'keeping to the shadows', 'alert', 'silent', 'low'),
 ].map((a) => [a.id, a]));
 
 const CALL_HELP = { type: 'call_help', target: null, skill: null, intent: 'call for help' } as const;

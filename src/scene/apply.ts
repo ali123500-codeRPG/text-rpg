@@ -340,7 +340,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
  * the plan's opening beliefs were skipped for this entry. Returns the arrival event. */
 export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
   const p = state.player;
-  const ev: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 1, visibility: 2, perception: {} };
+  const ev: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   ev.perception = computePerception(ev, state, rng);
   detectPlayer(state, ev, rng);
   return ev;
@@ -349,7 +349,7 @@ export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
 export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
   const p = state.player;
   const out: GameEvent[] = [];
-  const arrival: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 1, visibility: 2, perception: {} };
+  const arrival: GameEvent = { id: `t${state.turn}_arrival`, turn: state.turn, actorId: p.id, kind: 'arrival', zone: p.zone, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
   arrival.perception = computePerception(arrival, state, rng);
   out.push(arrival);
   const stage = new Set(state.stage.zoneIds);
@@ -359,7 +359,7 @@ export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
     const def = act ? activity(act) : undefined;
     const ev: GameEvent = {
       id: `t${state.turn}_presence_${a.id}`, turn: state.turn, actorId: a.id, kind: 'presence', zone: a.zone, effects: [],
-      noise: def?.noise ?? 1, visibility: def?.visibility ?? 2, perception: {}, ...(act ? { activity: act } : {}),
+      noise: def?.noise ?? 'quiet', visibility: def?.visibility ?? 'normal', perception: {}, ...(act ? { activity: act } : {}),
     };
     ev.perception = computePerception(ev, state, rng);
     if (ev.perception[p.id]) out.push(ev);
