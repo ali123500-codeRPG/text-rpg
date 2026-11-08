@@ -57,6 +57,10 @@ const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2)))
 /** health-track levels the UI shows, mildest first: every level but Dead (Ali, 08/11/2026: Dead is never shown) */
 const shownTrack = () => CONFIG.HEALTH_TRACK.filter(([l]) => l !== 'Dead');
 
+/** one row of level names over the card's equal segments: the levels at even (0) or odd (1) positions */
+const steps = (levels: string[], level: string, odd: 0 | 1) => h('div', { class: `cs-steps ${odd ? 'down' : 'up'}` },
+  levels.map((l, i) => (i % 2 === odd ? h('span', { class: [l === level ? 'now' : '', i === 0 ? 'first' : '', i === levels.length - 1 ? 'last' : ''].filter(Boolean).join(' '), style: `grid-column:${i + 1}` }, l) : null)));
+
 export function charCard(s: GameState, p: Actor): HTMLElement {
   const { hp } = hpLeft(s, p);
   const level = healthLevel(p);
@@ -73,9 +77,10 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', {}, h('b', {}, p.names.current || cls.charAt(0).toUpperCase() + cls.slice(1)), h('span', {}, place ? `In the ${place}` : ''))),
     h('div', { class: 'cs-track' },
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${level} · ${whole(hp)} HP`)),
+      // every level named at its segment (Ali, 08/11/2026), alternating one above the bar and one below
+      steps(levels, level, 0),
       h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, levels.map((l, i) => h('i', { class: i < lit ? 'on' : '', 'aria-label': l }))),
-      // every level under its segment (Ali, 08/11/2026), on three staggered rows so long names fit
-      h('div', { class: 'cs-steps' }, levels.map((l, i) => h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, l))),
+      steps(levels, level, 1),
       bodyFigure(s, p)),
     xpTrack(p),
     h('div', { class: 'cs-figs' },
@@ -163,7 +168,7 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
   const track = shownTrack();
   const segs = track.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
   // every level is named (Ali, 08/11/2026): Incapacitated at the empty end, Unhurt at the full end, the rest mid-segment,
-  // alternating between two rows so neighbours never overlap
+  // alternating one above the bar and one below (Ali, 08/11/2026)
   const marks = [{ l: track[track.length - 1][0], at: 0, edge: 'l' }, ...[...segs].reverse().map((x) => ({ l: x.l, at: (x.from + x.to) / 2, edge: '' })), { l: track[0][0], at: 100, edge: 'r' }];
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
@@ -175,12 +180,14 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
         h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
         h('span', { class: 'w' + (st === 'Healthy' ? '' : ' bad') }, st));
     })) ?? []);
+  const sideSteps = (odd: 0 | 1) => h('span', { class: 'cs-hpsteps' }, marks.map((x, i) => (i % 2 === odd
+    ? h('span', { class: [x.l === level ? 'now' : '', x.edge ? `e${x.edge}` : ''].filter(Boolean).join(' '), style: `left:${x.at}%` }, x.l) : null)));
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
     onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
     h('span', { class: 'cs-row' }, h('span', {}, `Health · ${level} ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${whole(hp)} HP`)),
+    sideSteps(0),
     h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` }), segs.slice(0, -1).map((x) => h('i', { style: `left:${x.from}%` }))),
-    h('span', { class: 'cs-hpsteps' }, marks.map((x, i) =>
-      h('span', { class: [x.l === level ? 'now' : '', i % 2 ? 'lo' : '', x.edge ? `e${x.edge}` : ''].filter(Boolean).join(' '), style: `left:${x.at}%` }, x.l))));
+    sideSteps(1));
   btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health · ${level} ${partOpen.on ? '⌄' : '›'}`; });
   return [btn, parts];
 }

@@ -272,10 +272,8 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-hp i.on { background: var(--ok); }
 .cs-steps { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); column-gap: 3px; font-size: 11px; color: var(--faint); }
 .cs-steps span { grid-row: 1; justify-self: center; white-space: nowrap; }
-.cs-steps span:nth-child(3n+2) { grid-row: 2; }
-.cs-steps span:nth-child(3n) { grid-row: 3; }
-.cs-steps span:first-child { justify-self: start; }
-.cs-steps span:last-child { justify-self: end; }
+.cs-steps span.first { justify-self: start; }
+.cs-steps span.last { justify-self: end; }
 .cs-steps .now { color: var(--ok); font-weight: 700; }
 .cs-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; border-top: 1px solid var(--border); padding-top: 14px; }
 .cs-figs div { display: grid; }
@@ -305,9 +303,8 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-hptrack { position: relative; display: block; height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; }
 .cs-hptrack b { display: block; height: 100%; background: var(--ok); }
 .cs-hptrack i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bg); }
-.cs-hpsteps { position: relative; display: block; height: 28px; font-size: 11px; color: var(--faint); }
+.cs-hpsteps { position: relative; display: block; height: 14px; font-size: 11px; color: var(--faint); }
 .cs-hpsteps span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
-.cs-hpsteps span.lo { top: 14px; }
 .cs-hpsteps span.el { transform: none; }
 .cs-hpsteps span.er { transform: translateX(-100%); }
 .cs-hpsteps .now { color: var(--text); font-weight: 700; }
