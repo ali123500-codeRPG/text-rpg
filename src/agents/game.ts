@@ -17,7 +17,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
 import { createPlayer, validateBuild } from '../library/spawn';
-import { defaultStandingDefense, healthLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
+import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
@@ -506,7 +506,7 @@ export function createGame(deps: GameDeps): Game {
       return [...notices, ...marker];
     },
     busy: () => busy,
-    fell: () => !!state && safeHealth(state.player) === 'Incapacitated',
+    fell: () => !!state && isDownLevel(safeHealth(state.player)),
     subscribe(cb) {
       subs.add(cb);
       return () => subs.delete(cb);

@@ -4,7 +4,7 @@ import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, Tier, Tie
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
 
-export type HealthLevel = 'Unhurt' | 'Bruised' | 'Hurt' | 'Injured' | 'Wounded' | 'Mauled' | 'Critical' | 'Incapacitated';
+export type HealthLevel = 'Unhurt' | 'Bruised' | 'Hurt' | 'Injured' | 'Wounded' | 'Mauled' | 'Critical' | 'Incapacitated' | 'Dead';
 export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
 
 export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: string[]; classLabel?: string; weightLabel?: string; qty?: number };

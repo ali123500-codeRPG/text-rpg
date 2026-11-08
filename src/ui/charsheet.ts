@@ -4,7 +4,7 @@ import type { Actor, GameState, LogLine } from '../types';
 import { CONFIG } from '../config';
 import { creatureType, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
-import { poolState } from '../ruleset/body';
+import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { achievementName, charLevel, xpToNext } from '../engine/xp';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
@@ -54,10 +54,15 @@ const bar = (raw: number) => h('div', { class: 'cs-bar' }, h('b', { style: `widt
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
 
+/** one row of level names over the card's equal segments, alternating above (0) and below (1) the bar. Unhurt and
+ * Incapacitated (the first and last) are not named (Ali, 08/11/2026). */
+const steps = (levels: string[], level: string, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
+  levels.map((l, i) => (i > 0 && i < levels.length - 1 && i % 2 !== below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, l) : null)));
+
 export function charCard(s: GameState, p: Actor): HTMLElement {
   const { hp } = hpLeft(s, p);
-  const level = healthLevel(p);
-  const levels = CONFIG.HEALTH_TRACK.map(([l]) => l as string);
+  const level = shownLevel(healthLevel(p));
+  const levels = SHOWN_LEVELS().map(([l]) => l as string);
   const lit = Math.round(levels.length * (1 - Math.min(100, p.core.condition.hpLostPct) / 100));
   const place = s.places.find((x) => x.id === p.placeId)?.names.current;
   const cls = p.core.classes.find((c) => c.state === 'current')?.classId ?? '';
@@ -70,9 +75,10 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', {}, h('b', {}, p.names.current || cls.charAt(0).toUpperCase() + cls.slice(1)), h('span', {}, place ? `In the ${place}` : ''))),
     h('div', { class: 'cs-track' },
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${level} · ${whole(hp)} HP`)),
+      // each level named at its segment, alternating one above the bar and one below (Ali, 08/11/2026)
+      steps(levels, level, 0),
       h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, levels.map((l, i) => h('i', { class: i < lit ? 'on' : '', 'aria-label': l }))),
-      h('div', { class: 'cs-steps' }, ['Unhurt', 'Hurt', 'Wounded', 'Critical', 'Out'].map((l) =>
-        h('span', { class: (l === 'Out' ? 'Incapacitated' : l) === level ? 'now' : '' }, l))),
+      steps(levels, level, 1),
       bodyFigure(s, p)),
     xpTrack(p),
     h('div', { class: 'cs-figs' },
@@ -154,11 +160,14 @@ const partName = (id: string) => cap(id.replace(/_/g, ' '));
 function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): HTMLElement[] {
   if (healed.size && partOpen.autoTurn !== turn) { partOpen.on = true; partOpen.autoTurn = turn; }
   const { hp, total } = hpLeft(s, p);
-  const level = healthLevel(p);
+  const level = shownLevel(healthLevel(p));
   const left = Math.max(0, 100 - p.core.condition.hpLostPct);
   // segments by % left: Bruised 85–100, Hurt 70–85 … Critical 0–25 (Unhurt is only the full bar, Incapacitated the empty one)
-  const segs = CONFIG.HEALTH_TRACK.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
-  const at = Math.max(0, segs.findIndex((x) => x.l === level));
+  const track = SHOWN_LEVELS();
+  const segs = track.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
+  // each segment's level named mid-segment, alternating one above the bar and one below; Unhurt (the full bar) and
+  // Incapacitated (the empty one) are not named (Ali, 08/11/2026)
+  const marks = [...segs].reverse().map((x) => ({ l: x.l, at: (x.from + x.to) / 2 }));
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
     bodyFigure(s, p, healed) ?? safe(() => creatureType(s, p.core.creatureTypeId).parts.map((d) => {
@@ -169,13 +178,16 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
         h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
         h('span', { class: 'w' + (st === 'Healthy' ? '' : ' bad') }, st));
     })) ?? []);
+  const sideSteps = (odd: 0 | 1) => h('span', { class: 'cs-hpsteps' }, marks.map((x, i) => (i % 2 === odd
+    ? h('span', { class: x.l === level ? 'now' : '', style: `left:${x.at}%` }, x.l) : null)));
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
     onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
-    h('span', { class: 'cs-row' }, h('span', {}, `Health · ${level} ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${whole(hp)} HP`)),
+    // the current level sits beside the HP number, as on the character card (Ali, 08/11/2026)
+    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${level} · ${whole(hp)} HP`)),
+    sideSteps(0),
     h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` }), segs.slice(0, -1).map((x) => h('i', { style: `left:${x.from}%` }))),
-    h('span', { class: 'cs-hpsteps' }, segs.filter((_, i) => i % 2 === at % 2).map((x) =>
-      h('span', { class: x.l === level ? 'now' : '', style: `left:${(x.from + x.to) / 2}%` }, x.l))));
-  btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health · ${level} ${partOpen.on ? '⌄' : '›'}`; });
+    sideSteps(1));
+  btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health ${partOpen.on ? '⌄' : '›'}`; });
   return [btn, parts];
 }
 

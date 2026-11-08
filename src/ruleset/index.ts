@@ -14,7 +14,7 @@ import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { markShifts } from '../engine/perkMarks';
 import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 
-export { totalHp, healthLevel, partStates, woundsMods, hitTable } from './body';
+export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
@@ -110,7 +110,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (req.auto !== false) {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
-    modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // boost perks: Keen Edge, Steady Draw, Iron Grip
+    modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
   }
   const d = rng.d100();
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
@@ -160,7 +160,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const am: Mod[] = [];
   const skill = modeSkill(mode);
   const aimedPart = req.aimed && req.targetPart ? ct.parts.find((p) => p.id === req.targetPart) : undefined;
-  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // boost perk aimMult (none uses it today)
+  if (aimedPart) am.push({ source: `aim: ${aimedPart.id}`, type: 'aim', value: CONFIG.AIM_PENALTY[aimedPart.size] * boostMult(A, skill, 'aimMult') }); // 40/80/120 perk aimMult (none uses it today)
   const cls = CONFIG.WEAPON_CLASSES[mode.class] ?? CONFIG.UNARMED_PROFILE;
   // GAP: the class hit has no modifier type of its own; it rides with the mode's hitAdj as one gear entry at full value
   const hit = cls.hit + (mode.hitAdj ?? 0);
@@ -259,13 +259,13 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
   const worn = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
-  const pierce = boostAdd(A, skill, 'armorPierce'); // boost perk: Armor Piercer
+  const pierce = boostAdd(A, skill, 'armorPierce'); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
   };
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult'); // boost perk: Heavy Hand
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult'); // 40/80/120 perk: Heavy Hand
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
   const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
@@ -333,8 +333,9 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     }
   }
   const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
-  const lost = destroyedEssential ? 100 : T.core.condition.hpLostPct + (counted / hp) * 100;
-  T.core.condition.hpLostPct = Math.min(100, lost);
+  const add = T.core.condition.hpLostPct + (counted / hp) * 100;
+  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : add; // a destroyed essential part kills (Ali, 08/11/2026)
+  T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
   const levelAfter = healthLevel(T);
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
   return out;

@@ -12,9 +12,13 @@ export function totalHp(state: GameState, actor: Actor): number {
 
 export function healthLevel(actor: Actor): HealthLevel {
   const lost = actor.core.condition.hpLostPct;
-  if (lost >= 100) return 'Incapacitated';
   return CONFIG.HEALTH_TRACK.find(([, max]) => lost <= max)![0] as HealthLevel;
 }
+/** levels from Incapacitated on are "down" (by position in the health track) */
+export const isDownLevel = (l: string) => CONFIG.HEALTH_TRACK.findIndex(([x]) => x === l) >= CONFIG.HEALTH_TRACK.findIndex(([x]) => x === 'Incapacitated');
+/** the levels the UI shows: Dead is never shown (Ali, 08/11/2026); a Dead actor shows as Incapacitated */
+export const SHOWN_LEVELS = () => CONFIG.HEALTH_TRACK.filter(([l]) => l !== 'Dead');
+export const shownLevel = (l: string) => (l === 'Dead' ? 'Incapacitated' : l);
 export function woundsOfLevel(level: HealthLevel): number {
   return CONFIG.HEALTH_TRACK.find(([l]) => l === level)?.[2] ?? 0;
 }

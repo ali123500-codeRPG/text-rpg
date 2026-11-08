@@ -18,6 +18,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   if (!src) return false;
   const c = a.core.condition;
   const level = healthLevel(a);
+  if (level === 'Dead' && !src.revivesDead) return false; // no row heals the dead for now (Ali, 08/11/2026)
   const before = partStates(state, a);
   const lost = c.hpLostPct;
   c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct));
@@ -44,6 +45,7 @@ export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean
   const src = getLibrary().healing?.[sourceId];
   if (!src) return false;
   const c = a.core.condition;
+  if (healthLevel(a) === 'Dead' && !src.revivesDead) return false;
   if (c.hpLostPct > 0 && src.hpPct > 0) return true;
   const reach = PART_STATES.pos(src.reach);
   return src.partPct > 0 && partStates(state, a).some((p) => p.id in c.parts && c.parts[p.id] < 100
@@ -59,7 +61,7 @@ export function passiveHealing(state: GameState, minutes: number): void {
   for (const a of [state.player, ...state.actors]) {
     if (!isActive(a) || (a !== state.player && !stage.has(a.zone))) continue;
     for (const h of rows) {
-      const pct = trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // boost perk: Quick Mend
+      const pct = trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // 40/80/120 perk: Quick Mend
       if (pct > 0) applyHealing(state, a, h.id, { pct, quiet: true });
     }
   }
