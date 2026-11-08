@@ -173,7 +173,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
-  const marks = markShifts(state, A, D, ranged); // A2, A5, A10
+  const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : []), ...marks.attack];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit' }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });

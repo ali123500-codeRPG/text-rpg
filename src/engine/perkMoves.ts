@@ -11,7 +11,8 @@ import { actorById, isActive } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markUntilNextTurn } from './perkMarks';
 
-const freeHand = (state: GameState, a: Actor) => {
+/** the actor has a working Grip arm with nothing held in it */
+export const freeHand = (state: GameState, a: Actor) => {
   const busy = new Set(a.core.inventory.filter(isHeld).flatMap(handsOf));
   return usableGrips(state, a).some((g: string) => !busy.has(g));
 };
