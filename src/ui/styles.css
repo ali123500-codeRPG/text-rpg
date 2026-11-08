@@ -298,13 +298,10 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-side-h { display: flex; justify-content: space-between; align-items: center; }
 .cs-hpbtn { display: grid; gap: 6px; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .cs-hpbtn:hover .cs-row span { color: var(--text); }
-.cs-hpline { display: flex; gap: 3px; }
-.cs-hpunhurt { flex: 0 0 12%; height: 10px; border-radius: 5px; background: var(--accent-soft); }
-.cs-hpunhurt.on { background: var(--ok); }
-.cs-hptrack { flex: 1; position: relative; display: block; height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; }
+.cs-hptrack { position: relative; display: block; height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; }
 .cs-hptrack b { display: block; height: 100%; background: var(--ok); }
 .cs-hptrack i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bg); }
-.cs-hpsteps { position: relative; display: block; height: 14px; margin-right: calc(12% + 3px); font-size: 11px; color: var(--faint); }
+.cs-hpsteps { position: relative; display: block; height: 14px; font-size: 11px; color: var(--faint); }
 .cs-hpsteps span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
 .cs-hpsteps .now { color: var(--text); font-weight: 700; }
 .cs-parts { display: grid; gap: 6px; padding: 8px 0 4px; border-block: 1px solid var(--border); }
