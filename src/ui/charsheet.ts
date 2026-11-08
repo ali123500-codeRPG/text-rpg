@@ -168,8 +168,7 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
       return h('div', { class: 'cs-part', title: pool === null ? '' : `${whole(pool * pct / 100)} of ${whole(pool)}` },
         h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
         h('span', { class: 'w' + (st === 'Healthy' ? '' : ' bad') }, st));
-    })) ?? [],
-    h('p', { class: 'hs-note' }, 'Below 50% a part is Damaged; at 0 it is Crippled.'));
+    })) ?? []);
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
     onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
     h('span', { class: 'cs-row' }, h('span', {}, `Health · ${level} ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${whole(hp)} HP`)),
