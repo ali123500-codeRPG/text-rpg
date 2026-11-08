@@ -88,13 +88,13 @@ describe('Journal page (U9)', async () => {
   });
 });
 
-import { CREATURES } from '../../src/library/data';
+import { BODY_TYPES } from '../../src/library/data';
 describe('body figure data', () => {
   it('a figure draws every part of its body type and the general area, and nothing else', () => {
-    for (const ct of Object.values(CREATURES)) {
+    for (const ct of Object.values(BODY_TYPES)) {
       if (!ct.figure) continue;
       expect(Object.keys(ct.figure.parts).sort()).toEqual([...ct.parts.map((p) => p.id), 'general'].sort());
     }
-    expect(CREATURES.humanoid.figure).toBeTruthy();
+    expect(BODY_TYPES.humanoid.figure).toBeTruthy();
   });
 });

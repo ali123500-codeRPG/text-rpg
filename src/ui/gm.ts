@@ -9,7 +9,7 @@ const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null,
 export function gmPage(api: GameApi) {
   const el = h('main');
   const how = h('p', { class: 'how', hidden: true });
-  let confirm: { kind: 'restore'; turn: number } | { kind: 'download' } | null = null;
+  let confirm: { kind: 'restore'; turn: number } | { kind: 'download' } | { kind: 'newSave' } | null = null;
 
   function download() {
     const snap = api.gm();
@@ -31,7 +31,15 @@ export function gmPage(api: GameApi) {
         h('div', { class: 'actions' },
           confirm?.kind === 'download'
             ? confirmRow('Download the whole story as a file?', 'Download backup', download)
-            : h('button', { class: 'hs-btn-text', type: 'button', title: 'Owner only. Asks to confirm each time', onclick: () => { confirm = { kind: 'download' }; update(); } }, 'Download backup…'))),
+            : h('button', { class: 'hs-btn-text', type: 'button', title: 'Owner only. Asks to confirm each time', onclick: () => { confirm = { kind: 'download' }; update(); } }, 'Download backup…'),
+          // Ali (08/11/2026): the GM can start a new save, with warnings. The old story is archived, not deleted (D-73).
+          s ? (confirm?.kind === 'newSave'
+            ? h('div', { class: 'confirm', role: 'alert' },
+                h('span', { class: 'hs-note' }, `Warning: "${s.meta.title}" (turn ${s.turn}) ends now and you make a new character. Play can't return to it: it is archived, not deleted. Download a backup first if you want a copy.`),
+                h('button', { class: 'hs-btn-text', type: 'button', onclick: download }, 'Download backup'),
+                h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirm = null; await api.reset(); } }, 'Start a new save'),
+                h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = null; update(); } }, 'Keep playing'))
+            : h('button', { class: 'hs-btn-text danger', type: 'button', title: 'Ends this story and starts a new one. Asks to confirm', onclick: () => { confirm = { kind: 'newSave' }; update(); } }, 'Start a new save…')) : '')),
       g.fallbackBanner ? h('div', { class: 'gm-banner', role: 'alert' }, s?.stage.fallback?.reason ?? 'the stage is the flagged placeholder area') : '',
       h('div', { class: 'sec' }, readouts([
         { label: 'Turn', value: String(s?.turn ?? '–'), unit: s?.mode ?? '', sub: s ? `scene ${s.stage.sceneNumber} · since turn ${s.stage.sceneStartTurn}` : 'No story', how: 'The committed turn and the encounter mode.' },

@@ -17,7 +17,8 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
-import { createPlayer, validateBuild } from '../library/spawn';
+import { skillName } from '../library/skillNames';
+import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
@@ -401,6 +402,7 @@ export function createGame(deps: GameDeps): Game {
           }
           abortBackground();
           state = (await save.loadStory(store, s.storyId, getLibrary())).state;
+          refreshCopies(state);
           advance();
           lastDisplayAt = clock.now();
           lines.push({ turn: state.turn, kind: 'command', text: 'Turn undone.' });
@@ -485,6 +487,7 @@ export function createGame(deps: GameDeps): Game {
     try {
       const loaded = await save.loadStory(store, storyId, getLibrary());
       state = loaded.state;
+      refreshCopies(state); // copies follow their template and the level lever (Ali, 08/11/2026)
     } catch (e) {
       notice({ kind: 'load_refused', text: `The story could not be loaded: ${(e as Error).message}` });
       return false;
@@ -518,7 +521,11 @@ export function createGame(deps: GameDeps): Game {
     submit,
     async reset() {
       abortBackground();
-      if (state) await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
+      if (state) {
+        // D-73: archive, so a reload starts fresh instead of loading the old story again
+        await save.archiveStory(store, state.storyId, new Date(clock.now()).toISOString());
+        await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
+      }
       state = null;
       lines = [];
       savedLines = 0;
@@ -808,8 +815,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'skill_improved') continue;
     const d = l.detail as { skill: string; from: number; to: number; milestone?: number };
-    const name = d.skill.replace(/_/g, ' ');
-    out.push(`${name[0].toUpperCase()}${name.slice(1)} ${d.from} → ${d.to}`);
+    const name = skillName(d.skill);
+    out.push(`${name} ${d.from} → ${d.to}`);
     if (d.milestone) out.push(`New perk unlocked: ${name} ${d.milestone}`);
   }
   return out;

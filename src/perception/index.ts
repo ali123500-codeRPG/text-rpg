@@ -27,18 +27,12 @@ function dist(state: GameState, from: string, to: string, sightOnly: boolean): n
   return p ? p.length : null;
 }
 
-// GAP: the spec gives no reach table. Rule used:
-// - sight (visibility v, counted in sight links only): full within v−1 links, partial at exactly v links. Dark zone (light 2): at most partial.
-// - sound (noise n, any links): full in the same zone, partial up to n links away (noise 1 = adjacent, 2 = two links, 3 shout = three).
-//   Sound from another zone is always partial: you hear something, not who (test 4: a noisy move out of sight gives no name).
+// GAP: the spec gives no reach table. Each NOISE / VISIBILITY level reaches [full, partial] zone links (CONFIG.NOISE_REACH,
+// CONFIG.SIGHT_REACH): sight counts sight links only, sound any links. Dark zone: sight at most partial.
+// Sound from another zone is partial (you hear something, not who; test 4), except a Deafening one link away (NV6).
 // The event is perceived at its own zone (a move: the destination zone).
-function sightReach(v: number, d: number | null): Perception | null {
-  if (d === null || v <= 0) return null;
-  return d <= v - 1 ? 'full' : d === v ? 'partial' : null;
-}
-function soundReach(n: number, d: number | null): Perception | null {
-  if (d === null || n <= 0) return null;
-  return d === 0 ? 'full' : d <= n ? 'partial' : null;
+function reach([full, partial]: [number, number], d: number | null): Perception | null {
+  return d === null ? null : d <= full ? 'full' : d <= partial ? 'partial' : null;
 }
 
 /** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
@@ -47,15 +41,17 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   if (observer.id === event.actorId) return { level: 'full', cue: 'sight' };
   const zone = zoneById(state, event.zone);
   let sight: Seen | null = null;
-  const sl = sightReach(event.visibility, dist(state, observer.zone, event.zone, true));
+  const sl = reach(CONFIG.SIGHT_REACH[event.visibility], dist(state, observer.zone, event.zone, true));
   if (sl) sight = { level: zoneLight(state, zone) === 'dark' ? 'partial' : sl, cue: 'sight' };
   // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see)
   if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone) {
     const d = dist(state, observer.zone, event.zone, true);
     if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
   }
-  // A14 Keen Ear: a sound reaches the owner one zone link further
-  const nl = soundReach(event.noise + (event.noise > 0 && hasPerk(observer, 'keen_ear') ? 1 : 0), dist(state, observer.zone, event.zone, false));
+  // A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other (Ali, 08/11/2026): Silent becomes Hushed.
+  const up = hasPerk(observer, 'keen_ear') ? 1 : 0;
+  const [full, heard] = CONFIG.NOISE_REACH[event.noise];
+  const nl = reach([full + up, heard + up], dist(state, observer.zone, event.zone, false));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.

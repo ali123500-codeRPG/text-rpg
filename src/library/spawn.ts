@@ -1,7 +1,12 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import type { Actor, CreationBuild, GameState, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
-import { creatureType, getLibrary, itemDef, npcTemplate } from './index';
+import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
+import { skillOpen } from '../ruleset/access';
+import { createRng } from '../rng';
+
+/** a fixed seed per template id, so every copy of a template spends its level points the same way */
+const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
 
 let seq = 0;
 export function newInstanceId(prefix = 'it'): string {
@@ -12,8 +17,8 @@ export function resetInstanceIds(): void {
   seq = 0;
 }
 
-export function fullParts(state: GameState | null, creatureTypeId: string): Record<string, number> {
-  return Object.fromEntries(creatureType(state, creatureTypeId).parts.map((p) => [p.id, 100]));
+export function fullParts(state: GameState | null, bodyTypeId: string): Record<string, number> {
+  return Object.fromEntries(bodyType(state, bodyTypeId).parts.map((p) => [p.id, 100]));
 }
 
 /** equip a loadout the obvious way: weapons/shields into free hands, armor worn. */
@@ -36,7 +41,6 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
 
 export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string };
 
-/** Copy NPC: skills are the template's minimums (read live in principle; copied here for the sheet). */
 /** Unique generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
 export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
   const raw: Record<string, number> = { ...t.minimums };
@@ -58,7 +62,7 @@ export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, Skill
   return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, { raw: v, state: tagged.has(k) ? 'tagged' as const : 'normal' as const }]));
 }
 
-/** Copy NPC: skills are the template's minimums (read live in principle; copied here for the sheet). Unique: rolled once, frozen. */
+/** Copy NPC: minimums plus level points spent with the template's fixed seed (alike for every copy). Unique: rolled once, frozen. */
 /** the perks a member of this race is born with: its innate perks and innate quirks (Ali, 08/11/2026) */
 export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
   const r = raceId ? getLibrary().races?.[raceId] : undefined;
@@ -70,8 +74,9 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   if (t.generation === 'unique' && !rng) throw new Error(`unique template ${t.id} needs the seeded rng`);
   const skills = t.generation === 'unique'
     ? rollUniqueSkills(t, rng!)
-    : Object.fromEntries(Object.entries(t.minimums).map(([k, v]) => [k, { raw: v, state: 'normal' as const }]));
-  const ct = creatureType(state, t.creatureTypeId);
+    // Q3 (Ali, 08/11/2026): copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
+    : rollUniqueSkills(t, createRng(templateSeed(t.id)));
+  const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
   const morale = CONFIG.PERSONALITY_MORALE[t.personality];
   return {
     id: opts.id,
@@ -83,13 +88,13 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     zone: opts.zone,
     bandId: opts.bandId,
     core: {
-      creatureTypeId: ct.id,
-      ...(t.raceId ? { raceId: t.raceId } : {}),
+      bodyTypeId: ct.id,
+      raceId: t.raceId,
       templateId: t.id,
       generation: t.generation,
       skills,
       classes: t.classId ? [{ classId: t.classId, state: 'current', level: t.level }] : [],
-      perks: racePerks(t.raceId, state?.turn ?? 0),
+      perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 }))],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
       standingDefense: (skills.block?.raw ?? 0) >= (skills.dodge?.raw ?? 0) ? 'block' : 'dodge', // GAP: raw skill; a tie goes to block like the player
@@ -112,6 +117,13 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
 
 // ---------- player creation (Part 4 §4) ----------
 const PLAYER_CLASS = 'swordsman'; // first build: the player's class
+/** who a new player is: body type, race, class and race perks. Tree access (TA1) reads these before the sheet exists. */
+export const newPlayer = (): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> => ({
+  bodyTypeId: 'humanoid',
+  raceId: 'human', // GAP: no race choice at creation yet
+  classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],
+  perks: racePerks('human'),
+});
 const STARTING_GEAR = ['arming_sword', 'round_shield', 'gambeson'];
 
 /** The creation screen's opening build: satisfies every creation rule. */
@@ -123,14 +135,15 @@ export function recommendedBuild(): CreationBuild {
   };
 }
 
-/** Empty = valid. Every point spent, open skills only, none above the cap, class floors met, exactly CREATION_TAGS tags. */
+/** Empty = valid. Every point spent, skills in trees open to a new player only (TA1), none above the cap, class floors met, exactly CREATION_TAGS tags. */
 export function validateBuild(build: CreationBuild): string[] {
   const lib = getLibrary();
   const errs: string[] = [];
+  const who = { core: newPlayer() } as Actor;
   if (!build.name?.trim()) errs.push('Name the character');
   let spent = 0;
   for (const [id, v] of Object.entries(build.skills)) {
-    if (!lib.skills[id]?.playerOpen) errs.push(`${id} is not open to the point-buy`);
+    if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${id} is not open to the point-buy`);
     if (!Number.isInteger(v) || v < 0) errs.push(`${id} must be a whole number of points, 0 or more`);
     else if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${id} is above ${CONFIG.CREATION_MAX_SKILL}`);
     spent += v;
@@ -141,7 +154,7 @@ export function validateBuild(build: CreationBuild): string[] {
   const tags = new Set(build.tagged);
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
   if (tags.size !== CONFIG.CREATION_TAGS) errs.push(`Tag exactly ${CONFIG.CREATION_TAGS} skills (${tags.size} tagged)`);
-  for (const id of tags) if (!lib.skills[id]?.playerOpen) errs.push(`${id} cannot be tagged`);
+  for (const id of tags) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${id} cannot be tagged`);
   return errs;
 }
 
@@ -161,11 +174,8 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     placeId: '', zone: '', // GAP: set by story-start scene setup (the village tavern, Part 2 Scene setup)
     posture: 'open', bandId: 'player_band',
     core: {
-      creatureTypeId: 'humanoid',
-      raceId: 'human', // GAP: no race choice at creation yet
+      ...newPlayer(),
       skills,
-      classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],
-      perks: racePerks('human'),
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
       inventory: [...equipLoadout(null, STARTING_GEAR, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN },
         { id: 'player_bandage', itemId: 'bandage', qty: CONFIG.STARTING_BANDAGES }],
@@ -178,4 +188,17 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     },
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };
+}
+
+/** Copy NPCs follow their template live (Ali, 08/11/2026: the level × POINTS_PER_LEVEL lever must reach existing
+ * templates and NPCs). On load, each copy's skills are rebuilt from its template with the current CONFIG, and the
+ * template's perks are added if missing. Unique NPCs keep what they rolled. */
+export function refreshCopies(state: GameState): void {
+  for (const a of state.actors) {
+    if (a.kind !== 'npc' || a.core.generation !== 'copy' || !a.core.templateId) continue;
+    if (!hasTemplate(state, a.core.templateId)) continue;
+    const t = npcTemplate(state, a.core.templateId);
+    a.core.skills = rollUniqueSkills(t, createRng(templateSeed(t.id)));
+    for (const perkId of t.perks ?? []) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
+  }
 }

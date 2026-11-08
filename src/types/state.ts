@@ -70,6 +70,8 @@ export type StoryMeta = {
   schemaVersion: number;
   createdAt: string;
   settings: Settings;
+  /** set by a confirmed reset (D-73): the story's pages stay under its id, but play no longer loads it */
+  archivedAt?: string;
 };
 
 export type PageRef = { version: Turn; hash: string; bytes: number };
@@ -106,7 +108,7 @@ export type HiddenPage = { storyId: StoryId } & HiddenStore;
 export type BlueprintPage = {
   storyId: StoryId;
   id: LibraryRef;
-  kind: 'item' | 'creature' | 'npcTemplate';
+  kind: 'item' | 'body_type' | 'npcTemplate';
   data: Record<string, unknown>;
 };
 

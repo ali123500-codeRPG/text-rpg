@@ -1,10 +1,12 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
 import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
+import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
-import { creatureType, getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
-import { hasPerk, trueSkill } from './perks';
+import { hasPerk, standInAdd, trueSkill } from './perks';
+import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
@@ -60,9 +62,11 @@ export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number 
 
 /** ST21: the light modifier (light where the action is) and, for tags cover reaches on the roll itself, the cover tier
  * shift (the roller's zone) for one roll. A ranged attack's cover is a gap shift instead (ruleset attack). */
-export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[] }): { modifiers: Mod[]; tierShifts: TierShift[] } {
+export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
   const tags = rollTags(skill, at.add);
-  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[zoneLight(state, at.light)] ?? 0) : 0;
+  // All-50 Child of Night: light reads one step darker for the owner's stealth rolls
+  const darker = tags.includes('stealth') && hasPerk(at.actor, 'child_of_night') ? 1 : 0;
+  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[LIGHT.at(LIGHT.pos(zoneLight(state, at.light)) + darker)] ?? 0) : 0;
   const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[at.cover.cover] ?? 0) : 0;
   return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
 }
@@ -73,15 +77,17 @@ export const tierMult = (skill: string): number => CONFIG.SKILL_TIER_MULT[getLib
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[] } = {}) {
   const skills = getLibrary().skills;
-  // substitutes: skills sharing a function at the flat efficiency, or the skill's own table (CONFIG.SUBSTITUTES)
-  const table = CONFIG.SUBSTITUTES[skill] ?? (skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }));
+  // stand-ins: skills sharing a function at the flat efficiency, or the skill's own table (CONFIG.SUBSTITUTES); the
+  // owner's perks move each share (F4, PerkDef.standIn), kept within 0–1
+  const table = (CONFIG.SUBSTITUTES[skill] ?? (skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY })))
+    .map((t) => ({ fn: t.fn, k: Math.min(1, Math.max(0, t.k + standInAdd(actor, t.fn))) }));
   const share = (id: string) => (id === skill || (ctx.fullValue?.includes(id) && skills[id]) ? 1 : Math.max(0, ...table.filter((t) => (skills[id]?.functions as string[] ?? []).includes(t.fn)).map((t) => t.k)));
   const cands = [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)];
   let best: { skill: string; value: number; gear: { source: string; value: number }[] } | null = null;
   for (const id of cands) {
     const k = share(id);
     const entry = actor.core.skills[id];
-    const gear = gearFor(state, actor, id, ctx).map((g) => ({ ...g, value: g.value * k }));
+    const gear = (skillOpen(actor, id) ? gearFor(state, actor, id, ctx) : []).map((g) => ({ ...g, value: g.value * k }));
     // true skill (S3) and gear, × the skill's tier multiplier (final efficiency, Ali 08/11/2026)
     const tier = tierMult(id);
     const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier;
@@ -135,7 +141,7 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
   return { itemId: best.id, stowed: off.id };
 }
 
-/** fallback unarmed mode for a creature with no natural attacks (UNARMED_PROFILE = class punch) */
+/** fallback unarmed mode for a body type with no natural attacks (UNARMED_PROFILE = class punch) */
 export const UNARMED_MODE: AttackMode = { id: 'unarmed', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
@@ -147,7 +153,7 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
     if (!isHeld(inst) || !handsOf(inst).every((h) => grips.includes(h))) continue;
     for (const mode of itemDef(state, inst.itemId).weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode });
   }
-  const ct = creatureType(state, actor.core.creatureTypeId);
+  const ct = actorBody(state, actor);
   for (const mode of ct.naturalAttacks) {
     if (!mode.partId || working(poolState(partPct(actor, mode.partId)))) out.push({ itemId: `natural:${mode.id}`, mode });
   }
@@ -162,7 +168,7 @@ export function defaultMode(state: GameState, actor: Actor, distance: number): {
 
 /** the mode an attack request names (item instance, 'natural:<id>' or 'unarmed') */
 export function resolveMode(state: GameState, actor: Actor, weaponId: string, modeId: string | undefined, distance: number): { mode: AttackMode; name: string } {
-  const ct = creatureType(state, actor.core.creatureTypeId);
+  const ct = actorBody(state, actor);
   if (weaponId === 'unarmed' || weaponId.startsWith('natural:')) {
     const id = weaponId === 'unarmed' ? modeId : weaponId.slice(8);
     const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !m.partId) ?? UNARMED_MODE : undefined);

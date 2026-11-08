@@ -13,7 +13,7 @@ import { fakeView } from './minds-view';
 afterEach(() => resetConfig());
 
 const ev = (state: GameState, kind: string, actorId: string, zone: string, perceivedBy: string[]): GameEvent => ({
-  id: `e${Math.random()}`, turn: state.turn, actorId, kind, zone, effects: [], noise: 2, visibility: 2,
+  id: `e${Math.random()}`, turn: state.turn, actorId, kind, zone, effects: [], noise: 'normal', visibility: 'normal',
   perception: Object.fromEntries(perceivedBy.map((id) => [id, { level: 'full' as const, cue: 'sight' as const }])),
 });
 const belief = (zone: string, status: 'suspicious' | 'aware' = 'aware', turn = 1) => ({ status, lastKnownZone: zone, lastSeenTurn: turn, source: 'seen' as const, revealed: [] });

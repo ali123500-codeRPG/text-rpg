@@ -2,10 +2,11 @@
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
 import type { Actor, GameState, LogLine } from '../types';
 import { CONFIG } from '../config';
-import { creatureType, getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { achievementName, charLevel, xpToNext } from '../engine/xp';
+import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 
@@ -13,7 +14,6 @@ import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 export const invFocus: { id: string | null } = { id: null };
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
-const LOCKED = new Set(['unarmed_natural']);
 const BAR_SCALE = 100; // display only: the rules set no skill maximum yet (D-3)
 
 export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: number | null } {
@@ -40,9 +40,9 @@ function attackOf(s: GameState, p: Actor): { name: string; value: number | null 
 export function trees(s: GameState, p: Actor, withZero: boolean) {
   const lib = getLibrary();
   return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => {
-    const ks = lib.trees[t.id].skills.filter((k) => !LOCKED.has(k) && p.core.skills[k] !== undefined);
+    const ks = lib.trees[t.id].skills.filter((k) => p.core.skills[k] !== undefined);
     const rows = ks.map((k) => ({ id: k, raw: p.core.skills[k].raw, tagged: p.core.skills[k].state === 'tagged' }));
-    return { id: t.id, c: t.c, name: lib.trees[t.id].name, sum: rows.reduce((a, r) => a + r.raw, 0), rows: withZero ? rows : rows.filter((r) => r.raw > 0) };
+    return { id: t.id, c: t.c, name: lib.trees[t.id].name, block: treeBlock(p, t.id), sum: rows.reduce((a, r) => a + r.raw, 0), rows: withZero ? rows : rows.filter((r) => r.raw > 0) };
   }).filter((t) => t.sum > 0);
 }
 
@@ -90,7 +90,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
     gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
     h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Achievements'),
       (p.progression?.achievements ?? []).length
-        ? p.progression!.achievements!.map((a) => h('span', {}, achievementName(s, a), ` · turn ${a.turn}`))
+        ? p.progression!.achievements!.map((a) => h('span', {}, achievementName(s, a), ` · turn ${a.turn}`, a.replacedBy ? ' · replaced by the next level' : ''))
         : h('span', {}, 'None yet')));
 }
 
@@ -117,6 +117,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
   return h('div', { class: 'cs-trees' }, trees(s, p, true).map((t) =>
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
       h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', {}, `${t.sum} pts`)),
+      t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
         bar(r.raw), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
@@ -125,10 +126,10 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
 const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-/** Body figure (Ali, 07/11/2026): the creature type's silhouette, each part tinted by its state; the general area shows
+/** Body figure (Ali, 07/11/2026): the body type's silhouette, each part tinted by its state; the general area shows
  * total health. Clicking a part names it with its state and amount. Null for body types without a figure. */
 export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set()): HTMLElement | null {
-  const ct = safe(() => creatureType(s, p.core.creatureTypeId));
+  const ct = safe(() => actorBody(s, p));
   if (!ct?.figure) return null;
   const { hp, total } = hpLeft(s, p);
   const info = (id: string): { name: string; state: string; amount: string } => {
@@ -180,7 +181,7 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
   const fill = level === 'Unhurt' ? 100 : left * scale;
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
-    bodyFigure(s, p, healed) ?? safe(() => creatureType(s, p.core.creatureTypeId).parts.map((d) => {
+    bodyFigure(s, p, healed) ?? safe(() => actorBody(s, p).parts.map((d) => {
       const pct = p.core.condition.parts[d.id] ?? 100;
       const pool = total === null ? null : total * (CONFIG.PART_SHARE[d.size] ?? 0);
       const st = poolState(pct);

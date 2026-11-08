@@ -31,7 +31,7 @@ import { updateBeliefs } from '../../src/perception';
 import { fakeView } from './minds-view';
 
 const ev = (perception: GameEvent['perception'], target?: string): GameEvent => ({
-  id: 'e1', turn: 1, actorId: 'player', kind: target ? 'attack' : 'move', zone: 'gate_inner', target, effects: [], noise: 2, visibility: 2, perception,
+  id: 'e1', turn: 1, actorId: 'player', kind: target ? 'attack' : 'move', zone: 'gate_inner', target, effects: [], noise: 'normal', visibility: 'normal', perception,
 });
 
 beforeEach(() => {

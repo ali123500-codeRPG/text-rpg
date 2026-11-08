@@ -8,7 +8,7 @@ import { buildNarrationView } from '../../src/views';
 it('4 Partial perception', () => {
   const s = makeVillage({ playerZone: 'street_door' });
   place(s, 'slime_1', 'tav_common');
-  const e: GameEvent = { id: 'e1', turn: 1, actorId: 'slime_1', kind: 'move', zone: 'tav_counter', fromZone: 'tav_common', effects: [], noise: 2, visibility: 2, perception: {} };
+  const e: GameEvent = { id: 'e1', turn: 1, actorId: 'slime_1', kind: 'move', zone: 'tav_counter', fromZone: 'tav_common', effects: [], noise: 'normal', visibility: 'normal', perception: {} };
   e.perception = computePerception(e, s, createRng(1));
   updateBeliefs(s, { kind: 'event', event: e });
   const v = buildNarrationView(s, [e], null);

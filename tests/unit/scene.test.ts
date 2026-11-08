@@ -59,15 +59,15 @@ describe('validateStagePlan', () => {
   it('the village fixture plan is valid at story start', () => {
     expect(validateStagePlan(fresh(), villageStagePlan(), ctx)).toEqual([]);
   });
-  it('unknown template and unknown creature type fail (not routine-only)', () => {
+  it('unknown template and unknown body type fail (not routine-only)', () => {
     const s = fresh();
-    s.blueprints.push({ storyId: 'test', id: 'wyvern_rider', kind: 'npcTemplate', data: { id: 'wyvern_rider', creatureTypeId: 'wyvern' } });
+    s.blueprints.push({ storyId: 'test', id: 'wyvern_rider', kind: 'npcTemplate', data: { id: 'wyvern_rider', raceId: 'wyvern' } });
     const p = villageStagePlan();
     p.cast[0].template = 'ogre';
     p.cast[1].template = 'wyvern_rider';
     const e = validateStagePlan(s, p, ctx);
-    expect(e.map((x) => x.code)).toEqual(expect.arrayContaining(['unknown_template', 'unknown_creature_type']));
-    expect(e.find((x) => x.code === 'unknown_creature_type')!.message).toContain('humanoid');
+    expect(e.map((x) => x.code)).toEqual(expect.arrayContaining(['unknown_template', 'unknown_body_type']));
+    expect(e.find((x) => x.code === 'unknown_body_type')!.message).toContain('human, elf, slime, dragon');
     expect(e.every((x) => !x.routineOnly)).toBe(true);
   });
   it('caps on cast, zones and knows', () => {
@@ -92,8 +92,13 @@ describe('validateStagePlan', () => {
     // a stage zone and an existing frontier are fine
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }] };
+      zones: [{ key: 'grove', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }] };
     expect(validateStagePlan(s, ext, { ...ctx, kind: 'extension', frontierKey: 'woods', placeId: 'field' })).toEqual([]);
+  });
+  it('Z2: every zone names a known kind', () => {
+    const p = villageStagePlan();
+    p.zones[0].kind = 'castle';
+    expect(codes(fresh(), p)).toEqual(['bad_zone']);
   });
   it('triggers: vocabulary and one order; secrets need leakTerms', () => {
     const p = villageStagePlan();
@@ -200,7 +205,7 @@ describe('validateStagePlan', () => {
   });
   it('bound zones must reach each other', () => {
     const p = villageStagePlan();
-    p.zones.push({ key: 'island', place: 'field', name: 'an island', look: 'reeds', cover: 'none', light: 'bright', links: [] });
+    p.zones.push({ key: 'island', place: 'field', kind: 'field', name: 'an island', look: 'reeds', cover: 'none', light: 'bright', links: [] });
     p.cast[3].slots = { route: ['field_mid', 'field_far'], post: 'island' };
     expect(validateStagePlan(fresh(), p, ctx)).toEqual([expect.objectContaining({ code: 'unreachable_zone', castKey: 'slime_1', routineOnly: true })]);
   });
@@ -223,6 +228,14 @@ describe('applyStagePlan', () => {
     expect(s.stage.zoneIds).toHaveLength(7);
     expect(s.zones.find((z) => z.id === 'field_far')!.links.find((l) => l.to === 'woods')).toEqual({ to: 'woods', label: 'into the woods', sight: false, frontier: true });
     expect(s.player.zone).toBe('tav_common');
+    // Z3: the kind fixes outdoor and fills cover and light the plan leaves out
+    const p2 = villageStagePlan();
+    const field = p2.zones.find((z) => z.key === 'field_mid')!;
+    delete field.cover; delete field.light;
+    const s2 = fresh();
+    applyStagePlan(s2, p2, ctx, { entry: 'open' }, createRng(1));
+    expect(s2.zones.find((z) => z.id === 'field_mid')).toMatchObject({ outdoor: true, cover: 'none', light: 'dark' });
+    expect(s2.zones.find((z) => z.id === 'tav_common')!.outdoor).toBeUndefined();
     expect(s.bands.map((b) => b.id)).toEqual(['player_band', 'village_watch', 'tavern_folk', 'slimes']);
     expect(s.actors.map((a) => [a.id, a.zone, a.placeId, a.bandId])).toEqual([
       ['guard_1', 'gate_inner', 'street', 'village_watch'], ['barkeep', 'tav_counter', 'tavern', 'tavern_folk'],
@@ -275,7 +288,7 @@ describe('applyStagePlan', () => {
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
       bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tactics: 'simple', lethal: undefined as never, relations: { player_band: 'hostile' } }],
-      zones: [{ key: 'field_mid', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }],
+      zones: [{ key: 'field_mid', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }],
       cast: [{ template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(s.stage.zoneIds).toContain('field_mid_2');
@@ -391,7 +404,7 @@ describe('SceneDirector', () => {
     const clock = new VirtualClock();
     const s = makeVillage({ playerZone: 'field_far' });
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }] };
+      zones: [{ key: 'grove', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }] };
     const weave = vi.fn(() => clock.sleep(5000).then(() => ext));
     const spy = vi.spyOn(ruleset, 'situation');
     const d = new SceneDirector({ weave, clock });

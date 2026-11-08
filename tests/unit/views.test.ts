@@ -25,7 +25,7 @@ vi.mock('../../src/ruleset', async (orig) => {
 
 let n = 0;
 const ev = (e: Partial<GameEvent> & Pick<GameEvent, 'actorId' | 'kind' | 'zone'>): GameEvent =>
-  ({ id: `e${++n}`, turn: 1, effects: [], noise: 1, visibility: 2, perception: {}, ...e });
+  ({ id: `e${++n}`, turn: 1, effects: [], noise: 'quiet', visibility: 'normal', perception: {}, ...e });
 const run = (s: GameState, e: GameEvent) => {
   e.perception = computePerception(e, s, createRng(1));
   updateBeliefs(s, { kind: 'event', event: e });
@@ -45,7 +45,7 @@ describe('NPC views', () => {
   });
   it('never copy bark events (Leak prevention)', () => {
     const s = makeVillage();
-    run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', bark: true, line: { text: 'Get out, you oaf!', volume: 'shout' }, noise: 3 }));
+    run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', bark: true, line: { text: 'Get out, you oaf!', volume: 'shout' }, noise: 'loud' }));
     run(s, ev({ actorId: 'trader', kind: 'idle', zone: 'tav_counter', activity: 'tend_counter' }));
     for (const v of npcViews(s, 'patron_1')) {
       expect(JSON.stringify(v)).not.toContain('oaf');
@@ -89,7 +89,7 @@ describe('NPC views', () => {
   });
   it('NPC views keep events perceived in earlier turns (recentEvents) and who last hit them', () => {
     const s = makeVillage();
-    const hit = { id: 't0.1', turn: 0, actorId: 'player', kind: 'attack', target: 'patron_1', zone: 'tav_common', effects: [], noise: 2, visibility: 2,
+    const hit = { id: 't0.1', turn: 0, actorId: 'player', kind: 'attack', target: 'patron_1', zone: 'tav_common', effects: [], noise: 'normal', visibility: 'normal',
       perception: { patron_1: { level: 'full', cue: 'sight' } }, attack: { outcome: 'full hit' } } as unknown as GameEvent;
     s.recentEvents = [hit];
     const ov = buildOppositionView(s, 'patron_1');
@@ -127,7 +127,7 @@ describe('NarrationView and the packet', () => {
   });
   it('partial events carry no actor, only the link label and cue', () => {
     const s = makeVillage({ playerZone: 'street_door' });
-    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 2 }));
+    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'normal' }));
     const v = buildNarrationView(s, s.events, null);
     expect(v.events).toEqual([{ id: s.events[0].id, kind: 'move', level: 'partial', cue: 'sound', where: 'inside the tavern' }]);
   });

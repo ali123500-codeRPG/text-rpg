@@ -256,7 +256,16 @@ export const releaseTurnLock = (store: Store, storyId: string, owner: string) =>
 export async function listStories(store: Store): Promise<StoryMeta[]> {
   const metas = await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)));
   // GAP: no "current story" pointer in the spec's paths; the newest createdAt is the one that runs
-  return metas.filter((m): m is StoryMeta => !!m).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
+  return metas.filter((m): m is StoryMeta => !!m && !m.archivedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
+}
+
+/** A confirmed reset (D-73, Ali 08/11/2026: the GM can reset the save): the story is archived, not deleted. Its meta is
+ * marked, so listStories (and so resume) skips it, and a story still starting is dropped too. */
+export async function archiveStory(store: Store, storyId: string, at: string): Promise<void> {
+  const meta = await guard(() => store.get<StoryMeta>(story(storyId)));
+  if (meta) await guard(() => store.set(story(storyId), { ...meta, archivedAt: at }));
+  const pending = await guard(() => store.get<PendingStart>(PENDING_START)).catch(() => null);
+  if (pending?.storyId === storyId) await guard(() => store.delete(PENDING_START));
 }
 
 // ---------- a story still starting ----------

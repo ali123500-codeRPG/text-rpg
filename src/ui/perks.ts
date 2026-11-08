@@ -7,9 +7,8 @@ import { ALL_STEPS, MILESTONES, canUndo, milestonePerk, milestoneState, trueSkil
 import { h } from './kit';
 import { skillName, TREE_VIEW } from './creation';
 
-const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech']];
+const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
 const TOP = 150;
-const LOCKED = new Set(['unarmed_natural']);
 // Story or Rules (Ali, 07/11/2026): the player picks which write-up the perk card shows; kept per browser
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };
 const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel: null as null | { skill: string; milestone: number }, folded: new Set<string>() };
@@ -18,7 +17,7 @@ const pct = (v: number) => `${Math.min(100, (v / TOP) * 100).toFixed(2)}%`;
 
 function treesOf(p: Actor) {
   const lib = getLibrary();
-  return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => ({ id: t.id, name: lib.trees[t.id].name, skills: lib.trees[t.id].skills.filter((k) => !LOCKED.has(k) && p.core.skills[k] !== undefined) }))
+  return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => ({ id: t.id, name: lib.trees[t.id].name, skills: lib.trees[t.id].skills.filter((k) => p.core.skills[k] !== undefined) }))
     .filter((t) => t.skills.length);
 }
 

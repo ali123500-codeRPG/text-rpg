@@ -14,16 +14,16 @@ describe('ruleset maths', () => {
     expect(stackType([6, 4, 2])).toBe(8.5);
     expect(stackType([-8, -3])).toBe(-9.5);
     expect(stackType([6, 4, 2, -8, -3])).toBe(-1);
-    expect(stackType([5, 5, 5, 5])).toBe(8.75); // fourth counts 0
+    expect(stackType([8, 8, 8, 8, 8])).toBe(15.5); // 8 + 4 + 2 + 1 + 0.5: the x-th counts at 0.5^(x−1) (Ali, 08/11/2026)
   });
   it('bands margins exactly, .5 included', () => {
     expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map((m) => TIERS.at(band(m)))).toEqual(
       ['critical_failure', 'failure', 'failure', 'failure', 'near_miss', 'near_miss', 'success', 'success', 'great_success', 'great_success', 'critical_success']);
   });
-  it('substitutes at half efficiency, highest candidate', () => {
+  it('stand-ins at SUBSTITUTE_EFFICIENCY (0.3, F4), highest candidate', () => {
     const s = makeVillage();
     s.player.core.skills.intimidation = { raw: 20, state: 'normal' };
-    s.player.core.skills.persuasion = { raw: 60, state: 'normal' };
+    s.player.core.skills.persuasion = { raw: 100, state: 'normal' };
     expect(effectiveSkill(s, s.player, 'intimidation')).toMatchObject({ skill: 'persuasion', value: 30 });
     const c = ruleset.check({ actorId: 'player', skill: 'intimidation', modifiers: [{ source: 'x', value: 20 }] }, s, createRng(1));
     expect(c).toMatchObject({ skill: 'persuasion', target: 50, passed: true });
@@ -36,7 +36,7 @@ describe('ruleset maths', () => {
     expect(effectiveSkill(s, s.player, 'unarmed_grapple')).toMatchObject({ skill: 'melee_heavy', value: 20 });
     sk.unarmed_strike = { raw: 60, state: 'normal' };
     expect(effectiveSkill(s, s.player, 'unarmed_grapple')).toMatchObject({ skill: 'unarmed_strike', value: 24 });
-    expect(effectiveSkill(s, s.player, 'unarmed_improvised')).toMatchObject({ skill: 'unarmed_strike', value: 30 }); // flat 0.5 elsewhere
+    expect(effectiveSkill(s, s.player, 'unarmed_improvised')).toMatchObject({ skill: 'unarmed_strike', value: 18 }); // flat 0.3 elsewhere (F4)
   });
   it('kit pieces share one +25', () => {
     const s = makeVillage();
@@ -65,7 +65,7 @@ describe('body', () => {
     const s = makeVillage();
     const ranges = (a: Actor) => hitTable(s, a).map((r) => `${r.part}:${r.from}-${r.to}`);
     expect(ranges(s.player)).toEqual(['head:1-7', 'left_arm:8-22', 'right_arm:23-37', 'left_leg:38-52', 'right_leg:53-67', 'neck:68-70', 'general:71-100']);
-    const dragon = { ...s.player, core: { ...s.player.core, creatureTypeId: 'dragon', condition: { hpLostPct: 0, parts: {}, status: [] } } };
+    const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: 'winged_quadruped', condition: { hpLostPct: 0, parts: {}, status: [] } } };
     expect(ranges(dragon)).toEqual(['head:1-9', 'left_wing:10-18', 'right_wing:19-27', 'forelegs:28-36', 'hind_legs:37-46', 'tail:47-51', 'general:52-100']);
     s.player.core.condition.parts.left_arm = -100;
     expect(hitTable(s, s.player).map((r) => r.part)).not.toContain('left_arm');
@@ -79,10 +79,13 @@ describe('body', () => {
     expect(woundsMods(s, s.player, 'melee_medium', { itemId: sword }).map((m) => m.value)).toEqual([-5, -10]);
     expect(woundsMods(s, s.player, 'melee_medium').map((m) => m.value)).toEqual([-5]); // best arm without an item
     expect(woundsMods(s, s.player, 'persuasion').map((m) => m.value)).toEqual([-5]);
-    const dragon = { ...s.player, core: { ...s.player.core, creatureTypeId: 'dragon', condition: { hpLostPct: 0, parts: { forelegs: 40 }, status: [] } } };
+    const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: 'winged_quadruped', condition: { hpLostPct: 0, parts: { forelegs: 40 }, status: [] } } };
     expect(woundsMods(s, dragon, 'dodge')).toEqual([{ source: 'move wounds', type: 'wounds', value: -5 }]);
-    s.player.core.condition.parts.head = -10; // Sense Crippled: every roll
-    expect(woundsMods(s, s.player, 'persuasion').map((m) => m.value)).toEqual([-5, -20]);
+    s.player.core.condition.parts.head = 40; // Damaged head: speech rolls only
+    expect(woundsMods(s, s.player, 'persuasion')).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -10 });
+    expect(woundsMods(s, s.player, 'dodge').map((m) => m.value)).toEqual([-5]);
+    s.player.core.condition.parts.head = -10; // Sense Crippled: every roll, plus speech on speech rolls
+    expect(woundsMods(s, s.player, 'persuasion').map((m) => m.value)).toEqual([-5, -20, -20]);
   });
 });
 

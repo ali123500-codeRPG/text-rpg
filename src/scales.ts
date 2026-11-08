@@ -61,6 +61,15 @@ export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged']
 export type PartStateKey = (typeof PART_STATES.keys)[number];
 /** the player's posture (ST5, Ali 08/11/2026: not named like the Sneaking skill) */
 export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
+/** how far an event is heard, quietest first; reach per level is CONFIG.NOISE_REACH */
+export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['normal', 'Normal'], ['loud', 'Loud'], ['deafening', 'Deafening']]);
+export type NoiseKey = (typeof NOISE.keys)[number];
+/** how far an event is seen, least first; reach per level is CONFIG.SIGHT_REACH */
+export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
+export type VisibilityKey = (typeof VISIBILITY.keys)[number];
+/** worn armor weight, lightest first (AN3, Ali 08/11/2026); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
+export const ARMOR_WEIGHTS = scale([['light', 'Light'], ['medium', 'Medium'], ['heavy', 'Heavy']]);
+export type ArmorWeightKey = (typeof ARMOR_WEIGHTS.keys)[number];
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
 

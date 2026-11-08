@@ -42,7 +42,7 @@ export type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };
 
 export type Core = {
   raceId?: LibraryRef;
-  creatureTypeId: LibraryRef;
+  bodyTypeId: LibraryRef;
   templateId?: LibraryRef;
   generation?: 'unique' | 'copy';
   skills: Record<LibraryRef, SkillEntry>;
@@ -63,7 +63,7 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race'; // 'race': innate, from the race's innatePerks / innateQuirks
+  source: 'level' | 'mastery' | 'race' | 'template'; // 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
@@ -84,10 +84,10 @@ export type Progression = {
   unspentPerkPoints: number;
   marks: LibraryRef[];
   xpLog?: XpAward[]; // source trail (B8); every award, in order
-  /** earned, each once (B4, X6). key = the library achievements table row, of = the creature type, race or tree it names;
+  /** earned, each once (B4, X6). key = the library achievements table row, of = the body type, race or tree it names;
    * the name and XP level live only in that table (Ali, 07/11/2026). name is only on entries from older saves. */
-  achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn }[];
-  defeats?: Record<string, number>; // defeat counts: 'all', 'creature:<type>', 'race:<race>'
+  achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string }[];
+  defeats?: Record<string, number>; // defeat counts: 'all', 'body_type:<type>', 'race:<race>'
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
   quickHeal?: LibraryRef; // H3 (Ali, 07/11/2026): the healing item (item def id) the quick slot shows; absent = the strongest
 };
@@ -116,8 +116,7 @@ export type Mind = {
 
 export type NpcTemplate = {
   id: LibraryRef;
-  creatureTypeId: LibraryRef;
-  raceId?: LibraryRef;
+  raceId: LibraryRef; // BR5: the body type comes from the race
   classId?: LibraryRef;
   generation: 'unique' | 'copy';
   minimums: Record<LibraryRef, number>;
@@ -129,7 +128,9 @@ export type NpcTemplate = {
   potential?: number;
   control: 'agent' | 'code';
   label: string;
-  fallback?: { attackSkill: LibraryRef }; // overrides the creature type's (Fallback behavior)
+  fallback?: { attackSkill: LibraryRef }; // overrides the body type's (Fallback behavior)
+  /** perks every NPC made from this template has (Ali, 08/11/2026: any patrolling template has Keen Ear) */
+  perks?: LibraryRef[];
 };
 
 export type Journal = {

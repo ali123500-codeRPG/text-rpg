@@ -6,7 +6,7 @@ import { CONFIG } from '../../src/config';
 
 let n = 0;
 const ev = (e: Partial<GameEvent> & Pick<GameEvent, 'actorId' | 'kind' | 'zone'>): GameEvent =>
-  ({ id: `e${++n}`, turn: 1, effects: [], noise: 1, visibility: 2, perception: {}, ...e });
+  ({ id: `e${++n}`, turn: 1, effects: [], noise: 'quiet', visibility: 'normal', perception: {}, ...e });
 const run = (s: GameState, e: GameEvent) => {
   e.perception = computePerception(e, s, createRng(1));
   updateBeliefs(s, { kind: 'event', event: e });
@@ -14,23 +14,36 @@ const run = (s: GameState, e: GameEvent) => {
 };
 
 describe('computePerception', () => {
-  it('sight: full in own and sight-linked zone at visibility 2; partial at 2 sight links', () => {
+  it('sight: full in own and sight-linked zone at normal visibility; partial at 2 sight links', () => {
     const s = makeVillage({ playerZone: 'street_square' });
-    const p = computePerception(ev({ actorId: 'slime_1', kind: 'move', zone: 'gate_inner', noise: 0, visibility: 2 }), s, createRng(1));
+    const p = computePerception(ev({ actorId: 'slime_1', kind: 'move', zone: 'gate_inner', noise: 'silent', visibility: 'normal' }), s, createRng(1));
     expect(p.player).toEqual({ level: 'full', cue: 'sight' });
-    const far = computePerception(ev({ actorId: 'slime_1', kind: 'move', zone: 'field_edge', noise: 0, visibility: 2 }), s, createRng(1));
+    const far = computePerception(ev({ actorId: 'slime_1', kind: 'move', zone: 'field_edge', noise: 'silent', visibility: 'normal' }), s, createRng(1));
     expect(far.player).toEqual({ level: 'partial', cue: 'sight' });
   });
   it('sound from another zone is partial and stops after `noise` links; no sight through a closed link', () => {
     const s = makeVillage({ playerZone: 'street_door' });
-    const e = ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 2, visibility: 2 });
+    const e = ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'normal', visibility: 'normal' });
     expect(computePerception(e, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
-    expect(computePerception({ ...e, noise: 1 }, s, createRng(1)).player).toBeUndefined();
+    expect(computePerception({ ...e, noise: 'quiet' }, s, createRng(1)).player).toBeUndefined();
+  });
+  it('NV1–NV6: hushed stays in its zone, loud and deafening are clear one link away, close is seen in its zone only', () => {
+    const s = makeVillage({ playerZone: 'street_door' });
+    const e = ev({ actorId: 'trader', kind: 'speak', zone: 'tav_common', noise: 'hushed', visibility: 'unseen' });
+    expect(computePerception(e, s, createRng(1)).player).toBeUndefined();
+    expect(computePerception({ ...e, noise: 'deafening' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
+    expect(computePerception({ ...e, noise: 'loud' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
+    expect(computePerception({ ...e, noise: 'normal' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
+    expect(computePerception({ ...e, zone: 'street_door' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
+    const v = makeVillage({ playerZone: 'street_square' });
+    const hid = ev({ actorId: 'slime_1', kind: 'idle', zone: 'gate_inner', noise: 'silent', visibility: 'close' });
+    expect(computePerception(hid, v, createRng(1)).player).toBeUndefined();
+    expect(computePerception({ ...hid, zone: 'street_square' }, v, createRng(1)).player).toEqual({ level: 'full', cue: 'sight' });
   });
   it('dark zone caps sight at partial', () => {
     const s = makeVillage({ playerZone: 'tav_cellar' });
     place(s, 'patron_1', 'tav_cellar');
-    expect(computePerception(ev({ actorId: 'patron_1', kind: 'idle', zone: 'tav_cellar', noise: 0, visibility: 2 }), s, createRng(1)).player)
+    expect(computePerception(ev({ actorId: 'patron_1', kind: 'idle', zone: 'tav_cellar', noise: 'silent', visibility: 'normal' }), s, createRng(1)).player)
       .toEqual({ level: 'partial', cue: 'sight' });
   });
   it('inactive actors perceive nothing; the actor perceives its own event', () => {
@@ -60,7 +73,7 @@ describe('updateBeliefs', () => {
   it('partial sound makes an unaware observer suspicious, source heard', () => {
     const s = makeVillage();
     place(s, 'guard_1', 'street_door');
-    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 2 }));
+    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'normal' }));
     expect(actor(s, 'guard_1').mind!.knowledge.trader).toMatchObject({ status: 'suspicious', source: 'heard' });
   });
   it('an attack on a bandmate sets an override to opposed toward the attacker', () => {

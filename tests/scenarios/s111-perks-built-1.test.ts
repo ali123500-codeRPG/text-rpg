@@ -87,11 +87,14 @@ describe('111 coded perks, batch 1', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     const far = npc(s, 'slime_2');
-    const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, effects: [], noise: 1, visibility: 0, perception: {} };
+    const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
     const before = perceptionOf(ev, s, s.player);
     give(s.player, 'keen_ear');
     const after = perceptionOf(ev, s, s.player);
     expect(before).toBeNull();
     expect(after).toMatchObject({ level: 'partial', cue: 'sound' });
+    // nowhere is a step too: with Keen Ear a Silent sound in the owner's zone is heard like a Hushed one
+    const here: GameEvent = { ...ev, zone: s.player.zone, noise: 'silent' };
+    expect(perceptionOf(here, s, s.player)).toEqual({ level: 'full', cue: 'sound' });
   });
 });

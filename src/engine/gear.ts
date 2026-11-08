@@ -1,12 +1,12 @@
 // Part 5 §4: hands, free gear ops, equip and give (main actions), ground items, Destroyed arm drops, thrown items.
 import type { Actor, GameState, GearOp, ImprovisedBase, ItemInstance } from '../types';
 import { CONFIG } from '../config';
-import { creatureType, itemDef } from '../library';
+import { actorBody, itemDef } from '../library';
 import { partStates } from '../ruleset';
 import { actorById, isActive, zoneById } from './relations';
 
 export function gripParts(state: GameState, actor: Actor): string[] {
-  return creatureType(state, actor.core.creatureTypeId).parts.filter((p) => p.roles.includes('grip')).map((p) => p.id);
+  return actorBody(state, actor).parts.filter((p) => p.roles.includes('grip')).map((p) => p.id);
 }
 
 function usableFreeHands(state: GameState, actor: Actor): string[] {

@@ -1,7 +1,7 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
 import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
-import { routine as getRoutine, routineSet, creatureType, npcTemplate } from '../library';
+import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
 import { actorById, allActors, atLeast, isActive, isEngaged, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
@@ -153,7 +153,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const skill = vanish ? 'vanishing' : stealthSkill(s, event);
   // ST21/ST22: light and cover reach the rolls by situation tag; a Hide adds the hide tag and ignores leg wounds (ST10)
   // P14 (Ali, 08/11/2026): darkness never hurts hearing, so it gives no help against an observer who only hears
-  const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [] }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}) });
+  const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}) });
   const theirs = (a: Actor, sk: string) => ({ actorId: a.id, skill: sk, ...situational(state, sk, { light: zone }), rollKind: 'perception' as const });
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
   const sc = (state.scratch ??= {});
@@ -210,7 +210,7 @@ function ambushSkill(state: GameState, attacker: Actor, itemId: string | undefin
   const m = used ?? defaultMode(state, attacker, 0);
   if (m) return modeSkill(m.mode);
   const tpl = attacker.core.templateId ? npcTemplate(state, attacker.core.templateId) : undefined;
-  return tpl?.fallback?.attackSkill ?? creatureType(state, attacker.core.creatureTypeId).fallback.attackSkill;
+  return tpl?.fallback?.attackSkill ?? actorBody(state, attacker).fallback.attackSkill;
 }
 
 export function resolveAmbush(state: GameState, attackerId: string, targetId: string, attackEvent: GameEvent, rng: Rng): { surprised: boolean } {

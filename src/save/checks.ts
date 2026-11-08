@@ -1,5 +1,5 @@
 // Load checks (Part 4 §7–8): migration steps, library reconcile, shape, invariants, references.
-import type { Actor, BlueprintPage, CreatureType, EnginePage, FactsPage, HiddenPage, ItemDef, Library, Place } from '../types';
+import type { Actor, BlueprintPage, BodyType, EnginePage, FactsPage, HiddenPage, ItemDef, Library, Place } from '../types';
 import { resolveAlias } from '../library';
 import type { Pages } from './pages';
 import { COVER, LIGHT, TACTICS, TIERS } from '../scales';
@@ -77,12 +77,26 @@ export function notesToLists(pages: Pages): void {
   for (const [id, m] of Object.entries(h?.memory ?? {})) if (typeof m === 'string') h!.memory![id] = m ? [{ turn: 0, text: m }] : [];
 }
 
+// v6 -> v7: event noise and visibility levels 0..3 become NOISE / VISIBILITY keys (coding rule). The v6 levels are fixed here,
+// not read from the tables, which have grown since.
+const V6_NOISE = ['silent', 'quiet', 'normal', 'loud'] as const;
+const V6_VISIBILITY = ['unseen', 'low', 'normal', 'high'] as const;
+export function senseToKeys(v: unknown): void {
+  if (Array.isArray(v)) return v.forEach(senseToKeys);
+  if (!v || typeof v !== 'object') return;
+  const o = v as Record<string, unknown>;
+  if (typeof o.noise === 'number') o.noise = V6_NOISE[o.noise] ?? 'normal';
+  if (typeof o.visibility === 'number') o.visibility = V6_VISIBILITY[o.visibility] ?? 'normal';
+  Object.values(o).forEach(senseToKeys);
+}
+
 export const MIGRATIONS: Record<number, (pages: Pages) => void> = {
   1: (pages) => Object.values(pages).forEach(tiersToIds),
   2: (pages) => Object.values(pages).forEach(levelsToKeys),
   3: (pages) => Object.values(pages).forEach(splitLegs),
   4: (pages) => Object.values(pages).forEach(opposedToHostile),
   5: notesToLists,
+  6: (pages) => Object.values(pages).forEach(senseToKeys),
 };
 
 /** run steps from → to in order; returns false (and an error) when a step is missing. */
@@ -111,7 +125,7 @@ const SHAPES: Record<string, Record<string, Kind>> = {
   engine: { storyId: 'string', turn: 'number', mode: 'string', rngSeed: 'number', rngState: 'number', pending: 'object', stage: 'object', sceneCaps: 'object', clocks: 'object', flags: 'object', bands: 'array', quests: 'array' },
   hidden: { storyId: 'string', plans: 'object', memory: 'object', secrets: 'array', firedLog: 'array', weaverNote: 'string', stage: 'object' },
   actor: { id: 'string', storyId: 'string', kind: 'string', names: 'object', label: 'string', placeId: 'string', zone: 'string', bandId: 'string', core: 'object' },
-  core: { creatureTypeId: 'string', skills: 'object', classes: 'array', perks: 'array', condition: 'object', inventory: 'array', standingDefense: 'string' },
+  core: { bodyTypeId: 'string', skills: 'object', classes: 'array', perks: 'array', condition: 'object', inventory: 'array', standingDefense: 'string' },
   place: { id: 'string', storyId: 'string', kind: 'string', names: 'object', zones: 'array', state: 'object', headlines: 'array' },
   facts: { storyId: 'string', placeId: 'string', facts: 'array' },
   blueprint: { storyId: 'string', id: 'string', kind: 'string', data: 'object' },
@@ -138,7 +152,7 @@ function lookups(pages: Pages, lib: Library) {
   const bp = (kind: BlueprintPage['kind'], id: string) => bps.find((b) => b.kind === kind && b.id === id)?.data;
   return {
     item: (id: string) => (bp('item', id) as ItemDef | undefined) ?? lib.items[resolveAlias(id, lib)],
-    creature: (id: string) => (bp('creature', id) as CreatureType | undefined) ?? lib.creatures[resolveAlias(id, lib)],
+    bodyType: (id: string) => (bp('body_type', id) as BodyType | undefined) ?? lib.bodyTypes[resolveAlias(id, lib)],
     hasTemplate: (id: string) => !!(bp('npcTemplate', id) ?? lib.templates[resolveAlias(id, lib)]),
     hasItem: (id: string) => !!(bp('item', id) ?? lib.items[resolveAlias(id, lib)]),
     isBlueprint: (id: string) => bps.some((b) => b.id === id),
@@ -181,11 +195,11 @@ export function reconcile(pages: Pages, lib: Library, r: CheckReport): void {
       const to = follow(it.itemId);
       if (to !== it.itemId) { note(`item ${it.itemId} -> ${to}`); it.itemId = to; }
     }
-    for (const f of ['creatureTypeId', 'templateId'] as const) {
+    for (const f of ['bodyTypeId', 'templateId'] as const) {
       const id = c[f];
       if (id && follow(id) !== id) { note(`${f} ${id} -> ${follow(id)}`); c[f] = follow(id); }
     }
-    const ct = L.creature(c.creatureTypeId);
+    const ct = L.bodyType(c.bodyTypeId);
     if (ct) {
       const ids = new Set(ct.parts.map((p) => p.id));
       for (const pid of Object.keys(c.condition.parts)) if (!ids.has(pid)) { delete c.condition.parts[pid]; note(`part ${pid} dropped`); }
@@ -209,8 +223,8 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
     if (c.classes.length && c.classes.filter((x) => x.state === 'current').length !== 1) r.errors.push(`invariant: ${a.id} must have exactly one current class`);
     if (zonePlace.get(a.zone) !== a.placeId) r.errors.push(`invariant: ${a.id} placeId ${a.placeId} is not the place of zone ${a.zone}`);
     for (const [s, e] of Object.entries(c.skills)) if (e.raw > 100) r.warnings.push(`${a.id} raw ${s} ${e.raw} above 100`);
-    const ct = L.creature(c.creatureTypeId);
-    if (!ct) { r.errors.push(`invariant: ${a.id} creature type ${c.creatureTypeId} unknown`); continue; }
+    const ct = L.bodyType(c.bodyTypeId);
+    if (!ct) { r.errors.push(`invariant: ${a.id} body type ${c.bodyTypeId} unknown`); continue; }
     const parts = new Set(ct.parts.map((p) => p.id).filter((p) => !c.condition.destroyed?.includes(p)));
     const slots = new Set<string>();
     const covered = new Set<string>();

@@ -5,12 +5,14 @@ import type {
   PartState, Rng, RollRequest, RollResult, Ruleset, SituationResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
-import { TIERS } from '../scales';
-import { creatureType, itemDef } from '../library';
+import { COVER, TIERS } from '../scales';
+import { actorBody, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
+import { baneMods } from './bane';
+import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 
@@ -44,8 +46,7 @@ export function tierName(t: Tier | Tiered): string {
 
 /** Stacking within one modifier type (Part 1 §4). */
 export function stackType(values: number[]): number {
-  const w = [1, CONFIG.STACK_2, CONFIG.STACK_3];
-  const part = (xs: number[]) => xs.reduce((s, x, i) => s + x * (w[i] ?? 0), 0);
+  const part = (xs: number[]) => xs.reduce((s, x, i) => s + x * CONFIG.STACK_RATIO ** i, 0);
   return part(values.filter((v) => v > 0).sort((a, b) => b - a)) + part(values.filter((v) => v < 0).sort((a, b) => a - b));
 }
 /** sum of all modifiers, each type stacked within itself */
@@ -111,11 +112,15 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
     modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
+    modifiers.push(...baneMods(state, actor, req.against)); // D-111 Bane bonuses
+    modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
   }
   const d = rng.d100();
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
-  const level = band(margin) + naturalEdge(d) + sumShifts(req.tierShifts); // unclamped (Part 1 §4)
-  return { actorId: actor.id, skill: eff.skill, d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: [...req.tierShifts] };
+  const shifts = [...req.tierShifts];
+  let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
+  if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
+  return { actorId: actor.id, skill: eff.skill, d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
 }
 
 function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
@@ -129,8 +134,8 @@ function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
 
 function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult {
   const noAim = (r: RollRequest) => ({ ...r, modifiers: r.modifiers.filter((m) => m.type !== 'aim') });
-  const ra = ruleset.roll(noAim(a), state, rng);
-  const rb = ruleset.roll(noAim(b), state, rng);
+  const ra = ruleset.roll(noAim({ ...a, against: a.against ?? b.actorId }), state, rng);
+  const rb = ruleset.roll(noAim({ ...b, against: b.against ?? a.actorId }), state, rng);
   const gap = tierLevel(rb) - tierLevel(ra);
   return { a: ra, b: rb, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
 }
@@ -152,7 +157,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const dist = path ? path.length : Infinity;
   const { mode, name } = resolveMode(state, A, req.weaponId, req.modeId, dist);
   const ranged = mode.tree === 'ranged';
-  const ct = creatureType(state, D.core.creatureTypeId);
+  const ct = actorBody(state, D);
   const zoneA = zoneById(state, A.zone);
   const zoneD = zoneById(state, D.zone);
 
@@ -175,7 +180,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
   const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : []), ...marks.attack];
-  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit' }, state, rng);
+  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
 
@@ -196,7 +201,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
   dm.push(...situational(state, type, { light: zoneA }).modifiers); // ST21: light by tag (sight)
   dm.push(...(req.context?.defenderMods ?? []));
-  const def = ruleset.roll({ actorId: D.id, skill: type, modifiers: dm, tierShifts: marks.defense, itemId: blocker?.id, rollKind: type }, state, rng);
+  const def = ruleset.roll({ actorId: D.id, skill: type, modifiers: dm, tierShifts: marks.defense, itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
   const defEff = effectiveSkill(state, D, type, { itemId: blocker?.id });
   const defDeciding = decidingOf(def, defEff.value, defEff.gear);
 
@@ -204,7 +209,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const gapShifts: TierShift[] = [];
   if (mode.class === 'heavy' && type === 'block') gapShifts.push({ source: 'heavy vs block', value: CONFIG.HEAVY_VS_BLOCK_GAP });
   // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
-  const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[zoneD.cover] ?? 0) : 0;
+  const coverKey = zoneD && ranged && hasPerk(A, 'past_the_cover') ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
+  const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
   const g = Math.max(-5, Math.min(5, gap));
@@ -265,7 +271,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
   };
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult'); // 40/80/120 perk: Heavy Hand
+  const frame = !ranged && hasPerk(D, 'fighters_frame') ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * frame; // 40/80/120 perk: Heavy Hand
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
   const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
@@ -295,7 +302,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     return out;
   }
 
-  const ct = creatureType(state, T.core.creatureTypeId);
+  const ct = actorBody(state, T);
   const hp = totalHp(state, T);
   const levelBefore = healthLevel(T);
   // armor pool on the struck part drains first; it never counts on the health track

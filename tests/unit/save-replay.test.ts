@@ -5,7 +5,7 @@ import type { AgentTurnLog, GameEvent, TurnRecord } from '../../src/types';
 
 const log = (agent: AgentTurnLog['agent'], actorId: string | undefined, output: unknown, status: AgentTurnLog['status'] = 'ok'): AgentTurnLog =>
   ({ turn: 1, agent, actorId, input: 'view', output, status, errors: [] });
-const ev = (actorId: string, kind: string, zone = ''): GameEvent => ({ id: 'e', turn: 1, actorId, kind, zone, effects: [], noise: 0, visibility: 0, perception: {} });
+const ev = (actorId: string, kind: string, zone = ''): GameEvent => ({ id: 'e', turn: 1, actorId, kind, zone, effects: [], noise: 'silent', visibility: 'unseen', perception: {} });
 
 describe('replayTurn', () => {
   const s = makeVillage();

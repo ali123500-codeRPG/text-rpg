@@ -1,7 +1,7 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
-import { activity, creatureType, getLibrary, itemDef, routine } from '../library';
+import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { defaultMode, hasPerk, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -9,6 +9,7 @@ import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements } from './engagement';
 import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
+import { grantAllSteps } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
@@ -20,15 +21,17 @@ import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats } from './xp';
 import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay } from '../time';
-import { TIME_OF_DAY } from '../scales';
+import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  attack: [2, 3], wasted: [2, 3], move: [1, 2], hold: [0, 1], speak: [2, 2], call_help: [3, 2], alarm: [3, 3],
-  rest: [0, 1], item_dropped: [1, 2], pick_up: [1, 2],
+  attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], alarm: ['deafening', 'high'],
+  rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
 };
-const VOLUME_NOISE = { whisper: 1, normal: 2, shout: 3 } as const;
+/** AN2 (Ali, 08/11/2026): event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
+const BODY_MOVING = new Set(['move', 'attack', 'perk_move', 'break_free', 'pick_up']);
+const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const; // NV5: a whisper isn't heard next door
 /** first build: checks only change beliefs (OQ-22). */
 const CHECK_TYPES = new Set(['observe', 'interact', 'use_item', 'other', 'search']);
 
@@ -51,16 +54,24 @@ type Ctx = {
 };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
-  const [noise, visibility] = SENSE[kind] ?? [1, 2];
+  const [noise, visibility] = SENSE[kind] ?? ['quiet', 'normal'];
   const n = ctx.state.events.length + ctx.events.length + 1;
-  return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, effects: [], noise, visibility, perception: {}, ...extra };
+  return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, effects: [], noise: armorNoise(ctx.state, a, kind, noise), visibility, perception: {}, ...extra };
 }
 
-function withActivity(ev: GameEvent, id: string | undefined): GameEvent {
+/** AN1–AN4: a body-moving event is louder by the worn armor's weight steps */
+function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): NoiseKey {
+  if (!BODY_MOVING.has(kind)) return noise;
+  const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const w = worn && itemDef(state, worn.itemId).armor?.weight;
+  return w ? NOISE.at(NOISE.pos(noise) + (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0)) : noise;
+}
+
+function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined): GameEvent {
   if (!id) return ev;
   try {
     const d = activity(id);
-    return { ...ev, activity: id, noise: d.noise, visibility: d.visibility };
+    return { ...ev, activity: id, noise: armorNoise(ctx.state, a, ev.kind, d.noise), visibility: d.visibility };
   } catch {
     return { ...ev, activity: id };
   }
@@ -173,7 +184,7 @@ function doMove(ctx: Ctx, a: Actor, to: string, o: Order, withBark: boolean): bo
   const zone = zoneById(state, path[0])!;
   a.zone = zone.id;
   a.placeId = zone.placeId;
-  let ev = withActivity(mk(ctx, a, 'move', { fromZone: from, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
+  let ev = withActivity(ctx, a, mk(ctx, a, 'move', { fromZone: from, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return true;
@@ -373,7 +384,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
 function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const kind = o.type === 'idle' ? 'idle' : o.type;
-  const ev = bark(withActivity(mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
+  const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   let result: CheckResult | undefined;
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
     // Q17 (Ali, 07/11/2026): looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
@@ -491,7 +502,7 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 const lame = (state: GameState, a: Actor) => {
   if (slowed(state, a)) return true;
   const parts = new Map(partStates(state, a).map((p) => [p.id, p.state]));
-  return creatureType(state, a.core.creatureTypeId).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
+  return actorBody(state, a).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
 };
 
 /** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a
@@ -590,6 +601,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
   if (updateEngagements(state, ctx.events) || state.stage.breakCause) improveMarked(state, rng);
   for (const x of allActors(state)) expireMarks(state, x);
+  for (const x of allActors(state)) grantAllSteps(state, x); // All-50 parts and mastery achievements
   releaseHolds(state, allActors(state));
   state.events.push(...ctx.events);
   return ctx.events;
