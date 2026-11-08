@@ -1,4 +1,4 @@
-// 118 Boost perks (Ali, 08/11/2026, "40 milestone perks: options"): +5 true skill in the skill, +1 in every other skill
+// 118 40/80/120 perks (Ali, 08/11/2026, "40 milestone perks: options"): +5 true skill in the skill, +1 in every other skill
 // sharing a function, plus one number. Darkness never helps a sneaker against a listener (P14).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRng, forcedRng, makeVillage, place } from '../harness';
@@ -28,8 +28,8 @@ const hit = (itemId: string, target: string, perk?: string, part?: string, armor
 };
 afterEach(() => vi.restoreAllMocks());
 
-describe('118 boost perks', () => {
-  it('every boost perk is a built 40 milestone perk with +5 true skill and no conditions', () => {
+describe('118 40/80/120 perks', () => {
+  it('every 40/80/120 perk is a built 40 milestone perk with +5 true skill and no conditions', () => {
     const boosts = Object.values(getLibrary().perks).filter((d) => d.ladder?.milestone === 40);
     expect(boosts.length).toBeGreaterThanOrEqual(11);
     for (const d of boosts) {

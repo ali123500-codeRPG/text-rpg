@@ -8,7 +8,7 @@ Each perk has two views that must say the same thing (Ali, 07/11/2026). **Story*
 
 **Terms.** *Owner*: the actor who has the perk. *Hits*: an attack whose outcome is grazed, blocked, full hit, heavy hit or crushing hit (not missed or dodged). *Light/medium/heavy melee or ranged mode*: the attack mode's tree and class (Part 5 §5); thrown weapons are ranged. *Gap* and *tier shift*: Part 1 §4 and Part 3, Defense. *Next turn*: until the end of that actor's next turn. *Engagement*: Part 2, Encounter modes (E1). *Move*: an action the owner chooses on its turn.
 
-Ability perks sit on 20/60/100/140 and change what a character can do. Boost perks sit on 40/80/120 and raise numbers only, with no conditions: +5 true skill in the skill, +1 in every other skill sharing a function with it, and one more number (Ali, 08/11/2026). Swordsman, lockpicking and slime skills have no perks for now.
+The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120 perks raise numbers only, with no conditions: +5 true skill in the skill, +1 in every other skill sharing a function with it, and one more number (Ali, 08/11/2026). Swordsman, lockpicking and slime skills have no perks for now.
 
 ## 20 milestone
 
@@ -185,7 +185,7 @@ Ability perks sit on 20/60/100/140 and change what a character can do. Boost per
 - **Needs first:** Buying and selling (D-93).
 - **Open:** Kept only if trade prices make a sale at 1.1× still pay less than buying the same item at 0.9× (Ali, 07/11/2026). That needs the price a merchant pays the player to be under 0.81× of the price it charges (1.1 × sell < 0.9 × buy).
 
-## 40 milestone (boost perks)
+## 40 milestone
 
 ### Keen Edge (Light weapons) · P1
 

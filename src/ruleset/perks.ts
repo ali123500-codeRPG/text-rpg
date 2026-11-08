@@ -31,19 +31,19 @@ export function trueSkill(a: Actor, skill: string): number {
     const own = d?.ladder?.skill;
     if (!d) return n;
     let v = d.trueSkill && own === skill ? d.trueSkill : 0;
-    v += d.trueSkillTo?.[skill] ?? 0; // boost perks: true skill spent on skills that work well with the ladder skill
-    // boost perks: +functionBoost to every other skill sharing a function with the ladder skill (docs/skill-tags.md)
+    v += d.trueSkillTo?.[skill] ?? 0; // 40/80/120 perks: true skill spent on skills that work well with the ladder skill
+    // 40/80/120 perks: +functionBoost to every other skill sharing a function with the ladder skill (docs/skill-tags.md)
     if (d.functionBoost && own && own !== skill && (skills[own]?.functions ?? []).some((f: string) => fns.includes(f))) v += d.functionBoost;
     return n + v;
   }, 0);
 }
 
-/** a boost perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
+/** a 40/80/120 perk number for rolls of one skill: multipliers multiply, armorPierce adds (src/library/boostPerks.ts) */
 export function boostMult(a: Actor, skill: string, key: 'aimMult' | 'damageMult' | 'recoveryMult'): number {
   const perks = getLibrary().perks;
   return owned(a).reduce((m, p) => { const d = perks[p.perkId]; return d?.ladder?.skill === skill ? m * (d.numbers?.[key] ?? 1) : m; }, 1);
 }
-/** boost perk roll modifiers for one skill: rollAdd on every roll, hitAdd on attack rolls only, each named by its perk */
+/** 40/80/120 perk roll modifiers for one skill: rollAdd on every roll, hitAdd on attack rolls only, each named by its perk */
 export function boostRollMods(a: Actor, skill: string, attack: boolean): { source: string; type: 'roll_perk'; value: number }[] {
   const perks = getLibrary().perks;
   return owned(a).flatMap((p) => {
