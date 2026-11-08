@@ -6,7 +6,7 @@ import { CONFIG } from '../config';
 import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY } from '../scales';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
-import { creatureType, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
+import { bodyType, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
 
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
@@ -242,8 +242,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       let tpl;
       try { tpl = npcTemplate(state, c.template); } catch { err('unknown_template', `cast ${k}: template ${c.template} unknown; known: ${Object.keys(lib.templates).join(', ')}`, k); }
       if (tpl) {
-        try { creatureType(state, tpl.creatureTypeId); } catch {
-          err('unknown_creature_type', `cast ${k}: creature type ${tpl.creatureTypeId} unknown; known: ${Object.keys(lib.creatures).join(', ')}`, k);
+        try { bodyType(state, tpl.bodyTypeId); } catch {
+          err('unknown_body_type', `cast ${k}: body type ${tpl.bodyTypeId} unknown; known: ${Object.keys(lib.bodyTypes).join(', ')}`, k);
         }
       }
     }

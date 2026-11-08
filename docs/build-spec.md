@@ -79,7 +79,7 @@ Gear is a flat bonus to effective skill unless an item says otherwise. Standard 
 
 Wounds are no longer part of effective skill: the health-track level and body-part role penalties are a roll modifier type (§4, Combat rolls). They apply to rolls only, never to no-dice checks (settles OQ-15, Ali, 07/11/2026).
 
-**Character fields:** defined in Part 4 §4 (a Core every actor has, plus Progression, Mind and Journal modules). Part 4 adds race, creature type and classes.
+**Character fields:** defined in Part 4 §4 (a Core every actor has, plus Progression, Mind and Journal modules). Part 4 adds race, body type and classes.
 
 ### 4. Resolution
 
@@ -149,7 +149,7 @@ XP drives levels and perks only. Skills grow separately, through skill improveme
 
 - **XP** (Ali, 07/11/2026, XP proposal X1–X10; all numbers *placeholders*, kept small at first). Three sources, each logged on the source trail as {source, amount, turn} (B8):
   - **Defeats (main source).** An opposed or hostile NPC pays once (B4) when it is downed and the player hit it at least once, or when it surrenders. A broken (fleeing) foe pays nothing. Companions' defeats wait for companion XP. The amount comes from stats only (X18–X23, Ali 07/11/2026; Danger was dropped). Each skill carries an XP category in the library (`xpCategory`, set per skill because one tree may mix categories): offensive (attack skills and the Swordsman class skills), defensive (dodge, block), endurance (endurance, function tag hp), notice, influence, or misc (lockpicking). A skill's training effort is (100 ÷ 3) × ln(100 ÷ max(100 − s, 2)), so high skills weigh more (Part 1 §6); s is the raw skill × its tier multiplier. Within each category the efforts are ranked high to low and count at 1, ½, ¼…. The foe's **rating** is the sum over categories × XP\_CATEGORY\_WEIGHT: offensive, defensive and endurance 1, notice 0.5, influence 0.25, misc 0. Kill XP = rating × min(1, KILL\_XP\_TAPER (2) × foe rating ÷ player rating) × KILL\_XP\_MULT (1, X20). All numbers are *placeholders*, to be tuned later (X19). Example against the recommended swordsman (rating 72): a slime (rating 19, with tremor and taste at 50) gives 10 XP, a guard (rating 46) 46.
-  - **Achievements**, each with an id and a name, each earned once. Library achievements are a data table that only code awards. Per creature type: 1, 10 and 100 defeats (100, 250 and 1000 XP; ids first\_defeat:<type>, defeats\_10:<type>, defeats\_100:<type>; "First Slime Felled", "Slimebane", "Scourge of the Slime Hordes"). Per race (human and elf for now, identical, both humanoid; library NPCs and the player are human until creation offers a choice): the same counts (ids first\_defeat\_race:<race>, defeats\_10\_race:<race>, defeats\_100\_race:<race>; "First of Elfkind Felled", "Bane of Elfkind", "Scourge of Elfkind"). In all: 10, 100 and 1000 defeats (100, 250 and 1000 XP: "Blooded Fighter", "Calamity of a Hundred Blades", "Thousand-Slayer, Herald of Ruin"). Per tree, when all three skills reach 50, 100 and 150 (250, 1000 and 2000 XP, ids mastery\_50:<tree> etc.: "Adept of <tree>", "Ascendant of <tree>", "Transcendent Sovereign of <tree>"; awarded once all-XXX perks exist). The achievements table is treated like a scale table: saves keep only the row key and what it names, so a rename or a new reward level edits only the table. Each achievement (and each quest, once quests exist) has a reward level, an ordered scale like tiers: I 100, II 250, III 1000, IV 2000 XP (REWARD_LEVELS in src/scales.ts, XP in CONFIG.REWARD_XP; Ali, 07/11/2026). Names name what was defeated and grow grander with the feat; small feats get tame names (Ali, 07/11/2026). Progression keeps defeat counts per creature type and race. New achievements come only from Ali-approved proposals (D-108); Weaver-seeded scene achievements (X7) are dropped (Ali, 07/11/2026). The character sheet lists earned achievements.
+  - **Achievements**, each with an id and a name, each earned once. Library achievements are a data table that only code awards. Per body type: 1, 10 and 100 defeats (100, 250 and 1000 XP; ids first\_defeat:<type>, defeats\_10:<type>, defeats\_100:<type>; "First Slime Felled", "Slimebane", "Scourge of the Slime Hordes"). Per race (human and elf for now, identical, both humanoid; library NPCs and the player are human until creation offers a choice): the same counts (ids first\_defeat\_race:<race>, defeats\_10\_race:<race>, defeats\_100\_race:<race>; "First of Elfkind Felled", "Bane of Elfkind", "Scourge of Elfkind"). In all: 10, 100 and 1000 defeats (100, 250 and 1000 XP: "Blooded Fighter", "Calamity of a Hundred Blades", "Thousand-Slayer, Herald of Ruin"). Per tree, when all three skills reach 50, 100 and 150 (250, 1000 and 2000 XP, ids mastery\_50:<tree> etc.: "Adept of <tree>", "Ascendant of <tree>", "Transcendent Sovereign of <tree>"; awarded once all-XXX perks exist). The achievements table is treated like a scale table: saves keep only the row key and what it names, so a rename or a new reward level edits only the table. Each achievement (and each quest, once quests exist) has a reward level, an ordered scale like tiers: I 100, II 250, III 1000, IV 2000 XP (REWARD_LEVELS in src/scales.ts, XP in CONFIG.REWARD_XP; Ali, 07/11/2026). Names name what was defeated and grow grander with the feat; small feats get tame names (Ali, 07/11/2026). Progression keeps defeat counts per body type and race. New achievements come only from Ali-approved proposals (D-108); Weaver-seeded scene achievements (X7) are dropped (Ali, 07/11/2026). The character sheet lists earned achievements.
   - **Quests** pay on completion by gain: 25/50/100/200. Held until quests exist (X8).
 - **Levels.** From level n to n+1 takes LEVEL\_XP × n XP (LEVEL\_XP 100). There is one XP bar. A level goes to the class picked on the sheet ("Next level goes to", shown when more than one class is current or unlocked), or else to the current class, with no waiting (X9; settles OQ-8). With mechanics shown, the turn lists "+n XP (source)" and "Level n!".
 - **Level perks:** one perk point on every even level, spent on perks. Some perks are trade-offs (e.g. give up a skill for a higher cap, faster training and bonuses to class skills); these come later, on their own tab (S6).
@@ -428,7 +428,7 @@ On a calm return:               the anchor saved in returnTo (Explore mode: Alar
 
 **Companions \[Proposed\].** Every player-band member uses the library set companion: follow (the default) and wait, each with an alert variant. All four have onAlert null, so an alert never makes a companion shout during stealth play. A player-band cast entry names this set and binds no slots.
 
-Tier comes from the ruleset. Health and body parts are Part 3's health track and per-creature body parts (SavedCondition, Part 4).
+Tier comes from the ruleset. Health and body parts are Part 3's health track and per-body-type parts (SavedCondition, Part 4).
 
 ```ts
 type Tier = 'critical_failure' | 'failure' | 'near_miss' | 'success' | 'great_success' | 'critical_success';   // keys of TIERS (src/scales.ts), worst first; names only via tierName()
@@ -515,7 +515,7 @@ Code checks the combat list top to bottom; the first rule that matches gives the
 
 Like every code mind, it reads only its ActorView. The rng pick uses the turn's seeded rng, so replay stays exact. Its orders carry source 'fallback'.
 
-**Per-type data.** Each creature type, or the NPC template when it sets one, names fallback.attackSkill. Slime: unarmed\_natural; slimes have only the general area, so targetPart is always null.
+**Per-type data.** Each body type, or the NPC template when it sets one, names fallback.attackSkill. Slime: unarmed\_natural; slimes have only the general area, so targetPart is always null.
 
 The rule order is fixed in code for the prototype. Each rule is its own small check, so a per-type, data-driven rule order can replace the fixed one later (D-17). tactics does not change the list yet (D-17).
 
@@ -1039,7 +1039,7 @@ Runs inside the turn that calls sceneBreak, after resolveTurn and before the sav
 1. Resolve the player's place node.
 2. Situation roll: ruleset.situation(player).
 3. Agent Weaver returns a stage plan with the tier in its view: the event first, then the zones (each with its place, creating place nodes as needed) and frontiers, any new bands, the cast (each actor's band, routine set id and slot bindings, with an optional startAt, opening belief about the player, beliefs about other bands and personal stances), hidden seeds and reward refs. The tier shapes the event and cast; opening attention and beliefs are the Weaver's story choice.
-4. Code validates the plan and instantiates the cast: templates, unique or copy, creature types from the database.
+4. Code validates the plan and instantiates the cast: templates, unique or copy, body types from the database.
 5. Code checks the plan's challenge and gain grades against the tier, and nothing else, then applies it. Code computes each actor's anchorTurn (Anchors) and places the actor in its default routine's desired zone for the current turn, whose activity sets its attention. On open entry only, each opening belief about the player is written through updateBeliefs. New bands and personal stances (Mind.overrides) are installed; each belief about another band becomes one belief per member on the stage (lastKnownZone = that member's zone), written through updateBeliefs whatever the entry. A plan that fails gets one repair retry. After that, routine-only errors degrade the affected actors, and any other error gives the fallback stage (Agent Weaver: Failed stage plan).
 6. Code installs each actor's routines list (its set's routines), slot bindings, current routine and anchor, then its knows facts (Mind.knows), plans, triggers and secrets. Each routine carries its one onAlert order; there are no onAlert triggers.
 7. Arrival detection: if the player is stealthy, each observer in perception range runs the existing detection test against the player's last move; the plan sets no belief about the player for these observers.
@@ -1073,7 +1073,7 @@ Agent Weaver plans what a scene is about and who is in it. It runs at scene setu
 - quests and flags; the bands on the stage, with their goals and relations;
 - the player's level, current class and health-track level;
 - the previous Weaver note;
-- catalogs: the library and blueprint ids it may use (templates, creature types, routine sets with their brief, tags and slot hints, items). Catalogs change only with libraryVersion and sit right after the fixed instructions as a stable prefix (OQ-11).
+- catalogs: the library and blueprint ids it may use (templates, body types, routine sets with their brief, tags and slot hints, items). Catalogs change only with libraryVersion and sit right after the fixed instructions as a stable prefix (OQ-11).
 
 Never in WeaverView: skill growth, Burden or Potential (Part 1 §2); this turn's player text.
 
@@ -1130,7 +1130,7 @@ Grades are hidden-side and never reach Agent Narrator. A computed cross-check (c
 
 **Validation.** Code checks every stage plan before it touches state:
 
-- every id resolves (story blueprints first, then the library); an unknown creature type fails (Part 3);
+- every id resolves (story blueprints first, then the library); an unknown body type fails (Part 3);
 - caps on cast size, zones and frontiers (placeholders); every cast entry names a band, every band reference resolves (the plan's new bands, then the story), and relations and stances use only hostile, opposed, neutral or friendly;
 - every zone link points to a zone in the plan, on the stage, or a frontier;
 - triggers use the trigger vocabulary and hold one order each, of a type the engine knows (ORDER_TYPES); every secret has leakTerms; a check\_passed secret names a library skill;
@@ -1177,7 +1177,7 @@ Rules:
    Declare the challenge and gain grades honestly.
 2. The tier decides who and what, not how alert anyone is. Threats may be
    calm, busy or unaware.
-3. Use catalog ids for every mechanical thing: templates, creature types,
+3. Use catalog ids for every mechanical thing: templates, body types,
    routine sets, items. Give each new actor one routine set and bind every
    slot it lists to zone keys from your plan or the stage. Never write
    routines or numbers. If no set fits, use the closest one and say in
@@ -1467,7 +1467,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 92 | Reach | A reach-1 spear hits a target one linked zone away with sight; the same attack through a link without sight becomes a wasted action |
 | 93 | Thrown | A thrown dagger ends on the ground of the target's zone, hit or miss |
 | 94 | Uncovered part | A hauberk covering general area and arms: an aimed head hit takes no armor, a torso hit does |
-| 95 | Stacked armor | A creature with natural armor wearing armor takes damage reduced by worn, then natural, floor 0, not rounded |
+| 95 | Stacked armor | An actor whose body type has natural armor wearing armor takes damage reduced by worn, then natural, floor 0, not rounded |
 | 96 | Armor pool | A head hit on a heavy helm drains the helm pool before the head pool; the health track ignores the helm pool |
 | 97 | Concealed blade | An NPC's view omits a concealed blade until the NPC perceives an attack with it; after that its belief keeps it |
 | 98 | Minted reward cap | A quality-3 variant on a moderate-gain scene is lowered to quality 2, and a weapon boosts of "keen edge" becomes hitAdj; the plan applies with no repair call |
@@ -1528,10 +1528,10 @@ Ask before you:
 
 ### Chosen design: health track + body parts
 
-Every successful hit damages the body part it lands on and, depending on that part's impact, the health track. Total HP comes from endurance and the creature type (Total HP); part pools are shares of total HP set by size (Body parts). Health-track levels and part states are % of those pools. Code owns all of it, including a database of creature types: Agent Weaver names the creature type, and code knows its parts.
+Every successful hit damages the body part it lands on and, depending on that part's impact, the health track. Total HP comes from endurance and the body type (Total HP); part pools are shares of total HP set by size (Body parts). Health-track levels and part states are % of those pools. Code owns all of it, including a database of body types: Agent Weaver names the body type, and code knows its parts.
 
 - **Health track (World of Darkness):** levels by % of HP lost; one wounds modifier on every roll (Part 1 §4, Layer 2b; rolls only, not checks); each level is a trigger for perks, tactics and story.
-- **Body parts:** every creature has a general area plus a list of parts. Each part has a size (hit chance and aim penalty), an impact (how its damage counts on the health track) and a role (what its states do); a part can have several roles. Parts are Healthy, Damaged, Crippled or Destroyed.
+- **Body parts:** every body type has a general area plus a list of parts. Each part has a size (hit chance and aim penalty), an impact (how its damage counts on the health track) and a role (what its states do); a part can have several roles. Parts are Healthy, Damaged, Crippled or Destroyed.
 - **General area:** always present, stateless, normal impact, and always at least 30% of the hit table. Any damage that isn't aimed at, or doesn't land on, a specific part counts here.
 - Attack and defense are two rolls; damage is not rolled. The attack roll is contested by the defender's dodge or block roll, and the gap between their tiers sets the multiplier and can move or restrict the location. Damage is fixed by weapon and armor. Perks can act on the attack roll, the defense roll, the gap or the damage values, each on its own.
 - **One damage type** for now.
@@ -1540,10 +1540,10 @@ Every successful hit damages the body part it lands on and, depending on that pa
 ### Total HP
 
 ```
-HP = (HP_BASE + HP_PER_END × endurance) × creature HP multiplier
+HP = (HP_BASE + HP_PER_END × endurance) × body type HP multiplier
 ```
 
-HP\_BASE 50, HP\_PER\_END 1 (*placeholders*); creature HP multiplier humanoid ×1, dragon ×3; every creature type has one. Endurance 0 → 50 HP, 50 → 100 HP, 100 → 150 HP.
+HP\_BASE 50, HP\_PER\_END 1 (*placeholders*); body type HP multiplier humanoid ×1, dragon ×3; every body type has one. Endurance 0 → 50 HP, 50 → 100 HP, 100 → 150 HP.
 
 ### Health track
 
@@ -1613,7 +1613,7 @@ A Destroyed part no longer exists: code removes it from the hit table and rebuil
 
 The aim penalty is a roll modifier of its own type (aim).
 
-Size is set per creature, not per part name: one creature can have big arms and small legs.
+Size is set per body type, not per part name: one body type can have big arms and small legs.
 
 **Impact: link to the health track**
 
@@ -1679,9 +1679,9 @@ The neck is adjacent to the head and the general area. Head and neck are separat
 
 The dragon's big body gives its general area 49% (30% minimum + 19%). Crippling a wing hurts its flight without costing it any HP; destroying the tail removes it from the table, and the other parts' bands grow to fill the gap.
 
-### Creature database
+### Body type database
 
-Code keeps every creature type, its parts and the role table. Agent Weaver names the creature type by catalog id in the stage plan; code loads the entry, builds the hit table, and tracks every part from then on.
+Code keeps every body type, its parts and the role table. Agent Weaver names the body type by catalog id in the stage plan; code loads the entry, builds the hit table, and tracks every part from then on.
 
 ```json
 {
@@ -1692,7 +1692,7 @@ Code keeps every creature type, its parts and the role table. Agent Weaver names
     "fly": {"shared": true},
     "strike": {"shared": false}
   },
-  "creatures": {
+  "bodyTypes": {
     "humanoid": {
       "hpMultiplier": 1,
       "general": {"name": "torso", "size": "normal"},
@@ -1729,9 +1729,9 @@ Code keeps every creature type, its parts and the role table. Agent Weaver names
 }
 ```
 
-adjacent lists the parts a hit can move to at gap −2. Default when absent: the general area only. The general area is adjacent to every part. Every creature type sets hpMultiplier (placeholder values: humanoid 1, dragon 3).
+adjacent lists the parts a hit can move to at gap −2. Default when absent: the general area only. The general area is adjacent to every part. Every body type sets hpMultiplier (placeholder values: humanoid 1, dragon 3).
 
-**Creatures not in the database**
+**Body types not in the database**
 
 1. Agent Weaver names a type that is not in the catalog.
 2. Stage-plan validation fails; the one repair retry sends the list of existing types, and the Weaver picks the closest fit. No extra call.
@@ -1791,7 +1791,7 @@ An attack reaches targets within its attack mode's reach (Part 5 §5), with sigh
 
 Code runs the whole exchange; Claude gets one packet afterwards and narrates from it.
 
-1. **Setup** (once per creature): Agent Weaver names the creature type in the stage plan; code loads it from the database and builds its hit table.
+1. **Setup** (once per body type): Agent Weaver names the body type in the stage plan; code loads it from the database and builds its hit table.
 2. Attack roll (Part 1 §4, Layer 2b) with the weapon's skill. Aimed: add the aim penalty for the part's size. Tier shifts. Failure or worse: miss, end here.
 3. Defense roll with the standing defense, then its tier shifts.
 4. Gap = defense tier − attack tier + gap shifts; read the gap ladder (past ±5: the ±5 entry). A 0× result ends here as dodged.
@@ -1847,8 +1847,8 @@ The save has two layers. The library holds blueprints shared by every story. A s
 | Data | Layer | Saved | Notes |
 | --- | --- | --- | --- |
 | Ruleset numbers | Library | Yes | Retuning applies to the running story |
-| Creature types, races, classes, perks, skills, item and NPC templates | Library | Yes | Edited only by the designer; stories always use the latest version |
-| Story blueprints | Story | Yes | Items Claude minted, creatures filled in mid-story. Never leave the story unless the designer promotes them |
+| Body types, races, classes, perks, skills, item and NPC templates | Library | Yes | Edited only by the designer; stories always use the latest version |
+| Story blueprints | Story | Yes | Items Claude minted, body types filled in mid-story. Never leave the story unless the designer promotes them |
 | Player | Story | Yes | Core, Progression, Journal (section 4) |
 | Temporary NPCs | Story | Yes | Core, Mind (section 4) |
 | Recurring NPCs | Story | Deferred | Every NPC gets a stable id so it can be promoted later |
@@ -1870,7 +1870,7 @@ The save stores only what can't be rebuilt. Everything recomputable is derived o
 | Kind | Fields | Rule |
 | --- | --- | --- |
 | Derived | True skill, effective skill, Total, Burden, cap in effect, health-track level, part states, hit table, active item effects, gear bonuses, protection per part, hands and slots in use, race perk, class perks, character level, excluded skills | Never saved. Effective skill differs per check, so it can't be cached |
-| History | Raw skills and their states, StartingTotal, all-XXX perks, level perks chosen, marks, classes and class levels, race, creature type, part pools, minted item blueprints, item instances, shield and armor pool states | Saved as plain fields |
+| History | Raw skills and their states, StartingTotal, all-XXX perks, level perks chosen, marks, classes and class levels, race, body type, part pools, minted item blueprints, item instances, shield and armor pool states | Saved as plain fields |
 | Grey zone | XP, unspent perk points, Potential | Saved, with a source trail where the value can change |
 
 - Potential is saved as a base plus a list of {source, delta, turn} adjustments, so a perk or event change can be traced or reversed.
@@ -1884,14 +1884,14 @@ The player and every NPC share one sheet shape: a Core every actor has, plus opt
 
 | Module | Who has it | Holds |
 | --- | --- | --- |
-| Core | Every actor | Race, creature type, skills and states, classes, stored perks, condition, inventory, standing defense, public label |
+| Core | Every actor | Race, body type, skills and states, classes, stored perks, condition, inventory, standing defense, public label |
 | Progression | Player; NPCs only if NPCs improve (deferred) | StartingTotal, Potential, XP, unspent perk points, marks |
 | Mind | NPCs | Control, behavior, morale, beliefs, overrides, knows facts, current routine and its anchor, routines list, slot bindings, alarm state. The agenda flag is derived, not stored; the band moved to the Actor |
 | Journal | Player | Secrets learned, facts witnessed, last-seen state slots, names known |
 
 Promoting an NPC to recurring adds a module; it never converts the sheet. A companion needs no module: it is any member of the player's band.
 
-**Race and creature type.** Race is separate from body plan. A race sets a creature type and grants a race perk; more race content comes later. Creatures without a race (a wolf, a slime) have a creature type only.
+**Race and body type.** Race is separate from body plan. A race sets a body type and grants a race perk; more race content comes later. Actors without a race (a wolf, a slime) have a body type only.
 
 **Skills.** General skills are open to every actor unless a perk or race excludes them. Each class adds its own tree of three skills. Exclusions are derived from the library and never stored.
 
@@ -1909,7 +1909,7 @@ Putting a level into an unlocked class makes it current, and the old current cla
 
 **Player creation.** The player builds the sheet by point-buy on the creation screen (https://claude.ai/artifact/HW45ivigqwZ5VDo4PWPv9u): 250 points over the open skills, no skill above 60 at creation, the class floors as minimums, and exactly 3 Tagged skills. The screen opens on a recommended build and shows HP, attack, standing defense and the odds against one slime as points move. The story starts only when every point is spent and 3 skills are tagged. StartingTotal is the sum of the untagged skills at that moment. The player starts with an arming\_sword and a round\_shield held, a gambeson worn, and 20 coin (placeholder).
 
-**NPC generation.** All generation runs in code. A template gives a creature type and class, a minimum for each skill, a level, bonus points, three focus picks, a personality, a loadout and a control setting. Two kinds of NPC:
+**NPC generation.** All generation runs in code. A template gives a body type and class, a minimum for each skill, a level, bonus points, three focus picks, a personality, a loadout and a control setting. Two kinds of NPC:
 
 - **Unique** (a bandit): rolled once at spawn, then its values are saved and frozen.
 - **Copy** (a wolf, a slime): saves only the template id and live state, and follows the latest template.
@@ -1928,9 +1928,9 @@ A copy does not roll: its skills are the template's minimums, read live.
 
 **Personality.** Each template names one personality, which sets Mind.morale for the morale check (Part 3, Morale): fearless (never checks), bold 70, steady 50, timid 30.
 
-**Slime template** (first build): a copy of creature type slime with class Slime, level 0, personality fearless. Skills: unarmed\_natural 30, dodge 0, everything else 0. HP multiplier 0.6 (30 HP). Its slam uses the slam class: damage 20, hit +10, reach 0.
+**Slime template** (first build): a copy of body type slime with class Slime, level 0, personality fearless. Skills: unarmed\_natural 30, dodge 0, everything else 0. HP multiplier 0.6 (30 HP). Its slam uses the slam class: damage 20, hit +10, reach 0.
 
-**Village templates** (first build; every number a placeholder). All three are copies of creature type humanoid with no class:
+**Village templates** (first build; every number a placeholder). All three are copies of body type humanoid with no class:
 
 - **guard:** level 2, bonus points 10; minimums melee\_medium 40, block 30, dodge 20, sight 30, hearing 30, intimidation 30, persuasion 20; focus picks melee/melee\_medium, defense/block, perception/sight; personality steady; loadout arming\_sword, mail\_hauberk; control agent.
 - **trader** (the barkeep): level 1; minimums sight 25, hearing 25, barter 40, persuasion 30; focus picks perception/hearing, melee/melee\_light, defense/dodge; personality timid; no loadout; control code.
@@ -1982,7 +1982,7 @@ The save is many small versioned pages in the artifact's database, committed by 
 
 ```
 library/meta                          libraryVersion, alias table
-library/<kind>.<id>                   one library entry, e.g. library/creature.dragon
+library/<kind>.<id>                   one library entry, e.g. library/body_type.dragon
 stories/<storyId>                     story meta
 stories/<storyId>/control/head        the bookmark
 stories/<storyId>/control/lock        turn lock (lease)
@@ -2180,7 +2180,7 @@ type HiddenPage = { storyId: StoryId } & HiddenStore;
 type BlueprintPage = {
   storyId: StoryId;
   id: LibraryRef;
-  kind: 'item' | 'creature' | 'npcTemplate';
+  kind: 'item' | 'body_type' | 'npcTemplate';
   data: Record<string, unknown>;   // same shape as the library entry of that kind
 };
 
@@ -2208,8 +2208,8 @@ type SkillState = 'tagged' | 'normal' | 'flawed';
 type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };
 
 type Core = {
-  raceId?: LibraryRef;               // absent for creatures with no race
-  creatureTypeId: LibraryRef;        // body plan; set by the race when there is one
+  raceId?: LibraryRef;               // absent for actors with no race
+  bodyTypeId: LibraryRef;        // body plan; set by the race when there is one
   templateId?: LibraryRef;           // NPCs: the template it came from
   generation?: 'unique' | 'copy';    // unique: values below are frozen; copy: skills read from the template
   skills: Record<LibraryRef, SkillEntry>;
@@ -2259,7 +2259,7 @@ type Progression = {
   marks: LibraryRef[];
   xpLog?: { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } }[];   // source trail (B8)
   achievements?: { id: string; key: string; of?: string; turn: Turn }[];   // each once (B4); name and level read from the library row `key`
-  defeats?: Record<string, number>;   // 'all', 'creature:<type>', 'race:<race>'
+  defeats?: Record<string, number>;   // 'all', 'body_type:<type>', 'race:<race>'
   nextClass?: LibraryRef;            // the class the next level goes to (X9)
 };
 
@@ -2284,7 +2284,7 @@ type Mind = {
 
 type NpcTemplate = {                 // library entry or story blueprint (kind 'npcTemplate'); Part 4 §4
   id: LibraryRef;
-  creatureTypeId: LibraryRef;
+  bodyTypeId: LibraryRef;
   raceId?: LibraryRef;
   classId?: LibraryRef;              // its class tree, e.g. 'slime'
   generation: 'unique' | 'copy';
@@ -2438,7 +2438,7 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 
 ### 4. Slots, hands and gear ops
 
-- **Hands.** One hand per Grip part of the actor's creature type (humanoid 2; wolf, dragon 0). An item or attack mode says hands: 1 or 2; two-handed needs two usable Grip parts.
+- **Hands.** One hand per Grip part of the actor's body type (humanoid 2; wolf, dragon 0). An item or attack mode says hands: 1 or 2; two-handed needs two usable Grip parts.
 - **Worn slots.** One armor slot, plus ACCESSORY\_SLOTS accessory slots (*placeholder*, 3) not tied to body parts.
 - **Crippled Grip arm.** It keeps holding its item but can't use it: no attack, block or tool use with that arm, and no two-handed actions. A Destroyed arm drops what it held to the ground of the actor's zone; an item\_dropped event is perceived like any other.
 - **Gear ops (free).** draw, stow, swap, wear or remove an accessory, pick up (from the ground or from a downed actor in the zone). Code applies them at the actor's initiative, before its action. They cost no action.
@@ -2453,7 +2453,7 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 - **Attack modes.** A weapon lists one or more modes, each with its own tree, class, reach and hands, plus optional bonuses on top of the class table (damageAdj, hitAdj). Dagger: melee light, and thrown ranged light. \[Proposed\]
 - **Reach.** Counted in zone links: 0 = same zone; N = up to N links, every link with sight. Ranged modes take the range modifiers in Part 3 (Reach, range, cover and light). \[Proposed\]
 - **Thrown.** A thrown mode moves the item to the ground of the target's zone. There is no other ammunition.
-- **Natural attacks.** A creature type lists natural attack modes in the Combat-Unarmed tree. A mode tied to a Strike part follows Part 3's Strike role (Damaged −10, Crippled unavailable). A humanoid's unarmed mode has no part. \[Proposed\]
+- **Natural attacks.** A body type lists natural attack modes in the Combat-Unarmed tree. A mode tied to a Strike part follows Part 3's Strike role (Damaged −10, Crippled unavailable). A humanoid's unarmed mode has no part. \[Proposed\]
 - **Blocking.** Any held melee mode can block, which meets the "shield or weapon" rule. Ranged, thrown and unarmed modes can't.
 - **Default mode.** If an order names no mode, code uses the first held mode whose reach covers the target, else the unarmed mode.
 
@@ -2463,7 +2463,7 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 - **Protection.** One reduction and one multiplier per armor item. Placeholders: light 2 and ×0.8, medium 4 and ×0.65, heavy 6 and ×0.55.
 - **Armor pools.** An armor item may add a pool to a covered part (a heavy helm on the head). The pool is a fixed number of points on the item entry, the same whoever wears it. After protection, damage drains that pool first; the rest reaches the part. The pool never counts on the health track. An empty pool absorbs nothing until repaired (D-89). \[Proposed\]
 - **Shields.** A held shield adds its Non-essential part to the holder, off the hit table; a block at gap 0 or better sends the hit to it (Part 3, Weapons, armor and shields). Its pool is a fixed number of points on the item entry, the same in any hand. The pool's state is saved on the item instance, so damage survives swaps. A Destroyed shield is lost.
-- **Natural armor.** A creature type may list natural armor with the same fields. It stacks with worn armor: worn first, then natural.
+- **Natural armor.** A body type may list natural armor with the same fields. It stacks with worn armor: worn first, then natural.
 - **Damage step** (replaces Part 3's damage roll):
 
 ```
@@ -2528,7 +2528,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-14 | Skills and classes | 1, 4 | Deferred | Separate thread: general skills, class trees, exclusions, how classes unlock. Voyage playtest (07/11/2026): B11, ability requirements and cooldowns |
 | D-15 | Status effects | 1, 4 | Deferred | Blessings, buffs, curses, debuffs: library entries, duration, and which rolls they modify, the situation roll among them |
 | D-16 | One Planner call per actor | 2 | Provisional | Evaluate later against one call per group of actors who can talk to each other, or a commander layer; also decides shared plans, whether a spokesperson's answer can bind its band (commander layer), and coordination between allies, who also commit blind |
-| D-17 | Fallback combat list | 2 | Under review | Which actors count as minor, and how rich their behaviors are. The prototype uses a fixed combat list in code (Fallback behavior). Later: a per-type, data-driven rule order once many creature types fight; tacticsLevel variants, such as level 3 calling for help first |
+| D-17 | Fallback combat list | 2 | Under review | Which actors count as minor, and how rich their behaviors are. The prototype uses a fixed combat list in code (Fallback behavior). Later: a per-type, data-driven rule order once many body types fight; tacticsLevel variants, such as level 3 calling for help first |
 | D-18 | Call cap (MAX\_PLANNER\_CALLS) | 2 | Under review | The value, and which actors get calls first. Counts engaged significant actors only. Overflow runs its type's combat list \[Proposed\] |
 | D-19 | Action economy | 2 | Settled | Settled 07/11/2026 (AE1–AE12, Part 2 Action economy): slots, ranged attacks don't move, dash, act-then-move for the player. Earlier: speech is an action and takes the main action, for everyone; words beside another action are a bark. The rest stays parked: a per-turn action limit is being considered, each action using 0–100% of it by type; covers move plus action and move timing |
 | D-20 | Deferred actions | 2 | Parked | Run next turn unless new input, show as a queue, or drop; queuing many and typing "continue" is an exploit |
@@ -2540,7 +2540,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-26 | Ruleset module | 2 | Partly settled | First build: TIERS, situation, roll, attack, check and contested are built (Part 2, Resolution engine, First-build ruleset); the rest stays stubbed |
 | D-27 | Body-part targeting | 2 | Settled | targetPart and aimed in the agent outputs (Part 2); aim penalty, gap ladder and location (Part 3) |
 | D-28 | Event log retention | 2, 4 | Partly settled | Keep the last N turn records (placeholder); story history is never pruned. N stays deferred |
-| D-29 | Who spawns enemies and weaves the story | 2–3 | Partly settled | Agent Weaver plans events, casts, stages and creature types. Still deferred: story beats and who calls sceneBreak (story-weaving thread) |
+| D-29 | Who spawns enemies and weaves the story | 2–3 | Partly settled | Agent Weaver plans events, casts, stages and body types. Still deferred: story beats and who calls sceneBreak (story-weaving thread) |
 | D-30 | Scene breaks | 2 | Partly settled | Settled 07/11/2026 (P7): rest, beats with endsScene, and the stall fallback (Scenes); time skip (T6, Game clock). Still open: NPCs reacting on their own after a fight (P7 B2) |
 | D-31 | Random rolls during a scene | 2 | Deferred | Iliad Quest-style encounter rolls while travelling or mid-scene. For now only the scene-start situation roll exists |
 | D-32 | Computed grade check | 2 | Partly settled | Measuring a plan's challenge and gain from its cast and rewards. Settled 07/11/2026 (loot V8): rewards are held to the gain's Boon budget (Part 5 §7). Still open: measuring the cast's challenge, a passing stub until then |
@@ -2595,9 +2595,9 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-81 | Partial cover by part | 3 | Deferred | Such as a wall hiding the legs |
 | D-82 | Combat skill names | 1 | Deferred | For the melee, ranged and unarmed trees, set per setting |
 | D-83 | Multiple attacks per turn | 2 | Settled | Settled 07/11/2026 (AE4): extra attacks come only from perks and class skills (Flurry) |
-| D-84 | Carry limit and encumbrance | 5 | Deferred | bulk exists on every item; capacity is infinite. Later: a carry limit per creature type, perk and item adjustments, what counts toward load, what happens past it |
+| D-84 | Carry limit and encumbrance | 5 | Deferred | bulk exists on every item; capacity is infinite. Later: a carry limit per body type, perk and item adjustments, what counts toward load, what happens past it |
 | D-85 | Initiative as a gear target | 5 | Deferred | Heavy armor slowing initiative, and similar |
-| D-86 | Conditional and granted effects | 5 | Deferred | Effects that apply only vs a creature type or in darkness; gear that grants statuses, perks or actions; movement and flight modifiers |
+| D-86 | Conditional and granted effects | 5 | Deferred | Effects that apply only vs a body type or in darkness; gear that grants statuses, perks or actions; movement and flight modifiers |
 | D-87 | Dual wielding and versatile grips | 5 | Deferred | Off-hand attacks and penalties; weapons usable one- or two-handed with a bonus for two |
 | D-88 | Armor depth | 5 | Deferred | Layers, armor-piercing weapons, damage types (already excluded for now), armor stealth penalties |
 | D-89 | Durability and repair | 5 | Deferred | Wear on items other than pools; refilling shield and armor pools |
@@ -2622,7 +2622,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-108 | Achievement proposals | 1, 2 | Planned | Decided by Ali (07/11/2026, settles OQ-10): Claude may propose achievements, never grant them. A proposal goes to Ali for approval; once he approves, the feat is implemented as permanent code (a code rule that grants it), like the first-defeat achievement. Place state and promoted facts still come only from code rules. Which agent carries the proposal is open |
 | D-109 | Whole-engagement perk effects | 1 | Planned | Decided by Ali (08/11/2026, AGG comparison A1): some 60 and 100 perks last the whole engagement instead of one roll, as AGG's do. First case: a 60 or 80 Improvisation perk that grows Dirt in the Eyes into a blinding that lasts the fight (AGG's Pocket Sand) |
 | D-110 | Auto-success perks | 1 | Planned | Decided by Ali (08/11/2026, AGG comparison A2): a perk kind where the owner's first roll of one kind in each engagement counts as at least Success. Used for 60 perks in Speech and Stealth |
-| D-111 | Bane bonuses | 1, 2 | Planned | Decided by Ali (08/11/2026, AGG comparison A3, from AGG's deed-earned Feats): race and creature-type achievements such as "Bane of {race}kind" also give a small bonus against that race or type. The size is open |
+| D-111 | Bane bonuses | 1, 2 | Planned | Decided by Ali (08/11/2026, AGG comparison A3, from AGG's deed-earned Feats): race and body-type achievements such as "Bane of {race}kind" also give a small bonus against that race or type. The size is open |
 | D-112 | Downtime unlock perks | 1, 5 | Deferred | Banked by Ali (08/11/2026, AGG comparison A5): perks that unlock downtime actions (rumors, importing, a market, more actions per day) wait until trade (D-93) and long rests exist |
 
 ## Check on release
@@ -2639,7 +2639,7 @@ Decisions built as written for the first build, to be checked once the game is p
 These must be answered before the spec goes to a build agent. Each question has a fixed ID (OQ-n) that is never renumbered or reused; an answered question is removed and its ID retired. OQ-9 comes from the save data model (OQ-8 settled 07/11/2026 by XP X9); OQ-11 is about how Claude and code interact; OQ-13 comes from scene setup; OQ-22 from the ruleset review. Settled by Ali on 07/11/2026 and retired: OQ-4 (every attack on an unaware actor makes the ambush roll), OQ-5, OQ-6, OQ-15 (wounds: rolls only), OQ-16 (conditions stay in effective skill), OQ-14 (NPC stealth, 08/11/2026, NS1–NS10), OQ-17 (a graze never hits an essential part), OQ-20 (placeholder skill ids, renamed through library aliases) and OQ-10 (see D-108). A question with a build default is built that way until it is answered.
 
 - OQ-9: The database holds at most 25,000 documents, shared by the library and every story. The caps on documents per collection, total size and write rate are not published. The build must measure them in a throwaway artifact (a full database refuses new documents) before N, the backup counts and the proposal caps are set.
-- OQ-11: Prompt caching in the Claude-call capability (sample). Settled by the runtime 0.2.96 type definitions: the capability takes no system prompt (input is a prompt string or user/assistant turns under fixed platform framing; standing instructions go in a leading user turn), has no cache\_control or other prompt-caching option, and reports no token usage. Its only documented cache is answer replay: a call with the same input (every turn), modelTier, model, effort, images and verb replays the stored answer without contacting Claude, for 5 minutes by default or up to 24 hours with cache.gcTime. Replay never helps a call whose input changes. Still open: whether the platform caches a long shared prefix on its own. The docs don't say. Measure it with the Prefix Cache Probe artifact (same prefix vs. prefix changed at the first line vs. short prompt, timed to first text, quick tier, both input forms) and record the result here. Until then, cost and latency estimates assume no prompt caching. Catalogs (templates, creature types, routine sets, items) change only with libraryVersion, so they sit right after the fixed instructions as a stable prefix; they gain from prefix caching only if the probe shows the platform does it, and a library edit refreshes the prefix.
+- OQ-11: Prompt caching in the Claude-call capability (sample). Settled by the runtime 0.2.96 type definitions: the capability takes no system prompt (input is a prompt string or user/assistant turns under fixed platform framing; standing instructions go in a leading user turn), has no cache\_control or other prompt-caching option, and reports no token usage. Its only documented cache is answer replay: a call with the same input (every turn), modelTier, model, effort, images and verb replays the stored answer without contacting Claude, for 5 minutes by default or up to 24 hours with cache.gcTime. Replay never helps a call whose input changes. Still open: whether the platform caches a long shared prefix on its own. The docs don't say. Measure it with the Prefix Cache Probe artifact (same prefix vs. prefix changed at the first line vs. short prompt, timed to first text, quick tier, both input forms) and record the result here. Until then, cost and latency estimates assume no prompt caching. Catalogs (templates, body types, routine sets, items) change only with libraryVersion, so they sit right after the fixed instructions as a stable prefix; they gain from prefix caching only if the probe shows the platform does it, and a library edit refreshes the prefix.
 - OQ-13: Actors leaving the stage. Can NPCs follow the player across a frontier, or leave the stage on their own (pursuers, companions, fleeing enemies)? For now, orders into a frontier are dropped. Related: offscreen world changes (D-67).
 - OQ-22: Changing objects and places. In the first build a check or a contest only changes beliefs and reveals secrets (Part 2, Resolution engine). How one changes an object or a place, such as a forced door, a picked lock or a stolen item, is not designed yet.
   - Build default: nothing changes; the attempt is only narrated.
@@ -2746,4 +2746,4 @@ Seventeen library items for the first build, approved as placeholders (Nov 2026)
 | healing\_draught | consumable, stackable | — | none until Healing is designed | 1 | 1 | 10 |
 | coin | misc, stackable | — | — | — | 0 | 1 |
 
-Not items (ruleset config and creature database): the weapon class table (Part 3, Weapons, armor and shields); the unarmed profile, 15 damage and +10 hit; the humanoid's unarmed modes "punch" (class punch, unarmed\_strike, reach 0, no hands) and "grapple" (class grapple, unarmed\_grapple, reach 0, no hands); QUALITY\_TABLE (Part 5 §7). Natural attacks and natural armor for other creature types arrive with their database entries.
+Not items (ruleset config and body type database): the weapon class table (Part 3, Weapons, armor and shields); the unarmed profile, 15 damage and +10 hit; the humanoid's unarmed modes "punch" (class punch, unarmed\_strike, reach 0, no hands) and "grapple" (class grapple, unarmed\_grapple, reach 0, no hands); QUALITY\_TABLE (Part 5 §7). Natural attacks and natural armor for other body types arrive with their database entries.

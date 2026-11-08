@@ -3,7 +3,7 @@
 // get the generic cards, so a new table shows up with no edit here.
 import './styles.css';
 import './libraryViewer.css';
-import type { AchievementDef, CreatureType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup } from '../types';
+import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup } from '../types';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
@@ -54,16 +54,16 @@ function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
   });
 }
 
-// ---------- Body figure: a creature's parts, tinted by impact or lit when an item covers them ----------
+// ---------- Body figure: a body type's parts, tinted by impact or lit when an item covers them ----------
 const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-norm', non_essential: 'lv-non' };
-function figure(ct: CreatureType | undefined, cls: (part: string) => string): HTMLElement | null {
+function figure(ct: BodyType | undefined, cls: (part: string) => string): HTMLElement | null {
   if (!ct?.figure) return null;
   const f = h('div', { class: 'bf-svg lv-fig' });
   f.innerHTML = `<svg viewBox="${ct.figure.viewBox}" role="img" aria-label="${ct.id} body">${Object.entries(ct.figure.parts)
     .map(([id, d]) => `<path class="${cls(id)}" d="${d}"><title>${id === 'general' ? ct.general.name : label(id)}</title></path>`).join('')}</svg>`;
   return f;
 }
-const impactOf = (ct: CreatureType, part: string) => (part === 'general' ? 'essential' : ct.parts.find((p) => p.id === part)?.impact ?? 'normal');
+const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essential' : ct.parts.find((p) => p.id === part)?.impact ?? 'normal');
 
 // ---------- Gear ----------
 const ACTIVE: Record<ItemEffect['active'], string> = { worn: 'when worn', held: 'when held', inUse: 'while in use', carried: 'when carried' };
@@ -73,7 +73,7 @@ function effectText(e: ItemEffect): string {
 }
 function gear(): HTMLElement[] {
   const kinds = [...new Set(Object.values(lib.items).map((i) => i.kind))];
-  const humanoid = lib.creatures.humanoid;
+  const humanoid = lib.bodyTypes.humanoid;
   return kinds.map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${label(kind)}`),
     h('div', { class: 'lv-grid' }, Object.values(lib.items).filter((i) => i.kind === kind).map((i: ItemDef) => {
       const flags = (['concealed', 'stackable', 'consumable', 'visible'] as const).filter((f) => i[f]).map((f) => chip(f, '--c3'));
@@ -133,32 +133,32 @@ function perks(): HTMLElement[] {
   ].filter(Boolean) as HTMLElement[];
 }
 
-// ---------- Races and creatures ----------
+// ---------- Races and body types ----------
 const links = (sec: string, pairs: [string, string][]) => (pairs.length ? h('span', {}, ...pairs.flatMap(([id, t], i) => [i ? ', ' : '', link(sec, id, t)])) : none());
 const usedBy = (pred: (t: Entry) => boolean) => links('templates', Object.values(lib.templates).filter((x) => pred(x as unknown as Entry)).map((x) => [x.id, x.label]));
 const perkList = (ids: string[] | undefined) => links('perks', (ids ?? []).map((id) => [id, lib.perks[id]?.name ?? id]));
 function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
-    const ct = lib.creatures[r.creatureTypeId];
+    const ct = lib.bodyTypes[r.bodyTypeId];
     return card('races', r.id, r, r.name, [],
       h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)]), h('div', {},
-        row('Body', link('creatures', r.creatureTypeId, label(r.creatureTypeId))),
+        row('Body', link('bodyTypes', r.bodyTypeId, label(r.bodyTypeId))),
         row('Innate perks', perkList(r.innatePerks)), row('Innate quirks', perkList(r.innateQuirks)),
         row('NPC templates', usedBy((t) => t.raceId === r.id)))),
-      ...fields(r as unknown as Entry, ['id', 'name', 'creatureTypeId', 'innatePerks', 'innateQuirks']));
+      ...fields(r as unknown as Entry, ['id', 'name', 'bodyTypeId', 'innatePerks', 'innateQuirks']));
   }))];
 }
-function creatures(): HTMLElement[] {
+function bodyTypes(): HTMLElement[] {
   return [h('p', { class: 'hs-note' }, h('span', { class: 'lv-key lv-ess' }), 'essential ', h('span', { class: 'lv-key lv-norm' }), 'normal ', h('span', { class: 'lv-key lv-non' }), 'non-essential part'),
-    h('div', { class: 'lv-grid wide' }, Object.values(lib.creatures).map((c) => card('creatures', c.id, c, label(c.id), [chip(c.general.size, '--c3')],
+    h('div', { class: 'lv-grid wide' }, Object.values(lib.bodyTypes).map((c) => card('bodyTypes', c.id, c, label(c.id), [chip(c.general.size, '--c3')],
       h('div', { class: 'lv-armor' }, figure(c, (p) => IMPACT_TONE[impactOf(c, p)]), h('div', {},
         row('HP multiplier', `×${c.hpMultiplier}`),
         row('General area', `${c.general.name} · ${c.general.size}`),
         row('Natural attacks', c.naturalAttacks.length ? val(c.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`)) : none('none')),
         c.naturalArmor ? row('Natural armor', val(c.naturalArmor)) : null,
         row('Fallback attack', skillName(c.fallback.attackSkill)),
-        row('Races', links('races', Object.values(lib.races ?? {}).filter((r) => r.creatureTypeId === c.id).map((r) => [r.id, r.name]))),
-        row('NPC templates', usedBy((t) => t.creatureTypeId === c.id)))),
+        row('Races', links('races', Object.values(lib.races ?? {}).filter((r) => r.bodyTypeId === c.id).map((r) => [r.id, r.name]))),
+        row('NPC templates', usedBy((t) => t.bodyTypeId === c.id)))),
       c.parts.length ? h('table', { class: 'hs-tbl lv-parts' }, h('thead', {}, h('tr', {}, ['Part', 'Size', 'Impact', 'Roles', 'Next to'].map((x) => h('th', {}, x)))),
         h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', {}, p.size),
           h('td', {}, label(p.impact)), h('td', {}, p.roles.join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
@@ -168,14 +168,14 @@ function creatures(): HTMLElement[] {
 // ---------- Achievements ----------
 function achievements(): HTMLElement[] {
   const all = Object.entries(lib.achievements ?? {});
-  const groups: [string, (d: AchievementDef) => boolean][] = [['Per creature type', (d) => d.by === 'creature'], ['Per race', (d) => d.by === 'race'],
+  const groups: [string, (d: AchievementDef) => boolean][] = [['Per body type', (d) => d.by === 'body_type'], ['Per race', (d) => d.by === 'race'],
     ['Total defeats', (d) => d.rule === 'defeats' && !d.by], ['Tree mastery', (d) => d.rule === 'mastery']];
   const name = (n: string) => h('span', {}, ...n.split(/(\{\w+\})/).map((p) => (p.startsWith('{') ? h('em', { class: 'lv-slot' }, p) : p)));
   return groups.map(([title, f]) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' },
     all.filter(([, d]) => f(d)).map(([key, d]) => {
       const c = card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, '--c15'), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`, '--c2')],
         row('Name', name(d.name)),
-        row('Earned at', d.rule === 'mastery' ? `all three skills of a tree at ${d.count}` : `${d.count} defeat${d.count === 1 ? '' : 's'}${d.by ? `, once per ${d.by === 'creature' ? 'creature type' : 'race'}` : ''}`),
+        row('Earned at', d.rule === 'mastery' ? `all three skills of a tree at ${d.count}` : `${d.count} defeat${d.count === 1 ? '' : 's'}${d.by ? `, once per ${d.by === 'body_type' ? 'body type' : 'race'}` : ''}`),
         row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.id));
       return c;
     }))));
@@ -201,7 +201,7 @@ const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
   { key: 'perks', title: 'Perks', table: 'perks', view: perks },
   { key: 'races', title: 'Races', table: 'races', view: races },
-  { key: 'creatures', title: 'Creatures', table: 'creatures', view: creatures },
+  { key: 'bodyTypes', title: 'Body types', table: 'bodyTypes', view: bodyTypes },
   { key: 'achievements', title: 'Achievements', table: 'achievements', view: achievements },
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
 ];

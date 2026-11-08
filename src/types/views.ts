@@ -86,7 +86,7 @@ export type ActorView = {
     standingDefense: 'dodge' | 'block';
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
-    attackSkill: string; // fallback.attackSkill (template, else creature type)
+    attackSkill: string; // fallback.attackSkill (template, else body type)
     routine?: { id: string; anchorTurn: number };
     routines: { id: string; brief: string }[];
     routineSetId?: string;
@@ -179,8 +179,8 @@ export type WeaverView = {
   player: { level: number; currentClass: string | null; health: HealthLevel };
   previousNote: string;
   catalogs: {
-    templates: { id: string; label: string; creatureTypeId: string }[];
-    creatureTypes: string[];
+    templates: { id: string; label: string; bodyTypeId: string }[];
+    bodyTypes: string[];
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: string[];

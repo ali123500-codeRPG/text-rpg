@@ -1,7 +1,7 @@
 // XP and levels (Ali, 07/11/2026, XP proposal X1–X10). Code only: no agent sees or sends XP.
 import type { Actor, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
-import { creatureType, getLibrary } from '../library';
+import { bodyType, getLibrary } from '../library';
 import { isActive, stance, wary } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
@@ -88,9 +88,9 @@ const title = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUp
 function defeatAchievements(state: GameState, t: Actor): void {
   const pr = state.player.progression;
   if (!pr) return;
-  const type = t.core.creatureTypeId, race = t.core.raceId;
+  const type = t.core.bodyTypeId, race = t.core.raceId;
   const n = (pr.defeats ??= {});
-  const keys = ['all', `creature:${type}`, ...(race ? [`race:${race}`] : [])];
+  const keys = ['all', `body_type:${type}`, ...(race ? [`race:${race}`] : [])];
   for (const k of keys) n[k] = (n[k] ?? 0) + 1;
   for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
     if (d.rule !== 'defeats' || d.count === undefined) continue;
@@ -100,7 +100,7 @@ function defeatAchievements(state: GameState, t: Actor): void {
   }
 }
 
-/** Each achievement is granted once (B4). key is its row in the library table; of the creature type, race or tree it names.
+/** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names.
  * Saves keep only key and of, so renaming a row or moving its reward level edits only the table. */
 export function grantAchievement(state: GameState, key: string, of?: string): void {
   const pr = state.player.progression;
@@ -120,7 +120,7 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   const d = a.key ? lib.achievements?.[a.key] : undefined;
   if (!d) return a.name ?? a.id;
   let what = a.of ?? '';
-  if (d.by === 'creature' && a.of) try { what = (creatureType(state, a.of) as { name?: string }).name ?? a.of; } catch { /* keep the id */ }
+  if (d.by === 'body_type' && a.of) try { what = (bodyType(state, a.of) as { name?: string }).name ?? a.of; } catch { /* keep the id */ }
   if (d.by === 'race' && a.of) what = lib.races?.[a.of]?.name ?? a.of;
-  return d.name.replace(/\{(creature|race|tree)\}/g, title(what));
+  return d.name.replace(/\{(body_type|race|tree)\}/g, title(what));
 }
