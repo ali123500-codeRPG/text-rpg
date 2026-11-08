@@ -90,7 +90,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
     gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
     h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Achievements'),
       (p.progression?.achievements ?? []).length
-        ? p.progression!.achievements!.map((a) => h('span', {}, achievementName(s, a), ` · turn ${a.turn}`))
+        ? p.progression!.achievements!.map((a) => h('span', {}, achievementName(s, a), ` · turn ${a.turn}`, a.replacedBy ? ' · replaced by the next level' : ''))
         : h('span', {}, 'None yet')));
 }
 

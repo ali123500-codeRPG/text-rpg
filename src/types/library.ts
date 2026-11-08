@@ -133,5 +133,7 @@ export type RaceDef = {
   tags?: string[]; // 'speaks' (Ali, 08/11/2026): the race can talk, which opens persuasion and barter
 };
 
-/** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level] */
-export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'body_type' | 'race' };
+/** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].
+ * after: the key of the lower level this one builds on (Ali, 08/11/2026). Earning it switches the lower level off,
+ * and its Bane bonus is the lower level's bonus plus its own. */
+export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'body_type' | 'race'; after?: string };
