@@ -35,13 +35,13 @@ const DEFAULTS = {
   HP_BASE: 50,
   HP_PER_END: 1,
   HEALTH_SHOWN_FROM: 'Wounded', // others' health level shows from this level down (Voyage C2)
-  /** health % lost stops here: Dead (Ali, 08/11/2026) */
-  HP_LOST_MAX: 200,
+  /** health % lost stops here: Dead at 150% (Ali, 08/11/2026) */
+  HP_LOST_MAX: 150,
   HEALTH_TRACK: [
     // [level, max % lost, wounds modifier]
     ['Unhurt', 0, 0], ['Bruised', 15, 0], ['Hurt', 30, -5], ['Injured', 45, -10],
-    ['Wounded', 60, -15], ['Mauled', 75, -20], ['Critical', 99.999, -30], ['Incapacitated', 199.999, 0],
-    ['Dead', Infinity, 0], // Ali 08/11/2026: dead at 200% lost; never shown in the UI
+    ['Wounded', 60, -15], ['Mauled', 75, -20], ['Critical', 99.999, -30], ['Incapacitated', 149.999, 0],
+    ['Dead', Infinity, 0], // Ali 08/11/2026: dead at 150% lost (was 200%); never shown in the UI
   ] as [string, number, number][],
   PART_SHARE: { tiny: 0.15, extra_small: 0.15, small: 0.2, normal: 0.3, big: 0.5 } as Record<string, number>,
   HIT_WEIGHT: { tiny: 0.25, extra_small: 0.5, small: 1, normal: 2, big: 4 } as Record<string, number>,
