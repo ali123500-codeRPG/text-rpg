@@ -1,7 +1,7 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
-import type { ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, XpCategory } from '../types';
+import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, XpCategory } from '../types';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
 import { BUILT_PERKS } from './builtPerks';
@@ -10,8 +10,8 @@ import { BUILT_PERKS } from './builtPerks';
 const CATEGORY_OF: Partial<Record<SkillDef['functions'][number], XpCategory>> = {
   melee_attack: 'offensive', ranged_attack: 'offensive', unarmed_attack: 'offensive', defense: 'defensive', hp: 'endurance', notice: 'notice', influence: 'influence',
 };
-const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], playerOpen = true, cue?: 'sight' | 'sound', xpCategory?: XpCategory, tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
-  ({ id, treeId, functions, roles, playerOpen, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[functions[0]] ?? 'misc', tier });
+const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', xpCategory?: XpCategory, tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
+  ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[functions[0]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('melee_light', 'melee', ['melee_attack'], ['grip']),
@@ -23,28 +23,28 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('unarmed_strike', 'unarmed', ['unarmed_attack'], ['grip']),
   sk('unarmed_grapple', 'unarmed', ['unarmed_attack'], ['grip']),
   sk('unarmed_improvised', 'unarmed', ['unarmed_attack'], ['grip']), // fighting with whatever is at hand (Ali, 07/11/2026)
-  sk('unarmed_natural', 'unarmed', ['unarmed_attack'], ['strike'], false), // creatures only, in no player tree (Ali, 07/11/2026)
+  sk('unarmed_natural', 'natural', ['unarmed_attack'], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
   sk('dodge', 'defense', ['defense'], ['move']),
   sk('block', 'defense', ['defense'], ['grip']),
   sk('endurance', 'defense', ['hp'], []), // hp: endurance sets total HP
-  sk('sight', 'perception', ['notice'], ['sense'], true, 'sight'),
-  sk('hearing', 'perception', ['notice'], ['sense'], true, 'sound'),
+  sk('sight', 'perception', ['notice'], ['sense'], 'sight'),
+  sk('hearing', 'perception', ['notice'], ['sense'], 'sound'),
   // Stealth (Ali, 08/11/2026, ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
-  sk('sneaking', 'stealth', ['stealth'], ['move'], true, undefined, 'notice'),
-  sk('combat_stealth', 'stealth', ['stealth'], ['move'], true, undefined, 'offensive'),
-  sk('vanishing', 'stealth', ['stealth'], ['move'], true, undefined, 'offensive'), // ST11/ST18: breaks established sight
+  sk('sneaking', 'stealth', ['stealth'], ['move'], undefined, 'notice'),
+  sk('combat_stealth', 'stealth', ['stealth'], ['move'], undefined, 'offensive'),
+  sk('vanishing', 'stealth', ['stealth'], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
   sk('persuasion', 'speech', ['influence'], []),
   sk('intimidation', 'speech', ['influence'], []),
   sk('barter', 'speech', ['influence'], []),
-  sk('feint', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
-  sk('riposte', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
-  sk('disarm', 'swordsman', [], ['grip'], true, undefined, 'offensive'),
+  sk('feint', 'swordsman', [], ['grip'], undefined, 'offensive'),
+  sk('riposte', 'swordsman', [], ['grip'], undefined, 'offensive'),
+  sk('disarm', 'swordsman', [], ['grip'], undefined, 'offensive'),
   // slime class skills are tier 0 (Ali, 08/11/2026)
-  sk('tremor', 'slime_senses', ['notice'], ['sense'], false, 'sound', undefined, 'tier_0'),
-  sk('taste', 'slime_senses', ['notice'], ['sense'], false, undefined, undefined, 'tier_0'),
+  sk('tremor', 'slime_senses', ['notice'], ['sense'], 'sound', undefined, 'tier_0'),
+  sk('taste', 'slime_senses', ['notice'], ['sense'], undefined, undefined, 'tier_0'),
   // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
-  sk('lockpicking', 'tools', [], ['grip'], false),
+  sk('lockpicking', 'tools', [], ['grip']),
 ].map((s) => [s.id, s]));
 
 /** ST21 (Ali, 08/11/2026): situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -249,26 +249,32 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['creature'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
 ].map((s) => [s.id, s]));
 
+const SLIME: AccessCond = { kind: 'body', id: 'slime' };
+
 export function prototypeLibrary(): Library {
   const lib: Library = structuredClone({
     version: 1,
     status: {},
     skills: SKILLS,
+    // Skill tree access (Ali, 08/11/2026, TA1–TA11): each tree's own rule; no rule = open to everyone.
+    // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.
     trees: {
-      melee: { id: 'melee', name: 'Combat – Melee', skills: ['melee_light', 'melee_medium', 'melee_heavy'] },
-      ranged: { id: 'ranged', name: 'Combat – Ranged', skills: ['ranged_light', 'ranged_medium', 'ranged_heavy'] },
-      unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'] },
+      melee: { id: 'melee', name: 'Combat – Melee', skills: ['melee_light', 'melee_medium', 'melee_heavy'], access: { blockedBy: [SLIME] } },
+      ranged: { id: 'ranged', name: 'Combat – Ranged', skills: ['ranged_light', 'ranged_medium', 'ranged_heavy'], access: { blockedBy: [SLIME] } },
+      unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'], access: { blockedBy: [SLIME] } },
+      natural: { id: 'natural', name: 'Natural weapons', skills: ['unarmed_natural'], access: { either: [SLIME, { kind: 'body', id: 'dragon' }] } },
       defense: { id: 'defense', name: 'Combat – Defense', skills: ['dodge', 'block', 'endurance'] },
-      perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'] },
+      perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'], access: { blockedBy: [SLIME] } }, // no eyes or ears (TA6)
       stealth: { id: 'stealth', name: 'Stealth', skills: ['sneaking', 'combat_stealth', 'vanishing'] },
-      speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'] },
-      swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], classId: 'swordsman' },
-      slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor', 'taste'], classId: 'slime' },
-      tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: ['lockpicking'] },
+      speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'], access: { blockedBy: [SLIME] } },
+      swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], access: { must: [{ kind: 'class', id: 'swordsman' }] } },
+      // level 0: slime NPCs are class level 0 (template level 0)
+      slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor', 'taste'], access: { must: [{ kind: 'class', id: 'slime', level: 0 }] } },
+      tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: ['lockpicking'], access: { blockedBy: [SLIME] } },
     },
     classes: {
-      swordsman: { id: 'swordsman', name: 'Swordsman', treeId: 'swordsman', floors: { melee_medium: 25, block: 15 } },
-      slime: { id: 'slime', name: 'Slime', treeId: 'slime_senses', floors: {} },
+      swordsman: { id: 'swordsman', name: 'Swordsman', floors: { melee_medium: 25, block: 15 } },
+      slime: { id: 'slime', name: 'Slime', floors: {} },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false } },
     bodyTypes: BODY_TYPES,

@@ -6,6 +6,7 @@ import { bodyType, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { achievementName, charLevel, xpToNext } from '../engine/xp';
+import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 
@@ -13,7 +14,6 @@ import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 export const invFocus: { id: string | null } = { id: null };
 
 const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return null; } };
-const LOCKED = new Set(['unarmed_natural']);
 const BAR_SCALE = 100; // display only: the rules set no skill maximum yet (D-3)
 
 export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: number | null } {
@@ -40,9 +40,9 @@ function attackOf(s: GameState, p: Actor): { name: string; value: number | null 
 export function trees(s: GameState, p: Actor, withZero: boolean) {
   const lib = getLibrary();
   return TREE_VIEW.filter((t) => lib.trees[t.id]).map((t) => {
-    const ks = lib.trees[t.id].skills.filter((k) => !LOCKED.has(k) && p.core.skills[k] !== undefined);
+    const ks = lib.trees[t.id].skills.filter((k) => p.core.skills[k] !== undefined);
     const rows = ks.map((k) => ({ id: k, raw: p.core.skills[k].raw, tagged: p.core.skills[k].state === 'tagged' }));
-    return { id: t.id, c: t.c, name: lib.trees[t.id].name, sum: rows.reduce((a, r) => a + r.raw, 0), rows: withZero ? rows : rows.filter((r) => r.raw > 0) };
+    return { id: t.id, c: t.c, name: lib.trees[t.id].name, block: treeBlock(p, t.id), sum: rows.reduce((a, r) => a + r.raw, 0), rows: withZero ? rows : rows.filter((r) => r.raw > 0) };
   }).filter((t) => t.sum > 0);
 }
 
@@ -117,6 +117,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
   return h('div', { class: 'cs-trees' }, trees(s, p, true).map((t) =>
     h('div', { class: 'cs-tree', style: `--t:var(--${t.c})` },
       h('div', { class: 'cs-tree-h' }, h('b', {}, t.name), h('span', {}, `${t.sum} pts`)),
+      t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
         bar(r.raw), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));

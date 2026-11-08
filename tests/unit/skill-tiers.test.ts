@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { effectiveSkill } from '../../src/ruleset';
-import { rating } from '../../src/engine/xp';
+import { effort, rating } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 
@@ -19,9 +19,10 @@ describe('skill tiers', () => {
     const slime = s.actors.find((a) => a.id === 'slime_1')!;
     slime.core.skills.tremor = { raw: 60, state: 'normal' };
     expect(effectiveSkill(s, slime, 'tremor').value).toBe(30);
+    slime.core.skills.taste = { raw: 0, state: 'normal' };
     const before = rating(slime);
     slime.core.skills.tremor = { raw: 0, state: 'normal' };
-    slime.core.skills.hearing = { raw: 30, state: 'normal' };
-    expect(rating(slime)).toBeCloseTo(before);
+    // tremor 60 rates as a 30 (slimes can't use Perception, TA6, so a tier 2 notice skill can't stand in)
+    expect(before - rating(slime)).toBeCloseTo(CONFIG.XP_CATEGORY_WEIGHT.notice * effort(30));
   });
 });
