@@ -2,7 +2,7 @@
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
 import { CONFIG } from '../config';
 import { activity, creatureType, getLibrary, itemDef } from '../library';
-import { applyHealing, passiveHealing } from './heal';
+import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { defaultMode, healthLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, computePerception, lookAround, noteSightings, noticeCue, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
@@ -342,6 +342,8 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   const fight = allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (hostile(state, a, x) || hostile(state, x, a)));
   if (fight && !row.inFight) {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'hostile_in_zone' });
+  } else if (!wouldHeal(state, a, row.id)) {
+    logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal' });
   } else {
     applyHealing(state, a, row.id);
     inst.qty = (inst.qty ?? 1) - 1;
