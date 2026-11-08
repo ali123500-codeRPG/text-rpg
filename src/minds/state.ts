@@ -2,8 +2,8 @@
 import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
 import { routine as getRoutine, routineSet, creatureType, npcTemplate } from '../library';
-import { actorById, atLeast, isActive, isEngaged, wary, zoneById } from '../engine/relations';
-import { computePerception, perceptionOf, updateBeliefs } from '../perception';
+import { actorById, allActors, atLeast, isActive, isEngaged, wary, zoneById } from '../engine/relations';
+import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { hasPerk } from '../ruleset/perks';
 import { bindTemplate, expandSteps, slotsRead } from './routines';
@@ -134,54 +134,57 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
 }
 
 /** ST2 (Ali, 08/11/2026): Combat Stealth in an engagement, or for a shot, which starts one (ST5); Sneaking otherwise */
-export const stealthSkill = (state: GameState, event?: GameEvent): string => (state.player.engagement || event?.kind === 'attack' ? 'combat_stealth' : 'sneaking');
+export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engagement || event?.kind === 'attack' ? 'combat_stealth' : 'sneaking');
 
-/** ST3–ST8, ST11–ST19: while the player is stealthy, every observer who could perceive the event and doesn't already see the
- * player contests its sight or hearing against the player's stealth, once per event. Observer wins: aware. Tie: an unaware
- * observer turns suspicious. A Vanish (a move) is contested with Vanishing by everyone, those who see the player included:
- * one who loses it drops to suspicious at the zone the player left (ST15); for the rest it counts as a passed stealth check
- * (ST16). A shot's target that loses still turns suspicious, at the shooter's zone (ST19). Light and cover reach the
- * rolls by situation tag (CONFIG.SITUATION_TAGS, ST21); a hide ignores leg wounds (ST10). With Unblinking, an observer
- * who loses a Vanish must also lose a Sneaking or Combat Stealth contest (ST23). */
-function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
-  const p = state.player;
+/** ST3–ST8, ST11–ST19, NS1–NS5: while an actor is stealthy, every observer outside its band who could perceive the event and
+ * doesn't already see it contests its sight or hearing against the actor's stealth, once per turn. The player is an observer
+ * like any other (NS3); NPCs contest each other too (NS5). Observer wins: aware. Tie: an unaware observer turns suspicious. A Vanish (a move) is contested
+ * with Vanishing by everyone, those who see the actor included: one who loses it drops to suspicious at the zone the actor
+ * left (ST15); for the rest it counts as a passed stealth check (ST16). A shot's target that loses still turns suspicious,
+ * at the shooter's zone (ST19). Light and cover reach the rolls by situation tag (CONFIG.SITUATION_TAGS, ST21); a hide
+ * ignores leg wounds (ST10). With Unblinking, an observer who loses a Vanish must also lose a Sneaking or Combat Stealth
+ * contest (ST23). */
+export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): void {
+  const s = actorById(state, event.actorId);
+  if (!s) return;
   const hide = event.kind === 'hide';
   const vanish = !!event.vanish;
-  const zone = zoneById(state, p.zone);
-  const skill = vanish ? 'vanishing' : stealthSkill(state, event);
+  const zone = zoneById(state, s.zone);
+  const skill = vanish ? 'vanishing' : stealthSkill(s, event);
   // ST21/ST22: light and cover reach the rolls by situation tag; a Hide adds the hide tag and ignores leg wounds (ST10)
-  // P14 (Ali, 08/11/2026): darkness never hurts hearing, so it gives no help against an observer who only hears the player
-  const mine = (sk: string, sense: string) => ({ actorId: p.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [] }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}) });
+  // P14 (Ali, 08/11/2026): darkness never hurts hearing, so it gives no help against an observer who only hears
+  const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [] }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}) });
   const theirs = (a: Actor, sk: string) => ({ actorId: a.id, skill: sk, ...situational(state, sk, { light: zone }), rollKind: 'perception' as const });
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
   const sc = (state.scratch ??= {});
   const done = (sc.stealthContested as { turn: number; ids: string[] } | undefined)?.turn === state.turn ? (sc.stealthContested as { turn: number; ids: string[] }) : { turn: state.turn, ids: [] };
   sc.stealthContested = done;
-  for (const a of state.actors) {
-    if (!a.mind || !isActive(a) || done.ids.includes(a.id)) continue;
-    const cur = a.mind.knowledge.player?.status ?? 'unaware';
+  for (const a of allActors(state)) {
+    const key = s.kind === 'player' ? a.id : `${s.id}>${a.id}`;
+    if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a) || done.ids.includes(key)) continue;
+    const cur = beliefStatus(state, a, s);
     const sees = atLeast(cur, 'aware');
     if (sees && !vanish) continue; // ST12: Hide and Sneak never shake off someone who sees you
     const seen = perceptionOf(event, state, a);
     if (!seen) continue;
     const sense = seen.cue === 'sound' ? 'hearing' : 'sight';
     const r = ruleset.contested(mine(skill, sense), theirs(a, sense), state, rng);
-    done.ids.push(a.id);
-    markUse(state, p, skill, r); // ST8
-    log(state, 'stealth_contest', { observerId: a.id, skill, kind: event.kind, gap: r.gap });
-    if (r.gap > 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: 'player', status: 'aware', event });
+    done.ids.push(key);
+    markUse(state, s, skill, r); // ST8
+    log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill, kind: event.kind, gap: r.gap });
+    if (r.gap > 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'aware', event });
     else if (sees) {
       if (r.gap >= 0) continue;
       // ST23: an observer with Unblinking who loses the Vanish still needs beating with Sneaking or Combat Stealth
       if (hasPerk(a, 'unblinking')) {
-        const second = stealthSkill(state);
+        const second = stealthSkill(s);
         const r2 = ruleset.contested(mine(second, sense), theirs(a, sense), state, rng);
-        markUse(state, p, second, r2);
-        log(state, 'stealth_contest', { observerId: a.id, skill: second, kind: event.kind, gap: r2.gap, perk: 'unblinking' });
+        markUse(state, s, second, r2);
+        log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill: second, kind: event.kind, gap: r2.gap, perk: 'unblinking' });
         if (r2.gap >= 0) continue;
       }
-      updateBeliefs(state, { kind: 'lost', observerId: a.id, aboutId: 'player', zone: event.fromZone });
-    } else if (r.gap === 0 || (event.kind === 'attack' && event.target === a.id)) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: 'player', status: 'suspicious', event });
+      updateBeliefs(state, { kind: 'lost', observerId: a.id, aboutId: s.id, zone: event.fromZone });
+    } else if (r.gap === 0 || (event.kind === 'attack' && event.target === a.id)) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'suspicious', event });
   }
 }
 
@@ -224,7 +227,7 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   const ids = [targetId, ...Object.keys(perception).filter((id) => id !== targetId && id !== attackerId).sort()];
   const observers = ids
     .map((id) => actorById(state, id))
-    .filter((o): o is Actor => !!o && o.kind === 'npc' && isActive(o) && !atLeast(o.mind?.knowledge[attackerId]?.status, 'aware'));
+    .filter((o): o is Actor => !!o && isActive(o) && !atLeast(beliefStatus(state, o, attacker), 'aware')); // NS6: the player too
   if (!observers.length) return { surprised: false };
   const ambush: RollResult = ruleset.roll({ actorId: attackerId, skill: ambushSkill(state, attacker, attackEvent.itemId), modifiers: [], tierShifts: [], itemId: attackEvent.itemId }, state, rng);
   let surprised = false;
@@ -233,10 +236,10 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
     const p = ruleset.roll({ actorId: o.id, skill, modifiers: [], tierShifts: [], rollKind: 'perception' }, state, rng);
     const gap = tierLevel(p) - tierLevel(ambush); // Part 1 §4 Contests: acting side wins below 0
     if (o.id === targetId && gap < 0) surprised = true;
-    // ST7: a shot from stealth leaves noticing to the stealth contest (detectPlayer); a melee blow has already revealed
-    if (gap > 0 && !(attackerId === state.player.id && state.player.posture === 'stealthy')) {
+    // ST7: a shot from stealth leaves noticing to the stealth contest (stealthDetect); a melee blow has already revealed
+    if (gap > 0 && attacker.posture !== 'stealthy') {
       updateBeliefs(state, { kind: 'detection', observerId: o.id, aboutId: attackerId, status: 'aware', event: attackEvent });
-      raiseAlarm(state, o);
+      if (o.kind !== 'player') raiseAlarm(state, o);
     }
   }
   return { surprised };

@@ -89,6 +89,7 @@ export type ActorView = {
     slots: Record<string, string | string[]>;
     alarm?: { armed: boolean; lastAlarmTurn?: number; returnTo?: { id: string; anchorTurn: number } };
     lastHitBy?: ActorId; // from events it perceived
+    stealthy?: true; // NS: moving unseen
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard

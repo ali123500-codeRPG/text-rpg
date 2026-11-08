@@ -447,7 +447,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner saw the character before the Vanish.
 - **Effect:** The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.
 - **Lasts:** That Vanish.
-- **Open:** Sight 60 (Ali, 08/11/2026: "link it"). For the player it waits on NPC stealth (OQ-14): only NPCs vanish from the player then.
+- **Open:** Sight 60 (Ali, 08/11/2026: "link it"). Works for the player too since NPC stealth (NS10).
 
 ### Set Them Up (Strike) · B15
 

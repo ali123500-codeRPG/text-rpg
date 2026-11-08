@@ -174,6 +174,13 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     focus: [{ treeId: 'perception', skill: 'hearing' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
+  // NS7 (Ali, 08/11/2026): a village thief, the first stealthy NPC
+  thief: {
+    id: 'thief', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
+    minimums: { sneaking: 40, combat_stealth: 30, vanishing: 30, melee_light: 35, dodge: 30, sight: 30, hearing: 30 }, level: 2, bonusPoints: 10,
+    focus: [{ treeId: 'stealth', skill: 'sneaking' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
+    personality: 'timid', loadout: ['dagger', 'gambeson'], control: 'agent', label: 'a shifty villager',
+  },
   patron: {
     id: 'patron', creatureTypeId: 'humanoid', raceId: 'human', generation: 'copy',
     minimums: { unarmed_strike: 20, sight: 20, persuasion: 30 }, level: 1, bonusPoints: 0,
@@ -195,6 +202,7 @@ export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
   act('rest', 'resting', 'distracted', 0, 1),
   act('cower', 'keeping out of sight', 'alert', 0, 1),
   act('ooze', 'oozing across the grass', 'normal', 1, 2),
+  act('prowl', 'keeping to the shadows', 'alert', 0, 1),
 ].map((a) => [a.id, a]));
 
 const CALL_HELP = { type: 'call_help', target: null, skill: null, intent: 'call for help' } as const;
@@ -219,6 +227,8 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
   still('follow', 'follow', 'walk', 'Follows the player', 'follow_alert'),
   still('follow_alert', 'follow', 'stand_watch', 'Follows the player, on guard'),
   still('idle_here', 'wait', 'rest', 'Fallback only; in no set'),
+  { ...sched('prowl', 'Prowls unseen, stop by stop', true, [['route', 'short', 'prowl']], 'lie_low_alert', null), posture: 'stealthy' as const },
+  { ...sched('lie_low_alert', 'Slips off to lie low, on alert', false, [['refuge', 'long', 'cower']], undefined, null), posture: 'stealthy' as const },
   sched('roam_field', 'Oozes across the field, then settles', true, [['route', 'short', 'ooze'], ['post', 'medium', 'rest']], 'roam_field_alert', null),
   sched('roam_field_alert', 'Sweeps the field fast on alert; never flees', true, [['route', 'brief', 'ooze']], undefined, null),
 ].map((r) => [r.id, r]));
@@ -234,6 +244,7 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('patron', 'A customer drinking', ['tavern'], ['patron'], ['any'], { seat: z('where they sit'), refuge: z('where they would hide'), exit: z('the way out') }, ['drink_at_seat', 'flee_to_refuge_alert', 'leave_by_exit', 'wait', 'wait_alert']),
   set('sleeper', 'A guest asleep upstairs', ['tavern'], ['sleeper'], ['night'], { bed: z('their bed'), refuge: z('where they would hide') }, ['sleep_in_bed', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
   set('street_worker', 'A labourer or stallholder at work', ['street'], ['worker'], ['day'], { work: z('the work spot'), refuge: z('home or a doorway') }, ['work_shift', 'flee_to_refuge_alert', 'wait', 'wait_alert']),
+  set('thief', 'A thief prowling for an easy mark', ['street', 'tavern'], ['thief'], ['any'], { route: r('the stops it prowls, in order'), refuge: z('where it lies low') }, ['prowl', 'lie_low_alert', 'wait', 'wait_alert']),
   set('companion', "The player's band; not chosen by tags", [], [], [], {}, ['follow', 'follow_alert', 'wait', 'wait_alert']),
   set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['creature'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
 ].map((s) => [s.id, s]));
@@ -278,7 +289,11 @@ export function prototypeLibrary(): Library {
       sleep: { id: 'sleep', name: 'Sleep', minutes: 480 },
     },
     // Ali (07/11/2026): humans and elves for now, identical
-    races: { human: { id: 'human', name: 'Human', creatureTypeId: 'humanoid' }, elf: { id: 'elf', name: 'Elf', creatureTypeId: 'humanoid' } },
+    // innate perks and quirks per race (Ali, 08/11/2026): lists, empty until chosen
+    races: {
+      human: { id: 'human', name: 'Human', creatureTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
+      elf: { id: 'elf', name: 'Elf', creatureTypeId: 'humanoid', innatePerks: [], innateQuirks: [] },
+    },
     items: ITEMS,
     templates: TEMPLATES,
     activities: ACTIVITIES,

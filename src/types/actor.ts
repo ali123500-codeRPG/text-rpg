@@ -1,5 +1,5 @@
 // Part 4 §4 and §9: the actor sheet.
-import type { ActorId, Belief, Fact, FactId, LibraryRef, PlaceId, SlotKey, StoryId, Turn, Stance } from './core';
+import type { ActorId, Belief, BeliefStatus, Fact, FactId, LibraryRef, PlaceId, SlotKey, StoryId, Turn, Stance } from './core';
 import type { ItemInstance } from './items';
 
 export const PRONOUNS = ['he', 'she', 'they', 'it'] as const;
@@ -18,7 +18,7 @@ export type Actor = {
   knownOnSight?: boolean;
   placeId: PlaceId; // always the place of `zone`
   zone: string;
-  posture?: 'open' | 'stealthy'; // player only
+  posture?: 'open' | 'stealthy'; // NS1 (Ali, 08/11/2026): any actor can be stealthy
   bandId: string;
   core: Core;
   progression?: Progression;
@@ -63,7 +63,7 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery';
+  source: 'level' | 'mastery' | 'race'; // 'race': innate, from the race's innatePerks / innateQuirks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
@@ -137,6 +137,8 @@ export type Journal = {
   namesKnown: ActorId[];
   /** Q17 (Ali, 07/11/2026): actors the player has seen clearly, and the zone they were in; they stay seen until they move */
   clearSight?: Record<ActorId, string>;
+  /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
+  stealthSeen?: Record<ActorId, BeliefStatus>;
 };
 
 export type { PlaceId };

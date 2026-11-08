@@ -74,7 +74,7 @@ const intent = obj<Intent>({
 }, ['perkMove']);
 
 const npcAction = obj<PlannerOutput['action']>({
-  type: oneOf(['attack', 'move', 'search', 'hide', 'hold', 'call_help', 'flee', 'talk', 'use_item', 'equip', 'give', 'other'] as const),
+  type: oneOf(['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee', 'talk', 'use_item', 'equip', 'give', 'other'] as const),
   target: nul(str),
   skill: nul(str),
   targetPart: nul(str),
