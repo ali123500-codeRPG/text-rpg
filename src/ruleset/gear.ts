@@ -52,6 +52,9 @@ function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: 
   return out;
 }
 
+/** a skill's final efficiency multiplier from its tier (1 for an unknown skill) */
+export const tierMult = (skill: string): number => CONFIG.SKILL_TIER_MULT[getLibrary().skills[skill]?.tier ?? 'tier_2'] ?? 1;
+
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[] } = {}) {
   const skills = getLibrary().skills;
@@ -64,7 +67,10 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     const k = share(id);
     const entry = actor.core.skills[id];
     const gear = gearFor(state, actor, id, ctx).map((g) => ({ ...g, value: g.value * k }));
-    const value = (entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0); // true skill (S3)
+    // true skill (S3) and gear, × the skill's tier multiplier (final efficiency, Ali 08/11/2026)
+    const tier = tierMult(id);
+    const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier;
+    for (const g of gear) g.value *= tier;
     if (!best || value > best.value) best = { skill: id, value, gear };
   }
   return best!; // GAP: hard cap (D-3) and condition effects not designed yet

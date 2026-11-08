@@ -5,6 +5,8 @@
 const DEFAULTS = {
   // ---- Part 1 ----
   SUBSTITUTE_EFFICIENCY: 0.5,
+  /** Skill tiers (Ali, 08/11/2026): the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder (Ali gave 0 and 2). */
+  SKILL_TIER_MULT: { tier_0: 0.5, tier_1: 0.75, tier_2: 1 } as Record<string, number>,
   /** A7 Open-Hand Guard: share of a hit through an open-hand block that lands on the blocking arm; the rest goes to the general area (placeholder, Ali 07/11/2026) */
   OPEN_HAND_ARM_SHARE: 0.5,
   /** A6 Leg Bolt: the leg's pool takes this multiple of the damage the hit puts on the health track (Ali, 07/11/2026) */
