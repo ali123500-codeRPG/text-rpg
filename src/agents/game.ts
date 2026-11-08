@@ -17,7 +17,7 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
-import { createPlayer, validateBuild } from '../library/spawn';
+import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
@@ -401,6 +401,7 @@ export function createGame(deps: GameDeps): Game {
           }
           abortBackground();
           state = (await save.loadStory(store, s.storyId, getLibrary())).state;
+          refreshCopies(state);
           advance();
           lastDisplayAt = clock.now();
           lines.push({ turn: state.turn, kind: 'command', text: 'Turn undone.' });
@@ -485,6 +486,7 @@ export function createGame(deps: GameDeps): Game {
     try {
       const loaded = await save.loadStory(store, storyId, getLibrary());
       state = loaded.state;
+      refreshCopies(state); // copies follow their template and the level lever (Ali, 08/11/2026)
     } catch (e) {
       notice({ kind: 'load_refused', text: `The story could not be loaded: ${(e as Error).message}` });
       return false;

@@ -89,7 +89,7 @@ const DEFAULTS = {
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
   // ---- Part 4 ----
-  POINTS_PER_LEVEL: 3,
+  POINTS_PER_LEVEL: 10, // Ali (08/11/2026): 10 × level (was 3)
   CREATION_POINTS: 250,
   CREATION_MAX_SKILL: 60,
   CREATION_TAGS: 3,

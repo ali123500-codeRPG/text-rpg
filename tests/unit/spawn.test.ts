@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createRng } from '../harness';
-import { createPlayer, recommendedBuild, rollUniqueSkills, spawnNpc, validateBuild } from '../../src/library/spawn';
+import { createRng, makeVillage } from '../harness';
+import { createPlayer, recommendedBuild, refreshCopies, rollUniqueSkills, spawnNpc, validateBuild } from '../../src/library/spawn';
 import { getLibrary, npcTemplate, resetLibrary, setLibrary } from '../../src/library';
 import { CONFIG, resetConfig } from '../../src/config';
 
@@ -38,7 +38,7 @@ describe('unique generation', () => {
   it('is seeded: minimums plus level x POINTS_PER_LEVEL + bonus, preferred skills tagged', () => {
     const a = rollUniqueSkills(bandit, createRng(5));
     expect(rollUniqueSkills(bandit, createRng(5))).toEqual(a);
-    expect(sum(a)).toBe(sum(Object.fromEntries(Object.entries(bandit.minimums).map(([k, v]) => [k, { raw: v }]))) + bandit.level * 3 + 10);
+    expect(sum(a)).toBe(sum(Object.fromEntries(Object.entries(bandit.minimums).map(([k, v]) => [k, { raw: v }]))) + bandit.level * CONFIG.POINTS_PER_LEVEL + bandit.bonusPoints);
     expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual(['block', 'melee_medium', 'sight']);
     const seeds = new Set([1, 2, 3, 4, 5, 6].map((n) => JSON.stringify(rollUniqueSkills(bandit, createRng(n)))));
     expect(seeds.size).toBeGreaterThan(1); // spending is uneven across seeds
@@ -49,7 +49,7 @@ describe('unique generation', () => {
     expect(s.melee_medium.raw).toBe(100);
     expect(sum(s)).toBe(128);
   });
-  it('spawnNpc rolls a unique once (needs the rng) and saves its perk points; copies stay at minimums', () => {
+  it('spawnNpc rolls a unique once (needs the rng) and saves its perk points; copies get fixed level points', () => {
     const lib = getLibrary();
     lib.templates.bandit = bandit;
     setLibrary(lib);
@@ -59,7 +59,24 @@ describe('unique generation', () => {
     expect(b.core.generation).toBe('unique');
     expect(b.core.skills).toEqual(rollUniqueSkills(bandit, createRng(5)));
     expect(b.progression!.unspentPerkPoints).toBe(Math.floor(bandit.level / 2));
-    expect(spawnNpc(null, 'guard', opts).core.skills.melee_medium).toEqual({ raw: 40, state: 'normal' });
+    // Q3 (Ali, 08/11/2026): copies get level points too, with a fixed per-template seed, so every guard is alike
+    const g1 = spawnNpc(null, 'guard', opts), g2 = spawnNpc(null, 'guard', { ...opts, id: 'b2' });
+    expect(g1.core.skills).toEqual(g2.core.skills);
+    const guard = npcTemplate(null, 'guard');
+    expect(sum(g1.core.skills)).toBe(sum(Object.fromEntries(Object.entries(guard.minimums).map(([k, v]) => [k, { raw: v }]))) + guard.level * CONFIG.POINTS_PER_LEVEL + guard.bonusPoints);
+  });
+  it('the level lever reaches existing copies: refreshCopies rebuilds them from the current CONFIG', () => {
+    const s = makeVillage();
+    const g = s.actors.find((a) => a.core.templateId === 'guard')!;
+    const before = sum(g.core.skills);
+    const keep = CONFIG.POINTS_PER_LEVEL;
+    try {
+      (CONFIG as { POINTS_PER_LEVEL: number }).POINTS_PER_LEVEL = keep + 5;
+      g.core.perks = [];
+      refreshCopies(s);
+      expect(sum(g.core.skills)).toBe(before + 5 * npcTemplate(null, 'guard').level);
+      expect(g.core.perks.map((p) => p.perkId)).toContain('keen_ear');
+    } finally { (CONFIG as { POINTS_PER_LEVEL: number }).POINTS_PER_LEVEL = keep; }
   });
 });
 
