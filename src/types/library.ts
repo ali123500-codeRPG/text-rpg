@@ -79,7 +79,7 @@ export type PerkDef = {
   built?: boolean;
 };
 /** a boost perk's numbers; each applies only to rolls of the perk's own ladder skill */
-export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number };
+export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
 export type PerkRules = { kind: string; trigger: string; conditions: string[]; effect: string; lasts: string; cooldown?: string; needs?: string; open?: string };
 /** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked'; story: string; rules: PerkRules };
