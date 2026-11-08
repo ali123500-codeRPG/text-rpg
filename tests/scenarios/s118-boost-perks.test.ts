@@ -40,13 +40,13 @@ describe('118 40/80/120 perks', () => {
       expect(!!d.numbers !== !!d.trueSkillTo).toBe(true); // exactly one more number
     }
   });
-  it('true skill: +5 in the skill, +1 in skills sharing its function, and the synergic pick', () => {
+  it('true skill: +5 in the skill, +1 in it and in skills sharing its function, and the synergic pick', () => {
     const s = makeVillage();
     const p = s.player;
     for (const k of ['melee_light', 'melee_medium', 'melee_heavy', 'block', 'dodge', 'sight']) p.core.skills[k] = { ...p.core.skills[k], raw: 30, state: p.core.skills[k]?.state ?? 'normal' };
     const before = Object.fromEntries(['melee_light', 'melee_medium', 'melee_heavy', 'block', 'dodge', 'sight'].map((k) => [k, trueSkill(p, k)]));
     give(p, 'guard_drill');
-    expect(trueSkill(p, 'melee_medium')).toBe(before.melee_medium + 5);
+    expect(trueSkill(p, 'melee_medium')).toBe(before.melee_medium + 6); // +5, and +1 for its function (Ali: including itself)
     expect(trueSkill(p, 'melee_light')).toBe(before.melee_light + 1);
     expect(trueSkill(p, 'melee_heavy')).toBe(before.melee_heavy + 1);
     expect(trueSkill(p, 'block')).toBe(before.block + 10);
