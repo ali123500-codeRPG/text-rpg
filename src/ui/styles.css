@@ -285,6 +285,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-tree-h { display: flex; justify-content: space-between; align-items: baseline; }
 .cs-tree-h b { font-size: 15px; }
 .cs-tree-h span { color: var(--muted); font-size: 13px; }
+.cs-tree-block { display: block; color: var(--muted); font-size: 13px; }
 .cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 40px; gap: var(--space-3); align-items: center; }
 .cs-sk .n { font-weight: 600; }
 .cs-sk .n small { display: block; font-weight: 400; font-size: 12px; color: var(--faint); }

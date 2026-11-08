@@ -5,6 +5,7 @@ import { CONFIG } from '../config';
 import { bodyType, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, trueSkill } from './perks';
+import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
@@ -81,7 +82,7 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
   for (const id of cands) {
     const k = share(id);
     const entry = actor.core.skills[id];
-    const gear = gearFor(state, actor, id, ctx).map((g) => ({ ...g, value: g.value * k }));
+    const gear = (skillOpen(actor, id) ? gearFor(state, actor, id, ctx) : []).map((g) => ({ ...g, value: g.value * k }));
     // true skill (S3) and gear, × the skill's tier multiplier (final efficiency, Ali 08/11/2026)
     const tier = tierMult(id);
     const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier;
