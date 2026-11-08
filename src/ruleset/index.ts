@@ -334,7 +334,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   }
   const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
   const add = T.core.condition.hpLostPct + (counted / hp) * 100;
-  const lost = destroyedEssential ? Math.max(100, add) : add;
+  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : add; // a destroyed essential part kills (Ali, 08/11/2026)
   T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
   const levelAfter = healthLevel(T);
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });

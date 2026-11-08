@@ -5,6 +5,7 @@ import { makeVillage, actor } from '../harness';
 import { healthLevel, isDownLevel, ruleset, SHOWN_LEVELS, shownLevel } from '../../src/ruleset';
 import { applyHealing, wouldHeal } from '../../src/engine/heal';
 import { isActive } from '../../src/engine/relations';
+import { getLibrary } from '../../src/library';
 
 describe('120 dead', () => {
   it('damage past Incapacitated counts up to 200% and then the actor is Dead', () => {
@@ -31,5 +32,17 @@ describe('120 dead', () => {
     expect(wouldHeal(s, s.player, 'clinic')).toBe(false);
     expect(applyHealing(s, s.player, 'clinic')).toBe(false);
     expect(s.player.core.condition.hpLostPct).toBe(200);
+  });
+  it('the healing table carries the lever: no row heals the dead now; a row with revivesDead would', () => {
+    const s = makeVillage();
+    const rows = Object.values(getLibrary().healing!);
+    expect(rows.every((r) => r.revivesDead === false)).toBe(true);
+    s.player.core.condition.hpLostPct = 200;
+    const clinic = getLibrary().healing!.clinic;
+    clinic.revivesDead = true;
+    try {
+      expect(applyHealing(s, s.player, 'clinic')).toBe(true);
+      expect(healthLevel(s.player)).not.toBe('Dead');
+    } finally { clinic.revivesDead = false; }
   });
 });

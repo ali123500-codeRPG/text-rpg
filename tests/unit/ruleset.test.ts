@@ -117,8 +117,8 @@ describe('ruleset methods', () => {
     expect(dropped[0].equippedIn).toBeUndefined();
     g.core.condition.parts.neck = -95;
     ruleset.applyEffects({ ...hit, location: 'neck', damage: 1 }, s);
-    expect(g.core.condition.hpLostPct).toBe(100);
-    expect(healthLevel(g)).toBe('Incapacitated');
+    expect(g.core.condition.hpLostPct).toBe(200);
+    expect(healthLevel(g)).toBe('Dead');
   });
   it('checks and contests: applyEffects returns []; recordUse only logs', () => {
     const s = makeVillage();
