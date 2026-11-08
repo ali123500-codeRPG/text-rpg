@@ -274,6 +274,60 @@ function filter(): void {
   body.querySelectorAll<HTMLElement>('.lv-group').forEach((g) => { g.hidden = !g.querySelector('.lv-card:not([hidden])'); });
   body.querySelectorAll<HTMLAnchorElement>('.lv-cell').forEach((a) => a.classList.toggle('dim', !!document.getElementById(a.hash.slice(1))?.hidden));
 }
+const viewOf = (sec: Section) => (sec.view ? sec.view() : [h('div', { class: 'lv-grid' }, generic(sec.key, lib[sec.table] as Record<string, Entry>))]).filter(Boolean) as HTMLElement[];
+
+// Details pop-up (Ali, 08/11/2026): clicking any entry link opens its full card in a floating panel that can be dragged
+// and closed, so the page underneath stays where it is.
+const popBody = h('div', { class: 'lv-pop-body' });
+const popTitle = h('span', { class: 'hs-label' });
+const popOpen = h('a', { class: 'lv-link', href: '#' }, 'Open in its table');
+const pop = h('aside', { class: 'lv-pop', hidden: true, 'aria-label': 'Details' },
+  h('div', { class: 'lv-pop-head' }, popTitle, popOpen,
+    h('button', { type: 'button', class: 'hs-icon-btn lv-pop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { pop.hidden = true; } }, '✕')), popBody);
+document.body.append(pop);
+function showPop(key: string, id: string): boolean {
+  const sec = SECTIONS.find((s) => s.key === key);
+  if (!sec) return false;
+  const keep = facetOf;
+  const src = (key === shown ? body : h('div', {}, viewOf(sec))).querySelector<HTMLElement>(`[id="${CSS.escape(`${key}/${id}`)}"]`);
+  facetOf = keep;
+  if (!src) return false;
+  const copy = src.cloneNode(true) as HTMLElement;
+  copy.removeAttribute('id');
+  copy.hidden = false;
+  copy.classList.remove('lv-hit');
+  copy.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
+  copy.querySelectorAll('details').forEach((d) => { d.open = false; });
+  popTitle.textContent = sec.title;
+  popOpen.setAttribute('href', `#${key}/${id}`);
+  popBody.replaceChildren(copy);
+  pop.hidden = false;
+  return true;
+}
+// drag by the head; the spot is kept for the next pop-up
+pop.firstElementChild!.addEventListener('pointerdown', (e) => {
+  const ev = e as PointerEvent;
+  if ((ev.target as Element).closest('a, button')) return;
+  const r = pop.getBoundingClientRect();
+  const dx = ev.clientX - r.left, dy = ev.clientY - r.top;
+  const move = (m: PointerEvent) => {
+    pop.style.left = `${Math.max(0, Math.min(innerWidth - 80, m.clientX - dx))}px`;
+    pop.style.top = `${Math.max(0, Math.min(innerHeight - 40, m.clientY - dy))}px`;
+    pop.style.right = 'auto';
+  };
+  const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+  addEventListener('pointermove', move);
+  addEventListener('pointerup', up);
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape') pop.hidden = true; });
+document.addEventListener('click', (e) => {
+  const a = (e.target as Element).closest<HTMLAnchorElement>('main a[href^="#"], .lv-pop-body a[href^="#"]');
+  if (!a) return;
+  const [key, ...rest] = decodeURIComponent(a.hash.slice(1)).split('/');
+  if (rest.length && showPop(key, rest.join('/'))) e.preventDefault();
+});
+popOpen.addEventListener('click', () => { pop.hidden = true; });
+
 let shown = '';
 function route(): void {
   const [key, ...rest] = decodeURIComponent(location.hash.slice(1)).split('/');
@@ -283,7 +337,7 @@ function route(): void {
     titleEl.textContent = sec.title;
     picks.clear();
     facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
-    body.replaceChildren(...(sec.view ? sec.view() : [h('div', { class: 'lv-grid' }, generic(sec.key, lib[sec.table] as Record<string, Entry>))]).filter(Boolean) as HTMLElement[]);
+    body.replaceChildren(...viewOf(sec));
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
     drawBar();
     filter();
