@@ -220,15 +220,14 @@ function skills(): HTMLElement[] {
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(f, toneOf('Function', f)))) : '—'),
         h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
         h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneOf('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
-  // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP), next to the tree's own id
+  // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP)
   const groupChips = (ids: string[]) => [...new Set(ids.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`${GROUP_NAMES[g]} group`, toneOf('Group', GROUP_NAMES[g])));
   const treeCard = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => {
     const c = tree(id, title, ids, entry, [...groupChips(ids), ...chips]);
-    const code = c.querySelector('.lv-id');
-    if (code && id !== 'no_tree') code.textContent = `tree ${id}`;
+    c.querySelector('.lv-id')?.remove(); // Ali: the tree id under the title is noise; the group chips say where it belongs
     return c;
   };
-  return [h('p', { class: 'hs-note' }, 'A tree is where a skill is learned (its id is the tree id). The group comes from the skill\'s functions (FUNCTION_GROUP in functionNames.ts) and decides the 40 perk +1 and the XP category, so a tree and its group can differ.'),
+  return [h('p', { class: 'hs-note' }, 'A tree is where a skill is learned. The group comes from the skill\'s functions (FUNCTION_GROUP in functionNames.ts) and decides the 40 perk +1 and the XP category, so a tree and its group can differ.'),
     h('div', { class: 'lv-grid wide' },
       Object.values(lib.trees).map((t) => treeCard(t.id, t.name, t.skills, t, access(t.access))),
       loose.length ? treeCard('no_tree', 'In no tree', loose, loose, []) : null)];
