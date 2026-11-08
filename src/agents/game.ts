@@ -17,6 +17,7 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { getLibrary, itemDef } from '../library';
+import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
@@ -814,8 +815,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'skill_improved') continue;
     const d = l.detail as { skill: string; from: number; to: number; milestone?: number };
-    const name = d.skill.replace(/_/g, ' ');
-    out.push(`${name[0].toUpperCase()}${name.slice(1)} ${d.from} → ${d.to}`);
+    const name = skillName(d.skill);
+    out.push(`${name} ${d.from} → ${d.to}`);
     if (d.milestone) out.push(`New perk unlocked: ${name} ${d.milestone}`);
   }
   return out;

@@ -3,19 +3,12 @@ import type { Actor, CreationBuild, GameApi } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { newPlayer } from '../library/spawn';
+import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
 import { preview } from './sheet';
 
-export const SKILL_NAMES: Record<string, string> = {
-  melee_light: 'Light weapons', melee_medium: 'Medium weapons', melee_heavy: 'Heavy weapons',
-  ranged_light: 'Light ranged', ranged_medium: 'Medium ranged', ranged_heavy: 'Heavy ranged',
-  unarmed_strike: 'Strike', unarmed_grapple: 'Grapple', unarmed_improvised: 'Improvisation', unarmed_natural: 'Natural weapons',
-  dodge: 'Dodge', block: 'Block', endurance: 'Endurance', sight: 'Sight', hearing: 'Hearing', sneaking: 'Sneaking', combat_stealth: 'Combat Stealth', vanishing: 'Vanishing',
-  persuasion: 'Persuasion', intimidation: 'Intimidation', barter: 'Barter', feint: 'Feint', riposte: 'Riposte', disarm: 'Disarm',
-  tremor: 'Tremor', lockpicking: 'Lockpicking',
-};
-export const skillName = (id: string) => SKILL_NAMES[id] ?? id;
+export { SKILL_NAMES, skillName };
 export const SKILL_SUB: Record<string, string> = { endurance: 'sets HP', feint: 'effect not designed', riposte: 'effect not designed', disarm: 'effect not designed' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
