@@ -447,7 +447,7 @@ Ability perks sit on 20/60/100/140 and change what a character can do. Boost per
 - **Conditions:** The owner saw the character before the Vanish.
 - **Effect:** The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.
 - **Lasts:** That Vanish.
-- **Open:** Milestone not chosen yet (Ali, 08/11/2026, ST23). Coded, so an NPC can have it now.
+- **Open:** Sight 60 (Ali, 08/11/2026: "link it"). For the player it waits on NPC stealth (OQ-14): only NPCs vanish from the player then.
 
 ## Very high milestone
 
