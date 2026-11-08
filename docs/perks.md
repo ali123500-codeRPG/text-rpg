@@ -133,7 +133,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Part states are read on their reference scale, by position in the part-state names table (Healthy, Damaged, Crippled, Destroyed). A part's effective state is its state after any perk that shifts it (Tough It Out moves each one step milder). A part whose effective state is at the Damaged position or milder gives no role penalty; worse effective states still do. So with Tough It Out a Crippled part counts as Damaged and gives no penalty.
 - **Lasts:** Always.
 
-### Read Wounds (Sight) · A13
+### Read Wounds (Eyesight) · A13
 
 *Story:* A limp, a favoured arm, a bleeding hand: every weakness shows itself to you. You can see which of a foe's body parts are Damaged, and you can tell a foe is hurt one step sooner than others can: from Injured instead of Wounded.
 
@@ -143,7 +143,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The foe's Damaged body parts are shown to the owner (foes' part states are otherwise never shown). The foe's health level also shows one step earlier on the health track: the level where it starts to show moves one position milder in the health-track names table (from Wounded to Injured today) (Ali, 07/11/2026).
 - **Lasts:** While the owner sees it.
 
-### Keen Ear (Hearing) · A14
+### Keen Ear (Earshot) · A14
 
 *Story:* A whisper two rooms away might as well be a shout. Your hearing reaches one zone link further.
 
@@ -216,7 +216,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Sharp Eyes (Light ranged) · P4
 
-*Story:* +5 Light ranged, +1 Ranged. Nothing escapes the archer's eye: +10 Sight.
+*Story:* +5 Light ranged, +1 Ranged. Nothing escapes the archer's eye: +10 Eyesight.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -261,7 +261,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Brawler's Eye (Improvisation) · P9
 
-*Story:* +5 Improvisation, +1 Melee. A brawler sees the opening before the punch: +5 Strike, +5 Sight.
+*Story:* +5 Improvisation, +1 Melee. A brawler sees the opening before the punch: +5 Strike, +5 Eyesight.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -295,18 +295,18 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** +5 true skill in endurance. +1 true skill in every skill of group health. Natural recovery (the hourly healing row read from endurance) is ×2.
 - **Lasts:** Always.
 
-### Marksman's Eye (Sight) · P13
+### Marksman's Eye (Eyesight) · P13
 
-*Story:* +5 Sight, +1 Notice. What your eye finds, your arrow follows: +5 Light ranged, +5 Medium ranged.
+*Story:* +5 Eyesight, +1 Notice. What your eye finds, your arrow follows: +5 Light ranged, +5 Medium ranged.
 
 - **Kind:** Always on
 - **Trigger:** Always.
 - **Effect:** +5 true skill in sight. +1 true skill in every skill of group notice. +5 true skill in ranged_light and +5 in ranged_medium.
 - **Lasts:** Always.
 
-### Soft Step (Hearing) · P14
+### Soft Step (Earshot) · P14
 
-*Story:* +5 Hearing, +1 Notice. You know what every footstep sounds like, so yours make none: +10 Sneaking.
+*Story:* +5 Earshot, +1 Notice. You know what every footstep sounds like, so yours make none: +10 Sneaking.
 
 - **Kind:** Always on
 - **Trigger:** Always.
@@ -438,7 +438,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Each of those foes makes a morale check at once.
 - **Lasts:** Each time.
 
-### Unblinking (Sight) · B14
+### Unblinking (Eyesight) · B14
 
 *Story:* Once your eyes are on someone, there is nowhere left to run. When someone you can see vanishes and gets past you, they still have to sneak past you as well before you lose them.
 
@@ -447,7 +447,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner saw the character before the Vanish.
 - **Effect:** The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.
 - **Lasts:** That Vanish.
-- **Open:** Sight 60 (Ali, 08/11/2026: "link it"). Works for the player too since NPC stealth (NS10).
+- **Open:** Eyesight 60 (Ali, 08/11/2026: "link it"). Works for the player too since NPC stealth (NS10).
 
 ### Set Them Up (Strike) · B15
 
@@ -470,7 +470,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## Very high milestone
 
-### Never Surprised (Hearing) · C1
+### Never Surprised (Earshot) · C1
 
 *Story:* If you can hear it coming, it was never a surprise. An attacker within your hearing range never counts as unseen: you lose no initiative or defense for being unaware.
 
@@ -570,7 +570,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The multiplier is 0× instead of 0.8×.
 - **Lasts:** Always.
 
-### Night Eyes (Sight) · D7
+### Night Eyes (Eyesight) · D7
 
 *Story:* The dark hides others. It never hid anything from you. Dim light and darkness give you no penalty to anything that needs sight.
 
@@ -578,3 +578,150 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** A roll by the owner that needs sight.
 - **Effect:** Light is read two steps brighter on the light scale, by position in the names table (dark counts as bright, dim counts as bright). It is coded as +2 steps, not as 'no penalty', so light levels added later shift the same way (Ali, 07/11/2026).
 - **Lasts:** Always.
+
+## All-50 parts
+
+Granted free when every skill of the tree reaches 50 true skill, each part once it is built (Ali, 08/11/2026). Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
+
+### Weapon Drill (Combat – Arms) · T1b
+
+*Story:* Steel finds your hand on its own. Drawing, switching or picking up a melee weapon costs you no time.
+
+- **Kind:** Always on
+- **Trigger:** The owner draws, switches to or picks up a melee weapon.
+- **Conditions:** The weapon has a melee mode.
+- **Effect:** That draw, switch or pick-up does not use the owner's action.
+- **Lasts:** Always.
+- **Open:** Does nothing today: draw, switch and pick-up are already free for everyone (AE1, test 91). A replacement is asked in the All-50 doc.
+- **Built:** not yet
+
+### Counter (Combat – Arms) · T1c
+
+*Story:* A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.
+
+- **Kind:** Always on
+- **Trigger:** A melee attack on the owner is resolved.
+- **Conditions:** The attack roll ends in Critical Failure or worse (Ali, 08/11/2026). The attack was not itself a free attack. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed. Once per turn.
+- **Effect:** The owner makes one attack at the attacker at once, with that mode. It does not use the owner's action.
+- **Lasts:** That attack.
+- **Built:** yes
+
+### Fighter's Frame (Combat – Arms) · T1d
+
+*Story:* A body hardened by a thousand bouts. Melee blows on you land a tenth lighter.
+
+- **Kind:** Always on
+- **Trigger:** A melee or unarmed attack hits the owner.
+- **Conditions:** The attack mode is not ranged.
+- **Effect:** The hit's damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
+### Volley (Combat – Ranged) · T2b
+
+*Story:* One shot is never the last. Once a fight, after a ranged hit, your next shot is already on its way to another foe.
+
+- **Kind:** Automatic
+- **Trigger:** The owner's ranged attack hits.
+- **Conditions:** Once per engagement. Not after a free attack. Code picks at random among actors already hostile to the owner that the owner is aware of and the weapon reaches; none, no shot (Ali, 08/11/2026).
+- **Effect:** The owner makes one more ranged attack at that target with the same weapon. It does not use the owner's action.
+- **Lasts:** That attack.
+- **Cooldown:** Once per engagement.
+- **Built:** yes
+
+### Past the Cover (Combat – Ranged) · T2c
+
+*Story:* Cover only hides most of a body. Cover counts one step lighter against your ranged attacks.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a ranged attack.
+- **Effect:** The target zone's cover is read one step lighter (heavy as some, some as none).
+- **Lasts:** That attack.
+- **Built:** yes
+
+### Hunter's Eye (Combat – Ranged) · T2d
+
+*Story:* An archer lives by the eye: +10 to every skill you see with.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +10 true skill in every skill with the sight function (Ali, 08/11/2026: "+10 to sight, the function").
+- **Lasts:** Always.
+- **Built:** yes
+
+### Second Wind (Combat – Defense) · T4b
+
+*Story:* When the blood starts to run, you find more in you. Once a fight, at your first serious wound, you shake one off.
+
+- **Kind:** Automatic
+- **Trigger:** An attack leaves the owner at Wounded or worse on the health track.
+- **Conditions:** Once per engagement. The owner is not down (Incapacitated or worse).
+- **Effect:** The owner's health lost drops to the top of the level one better (Wounded to Injured: 45% lost). Body parts are unchanged.
+- **Lasts:** Permanent (it is healing).
+- **Cooldown:** Once per engagement.
+- **Built:** yes
+
+### Dodgy (Combat – Defense) · T4d
+
+*Story:* You are never quite where they aim. Attacks on you lose 5 skill.
+
+- **Kind:** Always on
+- **Trigger:** An attack roll is made against the owner.
+- **Effect:** That attack roll gets −5 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Curiouser and Curiouser (Perception) · T5d
+
+*Story:* Once you notice something, you notice everything. A good Eyesight or Earshot roll counts one outcome better.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes an Eyesight or Earshot roll.
+- **Conditions:** The roll ends in Success or better.
+- **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Strike and Fade (Stealth – Conventional) · T6a
+
+*Story:* They see the blow, never the hand. Right after you strike from hiding, you try to vanish again.
+
+- **Kind:** Automatic
+- **Trigger:** The owner attacks while stealthy.
+- **Conditions:** The owner is still active after the attack.
+- **Effect:** The owner is stealthy again and vanishes in place: each observer makes a Vanishing contest against the owner, as a Vanish does, which can break the sight of those who see the owner. It does not use the owner's action or move.
+- **Lasts:** That contest.
+- **Built:** yes
+
+### Child of Night (Stealth – Conventional) · T6c
+
+*Story:* The dark knows you. Light counts one step darker for all your stealth.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a roll of a stealth skill (Sneaking, Combat Stealth, Vanishing).
+- **Effect:** The light there is read one step darker (bright as dim, dim as dark).
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Hushed Steps (Stealth – Conventional) · T6d
+
+*Story:* Even your mistakes are quiet. Against someone who can only hear you, a Sneaking slip that only just fails still counts as a success.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a Sneaking roll in a stealth contest.
+- **Conditions:** The observer perceives the owner by sound (hearing), not sight. The roll ends in a Near Miss.
+- **Effect:** Tier shift +1 on that roll, so it counts as a Success. Only Failure or worse is heard.
+- **Lasts:** That roll.
+- **Open:** Renamed from the doc's "Light Feet", which is already a 40 perk.
+- **Built:** yes
+
+### Easy Speaker (Speech) · T7d
+
+*Story:* Words slide off you. Threats and coaxing aimed at you land one outcome worse.
+
+- **Kind:** Always on
+- **Trigger:** An NPC makes a Persuasion or Intimidation roll at the owner.
+- **Effect:** Tier shift −1 on that roll.
+- **Lasts:** That roll.
+- **Needs first:** NPC speech aimed at the player: today only the player rolls speech, and NPCs answer with a contest roll.
+- **Built:** not yet

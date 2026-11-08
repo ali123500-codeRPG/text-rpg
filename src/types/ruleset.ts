@@ -15,7 +15,7 @@ export interface Rng {
   d100(): number;
 }
 
-export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement';
+export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk';
 export type Mod = { source: string; type: ModType; value: number };
 export type TierShift = { source: string; value: number };
 
@@ -44,6 +44,8 @@ export type RollRequest = {
   roles?: import('./library').RoleId[];
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
   against?: string;
+  /** a Near Miss on this roll counts one tier higher, with this source (All-50 Hushed Steps against listeners) */
+  nearMissUp?: string;
 };
 export type RollResult = {
   actorId: string;

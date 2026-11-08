@@ -5,13 +5,14 @@ import type {
   PartState, Rng, RollRequest, RollResult, Ruleset, SituationResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
-import { TIERS } from '../scales';
+import { COVER, TIERS } from '../scales';
 import { actorBody, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { baneMods } from './bane';
+import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { blockItem, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 
@@ -112,11 +113,14 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
     modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
     modifiers.push(...baneMods(state, actor, req.against)); // D-111 Bane bonuses
+    modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
   }
   const d = rng.d100();
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
-  const level = band(margin) + naturalEdge(d) + sumShifts(req.tierShifts); // unclamped (Part 1 §4)
-  return { actorId: actor.id, skill: eff.skill, d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: [...req.tierShifts] };
+  const shifts = [...req.tierShifts];
+  let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
+  if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
+  return { actorId: actor.id, skill: eff.skill, d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
 }
 
 function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
@@ -205,7 +209,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const gapShifts: TierShift[] = [];
   if (mode.class === 'heavy' && type === 'block') gapShifts.push({ source: 'heavy vs block', value: CONFIG.HEAVY_VS_BLOCK_GAP });
   // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
-  const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[zoneD.cover] ?? 0) : 0;
+  const coverKey = zoneD && ranged && hasPerk(A, 'past_the_cover') ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
+  const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
   const g = Math.max(-5, Math.min(5, gap));
@@ -266,7 +271,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
   };
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult'); // 40/80/120 perk: Heavy Hand
+  const frame = !ranged && hasPerk(D, 'fighters_frame') ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * frame; // 40/80/120 perk: Heavy Hand
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
   const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role

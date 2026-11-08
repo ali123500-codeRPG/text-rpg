@@ -34,6 +34,7 @@ export function trueSkill(a: Actor, skill: string): number {
     if (!d) return n;
     let v = d.trueSkill && own === skill ? d.trueSkill : 0;
     v += d.trueSkillTo?.[skill] ?? 0; // 40/80/120 perks: true skill spent on skills that work well with the ladder skill
+    if (d.fnSkill && (skills[skill]?.functions as string[] | undefined)?.includes(d.fnSkill.fn)) v += d.fnSkill.add; // Hunter's Eye
     // 40/80/120 perks: +functionBoost to the ladder skill itself and every other skill sharing a group with it
     // (docs/skill-tags.md; Ali, 08/11/2026: "+1 function (including itself)"; F1: the broad group)
     if (d.functionBoost && own && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g)))) v += d.functionBoost;
