@@ -97,6 +97,15 @@ more than you can afford, and try to buy from someone who is not a seller. Check
 };
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
 
+/** --near-seller: start the player one zone from the first seller on the stage (across its counter), else in its zone */
+function nearSeller(st: GameState) {
+  const seller = st.actors.find((a) => isSeller(a) && st.stage.zoneIds.includes(a.zone));
+  if (!seller) { console.log('no seller on the stage; the player starts where the story put them'); return; }
+  const next = st.zones.find((z) => z.id === seller.zone)?.links.find((l) => !l.frontier && st.stage.zoneIds.includes(l.to))?.to;
+  st.player.zone = next ?? seller.zone;
+  console.log(`player placed in ${st.player.zone}, next to ${seller.id} in ${seller.zone}`);
+}
+
 async function main() {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, 'call-errors.log'), '');
@@ -105,18 +114,16 @@ async function main() {
   const inner = createDirector(realClock) as SceneDirector;
   let before: GameState | null = null;
   const director: SceneDirector = { ...inner,
-    startStory: (st, rng, ctx) => { before = structuredClone(st); ensurePlace(before, st.player.placeId); return inner.startStory(st, rng, ctx); },
+    startStory: async (st, rng, ctx) => {
+      before = structuredClone(st); ensurePlace(before, st.player.placeId);
+      const ev = await inner.startStory(st, rng, ctx);
+      if (process.argv.includes('--near-seller')) nearSeller(st); // before the opening is narrated
+      return ev;
+    },
     afterResolve: (st, ev, rng, ctx) => inner.afterResolve(st, ev, rng, ctx), afterSave: (st, ctx) => inner.afterSave(st, ctx) };
   const game = createGame({ client: cliClient, clock: realClock, store: memoryStore(Date.now), director });
   // --class late_bloomer starts an Unwritten Legend; the default is the Swordsman. Both use the class's recommended build.
   await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden' });
-  // --near-seller: put the player in the zone of the first seller on the stage (a buying test that skips the walk)
-  if (process.argv.includes('--near-seller')) {
-    const st = game.state()!;
-    const seller = st.actors.find((a) => isSeller(a) && st.stage.zoneIds.includes(a.zone));
-    if (seller) { st.player.zone = seller.zone; console.log(`player placed beside ${seller.id} in ${seller.zone}`); }
-    else console.log('no seller on the stage; the player starts where the story put them');
-  }
   const storyId = game.state()?.storyId;
   const st0 = game.state()!;
   const planErrors = before ? game.gm().agentLog.filter((a) => a.agent === 'weaver' && a.output).map((a) =>
