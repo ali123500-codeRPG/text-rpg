@@ -55,7 +55,10 @@ function endSpar(state: GameState, sp: Spar, cause: 'won' | 'scene_break' | 'qui
   state.spars = state.spars!.filter((x) => x !== sp);
   if (!state.spars.length) delete state.spars;
   logCode(state, 'spar_ended', { id: sp.id, cause, winners });
-  if (winners.includes(state.player.id)) tally(state, 'spar_wins'); // SP8: no defeat XP; SP9: counted for spar achievements
+  if (winners.includes(state.player.id)) {
+    tally(state, 'spar_wins'); // SP8: no defeat XP; SP9: counted for spar achievements
+    if (sp.cruel) tally(state, 'cruel_spar_wins');
+  } else if (cause === 'won' && sp.sides.some((s) => s.includes(state.player.id))) tally(state, 'spar_losses'); // a scar chain
 }
 
 /** a blow between two fighters of one spar where either went out of it this turn: the order was made before, so the

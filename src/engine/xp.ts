@@ -258,6 +258,9 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   const xp = d.scar ? 0 : CONFIG.REWARD_XP[achLevel(d, of)] ?? 0; // a scar pays no XP
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
+  // achievements for the total earned: every other achievement counts, replaced levels too; scars and these totals do not
+  if (!d.scar && d.rule !== 'achievements')
+    tally(state, 'achievements', { to: pr.achievements!.filter((x) => { const k = lib[x.key ?? '']; return k && !k.scar && k.rule !== 'achievements'; }).length });
 }
 
 /** the reward level an achievement pays for `of`: its own level, raised by levelUp for that kind (capped at the top) */
