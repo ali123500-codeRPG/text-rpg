@@ -47,13 +47,16 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
   return { classId: pick.classId, level: charLevel(p) };
 }
 
-/** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill (for example
- * Swordsman at Medium Weapons 40 and Block 40). An unlocked class sits at level 0 until a level goes into it (X9). */
+/** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when
+ * ClassDef.unlockAny is listed, at least one of those does (for example Swordsman at Medium Weapons 40 and Block 40;
+ * Sword-dancer at Dodge 40 and Light or Medium Weapons 40). An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;
   for (const c of Object.values(getLibrary().classes)) {
-    if (!c.unlock || p.core.classes.some((x) => x.classId === c.id)) continue;
-    if (!Object.entries(c.unlock).every(([sk, need]) => trueSkill(p, sk) >= need)) continue;
+    if (!(c.unlock || c.unlockAny) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
+    if (!Object.entries(c.unlock ?? {}).every(met)) continue;
+    if (c.unlockAny && !Object.entries(c.unlockAny).some(met)) continue;
     p.core.classes.push({ classId: c.id, state: 'unlocked', level: 0 });
     tally(state, 'class_unlock', { by: 'class', of: c.id });
     logCode(state, 'class_unlocked', { classId: c.id });

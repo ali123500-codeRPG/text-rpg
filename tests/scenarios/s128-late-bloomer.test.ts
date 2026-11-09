@@ -63,4 +63,16 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(s.player.core.classes).toContainEqual({ classId: 'swordsman', state: 'unlocked', level: 0 });
     expect(s.log.some((l) => l.code === 'class_unlocked')).toBe(true);
   });
+
+  it('Sword-dancer unlocks at Dodge 40 and either Light or Medium Weapons 40', () => {
+    const s = makeVillage();
+    s.player = { ...createPlayer(recommendedBuild('late_bloomer'), 'test'), zone: s.player.zone, placeId: s.player.placeId };
+    s.player.core.skills[SK.dodge].raw = 40;
+    unlockClasses(s);
+    expect(s.player.core.classes.map((c) => c.classId)).toEqual(['late_bloomer']); // Dodge alone is not enough
+    s.player.core.skills[SK.melee_light] = { ...s.player.core.skills[SK.melee_light], raw: 40 };
+    unlockClasses(s);
+    expect(s.player.core.classes).toContainEqual({ classId: 'sword_dancer', state: 'unlocked', level: 0 });
+    expect(s.player.core.classes.some((c) => c.classId === 'swordsman')).toBe(false);
+  });
 });
