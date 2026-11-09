@@ -4,7 +4,8 @@ import type { Actor, Band, Cover, Light, GameState, Place, Zone, ZoneLink } from
 import { spawnNpc, equipLoadout, fullParts } from '../../src/library/spawn';
 import { resetLibrary } from '../../src/library';
 import { resetConfig } from '../../src/config';
-import { getLibrary, routineSet } from '../../src/library';
+import { getLibrary, itemDef, routineSet } from '../../src/library';
+import { requirement } from '../../src/ruleset/requirements';
 
 const L = (to: string, label: string, sight = true, frontier = false): ZoneLink => ({ to, label, sight, ...(frontier ? { frontier: true as const } : {}) });
 const Z = (id: string, placeId: string, name: string, look: string, links: ZoneLink[], cover: Cover = 'none', light: Light = 'bright'): Zone =>
@@ -131,5 +132,14 @@ export function place(state: GameState, id: string, zone: string): Actor {
   const a = actor(state, id);
   a.zone = zone;
   a.placeId = state.places.find((p) => p.zones.some((z) => z.id === zone))!.id;
+  return a;
+}
+
+/** gives an actor the skill each item asks for (equip requirements, EQ1–EQ13), so a test about something else rolls clean */
+export function fit(a: Actor, ...itemIds: string[]): Actor {
+  for (const id of itemIds) {
+    const r = requirement(itemDef(null, id));
+    if (r && (a.core.skills[r.skill]?.raw ?? 0) < r.need) a.core.skills[r.skill] = { raw: r.need, state: a.core.skills[r.skill]?.state ?? 'normal' };
+  }
   return a;
 }

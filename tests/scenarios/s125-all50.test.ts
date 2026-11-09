@@ -1,7 +1,7 @@
 // 125 All-50 parts (Ali, 08/11/2026, All-50 doc round 1): a tree's built parts are granted free when every skill of the
 // tree reaches 50 true skill, with the tree's mastery achievement; then the first six built parts.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { forcedRng, makeVillage, place } from '../harness';
+import { fit, forcedRng, makeVillage, place } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
 import { grantAllSteps, shareSpotted } from '../../src/ruleset/allSteps';
 import { breakFree } from '../../src/engine/held';
@@ -17,6 +17,7 @@ const arm = (s: GameState, id: string, itemId = 'dagger') => {
   const a = id === 'player' ? s.player : s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
   a.core.inventory.push({ id: `w_${id}`, itemId, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  fit(a, itemId); // equip requirements: tests here are about perks
 };
 
 describe('125 All-50 parts', () => {

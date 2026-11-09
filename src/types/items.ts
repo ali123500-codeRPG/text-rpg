@@ -1,6 +1,6 @@
 // Part 4 §9 (ItemDef, ItemInstance) and Part 5.
 import type { LibraryRef } from './core';
-import type { ArmorWeightKey } from '../scales';
+import type { ArmorWeightKey, EquipLevelKey } from '../scales';
 
 export type ItemDef = {
   id: LibraryRef;
@@ -27,6 +27,7 @@ export type ItemDef = {
     pools?: Record<string, number>;
   };
   shield?: { pool: number };
+  level?: EquipLevelKey; // EQ8/EQ10: equipment level; the skill it asks for comes from the item (src/ruleset/requirements.ts)
   base?: { itemId: LibraryRef; quality: 1 | 2 | 3 | 4; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared +25 per roll)
 };

@@ -121,16 +121,17 @@ const PLAYER_CLASS = 'swordsman'; // first build: the player's class
 export const newPlayer = (): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> => ({
   bodyTypeId: 'humanoid',
   raceId: 'human', // GAP: no race choice at creation yet
-  classes: [{ classId: PLAYER_CLASS, state: 'current', level: 1 }],
+  classes: [{ classId: PLAYER_CLASS, state: 'current', level: CONFIG.START_LEVEL }],
   perks: racePerks('human'),
 });
 const STARTING_GEAR = ['arming_sword', 'round_shield', 'gambeson'];
 
-/** The creation screen's opening build: satisfies every creation rule. */
+/** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
+ * (EQ13, Ali 08/11/2026: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
 export function recommendedBuild(): CreationBuild {
   return {
     name: 'Aldric',
-    skills: { melee_medium: 50, block: 40, dodge: 25, endurance: 40, sight: 25, hearing: 20, persuasion: 25, intimidation: 15, barter: 10 },
+    skills: { melee_medium: 50, block: 40, dodge: 25, endurance: 50, sight: 30, hearing: 30, light_armor: 25 },
     tagged: ['melee_medium', 'block', 'endurance'],
   };
 }
@@ -184,7 +185,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     },
     progression: {
       startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),
-      potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: 0, marks: [],
+      potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: Math.floor(CONFIG.START_LEVEL / 2), marks: [], // a perk point per even level passed (xp.ts)
     },
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };

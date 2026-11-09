@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
 import { createPlayer, recommendedBuild, refreshCopies, rollUniqueSkills, spawnNpc, validateBuild } from '../../src/library/spawn';
-import { getLibrary, npcTemplate, resetLibrary, setLibrary } from '../../src/library';
+import { getLibrary, itemDef, npcTemplate, resetLibrary, setLibrary } from '../../src/library';
+import { shortBy } from '../../src/ruleset/requirements';
 import { CONFIG, resetConfig } from '../../src/config';
 
 afterEach(() => { resetConfig(); resetLibrary(); });
@@ -12,21 +13,23 @@ describe('player creation', () => {
   });
   it('rejects builds that break the rules', () => {
     const b = recommendedBuild();
-    expect(validateBuild({ ...b, skills: { ...b.skills, barter: 0 } })).toEqual(['Spend exactly 250 points (240 spent)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, melee_medium: 61, barter: 0, intimidation: 14 } })).toEqual(['melee_medium is above 60']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, block: 10, barter: 40 } })).toEqual(['block must be at least 15 (class floor)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, tremor: 10, barter: 0 } })).toEqual(['tremor is not open to the point-buy']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, hearing: 20 } })).toEqual(['Spend exactly 250 points (240 spent)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, melee_medium: 61, hearing: 19 } })).toEqual(['melee_medium is above 60']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, block: 10, hearing: 60 } })).toEqual(['block must be at least 15 (class floor)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, tremor: 10, hearing: 20 } })).toEqual(['tremor is not open to the point-buy']);
     expect(validateBuild({ ...b, tagged: ['block', 'dodge'] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
     expect(validateBuild({ ...b, name: ' ' })).toEqual(['Name the character']);
   });
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(p.progression!.startingTotal).toBe(250 - 50 - 40 - 40);
+    expect(p.progression!.startingTotal).toBe(250 - 50 - 40 - 50);
     expect(p.core.skills.block).toEqual({ raw: 40, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
       ['arming_sword', 'hand:right_arm', undefined], ['round_shield', 'hand:left_arm', undefined], ['gambeson', 'armor', undefined], ['coin', undefined, CONFIG.STARTING_COIN], ['bandage', undefined, CONFIG.STARTING_BANDAGES],
     ]);
-    expect(p.core.classes).toEqual([{ classId: 'swordsman', state: 'current', level: 1 }]);
+    expect(p.core.classes).toEqual([{ classId: 'swordsman', state: 'current', level: 4 }]); // EQ13: the player starts at level 4
+    expect(p.progression!.unspentPerkPoints).toBe(2); // the perk points of levels 2 and 4
+    for (const i of p.core.inventory) expect(shortBy(p, itemDef(null, i.itemId))).toBe(0); // EQ13: the build meets its starting gear
     expect(() => createPlayer({ ...recommendedBuild(), tagged: [] }, 's1')).toThrow(/invalid build/);
   });
 });

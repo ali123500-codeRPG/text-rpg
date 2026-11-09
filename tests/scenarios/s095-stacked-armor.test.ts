@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { makeVillage, forcedRng } from '../harness';
+import { makeVillage, forcedRng, fit } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
 
@@ -12,6 +12,7 @@ describe('95 Stacked armor', () => {
     const t = s.actors.find((a) => a.id === 'patron_1')!;
     t.core.raceId = 'scaled_man';
     t.core.inventory.push({ id: 'gam', itemId: 'gambeson', equippedIn: ['armor'] });
+    fit(t, 'gambeson');
     // player 50 → Success; patron dodge 0 − 5 (gambeson): 30 − 2.5 − 63.5 → Failure; gap −2; location 80 → general
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false };
     const r = ruleset.attack(req, s, forcedRng([50, 30, 80]));
