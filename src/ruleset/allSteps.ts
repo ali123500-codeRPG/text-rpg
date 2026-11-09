@@ -54,7 +54,7 @@ export function shareSpotted(state: GameState, o: Actor): void {
 /** shifts read after the dice. T5d Curiouser and Curiouser: a sight or hearing roll (by function) at Success or better counts one tier
  * higher. A request's nearMissUp (T6d Hushed Steps): a Near Miss counts one tier higher. */
 export function afterRollShifts(a: Actor, skill: string, level: number, nearMissUp?: string): TierShift[] {
-  const fns = (getLibrary().skills[skill]?.functions ?? []) as string[];
+  const fns = getLibrary().skills[skill]?.functions ?? [];
   if (FUNCTION_ROLLS.some((f) => fns.includes(f)) && level >= TIERS.pos('success') && hasPerk(a, 'curiouser')) return [{ source: 'Curiouser and Curiouser', value: 1 }];
   if (nearMissUp && level === TIERS.pos('near_miss')) return [{ source: nearMissUp, value: 1 }];
   // T7a Soft Landing: a speech roll at Near Miss or worse counts one tier higher

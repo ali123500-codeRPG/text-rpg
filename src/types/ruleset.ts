@@ -1,4 +1,5 @@
 // Part 2, Resolution engine: the Ruleset interface and its request/result types.
+import type { SkillFunction } from './library';
 import type { Effect, GameEvent, Tier } from './core';
 import type { Actor } from './actor';
 import type { GameState } from './state';
@@ -44,9 +45,9 @@ export type RollRequest = {
   fullValue?: string[];
   /** a function roll: every skill with this function counts at full value and the best one rolls,
    * e.g. 'sight' = Eyesight or Tremor, 'hearing' = Earshot or Tremor. `skill` is then only the default. */
-  fn?: string;
+  fn?: SkillFunction;
   /** extra functions whose skills may stand in here (an attack mode's standInFns) */
-  standInFns?: string[];
+  standInFns?: SkillFunction[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */

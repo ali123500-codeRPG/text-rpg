@@ -6,6 +6,7 @@ import { ruleset, woundsMods } from '../../src/ruleset';
 import { perceptionOf } from '../../src/perception';
 import { buildPlayerView } from '../../src/views';
 import type { Actor, GameEvent, GameState } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -61,7 +62,7 @@ describe('111 coded perks, batch 1', () => {
   it('Iron Frame: a Damaged arm gives no grip penalty; a Crippled one still does', () => {
     const s = makeVillage();
     s.player.core.condition.parts.right_arm = 30; // Damaged
-    const grip = () => woundsMods(s, s.player, 'melee_medium', { itemId: sword }).find((m) => m.source === 'grip wounds')?.value ?? 0;
+    const grip = () => woundsMods(s, s.player, SK.melee_medium, { itemId: sword }).find((m) => m.source === 'grip wounds')?.value ?? 0;
     expect(grip()).toBeLessThan(0);
     give(s.player, 'iron_frame');
     expect(grip()).toBe(0);

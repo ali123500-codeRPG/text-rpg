@@ -2,6 +2,7 @@
 import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 const MAIN = new Set(['attack', 'wasted', 'equip', 'hold', 'speak', 'give', 'rest']);
 
@@ -11,7 +12,7 @@ it('91 Free gear ops', () => {
   s.zones.find((z) => z.id === 'tav_common')!.groundItems.push({ id: 'dg2', itemId: 'dagger' });
   const ev = play(s, { intent: intent({
     gear: [{ op: 'pick_up', item: 'dg2' }, { op: 'stow', item: 'player_round_shield_2' }, { op: 'draw', item: 'dg' }, { op: 'swap', item: 'dg2' }],
-    action: { type: 'attack', target: 'patron_1', skill: 'melee_light' },
+    action: { type: 'attack', target: 'patron_1', skill: SK.melee_light },
   }) });
   const mine = ev.filter((e) => e.actorId === 'player');
   expect(mine.filter((e) => MAIN.has(e.kind))).toHaveLength(1);

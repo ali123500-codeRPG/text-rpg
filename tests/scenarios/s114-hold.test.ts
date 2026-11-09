@@ -9,6 +9,7 @@ import { heldBy } from '../../src/engine/relations';
 import { buildPlayerView } from '../../src/views';
 import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -21,12 +22,12 @@ describe('114 Hold', () => {
     const r = ruleset.attack(grab, s, forcedRng([95, 5, 50]));
     expect(r.attack.tier === 'great_success' || r.attack.tier === 'critical_success').toBe(true);
     expect(['missed', 'dodged']).not.toContain(r.outcome);
-    expect(applyHold(s.player, wim, r, 'unarmed_grapple')).toBeNull(); // no perk
+    expect(applyHold(s.player, wim, r, SK.unarmed_grapple)).toBeNull(); // no perk
     give(s.player, 'hold');
-    expect(applyHold(s.player, wim, r, 'unarmed_strike')).toBeNull(); // a punch never holds
-    expect(applyHold(s.player, wim, { ...r, outcome: 'dodged' } as AttackResult, 'unarmed_grapple')).toBeNull();
-    expect(applyHold(s.player, wim, { ...r, attack: { ...r.attack, tier: 'success' } } as AttackResult, 'unarmed_grapple')).toBeNull();
-    expect(applyHold(s.player, wim, r, 'unarmed_grapple')).toEqual({ kind: 'held', actorId: 'patron_1', data: { by: 'player' } });
+    expect(applyHold(s.player, wim, r, SK.unarmed_strike)).toBeNull(); // a punch never holds
+    expect(applyHold(s.player, wim, { ...r, outcome: 'dodged' } as AttackResult, SK.unarmed_grapple)).toBeNull();
+    expect(applyHold(s.player, wim, { ...r, attack: { ...r.attack, tier: 'success' } } as AttackResult, SK.unarmed_grapple)).toBeNull();
+    expect(applyHold(s.player, wim, r, SK.unarmed_grapple)).toEqual({ kind: 'held', actorId: 'patron_1', data: { by: 'player' } });
     expect(heldBy(s, wim)?.id).toBe('player');
   });
   it('a held actor can’t use a two-handed mode', () => {
@@ -80,7 +81,7 @@ describe('114 Hold', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     wim.zone = s.player.zone;
-    const ev = play(s, { intent: intent({ action: { type: 'attack', skill: 'unarmed_grapple', target: 'patron_1' } }) });
+    const ev = play(s, { intent: intent({ action: { type: 'attack', skill: SK.unarmed_grapple, target: 'patron_1' } }) });
     const atk = ev.find((e) => e.kind === 'attack' && e.actorId === 'player');
     expect(atk?.itemId).toBe('natural:grapple');
   });

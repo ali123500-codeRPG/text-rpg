@@ -9,10 +9,11 @@ import { ruleset } from '../../src/ruleset';
 import { villageStagePlan, VirtualClock } from '../../src/scene/fixtures';
 import { CONFIG } from '../../src/config';
 import type { GameState, Intent, Trigger } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const act = (type: NonNullable<Intent['action']>['type'], target: string | null = null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-  action: { type, skill: type === 'attack' ? 'melee_medium' : '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
+  action: { type, skill: type === 'attack' ? SK.melee_medium : '', target, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' },
 });
 const turn = (s: GameState, intent: Intent | null, seed = 1) => { s.turn += 1; return resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(seed)); };
 const beat = (endsScene: boolean): Trigger => ({

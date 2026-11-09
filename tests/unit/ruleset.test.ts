@@ -6,6 +6,7 @@ import {
   tierLevel,
 } from '../../src/ruleset';
 import type { Actor } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const sword = 'player_arming_sword_1';
 
@@ -22,34 +23,34 @@ describe('ruleset maths', () => {
   });
   it('stand-ins at SUBSTITUTE_EFFICIENCY (0.3, F4), highest candidate', () => {
     const s = makeVillage();
-    s.player.core.skills.intimidation = { raw: 20, state: 'normal' };
-    s.player.core.skills.persuasion = { raw: 100, state: 'normal' };
-    expect(effectiveSkill(s, s.player, 'intimidation')).toMatchObject({ skill: 'persuasion', value: 30 });
-    const c = ruleset.check({ actorId: 'player', skill: 'intimidation', modifiers: [{ source: 'x', value: 20 }] }, s, createRng(1));
-    expect(c).toMatchObject({ skill: 'persuasion', target: 50, passed: true });
+    s.player.core.skills[SK.intimidation] = { raw: 20, state: 'normal' };
+    s.player.core.skills[SK.persuasion] = { raw: 100, state: 'normal' };
+    expect(effectiveSkill(s, s.player, SK.intimidation)).toMatchObject({ skill: SK.persuasion, value: 30 });
+    const c = ruleset.check({ actorId: 'player', skill: SK.intimidation, modifiers: [{ source: 'x', value: 20 }] }, s, createRng(1));
+    expect(c).toMatchObject({ skill: SK.persuasion, target: 50, passed: true });
   });
   it('grapple substitutes: other unarmed 0.4×, melee 0.2×', () => {
     const s = makeVillage();
     const sk = s.player.core.skills;
     for (const id of Object.keys(sk)) delete sk[id];
-    sk.melee_heavy = { raw: 100, state: 'normal' };
-    expect(effectiveSkill(s, s.player, 'unarmed_grapple')).toMatchObject({ skill: 'melee_heavy', value: 20 });
-    sk.unarmed_strike = { raw: 60, state: 'normal' };
-    expect(effectiveSkill(s, s.player, 'unarmed_grapple')).toMatchObject({ skill: 'unarmed_strike', value: 24 });
-    expect(effectiveSkill(s, s.player, 'unarmed_improvised')).toMatchObject({ skill: 'unarmed_strike', value: 18 }); // flat 0.3 elsewhere (F4)
+    sk[SK.melee_heavy] = { raw: 100, state: 'normal' };
+    expect(effectiveSkill(s, s.player, SK.unarmed_grapple)).toMatchObject({ skill: SK.melee_heavy, value: 20 });
+    sk[SK.unarmed_strike] = { raw: 60, state: 'normal' };
+    expect(effectiveSkill(s, s.player, SK.unarmed_grapple)).toMatchObject({ skill: SK.unarmed_strike, value: 24 });
+    expect(effectiveSkill(s, s.player, SK.unarmed_improvised)).toMatchObject({ skill: SK.unarmed_strike, value: 18 }); // flat 0.3 elsewhere (F4)
   });
   it('kit pieces share one +25', () => {
     const s = makeVillage();
     s.blueprints.push({ storyId: 'test', id: 'kit_belt', kind: 'item', data: {
       id: 'kit_belt', kind: 'accessory', name: 'kit belt', look: 'a belt', bulk: 0, value: 1, slot: 'accessory',
-      effects: [{ kind: 'skill', skill: 'melee_medium', value: 25, active: 'worn', scope: 'any', kit: true }] } });
+      effects: [{ kind: 'skill', skill: SK.melee_medium, value: 25, active: 'worn', scope: 'any', kit: true }] } });
     s.player.core.inventory.push({ id: 'belt', itemId: 'kit_belt', equippedIn: ['acc:0'] });
-    expect(effectiveSkill(s, s.player, 'melee_medium', { itemId: sword }).value).toBe(75);
-    expect(effectiveSkill(s, s.player, 'melee_medium').value).toBe(75);
+    expect(effectiveSkill(s, s.player, SK.melee_medium, { itemId: sword }).value).toBe(75);
+    expect(effectiveSkill(s, s.player, SK.melee_medium).value).toBe(75);
   });
   it('armor weight lowers dodge', () => {
     const s = makeVillage();
-    expect(effectiveSkill(s, s.player, 'dodge').value).toBe(20); // 25 − 5 gambeson
+    expect(effectiveSkill(s, s.player, SK.dodge).value).toBe(20); // 25 − 5 gambeson
   });
 });
 
@@ -76,16 +77,16 @@ describe('body', () => {
     const s = makeVillage();
     s.player.core.condition.hpLostPct = 20; // Hurt −5
     s.player.core.condition.parts.right_arm = 40; // Damaged (sword arm)
-    expect(woundsMods(s, s.player, 'melee_medium', { itemId: sword }).map((m) => m.value)).toEqual([-5, -10]);
-    expect(woundsMods(s, s.player, 'melee_medium').map((m) => m.value)).toEqual([-5]); // best arm without an item
-    expect(woundsMods(s, s.player, 'persuasion').map((m) => m.value)).toEqual([-5]);
+    expect(woundsMods(s, s.player, SK.melee_medium, { itemId: sword }).map((m) => m.value)).toEqual([-5, -10]);
+    expect(woundsMods(s, s.player, SK.melee_medium).map((m) => m.value)).toEqual([-5]); // best arm without an item
+    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5]);
     const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: 'winged_quadruped', condition: { hpLostPct: 0, parts: { forelegs: 40 }, status: [] } } };
-    expect(woundsMods(s, dragon, 'dodge')).toEqual([{ source: 'move wounds', type: 'wounds', value: -5 }]);
+    expect(woundsMods(s, dragon, SK.dodge)).toEqual([{ source: 'move wounds', type: 'wounds', value: -5 }]);
     s.player.core.condition.parts.head = 40; // Damaged head: speech rolls only
-    expect(woundsMods(s, s.player, 'persuasion')).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -10 });
-    expect(woundsMods(s, s.player, 'dodge').map((m) => m.value)).toEqual([-5]);
+    expect(woundsMods(s, s.player, SK.persuasion)).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -10 });
+    expect(woundsMods(s, s.player, SK.dodge).map((m) => m.value)).toEqual([-5]);
     s.player.core.condition.parts.head = -10; // Sense Crippled: every roll, plus speech on speech rolls
-    expect(woundsMods(s, s.player, 'persuasion').map((m) => m.value)).toEqual([-5, -20, -20]);
+    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5, -20, -20]);
   });
 });
 
@@ -126,16 +127,16 @@ describe('ruleset methods', () => {
   it('checks and contests: applyEffects returns []; recordUse only logs', () => {
     const s = makeVillage();
     const c = ruleset.contested(
-      { actorId: 'player', skill: 'sight', modifiers: [{ source: 'aim', type: 'aim', value: -40 }], tierShifts: [] },
-      { actorId: 'patron_1', skill: 'sight', modifiers: [], tierShifts: [] }, s, forcedRng([50, 90]));
+      { actorId: 'player', skill: SK.eyesight, modifiers: [{ source: 'aim', type: 'aim', value: -40 }], tierShifts: [] },
+      { actorId: 'patron_1', skill: SK.eyesight, modifiers: [], tierShifts: [] }, s, forcedRng([50, 90]));
     expect(c.a.modifiers).toEqual([]); // no aim in contests
     expect(c.gap).toBe(tierLevel(c.b) - tierLevel(c.a));
     expect(c.winner).toBe('b');
     const before = JSON.stringify(s);
     expect(ruleset.applyEffects(c, s)).toEqual([]);
     expect(JSON.stringify(s)).toBe(before);
-    ruleset.recordUse(s.player, 'sight', c, s);
-    expect(s.log).toEqual([{ turn: 1, code: 'skill_use', detail: { actorId: 'player', skill: 'sight' } }]);
+    ruleset.recordUse(s.player, SK.eyesight, c, s);
+    expect(s.log).toEqual([{ turn: 1, code: 'skill_use', detail: { actorId: 'player', skill: SK.eyesight } }]);
     expect(ruleset.initiative(s.player, s, forcedRng([42]))).toBe(42);
   });
   it('outnumbered, unaware and missile modifiers on the defense', () => {

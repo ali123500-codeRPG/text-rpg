@@ -368,7 +368,7 @@ export function createGame(deps: GameDeps): Game {
     switch (cmd.toLowerCase()) {
       case 'stats': {
         const p = s.player;
-        const skills = Object.entries(p.core.skills).map(([k, v]) => `${k} ${v.raw}${v.state === 'tagged' ? '+' : v.state === 'flawed' ? '−' : ''}`);
+        const skills = Object.entries(p.core.skills).map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? '+' : v.state === 'flawed' ? '−' : ''}`);
         return say(`${p.names.current}, ${p.core.classes.map((c) => `${c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`);
       }
       case 'inv':

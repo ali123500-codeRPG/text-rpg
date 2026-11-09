@@ -1,4 +1,5 @@
 // State-side minds work: routine install and switch, the alarm machine, Explore detection and ambush.
+import { FN } from '../library/functionIds';
 import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
 import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
@@ -7,6 +8,7 @@ import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '..
 import { markUse, ruleset, situational, fnRoller, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { hasPerk } from '../ruleset/perks';
 import { bindTemplate, expandSteps, slotsRead } from './routines';
+import { SK, SENSE_SKILL } from '../library/skillIds';
 
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
@@ -134,7 +136,7 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
 }
 
 /** ST2: Combat Stealth in an engagement, or for a shot, which starts one (ST5); Sneaking otherwise */
-export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engagement || event?.kind === 'attack' ? 'combat_stealth' : 'sneaking');
+export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engagement || event?.kind === 'attack' ? SK.combat_stealth : SK.sneaking);
 
 /** ST3–ST8, ST11–ST19, NS1–NS5: while an actor is stealthy, every observer outside its band who could perceive the event and
  * doesn't already see it contests its sight or hearing against the actor's stealth, once per turn. The player is an observer
@@ -150,13 +152,13 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const hide = event.kind === 'hide';
   const vanish = !!event.vanish;
   const zone = zoneById(state, s.zone);
-  const skill = vanish ? 'vanishing' : stealthSkill(s, event);
+  const skill = vanish ? SK.vanishing : stealthSkill(s, event);
   // ST21/ST22: light and cover reach the rolls by situation tag; a Hide adds the hide tag and ignores leg wounds (ST10)
   // P14: darkness never hurts hearing, so it gives no help against an observer who only hears
   // All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against an observer who only hears
-  const hushed = (sk: string, sense: string) => (sk === 'sneaking' && sense === 'hearing' && hasPerk(s, 'hushed_steps') ? { nearMissUp: 'Hushed Steps' } : {});
-  const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}), ...hushed(sk, sense) });
-  const theirs = (a: Actor, sk: string) => ({ actorId: a.id, skill: sk, ...situational(state, fnRoller(state, a, sk), { light: zone, actor: a }), rollKind: 'perception' as const, fn: sk }); // a function roll: the best sight (or hearing) skill at full value
+  const hushed = (sk: string, sense: string) => (sk === SK.sneaking && sense === FN.hearing && hasPerk(s, 'hushed_steps') ? { nearMissUp: 'Hushed Steps' } : {});
+  const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}), ...hushed(sk, sense) });
+  const theirs = (a: Actor, sk: typeof FN.sight | typeof FN.hearing) => ({ actorId: a.id, skill: SENSE_SKILL[sk], ...situational(state, fnRoller(state, a, sk), { light: zone, actor: a }), rollKind: 'perception' as const, fn: sk }); // a function roll: the best sight (or hearing) skill at full value
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
   const sc = (state.scratch ??= {});
   const done = (sc.stealthContested as { turn: number; ids: string[] } | undefined)?.turn === state.turn ? (sc.stealthContested as { turn: number; ids: string[] }) : { turn: state.turn, ids: [] };
@@ -169,7 +171,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     if (sees && !vanish) continue; // ST12: Hide and Sneak never shake off someone who sees you
     const seen = perceptionOf(event, state, a);
     if (!seen) continue;
-    const sense = seen.cue === 'sound' ? 'hearing' : 'sight';
+    const sense = seen.cue === 'sound' ? FN.hearing : FN.sight;
     const r = ruleset.contested(mine(skill, sense), theirs(a, sense), state, rng);
     done.ids.push(key);
     markUse(state, s, skill, r); // ST8
@@ -234,8 +236,8 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   const ambush: RollResult = ruleset.roll({ actorId: attackerId, skill: ambushSkill(state, attacker, attackEvent.itemId), modifiers: [], tierShifts: [], itemId: attackEvent.itemId }, state, rng);
   let surprised = false;
   for (const o of observers) {
-    const skill = perception[o.id]?.cue === 'sound' ? 'hearing' : 'sight';
-    const p = ruleset.roll({ actorId: o.id, skill, modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill }, state, rng); // function roll
+    const skill = perception[o.id]?.cue === 'sound' ? FN.hearing : FN.sight;
+    const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill }, state, rng); // function roll
     const gap = tierLevel(p) - tierLevel(ambush); // Part 1 §4 Contests: acting side wins below 0
     if (o.id === targetId && gap < 0) surprised = true;
     // ST7: a shot from stealth leaves noticing to the stealth contest (stealthDetect); a melee blow has already revealed

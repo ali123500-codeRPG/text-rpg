@@ -6,6 +6,7 @@ import { ruleset } from '../../src/ruleset';
 import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
 import { act, intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -14,7 +15,7 @@ it('49 Deed instead of a reply', () => {
   s.hidden.secrets.push({ id: 'cellar', holderId: 'trader', fact: 'smuggled goods in the cellar', leakTerms: ['smuggled'],
     revealWhen: { type: 'event_in_zone', kind: 'search', zone: 'tav_cellar' } });
   actor(s, 'trader').mind!.overrides = { player: 'hostile' };
-  const i = intent({ action: { type: 'talk', skill: 'persuasion' }, spoken: 'What is in the cellar?', addressees: ['trader'] });
+  const i = intent({ action: { type: 'talk', skill: SK.persuasion }, spoken: 'What is in the cellar?', addressees: ['trader'] });
   const spokespeople = selectSpokespeople(s, i);
   expect(spokespeople).toEqual(['trader']);
   const exchange = resolveSpeech(s, i, spokespeople, createRng(3));

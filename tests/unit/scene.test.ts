@@ -3,6 +3,7 @@
 import type { Tier } from '../../src/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, GameState, StagePlan } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 vi.mock('../../src/minds', () => ({
   installRoutines: vi.fn((a: Actor, setId: string, slots: Record<string, string | string[]>, _s: string | undefined, turn: number) => {
@@ -271,7 +272,7 @@ describe('applyStagePlan', () => {
     const p = villageStagePlan();
     p.seeds.plans.push({ ownerId: 'guard_1', goal: 'catch the thief', steps: ['watch'], triggers: [], createdTurn: 99 });
     p.seeds.triggers.push({ id: 't1', ownerId: 'patron_1', when: { type: 'player_seen_in_zone', zone: 'tav_cellar' }, then: { type: 'call_help', target: 'barkeep', skill: null, intent: 'shout' }, once: true });
-    p.seeds.secrets.push({ id: 's1', holderId: 'barkeep', fact: 'owes money', leakTerms: ['debt'], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 'success', againstActorId: 'barkeep' } });
+    p.seeds.secrets.push({ id: 's1', holderId: 'barkeep', fact: 'owes money', leakTerms: ['debt'], revealWhen: { type: 'check_passed', skill: SK.persuasion, minTier: 'success', againstActorId: 'barkeep' } });
     p.rewards.push({ item: { base: 'arming_sword', quality: 2, boosts: 'hitAdj', name: 'Wim\'s old blade', look: 'a notched sword' }, place: { groundIn: 'tav_cellar' } });
     const s = fresh();
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
