@@ -6,6 +6,7 @@ import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
 import { achievementName, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
+import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
@@ -98,7 +99,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
 }
 
 /** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. A class at
- * CLASS_MAX_LEVEL can't be picked; while no class can take a level, XP banks and the picker asks for one. */
+ * its top level (classMaxLevel, by tier) can't be picked; while no class can take a level, XP banks and the picker asks for one. */
 function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const pr = p.progression;
   if (!pr) return null;
@@ -108,17 +109,17 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const cur = open.find((c) => c.state === 'current');
   const target = levelTarget(p);
   const name = (id: string) => lib.classes[id] ? `${lib.classes[id].name} (${CLASS_TIERS.name(lib.classes[id].tier)})` : id;
-  const capped = (lv: number) => lv >= CONFIG.CLASS_MAX_LEVEL;
+  const capped = (c: { classId: string; level: number }) => c.level >= classMaxLevel(c.classId);
   const el: HTMLElement = h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (pr.xp / need) * 100)}%` })),
-    !target ? h('small', {}, `Your class is at level ${CONFIG.CLASS_MAX_LEVEL}. XP is banked until you pick a class for the next level.`) : null,
+    !target ? h('small', {}, 'Your class is at its top level. XP is banked until you pick a class for the next level.') : null,
     open.length > 1 || !target
       ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),
         h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; spendXp(s); el.replaceWith(xpTrack(s, p) ?? ''); } },
           !target ? h('option', { value: '', selected: true, disabled: true }, 'Choose a class') : null,
-          open.map((c) => h('option', { value: c.classId, ...(capped(c.level) ? { disabled: true } : {}), ...(target && (pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) },
-            capped(c.level) ? `${name(c.classId)} (level ${c.level}, the most)` : name(c.classId)))))
+          open.map((c) => h('option', { value: c.classId, ...(capped(c) ? { disabled: true } : {}), ...(target && (pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) },
+            capped(c) ? `${name(c.classId)} (level ${c.level}, its top level)` : name(c.classId)))))
       : null);
   return el;
 }
@@ -131,7 +132,7 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
   const perk = (id: string) => lib.perks[id];
   const el: HTMLElement = h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Capstone choice'),
     offers.map(([classId, ids]) => {
-      const base = (lib.classes[classId]?.levelPerks?.[CONFIG.CLASS_MAX_LEVEL] ?? []).map((id) => perk(id)?.name ?? id).join(', ');
+      const base = (lib.classes[classId]?.capstone ?? []).map((id) => perk(id)?.name ?? id).join(', ');
       const redraw = () => el.replaceWith(capstoneChoice(s, p) ?? '');
       return h('div', {}, h('span', {}, `${lib.classes[classId]?.name ?? classId}: ${base || 'the default capstone'} is inactive until you choose. The choice is final.`),
         h('div', { class: 'actions' },
