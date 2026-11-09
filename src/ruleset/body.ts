@@ -5,6 +5,7 @@ import { actorBody, getLibrary, itemDef } from '../library';
 import { hasPerk } from './perks';
 import { skillOpen } from './access';
 import { SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 export function totalHp(state: GameState, actor: Actor): number {
   const end = actor.core.skills[SK.endurance];
@@ -52,7 +53,7 @@ const rolePenaltyOf = (s: PartState) =>
 /** Iron Frame (A12): an effective state at the Damaged position or milder gives no role penalty */
 function rolePenalty(a: Actor, raw: PartState): number {
   const s = effectiveState(a, raw);
-  return hasPerk(a, 'iron_frame') && PART_STATES.indexOf(s) <= PART_STATES.indexOf('Damaged') ? 0 : rolePenaltyOf(s);
+  return hasPerk(a, PK.iron_frame) && PART_STATES.indexOf(s) <= PART_STATES.indexOf('Damaged') ? 0 : rolePenaltyOf(s);
 }
 
 /**

@@ -11,6 +11,7 @@ import { markIfClose } from '../../src/ruleset/improve';
 import type { Actor } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
+import { PK } from '../../src/library/perkIds';
 
 afterEach(() => resetLibrary());
 const opts = { id: 'n1', zone: 'z', placeId: 'p', bandId: 'b' };
@@ -49,12 +50,12 @@ describe('skill tree access', () => {
 
   it('a block beats an opening (TA2), and a class counts only while Current or Previous at its level (TA3)', () => {
     const lib = prototypeLibrary();
-    lib.trees.swordsman.access = { must: [{ kind: 'class', id: CL.swordsman }], either: [{ kind: 'race', id: 'human' }, { kind: 'race', id: 'elf' }], blockedBy: [{ kind: 'perk', id: 'leg_bolt' }] };
+    lib.trees.swordsman.access = { must: [{ kind: 'class', id: CL.swordsman }], either: [{ kind: 'race', id: 'human' }, { kind: 'race', id: 'elf' }], blockedBy: [{ kind: 'perk', id: PK.leg_bolt }] };
     setLibrary(lib);
     const p = createPlayer(recommendedBuild(), 's1');
     expect(treeOpen(p, 'swordsman')).toBe(true);
-    p.core.perks.push({ perkId: 'leg_bolt', source: 'level', gainedTurn: 0 });
-    expect(treeBlock(p, 'swordsman')).toBe(`Blocked by: ${lib.perks.leg_bolt.name}`);
+    p.core.perks.push({ perkId: PK.leg_bolt, source: 'level', gainedTurn: 0 });
+    expect(treeBlock(p, 'swordsman')).toBe(`Blocked by: ${lib.perks[PK.leg_bolt].name}`);
     p.core.perks.pop();
     p.core.classes[0].state = 'unlocked';
     expect(treeBlock(p, 'swordsman')).toBe('Needs: Swordsman');

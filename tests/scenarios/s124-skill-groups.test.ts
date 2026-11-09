@@ -8,6 +8,7 @@ import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import type { Actor } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const only = (a: Actor, skills: Record<string, number>) => {
@@ -38,7 +39,7 @@ describe('124 skill groups and functions', () => {
   it('F1: a 40 perk in a weapon skill gives +1 to every Melee skill, unarmed included, and not to Ranged', () => {
     const s = makeVillage();
     only(s.player, { [SK.melee_light]: 40, [SK.unarmed_strike]: 10, [SK.unarmed_natural]: 10, [SK.ranged_light]: 10 });
-    give(s.player, 'keen_edge');
+    give(s.player, PK.keen_edge);
     expect([trueSkill(s.player, SK.melee_light), trueSkill(s.player, SK.unarmed_strike), trueSkill(s.player, SK.ranged_light)]).toEqual([46, 11, 10]);
   });
   it('F4: a perk can move the stand-in share, kept within 0–1', () => {

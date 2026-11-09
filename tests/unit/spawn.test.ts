@@ -6,6 +6,7 @@ import { shortBy } from '../../src/ruleset/requirements';
 import { CONFIG, resetConfig } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
+import { PK } from '../../src/library/perkIds';
 
 afterEach(() => { resetConfig(); resetLibrary(); });
 
@@ -82,7 +83,7 @@ describe('unique generation', () => {
       g.core.perks = [];
       refreshCopies(s);
       expect(sum(g.core.skills)).toBe(before + 5 * npcTemplate(null, 'guard').level);
-      expect(g.core.perks.map((p) => p.perkId)).toContain('keen_ear');
+      expect(g.core.perks.map((p) => p.perkId)).toContain(PK.keen_ear);
     } finally { (CONFIG as { POINTS_PER_LEVEL: number }).POINTS_PER_LEVEL = keep; }
   });
 });

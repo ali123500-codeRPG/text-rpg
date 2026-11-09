@@ -7,6 +7,7 @@ import type { AcceptedAgentOutput } from '../../src/engine';
 import type { Actor } from '../../src/types';
 import { act, intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 
@@ -17,7 +18,7 @@ it('116 Quick Word: the line and the reply are free; both actions still happen',
   s.mode = 'tactical';
   const i = intent({ action: { type: 'attack', skill: SK.unarmed_strike, target: wim.id }, spoken: 'Drop it and live!', addressees: [wim.id] });
   expect(quickWord(s, i)).toBe(false); // no perk: the line is a bark
-  give(s.player, 'quick_word');
+  give(s.player, PK.quick_word);
   expect(quickWord(s, i)).toBe(true);
   expect(quickWord(s, { ...i, spoken: 'Drop it. Then run.' })).toBe(false); // one sentence only
   expect(quickWord(s, { ...i, action: { ...i.action!, type: 'talk' } })).toBe(false); // talk is the main action anyway

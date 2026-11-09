@@ -10,6 +10,7 @@ import { applyHaggle, buy, coinWords, coins, warePrice } from '../../src/engine/
 import { SV } from '../../src/library/serviceIds';
 import { CONFIG } from '../../src/config';
 import type { ContestResult, GameState } from '../../src/types';
+import { PK } from '../../src/library/perkIds';
 
 function shop(): GameState {
   const s = makeVillage({ playerZone: 'tav_counter' });
@@ -72,7 +73,7 @@ it('133d haggling and Hard Bargain', () => {
   applyHaggle(p, mags, gap(2)); // lost by two
   expect(warePrice(s, p, mags, 'goods:healing_draught')).toBe(24);
   delete p.haggle;
-  p.core.perks.push({ perkId: 'haggler', source: 'level', turn: 0 } as never);
+  p.core.perks.push({ perkId: PK.haggler, source: 'level', turn: 0 } as never);
   expect(warePrice(s, p, mags, 'goods:healing_draught')).toBe(18); // 20 × 0.9
 });
 

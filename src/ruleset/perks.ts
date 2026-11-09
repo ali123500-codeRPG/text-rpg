@@ -6,6 +6,7 @@ import { getLibrary } from '../library';
 import { skillOpen } from './access';
 import { groupsOf } from '../library/functionNames';
 import { COVER, LIGHT } from '../scales';
+import { PK } from '../library/perkIds';
 
 export const MILESTONES = [20, 40, 60, 80, 100, 120, 140] as const;
 /** all-XXX perks (formerly mastery perks; save key 'mastery'): granted when all three skills of a tree reach 50/100/150 */
@@ -19,7 +20,7 @@ export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks
 
 /** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it */
 export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number }> = {
-  dirt_in_the_eyes: { free: true, perEngagement: 1 },
+  [PK.dirt_in_the_eyes]: { free: true, perEngagement: 1 },
 };
 /** the perk moves an actor owns (shown to the Parser and in Commands) */
 export const ownPerkMoves = (a: Actor): string[] => Object.keys(PERK_MOVES).filter((id) => hasPerk(a, id));
@@ -69,7 +70,7 @@ export function boostAdd(a: Actor, skill: string, key: 'armorPierce'): number {
 /** ladder perks this actor owns in one skill */
 export const ladderPerksIn = (a: Actor, skill: string) =>
   a.core.perks.filter((p) => p.source === 'level' && getLibrary().perks[p.perkId]?.ladder?.skill === skill).length;
-const gated = (a: Actor, skill: string, milestone: number) => !hasPerk(a, 'as_far_as_the_road_goes') && ladderPerksIn(a, skill) < (PERKS_NEEDED[milestone] ?? 0);
+const gated = (a: Actor, skill: string, milestone: number) => !hasPerk(a, PK.as_far_as_the_road_goes) && ladderPerksIn(a, skill) < (PERKS_NEEDED[milestone] ?? 0);
 
 /** the library perk on one milestone of a skill's ladder, if written */
 export function milestonePerk(skill: string, milestone: number): PerkDef | undefined {

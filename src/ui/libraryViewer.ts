@@ -22,6 +22,7 @@ import { fmtDate, h } from './kit';
 import { skillName } from './creation';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 import { classMaxLevel } from '../library/spawn';
 
 declare const __BUILD__: { sha: string; date: string };
@@ -57,7 +58,7 @@ function val(v: unknown, depth = 0): Node | string {
   if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(k, val(x, depth + 1))));
   return String(v);
 }
-/** skill IDs are numbers: show a skill field, or a table keyed by skill, by the skill's name */
+/** skill IDs are codes: show a skill field, or a table keyed by skill, by the skill's name */
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
@@ -328,7 +329,7 @@ function bodyTypes(): HTMLElement[] {
 
 // ---------- Achievements ----------
 function achievements(): HTMLElement[] {
-  // numeric keys list in number order, so show each rule's rows by count, rules in the order they first appear
+  // show each rule's rows by count, rules in the order they first appear
   const rows = Object.entries(lib.achievements ?? {});
   const first = (r: string) => rows.findIndex(([, d]) => d.rule === r);
   const all = rows.sort(([, a], [, b]) => first(a.rule) - first(b.rule) || (a.count ?? 0) - (b.count ?? 0));
@@ -455,7 +456,7 @@ function standIns(): HTMLElement[] {
       h('li', {}, 'Light and other situation modifiers come from the skill that rolls (fnRoller), so Tremor ignores darkness.')),
     row('Functions checked this way', `FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}`),
     row('Rolls that use them', 'sneak and hide contests (stealthDetect) and noticing an ambush (resolveAmbush) in minds/state.ts; Look around in engine/resolve.ts'),
-    row('After the roll', link('perks', 'curiouser', 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
+    row('After the roll', link('perks', PK.curiouser, 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
   const fnCards = FUNCTION_ROLLS.map((f) => {
     const rows = fnSkills(f).map((id) => ({ id, tier: CONFIG.SKILL_TIER_MULT[lib.skills[id].tier] })).sort((a, b) => b.tier - a.tier);
     const asked = (SENSE_SKILL as Record<string, string>)[f];

@@ -8,7 +8,7 @@ import type { PartStateKey, SkillTierKey } from '../scales';
 
 /** F1–F8: a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
-export type SkillFunction = (typeof FN)[keyof typeof FN]; // numeric IDs: src/library/functionIds.ts
+export type SkillFunction = (typeof FN)[keyof typeof FN]; // fixed IDs: src/library/functionIds.ts
 export type SkillGroup = (typeof GR)[keyof typeof GR];
 /** XP rating category of a skill (X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
@@ -95,7 +95,7 @@ export type Library = {
   routineSets: Record<string, RoutineSet>;
   perks: Record<string, PerkDef>;
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
-  services?: Record<string, ServiceDef>; // PY3: services sellers offer, by numeric ID
+  services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
@@ -145,7 +145,7 @@ export type BankedAs = 'milestone' | 'allX' | 'other';
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules;
   bankedAs?: BankedAs; aimAt?: number };
 
-/** X6/X11: a library achievement, keyed by its fixed numeric id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is earned at `count`
+/** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
  * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree>. */

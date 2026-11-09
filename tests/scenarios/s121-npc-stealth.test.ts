@@ -10,6 +10,7 @@ import { installRoutines } from '../../src/minds';
 import { buildPlayerView } from '../../src/views';
 import type { Actor, ContestResult, GameState, Intent, NpcAction, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 const hold: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 const act = (type: NpcAction['type'], target: string | null = null, extra: Partial<NpcAction> = {}): NpcAction =>
@@ -118,7 +119,7 @@ describe('121 NPC stealth', () => {
     const s2 = makeVillage();
     place(s2, 'player', 'street_square');
     thief(s2, 'street_square');
-    s2.player.core.perks.push({ perkId: 'unblinking', source: 'level', gainedTurn: 0 });
+    s2.player.core.perks.push({ perkId: PK.unblinking, source: 'level', gainedTurn: 0 });
     const calls = rig({ player: [-1, 1] });
     turn(s2, { thief_1: act('vanish', 'street_door') });
     expect(calls.filter(([, b]) => b.actorId === 'player').map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]);

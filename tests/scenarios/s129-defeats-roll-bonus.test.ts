@@ -1,4 +1,5 @@
 // 129 D-119: total-defeats achievements add +1 per tier (I = +1, II = +2, III = +3) to every attack and
+import { SK } from '../../src/library/skillIds';
 // defense roll. Only the highest earned level counts; it stacks with Bane bonuses as one modifier type.
 import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
@@ -36,7 +37,7 @@ describe('129 total-defeats roll bonus', () => {
     grantAchievement(s, ACH.defeats_100);
     const m = [{ source: `achievement: ${ACH.defeats_100}`, type: 'achievement', value: 2 }];
     expect(fight(s)).toEqual({ atk: m, def: m });
-    const look = ruleset.roll({ actorId: 'player', skill: '14', modifiers: [], tierShifts: [], rollKind: 'perception' }, s, forcedRng([50]));
+    const look = ruleset.roll({ actorId: 'player', skill: SK.eyesight, modifiers: [], tierShifts: [], rollKind: 'perception' }, s, forcedRng([50]));
     expect(look.modifiers.filter((x) => x.type === 'achievement')).toEqual([]);
   });
   it('stacks with a Bane bonus as one modifier type: the weaker counts at half', () => {

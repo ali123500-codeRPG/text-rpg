@@ -14,6 +14,7 @@ import { ACH } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
 import { SV } from './serviceIds';
+import { PK } from './perkIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
@@ -88,33 +89,33 @@ const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, val
 
 /** class-level perks (ClassDef.levelPerks), granted by a class at a level */
 const CLASS_PERKS: Record<string, PerkDef> = {
-  nobody_special: {
-    id: 'nobody_special', name: 'Nobody Special', built: true, classLevel: { classId: CL.commoner, level: 5 },
+  [PK.nobody_special]: {
+    id: PK.nobody_special, name: 'Nobody Special', built: true, classLevel: { classId: CL.commoner, level: 5 },
     story: 'Five seasons of ordinary work, and nobody noticed you. That can be a start.',
     rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: ['the owner does not have the A Nobody class'], effect: 'the A Nobody class unlocks at class level 0', lasts: 'always' },
   },
-  every_fall_a_lesson: {
-    id: 'every_fall_a_lesson', name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 15 },
+  [PK.every_fall_a_lesson]: {
+    id: PK.every_fall_a_lesson, name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 15 },
     story: 'You learned more from losing than most learn from winning.',
     rules: { kind: 'passive', trigger: 'the owner loses a contest or a defended attack by exactly one tier step', conditions: [], effect: 'the skill the owner rolled (and the skill asked for, when a stand-in rolled) is marked, even when the other side is outside the learning window', lasts: 'always' },
   },
-  as_far_as_the_road_goes: {
-    id: 'as_far_as_the_road_goes', name: 'As Far as the Road Goes', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+  [PK.as_far_as_the_road_goes]: {
+    id: PK.as_far_as_the_road_goes, name: 'As Far as the Road Goes', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
     story: 'You were never meant for one path, so you follow each one as far as it goes.',
     rules: { kind: 'passive', trigger: 'the owner reaches a 60, 80, 100, 120 or 140 milestone in any skill', conditions: [], effect: 'the perk there opens as soon as true skill reaches it, without the earlier ladder perks in that skill it normally needs', lasts: 'always' },
   },
-  write_your_own_ending: {
-    id: 'write_your_own_ending', name: 'Write Your Own Ending', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+  [PK.write_your_own_ending]: {
+    id: PK.write_your_own_ending, name: 'Write Your Own Ending', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
     story: 'You were never meant for one path, so every path is yours.',
     rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: [], effect: 'every class in the library the owner does not have unlocks at class level 0, whether or not its unlock conditions are met', lasts: 'always' },
   },
-  no_road_closed: {
-    id: 'no_road_closed', name: 'No Road Closed', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+  [PK.no_road_closed]: {
+    id: PK.no_road_closed, name: 'No Road Closed', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
     story: 'You were never meant for one path, so no road is closed to you.',
     rules: { kind: 'passive', trigger: 'any check of whether the owner can use a skill tree or skill', conditions: [], effect: 'the access rules (Must, Either of, Blocked by) do not apply: every tree and skill is open, and its skills can be used, marked and raised', lasts: 'always' },
   },
-  quick_study: {
-    id: 'quick_study', name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
+  [PK.quick_study]: {
+    id: PK.quick_study, name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
@@ -231,7 +232,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     id: 'guard', raceId: 'human', generation: 'copy',
     minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.block]: 30, [SK.dodge]: 20, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
-    level: 4, bonusPoints: 10, perks: ['keen_ear'],
+    level: 4, bonusPoints: 10, perks: [PK.keen_ear],
     focus: [{ treeId: 'melee', skill: SK.melee_medium }, { treeId: 'defense', skill: SK.block }, { treeId: 'perception', skill: SK.eyesight }],
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
@@ -345,17 +346,17 @@ export function prototypeLibrary(): Library {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
       [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] }, capstone: ['as_far_as_the_road_goes'],
-        capstones: [{ perk: 'write_your_own_ending', needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
-          { perk: 'no_road_closed', needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
+      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
+        capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
+          { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
-      [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', floors: {}, fallback: true, capstone: ['nobody_special'] },
+      [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', floors: {}, fallback: true, capstone: [PK.nobody_special] },
       // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
-      [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: 'nobody_special',
-        levelPerks: { 1: ['quick_study'] }, capstone: ['every_fall_a_lesson'] },
+      [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
+        levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_1', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 } },
     },

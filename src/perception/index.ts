@@ -6,6 +6,7 @@ import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk } from '../ruleset/perks';
+import { PK } from '../library/perkIds';
 
 export type BeliefUpdate =
   | { kind: 'event'; event: GameEvent; result?: CheckResult | ContestResult | AttackResult }
@@ -50,7 +51,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
   }
   // A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed.
-  const up = hasPerk(observer, 'keen_ear') ? 1 : 0;
+  const up = hasPerk(observer, PK.keen_ear) ? 1 : 0;
   const [full, heard] = CONFIG.NOISE_REACH[event.noise];
   const nl = reach([full + up, heard + up], dist(state, observer.zone, event.zone, false));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;

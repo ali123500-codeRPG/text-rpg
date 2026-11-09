@@ -9,6 +9,7 @@ import { CONFIG } from '../../src/config';
 import type { Actor, GameState } from '../../src/types';
 import { intent } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -22,7 +23,7 @@ describe('113 coded perks, batch 3', () => {
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false };
     const plain = ruleset.attack(req, s, forcedRng([60, 40, 50]));
     expect(plain.defenseType).toBe('dodge'); // no shield or weapon: falls back to dodge
-    give(wim, 'open_hand_guard');
+    give(wim, PK.open_hand_guard);
     const og = ruleset.attack(req, s, forcedRng([60, 40, 50]));
     expect(og.defenseType).toBe('block');
     expect(og.damage).toBeGreaterThan(0);
@@ -57,7 +58,7 @@ describe('113 coded perks, batch 3', () => {
     const s = setup('opposed');
     const plain = talk(s, 'persuade', [50, 50]).contest.a;
     expect(plain.skill).toBe(SK.intimidation); // stand-in at 0.3 (18) beats persuasion 10
-    give(s.player, 'threaten_for_answers');
+    give(s.player, PK.threaten_for_answers);
     const full = talk(s, 'persuade', [50, 50]).contest.a;
     expect(full.skill).toBe(SK.intimidation);
     expect(full.margin - plain.margin).toBeCloseTo(CONFIG.SKILL_WEIGHT * 60 * (1 - CONFIG.SUBSTITUTE_EFFICIENCY));
@@ -65,12 +66,12 @@ describe('113 coded perks, batch 3', () => {
   it('Threaten for Answers: a winning threat gets information a persuasion check guards', () => {
     const s = setup('hostile');
     expect(talk(s, 'intimidate', [100, 1]).slips).toEqual([]);
-    give(s.player, 'threaten_for_answers');
+    give(s.player, PK.threaten_for_answers);
     expect(talk(s, 'intimidate', [100, 1]).slips).toEqual(['informant']);
   });
   it('Threaten for Answers: no effect on a neutral listener', () => {
     const s = setup('neutral');
-    give(s.player, 'threaten_for_answers');
+    give(s.player, PK.threaten_for_answers);
     expect(talk(s, 'intimidate', [100, 1]).slips).toEqual([]);
     const a = talk(s, 'persuade', [50, 50]).contest.a;
     const s2 = setup('neutral');

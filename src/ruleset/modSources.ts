@@ -5,6 +5,7 @@ import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
 import { baneSkill, defeatsRoll, isBane } from './bane';
 import { skillName } from '../library/skillNames';
+import { PK } from '../library/perkIds';
 
 /** the types a situation roll's modifiers carry (situationMods in gear.ts), besides gear */
 export type SituationModType = 'perk' | 'status';
@@ -53,12 +54,12 @@ export const MOD_SOURCES: ModSource[] = [
     feeds: (lib) => Object.values(lib.perks).filter((d) => d.ladder && (d.numbers?.rollAdd || d.numbers?.hitAdd)).map((d) => ({ table: 'perks', id: d.id, name: d.name,
       value: [d.numbers?.rollAdd ? `${sg(d.numbers.rollAdd)} every ${skillName(d.ladder!.skill)} roll` : '', d.numbers?.hitAdd ? `${sg(d.numbers.hitAdd)} ${skillName(d.ladder!.skill)} attack rolls` : ''].filter(Boolean).join(' · ') })) },
   { type: 'roll_perk', roll: 'skill', source: 'Steady Guard', at: 'src/ruleset/index.ts', when: 'Block rolls made with a melee weapon, not a shield.',
-    value: sg(W() * CONFIG.STEADY_GUARD), feeds: (lib) => perk(lib, 'steady_guard') },
+    value: sg(W() * CONFIG.STEADY_GUARD), feeds: (lib) => perk(lib, PK.steady_guard) },
   { type: 'roll_perk', roll: 'skill', source: 'Bare-Handed Guard', at: 'src/ruleset/index.ts', when: 'Dodge rolls while the owner holds no weapon.',
-    value: sg(W() * CONFIG.BARE_HANDED_GUARD), feeds: (lib) => perk(lib, 'bare_handed_guard') },
+    value: sg(W() * CONFIG.BARE_HANDED_GUARD), feeds: (lib) => perk(lib, PK.bare_handed_guard) },
   // foe_perk
   { type: 'foe_perk', roll: 'skill', source: 'Dodgy', at: 'src/ruleset/allSteps.ts', when: 'Attack rolls against a foe who has Dodgy.',
-    value: sg(-W() * CONFIG.DODGY_SKILL), feeds: (lib) => perk(lib, 'dodgy') },
+    value: sg(-W() * CONFIG.DODGY_SKILL), feeds: (lib) => perk(lib, PK.dodgy) },
   // gear
   { type: 'gear', roll: 'skill', source: 'Weapon class hit', at: 'src/ruleset/index.ts', when: 'Attack rolls: the class hit plus the mode\'s hitAdj, as one entry.',
     value: `${list(Object.fromEntries(Object.entries(CONFIG.WEAPON_CLASSES).map(([k, c]) => [k, c.hit])), false)} · unarmed ${sg(CONFIG.UNARMED_PROFILE.hit)}`,

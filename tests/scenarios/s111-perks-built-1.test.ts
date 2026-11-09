@@ -7,6 +7,7 @@ import { perceptionOf } from '../../src/perception';
 import { buildPlayerView } from '../../src/views';
 import type { Actor, GameEvent, GameState } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -17,7 +18,7 @@ describe('111 coded perks, batch 1', () => {
     const s = makeVillage();
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: sword, targetPart: null, aimed: false, context: { defenderUnaware: true } };
     const plain = ruleset.attack(req, s, forcedRng([50, 30, 20]));
-    give(s.player, 'hidden_strike');
+    give(s.player, PK.hidden_strike);
     const hs = ruleset.attack(req, s, forcedRng([50, 30, 20]));
     expect(hs.attack.tierShifts).toEqual([{ source: 'Hidden Strike', value: 1 }]);
     expect(hs.gap).toBe(plain.gap! - 1);
@@ -32,7 +33,7 @@ describe('111 coded perks, batch 1', () => {
     const req = { attackerId: 'player', targetId: 'slime_1', weaponId: 'bow', targetPart: null, aimed: false };
     const has = (r: ReturnType<typeof ruleset.attack>) => r.attack.modifiers.some((m) => m.source === 'hostile in zone');
     expect(has(ruleset.attack(req, s, forcedRng([50, 50, 50])))).toBe(true);
-    give(s.player, 'point_blank');
+    give(s.player, PK.point_blank);
     expect(has(ruleset.attack(req, s, forcedRng([50, 50, 50])))).toBe(false);
   });
   it('Shield Breaker: a heavy melee hit on a shield does double damage to the shield', () => {
@@ -54,7 +55,7 @@ describe('111 coded perks, batch 1', () => {
     expect(plain.location).toBe('shield');
     const base = lost(plain);
     expect(base).toBeGreaterThan(0);
-    give(s.player, 'shield_breaker');
+    give(s.player, PK.shield_breaker);
     const sb = ruleset.attack(req, s, forcedRng([35, 99]));
     expect(sb.shieldMult).toBe(2);
     expect(lost(sb)).toBeCloseTo(base * 2);
@@ -64,7 +65,7 @@ describe('111 coded perks, batch 1', () => {
     s.player.core.condition.parts.right_arm = 30; // Damaged
     const grip = () => woundsMods(s, s.player, SK.melee_medium, { itemId: sword }).find((m) => m.source === 'grip wounds')?.value ?? 0;
     expect(grip()).toBeLessThan(0);
-    give(s.player, 'iron_frame');
+    give(s.player, PK.iron_frame);
     expect(grip()).toBe(0);
     s.player.core.condition.parts.right_arm = -10; // Crippled
     expect(grip()).toBeLessThan(0);
@@ -80,7 +81,7 @@ describe('111 coded perks, batch 1', () => {
     const seen = () => buildPlayerView(s).actors.find((a) => a.id === 'patron_1')!;
     expect(seen().health).toBeUndefined();
     expect(seen().damaged).toBeUndefined();
-    give(s.player, 'read_wounds');
+    give(s.player, PK.read_wounds);
     expect(seen()).toMatchObject({ health: 'Injured', damaged: ['left_arm'] });
     wim.core.condition.hpLostPct = 20; // Hurt: still hidden
     expect(seen().health).toBeUndefined();
@@ -91,7 +92,7 @@ describe('111 coded perks, batch 1', () => {
     const far = npc(s, 'slime_2');
     const ev: GameEvent = { id: 'e', turn: 1, actorId: far.id, kind: 'move', zone: far.zone, effects: [], noise: 'quiet', visibility: 'unseen', perception: {} };
     const before = perceptionOf(ev, s, s.player);
-    give(s.player, 'keen_ear');
+    give(s.player, PK.keen_ear);
     const after = perceptionOf(ev, s, s.player);
     expect(before).toBeNull();
     expect(after).toMatchObject({ level: 'partial', cue: 'sound' });

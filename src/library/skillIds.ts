@@ -1,16 +1,16 @@
-// Skill IDs: every skill's ID is a fixed number, never its name, so renaming a skill touches only the
-// names table (skillNames.ts). Code refers to skills through SK; data and saves store the number (as a string key).
+// Skill IDs: every skill's ID is fixed (type prefix SK + a number), never its name, so renaming a skill touches only the
+// names table (skillNames.ts). Code refers to skills through SK; data and saves store the ID.
 // Never reuse or renumber an ID; a new skill takes the next free number.
 import { FN } from './functionIds';
 
 export const SK = {
-  melee_light: '1', melee_medium: '2', melee_heavy: '3',
-  ranged_light: '4', ranged_medium: '5', ranged_heavy: '6',
-  unarmed_strike: '7', unarmed_grapple: '8', unarmed_improvised: '9', unarmed_natural: '10',
-  dodge: '11', block: '12', endurance: '13', eyesight: '14', earshot: '15',
-  sneaking: '16', combat_stealth: '17', vanishing: '18',
-  persuasion: '19', intimidation: '20', barter: '21', feint: '22', riposte: '23', disarm: '24',
-  light_armor: '25', medium_armor: '26', heavy_armor: '27', tremor: '28', lockpicking: '29',
+  melee_light: 'SK1', melee_medium: 'SK2', melee_heavy: 'SK3',
+  ranged_light: 'SK4', ranged_medium: 'SK5', ranged_heavy: 'SK6',
+  unarmed_strike: 'SK7', unarmed_grapple: 'SK8', unarmed_improvised: 'SK9', unarmed_natural: 'SK10',
+  dodge: 'SK11', block: 'SK12', endurance: 'SK13', eyesight: 'SK14', earshot: 'SK15',
+  sneaking: 'SK16', combat_stealth: 'SK17', vanishing: 'SK18',
+  persuasion: 'SK19', intimidation: 'SK20', barter: 'SK21', feint: 'SK22', riposte: 'SK23', disarm: 'SK24',
+  light_armor: 'SK25', medium_armor: 'SK26', heavy_armor: 'SK27', tremor: 'SK28', lockpicking: 'SK29',
 } as const;
 export type SkillId = (typeof SK)[keyof typeof SK];
 /** a standing defense (dodge or block, a choice, not a skill) and the skill it rolls */
@@ -36,6 +36,6 @@ export function skillIdOf(x: string, names: Record<string, string>): string {
   return byName ? byName[0] : x;
 }
 
-/** the name-based skill IDs used before numeric IDs, so an older save's skills load under their numbers (library status) */
+/** the name-based skill IDs used before fixed IDs, so an older save's skills load under their IDs (library status) */
 export const OLD_SKILL_IDS: Record<string, SkillId> = Object.fromEntries(
   Object.entries(SK).map(([k, id]) => [({ eyesight: 'sight', earshot: 'hearing' } as Record<string, string>)[k] ?? k, id]));
