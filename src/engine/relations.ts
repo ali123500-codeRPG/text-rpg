@@ -2,6 +2,7 @@
 import type { Actor, BeliefStatus, GameState, Stance } from '../types';
 import { BELIEF_ORDER } from '../types';
 import { STANCES } from '../scales';
+import { firstSightOf } from '../ruleset/achRewards';
 
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
@@ -32,7 +33,9 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
   const o = a.mind?.overrides?.[b.id];
   if (o) return o;
   if (a.bandId === b.bandId) return 'friendly';
-  return bandById(state, a.bandId)?.relations[b.bandId] ?? 'neutral';
+  const s = bandById(state, a.bandId)?.relations[b.bandId] ?? 'neutral';
+  // an achievement's first-sight reward: a hunted kind meets b wary until b attacks it (the attack sets a hostile override)
+  return s === 'hostile' && firstSightOf(b, a) ? 'opposed' : s;
 }
 /** hostile: a attacks b on sight. */
 export function hostile(state: GameState, a: Actor, b: Actor): boolean {

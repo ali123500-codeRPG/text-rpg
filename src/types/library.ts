@@ -1,4 +1,5 @@
 // Library content shapes (Part 1 §3 skills, Part 3 body type database, Part 4 classes/templates, Part 5 items, routine bank).
+import type { IntelligenceKey } from '../scales';
 import type { AttackMode, ItemDef } from './items';
 import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
@@ -174,6 +175,7 @@ export type RaceDef = {
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
+  intelligence: IntelligenceKey; // an INTELLIGENCE key (src/scales.ts)
 };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].
@@ -188,7 +190,7 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 /** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
-export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor';
+export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -200,5 +202,6 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   renown?: number; // every foe fighting the owner takes this much off its first morale check against the owner
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
+  firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };

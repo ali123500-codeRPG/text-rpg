@@ -399,11 +399,11 @@ export function prototypeLibrary(): Library {
     // Humans and elves for now, identical
     // innate perks and quirks per race: lists, empty until chosen
     races: {
-      [RC.human]: { id: RC.human, name: 'Human', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
-      [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
+      [RC.human]: { id: RC.human, name: 'Human', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent' },
+      [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'], intelligence: 'intelligent' },
       // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
-      [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [] },
-      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [] },
+      [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'unintelligent' },
+      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi' },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     zoneKinds: Object.fromEntries(([
@@ -426,11 +426,11 @@ export function prototypeLibrary(): Library {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level. Names grow grander with the feat.
       // after = the lower level it builds on; earning it switches the lower one off.
       [ACH.first_defeat_body_type]: { id: ACH.first_defeat_body_type, name: 'First {body_type} Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'body_type' },
-      [ACH.defeats_10_body_type]: { id: ACH.defeats_10_body_type, name: '{body_type}bane', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'body_type', after: ACH.first_defeat_body_type },
-      [ACH.defeats_100_body_type]: { id: ACH.defeats_100_body_type, name: 'Scourge of the {body_type} Hordes', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'body_type', after: ACH.defeats_10_body_type, readsHealth: true },
+      [ACH.defeats_10_body_type]: { id: ACH.defeats_10_body_type, name: '{body_type}bane', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'body_type', after: ACH.first_defeat_body_type, firstSight: 'unintelligent' },
+      [ACH.defeats_100_body_type]: { id: ACH.defeats_100_body_type, name: 'Scourge of the {body_type} Hordes', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'body_type', after: ACH.defeats_10_body_type, readsHealth: true, firstSight: 'semi', excludes: ['firstSight'] },
       [ACH.first_defeat_race]: { id: ACH.first_defeat_race, name: 'First of {race}kind Felled', level: 'i', rule: 'defeats', tags: ['combat'], count: 1, by: 'race' },
-      [ACH.defeats_10_race]: { id: ACH.defeats_10_race, name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'race', after: ACH.first_defeat_race },
-      [ACH.defeats_100_race]: { id: ACH.defeats_100_race, name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'race', after: ACH.defeats_10_race },
+      [ACH.defeats_10_race]: { id: ACH.defeats_10_race, name: 'Bane of {race}kind', level: 'ii', rule: 'defeats', tags: ['combat'], count: 10, by: 'race', after: ACH.first_defeat_race, firstSight: 'unintelligent' },
+      [ACH.defeats_100_race]: { id: ACH.defeats_100_race, name: 'Scourge of {race}kind', level: 'iii', rule: 'defeats', tags: ['combat'], count: 100, by: 'race', after: ACH.defeats_10_race, firstSight: 'semi', excludes: ['firstSight'] },
       [ACH.defeats_10]: { id: ACH.defeats_10, name: 'Blooded Fighter', level: 'i', rule: 'defeats', tags: ['combat'], count: 10 },
       [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_10 },
       [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iii', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
