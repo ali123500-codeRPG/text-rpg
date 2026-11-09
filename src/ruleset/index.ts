@@ -107,7 +107,7 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
 
 function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const actor = mustActor(state, req.actorId);
-  const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId, fullValue: req.fullValue });
+  const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId, fullValue: req.fullValue, standInFns: req.standInFns });
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
@@ -182,7 +182,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
   const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
-  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id }, state, rng);
+  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, standInFns: mode.standInFns }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
 

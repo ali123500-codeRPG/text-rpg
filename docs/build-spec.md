@@ -24,7 +24,7 @@ Skills are grouped into trees of exactly three. Example only: Tactics = Preparat
 
 - Combat – Arms: light weapons, medium weapons, heavy weapons
 - Combat – Ranged: light ranged, medium ranged, heavy ranged
-- Combat – Unarmed: strike, grapple, improvisation; they behave the same for now (Part 5 §5). Improvisation is fighting with whatever is at hand: improvised weapons (Part 5 §7) roll it (Ali, 07/11/2026). Natural weapons is a creature-only skill outside every player tree (creatures' natural attacks roll it)
+- Combat – Unarmed: strike, grapple, improvisation; they behave the same for now (Part 5 §5). Improvisation is fighting with whatever is at hand: improvised weapons (Part 5 §7) roll it (Ali, 07/11/2026). Every improvised base has two modes (Ali, 09/11/2026): a melee **strike** and a ranged **throw** (reach 1, thrown, like throwing a vase), both rolled with Improvisation. Unarmed skills stand in for both; Arms skills also stand in for the strike and Ranged skills for the throw (`AttackMode.standInFns`, at the usual stand-in share). Natural weapons is a creature-only skill outside every player tree (creatures' natural attacks roll it)
 - Combat – Defense: dodge, block, endurance
 - Armor – Conventional (Ali, 08/11/2026, AR1–AR3): light_armor, medium_armor, heavy_armor; function armor in the Defense group; blocked for amorphous bodies. What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it (EQ1–EQ7, levels pending).
 

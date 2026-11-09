@@ -70,6 +70,13 @@ for (const id of ['persuasion', 'barter']) SKILLS[id].access = { must: [{ kind: 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
 /** armor numbers come from CONFIG (one source, Part 5 armor table) */
+/** Improvised weapons (Ali, 09/11/2026): a melee strike and a throw (like throwing a vase), both rolled with
+ * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
+ * Ranged skills for the throw. */
+const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
+  mode({ id: 'strike', tree: 'melee', class: cls, skill: 'unarmed_improvised', reach: 0, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: ['arms'] }),
+  mode({ id: 'throw', tree: 'ranged', class: cls, skill: 'unarmed_improvised', reach: 1, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: ['ranged'] }),
+];
 const ARMOR = (w: ArmorWeightKey) => ({ reduction: CONFIG.ARMOR_PROTECTION[w][0], multiplier: CONFIG.ARMOR_PROTECTION[w][1], weight: w });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: 'dodge', value: v, active: 'worn', scope: 'any' });
 
@@ -105,11 +112,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: 'healing_draught', kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
   // generic bases for minted items with no close match, and for scene objects the player grabs (loot L2, L3)
   { id: 'improvised_light', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
-    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'light', skill: 'unarmed_improvised', reach: 0, hands: 1, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
+    weapon: { modes: IMPROVISED_MODES('light', 1) } },
   { id: 'improvised_medium', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
-    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'medium', skill: 'unarmed_improvised', reach: 0, hands: 1, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
+    weapon: { modes: IMPROVISED_MODES('medium', 1) } },
   { id: 'improvised_heavy', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
-    weapon: { modes: [mode({ id: 'strike', tree: 'melee', class: 'heavy', skill: 'unarmed_improvised', reach: 0, hands: 2, hitAdj: CONFIG.IMPROVISED_HIT_ADJ })] } },
+    weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
   { id: 'curio', kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
   { id: 'bandage', kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: 'bandage' },
   { id: 'coin', kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
