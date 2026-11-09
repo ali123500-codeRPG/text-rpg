@@ -16,6 +16,8 @@ const DEFAULTS = {
   SUBSTITUTES: {
     unarmed_grapple: [{ fn: 'unarmed', k: 0.4 }, { fn: 'arms', k: 0.2 }],
   } as Record<string, { fn: string; k: number }[]>,
+  /** Pairs of skills that never stand in for each other, even when they share a function (Ali, 09/11/2026: dodge and block) */
+  NO_STAND_IN: [['dodge', 'block']] as [string, string][],
   SITUATION_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,

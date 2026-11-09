@@ -86,6 +86,7 @@ export function standInTable(skill: string, actor?: Actor): { fn: string; k: num
  * share among the table's functions that `id` has, 0 when it can't stand in */
 export function standInShare(skill: string, id: string, table = standInTable(skill), fullValue?: string[]): number {
   const skills = getLibrary().skills;
+  if (id !== skill && CONFIG.NO_STAND_IN.some(([x, y]) => (x === skill && y === id) || (x === id && y === skill))) return 0; // a named exception pair
   return id === skill || (fullValue?.includes(id) && skills[id]) ? 1 : Math.max(0, ...table.filter((t) => (skills[id]?.functions as string[] ?? []).includes(t.fn)).map((t) => t.k));
 }
 
