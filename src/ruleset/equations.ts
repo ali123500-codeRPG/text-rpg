@@ -85,7 +85,7 @@ export function equations(lib: Library): EquationGroup[] {
         formula: 'gap = tier of B − tier of A; the side with the higher tier wins, equal tiers tie' },
       { name: 'Situation roll (no skill)', at: 'situation · src/ruleset/index.ts',
         formula: `margin = d100 ${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.SITUATION_BASE - 100)} + modifiers`,
-        terms: [[`${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.SITUATION_BASE - 100)}`, `situation base ${CONFIG.SITUATION_BASE} (CONFIG.SITUATION_BASE) minus 100`], ['modifiers', 'perk, gear and status situation bonuses, stacked by type']],
+        terms: [[`${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.SITUATION_BASE - 100)}`, `situation base ${CONFIG.SITUATION_BASE} (CONFIG.SITUATION_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
         table: { head: ['Tier', 'Margin'], rows: bandRows(SITUATION_BANDS) },
         notes: ['The natural edge applies here too. There are no tier shifts.'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
