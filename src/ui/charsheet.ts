@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { achievementName, charLevel, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
+import { achievementName, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
@@ -123,7 +123,7 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   return el;
 }
 
-/** alternate capstones on offer: the default is kept until the player swaps one in (once per class) */
+/** alternate capstones on offer: the default is inactive until the player keeps it or picks an alternate (final) */
 function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
   const offers = Object.entries(p.progression?.capstoneOptions ?? {}).filter(([, ids]) => ids.length);
   if (!offers.length) return null;
@@ -132,9 +132,12 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
   const el: HTMLElement = h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Capstone choice'),
     offers.map(([classId, ids]) => {
       const base = (lib.classes[classId]?.levelPerks?.[CONFIG.CLASS_MAX_LEVEL] ?? []).map((id) => perk(id)?.name ?? id).join(', ');
-      return h('div', {}, h('span', {}, `${lib.classes[classId]?.name ?? classId}: you have ${base || 'no capstone'}. You may swap it, once, for:`),
-        h('div', { class: 'actions' }, ids.map((id) => h('button', { type: 'button', title: perk(id)?.story ?? '',
-          onclick: () => { swapCapstone(p, classId, id, s.turn); el.replaceWith(capstoneChoice(s, p) ?? ''); } }, perk(id)?.name ?? id))));
+      const redraw = () => el.replaceWith(capstoneChoice(s, p) ?? '');
+      return h('div', {}, h('span', {}, `${lib.classes[classId]?.name ?? classId}: ${base || 'the default capstone'} is inactive until you choose. The choice is final.`),
+        h('div', { class: 'actions' },
+          h('button', { type: 'button', onclick: () => { keepCapstone(p, classId); redraw(); } }, `Keep ${base || 'the default'}`),
+          ids.map((id) => h('button', { type: 'button', title: perk(id)?.story ?? '',
+            onclick: () => { swapCapstone(p, classId, id, s.turn); redraw(); } }, perk(id)?.name ?? id))));
     }));
   return el;
 }
