@@ -185,13 +185,18 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 /** scar: a negative achievement, listed under Scars instead of Achievements */
 /** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
+/** a reward field of AchievementDef */
+export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
-  /** rewards beyond XP (src/ruleset/achRewards.ts); a lower level's rewards stop when a higher level replaces it */
+  /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
+   * read from their rows; `excludes` names inherited rewards this level drops */
   perk?: string; // granted when earned, kept for good
   unawareShift?: number; // tier steps up on attacks against a target unaware of the owner
   quieter?: number; // the owner's moves are this many steps quieter on the noise scale
   readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
+  skillAdd?: Record<string, number>; // true skill added to these skills
   renown?: number; // every foe fighting the owner takes this much off its first morale check against the owner
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
+  excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };

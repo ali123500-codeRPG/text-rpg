@@ -6,7 +6,8 @@ import { makeVillage, forcedRng } from '../harness';
 import { actor } from '../harness/village';
 import { ruleset } from '../../src/ruleset';
 import { woundsMods } from '../../src/ruleset/body';
-import { deathsDoor, readsHealthOf, renownMods } from '../../src/ruleset/achRewards';
+import { deathsDoor, readsHealthOf, renownMods, rewardLines } from '../../src/ruleset/achRewards';
+import { trueSkill } from '../../src/ruleset/perks';
 import { grantAchievement } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { ACH, ACH_TAGS } from '../../src/library/achievementIds';
@@ -80,6 +81,35 @@ describe('136 achievement rewards', () => {
     expect(renownMods(s, foe, false)).toEqual([]); // not fighting you
     expect(renownMods(s, foe, true)).toEqual([{ source: 'renown: The Name That Ends Fights', type: 'achievement', value: -10 }]);
     expect(renownMods(s, foe, true)).toEqual([]); // only the first check
+  });
+  it('a level carries up its lower levels\' rewards, read from their rows: Breaker of Wills +5 Intimidation', () => {
+    const s = makeVillage();
+    s.player.core.skills[SK.intimidation] = { ...Object.values(s.player.core.skills)[0], raw: 10 };
+    const ach = getLibrary().achievements!;
+    grantAchievement(s, ACH.yielded_1);
+    expect(trueSkill(s.player, SK.intimidation)).toBe(10); // Yield or Fall: XP only
+    grantAchievement(s, ACH.yielded_10);
+    expect(trueSkill(s.player, SK.intimidation)).toBe(15);
+    grantAchievement(s, ACH.yielded_50);
+    expect(s.player.progression!.achievements!.find((x) => x.key === ACH.yielded_10)?.replacedBy).toBeDefined();
+    expect(trueSkill(s.player, SK.intimidation)).toBe(15); // carried up from Breaker of Wills
+    expect(rewardLines(ach[ACH.yielded_50])).toEqual([
+      '+5 true skill in Intimidation (from Breaker of Wills)',
+      'every foe fighting you takes -10 on its first morale check against you']);
+    const was = ach[ACH.yielded_10].skillAdd;
+    try {
+      ach[ACH.yielded_10].skillAdd = { [SK.intimidation]: 2 }; // nerf the lower level: every level above follows
+      expect(trueSkill(s.player, SK.intimidation)).toBe(12);
+    } finally { ach[ACH.yielded_10].skillAdd = was; }
+  });
+  it('a level drops an inherited reward only through its own excludes: Death Keeps Waiting', () => {
+    const ach = getLibrary().achievements!;
+    expect(rewardLines(ach[ACH.brink_5])).toEqual(['once every game day, a hit that would take you Down leaves you at Critical']);
+    const was = ach[ACH.brink_5].excludes;
+    try {
+      delete ach[ACH.brink_5].excludes;
+      expect(rewardLines(ach[ACH.brink_5])[0]).toMatch(/every 7 game days.*\(from Not Yet\)$/);
+    } finally { ach[ACH.brink_5].excludes = was; }
   });
   it('every achievement carries at least one known tag', () => {
     for (const d of Object.values(getLibrary().achievements ?? {})) {

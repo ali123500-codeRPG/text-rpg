@@ -1,6 +1,7 @@
 // Part 1 §3/§5 (perk page S1–S9): true skill and skill ladders. True skill = raw + flat, always-on
 // skill perks; ladder milestones and all-XXX perks read it. A milestone unlocks at 20, 40 … 140 true skill; taking its perk costs one
 // perk point and can be undone until the next turn is played (K3).
+import { achievementSkill } from './achRewards';
 import type { Actor, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { skillOpen } from './access';
@@ -41,7 +42,7 @@ export function trueSkill(a: Actor, skill: string): number {
     // (docs/skill-tags.md: "+1 function (including itself)"; F1: the broad group)
     if (d.functionBoost && own && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g)))) v += d.functionBoost;
     return n + v;
-  }, 0);
+  }, 0) + achievementSkill(a, skill);
 }
 
 /** F4: the owner's perk change to the stand-in share for a function (PerkDef.standIn) */

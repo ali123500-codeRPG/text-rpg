@@ -50,8 +50,8 @@ export function equations(lib: Library): EquationGroup[] {
   return [
     { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill situation roll.', equations: [
       { name: 'True skill', at: 'trueSkill · src/ruleset/perks.ts',
-        formula: 'true skill = raw + perk true skill',
-        terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), and perks that add to every skill of a function (fnSkill)']],
+        formula: 'true skill = raw + perk true skill + achievement true skill',
+        terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), and perks that add to every skill of a function (fnSkill)'], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
         notes: ['A dormant skill, or one in a tree the actor can\'t use, counts as 0.'] },
       { name: 'Effective skill', at: 'effectiveSkill · src/ruleset/gear.ts',
         formula: 'effective skill = best of ( true skill × share + gear ) × tier multiplier, over the skill and its stand-ins',
