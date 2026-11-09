@@ -58,17 +58,19 @@ const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ towa
 const intent = obj<Intent>({
   move: nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after'])),
   action: nul(obj<NonNullable<Intent['action']>>({
-    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
+    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
     target: nul(str),
     targetPart: nul(str),
     item: nul(str),
+    qty: num,
+    for: nul(str),
     mode: nul(str),
     approach: (v, p, e) => (v === null || v === undefined ? '' : str(v, p, e)),
     stance: (v, p, e) => (v === null || v === undefined ? 'normal' : oneOf(['careful', 'normal', 'reckless'] as const)(v, p, e)),
     improvised: (v, p, e) => (v === null || v === undefined ? null
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
-  })),
+  }, ['qty', 'for'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   gear: GEAR,
   spoken: nul(str),
@@ -85,9 +87,10 @@ const npcAction = obj<PlannerOutput['action']>({
   aimed: (v, p, e) => (v === undefined || v === null ? false : bool(v, p, e)),
   defense: nul(oneOf(['dodge', 'block'] as const)),
   item: nul(str),
+  qty: num,
   mode: nul(str),
   intent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
-});
+}, ['qty']);
 
 const trigger = obj<{ id: string; ownerId: string; when: unknown; then: unknown; once: boolean }>(
   { id: str, ownerId: str, when: any, then: any, once: (v, p, e) => (v === undefined ? true : bool(v, p, e)) },
@@ -165,7 +168,11 @@ const weaver = obj<StagePlan>({
     awarenessOfBands: arr(obj<{ band: string; awareness: 'unaware' | 'suspicious' | 'aware' }>({ band: str, awareness: AWARENESS })),
     overrides: arr(obj<{ actor: string; stance: Stance }>({ actor: str, stance: STANCE_WORD })),
     motive: str,
-  }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides'])),
+    wares: obj<NonNullable<Cast['wares']>>({
+      items: (v, p, e) => (v === undefined || v === null ? [] : arr(obj<{ item: string; qty?: number }>({ item: str, qty: num }, ['qty']))(v, p, e)),
+      services: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
+    }),
+  }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
     item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: 1 | 2 | 3 | 4; boosts: string; name: string; look: string }>(

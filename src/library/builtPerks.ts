@@ -28,6 +28,7 @@ export const BUILT_PERKS = new Set<string>([
   'iron_frame', // A12: src/ruleset/body.ts rolePenalty()
   'read_wounds', // A13: src/views/index.ts
   'keen_ear', // A14: src/perception/index.ts
+  'haggler', // A17 Hard Bargain, buying half (PY10): src/engine/trade.ts warePrice(); selling waits for selling
   'turn_the_blade', // A2: src/engine/perkMarks.ts
   'hunters_mark', // A5: src/engine/perkMarks.ts
   'make_them_stumble', // A10: src/engine/perkMarks.ts

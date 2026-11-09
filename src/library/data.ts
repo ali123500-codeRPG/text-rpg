@@ -12,6 +12,7 @@ import { SK, OLD_SKILL_IDS } from './skillIds';
 import { ACH } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
+import { SV } from './serviceIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
@@ -219,7 +220,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
-    id: 'trader', raceId: 'human', generation: 'copy',
+    id: 'trader', raceId: 'human', classId: CL.trader, generation: 'copy',
     minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
     focus: [{ treeId: 'perception', skill: SK.earshot }, { treeId: 'melee', skill: SK.melee_light }, { treeId: 'defense', skill: SK.dodge }],
     personality: 'timid', control: 'code', label: 'the barkeep',
@@ -337,6 +338,17 @@ export function prototypeLibrary(): Library {
       // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
       [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: 'nobody_special',
         levelPerks: { 1: ['quick_study'], 20: ['every_fall_a_lesson'] } },
+      // PY2: every NPC that sells has this class; Barter 20 unlocks it
+      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_1', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 } },
+    },
+    // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
+    // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)
+    services: {
+      [SV.drink]: { id: SV.drink, name: 'drink', price: 1 },
+      [SV.meal]: { id: SV.meal, name: 'meal', price: 2 },
+      [SV.bed]: { id: SV.bed, name: 'bed for the night', price: 5 },
+      [SV.bath]: { id: SV.bath, name: 'bath', price: 2 },
+      [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: 'clinic' },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
@@ -352,7 +364,7 @@ export function prototypeLibrary(): Library {
     durations: {
       fight_turn: { id: 'fight_turn', name: 'Fight turn', minutes: 0.1 },
       action: { id: 'action', name: 'Move, talk or other action', minutes: 1 },
-      trade: { id: 'trade', name: 'Trade', minutes: 10, orders: ['barter'] },
+      trade: { id: 'trade', name: 'Trade', minutes: 10, orders: ['barter', 'buy'] },
       rest: { id: 'rest', name: 'Rest', minutes: 60, orders: ['rest'] },
       sleep: { id: 'sleep', name: 'Sleep', minutes: 480 },
     },
