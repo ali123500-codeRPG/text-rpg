@@ -111,6 +111,13 @@ function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
   return zone ? [' · ', h('b', {}, zone), where ? ' · ' + where : ''] : where ? [' · ', h('b', {}, where)] : [];
 }
 
+/** "River path · the Riverside": the player's place and the place around it, for a place-break row */
+function placeName(s: GameState): string {
+  const place = s.places.find((x) => x.id === s.player.placeId);
+  const parent = place?.parentId ? s.places.find((x) => x.id === place.parentId) : undefined;
+  return cap([place?.names.current, parent?.names.current].filter(Boolean).join(' · '));
+}
+
 /** the player's gear and body as the UI saw them, to name what a turn changed (UI-only: nothing is stored) */
 type Snap = { gear: Map<string, { name: string; where: string; qty: number }>; parts: Record<string, string> };
 const handWord = (slot: string) => slot.replace(/^hand:/, '').replace(/_arm$/, '').replace(/_/g, ' ') + ' hand';
@@ -224,6 +231,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const entries = new WeakMap<LogLine, HTMLElement>();
   const gearOf = new WeakMap<LogLine, string[]>(); // what a turn changed in the gear, found by comparing the sheet before and after
   let snap: Snap | null = null, snapLine: LogLine | null | undefined;
+  // place and scene breaks: where each new turn happened, as the UI saw it (lines from before this page load get none)
+  const breakOf = new WeakMap<LogLine, string>(); // '' = a new scene in the same place, else the new place's name
+  let seenAt: { place: string; scene: number } | null = null;
   let changedParts = new Set<string>(); // parts whose state the last turn changed: the body figure opens once
   let limit = TURNS_SHOWN;
   const undoneOpen = new Set<number>(); // undone blocks the player unfolded, by the undo line's index
@@ -271,6 +281,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     else if (l.kind === 'command' && l.text === UNDONE) e = h('p', { class: 'ln-command' }, `Turn ${l.turn} undone. Dice are not rolled back.`);
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
+      breakOf.has(l) ? h('p', { class: 'pbreak' + (breakOf.get(l) ? '' : ' scene') }, breakOf.get(l) ?? '') : null,
       h('p', { class: 'ln-narration' }, l.text),
       l.speech?.length ? h('div', { class: 'speech' }, l.speech.flatMap((sp) => [
         h('p', { class: 'who2', style: `color:var(--${colourOf(sp.speaker)})` }, sp.speaker.toLowerCase() === 'player' ? 'You' : cap(sp.speaker),
@@ -293,6 +304,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         gearOf.set(lastNarr, gearRows(snap, cur));
         changedParts = new Set(Object.keys(cur.parts).filter((k) => snap!.parts[k] && snap!.parts[k] !== cur.parts[k]));
       }
+      const at = { place: s.player.placeId, scene: s.stage.sceneNumber };
+      if (seenAt && lastNarr && !entries.has(lastNarr) && (at.place !== seenAt.place || at.scene !== seenAt.scene))
+        breakOf.set(lastNarr, at.place !== seenAt.place ? placeName(s) : '');
+      seenAt = at;
       snap = cur; snapLine = lastNarr;
     }
     // undone turns: the lines of turn N before each "Turn undone." line, folded under one "Undone · turn N" row
