@@ -6,7 +6,7 @@ import { PK } from '../library/perkIds';
 import type { Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView } from '../views';
-import { gearRows, gearSnap, placeName, tierGap, type GearSnap } from '../agents/game';
+import { tierGap } from '../agents/game';
 import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
@@ -111,12 +111,11 @@ function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
   return zone ? [' · ', h('b', {}, zone), where ? ' · ' + where : ''] : where ? [' · ', h('b', {}, where)] : [];
 }
 
-/** the player's gear and body as the UI saw them, to name what a turn changed (UI-only: nothing is stored) */
-type Snap = { gear: GearSnap; parts: Record<string, string> };
-function snapOf(s: GameState, p: Actor): Snap {
+/** each body part's state as the UI last saw it, so the body figure opens on the turn a part changes */
+function partsOf(s: GameState, p: Actor): Record<string, string> {
   const parts: Record<string, string> = {};
   for (const d of safe(() => actorBody(s, p).parts) ?? []) parts[d.id] = poolState(p.core.condition.parts[d.id] ?? 100);
-  return { gear: gearSnap(s, p), parts };
+  return parts;
 }
 
 export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void };
@@ -176,8 +175,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   input.addEventListener('input', () => { if (suggestion) update(); });
 
   let offered: LogLine | null = null;
-  let aimedText: string | null = null; // the text sent aimed: its player line gets "· aimed"
-  const aimedLines = new WeakSet<LogLine>();
 
   async function submit() {
     const text = input.value.trim();
@@ -189,7 +186,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     input.value = '';
     suggestion = '';
     const wasAimed = aimed || cmd === '/aim';
-    aimedText = wasAimed ? text : null;
     aimed = false; // resets after the turn resolves
     await api.submit(text, { aimed: wasAimed });
   }
@@ -201,11 +197,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   // ---- the story list: one cached entry per line, so redraws never rebuild it or close an opened fold
   const entries = new WeakMap<LogLine, HTMLElement>();
-  const gearOf = new WeakMap<LogLine, string[]>(); // what a turn changed in the gear, found by comparing the sheet before and after
-  let snap: Snap | null = null, snapLine: LogLine | null | undefined;
-  // place and scene breaks: where each new turn happened, as the UI saw it (lines from before this page load get none)
-  const breakOf = new WeakMap<LogLine, string>(); // '' = a new scene in the same place, else the new place's name
-  let seenAt: { place: string; scene: number } | null = null;
+  let snap: Record<string, string> | null = null, snapLine: LogLine | null | undefined;
   let changedParts = new Set<string>(); // parts whose state the last turn changed: the body figure opens once
   let limit = TURNS_SHOWN;
   const undoneOpen = new Set<number>(); // undone blocks the player unfolded, by the undo line's index
@@ -222,7 +214,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const lib = getLibrary();
     const xp = (s?.player.progression?.xpLog ?? []).filter((a) => a.turn === l.turn).reduce((a, x) => a + x.amount, 0);
     const gains = Object.entries(l.gains ?? {}).filter(([, n]) => n);
-    const gear = gearOf.get(l) ?? [];
+    const gear = l.gear ?? [];
     const row = (k: string, ...v: (Node | string)[]) => h('p', { class: 'rrow' }, h('span', { class: 'hs-label' }, k), h('span', {}, ...v));
     const kids = [
       l.check ? checkLine(l.check) : null,
@@ -246,14 +238,21 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return kids.length ? h('div', { class: 'results' }, ...kids) : null;
   }
 
-  function entry(l: LogLine, s: GameState | null): HTMLElement {
+  /** a place or scene break before a turn's prose: the new place's name, '' for a new scene in the same place, null for none */
+  function breakFor(l: LogLine, prev: LogLine | null): string | null {
+    if (!l.place || !prev?.place) return null;
+    if (l.place.id !== prev.place.id) return l.place.name;
+    return l.scene !== undefined && prev.scene !== undefined && l.scene !== prev.scene ? '' : null;
+  }
+
+  function entry(l: LogLine, s: GameState | null, prev: LogLine | null): HTMLElement {
     let e = entries.get(l);
     if (e) return e;
-    if (l.kind === 'player') e = h('p', { class: 'ln-player' }, l.text, aimedLines.has(l) ? h('span', { class: 'aimed' }, ' · aimed') : null);
+    if (l.kind === 'player') e = h('p', { class: 'ln-player' }, l.text, l.aimed ? h('span', { class: 'aimed' }, ' · aimed') : null);
     else if (l.kind === 'command' && l.text === UNDONE) e = h('p', { class: 'ln-command' }, `Turn ${l.turn} undone. Dice are not rolled back.`);
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
-      breakOf.has(l) ? h('p', { class: 'pbreak' + (breakOf.get(l) ? '' : ' scene') }, breakOf.get(l) ?? '') : null,
+      ((b) => b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scene') }, b))(breakFor(l, prev)),
       h('p', { class: 'ln-narration' }, l.text),
       l.speech?.length ? h('div', { class: 'speech' }, l.speech.flatMap((sp) => [
         h('p', { class: 'who2', style: `color:var(--${colourOf(sp.speaker)})` }, sp.speaker.toLowerCase() === 'player' ? 'You' : cap(sp.speaker),
@@ -268,18 +267,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   }
 
   function renderStory(lines: LogLine[], s: GameState | null) {
-    // a new narration line: name the gear it changed and the body parts it changed, by comparing the sheet before and after
+    // a new narration line: the body parts it changed, by comparing the sheet before and after (opens the body figure once)
     const lastNarr = [...lines].reverse().find((l) => l.kind === 'narration') ?? null;
     if (s && !api.busy()) {
-      const cur = snapOf(s, s.player);
-      if (snap && snapLine !== undefined && lastNarr && lastNarr !== snapLine && !entries.has(lastNarr)) {
-        gearOf.set(lastNarr, gearRows(snap.gear, cur.gear));
-        changedParts = new Set(Object.keys(cur.parts).filter((k) => snap!.parts[k] && snap!.parts[k] !== cur.parts[k]));
-      }
-      const at = { place: s.player.placeId, scene: s.stage.sceneNumber };
-      if (seenAt && lastNarr && !entries.has(lastNarr) && (at.place !== seenAt.place || at.scene !== seenAt.scene))
-        breakOf.set(lastNarr, at.place !== seenAt.place ? placeName(s) : '');
-      seenAt = at;
+      const cur = partsOf(s, s.player);
+      if (snap && snapLine !== undefined && lastNarr && lastNarr !== snapLine && !entries.has(lastNarr))
+        changedParts = new Set(Object.keys(cur).filter((k) => snap![k] && snap![k] !== cur[k]));
       snap = cur; snapLine = lastNarr;
     }
     // undone turns: the lines of turn N before each "Turn undone." line, folded under one "Undone · turn N" row
@@ -292,9 +285,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const from = turns.length > limit ? turns[turns.length - limit] : -Infinity;
     const want: HTMLElement[] = [];
     if (turns.length > limit) { earlier.textContent = `Show earlier turns · ${turns.length - limit} more`; want.push(earlier); }
+    let prevNarr: LogLine | null = null; // the last narration not undone, for place and scene breaks
     lines.forEach((l, i) => {
-      if (l.turn < from) return;
       const u = undone.get(i);
+      const prev = prevNarr;
+      if (l.kind === 'narration' && u === undefined) prevNarr = l;
+      if (l.turn < from) return;
       if (u !== undefined && undone.get(i - 1) !== u) {
         let m = markers.get(u);
         if (!m) {
@@ -305,7 +301,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         m.setAttribute('aria-expanded', String(undoneOpen.has(u)));
         want.push(m);
       }
-      const e = entry(l, s);
+      const e = entry(l, s, prev);
       e.classList.toggle('undone', u !== undefined);
       e.hidden = u !== undefined && !undoneOpen.has(u);
       want.push(e);
@@ -358,7 +354,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     input.classList.toggle('suggest', offering);
     hint.textContent = offering ? 'From last turn · Tab to use, Esc to clear' : '';
 
-    if (aimedText) { const pl = [...lines].reverse().find((l) => l.kind === 'player'); if (pl && pl.text === aimedText) { aimedLines.add(pl); aimedText = null; } }
     const stick = story.scrollHeight - story.scrollTop - story.clientHeight < 40;
     renderStory(lines, s);
     const busy = api.busy();
