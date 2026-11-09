@@ -11,6 +11,7 @@ import { zoneById } from '../../src/engine/relations';
 import type { Actor, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
+import { beliefStatus } from '../../src/perception';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const NOISE = ['silent', 'faint', 'hushed', 'quiet', 'normal', 'loud', 'deafening'];
@@ -124,5 +125,40 @@ describe('127 20 perks for the new skills', () => {
     expect(covered.outcome).toBe('full_hit');
     expect(covered.multiplier).toBe(1);
     expect(covered.damage).toBeLessThan(plain.damage);
+  });
+  it('In and Out: a melee attack from hiding keeps the owner Stealthy; only the target becomes aware', () => {
+    const run = (perk: boolean) => {
+      const s = makeVillage();
+      place(s, 'patron_1', s.player.zone);
+      s.player.core.inventory.push({ id: 'w_player', itemId: 'dagger', equippedIn: ['hand:right_arm'] });
+      fit(s.player, 'dagger');
+      if (perk) give(s.player, 'in_and_out');
+      s.player.posture = 'stealthy';
+      play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
+      return { posture: s.player.posture, target: beliefStatus(s, s.actors.find((x) => x.id === 'patron_1')!, s.player) };
+    };
+    expect(run(false).posture).toBe('open');
+    const r = run(true);
+    expect(r.posture).toBe('stealthy');
+    expect(r.target).toBe('aware');
+  });
+
+  it('Blade Wall: a block with a medium melee weapon takes no outnumbered penalty; a shield or light weapon still does', () => {
+    const mods = (itemId: string, perk: boolean) => {
+      const s = makeVillage();
+      place(s, 'patron_1', s.player.zone);
+      arm(s, 'patron_1');
+      for (const i of s.player.core.inventory) delete i.equippedIn;
+      s.player.core.inventory.push({ id: 'guard', itemId, equippedIn: ['hand:right_arm'] });
+      fit(s.player, itemId);
+      s.player.core.standingDefense = 'block';
+      if (perk) give(s.player, 'blade_wall');
+      const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false, context: { defensesThisTurn: 1 } }, s, forcedRng([60, 50, 50, 50, 50]));
+      return r.defense!.modifiers.some((m) => m.source === 'outnumbered');
+    };
+    expect(mods('arming_sword', false)).toBe(true);
+    expect(mods('arming_sword', true)).toBe(false);
+    expect(mods('dagger', true)).toBe(true);
+    expect(mods('round_shield', true)).toBe(true);
   });
 });

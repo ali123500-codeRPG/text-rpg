@@ -233,6 +233,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The hit counts as a full hit: damage multiplier 1× instead of 1.5× or 2×.
 - **Lasts:** That hit.
 
+### In and Out (Combat Stealth) · A23
+
+*Story:* Only the one you strike ever sees you. When you strike from hiding, everyone else still has to spot you.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a melee attack while Stealthy.
+- **Effect:** The owner stays Stealthy. The target becomes aware of the owner. Every other observer makes a Combat Stealth contest against the owner instead of seeing it, as for a shot.
+- **Lasts:** That attack.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1
@@ -535,6 +544,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack. Once per turn.
 - **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
 - **Lasts:** That attack.
+
+### Blade Wall (Block) · B19
+
+*Story:* Let them all come. Your sword turns one blow after another. When you block with a medium weapon, being outnumbered doesn't hurt your guard.
+
+- **Kind:** Always on
+- **Trigger:** The owner blocks.
+- **Conditions:** The owner blocks with a medium melee weapon, not a shield.
+- **Effect:** The outnumbered modifier is not applied.
+- **Lasts:** Always.
 
 ## Very high milestone
 
