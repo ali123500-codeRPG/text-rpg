@@ -186,7 +186,7 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
 }
 /** sub-tabs inside one section (Perks split into milestone, All-XX, not in use, other). Every pane is
  * built, only the chosen one shows; filters and colours count the shown pane only. */
-type Pane = { key: string; title: string; n: number; content: (HTMLElement | null)[] };
+type Pane = { key: string; title: string; n: number; content: (HTMLElement | null)[]; short?: string };
 let pane = '';
 // Remembered per viewer (this browser only): which sections are folded and which sub-tab each tab had open
 const remember = <T>(key: string, fallback: T): T => { try { return JSON.parse(localStorage.getItem(key) ?? '') as T; } catch { return fallback; } };
@@ -197,7 +197,8 @@ function panes(list: Pane[]): HTMLElement[] {
   if (!list.some((p) => p.key === pane)) pane = list[0].key;
   const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, list.map((p) => h('button', {
     type: 'button', role: 'tab', 'data-pane': p.key, 'aria-selected': String(p.key === pane), onclick: () => showPane(p.key),
-  }, p.title, h('small', {}, String(p.n)))));
+    ...(p.short ? { title: p.title, 'aria-label': `${p.title}, ${p.n}` } : {}),
+  }, p.short ?? p.title, h('small', {}, String(p.n)))));
   return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: p.key !== pane }, ...(p.content.filter(Boolean) as HTMLElement[])))];
 }
 function showPane(key: string): void {
@@ -266,10 +267,10 @@ function perks(): HTMLElement[] {
     h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a red edge is a quirk.`),
     h('p', { class: 'hs-note lv-chips' }, [...new Set(all.map((d) => d.effect).flatMap((e) => (e ? [e] : [])))].sort((x, y) => x.localeCompare(y)).map((e) => chip(e, toneFor('Effect', e)))),
     ...panes([
-      { key: 'milestone', title: 'Milestone perks (20, 40, 60 …)', n: ladder.length, content: [
+      { key: 'milestone', title: 'Milestone perks (20, 40, 60 …)', short: 'Milestone', n: ladder.length, content: [
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By skill and milestone'), grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))]))),
         cardsOf('Built', ladder.filter((d) => d.built), 'None built yet.')] },
-      { key: 'all', title: 'All-XX perks', n: allParts.length, content: [
+      { key: 'all', title: 'All-XX perks', short: 'All-XX', n: allParts.length, content: [
         h('p', { class: 'hs-note' }, 'Granted when every skill of a tree reaches the step (allStep in src/library/allPerks.ts).'),
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By tree and step'), grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))]))),
         cardsOf('Built', allParts.filter((d) => d.built), 'None built yet.')] },
@@ -277,7 +278,7 @@ function perks(): HTMLElement[] {
         h('p', { class: 'hs-note' }, 'Written down but the game can\'t give them yet: not built (built: false), or not in the library at all.'),
         cardsOf('In the library, not built', all.filter((d) => !d.built), 'None.'),
         ...banked(loose)] },
-      { key: 'class', title: 'Class perks', n: classPerks.length, content: [
+      { key: 'class', title: 'Class perks', short: 'Class', n: classPerks.length, content: [
         h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts). Capstones come at the class\'s top level (set by its tier): the default one, or an alternate whose conditions hold; the Classes tab shows what each alternate needs.'),
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classCols, classRows)),
         cardsOf('Class perks', classPerks, 'No class grants a perk yet.')] },
@@ -572,7 +573,7 @@ const FACETS: Record<string, Facets> = {
   standIns: (e: { id?: string; functions?: string[]; own?: boolean }) => [['Rule', e.id ? (e.own ? 'own table' : 'flat share') : undefined], ['Tree', treeOf(e.id)],
     ...(e.functions ?? []).map((f): [string, string] => ['Function', functionName(f)])],
   gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
-    ...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]).map((f): [string, string] => ['Flag', f]), ...(i.tags ?? []).map((t): [string, string] => ['Flag', t])],
+    ...[...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]), ...(i.tags ?? [])].filter((f) => f !== i.kind).map((f): [string, string] => ['Flag', f])], // a flag that repeats the kind says nothing new
   perks: (d: PerkDef & { place?: string; skill?: string; bankedAs?: string }) => [['Banked as', d.bankedAs && ({ milestone: 'milestone perk', allX: 'All-X candidate', other: 'other' } as Record<string, string>)[d.bankedAs]], ['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)]],
   achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`]],
@@ -943,19 +944,20 @@ function fold(head: Element, open?: boolean, save = true): void {
     if (folded) foldedSet.add(k); else foldedSet.delete(k);
     keep('lv-folded', [...foldedSet]);
   }
-  head.setAttribute('aria-expanded', String(!folded));
+  head.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
 }
 // keyed by the title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new build
 const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
 function foldable(): void {
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) box(h2).classList.add('lv-folded'); });
-  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', String(!box(h2).classList.contains('lv-folded'))); h2.title = 'Click to fold or unfold'; });
+  // the heading stays a heading; a button inside it does the folding
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => {
+    const btn = h2.querySelector(':scope > .lv-foldbtn') ?? h('button', { type: 'button', class: 'lv-foldbtn', title: 'Fold or unfold' }, ...Array.from(h2.childNodes));
+    if (!btn.parentNode) h2.append(btn);
+    btn.setAttribute('aria-expanded', String(!box(h2).classList.contains('lv-folded')));
+  });
 }
 body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
-body.addEventListener('keydown', (e) => {
-  const h2 = (e.target as Element).closest(HEAD);
-  if (h2 && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); fold(h2); }
-});
 
 let shown = '';
 let notice = ''; // one-line message for the next draw (an unknown deep link)
