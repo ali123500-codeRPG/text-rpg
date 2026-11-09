@@ -453,7 +453,7 @@ export function prototypeLibrary(): Library {
       [ACH.brink_1]: { id: ACH.brink_1, name: 'Not Today', level: 'i', rule: 'brink', count: 1 },
       [ACH.brink_5]: { id: ACH.brink_5, name: 'Death Keeps Waiting', level: 'ii', rule: 'brink', count: 5, after: ACH.brink_1 },
       [ACH.crippled_1]: { id: ACH.crippled_1, name: 'Still Swinging', level: 'i', rule: 'crippled_defeats', count: 1 },
-      [ACH.crippled_10]: { id: ACH.crippled_10, name: 'Bones Heal Later', level: 'ii', rule: 'crippled_defeats', count: 10, after: ACH.crippled_1 },
+      [ACH.crippled_10]: { id: ACH.crippled_10, name: 'Bones Heal Later', level: 'ii', rule: 'crippled_defeats', count: 10, healReach: 1, after: ACH.crippled_1 },
       [ACH.zones_50]: { id: ACH.zones_50, name: 'Wanderer', level: 'i', rule: 'zones', count: 50 },
       [ACH.zones_250]: { id: ACH.zones_250, name: 'Pathfinder', level: 'ii', rule: 'zones', count: 250, after: ACH.zones_50 },
       [ACH.zones_1000]: { id: ACH.zones_1000, name: 'Walker of Every Road', level: 'iii', rule: 'zones', count: 1000, after: ACH.zones_250 },
