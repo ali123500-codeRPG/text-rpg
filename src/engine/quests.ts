@@ -37,10 +37,11 @@ function readGoal(state: GameState, g: JobOffer['goal']): QuestGoal {
   if (g.kind === 'defeat') {
     const count = whole(g.count);
     if (other(t)) return { kind: 'defeat', by: 'actor', of: t, count: 1 };
+    const noun = /^[A-Z]{2}\d+$/.test(t) ? {} : { noun: t }; // the giver's word, not a typed id
     const bt = safe(() => bodyType(state, t)) ? t : libKey(lib.bodyTypes, t);
-    if (bt) return { kind: 'defeat', by: 'body_type', of: bt, count };
+    if (bt) return { kind: 'defeat', by: 'body_type', of: bt, count, ...noun };
     const race = libKey(lib.races, t);
-    if (race) return { kind: 'defeat', by: 'race', of: race, count };
+    if (race) return { kind: 'defeat', by: 'race', of: race, count, ...noun };
   }
   if (g.kind === 'deliver' && other(g.to) && g.item) {
     if (instances(state).some((i) => i.id === g.item)) return { kind: 'deliver', item: g.item, inst: true, qty: 1, to: g.to! };

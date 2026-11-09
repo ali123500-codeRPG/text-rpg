@@ -332,7 +332,7 @@ export function questGoalText(state: GameState, q: Quest): string {
   const many = (n: string, k: number) => (k > 1 && !/s$/i.test(n) ? `${n}s` : n);
   const count = (n: string, k: number) => `${n[0].toUpperCase()}${many(n, k).slice(1)} ${q.progress} / ${k}`;
   switch (g.kind) {
-    case 'defeat': return g.by === 'actor' ? `Defeat ${who(g.of)}` : count(g.by === 'race' ? lib.races?.[g.of]?.name ?? g.of : name(() => bodyType(state, g.of).name, g.of), g.count);
+    case 'defeat': return g.by === 'actor' ? `Defeat ${who(g.of)}` : count(g.noun ?? (g.by === 'race' ? lib.races?.[g.of]?.name ?? g.of : name(() => bodyType(state, g.of).name, g.of)), g.count);
     case 'deliver': return `${count(g.inst ? itemName(state, g.item) ?? 'the item' : name(() => itemDef(state, g.item).name, g.item), g.qty)} to ${who(g.to)}`;
     case 'reach': return `Reach ${zoneById(state, g.place)?.name ?? state.places.find((p) => p.id === g.place)?.names.current ?? g.place}`;
     case 'find': return `Find ${who(g.actor)}`;

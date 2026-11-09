@@ -28,7 +28,7 @@ export type QuestState = (typeof QUEST_STATES)[number];
 export const GOAL_KINDS = ['defeat', 'deliver', 'reach', 'find', 'other'] as const;
 /** QT7: what code checks from events; "other" is judged by the giver's agent at report-back (QT6) */
 export type QuestGoal =
-  | { kind: 'defeat'; by: 'body_type' | 'race' | 'actor'; of: string; count: number }
+  | { kind: 'defeat'; by: 'body_type' | 'race' | 'actor'; of: string; count: number; noun?: string } // noun: the giver's word for them
   | { kind: 'deliver'; item: string; inst?: true; qty: number; to: string } // inst: item is one item instance, not a library item
   | { kind: 'reach'; place: string } // a zone or place id
   | { kind: 'find'; actor: string }

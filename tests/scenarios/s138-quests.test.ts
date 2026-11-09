@@ -38,7 +38,7 @@ describe('138 quests', () => {
     const s = shop();
     talk(s, offer(SLIMES));
     const [q] = s.quests;
-    expect(q).toMatchObject({ state: 'active', text: SLIMES.line, giver: 'trader', goal: { kind: 'defeat', by: 'race', of: RC.slime, count: 2 },
+    expect(q).toMatchObject({ state: 'active', text: SLIMES.line, giver: 'trader', goal: { kind: 'defeat', by: 'race', of: RC.slime, count: 2, noun: 'slimes' },
       level: CONFIG.QUEST_GAIN_LEVEL.moderate, pay: { coin: 10 }, paid: { coin: 0, qty: 0 } });
     expect(s.hidden.agreements?.[0].id).toBe(q.dealId);
     expect(questGoalText(s, q)).toBe('Slimes 0 / 2');

@@ -142,7 +142,7 @@ function questLine(s: GameState, open: (id: string) => void): HTMLElement | null
     pay ? h('span', {}, pay) : null,
     more > 0 ? h('span', { class: 'more' }, `+${more} more`) : null,
   ];
-  const label = [`Quest: ${q.text}`, step, ready ? QUEST_STATE_NAME.ready : goal, due, pay].filter(Boolean).join(', ');
+  const label = [`Quest: ${q.text}`, step, ready ? QUEST_STATE_NAME.ready : goal.replace(/(\d+) \/ (\d+)/, '$1 of $2'), due, pay].filter(Boolean).join(', ');
   return h('button', { type: 'button', class: 'quest-line', title: q.text, 'aria-label': `${label}. Opens the Quests page.`, onclick: () => open(q.id) },
     flag, h('span', { class: 'qt' }, q.text), step ? h('span', { class: 'step' }, step) : null,
     ...bits.filter((b): b is HTMLElement => !!b).flatMap((b) => [sep(), b]));
