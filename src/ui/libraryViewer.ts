@@ -12,7 +12,8 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { REWARD_LEVELS, SKILL_TIERS } from '../scales';
+import { EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS } from '../scales';
+import { requirement } from '../ruleset/requirements';
 import { fmtDate, h } from './kit';
 import { skillName } from './creation';
 import { partName } from './healing';
@@ -84,27 +85,46 @@ function effectText(e: ItemEffect): string {
   const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : skillName(String(e.skill))) : `${e.roll} rolls`;
   return `${e.value > 0 ? '+' : ''}${e.value} ${what} · ${ACTIVE[e.active]}${e.scope === 'withItem' ? ' · with this item only' : ''}${e.kit ? ' · kit' : ''}`;
 }
+function gearCard(i: ItemDef, id = i.id): HTMLElement {
+  const humanoid = lib.bodyTypes.humanoid;
+  const req = requirement(i);
+  const flags = (['concealed', 'stackable', 'consumable', 'visible'] as const).filter((f) => i[f]).map((f) => chip(f, '--c3'));
+  const covers = new Set(i.armor?.covers ?? []);
+  return card('gear', id, i, label(i.name), [chip(i.kind, '--c1'), ...flags, ...(i.tags ?? []).map((t) => chip(t, '--c7'))],
+    h('p', { class: 'lv-look' }, i.look),
+    req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
+    row('Bulk · value', `${i.bulk} · ${i.value} coin`),
+    i.hands !== undefined ? row('Hands', String(i.hands)) : null,
+    i.slot ? row('Slot', i.slot) : null,
+    i.weapon ? row('Modes', h('div', { class: 'lv-sub' }, i.weapon.modes.map((m) => h('div', {}, h('b', {}, m.id), ` · ${m.tree} ${m.class} · reach ${m.reach} · ${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      m.skill ? ` · ${skillName(m.skill)}` : '', m.thrown ? ' · thrown' : '', m.hitAdj ? ` · hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : '')))) : null,
+    i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
+      h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
+        row('Covers', val(i.armor.covers.map(label))), i.armor.pools ? row('Pools', val(i.armor.pools)) : null)) : null,
+    i.shield ? row('Shield pool', String(i.shield.pool)) : null,
+    i.effects?.length ? row('Effects', h('div', { class: 'lv-sub' }, i.effects.map((e) => h('div', {}, effectText(e))))) : null,
+    i.heal ? row('Heals as', link('healing', i.heal, lib.healing?.[i.heal]?.name ?? i.heal)) : null);
+}
 function gear(): HTMLElement[] {
   const kinds = [...new Set(Object.values(lib.items).map((i) => i.kind))];
-  const humanoid = lib.bodyTypes.humanoid;
-  return kinds.map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${label(kind)}`),
-    h('div', { class: 'lv-grid' }, Object.values(lib.items).filter((i) => i.kind === kind).map((i: ItemDef) => {
-      const flags = (['concealed', 'stackable', 'consumable', 'visible'] as const).filter((f) => i[f]).map((f) => chip(f, '--c3'));
-      const covers = new Set(i.armor?.covers ?? []);
-      return card('gear', i.id, i, label(i.name), [chip(i.kind, '--c1'), ...flags, ...(i.tags ?? []).map((t) => chip(t, '--c7'))],
-        h('p', { class: 'lv-look' }, i.look),
-        row('Bulk · value', `${i.bulk} · ${i.value} coin`),
-        i.hands !== undefined ? row('Hands', String(i.hands)) : null,
-        i.slot ? row('Slot', i.slot) : null,
-        i.weapon ? row('Modes', h('div', { class: 'lv-sub' }, i.weapon.modes.map((m) => h('div', {}, h('b', {}, m.id), ` · ${m.tree} ${m.class} · reach ${m.reach} · ${m.hands} hand${m.hands === 1 ? '' : 's'}`,
-          m.skill ? ` · ${skillName(m.skill)}` : '', m.thrown ? ' · thrown' : '', m.hitAdj ? ` · hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : '')))) : null,
-        i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
-          h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
-            row('Covers', val(i.armor.covers.map(label))), i.armor.pools ? row('Pools', val(i.armor.pools)) : null)) : null,
-        i.shield ? row('Shield pool', String(i.shield.pool)) : null,
-        i.effects?.length ? row('Effects', h('div', { class: 'lv-sub' }, i.effects.map((e) => h('div', {}, effectText(e))))) : null,
-        i.heal ? row('Heals as', link('healing', i.heal, lib.healing?.[i.heal]?.name ?? i.heal)) : null);
-    }))));
+  const all = kinds.map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${label(kind)}`),
+    h('div', { class: 'lv-grid' }, Object.values(lib.items).filter((i) => i.kind === kind).map((i) => gearCard(i)))));
+  // the starter kit: every item tagged 'starter' (starterKit in src/library/spawn.ts)
+  const kit = Object.values(lib.items).filter((i) => i.tags?.includes('starter'));
+  const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How the starter kit is given'), chip('starterKit · src/library/spawn.ts', '--c3')),
+    h('ol', { class: 'lv-steps' },
+      h('li', {}, 'After creation the player gets every item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share).'),
+      h('li', {}, 'Held: the met weapon whose required skill is highest, then the higher item level. A met shield goes in the other hand unless that weapon takes two hands.'),
+      h('li', {}, 'Worn: the highest-level armor met.'),
+      h('li', {}, 'Everything else met is carried in the pack.')));
+  const kitKinds = [...new Set(kit.map((i) => i.kind))];
+  return panes([
+    { key: 'all', title: 'All gear', n: Object.keys(lib.items).length, content: all },
+    { key: 'starter', title: 'Starter kit', n: kit.length, content: [
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Starter kit'), h('div', { class: 'lv-grid wide' }, rule)),
+      ...kitKinds.map((kind) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `Starter ${label(kind)}`),
+        h('div', { class: 'lv-grid' }, kit.filter((i) => i.kind === kind).map((i) => gearCard(i, `starter-${i.id}`)))))] },
+  ]);
 }
 
 // ---------- Perks: the ladder grid (skill × milestone), then every perk ----------
@@ -130,11 +150,19 @@ function toneOf(group: string, value: string): string {
 const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Group', standIns: 'Function' };
 let colourBy = '';
 const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : d.allStep ? `All-${d.allStep.step}` : 'no milestone');
+/** a banked write-up's tag (PerkWriteup.bankedAs / aimAt): what it is meant to become */
+const treeOfSkill = (s?: string) => (s ? lib.trees[lib.skills[s]?.treeId ?? '']?.name : undefined);
+function bankedText(d: PerkWriteup): string {
+  if (d.bankedAs === 'milestone') return `banked: ${d.aimAt ? `${d.aimAt} perk` : 'milestone perk'}${d.skill ? ` · ${skillName(d.skill)}` : ''}`;
+  if (d.bankedAs === 'allX') return `banked: ${d.aimAt ? `All-${d.aimAt}` : 'All-X'} candidate${treeOfSkill(d.skill) ? ` · ${treeOfSkill(d.skill)}` : ''}`;
+  return 'banked: other';
+}
 function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   const r = d.rules;
   return card(sec, d.id, d, d.name, [
     d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`, '--c1') : 'allStep' in d && d.allStep ? chip(`${ms(d)} · ${lib.trees[d.allStep.treeId]?.name ?? d.allStep.treeId}`, '--c12')
       : chip(('place' in d ? d.place : '') || 'no milestone', '--c3'),
+    'bankedAs' in d && d.bankedAs ? chip(bankedText(d), '--c14') : null,
     d.effect ? chip(d.effect, EFFECT_TONE[d.effect]) : null,
     d.quirk ? chip('quirk', '--danger') : null,
     'built' in d && d.built !== undefined ? chip(d.built ? 'built' : 'not built', d.built ? '--ok' : '--warn') : null],
@@ -145,7 +173,7 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   d.functionBoost ? row('Same-group skills (itself too)', `+${d.functionBoost} each`) : null,
   d.trueSkillTo ? row('True skill to', val(Object.fromEntries(Object.entries(d.trueSkillTo).map(([k, v]) => [skillName(k), `+${v}`])))) : null,
   d.numbers ? row('Numbers', val(d.numbers)) : null,
-  ...fields(d as Entry, ['id', 'name', 'story', 'rules', 'ladder', 'effect', 'built', 'quirk', 'trueSkill', 'functionBoost', 'trueSkillTo', 'numbers', 'ref', 'skill', 'place', 'allStep']));
+  ...fields(d as Entry, ['id', 'name', 'story', 'rules', 'ladder', 'effect', 'built', 'quirk', 'trueSkill', 'functionBoost', 'trueSkillTo', 'numbers', 'ref', 'skill', 'place', 'allStep', 'bankedAs', 'aimAt']));
 }
 /** sub-tabs inside one section (Perks split into milestone, All-XX, not in use, other). Every pane is
  * built, only the chosen one shows; filters and colours count the shown pane only. */
@@ -177,6 +205,30 @@ const grid = (corner: string, cols: string[], rows: [string, (col: string) => Pe
   h('tbody', {}, rows.map(([name, at]) => h('tr', {}, h('td', {}, h('b', {}, name)), cols.map((c) => h('td', {}, at(c).map(cell))))))));
 const cardsOf = (title: string, list: (PerkDef | PerkWriteup)[], empty: string) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title),
   list.length ? h('div', { class: 'lv-grid' }, list.map((d) => perkCard('perks', d))) : h('p', { class: 'hs-note' }, empty));
+/** "Written, not in the library", split by what each banked write-up is meant to become (bankedAs, set in src/library/perks.ts):
+ * milestone perks (grid of skill × suggested milestone, then one section per skill), All-X candidates, other, and untagged */
+function banked(loose: (PerkDef | PerkWriteup)[]): HTMLElement[] {
+  const as = (d: PerkDef | PerkWriteup) => ('bankedAs' in d ? d.bankedAs : undefined);
+  const ms = loose.filter((d) => as(d) === 'milestone') as PerkWriteup[];
+  const aims = [...new Set(ms.map((d) => d.aimAt ?? 0))].sort((x, y) => x - y);
+  const skills = Object.keys(lib.skills).filter((s) => ms.some((d) => d.skill === s));
+  const noSkill = ms.filter((d) => !d.skill || !lib.skills[d.skill]);
+  const out: HTMLElement[] = [];
+  if (ms.length) {
+    out.push(h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `Banked milestone perks (${ms.length})`),
+      h('p', { class: 'hs-note' }, 'Grouped by skill; the columns are the suggested milestone (aimAt). Click a name to open it.'),
+      grid('Skill', aims.map((a) => (a ? `${a} perk` : 'no aim')), skills.map((s): [string, (c: string) => PerkDef[]] =>
+        [skillName(s), (c) => ms.filter((d) => d.skill === s && (d.aimAt ? `${d.aimAt} perk` : 'no aim') === c) as unknown as PerkDef[]]))));
+    for (const s of skills) out.push(cardsOf(`Banked · ${skillName(s)}`, ms.filter((d) => d.skill === s), 'None.'));
+    if (noSkill.length) out.push(cardsOf('Banked milestone perks with no skill', noSkill, 'None.'));
+  }
+  const allX = loose.filter((d) => as(d) === 'allX');
+  out.push(cardsOf(`Banked All-X candidates (${allX.length})`, allX, 'None.'));
+  out.push(cardsOf('Banked, other', loose.filter((d) => as(d) === 'other'), 'None right now.'));
+  const untagged = loose.filter((d) => !as(d));
+  if (untagged.length) out.push(cardsOf('Written, not in the library, no banked tag', untagged, 'None.'));
+  return out;
+}
 function perks(): HTMLElement[] {
   const all = Object.values(lib.perks);
   const ladder = all.filter((d) => d.ladder);
@@ -206,7 +258,7 @@ function perks(): HTMLElement[] {
       { key: 'unused', title: 'Not in use', n: unused.length, content: [
         h('p', { class: 'hs-note' }, 'Written down but the game can\'t give them yet: not built (built: false), or not in the library at all.'),
         cardsOf('In the library, not built', all.filter((d) => !d.built), 'None.'),
-        cardsOf('Written, not in the library', loose, 'None.')] },
+        ...banked(loose)] },
       { key: 'other', title: 'Other', n: other.length, content: [
         cardsOf('Built, with no milestone and no All-XX step', other, 'None right now: every built perk is a milestone or an All-XX perk.')] },
     ]),
@@ -380,7 +432,7 @@ const FACETS: Record<string, Facets> = {
     ...(e.functions ?? []).map((f): [string, string] => ['Function', functionName(f)])],
   gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
     ...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]).map((f): [string, string] => ['Flag', f]), ...(i.tags ?? []).map((t): [string, string] => ['Flag', t])],
-  perks: (d: PerkDef & { place?: string; skill?: string }) => [['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
+  perks: (d: PerkDef & { place?: string; skill?: string; bankedAs?: string }) => [['Banked as', d.bankedAs && ({ milestone: 'milestone perk', allX: 'All-X candidate', other: 'other' } as Record<string, string>)[d.bankedAs]], ['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)]],
   achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.by ? `per ${d.by.replace('_', ' ')}` : 'total defeats']],
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
