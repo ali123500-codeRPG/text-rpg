@@ -189,26 +189,16 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .msg.ok { color: var(--ok); } .msg.bad { color: var(--warn); }
 
 /* Play screen */
-.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto minmax(0, 1fr); }
-.play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
-.log-wrap { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
-.log { overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-4); padding-right: var(--space-2); min-height: 0; }
 .log p { margin: 0; }
 .ln-player { color: var(--accent); font-weight: 700; }
 .ln-player::before { content: "› "; color: var(--faint); }
-.ln-narration { color: var(--text); white-space: pre-wrap; font: 16px/1.55 var(--font-story); }
-.check { font-size: 13px; color: var(--muted); margin-top: -10px !important; display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; }
+.check { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; }
 .check .ci { color: var(--accent); width: 16px; height: 16px; vertical-align: 0; }
 .check .sk { color: var(--text); font-weight: 700; }
 .check .tier { padding: 0 7px; border-radius: var(--r-pill); font-weight: 700; font-size: 12px; line-height: 20px; color: var(--text); background: color-mix(in srgb, var(--tc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--tc) 60%, transparent); }
 .check .tier.great { --tc: var(--ok); } .check .tier.ok { --tc: var(--accent); } .check .tier.near { --tc: var(--warn); } .check .tier.bad { --tc: var(--danger); }
 .check .gap { color: var(--faint); }
 .check .res b { color: var(--text); }
-.line { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--space-3); align-items: center; }
-.line .who2 { font-weight: 800; text-align: right; }
-.line .how { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
-.line q { font: italic 16px/1.55 var(--font-story); quotes: "\201C" "\201D"; }
-.line q.shout { font-weight: 700; }
 .changes summary { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-size: 13px; color: var(--muted); list-style: none; min-height: 28px; }
 .changes summary::-webkit-details-marker { display: none; }
 .changes summary::before { content: "\203A"; width: 14px; color: var(--muted); }
@@ -216,7 +206,6 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .changes .sum { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .chg { border-collapse: collapse; margin: 4px 0 0 22px; font-size: 13px; }
 .chg td { padding: 4px 12px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
-.who { display: flex; align-items: center; gap: var(--space-2) var(--space-4); flex-wrap: wrap; margin-top: calc(-1 * var(--space-3)); }
 .who .pp { display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 10px; border: 1px solid var(--border); border-radius: var(--r-pill); font-size: 13px; }
 .who .st { color: var(--muted); }
 .who .st.warn { color: var(--warn); } .who .st.down { color: var(--danger); }
@@ -228,22 +217,16 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .helps li button span { color: var(--faint); font-size: 13px; }
 .helps .cmds { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 .helps .cmds button { justify-content: flex-start; }
-.idea-groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 var(--space-6); }
+.idea-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--tile-min), 1fr)); gap: var(--space-3) var(--space-6); }
 .idea-groups .hs-label { padding: 0 8px 6px; border-bottom: 2px solid var(--accent); margin-bottom: 4px; }
 .ln-clarify { color: var(--warn); }
 .ln-command, .ln-notice { color: var(--muted); font-size: 13px; white-space: pre-wrap; }
 .log p { overflow-wrap: anywhere; }
-.working { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); margin: 14px 0; }
 .working .secs { font-variant-numeric: tabular-nums; opacity: .8; }
 .working .slow { flex-basis: 100%; font-size: 13px; padding-left: 28px; }
 .spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .9s linear infinite; flex: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.mech { border-top: 1px solid var(--border); padding-top: var(--space-3); display: grid; gap: var(--space-2); }
-.mech ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 13px; color: var(--muted); }
-.mech li { white-space: normal; overflow-wrap: anywhere; } /* long lines wrap, never widen the story column */
 .notices { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.inbar { display: flex; gap: var(--space-3); align-items: center; }
-.inbar .hs-input { flex: 1; min-width: 0; }
 .fell { display: grid; gap: var(--space-4); align-content: start; padding-top: var(--space-9); }
 .fell h2 { font-size: 34px; font-weight: 800; margin: 0; }
 .confirm { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
@@ -291,9 +274,6 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-sk.zero .n, .cs-sk.zero .num { color: var(--faint); }
 .cs-bar { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); }
 .cs-bar > b { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--t); }
-.play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6); min-height: 0; }
-.play-wrap:has(.cs-side.folded) { grid-template-columns: minmax(0, 1fr) auto; }
-.cs-side { border-left: 1px solid var(--border); padding-left: var(--space-6); display: grid; gap: 14px; align-content: start; overflow-y: auto; min-height: 0; }
 .cs-side-h { display: flex; justify-content: space-between; align-items: center; }
 /* Deals (PM5, K1 c): an "N deals" chip beside the scene title opens the player's deals, gold-edged and tinted as promises */
 .dl-wrap { position: relative; display: inline-block; margin-left: 14px; vertical-align: middle; font: 14px/1.4 var(--font-round); }
@@ -345,7 +325,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .hs-rail a { position: relative; }
 .hs-badge { position: absolute; top: 4px; right: 8px; min-width: 18px; padding: 1px 5px; border-radius: 999px; background: var(--scene-mark); color: #1b2140; font-size: 11px; font-weight: 800; line-height: 16px; text-align: center; letter-spacing: 0; }
 .mk-dot { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--scene-mark); box-shadow: 0 0 6px var(--scene-mark); vertical-align: middle; }
-.cs-mini .r.up { margin: 0 -6px; padding: 1px 6px; border-radius: 6px; background: color-mix(in oklch, var(--scene-mark) 14%, transparent); box-shadow: 0 0 0 1px color-mix(in oklch, var(--scene-mark) 45%, transparent); }
+.cs-mini .r.up { padding: 1px 6px; border-radius: 6px; background: color-mix(in oklch, var(--scene-mark) 14%, transparent); box-shadow: 0 0 0 1px color-mix(in oklch, var(--scene-mark) 45%, transparent); }
 .cs-mini .r .gain { margin-left: 6px; color: var(--scene-mark); font-size: 11px; font-weight: 800; }
 .perk-new { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 10px 12px; border: 1px solid color-mix(in oklch, var(--scene-mark) 55%, transparent); border-radius: var(--r-lg);
   background: linear-gradient(90deg, color-mix(in oklch, var(--scene-mark) 16%, transparent), color-mix(in oklch, var(--scene-mark) 4%, transparent)); color: #ffe7a6; font-weight: 600; }
@@ -463,14 +443,84 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--c3) 25%, transparent); }
 .stealthy-b .st-i { width: 15px; height: 15px; }
 .inbar.stealthy .hs-input { border-color: var(--c3); border-style: dashed; box-shadow: 0 0 0 3px color-mix(in oklch, var(--c3) 18%, transparent); }
-@media (max-width: 760px) {
-  .inbar { flex-wrap: wrap; }
-  .inbar .hs-input { flex: 1 0 100%; order: -1; }
-  .inbar button.st-act .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-}
 .tod[data-tip]:hover::after, .tod[data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + 6px); transform: translateX(-50%);
   white-space: nowrap; padding: 4px 10px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid color-mix(in oklch, var(--tod) 55%, transparent);
   color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: 0; z-index: 5; pointer-events: none; }
 .tod:focus-visible { outline: none; }
 .tone-bad { color: var(--danger); }
 .tone-muted { color: var(--muted); }
+
+/* Play screen, layout A "Book with a status strip": fixed rows (header, who's here, story and input), one reading column
+   of 68ch on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
+.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) minmax(0, 1fr); }
+.playmain > .fell { grid-row: 3; }
+.play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
+.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
+.play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
+/* the reading measure: about 70 characters a line of Literata 17px (58ch, as Literata's figures run wide); the free space
+   goes to the right margin */
+.play { --measure: 58ch; }
+.col { font: 17px/1.6 var(--font-story); width: min(100%, var(--measure)); box-sizing: border-box; }
+.col > * { font: 14px/1.4 var(--font-round); }
+.story { overflow-y: auto; min-height: 0; scrollbar-color: var(--rule) transparent;
+  mask-image: linear-gradient(to bottom, transparent, black var(--space-4)); } /* lines leave softly under the who's-here row */
+.story .col { padding-top: var(--space-4); }
+/* a stronger veil behind the column (never solid) so the stars and cloud don't pass behind the letters */
+.play { font: 17px/1.6 var(--font-story); margin-left: calc(-1 * var(--space-8)); padding-left: var(--space-8);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--bg) var(--veil1), transparent) calc(var(--measure) + var(--space-8) + var(--space-6)), transparent calc(var(--measure) + var(--space-8) + var(--space-9) * 2)); }
+.story .col, .sec.col { padding-right: var(--space-6); }
+.story .col { padding-bottom: var(--space-4); }
+.log { display: flex; flex-direction: column; gap: var(--space-4); }
+.log:focus-visible { outline-offset: 4px; }
+.log p { margin: 0; overflow-wrap: anywhere; }
+.ln-narration { color: var(--text); white-space: pre-wrap; font: 17px/1.6 var(--font-story); text-wrap: pretty; }
+.ln-player .aimed { color: var(--muted); font-weight: 400; }
+.turn { display: grid; gap: var(--space-3); }
+/* speaker lines: the names in one column sized to the longest, the lines beside them */
+.speech { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: var(--space-2) var(--space-3); align-items: center; }
+.speech .who2 { font-weight: 800; text-align: right; }
+.speech .how { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.speech q { font: 17px/1.6 var(--font-story); quotes: "\201C" "\201D"; }
+.speech q.shout { font-weight: 700; }
+.speech q.whisper { color: var(--muted); }
+.speech .stage { color: var(--muted); font: italic 17px/1.6 var(--font-story); }
+/* each turn's results under its prose: quieter than the story, one hairline above */
+.results { display: grid; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border); }
+.rrow { display: flex; gap: var(--space-3); align-items: baseline; font-size: 13px; color: var(--muted); }
+.rrow .hs-label { min-width: 48px; }
+.results .perk-new { margin: 0; }
+.rolls summary { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; list-style: none; min-height: 28px; }
+.rolls summary::-webkit-details-marker { display: none; }
+.rolls summary::before { content: "\203A"; width: 14px; color: var(--muted); }
+.rolls[open] summary::before { content: "\2304"; }
+.rolls ul { margin: 0; padding: 0 0 0 22px; list-style: none; display: grid; gap: 2px; font-size: 13px; color: var(--muted); }
+.rolls li { overflow-wrap: anywhere; }
+.story.no-rolls .rolls { display: none; }
+.undone { text-decoration: line-through; text-decoration-color: var(--faint); opacity: .7; }
+.undone-row { justify-self: start; background: none; border: 0; padding: 0; min-height: 28px; cursor: pointer; color: var(--faint); font: inherit; }
+.undone-row::before { content: "\203A  "; } .undone-row[aria-expanded="true"]::before { content: "\2304  "; }
+.earlier { justify-self: start; }
+.working { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); margin: var(--space-4) 0 0; }
+/* who's here: one row that keeps its height, empty or full */
+.who { display: flex; align-items: center; gap: var(--space-2) var(--space-4); flex-wrap: nowrap; overflow: hidden; min-width: 0; height: var(--control-h); }
+.who .pp { flex: none; }
+/* input: the box takes the column's width, the tools sit in one row under it */
+.inbar { display: grid; gap: var(--space-2); }
+.inrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); }
+.inbar .hs-input.suggest::placeholder { color: var(--muted); font-style: italic; }
+.in-hint:empty { display: none; }
+.tools { display: flex; align-items: center; gap: var(--space-2) var(--space-3); flex-wrap: wrap; }
+.inbar button.aim { width: calc(var(--space-9) * 2); justify-content: center; }
+.helps { max-height: calc(var(--vh) * .4); overflow-y: auto; }
+/* the status strip (default) and the full sheet; the full sheet is the HISAB side panel: pushes, never covers */
+.cs-side { border-left: 1px solid var(--border); padding-left: var(--space-6); display: grid; gap: var(--space-4); align-content: start; overflow-y: auto; min-height: 0; }
+.cs-strip { display: grid; gap: var(--space-2); background: none; border: 0; padding: var(--space-2); margin: calc(-1 * var(--space-2)); border-radius: var(--r-md); text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.cs-strip:hover { background: var(--accent-soft); }
+.cs-strip .hs-label { color: var(--accent); }
+.cs-held { display: grid; gap: 2px; font-size: 13px; color: var(--muted); }
+.cs-stl { justify-self: start; font-size: 13px; font-weight: 700; color: var(--c3); }
+.cs-hw { text-align: right; font-weight: 600; }
+.cs-pchips { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; }
+.cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
+.ps-damaged { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
+.rolls-sw[aria-pressed="true"] { color: var(--text); }
