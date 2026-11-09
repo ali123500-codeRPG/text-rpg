@@ -22,6 +22,10 @@ export const ACH = {
   deals_1: 'AC40', deals_10: 'AC41', deals_100: 'AC42',
   days_7: 'AC43', days_30: 'AC44', days_100: 'AC45',
   class_unlock: 'AC46', defeats_250: 'AC47',
+  class_max_1: 'AC48', class_max_3: 'AC49', class_max_5: 'AC50', class_max_10: 'AC51',
+  class_max_tier_1: 'AC52', class_max_tier_2: 'AC53', class_max_tier_3: 'AC54',
+  class_tiers_2: 'AC55', class_tiers_4: 'AC56', class_tiers_all: 'AC57',
+  char_level_10: 'AC58',
 } as const;
 /** what each achievement rule counts, for display; the count is AchievementDef.count */
 export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
@@ -31,6 +35,8 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   zones: 'different zones entered', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',
   flawless: 'fights won without losing HP, after at least one defense roll', outnumbered: `fights won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
   brink: 'fights survived after reaching Critical health (once per fight)',
+  class_max: 'classes at their top level', class_max_tiers: 'class tiers with a class at its top level',
+  char_level: 'character levels, again at every multiple',
 };
 /** the tree mastery achievement for an All-XXX step */
 export const MASTERY_ACH: Record<number, string> = { 50: ACH.mastery_50, 100: ACH.mastery_100, 150: ACH.mastery_150 };

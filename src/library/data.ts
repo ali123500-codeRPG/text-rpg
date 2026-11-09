@@ -2,6 +2,7 @@
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
 import type { ArmorWeightKey } from '../scales';
+import { CLASS_TIERS } from '../scales';
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef, SkillGroup, XpCategory } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
@@ -464,6 +465,18 @@ export function prototypeLibrary(): Library {
       [ACH.days_30]: { id: ACH.days_30, name: 'Seasoned', level: 'ii', rule: 'days', count: 30, after: ACH.days_7 },
       [ACH.days_100]: { id: ACH.days_100, name: 'Old Blood', level: 'iii', rule: 'days', count: 100, after: ACH.days_30 },
       [ACH.class_unlock]: { id: ACH.class_unlock, name: '{class} Awakened', level: 'i', rule: 'class_unlock', count: 1, by: 'class' },
+      // classes at their top level: in all, per class tier (one, then several in the same tier), and across tiers
+      [ACH.class_max_1]: { id: ACH.class_max_1, name: 'Path Walked to Its End', level: 'i', rule: 'class_max', count: 1 },
+      [ACH.class_max_3]: { id: ACH.class_max_3, name: 'Thrice Mastered', level: 'ii', rule: 'class_max', count: 3, after: ACH.class_max_1 },
+      [ACH.class_max_5]: { id: ACH.class_max_5, name: 'Master of Many Paths', level: 'iii', rule: 'class_max', count: 5, after: ACH.class_max_3 },
+      [ACH.class_max_10]: { id: ACH.class_max_10, name: 'The Thousand-Faced', level: 'iv', rule: 'class_max', count: 10, after: ACH.class_max_5 },
+      [ACH.class_max_tier_1]: { id: ACH.class_max_tier_1, name: 'Peak of {tier}', level: 'i', rule: 'class_max', count: 1, by: 'class_tier' },
+      [ACH.class_max_tier_2]: { id: ACH.class_max_tier_2, name: 'Twin Peaks of {tier}', level: 'ii', rule: 'class_max', count: 2, by: 'class_tier' },
+      [ACH.class_max_tier_3]: { id: ACH.class_max_tier_3, name: 'Crown of {tier}', level: 'iii', rule: 'class_max', count: 3, by: 'class_tier', after: ACH.class_max_tier_2 },
+      [ACH.class_tiers_2]: { id: ACH.class_tiers_2, name: 'Across Two Heights', level: 'ii', rule: 'class_max_tiers', count: 2 },
+      [ACH.class_tiers_4]: { id: ACH.class_tiers_4, name: 'Across the Heights', level: 'iii', rule: 'class_max_tiers', count: 4, after: ACH.class_tiers_2 },
+      [ACH.class_tiers_all]: { id: ACH.class_tiers_all, name: 'Every Height Climbed', level: 'iv', rule: 'class_max_tiers', count: CLASS_TIERS.keys.length, after: ACH.class_tiers_4 },
+      [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Risen to Level {level}', level: 'zero', rule: 'char_level', count: 10, every: 10 },
     },
   });
   // ST1: a skill's tree is wherever the trees table lists it, so moving a skill is one edit there

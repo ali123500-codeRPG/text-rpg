@@ -179,8 +179,10 @@ export type RaceDef = {
  * and its Bane bonus is the lower level's bonus plus its own. */
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
 export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
-  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink';
+  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
-export type AchievementBy = 'body_type' | 'race' | 'group' | 'class';
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
-export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string; scar?: true };
+export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string; scar?: true;
+  /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
+  every?: number };

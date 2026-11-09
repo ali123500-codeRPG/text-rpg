@@ -10,7 +10,7 @@ import { tierMult } from '../ruleset/gear';
 import { ruleMet, skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { groupName, groupsOf } from '../library/functionNames';
-import { TIERS } from '../scales';
+import { CLASS_TIERS, TIERS } from '../scales';
 import { PK } from '../library/perkIds';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
@@ -47,6 +47,7 @@ export function spendXp(state: GameState): void {
     (pr.xpLog ??= []).push({ source: 'level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
+  classFeats(state);
   unlockClasses(state); // a class-level perk can unlock a class (Commoner 5 opens A Nobody)
   const cur = p.core.classes.find((c) => c.state === 'current');
   if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the top level
@@ -54,6 +55,19 @@ export function spendXp(state: GameState): void {
     p.core.classes.push({ classId: c.id, state: 'unlocked', level: 0 });
     logCode(state, 'class_unlocked', { classId: c.id });
   }
+}
+
+/** class and level achievements: classes at their top level (in all, per class tier, tiers covered) and every 10 levels */
+function classFeats(state: GameState): void {
+  const p = state.player;
+  const top = p.core.classes.filter((c) => c.level > 0 && capped(c));
+  const tierOf = (id: string) => getLibrary().classes[id]?.tier;
+  const byTier = new Map<string, number>();
+  for (const c of top) { const t = tierOf(c.classId); if (t) byTier.set(t, (byTier.get(t) ?? 0) + 1); }
+  if (top.length) tally(state, 'class_max', { to: top.length });
+  for (const [t, n] of byTier) tally(state, 'class_max', { by: 'class_tier', of: t, to: n });
+  if (byTier.size) tally(state, 'class_max_tiers', { to: byTier.size });
+  tally(state, 'char_level', { to: charLevel(p) });
 }
 
 function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
@@ -214,8 +228,11 @@ export function tally(state: GameState, rule: AchievementRule, o: { by?: Achieve
   const t = (pr.tally ??= {});
   const k = o.by ? `${rule}:${o.by}:${o.of}` : rule;
   t[k] = o.to === undefined ? (t[k] ?? 0) + 1 : Math.max(t[k] ?? 0, o.to);
-  for (const [key, d] of Object.entries(getLibrary().achievements ?? {}))
-    if (d.rule === rule && d.by === o.by && d.count !== undefined && t[k] >= d.count) grantAchievement(state, key, o.of);
+  for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
+    if (d.rule !== rule || d.by !== o.by || d.count === undefined || t[k] < d.count) continue;
+    if (d.every) for (let n = d.count; n <= t[k]; n += d.every) grantAchievement(state, key, String(n)); // earned at every multiple
+    else grantAchievement(state, key, o.of);
+  }
 }
 
 /** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names.
@@ -247,5 +264,6 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   if (d.rule === 'mastery' && a.of) what = lib.trees?.[a.of]?.name ?? a.of;
   if (d.by === 'group' && a.of) what = groupName(a.of);
   if (d.by === 'class' && a.of) what = lib.classes?.[a.of]?.name ?? a.of;
-  return d.name.replace(/\{(body_type|race|tree|group|class)\}/g, title(what));
+  if (d.by === 'class_tier' && a.of && CLASS_TIERS.has(a.of)) what = CLASS_TIERS.name(a.of);
+  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level)\}/g, title(what));
 }
