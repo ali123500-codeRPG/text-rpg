@@ -47,6 +47,7 @@ function card(sec: string, id: string, entry: unknown, title: string, chips: (HT
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
 function val(v: unknown, depth = 0): Node | string {
   if (v === null || v === undefined) return none('—');
+  if (v instanceof Node) return v;
   if (Array.isArray(v)) {
     if (!v.length) return none('empty');
     if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(String(x))));
@@ -59,9 +60,11 @@ function val(v: unknown, depth = 0): Node | string {
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
-  const perkName = (id: string) => lib.perks[id]?.name ?? id;
-  if (k === 'unlockPerk' && typeof v === 'string') return perkName(v); // class fields name perks by id
-  if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, (ids as string[]).map(perkName)]));
+  // fields that hold perk ids show each perk as a link that opens its details
+  const perkLinks = (ids: string[]) => links('perks', ids.map((id) => [id, lib.perks[id]?.name ?? id]));
+  if (k === 'unlockPerk' && typeof v === 'string') return perkLinks([v]);
+  if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, perkLinks(ids as string[])]));
+  if (/perks?$|quirks?$/i.test(k) && Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && lib.perks[x])) return perkLinks(v as string[]);
   if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => [a, named(a, b)])) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
   if (SKILL_KEYED.has(k) && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([a, b]) => [skillName(a), b]));
   return v;
@@ -259,7 +262,10 @@ function perks(): HTMLElement[] {
   const allRows = Object.values(lib.trees).filter((t) => allParts.some((d) => d.allStep!.treeId === t.id))
     .map((t): [string, (c: string) => PerkDef[]] => [t.name, (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
   const classLevels = [...new Set(classes.flatMap((c) => Object.keys(c.levelPerks ?? {}).map(Number)))].sort((x, y) => x - y).map(String);
-  const classRows = classes.map((c): [string, (col: string) => PerkDef[]] => [`${c.name} · ${CLASS_TIERS.name(c.tier)}`, (col) => (c.levelPerks?.[+col] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
+  // capstones (ClassDef.capstones) get their own column: picked at the level cap, each with its own access rule
+  const classCols = [...classLevels.map((l) => `Level ${l}`), ...(classes.some((c) => c.capstones?.length) ? ['Capstones'] : [])];
+  const classRows = classes.map((c): [string, (col: string) => PerkDef[]] => [`${c.name} · ${CLASS_TIERS.name(c.tier)}`,
+    (col) => (col === 'Capstones' ? (c.capstones ?? []).map((x) => x.perk) : c.levelPerks?.[+col.replace('Level ', '')] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
   return [
     h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a red edge is a quirk.`),
     h('p', { class: 'hs-note lv-chips' }, Object.entries(EFFECT_TONE).map(([e, t]) => chip(e, t))),
@@ -276,8 +282,8 @@ function perks(): HTMLElement[] {
         cardsOf('In the library, not built', all.filter((d) => !d.built), 'None.'),
         ...banked(loose)] },
       { key: 'class', title: 'Class perks', n: classPerks.length, content: [
-        h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts).'),
-        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classLevels.map((l) => `Level ${l}`), classRows.map(([n, at]) => [n, (c: string) => at(c.replace('Level ', ''))]))),
+        h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts). Capstones are picked at the level cap; the Classes tab shows what each one needs.'),
+        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classCols, classRows)),
         cardsOf('Class perks', classPerks, 'No class grants a perk yet.')] },
       { key: 'other', title: 'Other', n: other.length, content: [
         cardsOf('Built, with no milestone, All-XX step or class', other, 'None right now: every built perk is a milestone, All-XX or class perk.')] },
@@ -586,8 +592,29 @@ const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
 const titleEl = h('h1', {});
 const body = h('div', { class: 'lv-body' });
+// Refresh: posts a comment sent to Claude (the comments capability), which wakes the viewer's thread to rebuild
+// from main and republish. Hidden when the page runs outside claude.ai or the viewer can't send to Claude.
+const refreshNote = h('span', { class: 'lv-refresh-note' });
+const refresh = h('button', { type: 'button', class: 'hs-btn-main lv-refresh', hidden: true }, 'Refresh from code');
+type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
+const claudeRt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
+claudeRt?.use('comments').then(async (api) => {
+  if (!api || (await api.canSendToClaude().catch(() => 'off')) !== 'available') return;
+  refresh.hidden = false;
+  refresh.onclick = async () => {
+    (refresh as HTMLButtonElement).disabled = true;
+    refreshNote.textContent = 'Asking Claude to rebuild…';
+    try {
+      await api.sendToClaude({ anchor: await api.anchorFor(refresh), text: `Refresh the library viewer: rebuild from main and republish (this page is commit ${__BUILD__.sha}).` });
+      refreshNote.textContent = 'Sent. Reload the page in a few minutes to see the new build.';
+    } catch {
+      refreshNote.textContent = 'Could not reach Claude from here. Leave a comment and send it to Claude instead.';
+      (refresh as HTMLButtonElement).disabled = false;
+    }
+  };
+}).catch(() => undefined);
 const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl,
-  h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`)), search), bar, body);
+  h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)), search), bar, body);
 document.body.append(rail, main);
 
 const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card:not(.lv-fixed)'))].filter((c) => !c.closest('.lv-pane[hidden]'));

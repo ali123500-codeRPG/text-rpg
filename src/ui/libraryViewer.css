@@ -89,3 +89,5 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-group.lv-folded > h2.hs-section::after { transform: rotate(-90deg); }
 .lv-group > h2.hs-section:hover, .lv-group > h2.hs-section:focus-visible { color: var(--text); }
 .lv-group.lv-folded > :not(h2) { display: none !important; }
+.lv-refresh { min-height: 28px; padding: 0 10px; font-size: .85em; margin-left: 8px; vertical-align: middle; }
+.lv-refresh-note { font-size: .85em; opacity: .8; }
