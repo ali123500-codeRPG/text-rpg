@@ -1,8 +1,10 @@
 // NPC generation from templates (Part 4 §4) and player creation.
-import type { Actor, CreationBuild, GameState, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
+import type { Actor, CreationBuild, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
+import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
+import { EQUIP_LEVELS } from '../scales';
 import { createRng } from '../rng';
 import { SK } from './skillIds';
 import { skillName } from './skillNames';
@@ -134,7 +136,29 @@ export const newPlayer = (classId = PLAYER_CLASS): Pick<Actor['core'], 'bodyType
   classes: [{ classId, state: 'current', level: startLevel(classId) }],
   perks: [...racePerks('human'), ...classPerks(classId, 0, startLevel(classId))],
 });
-const STARTING_GEAR = ['arming_sword', 'round_shield', 'gambeson'];
+
+/** The starter kit (Ali, 09/11/2026): after creation the player gets every item tagged 'starter' whose equip requirement
+ * their skills meet. Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
+ * that weapon takes two hands; worn: the highest-level armor met. The rest is carried. */
+export function starterKit(a: Actor): ItemInstance[] {
+  const lib = getLibrary();
+  const met = Object.values(lib.items).filter((d) => d.tags?.includes('starter') && !shortBy(a, d));
+  const lvl = (d: ItemDef) => EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude');
+  const score = (d: ItemDef) => { const r = requirement(d); return (r ? skillToward(a, r.skill) : 0) * 10 + lvl(d); };
+  const best = (ds: ItemDef[]) => ds.reduce<ItemDef | undefined>((b, d) => (!b || score(d) > score(b) ? d : b), undefined);
+  const weapon = best(met.filter((d) => d.kind === 'weapon'));
+  const shield = (weapon?.hands ?? 1) < 2 ? best(met.filter((d) => d.kind === 'shield')) : undefined;
+  const armor = met.filter((d) => d.armor).reduce<ItemDef | undefined>((b, d) => (!b || lvl(d) > lvl(b) || (lvl(d) === lvl(b) && score(d) > score(b)) ? d : b), undefined);
+  return met.map((d, n) => {
+    const inst: ItemInstance = { id: `player_${d.id}_${n + 1}`, itemId: d.id };
+    if (d === weapon) inst.equippedIn = (d.hands ?? 1) > 1 ? ['hand:right_arm', 'hand:left_arm'] : ['hand:right_arm'];
+    if (d === shield) inst.equippedIn = ['hand:left_arm'];
+    if (d === armor) inst.equippedIn = ['armor'];
+    if (d.shield) inst.pools = { shield: 100 };
+    if (d.armor?.pools) inst.pools = Object.fromEntries(Object.keys(d.armor.pools).map((k) => [k, 100]));
+    return inst;
+  });
+}
 
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
@@ -186,7 +210,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
   if (errs.length) throw new Error(`invalid build: ${errs.join('; ')}`);
   const skills = Object.fromEntries(Object.entries(build.skills).filter(([k, v]) => v > 0 || build.tagged.includes(k))
     .map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }]));
-  return {
+  const p: Actor = {
     id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] },
     label: getLibrary().classes[build.classId ?? PLAYER_CLASS]?.label ?? 'a stranger', // the starting class's stranger label
     placeId: '', zone: '', // GAP: set by story-start scene setup (the village tavern, Part 2 Scene setup)
@@ -195,8 +219,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       ...newPlayer(build.classId ?? PLAYER_CLASS),
       skills,
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
-      inventory: [...equipLoadout(null, STARTING_GEAR, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN },
-        { id: 'player_bandage', itemId: 'bandage', qty: CONFIG.STARTING_BANDAGES }],
+      inventory: [{ id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: 'bandage', qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here
       standingDefense: (build.skills[SK.block] ?? 0) >= (build.skills[SK.dodge] ?? 0) ? 'block' : 'dodge',
     },
@@ -206,6 +229,8 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     },
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };
+  p.core.inventory.unshift(...starterKit(p)); // the starter kit reads the finished sheet's skills
+  return p;
 }
 
 /** Copy NPCs follow their template live (the level × POINTS_PER_LEVEL lever must reach existing
