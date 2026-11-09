@@ -6,7 +6,7 @@ import type {
 } from '../types';
 import { CONFIG } from '../config';
 import { COVER, TIERS } from '../scales';
-import { actorBody, getLibrary, itemDef } from '../library';
+import { actorBody, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
@@ -15,13 +15,13 @@ import { baneMods } from './bane';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { shortShifts } from './requirements';
-import { blockItem, isHeld, openHandArm, effectiveSkill, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
+import { blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 
 export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
-export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational } from './gear';
+export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills } from './gear';
 
 // Tiers are keys of the TIERS table (src/scales.ts). Arithmetic (shifts, gaps) works on a tier's level: its row
 // position plus `beyond`, the steps a shifted roll went past either end (Part 1 §4: shifted tiers are not clamped).
@@ -107,8 +107,7 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
 
 function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const actor = mustActor(state, req.actorId);
-  const fnSkills = req.fn ? Object.values(getLibrary().skills).filter((s) => ((s as { functions?: string[] }).functions ?? []).includes(req.fn!)).map((s) => (s as { id: string }).id) : [];
-  const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...fnSkills], standInFns: req.standInFns });
+  const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? fnSkills(req.fn) : [])], standInFns: req.standInFns });
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));

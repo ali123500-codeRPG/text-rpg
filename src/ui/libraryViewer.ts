@@ -120,11 +120,12 @@ function toneOf(group: string, value: string): string {
 /** the filter group each table is coloured by at first; any group can be picked with its "Colour" button */
 const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Group', standIns: 'Function' };
 let colourBy = '';
-const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : 'no milestone');
+const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : d.allStep ? `All-${d.allStep.step}` : 'no milestone');
 function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   const r = d.rules;
   return card(sec, d.id, d, d.name, [
-    d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`, '--c1') : chip(('place' in d ? d.place : '') || 'no milestone', '--c3'),
+    d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`, '--c1') : 'allStep' in d && d.allStep ? chip(`${ms(d)} · ${lib.trees[d.allStep.treeId]?.name ?? d.allStep.treeId}`, '--c12')
+      : chip(('place' in d ? d.place : '') || 'no milestone', '--c3'),
     d.effect ? chip(d.effect, EFFECT_TONE[d.effect]) : null,
     d.quirk ? chip('quirk', '--danger') : null,
     'built' in d && d.built !== undefined ? chip(d.built ? 'built' : 'not built', d.built ? '--ok' : '--warn') : null],
@@ -135,12 +136,14 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   d.functionBoost ? row('Same-group skills (itself too)', `+${d.functionBoost} each`) : null,
   d.trueSkillTo ? row('True skill to', val(Object.fromEntries(Object.entries(d.trueSkillTo).map(([k, v]) => [skillName(k), `+${v}`])))) : null,
   d.numbers ? row('Numbers', val(d.numbers)) : null,
-  ...fields(d as Entry, ['id', 'name', 'story', 'rules', 'ladder', 'effect', 'built', 'quirk', 'trueSkill', 'functionBoost', 'trueSkillTo', 'numbers', 'ref', 'skill', 'place']));
+  ...fields(d as Entry, ['id', 'name', 'story', 'rules', 'ladder', 'effect', 'built', 'quirk', 'trueSkill', 'functionBoost', 'trueSkillTo', 'numbers', 'ref', 'skill', 'place', 'allStep']));
 }
 function perks(): HTMLElement[] {
   const all = Object.values(lib.perks);
   const skills = Object.keys(lib.skills).filter((s) => all.some((d) => d.ladder?.skill === s));
-  const steps = [...new Set(all.map((d) => d.ladder!.milestone))].sort((a, b) => a - b);
+  // All-XX parts (allStep) have no ladder: they sit in their own section, not the milestone grid
+  const steps = [...new Set(all.flatMap((d) => (d.ladder ? [d.ladder.milestone] : [])))].sort((a, b) => a - b);
+  const allParts = all.filter((d) => d.allStep);
   const at = (s: string, m: number) => all.filter((d) => d.ladder?.skill === s && d.ladder.milestone === m);
   const loose = [...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => !lib.perks[d.id]);
   const quirks = all.filter((d) => d.quirk).length;
@@ -151,7 +154,8 @@ function perks(): HTMLElement[] {
       h('thead', {}, h('tr', {}, h('th', {}, 'Skill'), steps.map((m) => h('th', {}, `${m} perk`)))),
       h('tbody', {}, skills.map((s) => h('tr', {}, h('td', {}, h('b', {}, skillName(s))), steps.map((m) => h('td', {}, at(s, m).map((d) =>
         h('a', { class: `lv-cell${d.built ? '' : ' unbuilt'}${d.quirk ? ' quirk' : ''}`, href: `#perks/${d.id}`, style: `--tg: var(${EFFECT_TONE[d.effect ?? ''] ?? '--c3'})` }, d.name))))))))),
-    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'In the library'), h('div', { class: 'lv-grid' }, all.map((d) => perkCard('perks', d)))),
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'In the library'), h('div', { class: 'lv-grid' }, all.filter((d) => !d.allStep).map((d) => perkCard('perks', d)))),
+    allParts.length ? h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'All-XX perks (every skill of a tree at the step)'), h('div', { class: 'lv-grid' }, allParts.map((d) => perkCard('perks', d)))) : null,
     loose.length ? h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Written, no milestone yet (not in the library)'),
       h('div', { class: 'lv-grid' }, loose.map((d) => perkCard('perks', d)))) : null,
   ].filter(Boolean) as HTMLElement[];
@@ -291,7 +295,7 @@ const FACETS: Record<string, Facets> = {
   gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
     ...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]).map((f): [string, string] => ['Flag', f]), ...(i.tags ?? []).map((t): [string, string] => ['Flag', t])],
   perks: (d: PerkDef & { place?: string; skill?: string }) => [['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
-    ['State', d.quirk ? 'quirk' : undefined], ['Tree', treeOf(d.ladder?.skill ?? d.skill)]],
+    ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)]],
   achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.by ? `per ${d.by.replace('_', ' ')}` : 'total defeats']],
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Tree', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
