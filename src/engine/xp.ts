@@ -11,6 +11,7 @@ import { ruleMet, skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { groupName, groupsOf } from '../library/functionNames';
 import { TIERS } from '../scales';
+import { PK } from '../library/perkIds';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
 export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
@@ -112,7 +113,7 @@ export function swapCapstone(p: Actor, classId: string, perkId: string, turn: nu
 /** Write Your Own Ending: every class in the library the owner doesn't have unlocks at level 0, its conditions
  * ignored. Returns the ids it unlocked. */
 function openEveryClass(p: Actor): string[] {
-  if (!hasPerk(p, 'write_your_own_ending')) return [];
+  if (!hasPerk(p, PK.write_your_own_ending)) return [];
   const ids = Object.keys(getLibrary().classes).filter((id) => !p.core.classes.some((x) => x.classId === id));
   for (const id of ids) p.core.classes.push({ classId: id, state: 'unlocked', level: 0 });
   return ids;

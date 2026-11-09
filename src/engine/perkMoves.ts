@@ -11,6 +11,7 @@ import { actorById, isActive } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markUntilNextTurn } from './perkMarks';
 import { SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 /** the actor has a working Grip arm with nothing held in it */
 export const freeHand = (state: GameState, a: Actor) => {
@@ -25,7 +26,7 @@ export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId
   const t = targetId ? actorById(state, targetId) : undefined;
   if (!t || t === a || !isActive(t) || t.zone !== a.zone) return 'no_target';
   if (def.perEngagement && a.engagement && !usableThisEngagement(a, perk, def.perEngagement)) return 'used_this_engagement';
-  if (perk === 'dirt_in_the_eyes' && !freeHand(state, a)) return 'no_free_hand';
+  if (perk === PK.dirt_in_the_eyes && !freeHand(state, a)) return 'no_free_hand';
   return null;
 }
 
@@ -35,13 +36,13 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
   // a perk move used outside an engagement starts one, so its once-per-engagement use is counted
   if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
   useThisEngagement(a, perk);
-  if (perk === 'dirt_in_the_eyes') {
+  if (perk === PK.dirt_in_the_eyes) {
     const req = (id: string, skill: string) => ({ actorId: id, skill, modifiers: [], tierShifts: [] });
     const c = ruleset.contested(req(a.id, SK.unarmed_improvised), req(t.id, SK.dodge), state, rng);
     markUse(state, a, c.a.skill, c);
     markUse(state, t, c.b.skill, c);
     const dodged = c.winner === 'b'; // the foe must win outright
-    if (!dodged) markUntilNextTurn(state, t, 'dirt_in_the_eyes');
+    if (!dodged) markUntilNextTurn(state, t, PK.dirt_in_the_eyes);
     return { effects: [{ kind: dodged ? 'dirt_dodged' : 'dirt_in_eyes', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   return { effects: [] };

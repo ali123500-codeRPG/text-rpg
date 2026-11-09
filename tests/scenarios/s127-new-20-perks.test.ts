@@ -12,6 +12,7 @@ import type { Actor, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { beliefStatus } from '../../src/perception';
+import { PK } from '../../src/library/perkIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const NOISE = ['silent', 'faint', 'hushed', 'quiet', 'normal', 'loud', 'deafening'];
@@ -31,7 +32,7 @@ function patrolNoise(armor: string, perk: boolean) {
   const s = makeVillage({ playerZone: 'tav_common' });
   const g = place(s, 'guard_1', 'street_square');
   wear(g, armor);
-  if (perk) give(g, 'quiet_mail');
+  if (perk) give(g, PK.quiet_mail);
   installRoutines(g, 'patrol_guard', { route: ['street_door', 'street_square'] }, 'route', s.turn, createRng(1));
   const events = resolveTurn(s, { intent: null, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(s.rngState));
   return NOISE.indexOf(events.find((e) => e.kind === 'move' && e.actorId === g.id)!.noise);
@@ -57,7 +58,7 @@ describe('127 20 perks for the new skills', () => {
     const run = (perk: boolean, stealthy: boolean) => {
       const s = makeVillage({ playerZone: 'tav_common' });
       s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
-      if (perk) give(s.player, 'soft_tread');
+      if (perk) give(s.player, PK.soft_tread);
       const ev = play(s, { intent: intent({ move: { toZone: 'tav_counter' }, ...(stealthy ? { action: { type: 'sneak' } } : {}) }) });
       return NOISE.indexOf(ev.find((e) => e.kind === 'move' && e.actorId === 'player')!.noise);
     };
@@ -72,7 +73,7 @@ describe('127 20 perks for the new skills', () => {
     const run = (perk: boolean) => {
       const s = makeVillage({ playerZone: 'tav_counter' });
       zoneById(s, 'tav_counter')!.cover = 'some';
-      if (perk) give(s.player, 'melt_away');
+      if (perk) give(s.player, PK.melt_away);
       const i = intent({ action: { type: 'vanish' } });
       const legal = checkParserLegality(i, buildPlayerView(s)).illegal;
       const ev = play(s, { intent: i });
@@ -93,7 +94,7 @@ describe('127 20 perks for the new skills', () => {
       arm(s, 'patron_1');
       s.player.core.standingDefense = 'dodge';
       wear(s.player, armor);
-      if (perk) give(s.player, 'slip_the_blow');
+      if (perk) give(s.player, PK.slip_the_blow);
       return s;
     };
     const d = attackAtGap(setup('gambeson', false), 0);
@@ -113,7 +114,7 @@ describe('127 20 perks for the new skills', () => {
       s.player.core.standingDefense = 'dodge';
       wear(s.player, 'plate_harness');
       s.player.core.skills[SK.dodge] = { raw: 0, state: 'normal' };
-      if (perk) give(s.player, 'turn_aside');
+      if (perk) give(s.player, PK.turn_aside);
       return s;
     };
     // a critical attack against a failed dodge: gap −4 or worse
@@ -132,7 +133,7 @@ describe('127 20 perks for the new skills', () => {
       place(s, 'patron_1', s.player.zone);
       s.player.core.inventory.push({ id: 'w_player', itemId: 'dagger', equippedIn: ['hand:right_arm'] });
       fit(s.player, 'dagger');
-      if (perk) give(s.player, 'in_and_out');
+      if (perk) give(s.player, PK.in_and_out);
       s.player.posture = 'stealthy';
       play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
       return { posture: s.player.posture, target: beliefStatus(s, s.actors.find((x) => x.id === 'patron_1')!, s.player) };
@@ -152,7 +153,7 @@ describe('127 20 perks for the new skills', () => {
       s.player.core.inventory.push({ id: 'guard', itemId, equippedIn: ['hand:right_arm'] });
       fit(s.player, itemId);
       s.player.core.standingDefense = 'block';
-      if (perk) give(s.player, 'blade_wall');
+      if (perk) give(s.player, PK.blade_wall);
       const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false, context: { defensesThisTurn: 1 } }, s, forcedRng([60, 50, 50, 50, 50]));
       return r.defense!.modifiers.some((m) => m.source === 'outnumbered');
     };

@@ -14,6 +14,7 @@ import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../rul
 import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, wareList } from '../engine/trade';
+import { PK } from '../library/perkIds';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -22,7 +23,7 @@ const VISIBLE_PART = ['Crippled', 'Destroyed'];
  * the health track, by position, against a foe (an actor either side is opposed or hostile to) */
 const LEVEL_POS = (l: string) => CONFIG.HEALTH_TRACK.findIndex(([x]) => x === l);
 const foe = (state: GameState, a: Actor, b: Actor) => wary(state, a, b) || wary(state, b, a);
-const reads = (state: GameState, viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && hasPerk(viewer, 'read_wounds') && foe(state, viewer, other);
+const reads = (state: GameState, viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && hasPerk(viewer, PK.read_wounds) && foe(state, viewer, other);
 const healthShows = (level: string, sharp: boolean) => LEVEL_POS(level) >= LEVEL_POS(CONFIG.HEALTH_SHOWN_FROM) - (sharp ? 1 : 0);
 
 // ---------- shared helpers ----------
@@ -223,8 +224,8 @@ export function buildPlayerView(state: GameState): PlayerView {
       id: 'player', name: p.names.current,
       classes: p.core.classes.map((c) => c.classId),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
-      perks: p.core.perks.map((x) => x.perkId),
-      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p) } : {}),
+      perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
+      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id })) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',

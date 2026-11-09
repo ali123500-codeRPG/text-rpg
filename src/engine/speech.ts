@@ -8,6 +8,7 @@ import { getLibrary } from '../library';
 import { isActive, shortestPath, wary } from './relations';
 import type { ExchangeSpeech } from './types';
 import { SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 export const SPEECH_SKILL: Record<string, string> = {
   talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.persuasion, intimidate: SK.intimidation, barter: SK.barter,
@@ -51,7 +52,7 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
  * action, and the NPCs' spoken replies to it are free too */
 export function quickWord(state: GameState, intent: Intent): boolean {
   const line = intent.spoken?.trim() ?? '';
-  return hasPerk(state.player, 'quick_word') && state.mode === 'tactical' && !!intent.action && !isSpeech(intent.action.type)
+  return hasPerk(state.player, PK.quick_word) && state.mode === 'tactical' && !!intent.action && !isSpeech(intent.action.type)
     && !!line && !/[.!?]["”’)]*\s+\S/.test(line) && !!intent.addressees?.length;
 }
 
@@ -127,7 +128,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   // A16 Threaten for Answers: against an opposed or hostile listener, intimidation counts as the named skill
   const threat = (sp: string) => {
     const b = state.actors.find((x) => x.id === sp);
-    return !!b && hasPerk(p, 'threaten_for_answers') && wary(state, b, p);
+    return !!b && hasPerk(p, PK.threaten_for_answers) && wary(state, b, p);
   };
   const d = rng.d100();
   const die: Rng = { get state() { return rng.state; }, next: () => rng.next(), int: (lo, hi) => rng.int(lo, hi), d100: () => d };
@@ -141,7 +142,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     if (t && spokespeople.every(threat)) shown = aT;
     // All-50 Easy Speaker (option a): a listener who owns it answers one outcome better
     const listener = state.actors.find((x) => x.id === sp);
-    const b = ruleset.roll({ ...req(sp), tierShifts: hasPerk(listener, 'easy_speaker') ? [{ source: 'Easy Speaker', value: 1 }] : [] }, state, rng);
+    const b = ruleset.roll({ ...req(sp), tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [] }, state, rng);
     const gap = tierLevel(b) - tierLevel(mine);
     const contest: ContestResult = { a: mine, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
     const skills = [named, mine.skill, ...(t && mine.skill === SK.intimidation ? INFLUENCE() : [])];

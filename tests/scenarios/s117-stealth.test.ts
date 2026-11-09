@@ -8,6 +8,7 @@ import { stealthyArrival } from '../../src/scene/apply';
 import { spawnNpc } from '../../src/library/spawn';
 import type { ContestResult, GameState, Intent, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
@@ -158,7 +159,7 @@ describe('117 stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
-    s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: 'unblinking' } as never);
+    s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: PK.unblinking } as never);
     const calls = rig({ guard_1: [-1, 0] });
     turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
     expect(calls.map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]);

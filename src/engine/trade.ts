@@ -7,6 +7,7 @@ import { getLibrary, itemDef } from '../library';
 import { CL } from '../library/classIds';
 import { hasPerk } from '../ruleset';
 import { isActive, shortestPath, wary } from './relations';
+import { PK } from '../library/perkIds';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -43,7 +44,7 @@ export function warePrice(state: GameState, buyer: Actor, seller: Actor, wareId:
     if (seller.wares!.services.includes(id)) base = getLibrary().services?.[id]?.price;
   }
   if (base === undefined) return null;
-  const mult = CONFIG.TRADE_MARKUP * (buyer.haggle?.[seller.id] ?? 1) * (hasPerk(buyer, 'haggler') ? CONFIG.HARD_BARGAIN_BUY : 1);
+  const mult = CONFIG.TRADE_MARKUP * (buyer.haggle?.[seller.id] ?? 1) * (hasPerk(buyer, PK.haggler) ? CONFIG.HARD_BARGAIN_BUY : 1);
   return Math.max(1, Math.ceil(base * mult - 1e-9));
 }
 

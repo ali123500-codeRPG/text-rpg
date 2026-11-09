@@ -13,6 +13,7 @@ import { CLASS_TIERS } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
 import { markUse } from '../../src/ruleset/improve';
 import type { ContestResult } from '../../src/types';
+import { PK } from '../../src/library/perkIds';
 
 describe('131 Class level cap', () => {
   it('XP banks at the cap, the default class opens, and picking it takes every banked level', () => {
@@ -37,7 +38,7 @@ describe('131 Class level cap', () => {
     expect(p.core.perks.filter((x) => x.source === 'class')).toEqual([]);
     p.core.classes[1].level = 4;
     awardXp(s, xpToNext(p), 'test'); // Commoner 4 → 5, its top level: the capstone Nobody Special unlocks A Nobody
-    expect(p.core.perks.map((x) => x.perkId)).toContain('nobody_special');
+    expect(p.core.perks.map((x) => x.perkId)).toContain(PK.nobody_special);
     expect(p.core.classes).toContainEqual({ classId: CL.a_nobody, state: 'unlocked', level: 0 });
     expect(levelTarget(p)).toBeUndefined(); // Commoner is at its top level too: XP banks until A Nobody is picked
   });
@@ -52,8 +53,8 @@ describe('131 Class level cap', () => {
     const p = createPlayer(recommendedBuild(CL.a_nobody), 's1');
     expect(getLibrary().classes[CL.a_nobody].name).toBe('A Nobody');
     expect(p.core.classes).toEqual([{ classId: CL.a_nobody, state: 'current', level: 1 }]);
-    expect(p.core.perks.map((x) => x.perkId)).toEqual(['quick_study']);
-    expect(getLibrary().classes[CL.a_nobody].capstone).toEqual(['every_fall_a_lesson']);
+    expect(p.core.perks.map((x) => x.perkId)).toEqual([PK.quick_study]);
+    expect(getLibrary().classes[CL.a_nobody].capstone).toEqual([PK.every_fall_a_lesson]);
   });
 
   it('Every Fall a Lesson: losing by exactly one tier step marks, even outside the window', () => {
@@ -67,7 +68,7 @@ describe('131 Class level cap', () => {
       return p.progression!.marks!.includes(SK.dodge);
     };
     expect(lost(-1)).toBe(false); // the guard is far outside Dodge 0's window
-    p.core.perks.push({ perkId: 'every_fall_a_lesson', source: 'class', gainedTurn: 0 });
+    p.core.perks.push({ perkId: PK.every_fall_a_lesson, source: 'class', gainedTurn: 0 });
     expect([lost(-1), lost(-2), lost(1)]).toEqual([true, false, false]); // one step short marks; two short or a win don't
   });
 
@@ -75,9 +76,9 @@ describe('131 Class level cap', () => {
     const reach20 = (dodge: number) => {
       const s = makeVillage(), p = s.player; // makeVillage resets the library, so the test capstones go in after it
       const cls = getLibrary().classes[CL.swordsman];
-      cls.capstone = ['quick_study']; // stand-in perks: the real capstones are still being designed
-      cls.capstones = [{ perk: 'every_fall_a_lesson', needs: { must: [{ kind: 'skill', id: SK.dodge, level: 40 }] } },
-        { perk: 'nobody_special', needs: { must: [{ kind: 'race', id: 'dragon' }] } }];
+      cls.capstone = [PK.quick_study]; // stand-in perks: the real capstones are still being designed
+      cls.capstones = [{ perk: PK.every_fall_a_lesson, needs: { must: [{ kind: 'skill', id: SK.dodge, level: 40 }] } },
+        { perk: PK.nobody_special, needs: { must: [{ kind: 'race', id: 'dragon' }] } }];
       p.core.skills[SK.dodge] = { raw: dodge, state: 'normal' };
       p.core.perks = [];
       p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 9 }];
@@ -86,17 +87,17 @@ describe('131 Class level cap', () => {
     };
     expect(reach20(10).p.progression!.capstoneOptions).toBeUndefined(); // Dodge 10: nothing on offer
     const { s, p } = reach20(40);
-    expect(p.progression!.capstoneOptions).toEqual({ [CL.swordsman]: ['every_fall_a_lesson'] }); // the dragon one isn't met
-    expect(p.core.perks).toEqual([expect.objectContaining({ perkId: 'quick_study', dormant: true })]); // the default waits, inactive
-    expect(swapCapstone(p, CL.swordsman, 'nobody_special', s.turn)).toBe(false);
-    expect(swapCapstone(p, CL.swordsman, 'every_fall_a_lesson', s.turn)).toBe(true);
-    expect(p.core.perks.map((x) => x.perkId)).toEqual(['every_fall_a_lesson']);
-    expect(swapCapstone(p, CL.swordsman, 'every_fall_a_lesson', s.turn)).toBe(false); // once
+    expect(p.progression!.capstoneOptions).toEqual({ [CL.swordsman]: [PK.every_fall_a_lesson] }); // the dragon one isn't met
+    expect(p.core.perks).toEqual([expect.objectContaining({ perkId: PK.quick_study, dormant: true })]); // the default waits, inactive
+    expect(swapCapstone(p, CL.swordsman, PK.nobody_special, s.turn)).toBe(false);
+    expect(swapCapstone(p, CL.swordsman, PK.every_fall_a_lesson, s.turn)).toBe(true);
+    expect(p.core.perks.map((x) => x.perkId)).toEqual([PK.every_fall_a_lesson]);
+    expect(swapCapstone(p, CL.swordsman, PK.every_fall_a_lesson, s.turn)).toBe(false); // once
     const kept = reach20(40);
     expect(keepCapstone(kept.p, CL.swordsman)).toBe(true); // keeping the default makes it active and closes the offer
-    expect(kept.p.core.perks).toEqual([{ perkId: 'quick_study', source: 'class', gainedTurn: kept.s.turn }]);
+    expect(kept.p.core.perks).toEqual([{ perkId: PK.quick_study, source: 'class', gainedTurn: kept.s.turn }]);
     expect(kept.p.progression!.capstoneOptions).toEqual({});
-    expect(swapCapstone(kept.p, CL.swordsman, 'every_fall_a_lesson', kept.s.turn)).toBe(false);
+    expect(swapCapstone(kept.p, CL.swordsman, PK.every_fall_a_lesson, kept.s.turn)).toBe(false);
     expect(reach20(10).p.core.perks[0].dormant).toBeUndefined(); // nothing on offer: active at once
     makeVillage(); // restore the library
   });

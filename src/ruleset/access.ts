@@ -5,6 +5,7 @@ import type { AccessCond, Actor, TreeAccess } from '../types';
 import { getLibrary } from '../library';
 import { hasPerk, trueSkill } from './perks';
 import { skillName } from '../library/skillNames';
+import { PK } from '../library/perkIds';
 
 function holds(a: Actor, c: AccessCond): boolean {
   switch (c.kind) {
@@ -47,12 +48,12 @@ function ruleBlock(a: Actor, r?: TreeAccess): string {
 export const ruleMet = (a: Actor, r?: TreeAccess): boolean => !ruleBlock(a, r);
 
 /** why the actor can't use the tree, or '' when it can */
-export const treeBlock = (a: Actor, treeId: string): string => (hasPerk(a, 'no_road_closed') ? '' : ruleBlock(a, getLibrary().trees[treeId]?.access));
+export const treeBlock = (a: Actor, treeId: string): string => (hasPerk(a, PK.no_road_closed) ? '' : ruleBlock(a, getLibrary().trees[treeId]?.access));
 export const treeOpen = (a: Actor, treeId: string): boolean => !treeBlock(a, treeId);
 /** why the actor can't use the skill: its tree's rule, then the skill's own */
 export const skillBlock = (a: Actor, skill: string): string => {
   const s = getLibrary().skills[skill];
-  return hasPerk(a, 'no_road_closed') ? '' : treeBlock(a, s?.treeId ?? '') || ruleBlock(a, s?.access); // No Road Closed opens every tree and skill
+  return hasPerk(a, PK.no_road_closed) ? '' : treeBlock(a, s?.treeId ?? '') || ruleBlock(a, s?.access); // No Road Closed opens every tree and skill
 };
 export const skillOpen = (a: Actor, skill: string): boolean => !skillBlock(a, skill);
 /** a class tree is a tree that needs a class */

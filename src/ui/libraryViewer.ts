@@ -22,6 +22,7 @@ import { fmtDate, h } from './kit';
 import { skillName } from './creation';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
@@ -450,7 +451,7 @@ function standIns(): HTMLElement[] {
       h('li', {}, 'Light and other situation modifiers come from the skill that rolls (fnRoller), so Tremor ignores darkness.')),
     row('Functions checked this way', `FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}`),
     row('Rolls that use them', 'sneak and hide contests (stealthDetect) and noticing an ambush (resolveAmbush) in minds/state.ts; Look around in engine/resolve.ts'),
-    row('After the roll', link('perks', 'curiouser', 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
+    row('After the roll', link('perks', PK.curiouser, 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
   const fnCards = FUNCTION_ROLLS.map((f) => {
     const rows = fnSkills(f).map((id) => ({ id, tier: CONFIG.SKILL_TIER_MULT[lib.skills[id].tier] })).sort((a, b) => b.tier - a.tier);
     const asked = (SENSE_SKILL as Record<string, string>)[f];

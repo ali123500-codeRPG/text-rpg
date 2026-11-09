@@ -1,6 +1,7 @@
 // Play screen (Part 2, Play screen): place line and Claude-call count in the header, who's-here strip, narration log
 // newest last with the check line, speaker lines and folded turn changes, "…" while waiting, Commands and Ideas
 // panels (D-100, D-107), one input (/ starts a command), Aim toggle, mechanics panel, notices and the "You fell" screen.
+import { PK } from '../library/perkIds';
 import type { GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView } from '../views';
@@ -61,7 +62,7 @@ const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a
 
 // AE8: how Ideas offers each perk move against someone in view
 const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
-  dirt_in_the_eyes: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
+  [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
 };
 
 /** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Three per group. */
@@ -83,7 +84,7 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Use', items: [
       ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
       ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },
-    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.flatMap((p) => PERK_IDEA[p]
+    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.map((m) => m.id).flatMap((p) => PERK_IDEA[p]
       ? people.filter((a) => a.zone === pv.zone.id).map((a) => ({ text: PERK_IDEA[p].text(nm(a)), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ ...g, items: g.items.slice(0, 3) }));
 }

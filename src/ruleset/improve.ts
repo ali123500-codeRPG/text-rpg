@@ -10,6 +10,7 @@ import { skillOpen } from './access';
 import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
 import { SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
@@ -51,7 +52,7 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
   const tied = 'gap' in result && result.gap === 0;
   // Every Fall a Lesson: losing by exactly one tier step marks too. The gap is B − A in a contest and defense − attack in
   // an attack, so side A (the attacker) loses by one at gap +1 and side B (the defender) at gap −1.
-  const near = (who: Actor | undefined, side: 1 | -1) => 'gap' in result && result.gap === side && hasPerk(who, 'every_fall_a_lesson');
+  const near = (who: Actor | undefined, side: 1 | -1) => 'gap' in result && result.gap === side && hasPerk(who, PK.every_fall_a_lesson);
   const both = (who: Actor | undefined, r: { skill: string; asked?: string }, opp: number | undefined, side: 1 | -1) => {
     const force = tied || near(who, side);
     markIfClose(state, who, r.skill, opp, force);
