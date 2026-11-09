@@ -4,7 +4,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
-import { defaultMode, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
@@ -465,7 +465,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
     const modifiers = [
       ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
-      ...situational(state, o.skill, { light: zoneById(state, a.zone) }).modifiers, // ST21: light by tag (sight)
+      ...situational(state, fnRoller(state, a, noticeCue(o.skill) === 'sound' ? 'hearing' : 'sight'), { light: zoneById(state, a.zone), actor: a }).modifiers, // ST21: light by the rolling skill's tags (Q3)
     ];
     const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn: noticeCue(o.skill) === 'sound' ? 'hearing' : 'sight' }, state, rng); // function roll
     ev.roll = r;

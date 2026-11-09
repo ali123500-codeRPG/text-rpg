@@ -91,6 +91,12 @@ export function standInShare(skill: string, id: string, table = standInTable(ski
   return id === skill || (fullValue?.includes(id) && skills[id]) ? 1 : Math.max(0, ...table.filter((t) => (skills[id]?.functions as string[] ?? []).includes(t.fn)).map((t) => t.k));
 }
 
+/** the skills that have function `fn` (a function roll counts them all at full value, Ali 09/11/2026) */
+export const fnSkills = (fn: string): string[] => Object.values(getLibrary().skills).filter((s) => ((s.functions ?? []) as string[]).includes(fn)).map((s) => s.id);
+/** the skill a function roll will use: the best effective skill with `fn`. Callers read situational modifiers from it,
+ * so light and Night Eyes follow the skill that rolls (Q3, Ali 09/11/2026): Tremor ignores light. */
+export const fnRoller = (state: GameState, actor: Actor, fn: string): string => effectiveSkill(state, actor, fn, { fullValue: fnSkills(fn) }).skill;
+
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[] } = {}) {
   const skills = getLibrary().skills;
