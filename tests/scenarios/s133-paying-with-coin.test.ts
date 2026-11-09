@@ -8,6 +8,7 @@ import { checkParserLegality } from '../../src/agents/legality';
 import { actorById } from '../../src/engine/relations';
 import { applyHaggle, buy, coinWords, coins, warePrice } from '../../src/engine/trade';
 import { SV } from '../../src/library/serviceIds';
+import { CONFIG } from '../../src/config';
 import type { ContestResult, GameState } from '../../src/types';
 
 function shop(): GameState {
@@ -102,4 +103,30 @@ it('133g a buy naming a ware of its seller passes legality; a ware the seller la
   expect(legal(`service:${SV.drink}`, 'patron_1')).toEqual([`action.item service:${SV.drink}`]);
   // run 22: haggling over a named ware asked "Which item do you mean?" the same way
   expect(checkParserLegality(intent({ action: { type: 'barter', target: 'trader', item: `service:${SV.drink}` } }), view).illegal).toEqual([]);
+});
+
+// S1/S2: buy across the counter (seller one link away), and for someone up to two links from the buyer
+it('133h trade reach: seller within TRADE_SELLER_LINKS, recipient within TRADE_GIFT_LINKS', () => {
+  const s = shop();
+  const mags = actorById(s, 'trader')!;
+  const wim = actorById(s, 'patron_1')!;
+  mags.zone = 'tav_counter';
+  s.player.zone = 'tav_common'; // one link from the counter
+  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
+  wim.zone = 'tav_cellar'; // two links from the common room
+  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim).ok).toBe(true);
+  s.player.zone = 'street_door'; // two links from the counter: too far to buy
+  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1)).toEqual({ ok: false, reason: 'not_here' });
+  // both reaches are config values
+  const [seller, gift] = [CONFIG.TRADE_SELLER_LINKS, CONFIG.TRADE_GIFT_LINKS];
+  try {
+    (CONFIG as { TRADE_SELLER_LINKS: number }).TRADE_SELLER_LINKS = 2;
+    expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
+    s.player.zone = 'tav_common';
+    (CONFIG as { TRADE_GIFT_LINKS: number }).TRADE_GIFT_LINKS = 1;
+    expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim)).toEqual({ ok: false, reason: 'not_here' });
+  } finally {
+    (CONFIG as { TRADE_SELLER_LINKS: number }).TRADE_SELLER_LINKS = seller;
+    (CONFIG as { TRADE_GIFT_LINKS: number }).TRADE_GIFT_LINKS = gift;
+  }
 });
