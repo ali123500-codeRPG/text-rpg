@@ -156,7 +156,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   // All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against an observer who only hears
   const hushed = (sk: string, sense: string) => (sk === 'sneaking' && sense === 'hearing' && hasPerk(s, 'hushed_steps') ? { nearMissUp: 'Hushed Steps' } : {});
   const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}), ...hushed(sk, sense) });
-  const theirs = (a: Actor, sk: string) => ({ actorId: a.id, skill: sk, ...situational(state, sk, { light: zone, actor: a }), rollKind: 'perception' as const });
+  const theirs = (a: Actor, sk: string) => ({ actorId: a.id, skill: sk, ...situational(state, sk, { light: zone, actor: a }), rollKind: 'perception' as const, fn: sk }); // a function roll: the best sight (or hearing) skill at full value
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
   const sc = (state.scratch ??= {});
   const done = (sc.stealthContested as { turn: number; ids: string[] } | undefined)?.turn === state.turn ? (sc.stealthContested as { turn: number; ids: string[] }) : { turn: state.turn, ids: [] };
@@ -235,7 +235,7 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   let surprised = false;
   for (const o of observers) {
     const skill = perception[o.id]?.cue === 'sound' ? 'hearing' : 'sight';
-    const p = ruleset.roll({ actorId: o.id, skill, modifiers: [], tierShifts: [], rollKind: 'perception' }, state, rng);
+    const p = ruleset.roll({ actorId: o.id, skill, modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill }, state, rng); // function roll
     const gap = tierLevel(p) - tierLevel(ambush); // Part 1 §4 Contests: acting side wins below 0
     if (o.id === targetId && gap < 0) surprised = true;
     // ST7: a shot from stealth leaves noticing to the stealth contest (stealthDetect); a melee blow has already revealed

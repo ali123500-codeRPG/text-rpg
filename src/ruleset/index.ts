@@ -6,7 +6,7 @@ import type {
 } from '../types';
 import { CONFIG } from '../config';
 import { COVER, TIERS } from '../scales';
-import { actorBody, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
@@ -107,7 +107,8 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
 
 function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const actor = mustActor(state, req.actorId);
-  const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId, fullValue: req.fullValue });
+  const fnSkills = req.fn ? Object.values(getLibrary().skills).filter((s) => ((s as { functions?: string[] }).functions ?? []).includes(req.fn!)).map((s) => (s as { id: string }).id) : [];
+  const eff = effectiveSkill(state, actor, req.skill, { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...fnSkills], standInFns: req.standInFns });
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
     modifiers.push(...woundsMods(state, actor, eff.skill, { itemId: req.itemId, roles: req.roles }));
@@ -122,7 +123,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on
   let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
-  return { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill ? { asked: req.skill } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
+  return { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
 }
 
 function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
@@ -182,7 +183,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
   const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15
   const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
-  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id }, state, rng);
+  const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, standInFns: mode.standInFns }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
 

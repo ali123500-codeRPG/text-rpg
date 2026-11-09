@@ -474,3 +474,5 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
   white-space: nowrap; padding: 4px 10px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid color-mix(in oklch, var(--tod) 55%, transparent);
   color: var(--text); font-size: 13px; font-weight: 600; letter-spacing: 0; z-index: 5; pointer-events: none; }
 .tod:focus-visible { outline: none; }
+.tone-bad { color: var(--danger); }
+.tone-muted { color: var(--muted); }

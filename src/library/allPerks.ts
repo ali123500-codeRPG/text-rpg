@@ -14,7 +14,7 @@ export const ALL_BUNDLES: AllBundle[] = [
   { treeId: 'defense', step: 50, name: 'The Unbroken', parts: ['second_wind', 'dodgy', 'thick_hide'] },
   { treeId: 'perception', step: 50, name: 'Nothing Escapes', parts: ['spotter', 'curiouser', 'night_eyes'] }, // Light Sleeper parked (Ali, 09/11/2026)
   { treeId: 'stealth', step: 50, name: 'One with the Dark', parts: ['strike_and_fade', 'child_of_night', 'hushed_steps'] },
-  { treeId: 'speech', step: 50, name: 'Silver Voice', parts: ['soft_landing', 'easy_speaker'] }, // Read Them parked (Ali, 09/11/2026)
+  { treeId: 'speech', step: 50, name: 'Silver Voice', parts: ['soft_landing', 'easy_speaker', 'silver_words'] }, // Read Them parked; Silver Words picked in Round 4 (Ali, 09/11/2026)
 ];
 
 const part = (treeId: string, p: Omit<PerkWriteup, 'skill' | 'place' | 'allStep'>): PerkWriteup =>
@@ -120,7 +120,13 @@ export const ALL_PARTS: PerkWriteup[] = [
     rules: { kind: 'Always on', trigger: 'The owner makes a Persuasion, Intimidation or Barter roll.', conditions: ['The roll ends in a Near Miss or worse (Ali, 09/11/2026).'],
       effect: 'Tier shift +1 on that roll.', lasts: 'That roll.' } }),
   part('speech', { id: 'easy_speaker', ref: 'T7d', name: 'Easy Speaker', effect: 'speech',
-    story: 'Words slide off you. Threats and coaxing aimed at you land one outcome worse.',
-    rules: { kind: 'Always on', trigger: 'An NPC makes a Persuasion or Intimidation roll at the owner.', conditions: [],
-      effect: 'Tier shift −1 on that roll.', lasts: 'That roll.', needs: 'NPC speech aimed at the player: today only the player rolls speech, and NPCs answer with a contest roll.' } }),
+    story: 'Words slide off you. When someone tries to talk you round, your answer lands one outcome better.',
+    rules: { kind: 'Always on', trigger: 'The owner answers a speech contest: someone speaks to it with Persuasion, Intimidation or Barter.', conditions: [],
+      effect: 'Tier shift +1 on the owner\'s answering roll (Ali, 09/11/2026, option a).', lasts: 'That roll.',
+      open: 'Only the player starts speech contests today, so this helps NPC owners. When NPCs speak to the player with a roll (OQ-29), it covers the player too.' } }),
+  part('speech', { id: 'silver_words', ref: 'T7e', name: 'Silver Words', effect: 'speech',
+    story: 'You know which words land. +5 to Persuasion, Intimidation and Barter.',
+    rules: { kind: 'Always on', trigger: 'Always.', conditions: [],
+      effect: '+5 true skill in Persuasion, Intimidation and Barter (Ali, 09/11/2026, Round 4 option a; the twin of Hunter\'s Eye).', lasts: 'Always.' },
+    trueSkillTo: { persuasion: 5, intimidation: 5, barter: 5 } }),
 ];

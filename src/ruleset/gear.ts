@@ -78,21 +78,23 @@ export const tierMult = (skill: string): number => CONFIG.SKILL_TIER_MULT[getLib
 /** Stand-ins: the functions that can stand in for a skill and the share each counts at. The skill's own table
  * (CONFIG.SUBSTITUTES) or its functions at the flat CONFIG.SUBSTITUTE_EFFICIENCY; the owner's perks move each share
  * (F4, PerkDef.standIn), kept within 0–1. No actor: the shares before perks (the library viewer shows these). */
-export function standInTable(skill: string, actor?: Actor): { fn: string; k: number }[] {
-  return (CONFIG.SUBSTITUTES[skill] ?? (getLibrary().skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY })))
+export function standInTable(skill: string, actor?: Actor, extraFns: string[] = []): { fn: string; k: number }[] {
+  const base = CONFIG.SUBSTITUTES[skill] ?? (getLibrary().skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }));
+  return [...base, ...extraFns.filter((fn) => !base.some((t) => t.fn === fn)).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }))]
     .map((t) => ({ fn: t.fn, k: Math.min(1, Math.max(0, t.k + (actor ? standInAdd(actor, t.fn) : 0))) }));
 }
 /** the share skill `id` counts at when a roll needs `skill`: 1 for the skill itself (or a full-value skill), else the best
  * share among the table's functions that `id` has, 0 when it can't stand in */
 export function standInShare(skill: string, id: string, table = standInTable(skill), fullValue?: string[]): number {
   const skills = getLibrary().skills;
+  if (id !== skill && CONFIG.NO_STAND_IN.some(([x, y]) => (x === skill && y === id) || (x === id && y === skill))) return 0; // a named exception pair
   return id === skill || (fullValue?.includes(id) && skills[id]) ? 1 : Math.max(0, ...table.filter((t) => (skills[id]?.functions as string[] ?? []).includes(t.fn)).map((t) => t.k));
 }
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
-export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[] } = {}) {
+export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[] } = {}) {
   const skills = getLibrary().skills;
-  const table = standInTable(skill, actor);
+  const table = standInTable(skill, actor, ctx.standInFns);
   const share = (id: string) => standInShare(skill, id, table, ctx.fullValue);
   const cands = [skill, ...Object.keys(skills).filter((id) => id !== skill && share(id) > 0)];
   let best: { skill: string; value: number; gear: { source: string; value: number }[] } | null = null;

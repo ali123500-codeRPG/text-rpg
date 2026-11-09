@@ -5,6 +5,7 @@ import { fit, forcedRng, makeVillage, place } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
 import { grantAllSteps, shareSpotted } from '../../src/ruleset/allSteps';
 import { breakFree } from '../../src/engine/held';
+import { resolveSpeech } from '../../src/engine/speech';
 import { situational } from '../../src/ruleset/gear';
 import { achievementName } from '../../src/engine';
 import { zoneById } from '../../src/engine/relations';
@@ -43,6 +44,12 @@ describe('125 All-50 parts', () => {
     give(s.player, 'hunters_eye');
     expect(trueSkill(s.player, 'sight')).toBe(40);
     expect(trueSkill(s.player, 'hearing')).toBe(30);
+  });
+  it('Silver Words: +5 true skill in Persuasion, Intimidation and Barter', () => {
+    const s = makeVillage();
+    set(s.player, ['persuasion', 'intimidation', 'barter', 'sight'], 30);
+    give(s.player, 'silver_words');
+    expect(['persuasion', 'intimidation', 'barter', 'sight'].map((k) => trueSkill(s.player, k))).toEqual([35, 35, 35, 30]);
   });
   it("Fighter's Frame: melee hits on the owner deal ×0.9 damage before armor", () => {
     const dmg = (perk: boolean) => {
@@ -302,5 +309,22 @@ describe('125 All-50 moves', () => {
     const d = [...Array(100).keys()].map((i) => i + 1).find((x) => r(x).tier === 'near_miss')!;
     expect(r(d, 'Hushed Steps').tier).toBe('success');
     expect(r(d, 'Hushed Steps').tierShifts).toEqual([{ source: 'Hushed Steps', value: 1 }]);
+  });
+});
+
+describe('125 All-50 Easy Speaker', () => {
+  it('a listener with Easy Speaker answers the player\'s speech one outcome better', () => {
+    const s = makeVillage();
+    place(s, 'patron_1', s.player.zone);
+    const foe = s.actors.find((a) => a.id === 'patron_1')!;
+    const spy = vi.spyOn(ruleset, 'roll');
+    const shiftsOf = () => spy.mock.calls.filter((c) => c[0].actorId === 'patron_1').map((c) => c[0].tierShifts);
+    resolveSpeech(s, intent({ action: { type: 'persuade', target: 'patron_1' } }), ['patron_1'], forcedRng([50, 50]));
+    expect(shiftsOf()).toEqual([[]]);
+    spy.mockClear();
+    give(foe, 'easy_speaker');
+    resolveSpeech(s, intent({ action: { type: 'persuade', target: 'patron_1' } }), ['patron_1'], forcedRng([50, 50]));
+    expect(shiftsOf()).toEqual([[{ source: 'Easy Speaker', value: 1 }]]);
+    spy.mockRestore();
   });
 });
