@@ -52,6 +52,18 @@ export function hostile(state: GameState, a: Actor, b: Actor): boolean {
     return ac === 'loyal' || (ac === 'friend' && opposed);
   });
 }
+/** SP1: the live spar that has a and b on different sides with neither out yet (SP4, SP5) */
+export function sparBetween(state: GameState, a: Actor, b: Actor) {
+  if (a === b || !isActive(a) || !isActive(b)) return undefined;
+  return state.spars?.find((sp) => {
+    if (a.id in sp.out || b.id in sp.out) return false;
+    const sa = sp.sides.findIndex((s) => s.includes(a.id)), sb = sp.sides.findIndex((s) => s.includes(b.id));
+    return sa >= 0 && sb >= 0 && sa !== sb;
+  });
+}
+export const sparring = (state: GameState, a: Actor, b: Actor): boolean => !!sparBetween(state, a, b);
+/** a fights b: for real (hostile) or in a spar (SP1). Stance and XP rules use hostile; fighting rules use foe. */
+export const foe = (state: GameState, a: Actor, b: Actor): boolean => hostile(state, a, b) || sparring(state, a, b);
 /** wary: opposed or colder. a's alert fires when it notices b, but only hostile attacks. */
 export function wary(state: GameState, a: Actor, b: Actor): boolean {
   const s = stance(state, a, b);
@@ -62,14 +74,15 @@ export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): bo
   return AWARENESS.pos(status ?? 'unaware') >= AWARENESS.pos(min);
 }
 
-/** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to. */
+/** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to
+ * or sparring with (SP1). */
 export function isEngaged(state: GameState, actor: Actor): boolean {
   if (actor.kind === 'player' || !countsInFight(actor)) return false;
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
     if (!atLeast(b.status, 'suspicious')) return false;
     const other = actorById(state, id);
-    return !!other && countsInFight(other) && hostile(state, actor, other);
+    return !!other && countsInFight(other) && foe(state, actor, other);
   });
 }
 

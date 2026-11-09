@@ -46,6 +46,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   quests_done: 'quests finished', quests_abandoned: 'quests you gave up',
   class_max: 'classes at their top level', class_max_tiers: 'class tiers with a class at its top level',
   char_level: 'character levels, again at every multiple',
+  spar_wins: 'spars won',
 };
 /** the tree mastery achievement for an All-XXX step */
 export const MASTERY_ACH: Record<number, string> = { 50: ACH.mastery_50, 100: ACH.mastery_100, 150: ACH.mastery_150 };

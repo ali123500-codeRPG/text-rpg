@@ -157,7 +157,7 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
   const defeated: Actor[] = [];
   for (const e of events) {
     const a = e.attack;
-    if (a && a.attackerId === state.player.id && a.damage > 0) {
+    if (a && !e.spar && a.attackerId === state.player.id && a.damage > 0) { // SP8: a sparring blow defeats no one
       const t = state.actors.find((x) => x.id === a.targetId);
       if (t?.mind) {
         t.mind.hitByPlayer = true;

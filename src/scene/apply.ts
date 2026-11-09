@@ -9,6 +9,7 @@ import { installRoutines, desiredState, detectPlayer } from '../minds';
 import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
 import { actorById, isActive, zoneById } from '../engine/relations';
+import { startSpar } from '../engine/spar';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyRewards } from './validate';
 import { requirement } from '../ruleset/requirements';
@@ -184,6 +185,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (ctx.kind === 'extension' && ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0]);
   // GAP: at story start the player has no zone on the stage yet; it starts in the plan's first zone.
   if (firstZone && !state.stage.zoneIds.includes(state.player.zone)) moveTo(state, state.player, firstZone);
+  else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
 
   // ---- bands (existing bands keep theirs) ----
   for (const b of plan.bands) {
@@ -274,6 +276,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const revealWhen: Secret['revealWhen'] = r.type === 'event_in_zone' ? { ...r, zone: zoneRef(r.zone) } : { ...r, againstActorId: actorRef(r.againstActorId) };
     state.hidden.secrets.push({ ...s, holderId: actorRef(s.holderId), leakTerms: [...s.leakTerms], revealWhen });
   }
+
+  // SP2: spars the scene opens with
+  for (const sp of plan.spars ?? []) startSpar(state, sp.sides.map((x) => x.map(actorRef)), !!sp.cruel, 'weaver');
 
   // ---- rewards ----
   const { rewards, notes } = tidyRewards(state, plan);

@@ -322,6 +322,13 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     for (const t of arr(p.triggers)) checkTrigger(`plan ${p.ownerId}`, t);
   }
   for (const t of arr(seeds.triggers)) checkTrigger('seeds.triggers', t);
+  if (ctx.wake && !zones.length) err('wake_needs_zone', 'the player wakes somewhere safe: plan at least one new zone; the first one is where they wake');
+  for (const [i, sp] of arr(plan.spars).entries()) {
+    const ids = arr(sp.sides).flatMap((x) => arr(x));
+    if (arr(sp.sides).length < 2 || arr(sp.sides).some((x) => !arr(x).length)) err('bad_spar', `spar ${i}: needs two sides or more, none empty`);
+    else if (new Set(ids).size !== ids.length) err('bad_spar', `spar ${i}: a fighter is on two sides`);
+    for (const id of ids) if (!isActor(id)) err('unresolved_actor', `spar ${i}: fighter ${id} unknown`);
+  }
   for (const s of secrets) {
     if (!arr(s.leakTerms).length) err('secret_without_leak_terms', `secret ${s.id}: needs leakTerms`);
     if (!isActor(s.holderId)) err('unresolved_actor', `secret ${s.id}: holder ${s.holderId} unknown`);

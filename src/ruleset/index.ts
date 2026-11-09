@@ -7,7 +7,7 @@ import type {
 import { CONFIG } from '../config';
 import { COVER, TIERS } from '../scales';
 import { actorBody, itemDef } from '../library';
-import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
+import { actorById, foe, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
@@ -184,7 +184,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (hit) am.push({ source: `weapon: ${name}`, type: 'gear', value: hit });
   if (ranged) {
     if (dist >= 1 && CONFIG.RANGE_MODS[dist]) am.push({ source: 'range', type: 'situational', value: CONFIG.RANGE_MODS[dist] });
-    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && hostile(state, A, o));
+    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && foe(state, A, o));
     if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
@@ -407,6 +407,13 @@ export const ruleset: Ruleset = {
   applyEffects,
   recordUse,
 };
+
+/** D-54 survival roll: roll() with no skill and no modifiers; Near Miss or better survives */
+export function survivalRoll(rng: Rng): { d100: number; tier: string; survived: boolean } {
+  const d = rng.d100();
+  const level = tierOf(d, 0, [], []);
+  return { d100: d, tier: tierName(tierAt(level).tier), survived: level >= TIERS.pos('near_miss') };
+}
 
 /** morale check (Part 3, Morale): roll() with Mind.morale. Fearless never checks; reaching Critical always breaks. */
 export function moraleCheck(state: GameState, actor: Actor, rng: Rng, reason: 'level' | 'bandmate_down'): 'steady' | 'broken' | 'surrendered' {

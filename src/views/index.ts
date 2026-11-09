@@ -2,14 +2,15 @@
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState,
   AgreementView, HealthLevel, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  WeaverView, Zone, ZoneView,
+  SparView, WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
-import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, stance, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
+import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
@@ -144,6 +145,17 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
 
 const outcomeLabel = (o: string) => o.replaceAll('_', ' ');
 
+/** SP1/SP4: the spar `viewer` fights in; name turns an actor id into what the viewer shows (an id, or the player's name for it) */
+function sparView(state: GameState, viewer: Actor, name: (id: string) => string): SparView | undefined {
+  const sp = sparOf(state, viewer.id);
+  if (!sp) return undefined;
+  const mine = sp.sides.find((s) => s.includes(viewer.id))!;
+  return {
+    opponents: sp.sides.filter((s) => s !== mine).flat().map(name), allies: mine.filter((id) => id !== viewer.id).map(name),
+    limit: sparLimit(sp) as HealthLevel, cruel: !!sp.cruel, out: viewer.id in sp.out,
+  };
+}
+
 function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
   const p = e.perception[viewer.id];
   const full = p.level === 'full';
@@ -156,6 +168,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(!full ? { where: whereLabel(state, viewer.zone, e.zone) } : {}),
     ...(e.line && (full || p.cue === 'sound') ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
+    ...(full && e.spar ? { spar: true as const } : {}),
   };
 }
 
@@ -235,6 +248,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       posture: p.posture ?? 'open',
       standingDefense: p.core.standingDefense,
       ...(heldBy(state, p) ? { heldBy: callName(state, p.id, heldBy(state, p)!.id) } : {}),
+      ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
     },
     zone: zoneView(state, zoneById(state, p.zone)!),
     zones: perceivedZones(state, p.zone),
@@ -273,7 +287,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}),
       ...(b.lastSeenTurn !== undefined ? { lastSeenTurn: b.lastSeenTurn } : {}),
       source: b.source, revealed: [...b.revealed],
-      stance: stance(state, a, other), hostile: hostile(state, a, other),
+      stance: stance(state, a, other), hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
       active: isActive(other), label: callName(state, a.id, about),
       // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
       ...(about === state.player.id && b.source === 'seen' && atLeast(b.status, 'aware') && wornTitle(state) ? { title: wornTitle(state) } : {}),
@@ -298,6 +312,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(m.alarm ? { alarm: { armed: m.alarm.armed, ...(m.alarm.lastAlarmTurn !== undefined ? { lastAlarmTurn: m.alarm.lastAlarmTurn } : {}), ...(m.alarm.returnTo ? { returnTo: { id: m.alarm.returnTo.id, anchorTurn: m.alarm.returnTo.anchorTurn } } : {}) } } : {}),
       ...(lastHitBy ? { lastHitBy } : {}),
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
+      ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
       ...(isSeller(a) ? { wares: wareList(state, state.player, a) } : {}),
     },
     beliefs, perceived, told, said,
@@ -447,6 +462,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(hears ? { line: { text: e.line!.text, volume: e.line!.volume, ...(speaker ? { speaker } : {}) } } : {}),
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
+      ...(full && e.spar ? { spar: true as const } : {}),
       ...(item ? { item } : {}),
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(forWhom ? { for: forWhom } : {}),
@@ -497,7 +513,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     tier: tierName(state.stage.tier),
     time: clockSet(state) ? timeView(state) : null,
     stakes: STAKES[state.stage.tier] ?? '',
-    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}) },
+    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     stage: stageZones(state).map((z) => zoneView(state, z)),
     actors: onStage.map((a) => {
