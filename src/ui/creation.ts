@@ -7,9 +7,10 @@ import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
 import { preview } from './sheet';
+import { SK } from '../library/skillIds';
 
 export { SKILL_NAMES, skillName };
-export const SKILL_SUB: Record<string, string> = { endurance: 'sets HP', feint: 'effect not designed', riposte: 'effect not designed', disarm: 'effect not designed' };
+export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.feint]: 'effect not designed', [SK.riposte]: 'effect not designed', [SK.disarm]: 'effect not designed' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 
@@ -156,6 +157,6 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
       h('span', {}, h('span', { class: 'hs-tg cap', style: '--tg:var(--c15)' }, 'Tagged'), ' tagged skill'),
       h('span', {}, h('i', { class: 'hs-sq', style: 'background:var(--c5)' }), 'Class tree')),
     h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
-      `${total()} points, cap ${cap()}, floors medium weapons ${floors.melee_medium ?? 0} and block ${floors.block ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
+      `${total()} points, cap ${cap()}, floors medium weapons ${floors[SK.melee_medium] ?? 0} and block ${floors[SK.block] ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
       + `Kit assumed: sword +${CONFIG.KIT_BONUS}, shield +${CONFIG.KIT_BONUS}, gambeson. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)));
 }

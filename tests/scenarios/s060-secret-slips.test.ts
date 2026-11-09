@@ -5,12 +5,13 @@ import { forcedRng, makeVillage } from '../harness';
 import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
 import { act, intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 it('60 Secret slips', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   s.hidden.secrets.push({ id: 'informant', holderId: 'trader', fact: 'the captain is the informant', leakTerms: ['informant'],
-    revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 'success', againstActorId: 'trader' } });
-  const i = intent({ action: { type: 'persuade', skill: 'persuasion' }, spoken: 'Who sold us out?', addressees: ['trader'] });
+    revealWhen: { type: 'check_passed', skill: SK.persuasion, minTier: 'success', againstActorId: 'trader' } });
+  const i = intent({ action: { type: 'persuade', skill: SK.persuasion }, spoken: 'Who sold us out?', addressees: ['trader'] });
   const spokespeople = selectSpokespeople(s, i);
   // natural 00 for the player, natural 01 for the trader
   const exchange = resolveSpeech(s, i, spokespeople, forcedRng([100, 1]));

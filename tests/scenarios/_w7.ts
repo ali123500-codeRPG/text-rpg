@@ -3,6 +3,7 @@ import type { GameState, Intent, NarratorOutput } from '../../src/types';
 import { makeVillage, ScriptedClaude, type VillageOpts } from '../harness';
 import { createGame, VirtualClock } from '../../src/agents';
 import { memoryStore } from '../../src/save';
+import { SK } from '../../src/library/skillIds';
 
 export function setupGame(opts: VillageOpts & { engaged?: string[] } = {}) {
   const clock = new VirtualClock();
@@ -18,13 +19,13 @@ export function setupGame(opts: VillageOpts & { engaged?: string[] } = {}) {
 
 export const intent = (over: Partial<Intent> = {}): Intent => ({
   move: null,
-  action: { type: 'observe', skill: 'sight', target: null, targetPart: null, item: null, mode: null, approach: 'quietly', stance: 'normal' },
+  action: { type: 'observe', skill: SK.eyesight, target: null, targetPart: null, item: null, mode: null, approach: 'quietly', stance: 'normal' },
   gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...over,
 });
 
 export const speech = (type: 'talk' | 'persuade' | 'deceive', to: string, spoken: string, over: Partial<NonNullable<Intent['action']>> = {}): Intent =>
   intent({
-    action: { type, skill: 'persuasion', target: to, targetPart: null, item: null, mode: null, approach: 'with a crooked grin', stance: 'normal', ...over },
+    action: { type, skill: SK.persuasion, target: to, targetPart: null, item: null, mode: null, approach: 'with a crooked grin', stance: 'normal', ...over },
     spoken, addressees: [to],
   });
 

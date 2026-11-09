@@ -3,6 +3,7 @@ import type { Tier } from '../../src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, Order, RollRequest } from '../../src/types';
 import { makeVillage, actor, place, createRng } from '../harness';
+import { SK } from '../../src/library/skillIds';
 
 const F = vi.hoisted(() => ({
   init: {} as Record<string, number>,
@@ -39,7 +40,7 @@ vi.mock('../../src/ruleset', async (orig) => {
       attack: (req: AttackRequest): AttackResult => {
         F.attacks.push(req);
         return {
-          attack: roll({ actorId: req.attackerId, skill: 'melee_medium', modifiers: [], tierShifts: [] }), defense: F.defended ? roll({ actorId: req.targetId, skill: 'block', modifiers: [], tierShifts: [] }) : null,
+          attack: roll({ actorId: req.attackerId, skill: SK.melee_medium, modifiers: [], tierShifts: [] }), defense: F.defended ? roll({ actorId: req.targetId, skill: SK.block, modifiers: [], tierShifts: [] }) : null,
           defenseType: F.defended ? 'block' : null, gap: 0, gapShifts: [], outcome: 'full_hit', location: F.destroyPart ?? 'general', locationHow: 'rolled',
           multiplier: 1, damage: F.damage, deciding: { attack: [], defense: [], gap: [] },
           attackerId: req.attackerId, targetId: req.targetId, weaponId: req.weaponId, modeId: req.modeId ?? '',
@@ -234,9 +235,9 @@ describe('dialogue', () => {
   });
   it('one player roll, contested per spokesperson; SLIPS when the contest meets a check_passed reveal', () => {
     F.rollTier = { player: 'great_success', trader: 'near_miss', patron_1: 'critical_success' };
-    s.hidden.secrets.push({ id: 'sec', holderId: 'trader', fact: 'x', leakTerms: [], revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 'great_success', againstActorId: 'trader' } });
+    s.hidden.secrets.push({ id: 'sec', holderId: 'trader', fact: 'x', leakTerms: [], revealWhen: { type: 'check_passed', skill: SK.persuasion, minTier: 'great_success', againstActorId: 'trader' } });
     const ex = resolveSpeech(s, intent({ action: { type: 'persuade' }, spoken: 'tell me' }), ['trader', 'patron_1'], createRng(1));
-    expect(ex).toMatchObject({ skill: 'persuasion', playerTier: 'great_success', impression: 'very convincing' });
+    expect(ex).toMatchObject({ skill: SK.persuasion, playerTier: 'great_success', impression: 'very convincing' });
     expect(ex.perSpokesperson.trader).toMatchObject({ contest: { winner: 'a', gap: -2 }, slips: ['sec'] });
     expect(ex.perSpokesperson.patron_1).toMatchObject({ contest: { winner: 'b' }, slips: [] });
     resolveTurn(s, input({ intent: intent({ action: { type: 'persuade' }, spoken: 'tell me' }), spokespeople: ['trader'], exchange: ex }), createRng(1));

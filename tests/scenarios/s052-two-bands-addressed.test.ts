@@ -5,13 +5,14 @@ import { ruleset } from '../../src/ruleset';
 import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
 import { act, intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 afterEach(() => vi.restoreAllMocks());
 
 it('52 Two bands addressed', () => {
   const s = makeVillage({ playerZone: 'tav_counter' });
   place(s, 'guard_1', 'tav_counter');
-  const i = intent({ action: { type: 'talk', skill: 'persuasion' }, spoken: 'Has anyone seen the slimes?', addressees: ['trader', 'guard_1'] });
+  const i = intent({ action: { type: 'talk', skill: SK.persuasion }, spoken: 'Has anyone seen the slimes?', addressees: ['trader', 'guard_1'] });
   const spokespeople = selectSpokespeople(s, i);
   expect(spokespeople).toEqual(['trader', 'guard_1']);
   const exchange = resolveSpeech(s, i, spokespeople, createRng(5));

@@ -9,6 +9,7 @@ import { skillBlock, skillOpen, treeBlock, treeOpen } from '../../src/ruleset/ac
 import { trueSkill } from '../../src/ruleset/perks';
 import { markIfClose } from '../../src/ruleset/improve';
 import type { Actor } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 afterEach(() => resetLibrary());
 const opts = { id: 'n1', zone: 'z', placeId: 'p', bandId: 'b' };
@@ -38,10 +39,10 @@ describe('skill tree access', () => {
 
   it('SR1: intimidation is open to any race with Speech; persuasion and barter need a speaking race', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(['persuasion', 'intimidation', 'barter'].filter((k) => skillOpen(p, k))).toEqual(['persuasion', 'intimidation', 'barter']);
+    expect([SK.persuasion, SK.intimidation, SK.barter].filter((k) => skillOpen(p, k))).toEqual([SK.persuasion, SK.intimidation, SK.barter]);
     const dragon = { ...p, core: { ...p.core, raceId: 'dragon', bodyTypeId: 'winged_quadruped' } };
-    expect(['persuasion', 'intimidation', 'barter'].filter((k) => skillOpen(dragon, k))).toEqual(['intimidation']);
-    expect(skillBlock(dragon, 'barter')).toBe('Needs: Speaks');
+    expect([SK.persuasion, SK.intimidation, SK.barter].filter((k) => skillOpen(dragon, k))).toEqual([SK.intimidation]);
+    expect(skillBlock(dragon, SK.barter)).toBe('Needs: Speaks');
   });
 
   it('a block beats an opening (TA2), and a class counts only while Current or Previous at its level (TA3)', () => {
@@ -64,15 +65,15 @@ describe('skill tree access', () => {
   it('a closed tree counts as 0 and is not raised, and its points come back with access (TA4 a)', () => {
     const s = makeVillage();
     const p = s.player;
-    p.core.skills.feint = { raw: 30, state: 'normal' };
-    expect(trueSkill(p, 'feint')).toBe(30);
+    p.core.skills[SK.feint] = { raw: 30, state: 'normal' };
+    expect(trueSkill(p, SK.feint)).toBe(30);
     p.core.classes[0].state = 'unlocked';
-    expect(skillOpen(p, 'feint')).toBe(false);
-    expect(trueSkill(p, 'feint')).toBe(0);
-    markIfClose(s, p, 'feint', 30);
-    expect(p.progression!.marks).not.toContain('feint');
+    expect(skillOpen(p, SK.feint)).toBe(false);
+    expect(trueSkill(p, SK.feint)).toBe(0);
+    markIfClose(s, p, SK.feint, 30);
+    expect(p.progression!.marks).not.toContain(SK.feint);
     p.core.classes[0].state = 'current';
-    expect(trueSkill(p, 'feint')).toBe(30);
+    expect(trueSkill(p, SK.feint)).toBe(30);
   });
 
   it('every NPC template only has skills its body, race and class can use (TA9)', () => {

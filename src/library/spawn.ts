@@ -4,6 +4,8 @@ import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
 import { createRng } from '../rng';
+import { SK } from './skillIds';
+import { skillName } from './skillNames';
 
 /** a fixed seed per template id, so every copy of a template spends its level points the same way */
 const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
@@ -97,7 +99,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 }))],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
-      standingDefense: (skills.block?.raw ?? 0) >= (skills.dodge?.raw ?? 0) ? 'block' : 'dodge', // GAP: raw skill; a tie goes to block like the player
+      standingDefense: (skills[SK.block]?.raw ?? 0) >= (skills[SK.dodge]?.raw ?? 0) ? 'block' : 'dodge', // GAP: raw skill; a tie goes to block like the player
     },
     // GAP: unique NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'unique' ? { progression: {
@@ -131,8 +133,8 @@ const STARTING_GEAR = ['arming_sword', 'round_shield', 'gambeson'];
 export function recommendedBuild(): CreationBuild {
   return {
     name: 'Aldric',
-    skills: { melee_medium: 50, block: 40, dodge: 25, endurance: 50, sight: 30, hearing: 30, light_armor: 25 },
-    tagged: ['melee_medium', 'block', 'endurance'],
+    skills: { [SK.melee_medium]: 50, [SK.block]: 40, [SK.dodge]: 25, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.light_armor]: 25 },
+    tagged: [SK.melee_medium, SK.block, SK.endurance],
   };
 }
 
@@ -144,18 +146,18 @@ export function validateBuild(build: CreationBuild): string[] {
   if (!build.name?.trim()) errs.push('Name the character');
   let spent = 0;
   for (const [id, v] of Object.entries(build.skills)) {
-    if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${id} is not open to the point-buy`);
-    if (!Number.isInteger(v) || v < 0) errs.push(`${id} must be a whole number of points, 0 or more`);
-    else if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${id} is above ${CONFIG.CREATION_MAX_SKILL}`);
+    if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} is not open to the point-buy`);
+    if (!Number.isInteger(v) || v < 0) errs.push(`${skillName(id)} must be a whole number of points, 0 or more`);
+    else if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${skillName(id)} is above ${CONFIG.CREATION_MAX_SKILL}`);
     spent += v;
   }
   for (const [id, min] of Object.entries(lib.classes[PLAYER_CLASS]?.floors ?? {}))
-    if ((build.skills[id] ?? 0) < min) errs.push(`${id} must be at least ${min} (class floor)`);
+    if ((build.skills[id] ?? 0) < min) errs.push(`${skillName(id)} must be at least ${min} (class floor)`);
   if (spent !== CONFIG.CREATION_POINTS) errs.push(`Spend exactly ${CONFIG.CREATION_POINTS} points (${spent} spent)`);
   const tags = new Set(build.tagged);
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
   if (tags.size !== CONFIG.CREATION_TAGS) errs.push(`Tag exactly ${CONFIG.CREATION_TAGS} skills (${tags.size} tagged)`);
-  for (const id of tags) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${id} cannot be tagged`);
+  for (const id of tags) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} cannot be tagged`);
   return errs;
 }
 
@@ -181,7 +183,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       inventory: [...equipLoadout(null, STARTING_GEAR, 'player'), { id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN },
         { id: 'player_bandage', itemId: 'bandage', qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here
-      standingDefense: (build.skills.block ?? 0) >= (build.skills.dodge ?? 0) ? 'block' : 'dodge',
+      standingDefense: (build.skills[SK.block] ?? 0) >= (build.skills[SK.dodge] ?? 0) ? 'block' : 'dodge',
     },
     progression: {
       startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),

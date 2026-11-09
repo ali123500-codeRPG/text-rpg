@@ -10,6 +10,7 @@ import { buildPlayerView } from '../../src/views';
 import { zoneById } from '../../src/engine/relations';
 import type { Actor, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const NOISE = ['silent', 'faint', 'hushed', 'quiet', 'normal', 'loud', 'deafening'];
@@ -110,7 +111,7 @@ describe('127 20 perks for the new skills', () => {
       arm(s, 'patron_1');
       s.player.core.standingDefense = 'dodge';
       wear(s.player, 'plate_harness');
-      s.player.core.skills.dodge = { raw: 0, state: 'normal' };
+      s.player.core.skills[SK.dodge] = { raw: 0, state: 'normal' };
       if (perk) give(s.player, 'turn_aside');
       return s;
     };

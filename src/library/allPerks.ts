@@ -2,7 +2,9 @@
 // bundle of parts, granted for free when every skill of the tree reaches 50 true skill (G1–G8). Each part is its own perk
 // (so code checks hasPerk on the part) with a Story and an exact Rules view, like the ladder perks. A part is granted
 // only once it is built (BUILT_PERKS). Names: "<tree> All-50: <name>" (G5); All-50 and 100+ names may be dramatic.
+import { FN } from './functionIds';
 import type { PerkWriteup } from '../types';
+import { SK } from './skillIds';
 
 /** a tree's All-50 bundle: its name and its parts, in the doc's order */
 export type AllBundle = { treeId: string; step: 50; name: string; parts: string[] };
@@ -39,7 +41,7 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.',
     rules: { kind: 'Always on', trigger: 'Always; and the owner makes a Block roll.', conditions: ['The extra +5 needs the block to be made with a melee weapon, not a shield.'],
       effect: '+5 true skill in Block. Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).', lasts: 'Always.' },
-    trueSkillTo: { block: 5 } }),
+    trueSkillTo: { [SK.block]: 5 } }),
   // ---- Combat – Ranged ----
   part('ranged', { id: 'unerring', ref: 'T2a', name: 'Unerring', effect: 'attack',
     story: 'Your first shot comes before they are ready. The first time you shoot in a fight, at a foe who hasn\'t moved yet, it is harder to avoid.',
@@ -59,7 +61,7 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'An archer lives by the eye: +10 to every skill you see with.',
     rules: { kind: 'Always on', trigger: 'Always.', conditions: [],
       effect: '+10 true skill in every skill with the sight function.', lasts: 'Always.' },
-    fnSkill: { fn: 'sight', add: 10 } }),
+    fnSkill: { fn: FN.sight, add: 10 } }),
   // ---- Combat – Unarmed ----
   part('unarmed', { id: 'hard_to_hold', ref: 'T3a', name: 'Hard to Hold', effect: 'defense',
     story: 'Hands never stay on you for long. Your rolls to break a hold land one outcome better.',
@@ -73,7 +75,7 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'With nothing in your hands, nothing slows you. Your Dodge is 5 higher, and 5 higher again while you hold no weapon.',
     rules: { kind: 'Always on', trigger: 'Always; and the owner makes a Dodge roll.', conditions: ['The extra +5 needs the owner to hold no item with a weapon mode.'],
       effect: '+5 true skill in Dodge. While holding no weapon, Dodge rolls also get +5 effective skill (CONFIG.BARE_HANDED_GUARD, placeholder).', lasts: 'Always.' },
-    trueSkillTo: { dodge: 5 } }),
+    trueSkillTo: { [SK.dodge]: 5 } }),
   // ---- Combat – Defense ----
   part('defense', { id: 'second_wind', ref: 'T4b', name: 'Second Wind', effect: 'health',
     story: 'When the blood starts to run, you find more in you. Once a fight, at your first serious wound, you shake one off.',
@@ -128,5 +130,5 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'You know which words land. +5 to Persuasion, Intimidation and Barter.',
     rules: { kind: 'Always on', trigger: 'Always.', conditions: [],
       effect: '+5 true skill in Persuasion, Intimidation and Barter.', lasts: 'Always.' },
-    trueSkillTo: { persuasion: 5, intimidation: 5, barter: 5 } }),
+    trueSkillTo: { [SK.persuasion]: 5, [SK.intimidation]: 5, [SK.barter]: 5 } }),
 ];

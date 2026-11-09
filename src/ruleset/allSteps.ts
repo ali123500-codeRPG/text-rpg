@@ -2,6 +2,7 @@
 // gets each built part of that tree's All-50 bundle for free (OwnedPerk source 'mastery'), and the player earns the
 // tree's mastery achievement ("Adept of {tree}"). Checked at the end of every turn, so raises, perks and spawns all count.
 // Also the rolls that read All-50 parts on the other side (Dodgy) or after the dice (Curiouser and Curiouser).
+import { FN } from '../library/functionIds';
 import type { Actor, GameState, Mod, TierShift } from '../types';
 import { getLibrary } from '../library';
 import { ALL_BUNDLES } from '../library/allPerks';
@@ -53,8 +54,8 @@ export function shareSpotted(state: GameState, o: Actor): void {
 /** shifts read after the dice. T5d Curiouser and Curiouser: a sight or hearing roll (by function) at Success or better counts one tier
  * higher. A request's nearMissUp (T6d Hushed Steps): a Near Miss counts one tier higher. */
 export function afterRollShifts(a: Actor, skill: string, level: number, nearMissUp?: string): TierShift[] {
-  const fns = (getLibrary().skills[skill]?.functions ?? []) as string[];
-  if ((fns.includes('sight') || fns.includes('hearing')) && level >= TIERS.pos('success') && hasPerk(a, 'curiouser')) return [{ source: 'Curiouser and Curiouser', value: 1 }];
+  const fns = getLibrary().skills[skill]?.functions ?? [];
+  if ((fns.includes(FN.sight) || fns.includes(FN.hearing)) && level >= TIERS.pos('success') && hasPerk(a, 'curiouser')) return [{ source: 'Curiouser and Curiouser', value: 1 }];
   if (nearMissUp && level === TIERS.pos('near_miss')) return [{ source: nearMissUp, value: 1 }];
   // T7a Soft Landing: a speech roll at Near Miss or worse counts one tier higher
   const speech = getLibrary().trees.speech?.skills ?? [];

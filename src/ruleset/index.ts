@@ -16,6 +16,7 @@ import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { shortShifts } from './requirements';
 import { blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
+import { SK, DEFENSE_SKILL } from '../library/skillIds';
 
 export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
@@ -202,7 +203,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if ((req.context?.defensesThisTurn ?? 0) >= 1) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
-  dm.push(...situational(state, type, { light: zoneA }).modifiers); // ST21: light by tag (sight)
+  dm.push(...situational(state, DEFENSE_SKILL[type], { light: zoneA }).modifiers); // ST21: light by tag (sight)
   // All-50 Steady Guard: Block rolls made with a melee weapon (not a shield)
   if (type === 'block' && blocker && !itemDef(state, blocker.itemId).shield && hasPerk(D, 'steady_guard')) {
     dm.push({ source: 'Steady Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.STEADY_GUARD });
@@ -212,8 +213,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     dm.push({ source: 'Bare-Handed Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
   }
   dm.push(...(req.context?.defenderMods ?? []));
-  const def = ruleset.roll({ actorId: D.id, skill: type, modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
-  const defEff = effectiveSkill(state, D, type, { itemId: blocker?.id });
+  const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
+  const defEff = effectiveSkill(state, D, DEFENSE_SKILL[type], { itemId: blocker?.id });
   const defDeciding = decidingOf(def, defEff.value, defEff.gear);
 
   // 4. gap

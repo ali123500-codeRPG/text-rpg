@@ -6,6 +6,7 @@ import { getLibrary, resetLibrary } from '../../src/library';
 import { PERK_WRITEUPS } from '../../src/library/perks';
 import { canTake } from '../../src/ruleset';
 import { perksMarkdown } from '../../src/ui/perkDoc';
+import { SK } from '../../src/library/skillIds';
 
 describe('perk write-ups (story and rules views)', () => {
   it('docs/perks.md matches the game data (run npm run perks-doc after editing src/library/perks.ts)', () => {
@@ -22,7 +23,7 @@ describe('perk write-ups (story and rules views)', () => {
     const L = getLibrary().perks;
     for (const p of twenties) expect(L[p.id]).toMatchObject({ ladder: { skill: p.skill, milestone: 20 }, built: BUILT_PERKS.has(p.id), story: p.story });
     for (const id of BUILT_PERKS) expect(L[id]).toBeDefined(); // no stale ids
-    const a = { core: { perks: [], skills: { melee_medium: { raw: 40 } } }, progression: { unspentPerkPoints: 1 } } as never;
+    const a = { core: { perks: [], skills: { [SK.melee_medium]: { raw: 40 } } }, progression: { unspentPerkPoints: 1 } } as never;
     expect(canTake(a, 'haggler')).toBe('not in the game yet');
   });
 });

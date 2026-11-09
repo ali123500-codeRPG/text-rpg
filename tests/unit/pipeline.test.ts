@@ -7,6 +7,7 @@ import { createGame, VirtualClock, NEUTRAL_LINE, type Game } from '../../src/age
 import { CONFIG } from '../../src/config';
 import type { Store } from '../../src/save';
 import { intentOf, plannerOut, voiceOut } from './agent-views';
+import { SK } from '../../src/library/skillIds';
 
 const H = vi.hoisted(() => ({
   engagedNext: [] as string[],
@@ -22,7 +23,7 @@ vi.mock('../../src/engine', () => ({
   selectSpokespeople: (s: GameState, i: Intent) => (i.addressees ?? []).filter((id) => s.actors.some((a) => a.id === id)),
   unclearAddressee: () => null,
   quickWord: () => false,
-  resolveSpeech: () => ({ skill: 'persuasion', playerTier: 'success', impression: 'convincing', perSpokesperson: {} }),
+  resolveSpeech: () => ({ skill: SK.persuasion, playerTier: 'success', impression: 'convincing', perSpokesperson: {} }),
   firedOrders: () => H.firedOrders,
   resolveTurn: (_s: GameState, input: TurnInput) => {
     H.resolved.push({ at: H.clockNow(), input });
@@ -67,7 +68,7 @@ function start(engaged: string[] = []) {
   state.pending = { turn: 1, mode: engaged.length ? 'tactical' : 'explore', engaged, fired: [] };
   game.adopt(state);
 }
-const parserTalk = (to: string) => intentOf({ action: { ...intentOf().action!, type: 'talk', skill: 'persuasion', target: to }, spoken: 'Hello there.', addressees: [to] });
+const parserTalk = (to: string) => intentOf({ action: { ...intentOf().action!, type: 'talk', skill: SK.persuasion, target: to }, spoken: 'Hello there.', addressees: [to] });
 
 beforeEach(() => {
   clock = new VirtualClock();

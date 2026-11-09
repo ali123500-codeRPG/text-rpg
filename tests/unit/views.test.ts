@@ -6,6 +6,7 @@ import { computePerception, updateBeliefs } from '../../src/perception';
 import {
   buildActorView, buildCombatPacket, buildDialogueView, buildNarrationView, buildOppositionView, buildPlayerView, buildWeaverView,
 } from '../../src/views';
+import { SK } from '../../src/library/skillIds';
 
 // W2's healthLevel/partStates are stubs until integration: thin fakes from the health track.
 vi.mock('../../src/ruleset', async (orig) => {
@@ -34,7 +35,7 @@ const run = (s: GameState, e: GameEvent) => {
 };
 const npcViews = (s: GameState, id: string) => [buildActorView(s, id), buildOppositionView(s, id), buildDialogueView(s, id, [{ spoken: 'hello', impression: 'convincing' }])];
 const roll = (tier: Tier, d100: number, margin: number, natural: RollResult['natural'] = 0): RollResult =>
-  ({ actorId: 'x', skill: 'melee_medium', d100, margin, tier, natural, modifiers: [{ source: 'aim', type: 'aim', value: -20 }], tierShifts: [] });
+  ({ actorId: 'x', skill: SK.melee_medium, d100, margin, tier, natural, modifiers: [{ source: 'aim', type: 'aim', value: -20 }], tierShifts: [] });
 
 describe('NPC views', () => {
   it("P5: list each NPC's own last lines in said, capped at SAID_LINES", () => {

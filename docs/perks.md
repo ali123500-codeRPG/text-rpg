@@ -38,7 +38,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's melee attack is resolved.
-- **Conditions:** The attack uses a heavy melee mode (skill melee_heavy). The defender blocked with a shield, so the hit lands on the shield (location how = shield).
+- **Conditions:** The attack uses a heavy melee mode (skill Heavy weapons). The defender blocked with a shield, so the hit lands on the shield (location how = shield).
 - **Effect:** The shield's pool takes double the damage. Damage to the defender itself is unchanged.
 - **Lasts:** That attack.
 
@@ -68,7 +68,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits a part with the Move role (a leg) and deals damage.
-- **Conditions:** It is a ranged attack with a medium or heavy ranged mode (skill ranged_medium or ranged_heavy). The location is a part with the Move role. Damage after armor is above 0.
+- **Conditions:** It is a ranged attack with a medium or heavy ranged mode (skill Medium ranged or Heavy ranged). The location is a part with the Move role. Damage after armor is above 0.
 - **Effect:** The leg's pool takes 1.5× the damage the hit puts on the health track. The target is slowed: it can't dash (AE2).
 - **Lasts:** The slow lasts until the end of the target's next turn.
 
@@ -88,8 +88,8 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's grapple attack is resolved.
-- **Conditions:** The attack uses skill unarmed_grapple. The attack roll is Great Success or better. The attack hits (not missed or dodged).
-- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses unarmed_grapple at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4×.
+- **Conditions:** The attack uses skill Grapple. The attack roll is Great Success or better. The attack hits (not missed or dodged).
+- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses Grapple at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4×.
 - **Lasts:** Until the target breaks free, the owner is downed, or the owner leaves the zone.
 
 ### Dirt in the Eyes (Improvisation) · A9
@@ -99,7 +99,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Free move
 - **Trigger:** The owner uses the move on a foe in the owner's zone. It does not use the owner's action.
 - **Conditions:** The owner has a free hand.
-- **Effect:** An unarmed_improvised attack roll against the foe's dodge. If the foe does not win, its next roll that needs sight gets tier shift −2.
+- **Effect:** An Improvisation attack roll against the foe's dodge. If the foe does not win, its next roll that needs sight gets tier shift −2.
 - **Lasts:** Until that roll is made, or the end of the foe's next turn.
 - **Cooldown:** Once per engagement.
 
@@ -241,7 +241,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_light. +1 true skill in every skill of group melee. +10 on attack rolls with skill melee_light.
+- **Effect:** +5 true skill in Light weapons. +1 true skill in every skill of group Melee. +10 on attack rolls with skill Light weapons.
 - **Lasts:** Always.
 
 ### Guard Drill (Medium weapons) · P2
@@ -250,7 +250,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_medium. +1 true skill in every skill of group melee. +10 true skill in block.
+- **Effect:** +5 true skill in Medium weapons. +1 true skill in every skill of group Melee. +10 true skill in Block.
 - **Lasts:** Always.
 
 ### Heavy Hand (Heavy weapons) · P3
@@ -259,7 +259,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_heavy. +1 true skill in every skill of group melee. Damage of an attack with skill melee_heavy is ×1.2, before armor.
+- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of an attack with skill Heavy weapons is ×1.2, before armor.
 - **Lasts:** Always.
 
 ### Sharp Eyes (Light ranged) · P4
@@ -268,7 +268,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_light. +1 true skill in every skill of group ranged. +10 true skill in sight.
+- **Effect:** +5 true skill in Light ranged. +1 true skill in every skill of group Ranged. +10 true skill in Eyesight.
 - **Lasts:** Always.
 
 ### Steady Draw (Medium ranged) · P5
@@ -277,7 +277,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_medium. +1 true skill in every skill of group ranged. +5 on attack rolls with skill ranged_medium, and its damage is ×1.1, before armor.
+- **Effect:** +5 true skill in Medium ranged. +1 true skill in every skill of group Ranged. +5 on attack rolls with skill Medium ranged, and its damage is ×1.1, before armor.
 - **Lasts:** Always.
 
 ### Armor Piercer (Heavy ranged) · P6
@@ -286,7 +286,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_heavy. +1 true skill in every skill of group ranged. On a hit with skill ranged_heavy, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
+- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with skill Heavy ranged, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
 - **Lasts:** Always.
 
 ### Street Fighter (Strike) · P7
@@ -295,7 +295,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_strike. +1 true skill in every skill of group melee. +10 true skill in unarmed_improvised.
+- **Effect:** +5 true skill in Strike. +1 true skill in every skill of group Melee. +10 true skill in Improvisation.
 - **Lasts:** Always.
 
 ### Iron Grip (Grapple) · P8
@@ -304,7 +304,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_grapple. +1 true skill in every skill of group melee. +10 on every roll with skill unarmed_grapple (grapple attacks, and both sides of a break-free contest).
+- **Effect:** +5 true skill in Grapple. +1 true skill in every skill of group Melee. +10 on every roll with skill Grapple (grapple attacks, and both sides of a break-free contest).
 - **Lasts:** Always.
 
 ### Brawler's Eye (Improvisation) · P9
@@ -313,7 +313,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_improvised. +1 true skill in every skill of group melee. +5 true skill in unarmed_strike and +5 in sight.
+- **Effect:** +5 true skill in Improvisation. +1 true skill in every skill of group Melee. +5 true skill in Strike and +5 in Eyesight.
 - **Lasts:** Always.
 
 ### Light Feet (Dodge) · P10
@@ -322,7 +322,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in dodge. +1 true skill in every skill of group defense. +10 true skill in sneaking.
+- **Effect:** +5 true skill in Dodge. +1 true skill in every skill of group Defense. +10 true skill in Sneaking.
 - **Lasts:** Always.
 
 ### Take the Hit (Block) · P11
@@ -331,7 +331,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in block. +1 true skill in every skill of group defense. +10 true skill in endurance.
+- **Effect:** +5 true skill in Block. +1 true skill in every skill of group Defense. +10 true skill in Endurance.
 - **Lasts:** Always.
 
 ### Fast Healer (Endurance) · P12
@@ -340,7 +340,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in endurance. +1 true skill in every skill of group health. Natural recovery (the hourly healing row read from endurance) is ×2.
+- **Effect:** +5 true skill in Endurance. +1 true skill in every skill of group Health. Natural recovery (the hourly healing row read from Endurance) is ×2.
 - **Lasts:** Always.
 
 ### Marksman's Eye (Eyesight) · P13
@@ -349,7 +349,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in sight. +1 true skill in every skill of group notice. +5 true skill in ranged_light and +5 in ranged_medium.
+- **Effect:** +5 true skill in Eyesight. +1 true skill in every skill of group Notice. +5 true skill in Light ranged and +5 in Medium ranged.
 - **Lasts:** Always.
 
 ### Soft Step (Earshot) · P14
@@ -358,7 +358,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in hearing. +1 true skill in every skill of group notice. +10 true skill in sneaking.
+- **Effect:** +5 true skill in Earshot. +1 true skill in every skill of group Notice. +10 true skill in Sneaking.
 - **Lasts:** Always.
 
 ## Higher milestone
@@ -502,8 +502,8 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* Left, right, bottle, fist. Every blow opens the door for the next. Every punch you throw at a foe, landed or not, sets up your next improvised attack on it, and every improvised attack sets up your next punch: that attack lands one outcome better.
 
 - **Kind:** Always on
-- **Trigger:** The owner makes an attack with skill unarmed_strike or unarmed_improvised, hit or miss (it counts on the attempt).
-- **Effect:** A Strike attack marks the target for the owner's next unarmed_improvised attack on it; an improvised attack marks the target for the owner's next unarmed_strike attack on it. That attack gets tier shift +1, and the mark clears.
+- **Trigger:** The owner makes an attack with skill Strike or Improvisation, hit or miss (it counts on the attempt).
+- **Effect:** A Strike attack marks the target for the owner's next Improvisation attack on it; an improvised attack marks the target for the owner's next Strike attack on it. That attack gets tier shift +1, and the mark clears.
 - **Lasts:** Until it is used or the engagement ends.
 
 ### One-Two (Improvisation) · B16
@@ -511,9 +511,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* A bottle in one hand, a fist in the other, and no mercy in either. When you hit a foe with an improvised weapon and your other hand is empty, you follow up with a free punch at the same foe.
 
 - **Kind:** Always on
-- **Trigger:** The owner's attack with skill unarmed_improvised hits (outcome grazed, blocked, full, heavy or crushing hit).
+- **Trigger:** The owner's attack with skill Improvisation hits (outcome grazed, blocked, full, heavy or crushing hit).
 - **Conditions:** The owner has a working Grip arm with an empty hand. The target is still active and in the owner's zone.
-- **Effect:** The owner makes one extra attack with skill unarmed_strike (fists) at the same target at once. It doesn't use the owner's action, and can't trigger One-Two again.
+- **Effect:** The owner makes one extra attack with skill Strike (fists) at the same target at once. It doesn't use the owner's action, and can't trigger One-Two again.
 - **Lasts:** That attack.
 
 ### Out of Nowhere (Combat Stealth) · B17

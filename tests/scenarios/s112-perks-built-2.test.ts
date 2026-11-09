@@ -5,6 +5,7 @@ import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { afterAttack, coverFor, expireMarks, markShifts } from '../../src/engine/perkMarks';
 import type { Actor, AttackResult, GameState } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -70,14 +71,14 @@ describe('112 coded perks, batch 2', () => {
     s.bands.find((b) => b.id === 'village_watch')!.relations.player_band = 'friendly';
     s.player.core.standingDefense = 'block';
     guard.core.standingDefense = 'dodge';
-    guard.core.skills.dodge = { raw: 5, state: 'normal' };
+    guard.core.skills[SK.dodge] = { raw: 5, state: 'normal' };
     expect(coverFor(s, guard)).toBeUndefined(); // no perk
     give(s.player, 'cover_ally');
     expect(coverFor(s, guard)?.id).toBe('player');
     s.player.core.perksOff = ['cover_ally'];
     expect(coverFor(s, guard)).toBeUndefined();
     s.player.core.perksOff = [];
-    guard.core.skills.dodge = { raw: 200, state: 'normal' }; // the ally defends better on its own
+    guard.core.skills[SK.dodge] = { raw: 200, state: 'normal' }; // the ally defends better on its own
     expect(coverFor(s, guard)).toBeUndefined();
   });
 });
