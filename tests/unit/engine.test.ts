@@ -125,7 +125,7 @@ vi.mock('../../src/minds', () => {
 
 import { computePending, firedOrders, fromIntent, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee, impressionWords } from '../../src/engine';
 import type { TurnInput } from '../../src/engine';
-import { stance, wary } from '../../src/engine/relations';
+import { hostile, stance, wary } from '../../src/engine/relations';
 
 type IntentArg = Omit<Partial<Intent>, 'action'> & { action?: Partial<NonNullable<Intent['action']>> };
 const intent = ({ action, ...p }: IntentArg): Intent => ({
@@ -340,6 +340,16 @@ describe('agent side effects', () => {
     colder();
     expect(stance(s, actor(s, 'trader'), s.player)).toBe('opposed');
     expect(wary(s, actor(s, 'trader'), s.player)).toBe(true);
+  });
+  it('RS3: a loyal actor is hostile to whoever is hostile to the one it is loyal to, unless it is friendly or warmer to them', () => {
+    const g = actor(s, 'guard_1'), p = actor(s, 'patron_1');
+    g.mind!.overrides = { player: 'loyal' };
+    p.mind!.overrides = { player: 'hostile' };
+    expect(hostile(s, g, p)).toBe(true);
+    g.mind!.overrides = { player: 'loyal', patron_1: 'friend' };
+    expect(hostile(s, g, p)).toBe(false);
+    g.mind!.overrides = { player: 'friend' };
+    expect(hostile(s, g, p)).toBe(false);
   });
 });
 
