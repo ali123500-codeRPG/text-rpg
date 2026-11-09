@@ -3,7 +3,7 @@
 // end of its next turn. Dirt in the Eyes: a free perk move, once per engagement, needing a free hand; unless the foe's
 // dodge wins, its next attack or defense roll gets tier shift −2.
 import { describe, expect, it } from 'vitest';
-import { forcedRng, makeVillage, place } from '../harness';
+import { forcedRng, makeVillage, place, fit } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { afterAttack, markShifts, slowed } from '../../src/engine/perkMarks';
 import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
@@ -18,6 +18,7 @@ const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const crossbow = (s: GameState) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
   s.player.core.inventory.push({ id: 'xb', itemId: 'crossbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  fit(s.player, 'crossbow');
 };
 const bolt = { attackerId: 'player', targetId: 'patron_1', weaponId: 'xb', modeId: 'shoot', targetPart: 'left_leg', aimed: true };
 const legLoss = (perk: boolean) => {

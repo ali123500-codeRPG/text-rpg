@@ -1,7 +1,7 @@
 // 111 Coded 20-milestone perks, batch 1 (Ali, 07/11/2026; rules in src/library/perks.ts): Hidden Strike, Shield
 // Breaker, Point Blank, Iron Frame, Read Wounds, Keen Ear. Each is checked with and without the perk.
 import { describe, expect, it } from 'vitest';
-import { makeVillage, place, forcedRng } from '../harness';
+import { makeVillage, place, forcedRng, fit } from '../harness';
 import { ruleset, woundsMods } from '../../src/ruleset';
 import { perceptionOf } from '../../src/perception';
 import { buildPlayerView } from '../../src/views';
@@ -37,10 +37,11 @@ describe('111 coded perks, batch 1', () => {
   it('Shield Breaker: a heavy melee hit on a shield does double damage to the shield', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    wim.core.inventory.push({ id: 'wim_shield', itemId: 'round_shield', equippedIn: ['hand:left_arm'] });
+    fit(wim, 'round_shield').core.inventory.push({ id: 'wim_shield', itemId: 'round_shield', equippedIn: ['hand:left_arm'] });
     wim.core.standingDefense = 'block';
     for (const i of s.player.core.inventory) delete i.equippedIn;
     s.player.core.inventory.push({ id: 'axe', itemId: 'greataxe', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    fit(s.player, 'greataxe');
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'axe', targetPart: null, aimed: false };
     const lost = (r: ReturnType<typeof ruleset.attack>) => {
       const sh = wim.core.inventory.find((i) => i.id === 'wim_shield')!;
@@ -48,12 +49,12 @@ describe('111 coded perks, batch 1', () => {
       ruleset.applyEffects(r, s);
       return 100 - sh.pools!.shield;
     };
-    const plain = ruleset.attack(req, s, forcedRng([60, 99]));
+    const plain = ruleset.attack(req, s, forcedRng([35, 99])); // a Success hit into a Critical block
     expect(plain.location).toBe('shield');
     const base = lost(plain);
     expect(base).toBeGreaterThan(0);
     give(s.player, 'shield_breaker');
-    const sb = ruleset.attack(req, s, forcedRng([60, 99]));
+    const sb = ruleset.attack(req, s, forcedRng([35, 99]));
     expect(sb.shieldMult).toBe(2);
     expect(lost(sb)).toBeCloseTo(base * 2);
   });

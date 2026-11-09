@@ -2,7 +2,7 @@
 import type { Actor, CreationBuild, GameApi } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { newPlayer } from '../library/spawn';
+import { newPlayer, recommendedBuild } from '../library/spawn';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
@@ -20,9 +20,6 @@ export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] =
 ];
 
 const STEP = 5;
-// The approved layout's recommended build: 250 points, tags medium weapons, block, endurance.
-const REC: Record<string, number> = { melee_medium: 50, block: 40, dodge: 30, endurance: 50, sight: 30, hearing: 30, feint: 10, riposte: 10 };
-const REC_TAGS = ['melee_medium', 'block', 'endurance'];
 
 export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement {
   const lib = getLibrary();
@@ -33,7 +30,7 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), name: 'Aldric', swings: 400 };
   const total = () => CONFIG.CREATION_POINTS, cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
-  const recommended = () => { reset(); Object.assign(st.v, REC); REC_TAGS.forEach((k) => st.tags.add(k)); };
+  const recommended = () => { const r = recommendedBuild(); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
   const build = (): CreationBuild => ({ name: st.name.trim(), skills: { ...st.v }, tagged: [...st.tags] });
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };

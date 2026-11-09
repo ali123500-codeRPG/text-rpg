@@ -70,6 +70,9 @@ export type VisibilityKey = (typeof VISIBILITY.keys)[number];
 /** worn armor weight, lightest first (AN3, Ali 08/11/2026); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
 export const ARMOR_WEIGHTS = scale([['light', 'Light'], ['medium', 'Medium'], ['heavy', 'Heavy']]);
 export type ArmorWeightKey = (typeof ARMOR_WEIGHTS.keys)[number];
+/** equipment levels (Ali, 08/11/2026, EQ8): what an item asks of its user's skill (CONFIG.EQUIP_NEED) */
+export const EQUIP_LEVELS = scale([['crude', 'Crude'], ['common', 'Common'], ['fine', 'Fine'], ['superior', 'Superior'], ['masterwork', 'Masterwork']]);
+export type EquipLevelKey = (typeof EQUIP_LEVELS.keys)[number];
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
 

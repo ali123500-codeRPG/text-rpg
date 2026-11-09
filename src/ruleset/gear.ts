@@ -65,8 +65,9 @@ export const tagSign = (table: 'light' | 'cover', tags: SituationTag[]): number 
 export function situational(state: GameState, skill: string, at: { light?: Zone; cover?: Zone; add?: SituationTag[]; actor?: Actor }): { modifiers: Mod[]; tierShifts: TierShift[] } {
   const tags = rollTags(skill, at.add);
   // All-50 Child of Night: light reads one step darker for the owner's stealth rolls
-  const darker = tags.includes('stealth') && hasPerk(at.actor, 'child_of_night') ? 1 : 0;
-  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[LIGHT.at(LIGHT.pos(zoneLight(state, at.light)) + darker)] ?? 0) : 0;
+  // All-50 Night Eyes: light reads one step brighter for the owner's Eyesight rolls
+  const darker = (tags.includes('stealth') && hasPerk(at.actor, 'child_of_night') ? 1 : 0) - (skill === 'sight' && hasPerk(at.actor, 'night_eyes') ? 1 : 0);
+  const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[LIGHT.at(Math.max(0, LIGHT.pos(zoneLight(state, at.light)) + darker))] ?? 0) : 0;
   const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[at.cover.cover] ?? 0) : 0;
   return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
 }
