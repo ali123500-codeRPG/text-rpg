@@ -2616,7 +2616,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-58 | Healing | 3 | Partly settled | Settled 07/11/2026 (H1–H15, Part 3 Healing): one healing-source table with a reach on the part-state scale; rest, clinic, bandage, natural recovery from endurance. Still open: first-aid skill, bleeding. Voyage playtest (07/11/2026): B5, healing amounts must be consistent |
 | D-59 | How positive and negative modifiers combine per action | 3 | Settled | Part 1 §4, Stacking within a type; the values per type stay with D-75 |
 | D-60 | Critical: "one action per turn" | 3 | Settled | Settled 07/11/2026 (AE11): "lose your next action" means the next main action |
-| D-61 | Recurring NPCs | 4 | Deferred | Stable NPC ids now; promotion adds modules. Voyage playtest (07/11/2026): D2, an NPC remembered a lie 15 turns later. Quests held by NPCs wait for this (D-141) |
+| D-61 | Recurring NPCs | 4 | Deferred | Stable NPC ids now; promotion adds modules. Voyage playtest (07/11/2026): D2, an NPC remembered a lie 15 turns later. Quests held by NPCs wait for this (D-142) |
 | D-62 | Temporary NPC linked to the place last seen | 4 | Deferred |  |
 | D-63 | Telling temporary from recurring NPCs | 4 | Deferred |  |
 | D-64 | NPC generation from templates | 4 | Partly settled | Settled in Part 4 §4: minimums, points, focus picks, random spend, personality, unique vs copy. Still deferred: level rules (level is fixed per template for now) and NPC perks |
@@ -2694,9 +2694,10 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-136 | Parked reward types | 1, 2 | Parked | Ali (09/11/2026): T12 initiative (park until an achievement fits); T14 tier floor (powerful, nothing fits yet; a balance lever that turns gap X into gap X−1 instead of a flat +1); T20 XP focus (a perk idea, not an achievement reward). |
 | D-137 | More reward types | 1, 2 | Deferred | Ali (09/11/2026): come back with more reward types once there are more achievements. |
 | D-138 | Worn titles | 1, 2 | Built | Decided by Ali (09/11/2026, reward variations page T18): a general option for every achievement, not a reward of one. `/title` lists the current, non-scar achievements; `/title <number or name>` wears one; `/title off` removes it (Progression.title). The title moves up its chain when a higher level replaces it. Stealth-safe: an NPC's belief about the player carries the title only when it has seen the player (source seen, status Aware or higher), never from sound, a glimpse (Suspicious) or hearsay. The narrator gets player.title and may use it now and then. |
-| D-139 | Multi-step quests | 2 | Deferred | Banked by Ali (09/11/2026, QT18): a quest chain with several goals in one quest. Today a quest has one goal, and a longer job is a linked follow-up quest (QT24). |
-| D-140 | Your own goals | 2 | Deferred | Banked by Ali (09/11/2026, QT20): the player writes a goal on the Quests page ("Become a knight"), tracked only: no giver, no check, no XP. |
-| D-141 | Quests held by NPCs | 2, 4 | Deferred | Banked by Ali (09/11/2026, QT26) under D-61: a recurring NPC (a rival, a companion) holds a quest code follows across scenes, using the same quest record with a holder field. |
+| D-139 | Old Blood situation bonus | 1 | Built | Decided by Ali (09/11/2026): Old Blood (100 game days survived) gives +10 on situation rolls (AchievementDef.situation, an achievement modifier in situationMods). |
+| D-140 | Multi-step quests | 2 | Deferred | Banked by Ali (09/11/2026, QT18): a quest chain with several goals in one quest. Today a quest has one goal, and a longer job is a linked follow-up quest (QT24). |
+| D-141 | Your own goals | 2 | Deferred | Banked by Ali (09/11/2026, QT20): the player writes a goal on the Quests page ("Become a knight"), tracked only: no giver, no check, no XP. |
+| D-142 | Quests held by NPCs | 2, 4 | Deferred | Banked by Ali (09/11/2026, QT26) under D-61: a recurring NPC (a rival, a companion) holds a quest code follows across scenes, using the same quest record with a holder field. |
 
 ## Check on release
 
