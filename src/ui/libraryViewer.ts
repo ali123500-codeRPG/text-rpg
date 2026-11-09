@@ -56,7 +56,7 @@ function val(v: unknown, depth = 0): Node | string {
   return String(v);
 }
 /** skill IDs are numbers: show a skill field, or a table keyed by skill, by the skill's name */
-const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains']);
+const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
   if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => [a, named(a, b)])) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
