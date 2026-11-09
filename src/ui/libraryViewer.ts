@@ -6,6 +6,8 @@ import './libraryViewer.css';
 import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll } from '../ruleset/bane';
+import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
+import { modTotal, stackType } from '../ruleset';
 import { fnSkills, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
@@ -22,7 +24,7 @@ import { SENSE_SKILL, SK } from '../library/skillIds';
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
 type Entry = Record<string, unknown>;
-type Section = { key: string; title: string; table: keyof Library; view?: () => (HTMLElement | null)[] };
+type Section = { key: string; title: string; table: keyof Library; view?: () => (HTMLElement | null)[]; count?: number };
 
 const label = (id: string) => partName(id);
 const chip = (text: string, tone?: string) => h('span', { class: 'hs-tg cap', style: tone ? `--tg: var(${tone})` : undefined }, text);
@@ -147,7 +149,7 @@ function toneOf(group: string, value: string): string {
   return PALETTE[vals.indexOf(value) % PALETTE.length];
 }
 /** the filter group each table is coloured by at first; any group can be picked with its "Colour" button */
-const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Group', standIns: 'Function' };
+const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Group', standIns: 'Function', stacking: 'Type' };
 let colourBy = '';
 const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : d.allStep ? `All-${d.allStep.step}` : 'no milestone');
 /** a banked write-up's tag (PerkWriteup.bankedAs / aimAt): what it is meant to become */
@@ -418,6 +420,53 @@ function standIns(): HTMLElement[] {
   ]);
 }
 
+// ---------- Stacking ----------
+const FEED_SEC: Record<string, string> = { perks: 'perks', items: 'gear', achievements: 'achievements' };
+function stacking(): HTMLElement[] {
+  const r = CONFIG.STACK_RATIO;
+  const x = (n: number) => `${+n.toFixed(3)}`;
+  const shares = [0, 1, 2, 3].map((i) => `×${x(r ** i)}`).join(', ');
+  const ex1 = [10, 10, 10], ex2 = [{ type: 'achievement', value: 10 }, { type: 'gear', value: 10 }];
+  const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How modifiers stack'), chip('modTotal · stackType · src/ruleset/index.ts', '--c3')),
+    h('ol', { class: 'lv-steps' },
+      h('li', {}, 'Every modifier on a roll has a type (ModType in src/types/ruleset.ts). The sections below list what feeds each type.'),
+      h('li', {}, `Within one type, the biggest counts in full and each next one at CONFIG.STACK_RATIO = ${x(r)} to the power of its place: ${shares} …`),
+      h('li', {}, 'Bonuses and penalties of a type stack apart: the biggest bonus counts in full, and so does the biggest penalty.'),
+      h('li', {}, 'The types then add together in full.'),
+      h('li', {}, `A source given in skill points counts at CONFIG.SKILL_WEIGHT = ${x(CONFIG.SKILL_WEIGHT)} as a roll modifier, like skill itself (a +5 skill Bane is +${x(5 * CONFIG.SKILL_WEIGHT)} on the roll).`)),
+    row('Example', `three +10 of one type: ${x(stackType(ex1))} on the roll (stackType)`),
+    row('Example', `+10 achievement and +10 gear: ${x(modTotal(ex2 as { type: string; value: number }[]))} (two types, both in full)`));
+  const outside = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'Not stacked this way'), chip('tier shifts · effective skill', '--c3')),
+    h('ol', { class: 'lv-steps' },
+      h('li', {}, 'Tier shifts move the result a whole tier after the roll and simply add up: cover, Hidden Strike, marks, falling short on gear, Curiouser and Curiouser.'),
+      h('li', {}, 'Skill changes act before the roll, on effective skill: true skill and its perks, gear skill effects, the stand-in share and the skill tier. See the Stand-ins tab.')));
+  const srcCard = (s: ModSource, i: number) => {
+    const feeds = s.feeds?.(lib) ?? [];
+    const c = card('stacking', `${s.roll}-${s.type}-${i}`, { type: s.type, roll: s.roll, source: s.source, when: s.when, value: s.value, at: s.at, ...(s.feeds ? { feeds } : {}) }, s.source,
+      [chip(MOD_TYPE_NAMES[s.type], toneOf('Type', MOD_TYPE_NAMES[s.type])), chip(s.feeds ? `${feeds.length} from the library` : 'fixed number', s.feeds ? '--c1' : '--c3')],
+      row('Applies to', s.when), row('Roll modifier', s.value), row('Made in', h('code', {}, s.at)),
+      s.feeds ? row('From', feeds.length ? h('div', { class: 'lv-sub' }, feeds.map((f) => h('div', {}, link(FEED_SEC[f.table], f.id, f.name), f.value ? ` · ${f.value}` : ''))) : none()) : null);
+    c.querySelector('.lv-id')?.remove(); // the card id is only a link target
+    return c;
+  };
+  const byType = (roll: ModSource['roll']) => {
+    const mine = MOD_SOURCES.map((s, i) => [s, i] as const).filter(([s]) => s.roll === roll);
+    return (Object.keys(MOD_TYPE_NAMES) as StackedType[]).filter((t) => mine.some(([s]) => s.type === t)).map((t) => {
+      const of = mine.filter(([s]) => s.type === t);
+      return h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${MOD_TYPE_NAMES[t]} (${of.length} source${of.length === 1 ? '' : 's'})`),
+        h('div', { class: 'lv-grid' }, of.map(([s, i]) => srcCard(s, i))));
+    });
+  };
+  const n = (roll: ModSource['roll']) => MOD_SOURCES.filter((s) => s.roll === roll).length;
+  return [
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'The rule'), h('div', { class: 'lv-grid wide' }, rule, outside)),
+    ...panes([
+      { key: 'skill', title: 'Skill rolls', n: n('skill'), content: [h('p', { class: 'hs-note' }, 'Attack, defense, sense and every other roll made with a skill (ruleset.roll).'), ...byType('skill')] },
+      { key: 'situation', title: 'Situation rolls', n: n('situation'), content: [h('p', { class: 'hs-note' }, 'The no-skill roll for luck and circumstance (ruleset.situation). Statuses will count here too once they have library entries.'), ...byType('situation')] },
+    ]),
+  ];
+}
+
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
@@ -427,9 +476,12 @@ const CUSTOM: Section[] = [
   { key: 'achievements', title: 'Achievements', table: 'achievements', view: achievements },
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
+  { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
+  stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],
+    ['Fed by', e.type ? (e.feeds ? 'library entries' : 'a fixed number') : undefined]],
   standIns: (e: { id?: string; functions?: string[]; own?: boolean }) => [['Rule', e.id ? (e.own ? 'own table' : 'flat share') : undefined], ['Tree', treeOf(e.id)],
     ...(e.functions ?? []).map((f): [string, string] => ['Function', functionName(f)])],
   gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
@@ -457,7 +509,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
   .map((k) => ({ key: k, title: NAMES[k] ?? label(k), table: k }))];
 
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
-  SECTIONS.map((s) => h('a', { href: `#${s.key}`, 'data-sec': s.key }, s.title, h('span', { class: 'lv-n' }, String(Object.keys(lib[s.table] as object).length)))));
+  SECTIONS.map((s) => h('a', { href: `#${s.key}`, 'data-sec': s.key }, s.title, h('span', { class: 'lv-n' }, String(s.count ?? Object.keys(lib[s.table] as object).length)))));
 const picks = new Map<string, 'shown' | 'out'>();
 const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
