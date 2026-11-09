@@ -185,6 +185,54 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Needs first:** Buying and selling (D-93).
 - **Open:** Kept only if trade prices make a sale at 1.1× still pay less than buying the same item at 0.9×. That needs the price a merchant pays the player to be under 0.81× of the price it charges (1.1 × sell < 0.9 × buy).
 
+### Soft Tread (Sneaking) · A18
+
+*Story:* You know where to put your feet. While you move unseen, your steps are one step quieter.
+
+- **Kind:** Always on
+- **Trigger:** The owner moves while Stealthy.
+- **Effect:** The move's noise is read one step quieter on the noise scale (Normal as Quiet), after worn armor's steps.
+- **Lasts:** That move.
+
+### Melt Away (Vanishing) · A19
+
+*Story:* Shadow and clutter are enough. With cover or shade around you, you can vanish right where you stand.
+
+- **Kind:** Always on
+- **Trigger:** The owner Vanishes without a zone to go to.
+- **Conditions:** The owner's zone has some or heavy cover, or its light is dim or dark.
+- **Effect:** The owner vanishes in place: it stays in its zone, and each observer makes a Vanishing contest against it, as a Vanish does. One who saw the owner and loses drops to suspicious at that zone. It uses the main action, as a Hide does.
+- **Lasts:** That Vanish.
+
+### Slip the Blow (Light Armor) · A20
+
+*Story:* Light armor lets you roll with a blow. When your dodge only ties, the hit becomes a graze.
+
+- **Kind:** Always on
+- **Trigger:** The owner dodges an attack.
+- **Conditions:** The owner wears light armor. The gap is 0.
+- **Effect:** The gap counts as +1: a graze for 0.8× damage.
+- **Lasts:** That attack.
+
+### Quiet Mail (Medium Armor) · A21
+
+*Story:* You know how to wear armor quietly. Whatever its weight, your armor makes one step less noise.
+
+- **Kind:** Always on
+- **Trigger:** The owner moves its body (move, attack, perk move, break free, pick up) while wearing armor.
+- **Effect:** Worn armor adds one noise step less, never below none: medium armor adds none, heavy armor adds one.
+- **Lasts:** Always.
+
+### Turn Aside (Heavy Armor) · A22
+
+*Story:* Plate takes the worst out of any blow. A heavy or crushing hit on a part your heavy armor covers lands as a plain full hit.
+
+- **Kind:** Always on
+- **Trigger:** An attack hits the owner.
+- **Conditions:** The hit is a heavy hit or a crushing hit (gap −4 or −5). The owner wears heavy armor that covers the struck part.
+- **Effect:** The hit counts as a full hit: damage multiplier 1× instead of 1.5× or 2×.
+- **Lasts:** That hit.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1
@@ -468,6 +516,26 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner makes one extra attack with skill Strike (fists) at the same target at once. It doesn't use the owner's action, and can't trigger One-Two again.
 - **Lasts:** That attack.
 
+### Out of Nowhere (Combat Stealth) · B17
+
+*Story:* They feel the arrow, never the archer. When you shoot from hiding and the target misses you, it still doesn't know you are there.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a ranged attack while Stealthy.
+- **Conditions:** The target loses the notice contest (Combat Stealth).
+- **Effect:** The target stays unaware of the owner, instead of turning suspicious at the owner's zone. It still knows it was hit.
+- **Lasts:** That attack.
+
+### Answer the Blow (Riposte) · B18
+
+*Story:* A clean parry is half a cut. When you turn a blow aside cleanly with a medium weapon, you strike back at once.
+
+- **Kind:** Always on
+- **Trigger:** The owner blocks a melee attack with a medium melee weapon.
+- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack. Once per turn.
+- **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
+- **Lasts:** That attack.
+
 ## Very high milestone
 
 ### Never Surprised (Earshot) · C1
@@ -512,6 +580,17 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Always.
 
 ## Banked, no milestone yet
+
+### Go to Ground (Sneaking) · D9
+
+*Story:* Lie still long enough and they decide they imagined you. When you hide, someone who was only suspicious of you can lose you entirely.
+
+- **Kind:** Always on
+- **Trigger:** The owner Hides outside an engagement.
+- **Conditions:** The observer is suspicious of the owner, not aware.
+- **Effect:** An observer who loses the contest drops to unaware, instead of staying suspicious.
+- **Lasts:** That contest.
+- **Open:** Parked for a hiding perk.
 
 ### Held Shot (Medium ranged) · D8
 

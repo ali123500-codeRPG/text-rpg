@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
-import { defaultMode, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
@@ -22,7 +22,7 @@ import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './g
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats } from './xp';
-import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay } from '../time';
+import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
 import { SK } from '../library/skillIds';
@@ -63,12 +63,15 @@ function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): G
   return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, effects: [], noise: armorNoise(ctx.state, a, kind, noise), visibility, perception: {}, ...extra };
 }
 
-/** AN1–AN4: a body-moving event is louder by the worn armor's weight steps */
+/** AN1–AN4: a body-moving event is louder by the worn armor's weight steps (Quiet Mail: one step less); Soft Tread:
+ * a Stealthy move is one step quieter */
 function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): NoiseKey {
   if (!BODY_MOVING.has(kind)) return noise;
   const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const w = worn && itemDef(state, worn.itemId).armor?.weight;
-  return w ? NOISE.at(NOISE.pos(noise) + (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0)) : noise;
+  const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, 'quiet_mail') ? 1 : 0)) : 0;
+  const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, 'soft_tread') ? 1 : 0;
+  return NOISE.at(NOISE.pos(noise) + steps - soft);
 }
 
 function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined): GameEvent {
@@ -499,7 +502,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doRest(ctx, a, o);
     case 'hide':
       // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
-      return emit(ctx, bark(mk(ctx, a, 'hide'), o));
+      return emit(ctx, bark(mk(ctx, a, 'hide', o.vanish ? { vanish: true } : {}), o));
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -592,7 +595,11 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
   if (o.type === 'sneak' || o.type === 'vanish') {
     a.posture = 'stealthy';
     if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
-    o.type = goTo ? 'move' : 'hold';
+    // A19 Melt Away: a Vanish with nowhere to go vanishes in place, as the main action, where cover or shade allows
+    const zone = zoneById(state, a.zone);
+    const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, 'melt_away') && !!zone && meltAwayHere(zone.cover, zoneLight(state, zone));
+    if (inPlace) o.vanish = true;
+    o.type = inPlace ? 'hide' : goTo ? 'move' : 'hold';
   }
   if (o.type === 'hide') a.posture = 'stealthy';
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;

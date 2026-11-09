@@ -5,6 +5,7 @@ import type { Actor, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { skillOpen } from './access';
 import { groupsOf } from '../library/functionNames';
+import { COVER, LIGHT } from '../scales';
 
 export const MILESTONES = [20, 40, 60, 80, 100, 120, 140] as const;
 /** all-XXX perks (formerly mastery perks; save key 'mastery'): granted when all three skills of a tree reach 50/100/150 */
@@ -111,3 +112,7 @@ export function undoPerk(s: GameState, a: Actor, perkId: string): void {
   a.core.perks = a.core.perks.filter((p) => p.perkId !== perkId);
   a.progression!.unspentPerkPoints += 1;
 }
+
+/** A19 Melt Away: a zone with some cover or more, or light dim or darker, lets the owner vanish in place */
+export const meltAwayHere = (cover: string | undefined, light: string | undefined): boolean =>
+  COVER.pos(COVER.keyOf(cover) ?? 'none') >= 1 || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= 1;
