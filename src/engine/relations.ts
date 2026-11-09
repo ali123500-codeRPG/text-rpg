@@ -39,12 +39,18 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
 /** friendly or warmer (friendly, friend, loyal) */
 export const warm = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) >= STANCES.pos('friendly');
 /** hostile: a attacks b on sight. RS3 loyal: a takes the side of anyone it is loyal to, so whoever is hostile to them
- * is hostile to a too, unless a is friendly or warmer toward that one. */
+ * is hostile to a too, unless a is friendly or warmer toward that one. A friend does the same only against someone a is
+ * already opposed (or colder) to. */
 export function hostile(state: GameState, a: Actor, b: Actor): boolean {
   const s = stance(state, a, b);
   if (s === 'hostile') return true;
   if (s === 'yielded' || warm(s)) return false;
-  return allActors(state).some((c) => c !== a && c !== b && isActive(c) && stance(state, a, c) === 'loyal' && stance(state, b, c) === 'hostile');
+  const opposed = STANCES.pos(s) <= STANCES.pos('opposed');
+  return allActors(state).some((c) => {
+    if (c === a || c === b || !isActive(c) || stance(state, b, c) !== 'hostile') return false;
+    const ac = stance(state, a, c);
+    return ac === 'loyal' || (ac === 'friend' && opposed);
+  });
 }
 /** wary: opposed or colder. a's alert fires when it notices b, but only hostile attacks. */
 export function wary(state: GameState, a: Actor, b: Actor): boolean {
