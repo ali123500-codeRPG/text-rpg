@@ -31,13 +31,14 @@ const writeGm = (on: boolean) => { try { localStorage.setItem(GM_KEY, on ? '1' :
 
 export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   let gmOn = readGm();
-  const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Game' });
-  const view = h('div', { style: 'min-width:0' });
+  const rail = h('nav', { class: 'hs-rail game-rail', 'aria-label': 'Game' });
+  const view = h('div', { class: 'hs-view' });
   const panel = h('aside', { class: 'hs-panel', hidden: true, 'aria-label': 'Details' });
   setPanelHost(panel);
   // The artifact host may wrap this page so its <style> lands in <body>: keep styles when replacing the body.
   root.querySelectorAll('style').forEach((st) => document.head.append(st));
-  root.replaceChildren(rail, view, panel);
+  // the rail goes last so Tab runs input, tools, sheet, then the rail; CSS puts it in the first column
+  root.replaceChildren(view, panel, rail);
 
   const play = playScreen(api, (p) => go(p));
   const pages: Record<string, { el: HTMLElement; update: () => void }> = {
