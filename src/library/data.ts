@@ -108,7 +108,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
   { id: 'hidden_blade', level: 'fine', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
     weapon: { modes: [mode({ id: 'stab', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
-  // Crude gear (Ali, 09/11/2026): level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
+  // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
   { id: 'crude_clothes', level: 'crude', tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
     armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
@@ -201,14 +201,14 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   guard: {
     id: 'guard', raceId: 'human', generation: 'copy',
     minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.block]: 30, [SK.dodge]: 20, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements
-    // Ali: anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
+    // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: ['keen_ear'],
     focus: [{ treeId: 'melee', skill: SK.melee_medium }, { treeId: 'defense', skill: SK.block }, { treeId: 'perception', skill: SK.eyesight }],
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
     id: 'trader', raceId: 'human', generation: 'copy',
-    minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Ali: villagers are at least level 2
+    minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
     focus: [{ treeId: 'perception', skill: SK.earshot }, { treeId: 'melee', skill: SK.melee_light }, { treeId: 'defense', skill: SK.dodge }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
@@ -313,9 +313,9 @@ export function prototypeLibrary(): Library {
       tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
-      // Ali (09/11/2026): Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
+      // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
       swordsman: { id: 'swordsman', name: 'Swordsman', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
-      // Ali (09/11/2026): the late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
+      // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
       late_bloomer: { id: 'late_bloomer', name: 'Unwritten Legend', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
@@ -336,7 +336,7 @@ export function prototypeLibrary(): Library {
       rest: { id: 'rest', name: 'Rest', minutes: 60, orders: ['rest'] },
       sleep: { id: 'sleep', name: 'Sleep', minutes: 480 },
     },
-    // Ali: humans and elves for now, identical
+    // Humans and elves for now, identical
     // innate perks and quirks per race: lists, empty until chosen
     races: {
       human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },

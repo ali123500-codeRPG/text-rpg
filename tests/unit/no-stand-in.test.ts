@@ -1,4 +1,4 @@
-// Ali: dodge and block never stand in for each other, though both have the defense function.
+// Dodge and block never stand in for each other, though both have the defense function.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { effectiveSkill, standInShare } from '../../src/ruleset/gear';

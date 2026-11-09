@@ -1,4 +1,4 @@
-// 128 Starting classes and class-level perks (Ali, 09/11/2026): Swordsman floors are Medium Weapons 40 and Block 40, which
+// 128 Starting classes and class-level perks: Swordsman floors are Medium Weapons 40 and Block 40, which
 // also unlock the class; the late bloomer starts as an Unwritten Legend with 50 points at level 1 and the class's level 1
 // perk Quick Study (two improvement rolls for a skill below 15). Classes can grant perks at any level.
 import { describe, expect, it } from 'vitest';
@@ -21,7 +21,7 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(p.core.perks).toContainEqual({ perkId: 'quick_study', source: 'class', gainedTurn: 0 });
     expect(p.progression!.unspentPerkPoints).toBe(0);
     expect(p.label).toBe('a young stranger');
-    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([['crude_clothes', ['armor']], ['coin', null], ['bandage', null]]); // 50 points: crude clothes, no weapon yet (Ali)
+    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([['crude_clothes', ['armor']], ['coin', null], ['bandage', null]]); // 50 points: crude clothes, no weapon yet
   });
 
   it('Quick Study: a marked skill below 15 gets two improvement rolls, each with its own gain', () => {

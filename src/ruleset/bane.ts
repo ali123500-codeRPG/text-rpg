@@ -2,16 +2,31 @@
 // {race}kind", "{body_type}bane" …) gives skill on rolls against that race or type. Its bonus is the bonus of the lower
 // level it builds on (AchievementDef.after) plus CONFIG.BANE_SKILL_PER_LEVEL, so I = +5, II = +10, III = +15. Lower levels switched off by a higher one are skipped. The best
 // race one and the best body type one both count, as one modifier type, so the weaker is halved by type stacking.
+// D-119 total-defeats achievements (Blooded Fighter …) add +1 per tier to every attack and defense roll, as the same modifier type.
 import type { Actor, GameState, Mod } from '../types';
 import { getLibrary } from '../library';
 import { CONFIG } from '../config';
 
-/** skill bonus of one achievement level: +BANE_SKILL_PER_LEVEL for it and for every lower level of its chain */
-export function baneSkill(key: string): number {
+/** an achievement's tier: 1 for it plus 1 for every lower level of its chain (AchievementDef.after) */
+export function chainTier(key: string): number {
   const lib = getLibrary().achievements ?? {};
-  let total = 0;
-  for (let k: string | undefined = key, i = 0; k && lib[k] && i < 20; k = lib[k].after, i++) total += CONFIG.BANE_SKILL_PER_LEVEL;
-  return total;
+  let n = 0;
+  for (let k: string | undefined = key; k && lib[k] && n < 20; k = lib[k].after) n++;
+  return n;
+}
+/** skill bonus of one achievement level: +BANE_SKILL_PER_LEVEL for it and for every lower level of its chain */
+export const baneSkill = (key: string): number => chainTier(key) * CONFIG.BANE_SKILL_PER_LEVEL;
+
+const COMBAT_ROLLS = new Set(['hit', 'dodge', 'block']);
+/** roll bonus of one total-defeats achievement: +DEFEATS_ROLL_PER_TIER for each tier (I = +1, II = +2, III = +3) */
+export const defeatsRoll = (key: string): number => chainTier(key) * CONFIG.DEFEATS_ROLL_PER_TIER;
+/** total-defeats achievements (defeats with no `by`): the highest earned one adds its roll bonus to every attack and defense roll */
+export function defeatsMods(actor: Actor, rollKind: string | undefined): Mod[] {
+  if (!rollKind || !COMBAT_ROLLS.has(rollKind)) return [];
+  const lib = getLibrary().achievements ?? {};
+  const best = (actor.progression?.achievements ?? []).filter((x) => x.key && !x.replacedBy && lib[x.key]?.rule === 'defeats' && !lib[x.key].by)
+    .sort((x, y) => defeatsRoll(y.key!) - defeatsRoll(x.key!))[0];
+  return best ? [{ source: `achievement: ${best.id}`, type: 'achievement', value: defeatsRoll(best.key!) }] : [];
 }
 
 export function baneMods(state: GameState, actor: Actor, againstId: string | undefined): Mod[] {

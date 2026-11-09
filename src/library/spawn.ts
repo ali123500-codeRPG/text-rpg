@@ -124,7 +124,7 @@ const PLAYER_CLASS = 'swordsman'; // the default starting class
 /** a starting class's creation points and starting level (ClassDef.creation, else CONFIG) */
 export const creationPoints = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.points ?? CONFIG.CREATION_POINTS;
 export const startLevel = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.level ?? CONFIG.START_LEVEL;
-/** class-level perks (Ali, 09/11/2026): the perks a class grants for reaching levels above `from` up to `to` */
+/** class-level perks: the perks a class grants for reaching levels above `from` up to `to` */
 export function classPerks(classId: string, from: number, to: number, turn = 0): OwnedPerk[] {
   const lv = getLibrary().classes[classId]?.levelPerks ?? {};
   return Object.entries(lv).filter(([n]) => +n > from && +n <= to).flatMap(([, ids]) => ids.map((perkId) => ({ perkId, source: 'class' as const, gainedTurn: turn })));
@@ -137,7 +137,7 @@ export const newPlayer = (classId = PLAYER_CLASS): Pick<Actor['core'], 'bodyType
   perks: [...racePerks('human'), ...classPerks(classId, 0, startLevel(classId))],
 });
 
-/** The starter kit (Ali, 09/11/2026): after creation the player gets every item tagged 'starter' whose equip requirement
+/** The starter kit: after creation the player gets every item tagged 'starter' whose equip requirement
  * their skills meet. Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
  * that weapon takes two hands; worn: the highest-level armor met. The rest is carried. */
 export function starterKit(a: Actor): ItemInstance[] {
@@ -163,7 +163,7 @@ export function starterKit(a: Actor): ItemInstance[] {
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
 export function recommendedBuild(classId = PLAYER_CLASS): CreationBuild {
-  if (classId === 'late_bloomer') return { // 50 points (Ali, 09/11/2026); the same kit, so its gear is short at the start
+  if (classId === 'late_bloomer') return { // 50 points; the same kit, so its gear is short at the start
     name: 'Aldric', classId,
     skills: { [SK.melee_medium]: 15, [SK.block]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.block, SK.endurance],

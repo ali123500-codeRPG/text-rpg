@@ -11,7 +11,7 @@ import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
-import { baneMods } from './bane';
+import { baneMods, defeatsMods } from './bane';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { shortShifts } from './requirements';
@@ -116,6 +116,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
     if (req.rollKind) modifiers.push(...rollMods(state, actor, req.rollKind, req.itemId));
     modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
     modifiers.push(...baneMods(state, actor, req.against)); // D-111 Bane bonuses
+    modifiers.push(...defeatsMods(actor, req.rollKind)); // D-119 total-defeats achievements
     modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
   }
   const d = rng.d100();

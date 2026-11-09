@@ -15,9 +15,13 @@ const DEFAULTS = {
   /** A6 Leg Bolt: the leg's pool takes this multiple of the damage the hit puts on the health track */
   LEG_BOLT_PART_MULT: 1.5,
   /** Per-check substitutes: a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
-   * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
+   * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×.
+   * Weapon (Arms) skills: other weapon skills at the flat 0.3×, unarmed skills 0.1×. */
   SUBSTITUTES: {
     [SK.unarmed_grapple]: [{ fn: FN.unarmed, k: 0.4 }, { fn: FN.arms, k: 0.2 }],
+    [SK.melee_light]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
+    [SK.melee_medium]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
+    [SK.melee_heavy]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
   } as Record<string, { fn: SkillFunction; k: number }[]>,
   /** Pairs of skills that never stand in for each other, even when they share a function (dodge and block) */
   NO_STAND_IN: [[SK.dodge, SK.block]] as [string, string][],
@@ -95,7 +99,7 @@ const DEFAULTS = {
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
   // ---- Part 4 ----
-  POINTS_PER_LEVEL: 10, // Ali: 10 × level (was 3)
+  POINTS_PER_LEVEL: 10, // 10 × level (was 3)
   CREATION_POINTS: 250,
   START_LEVEL: 4, // EQ13: the player starts at level 4
   CREATION_MAX_SKILL: 60,
@@ -137,6 +141,8 @@ const DEFAULTS = {
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,
+  /** D-119: a total-defeats achievement adds this much to every attack and defense roll for each of its tiers (I = +1, II = +2, III = +3) */
+  DEFEATS_ROLL_PER_TIER: 1,
   /** All-50 part numbers (src/library/allPerks.ts; placeholders) */
   FIGHTERS_FRAME_MULT: 0.9,
   DODGY_SKILL: 5,
