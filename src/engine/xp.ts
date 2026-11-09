@@ -3,7 +3,7 @@ import type { Actor, AchievementBy, AchievementRule, GameEvent, GameState, XpAwa
 import { CONFIG } from '../config';
 import { bodyType, getLibrary } from '../library';
 import { classPerks } from '../library/spawn';
-import { trueSkill } from '../ruleset/perks';
+import { hasPerk, trueSkill } from '../ruleset/perks';
 import { isActive, stance, wary } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
@@ -87,7 +87,17 @@ export function swapCapstone(p: Actor, classId: string, perkId: string, turn: nu
   p.core.perks = p.core.perks.filter((x) => !(x.source === 'class' && base.includes(x.perkId)));
   p.core.perks.push({ perkId, source: 'class', gainedTurn: turn });
   delete pr.capstoneOptions![classId];
+  openEveryClass(p);
   return true;
+}
+
+/** Write Your Own Ending: every class in the library the owner doesn't have unlocks at level 0, its conditions
+ * ignored. Returns the ids it unlocked. */
+function openEveryClass(p: Actor): string[] {
+  if (!hasPerk(p, 'write_your_own_ending')) return [];
+  const ids = Object.keys(getLibrary().classes).filter((id) => !p.core.classes.some((x) => x.classId === id));
+  for (const id of ids) p.core.classes.push({ classId: id, state: 'unlocked', level: 0 });
+  return ids;
 }
 
 /** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when
@@ -95,6 +105,7 @@ export function swapCapstone(p: Actor, classId: string, perkId: string, turn: nu
  * Sword-dancer at Dodge 40 and Light or Medium Weapons 40). An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;
+  for (const id of openEveryClass(p)) logCode(state, 'class_unlocked', { classId: id });
   for (const c of Object.values(getLibrary().classes)) {
     if (!(c.unlock || c.unlockAny || c.unlockPerk) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
