@@ -28,11 +28,12 @@ describe('skill tree access', () => {
 
   it('a new swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(open(p)).toEqual(['defense', 'melee', 'perception', 'ranged', 'speech', 'stealth', 'swordsman', 'tools', 'unarmed']);
+    expect(open(p)).toEqual(['armor', 'defense', 'melee', 'perception', 'ranged', 'speech', 'stealth', 'swordsman', 'tools', 'unarmed']);
     expect(treeBlock(p, 'natural')).toBe('Needs one of: Amorphous, Dragon');
     const slime = spawnNpc(null, 'slime', opts);
     expect(open(slime)).toEqual(['defense', 'natural', 'slime_senses', 'stealth']);
     expect(treeBlock(slime, 'perception')).toBe('Blocked by: Amorphous');
+    expect(treeBlock(slime, 'armor')).toBe('Blocked by: Amorphous'); // AR6
   });
 
   it('SR1: intimidation is open to any race with Speech; persuasion and barter need a speaking race', () => {

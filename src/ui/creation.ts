@@ -14,7 +14,7 @@ export const SKILL_SUB: Record<string, string> = { endurance: 'sets HP', feint: 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
-  { id: 'melee', c: 'c10' }, { id: 'defense', c: 'c1' }, { id: 'swordsman', c: 'c5' },
+  { id: 'melee', c: 'c10' }, { id: 'defense', c: 'c1' }, { id: 'armor', c: 'c15' }, { id: 'swordsman', c: 'c5' },
   { id: 'perception', c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: 'ranged', c: 'c7' }, { id: 'unarmed', c: 'c14' },
   { id: 'stealth', c: 'c3' }, { id: 'speech', c: 'c4' },
 ];
