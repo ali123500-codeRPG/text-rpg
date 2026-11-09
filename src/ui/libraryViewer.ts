@@ -5,7 +5,7 @@ import './styles.css';
 import './libraryViewer.css';
 import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
-import { baneSkill, defeatsRoll } from '../ruleset/bane';
+import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { ACH_RULE_TEXT } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
@@ -327,7 +327,7 @@ function achievements(): HTMLElement[] {
   return groups.map(([title, f]) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' },
     all.filter(([, d]) => f(d)).map(([key, d]) => {
       const kind = d.by === 'body_type' ? 'body type' : 'race';
-      const bane = d.by ? baneSkill(key) : 0; // D-111: the same function the rolls use
+      const bane = isBane(d) ? baneSkill(key) : 0; // D-111: the same function the rolls use
       const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
       const c = card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, '--c15'), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`, '--c2'),
         bane ? chip(`+${bane} skill vs that ${kind}`, '--c10') : null, total ? chip(`+${total} combat rolls`, '--c10') : null],

@@ -3,7 +3,7 @@
 // checks that each place in src that makes a typed modifier has exactly one entry here (same file, same type).
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
-import { baneSkill, defeatsRoll } from './bane';
+import { baneSkill, defeatsRoll, isBane } from './bane';
 import { skillName } from '../library/skillNames';
 
 /** the types a situation roll's modifiers carry (situationMods in gear.ts), besides gear */
@@ -42,7 +42,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'achievement', roll: 'skill', source: 'Bane (race and body type)', at: 'src/ruleset/bane.ts',
     when: 'Any roll against a foe of that race or body type. The best race Bane and the best body type Bane both count.',
     value: `${W()} × (+${CONFIG.BANE_SKILL_PER_LEVEL} skill per level of the chain)`,
-    feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.by).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(W() * baneSkill(k)) })) },
+    feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => isBane(a)).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(W() * baneSkill(k)) })) },
   { type: 'achievement', roll: 'skill', source: 'Total defeats', at: 'src/ruleset/bane.ts',
     when: 'Attack, dodge and block rolls. Only the highest earned one counts.',
     value: `+${CONFIG.DEFEATS_ROLL_PER_TIER} per tier`,
