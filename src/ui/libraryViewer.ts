@@ -46,7 +46,7 @@ let facetOf: Facets = () => [];
 function card(sec: string, id: string, entry: unknown, title: string, chips: (HTMLElement | null)[], ...body: (Node | null)[]): HTMLElement {
   const f = facetOf(entry).filter(([, v]) => v !== undefined && v !== '').map(([g, v]) => `${g}\t${v}`);
   return h('article', { class: 'lv-card', id: `${sec}/${id}`, 'data-q': `${title} ${JSON.stringify(entry)}`.toLowerCase(), 'data-f': [...new Set(f)].join('\n') },
-    h('header', {}, h('h3', {}, title), h('code', { class: 'lv-id' }, id), ...chips), ...body, raw(entry));
+    h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#${sec}/${id}` }, title)), h('code', { class: 'lv-id' }, id), ...chips), ...body, raw(entry));
 }
 
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
@@ -404,6 +404,7 @@ function skills(): HTMLElement[] {
     const c = tree(id, title, ids, entry, [...groupChips(ids), ...chips]);
     c.querySelector('.lv-id')?.remove(); // The tree id under the title is noise; the group chips say where it belongs
     c.classList.add('lv-foldcard'); // a tree's skill table folds under its title
+    const t = c.querySelector('header > h3 > .lv-title'); t?.replaceWith(t.textContent ?? ''); // its title folds, not opens a pop-up
     return c;
   };
   return [h('p', { class: 'hs-note' }, 'A tree is where a skill is learned. The group comes from the skill\'s functions (FUNCTION_GROUP in functionNames.ts) and decides the 40 perk +1 and the XP category, so a tree and its group can differ.'),
@@ -729,15 +730,78 @@ TONES = (() => {
   return toneTable(occ, TONE_ORDER);
 })();
 
-// Details pop-up: clicking any entry link opens its full card in a floating panel that can be dragged
-// and closed, so the page underneath stays where it is.
-const popBody = h('div', { class: 'lv-pop-body' });
-const popTitle = h('span', { class: 'hs-label' });
-const popOpen = h('a', { class: 'lv-link', href: '#' }, 'Open in its table');
-const pop = h('aside', { class: 'lv-pop', hidden: true, 'aria-label': 'Details' },
-  h('div', { class: 'lv-pop-head' }, popTitle, popOpen,
-    h('button', { type: 'button', class: 'hs-icon-btn lv-pop-x', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { pop.hidden = true; } }, '✕')), popBody);
-document.body.append(pop);
+// Details pop-ups: clicking any entry link opens its full card in a floating panel that can be dragged and
+// closed, so the page underneath stays where it is. Pinning keeps a pop-up open (up to MAX_PINS); the next entry
+// opens beside it, and Compare lays the pinned entries out side by side in a dock under the content.
+const MAX_PINS = 4;
+type Pop = { el: HTMLElement; ref: string; title: string; card: HTMLElement; pinned: boolean; pin: HTMLButtonElement };
+const pops: Pop[] = []; // oldest first; at most one is not pinned
+const pinned = () => pops.filter((p) => p.pinned);
+const compareBtn = h('button', { type: 'button', class: 'hs-btn-text lv-compare', hidden: true, onclick: () => { dock.hidden = false; pinsChanged(); dock.scrollIntoView({ block: 'nearest' }); } }) as HTMLButtonElement;
+const dockBody = h('div', { class: 'lv-dock-body' });
+const dock = h('section', { class: 'lv-dock', hidden: true, 'aria-label': 'Compare pinned entries' },
+  h('div', { class: 'lv-dock-head' }, h('h2', { class: 'hs-label' }, 'Compare'),
+    h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Close compare', title: 'Close compare', onclick: () => { dock.hidden = true; pinsChanged(); } }, '✕')), dockBody);
+main.append(dock);
+const headActs = h('div', { class: 'lv-head-acts' });
+search.replaceWith(headActs);
+headActs.append(compareBtn, search);
+function closePop(p: Pop): void {
+  pops.splice(pops.indexOf(p), 1);
+  p.el.remove();
+  pinsChanged();
+}
+function pinsChanged(): void {
+  const n = pinned().length;
+  compareBtn.hidden = !n;
+  compareBtn.textContent = `Compare (${n})`;
+  for (const p of pops) {
+    p.pin.setAttribute('aria-pressed', String(p.pinned));
+    p.pin.textContent = p.pinned ? 'Pinned' : 'Pin';
+    p.pin.disabled = !p.pinned && n >= MAX_PINS;
+    p.pin.title = p.pin.disabled ? `Unpin one first (${MAX_PINS} at most)` : p.pinned ? 'Unpin: the next entry replaces this pop-up' : 'Keep this pop-up open and add it to Compare';
+  }
+  if (!n) dock.hidden = true;
+  // while the dock is open it shows the pinned entries, so their pop-ups step aside
+  for (const p of pops) p.el.hidden = p.pinned && !dock.hidden;
+  compareBtn.setAttribute('aria-pressed', String(!dock.hidden));
+  if (!dock.hidden) drawDock();
+}
+function newPop(): Pop {
+  const title = h('span', { class: 'hs-label' });
+  const open = h('a', { class: 'lv-link', href: '#' }, 'Open in its table');
+  const pin = h('button', { type: 'button', class: 'hs-btn-text lv-pin', 'aria-pressed': 'false' }) as HTMLButtonElement;
+  const x = h('button', { type: 'button', class: 'hs-icon-btn lv-pop-x', 'aria-label': 'Close', title: 'Close (Esc)' }, '✕');
+  const head = h('div', { class: 'lv-pop-head' }, title, open, pin, x);
+  const el = h('aside', { class: 'lv-pop', 'aria-label': 'Details' }, head, h('div', { class: 'lv-pop-body' }));
+  const p: Pop = { el, ref: '', title: '', card: el, pinned: false, pin };
+  pin.onclick = () => { p.pinned = !p.pinned; if (!p.pinned) pops.filter((o) => o !== p && !o.pinned).forEach(closePop); pinsChanged(); };
+  x.addEventListener('click', () => closePop(p));
+  open.addEventListener('click', () => closePop(p));
+  // a new pop-up opens beside the ones already open
+  const i = pops.length;
+  el.style.right = `calc(var(--space-8) + ${i * 32}px)`;
+  el.style.top = `${96 + i * 40}px`;
+  // drag by the head
+  head.addEventListener('pointerdown', (e) => {
+    const ev = e as PointerEvent;
+    if ((ev.target as Element).closest('a, button')) return;
+    const r = el.getBoundingClientRect();
+    const dx = ev.clientX - r.left, dy = ev.clientY - r.top;
+    const move = (m: PointerEvent) => {
+      el.style.left = `${Math.max(0, Math.min(innerWidth - 80, m.clientX - dx))}px`;
+      el.style.top = `${Math.max(0, Math.min(innerHeight - 40, m.clientY - dy))}px`;
+      el.style.right = 'auto';
+    };
+    const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+  });
+  el.addEventListener('pointerdown', () => { if (el.nextElementSibling?.classList.contains('lv-pop')) document.body.append(el); }); // clicked one comes to the front
+  pops.push(p);
+  document.body.append(el);
+  return p;
+}
 function showPop(key: string, id: string): boolean {
   const sec = SECTIONS.find((s) => s.key === key);
   if (!sec) return false;
@@ -745,41 +809,65 @@ function showPop(key: string, id: string): boolean {
   const src = (key === shown ? body : h('div', {}, viewOf(sec))).querySelector<HTMLElement>(`[id="${CSS.escape(`${key}/${id}`)}"]`);
   facetOf = keep;
   if (!src) return false;
+  const ref = `${key}/${id}`;
+  const already = pops.find((p) => p.ref === ref);
+  if (already) { document.body.append(already.el); return true; }
   const copy = src.cloneNode(true) as HTMLElement;
   copy.removeAttribute('id');
   copy.hidden = false;
   copy.classList.remove('lv-hit');
   copy.querySelectorAll('[id]').forEach((x) => x.removeAttribute('id'));
   copy.querySelectorAll('details').forEach((d) => { d.open = false; });
-  popTitle.textContent = sec.title;
-  popOpen.setAttribute('href', `#${key}/${id}`);
-  popBody.replaceChildren(copy);
-  pop.hidden = false;
+  const p = pops.find((o) => !o.pinned) ?? newPop();
+  p.ref = ref;
+  p.title = copy.querySelector('h3')?.firstChild?.textContent?.trim() || id;
+  p.card = copy;
+  p.el.querySelector('.hs-label')!.textContent = sec.title;
+  p.el.querySelector('.lv-link')!.setAttribute('href', `#${ref}`);
+  p.el.querySelector('.lv-pop-body')!.replaceChildren(copy);
+  document.body.append(p.el);
+  pinsChanged();
   return true;
 }
-// drag by the head; the spot is kept for the next pop-up
-pop.firstElementChild!.addEventListener('pointerdown', (e) => {
-  const ev = e as PointerEvent;
-  if ((ev.target as Element).closest('a, button')) return;
-  const r = pop.getBoundingClientRect();
-  const dx = ev.clientX - r.left, dy = ev.clientY - r.top;
-  const move = (m: PointerEvent) => {
-    pop.style.left = `${Math.max(0, Math.min(innerWidth - 80, m.clientX - dx))}px`;
-    pop.style.top = `${Math.max(0, Math.min(innerHeight - 40, m.clientY - dy))}px`;
-    pop.style.right = 'auto';
-  };
-  const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
-  addEventListener('pointermove', move);
-  addEventListener('pointerup', up);
+/** pinned entries as columns; rows lined up by label, a row whose values differ gets an accent edge */
+function drawDock(): void {
+  const list = pinned();
+  const labels: string[] = [];
+  const cells = list.map((p) => {
+    const m = new Map<string, Element>();
+    p.card.querySelectorAll(':scope .lv-row').forEach((r) => {
+      const k = r.querySelector(':scope > .lv-k')?.textContent ?? '';
+      if (!k || m.has(k)) return;
+      m.set(k, r.querySelector(':scope > .lv-v')!);
+      if (!labels.includes(k)) labels.push(k);
+    });
+    return m;
+  });
+  const cols = `104px repeat(${list.length}, minmax(0, 1fr))`;
+  const tables = list.map((p) => SECTIONS.find((s) => s.key === p.ref.split('/')[0])?.title ?? '');
+  dockBody.replaceChildren(h('div', { class: 'lv-cmp', style: `grid-template-columns: ${cols}` },
+    h('span', {}), ...list.map((p, i) => h('div', { class: 'lv-cmp-h' }, h('a', { href: `#${p.ref}`, class: 'lv-link' }, p.title), h('small', {}, tables[i]),
+      h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': `Unpin ${p.title}`, title: 'Unpin', onclick: () => closePop(p) }, '✕'))),
+    ...labels.flatMap((k) => {
+      const vals = cells.map((m) => m.get(k)?.textContent?.trim() ?? '');
+      const diff = list.length > 1 && new Set(vals).size > 1;
+      return [h('span', { class: `lv-k${diff ? ' lv-diff' : ''}` }, k),
+        ...cells.map((m) => h('div', { class: 'lv-v' }, ...(m.get(k) ? Array.from(m.get(k)!.cloneNode(true).childNodes) : ['—'])))];
+    })));
+}
+// Esc closes the top pop-up (the last one in the page)
+addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const top = Array.from(document.querySelectorAll('body > .lv-pop:not([hidden])')).pop();
+  const p = pops.find((o) => o.el === top);
+  if (p) closePop(p);
 });
-addEventListener('keydown', (e) => { if (e.key === 'Escape') pop.hidden = true; });
 document.addEventListener('click', (e) => {
   const a = (e.target as Element).closest<HTMLAnchorElement>('main a[href^="#"], .lv-pop-body a[href^="#"]');
   if (!a) return;
   const [key, ...rest] = decodeURIComponent(a.hash.slice(1)).split('/');
   if (rest.length && showPop(key, rest.join('/'))) e.preventDefault();
 });
-popOpen.addEventListener('click', () => { pop.hidden = true; });
 
 // Folding: clicking a section header, or the title of a foldable card (Skills trees), folds what is under it
 const HEAD = '.lv-group > h2.hs-section, .lv-foldcard > header > h3';
