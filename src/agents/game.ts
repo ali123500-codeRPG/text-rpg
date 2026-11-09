@@ -60,7 +60,7 @@ type Background = {
 };
 
 const HELP_TEXT =
-  'Type what you do in plain words. Commands: /stats, /inv, /quests, /undo (rewind one turn; dice are not rolled back), ' +
+  'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
   '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {

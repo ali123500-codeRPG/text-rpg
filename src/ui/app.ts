@@ -3,7 +3,7 @@ import type { GameApi } from '../types';
 import { h, setPanelHost, closePanel } from './kit';
 import { creationScreen } from './creation';
 import { playScreen } from './play';
-import { characterPage, inventoryPage, journalPage, questsPage } from './pages';
+import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
 import { gmPage } from './gm';
 
 const ICON: Record<string, string> = {
@@ -12,6 +12,7 @@ const ICON: Record<string, string> = {
   stats: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20a8 8 0 0 1 16 0',
   inv: 'M4 8h16v12H4zM9 8V5h6v3M4 13h16',
   quests: 'M6 3v18M6 4h11l-2 4 2 4H6',
+  achievements: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6',
   gm: 'M4 6h16M4 12h16M4 18h10M18 16l2 2-2 2',
   journal: 'M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6',
 };
@@ -23,7 +24,7 @@ const icon = (k: string) => {
   return s;
 };
 
-const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['journal', 'Journal']] as const;
+const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['achievements', 'Achievements'], ['journal', 'Journal']] as const;
 const GM_KEY = 'rpg.gmDebug';
 const readGm = () => { try { return localStorage.getItem(GM_KEY) === '1'; } catch { return false; } };
 const writeGm = (on: boolean) => { try { localStorage.setItem(GM_KEY, on ? '1' : '0'); } catch { /* per-PC convenience only */ } };
@@ -40,7 +41,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
 
   const play = playScreen(api, (p) => go(p));
   const pages: Record<string, { el: HTMLElement; update: () => void }> = {
-    play, stats: characterPage(api), inv: inventoryPage(api), quests: questsPage(api), journal: journalPage(api), gm: gmPage(api),
+    play, stats: characterPage(api), inv: inventoryPage(api), quests: questsPage(api), achievements: achievementsPage(api), journal: journalPage(api), gm: gmPage(api),
   };
   let creation: HTMLElement | null = null;
 
