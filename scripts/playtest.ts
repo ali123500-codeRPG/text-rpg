@@ -18,6 +18,7 @@ import type { GameState, StagePlan } from '../src/types';
 import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../src/ruleset/perks';
 import type { SceneDirector } from '../src/agents';
 import { recommendedBuild } from '../src/library/spawn';
+import { CL } from '../src/library/classIds';
 
 // Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scene-start wait is widened here.
 // The game's own WEAVER_TIMEOUT_MS is not changed.
@@ -102,7 +103,7 @@ async function main() {
     afterResolve: (st, ev, rng, ctx) => inner.afterResolve(st, ev, rng, ctx), afterSave: (st, ctx) => inner.afterSave(st, ctx) };
   const game = createGame({ client: cliClient, clock: realClock, store: memoryStore(Date.now), director });
   // --class late_bloomer starts an Unwritten Legend; the default is the Swordsman. Both use the class's recommended build.
-  await game.newStory({ ...recommendedBuild(arg('class', 'swordsman')), name: 'Arden' });
+  await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden' });
   const storyId = game.state()?.storyId;
   const st0 = game.state()!;
   const planErrors = before ? game.gm().agentLog.filter((a) => a.agent === 'weaver' && a.output).map((a) =>

@@ -2,6 +2,7 @@
 import type { ActorView, DialogueView, NarrationView, PlayerView, ZoneView, PlannerOutput, VoiceOutput, Intent } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { skillName } from '../../src/library/skillNames';
+import { CL } from '../../src/library/classIds';
 
 export const zone = (id: string, links: string[] = [], ground: string[] = []): ZoneView => ({
   id, name: id.replace(/_/g, ' '), look: `the ${id}`, cover: 'none', light: 'bright',
@@ -12,7 +13,7 @@ export function playerView(): PlayerView {
   return {
     turn: 1,
     player: {
-      id: 'player', name: 'Aldric', classes: ['swordsman'], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
+      id: 'player', name: 'Aldric', classes: [CL.swordsman], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
       health: 'Unhurt', parts: [],
       inventory: [{ id: 'sword_1', itemId: 'arming_sword', name: 'arming sword', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['cut', 'thrust'] }],
       posture: 'open', standingDefense: 'block',

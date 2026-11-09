@@ -7,6 +7,7 @@ import { resetConfig } from '../../src/config';
 import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
 import { SK } from '../../src/library/skillIds';
+import { CL } from '../../src/library/classIds';
 
 const L = (to: string, label: string, sight = true, frontier = false): ZoneLink => ({ to, label, sight, ...(frontier ? { frontier: true as const } : {}) });
 const Z = (id: string, placeId: string, name: string, look: string, links: ZoneLink[], cover: Cover = 'none', light: Light = 'bright'): Zone =>
@@ -58,7 +59,7 @@ export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId
     core: {
       bodyTypeId: 'humanoid', raceId: 'human',
       skills: Object.fromEntries(Object.entries(skills).map(([k, v]) => [k, { raw: v, state: tagged.includes(k) ? 'tagged' as const : 'normal' as const }])),
-      classes: [{ classId: 'swordsman', state: 'current', level: 1 }],
+      classes: [{ classId: CL.swordsman, state: 'current', level: 1 }],
       perks: [],
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
       inventory: [

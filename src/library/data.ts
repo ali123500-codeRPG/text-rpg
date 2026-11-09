@@ -11,6 +11,7 @@ import { BUILT_PERKS } from './builtPerks';
 import { SK, OLD_SKILL_IDS } from './skillIds';
 import { ACH } from './achievementIds';
 import { FN, GR } from './functionIds';
+import { CL } from './classIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
@@ -86,7 +87,7 @@ const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, val
 /** class-level perks (ClassDef.levelPerks), granted by a class at a level */
 const CLASS_PERKS: Record<string, PerkDef> = {
   quick_study: {
-    id: 'quick_study', name: 'Quick Study', built: true, classLevel: { classId: 'late_bloomer', level: 1 }, improveRolls: { below: 15, rolls: 2 },
+    id: 'quick_study', name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
@@ -308,19 +309,21 @@ export function prototypeLibrary(): Library {
       perception: { id: 'perception', name: 'Perception', skills: [SK.eyesight, SK.earshot], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
       stealth: { id: 'stealth', name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       speech: { id: 'speech', name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      swordsman: { id: 'swordsman', name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: 'swordsman' }] } },
+      swordsman: { id: 'swordsman', name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
       // BR7: from being a slime, not from a class
       slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: 'slime' }] } },
       tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
-      swordsman: { id: 'swordsman', name: 'Swordsman', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
+      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
+      // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
+      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
-      sword_dancer: { id: 'sword_dancer', name: 'Sword-dancer', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
-      // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      late_bloomer: { id: 'late_bloomer', name: 'Unwritten Legend', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
+      [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
+      // the default class: opens when the current class is at the level cap
+      [CL.commoner]: { id: CL.commoner, name: 'Commoner', floors: {}, fallback: true },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
