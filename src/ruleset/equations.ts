@@ -88,9 +88,10 @@ export function equations(lib: Library): EquationGroup[] {
         notes: [`Example: three +10 of one type → ${n(stackType([10, 10, 10]))}.`] },
     ] },
     { key: 'attacks', title: 'Attacks', about: 'From the attack roll to the damage a hit does.', equations: [
-      { name: 'Initiative', at: 'initiativeOrder · src/engine/resolve.ts',
-        formula: `initiative = d100, or ${CONFIG.INIT_UNAWARE} (INIT_UNAWARE) for an actor unaware of anyone attacking it this turn; higher acts first`,
-        notes: ['No skill counts. Ties go to the seeded random roll.'] },
+      { name: 'Initiative', at: 'initiative · initiativeBonus · src/ruleset/index.ts; initiativeOrder · src/engine/resolve.ts',
+        formula: `initiative = d100 + ${n(CONFIG.SKILL_WEIGHT)} × best Initiative-function skill + initiative roll modifiers; ${CONFIG.INIT_UNAWARE} (INIT_UNAWARE) instead for an actor unaware of anyone attacking it this turn; higher acts first`,
+        terms: [['Initiative-function skill', 'the best effective skill with the Initiative function, at full value (0 when none)'], ['initiative roll modifiers', "gear and other effects with rollMod roll 'initiative'"]],
+        notes: ['No skill has the Initiative function yet, so today it is a plain d100. Ties go to the seeded random roll.'] },
       { name: 'Attack and defense', at: 'attack · src/ruleset/index.ts',
         formula: 'attack roll (skill roll); below Near Miss it misses. Otherwise the defender makes a dodge or block roll',
         terms: [['attack modifiers', 'weapon class hit + mode hitAdj, range, aim, light, perks'], ['defense modifiers', 'outnumbered, unaware, dodge vs missile, light, perks']] },

@@ -8,6 +8,7 @@ import {
 } from '../../src/ruleset';
 import type { Actor } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { FN } from '../../src/library/functionIds';
 import { kitBonus } from '../../src/ruleset/gear';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
@@ -151,6 +152,20 @@ describe('ruleset methods', () => {
     ruleset.recordUse(s.player, SK.eyesight, c, s);
     expect(s.log).toEqual([{ turn: 1, code: 'skill_use', detail: { actorId: 'player', skill: SK.eyesight } }]);
     expect(ruleset.initiative(s.player, s, forcedRng([42]))).toBe(42);
+  });
+  it('initiative: d100 plus the best Initiative-function skill × SKILL_WEIGHT (none yet: plain d100)', () => {
+    const s = makeVillage();
+    expect(ruleset.initiative(s.player, s, forcedRng([42]))).toBe(42);
+    const dodge = getLibrary().skills[SK.dodge];
+    const before = dodge.functions;
+    dodge.functions = [...before, FN.initiative];
+    try {
+      const skill = effectiveSkill(s, s.player, SK.dodge, { fullValue: [SK.dodge] }).value;
+      expect(skill).toBeGreaterThan(0);
+      expect(ruleset.initiative(s.player, s, forcedRng([42]))).toBeCloseTo(42 + CONFIG.SKILL_WEIGHT * skill);
+    } finally {
+      dodge.functions = before;
+    }
   });
   it('outnumbered, unaware and missile modifiers on the defense', () => {
     const s = makeVillage();
