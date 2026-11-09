@@ -6,11 +6,11 @@ import './libraryViewer.css';
 import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill } from '../ruleset/bane';
-import { standInShare, standInTable } from '../ruleset/gear';
+import { fnSkills, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
-import { FUNCTION_GROUP, GROUP_NAMES, groupsOf } from '../library/functionNames';
+import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupsOf } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { REWARD_LEVELS, SKILL_TIERS } from '../scales';
 import { fmtDate, h } from './kit';
@@ -292,7 +292,8 @@ function standIns(): HTMLElement[] {
       h('li', {}, 'A roll asks for one skill. The code also tries every other skill that shares one of its functions.'),
       h('li', {}, `Each stand-in counts at a share of its true skill and gear: the flat share (CONFIG.SUBSTITUTE_EFFICIENCY = ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}), or the skill's own table if CONFIG.SUBSTITUTES lists it.`),
       h('li', {}, 'The owner\'s perks with standIn move a share up or down (kept between ×0 and ×1).'),
-      h('li', {}, 'Each candidate is then multiplied by its own tier multiplier, and the highest value is used.')),
+      h('li', {}, 'Each candidate is then multiplied by its own tier multiplier, and the highest value is used.'),
+      h('li', {}, `Function rolls (FUNCTION_ROLLS: ${FUNCTION_ROLLS.join(', ')}) skip the share: every skill with that function counts at ×1, then its tier, and the best one rolls.`)),
     row('Own tables', Object.keys(CONFIG.SUBSTITUTES).length ? links('standIns', Object.keys(CONFIG.SUBSTITUTES).map((id): [string, string] => [id, skillName(id)])) : none('none')),
     row('Perks that move a share', movers.length ? links('perks', movers.map((d): [string, string] => [d.id, `${d.name} (${d.standIn!.add > 0 ? '+' : ''}${d.standIn!.add}${d.standIn!.fn ? ` ${d.standIn!.fn}` : ''})`])) : none('none yet')));
   const fnRow = ([f, g]: [string, keyof typeof GROUP_NAMES]) => h('tr', {}, h('td', {}, chip(f, toneOf('Function', f))), h('td', {}, chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g]))),
@@ -303,10 +304,15 @@ function standIns(): HTMLElement[] {
   const how = h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'How the code picks a stand-in'), h('div', { class: 'lv-grid wide' }, rule, fns));
   const cards = ids.map((id) => {
     const table = standInTable(id);
-    const subs = ids.filter((o) => o !== id).map((o) => ({ o, k: standInShare(id, o, table) })).filter((x) => x.k > 0).sort((a, b) => b.k - a.k);
+    // a function roll passes fullValue = fnSkills(fn), as fnRoller and ruleset.roll do
+    const rolledFn = FUNCTION_ROLLS.find((f) => (lib.skills[id].functions as string[]).includes(f));
+    const fullValue = rolledFn ? fnSkills(rolledFn) : undefined;
+    const subs = ids.filter((o) => o !== id).map((o) => ({ o, k: standInShare(id, o, table, fullValue) })).filter((x) => x.k > 0).sort((a, b) => b.k - a.k);
     const own = !!CONFIG.SUBSTITUTES[id];
-    return card('standIns', id, { id, functions: lib.skills[id].functions, table, own }, skillName(id), [chip(own ? 'own table' : `flat ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}`, own ? '--c5' : '--c3')],
-      row('Looks for', h('span', { class: 'lv-chips' }, table.map((t) => chip(`${t.fn} ${pct(t.k)}`, toneOf('Function', t.fn))))),
+    return card('standIns', id, { id, functions: lib.skills[id].functions, table, own, functionRoll: rolledFn ?? null }, skillName(id),
+      [rolledFn ? chip(`${rolledFn} roll ×1`, '--c2') : chip(own ? 'own table' : `flat ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}`, own ? '--c5' : '--c3')],
+      rolledFn ? row('Rolled as', h('span', {}, `a ${rolledFn} roll: every skill with ${rolledFn} counts at ×1, then its tier, instead of the stand-in share`)) : null,
+      row('Looks for', h('span', { class: 'lv-chips' }, table.map((t) => chip(`${t.fn} ${pct(t.fn === rolledFn ? 1 : t.k)}`, toneOf('Function', t.fn))))),
       subs.length ? h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Stand-in', 'Shared function', 'Share', 'Its tier'].map((x) => h('th', {}, x)))),
         h('tbody', {}, subs.map(({ o, k }) => h('tr', {}, h('td', {}, link('skills', o, skillName(o))),
           h('td', {}, h('span', { class: 'lv-chips' }, table.filter((t) => (lib.skills[o].functions as string[]).includes(t.fn)).map((t) => chip(t.fn, toneOf('Function', t.fn))))),

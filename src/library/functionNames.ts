@@ -12,4 +12,7 @@ export const GROUP_NAMES: Record<SkillGroup, string> = {
   melee: 'Melee', ranged: 'Ranged', defense: 'Defense', health: 'Health', notice: 'Notice', stealth: 'Stealth', influence: 'Influence',
 };
 /** the broad groups a skill belongs to, from its functions */
+/** functions that are rolled as a function: the roll counts every skill with it at full value and the best one
+ * rolls (fnRoller, RollRequest.fn), so a sight or hearing roll never uses the stand-in share */
+export const FUNCTION_ROLLS: SkillFunction[] = ['sight', 'hearing'];
 export const groupsOf = (s?: SkillDef): SkillGroup[] => [...new Set((s?.functions ?? []).map((f) => FUNCTION_GROUP[f]))];
