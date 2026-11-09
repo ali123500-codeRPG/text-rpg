@@ -326,16 +326,16 @@ export function prototypeLibrary(): Library {
     },
     classes: {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
-      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
+      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
+      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
-      [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
+      [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
       // the default class: opens when the current class is at the level cap; its level 5 perk unlocks A Nobody
-      [CL.commoner]: { id: CL.commoner, name: 'Commoner', floors: {}, fallback: true, levelPerks: { 5: ['nobody_special'] } },
+      [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', floors: {}, fallback: true, levelPerks: { 5: ['nobody_special'] } },
       // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
-      [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: 'nobody_special',
+      [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: 'nobody_special',
         levelPerks: { 1: ['quick_study'], 20: ['every_fall_a_lesson'] } },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },

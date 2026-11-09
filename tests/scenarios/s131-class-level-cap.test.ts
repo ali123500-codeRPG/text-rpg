@@ -8,6 +8,7 @@ import { getLibrary } from '../../src/library';
 import { createPlayer, recommendedBuild } from '../../src/library/spawn';
 import { CONFIG } from '../../src/config';
 import { CL } from '../../src/library/classIds';
+import { CLASS_TIERS } from '../../src/scales';
 import { SK } from '../../src/library/skillIds';
 import { markUse } from '../../src/ruleset/improve';
 import type { ContestResult } from '../../src/types';
@@ -84,5 +85,12 @@ describe('131 Class level cap', () => {
     expect(p.core.perks.map((x) => x.perkId)).toEqual(['every_fall_a_lesson']);
     expect(swapCapstone(p, CL.swordsman, 'every_fall_a_lesson', s.turn)).toBe(false); // once
     makeVillage(); // restore the library
+  });
+
+  it('every class has a tier from the CLASS_TIERS table', () => {
+    const lib = getLibrary();
+    for (const c of Object.values(lib.classes)) expect(CLASS_TIERS.has(c.tier), c.name).toBe(true);
+    const tier = (id: string) => CLASS_TIERS.pos(lib.classes[id].tier);
+    expect([CL.commoner, CL.swordsman, CL.sword_dancer, CL.a_nobody, CL.late_bloomer].map(tier)).toEqual([0, 1, 1, 2, 5]);
   });
 });
