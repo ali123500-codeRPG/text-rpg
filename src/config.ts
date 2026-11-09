@@ -15,9 +15,13 @@ const DEFAULTS = {
   /** A6 Leg Bolt: the leg's pool takes this multiple of the damage the hit puts on the health track */
   LEG_BOLT_PART_MULT: 1.5,
   /** Per-check substitutes: a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
-   * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
+   * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×.
+   * Weapon (Arms) skills: other weapon skills at the flat 0.3×, unarmed skills 0.1×. */
   SUBSTITUTES: {
     [SK.unarmed_grapple]: [{ fn: FN.unarmed, k: 0.4 }, { fn: FN.arms, k: 0.2 }],
+    [SK.melee_light]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
+    [SK.melee_medium]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
+    [SK.melee_heavy]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
   } as Record<string, { fn: SkillFunction; k: number }[]>,
   /** Pairs of skills that never stand in for each other, even when they share a function (dodge and block) */
   NO_STAND_IN: [[SK.dodge, SK.block]] as [string, string][],
