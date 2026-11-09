@@ -2,6 +2,8 @@
 import type { Actor, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, getLibrary } from '../library';
+import { classPerks } from '../library/spawn';
+import { trueSkill } from '../ruleset/perks';
 import { isActive, stance, wary } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
@@ -20,13 +22,13 @@ export function awardXp(state: GameState, amount: number, source: string): void 
   (pr.xpLog ??= []).push({ source, amount, turn: state.turn });
   while (pr.xp >= xpToNext(p)) {
     pr.xp -= xpToNext(p);
-    const up = levelUp(p);
+    const up = levelUp(p, state.turn);
     pr.xpLog.push({ source: 'level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
 }
 
-function levelUp(p: Actor): XpAward['levelUp'] & {} {
+function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
   const pr = p.progression!;
   const cur = p.core.classes.find((c) => c.state === 'current');
   const pick = p.core.classes.find((c) => c.classId === pr.nextClass && c.state !== 'previous') ?? cur;
@@ -37,8 +39,21 @@ function levelUp(p: Actor): XpAward['levelUp'] & {} {
     delete pr.nextClass;
   }
   pick.level += 1;
+  p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn)); // class-level perks
   if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
   return { classId: pick.classId, level: charLevel(p) };
+}
+
+/** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill (Ali, 09/11/2026:
+ * Swordsman at Medium Weapons 40 and Block 40). An unlocked class sits at level 0 until a level goes into it (X9). */
+export function unlockClasses(state: GameState): void {
+  const p = state.player;
+  for (const c of Object.values(getLibrary().classes)) {
+    if (!c.unlock || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (!Object.entries(c.unlock).every(([sk, need]) => trueSkill(p, sk) >= need)) continue;
+    p.core.classes.push({ classId: c.id, state: 'unlocked', level: 0 });
+    logCode(state, 'class_unlocked', { classId: c.id });
+  }
 }
 
 /** X4/X5: an opposed or hostile NPC that is down or surrendered pays once, if the player hit it or it surrendered. */

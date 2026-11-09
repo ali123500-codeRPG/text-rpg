@@ -2,7 +2,7 @@
 import type { Actor, CreationBuild, GameApi } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { newPlayer, recommendedBuild } from '../library/spawn';
+import { creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
@@ -22,18 +22,22 @@ export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] =
 
 const STEP = 5;
 
-export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement {
+/** the starting options (Ali, 09/11/2026): the swordsman, and the late bloomer's unique class */
+const STARTS = ['swordsman', 'late_bloomer'];
+
+export function creationScreen(api: GameApi, onStarted: () => void, classId = 'swordsman'): HTMLElement {
   const lib = getLibrary();
-  const floors = lib.classes.swordsman?.floors ?? {};
-  const who = { core: newPlayer() } as Actor;
+  const cls = lib.classes[classId];
+  const floors = cls?.floors ?? {};
+  const who = { core: newPlayer(classId) } as Actor;
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
   const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
   const st = { v: {} as Record<string, number>, tags: new Set<string>(), name: 'Aldric', swings: 400 };
-  const total = () => CONFIG.CREATION_POINTS, cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
+  const total = () => creationPoints(classId), cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
-  const recommended = () => { const r = recommendedBuild(); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
+  const recommended = () => { const r = recommendedBuild(classId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
-  const build = (): CreationBuild => ({ name: st.name.trim(), skills: { ...st.v }, tagged: [...st.tags] });
+  const build = (): CreationBuild => ({ name: st.name.trim(), classId, skills: { ...st.v }, tagged: [...st.tags] });
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };
 
   const tilesHost = h('div');
@@ -116,7 +120,7 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
         ? h('button', { class: 'hs-tg cap', style: '--tg:var(--c15)', title: 'Untag', type: 'button' }, 'Tagged')
         : h('button', { class: 'hs-btn-text', type: 'button', disabled: st.tags.size >= maxTags(), title: st.tags.size >= maxTags() ? `${maxTags()} skills are tagged already` : 'Tag this skill' }, 'Tag'));
     }
-    for (const t of TREE_VIEW) {
+    for (const t of view) {
       const ks = (lib.trees[t.id]?.skills ?? []).filter((k) => open.includes(k));
       sums.get(t.id)!.textContent = ks.length ? `${ks.reduce((a, k) => a + st.v[k], 0)} pts` : '';
     }
@@ -138,10 +142,17 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
   recommended();
   render();
   const stopped = api.notices().find((n) => n.kind === 'stop_play');
-  return h('main', {},
+  const perkNames = (id: string) => Object.values(lib.classes[id]?.levelPerks ?? {}).flat().map((p) => lib.perks[p]?.name ?? p);
+  const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Starting class' }, STARTS.filter((id) => lib.classes[id]).map((id) =>
+    h('button', { class: id === classId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(id === classId),
+      title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),
+      onclick: () => { if (id !== classId) root.replaceWith(creationScreen(api, onStarted, id)); } },
+    `${lib.classes[id].name} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
+  const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
-      h('div', {}, h('h1', {}, 'Create your swordsman'),
+      h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), starts,
+        perkNames(classId).length ? h('p', {}, `Class perk at level 1: ${perkNames(classId).join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
       h('div', { class: 'actions' },
         h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { recommended(); render(); } }, 'Use recommended build'),
@@ -159,4 +170,5 @@ export function creationScreen(api: GameApi, onStarted: () => void): HTMLElement
     h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
       `${total()} points, cap ${cap()}, floors medium weapons ${floors[SK.melee_medium] ?? 0} and block ${floors[SK.block] ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
       + `Kit assumed: sword +${CONFIG.KIT_BONUS}, shield +${CONFIG.KIT_BONUS}, gambeson. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)));
+  return root;
 }

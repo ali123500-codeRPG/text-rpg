@@ -6,17 +6,17 @@ import './libraryViewer.css';
 import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill } from '../ruleset/bane';
-import { standInShare, standInTable } from '../ruleset/gear';
+import { fnSkills, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
-import { FUNCTION_GROUP, GROUP_NAMES, groupsOf, functionName } from '../library/functionNames';
+import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { REWARD_LEVELS, SKILL_TIERS } from '../scales';
 import { fmtDate, h } from './kit';
 import { skillName } from './creation';
 import { partName } from './healing';
-import { SK } from '../library/skillIds';
+import { SENSE_SKILL, SK } from '../library/skillIds';
 
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
@@ -151,6 +151,11 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
  * built, only the chosen one shows; filters and colours count the shown pane only. */
 type Pane = { key: string; title: string; n: number; content: (HTMLElement | null)[] };
 let pane = '';
+// Remembered per viewer (this browser only): which sections are folded and which sub-tab each tab had open
+const remember = <T>(key: string, fallback: T): T => { try { return JSON.parse(localStorage.getItem(key) ?? '') as T; } catch { return fallback; } };
+const keep = (key: string, value: unknown): void => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked: keep it for this visit only */ } };
+const foldedSet = new Set<string>(remember<string[]>('lv-folded', []));
+const paneOf: Record<string, string> = remember<Record<string, string>>('lv-pane', {});
 function panes(list: Pane[]): HTMLElement[] {
   if (!list.some((p) => p.key === pane)) pane = list[0].key;
   const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, list.map((p) => h('button', {
@@ -160,6 +165,7 @@ function panes(list: Pane[]): HTMLElement[] {
 }
 function showPane(key: string): void {
   pane = key;
+  paneOf[shown] = key; keep('lv-pane', paneOf);
   body.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
   body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
   drawBar(); paint(); filter();
@@ -191,11 +197,11 @@ function perks(): HTMLElement[] {
     h('p', { class: 'hs-note lv-chips' }, Object.entries(EFFECT_TONE).map(([e, t]) => chip(e, t))),
     ...panes([
       { key: 'milestone', title: 'Milestone perks (20, 40, 60 …)', n: ladder.length, content: [
-        grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))])),
+        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By skill and milestone'), grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))]))),
         cardsOf('Built', ladder.filter((d) => d.built), 'None built yet.')] },
       { key: 'all', title: 'All-XX perks', n: allParts.length, content: [
         h('p', { class: 'hs-note' }, 'Granted when every skill of a tree reaches the step (allStep in src/library/allPerks.ts).'),
-        grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))])),
+        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By tree and step'), grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))]))),
         cardsOf('Built', allParts.filter((d) => d.built), 'None built yet.')] },
       { key: 'unused', title: 'Not in use', n: unused.length, content: [
         h('p', { class: 'hs-note' }, 'Written down but the game can\'t give them yet: not built (built: false), or not in the library at all.'),
@@ -301,7 +307,8 @@ function standIns(): HTMLElement[] {
       h('li', {}, 'A roll asks for one skill. The code also tries every other skill that shares one of its functions.'),
       h('li', {}, `Each stand-in counts at a share of its true skill and gear: the flat share (CONFIG.SUBSTITUTE_EFFICIENCY = ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}), or the skill's own table if CONFIG.SUBSTITUTES lists it.`),
       h('li', {}, 'The owner\'s perks with standIn move a share up or down (kept between ×0 and ×1).'),
-      h('li', {}, 'Each candidate is then multiplied by its own tier multiplier, and the highest value is used.')),
+      h('li', {}, 'Each candidate is then multiplied by its own tier multiplier, and the highest value is used.'),
+      h('li', {}, `Function rolls (FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}) skip the share: every skill with that function counts at ×1, then its tier, and the best one rolls.`)),
     row('Own tables', Object.keys(CONFIG.SUBSTITUTES).length ? links('standIns', Object.keys(CONFIG.SUBSTITUTES).map((id): [string, string] => [id, skillName(id)])) : none('none')),
     row('Perks that move a share', movers.length ? links('perks', movers.map((d): [string, string] => [d.id, `${d.name} (${d.standIn!.add > 0 ? '+' : ''}${d.standIn!.add}${d.standIn!.fn ? ` ${functionName(d.standIn!.fn)}` : ''})`])) : none('none yet')));
   const fnRow = ([f, g]: [string, keyof typeof GROUP_NAMES]) => h('tr', {}, h('td', {}, chip(functionName(f), toneOf('Function', functionName(f)))), h('td', {}, chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g]))),
@@ -312,16 +319,49 @@ function standIns(): HTMLElement[] {
   const how = h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'How the code picks a stand-in'), h('div', { class: 'lv-grid wide' }, rule, fns));
   const cards = ids.map((id) => {
     const table = standInTable(id);
-    const subs = ids.filter((o) => o !== id).map((o) => ({ o, k: standInShare(id, o, table) })).filter((x) => x.k > 0).sort((a, b) => b.k - a.k);
+    // a function roll passes fullValue = fnSkills(fn), as fnRoller and ruleset.roll do
+    const rolledFn = FUNCTION_ROLLS.find((f) => (lib.skills[id].functions as string[]).includes(f));
+    const fullValue = rolledFn ? fnSkills(rolledFn) : undefined;
+    const subs = ids.filter((o) => o !== id).map((o) => ({ o, k: standInShare(id, o, table, fullValue) })).filter((x) => x.k > 0).sort((a, b) => b.k - a.k);
     const own = !!CONFIG.SUBSTITUTES[id];
-    return card('standIns', id, { id, functions: lib.skills[id].functions, table, own }, skillName(id), [chip(own ? 'own table' : `flat ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}`, own ? '--c5' : '--c3')],
-      row('Looks for', h('span', { class: 'lv-chips' }, table.map((t) => chip(`${functionName(t.fn)} ${pct(t.k)}`, toneOf('Function', functionName(t.fn)))))),
+    return card('standIns', id, { id, functions: lib.skills[id].functions, table, own, functionRoll: rolledFn ?? null }, skillName(id),
+      [rolledFn ? chip(`${functionName(rolledFn)} roll ×1`, '--c2') : chip(own ? 'own table' : `flat ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}`, own ? '--c5' : '--c3')],
+      rolledFn ? row('Rolled as', h('span', {}, `a ${functionName(rolledFn)} roll: every skill with ${functionName(rolledFn)} counts at ×1, then its tier, instead of the stand-in share. See `, link('standIns', `fn-${rolledFn}`, `${functionName(rolledFn)} check`))) : null,
+      row('Looks for', h('span', { class: 'lv-chips' }, table.map((t) => chip(`${functionName(t.fn)} ${pct(t.fn === rolledFn ? 1 : t.k)}`, toneOf('Function', functionName(t.fn)))))),
       subs.length ? h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Stand-in', 'Shared function', 'Share', 'Its tier'].map((x) => h('th', {}, x)))),
         h('tbody', {}, subs.map(({ o, k }) => h('tr', {}, h('td', {}, link('skills', o, skillName(o))),
           h('td', {}, h('span', { class: 'lv-chips' }, table.filter((t) => (lib.skills[o].functions as string[]).includes(t.fn)).map((t) => chip(functionName(t.fn), toneOf('Function', functionName(t.fn)))))),
           h('td', {}, h('b', {}, pct(k))), h('td', {}, `×${CONFIG.SKILL_TIER_MULT[lib.skills[o].tier]}`))))) : row('Stand-ins', none('none: no other skill shares a function')));
   });
-  return [how, h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs …'), h('div', { class: 'lv-grid' }, cards))];
+  // ---- function checks: a roll that passes fn (RollRequest.fn) counts every skill with it at ×1; the best one rolls ----
+  const fnRule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How a function check works'), chip('fnRoller · fnSkills · src/ruleset/gear.ts', '--c3')),
+    h('ol', { class: 'lv-steps' },
+      h('li', {}, 'The roll names a function, not a skill (RollRequest.fn). It still asks for the function\'s default skill (SENSE_SKILL).'),
+      h('li', {}, 'Every skill with that function counts at ×1 (fnSkills). No stand-in share applies, and stand-in perks don\'t change it.'),
+      h('li', {}, 'Each one is multiplied by its own tier multiplier, plus true skill, gear and perks as usual. The highest value rolls.'),
+      h('li', {}, 'Light and other situation modifiers come from the skill that rolls (fnRoller), so Tremor ignores darkness.')),
+    row('Functions checked this way', `FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}`),
+    row('Rolls that use them', 'sneak and hide contests (stealthDetect) and noticing an ambush (resolveAmbush) in minds/state.ts; Look around in engine/resolve.ts'),
+    row('After the roll', link('perks', 'curiouser', 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
+  const fnCards = FUNCTION_ROLLS.map((f) => {
+    const rows = fnSkills(f).map((id) => ({ id, tier: CONFIG.SKILL_TIER_MULT[lib.skills[id].tier] })).sort((a, b) => b.tier - a.tier);
+    const asked = (SENSE_SKILL as Record<string, string>)[f];
+    const adds = Object.values(lib.perks).filter((d) => d.fnSkill?.fn === f);
+    const grp = GROUP_NAMES[FUNCTION_GROUP[f]];
+    return card('standIns', `fn-${f}`, { function: f, functions: [f], asks: asked ?? null, skills: rows.map((r) => r.id) }, `${functionName(f)} check`,
+      [chip(`${grp} group`, toneOf('Group', grp)), chip('every skill ×1', '--c2')],
+      row('Asks for', asked ? link('skills', asked, skillName(asked)) : none('no default skill')),
+      h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill that counts', 'Share', 'Its tier'].map((x) => h('th', {}, x)))),
+        h('tbody', {}, rows.map((r) => h('tr', {}, h('td', {}, link('skills', r.id, skillName(r.id))), h('td', {}, h('b', {}, '×1')),
+          h('td', {}, `×${r.tier}`))))),
+      row('Perks that add to it', adds.length ? links('perks', adds.map((d): [string, string] => [d.id, `${d.name} (+${d.fnSkill!.add} true skill to every ${functionName(f)} skill)`])) : none('none')));
+  });
+  return panes([
+    { key: 'skill', title: 'Skill checks', n: cards.length, content: [how, h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs …'), h('div', { class: 'lv-grid' }, cards))] },
+    { key: 'function', title: 'Function checks', n: fnCards.length, content: [
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Function checks'), h('div', { class: 'lv-grid wide' }, fnRule)),
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs the function …'), h('div', { class: 'lv-grid' }, fnCards))] },
+  ]);
 }
 
 // ---------- Page ----------
@@ -474,6 +514,26 @@ document.addEventListener('click', (e) => {
 });
 popOpen.addEventListener('click', () => { pop.hidden = true; });
 
+// Folding: clicking a section header (or Enter/Space on it) folds what is under it
+const HEAD = '.lv-group > h2.hs-section';
+function fold(head: Element, open?: boolean): void {
+  const folded = head.parentElement!.classList.toggle('lv-folded', open === undefined ? undefined : !open);
+  const k = foldKey(head);
+  if (folded) foldedSet.add(k); else foldedSet.delete(k);
+  keep('lv-folded', [...foldedSet]);
+  head.setAttribute('aria-expanded', String(!folded));
+}
+const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${head.textContent}`;
+function foldable(): void {
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) h2.parentElement!.classList.add('lv-folded'); });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', String(!h2.parentElement!.classList.contains('lv-folded'))); h2.title = 'Click to fold or unfold'; });
+}
+body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
+body.addEventListener('keydown', (e) => {
+  const h2 = (e.target as Element).closest(HEAD);
+  if (h2 && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); fold(h2); }
+});
+
 let shown = '';
 function route(): void {
   const [key, ...rest] = decodeURIComponent(location.hash.slice(1)).split('/');
@@ -482,10 +542,11 @@ function route(): void {
     shown = sec.key;
     titleEl.textContent = sec.title;
     picks.clear();
-    pane = '';
+    pane = paneOf[sec.key] ?? '';
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
     body.replaceChildren(...viewOf(sec));
+    foldable();
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
     drawBar();
     paint();
@@ -496,6 +557,8 @@ function route(): void {
     const el = document.getElementById(`${sec.key}/${rest.join('/')}`);
     const holder = el?.closest<HTMLElement>('.lv-pane[hidden]');
     if (holder) showPane(holder.dataset.pane!);
+    const shut = el?.closest('.lv-folded')?.querySelector(':scope > h2.hs-section');
+    if (shut) fold(shut, true);
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
     el?.scrollIntoView({ block: 'center' });
