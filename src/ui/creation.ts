@@ -154,7 +154,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
   recommended();
   render();
   const stopped = api.notices().find((n) => n.kind === 'stop_play');
-  const perkNames = (id: string) => Object.values(lib.classes[id]?.levelPerks ?? {}).flat().map((p) => lib.perks[p]?.name ?? p);
+  const perkNames = (id: string) => [...Object.values(lib.classes[id]?.levelPerks ?? {}).flat(), ...(lib.classes[id]?.capstone ?? [])].map((p) => lib.perks[p]?.name ?? p);
   const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Starting class' }, STARTS.filter((id) => lib.classes[id]).map((id) =>
     h('button', { class: id === classId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(id === classId),
       title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),

@@ -93,7 +93,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: ['the owner does not have the A Nobody class'], effect: 'the A Nobody class unlocks at class level 0', lasts: 'always' },
   },
   every_fall_a_lesson: {
-    id: 'every_fall_a_lesson', name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 20 },
+    id: 'every_fall_a_lesson', name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 15 },
     story: 'You learned more from losing than most learn from winning.',
     rules: { kind: 'passive', trigger: 'the owner loses a contest or a defended attack by exactly one tier step', conditions: [], effect: 'the skill the owner rolled (and the skill asked for, when a stand-in rolled) is marked, even when the other side is outside the learning window', lasts: 'always' },
   },
@@ -344,17 +344,17 @@ export function prototypeLibrary(): Library {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
       [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'], 20: ['as_far_as_the_road_goes'] },
+      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] }, capstone: ['as_far_as_the_road_goes'],
         capstones: [{ perk: 'write_your_own_ending', needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: 'no_road_closed', needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
-      // the default class: opens when the current class is at the level cap; its level 5 perk unlocks A Nobody
-      [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', floors: {}, fallback: true, levelPerks: { 5: ['nobody_special'] } },
+      // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
+      [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', floors: {}, fallback: true, capstone: ['nobody_special'] },
       // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
       [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: 'nobody_special',
-        levelPerks: { 1: ['quick_study'], 20: ['every_fall_a_lesson'] } },
+        levelPerks: { 1: ['quick_study'] }, capstone: ['every_fall_a_lesson'] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_1', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 } },
     },

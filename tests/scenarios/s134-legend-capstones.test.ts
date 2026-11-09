@@ -1,4 +1,4 @@
-// 134 Unwritten Legend capstones: As Far as the Road Goes is the default at class level 20 (no ladder gating);
+// 134 Unwritten Legend capstones: As Far as the Road Goes is the default at class level 20, its top level (tier 5; no ladder gating);
 // Write Your Own Ending (needs 7 classes) and No Road Closed (needs an All-50 and 10 skills above 15) are alternates.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
