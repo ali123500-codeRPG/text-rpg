@@ -31,7 +31,7 @@ describe('125 All-50 parts', () => {
     grantAllSteps(s, p);
     grantAllSteps(s, p);
     const got = p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId);
-    expect(got).toEqual(['opening_strike', 'counter', 'fighters_frame']); // Weapon Drill is not built
+    expect(got).toEqual(['opening_strike', 'counter', 'fighters_frame', 'steady_guard']);
     const ach = p.progression!.achievements!.filter((a) => a.key === 'mastery_50');
     expect(ach.map((a) => a.id)).toEqual(['mastery_50:melee']);
     expect(achievementName(s, ach[0])).toBe('Adept of Combat – Arms');
@@ -149,6 +149,40 @@ describe('125 All-50 parts', () => {
     shareSpotted(s, o);
     expect(mate.mind!.knowledge.player.status).toBe('suspicious');
     expect(mate.mind!.knowledge.player.source).toBe('told');
+  });
+  it('Steady Guard: +5 true Block always, +5 effective on Block rolls made with a melee weapon', () => {
+    const s = makeVillage();
+    place(s, 'patron_1', s.player.zone);
+    arm(s, 'patron_1');
+    arm(s, 'player');
+    set(s.player, ['block'], 30);
+    give(s.player, 'steady_guard');
+    expect(trueSkill(s.player, 'block')).toBe(35);
+    s.player.core.standingDefense = 'block';
+    const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]));
+    expect(r.defense!.modifiers.filter((m) => m.source === 'Steady Guard')).toEqual([{ source: 'Steady Guard', type: 'roll_perk', value: 2.5 }]);
+  });
+  it('Thick Hide: health lost from a hit is ×0.95, after armor', () => {
+    const dmg = (perk: boolean) => {
+      const s = makeVillage();
+      place(s, 'patron_1', s.player.zone);
+      arm(s, 'patron_1');
+      if (perk) give(s.player, 'thick_hide');
+      return ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
+    };
+    expect(dmg(false)).toBeGreaterThan(0);
+    expect(dmg(true)).toBeCloseTo(dmg(false) * 0.95);
+  });
+  it('Night Eyes: light counts one step brighter for the owner\'s Eyesight rolls only', () => {
+    const s = makeVillage();
+    const zone = zoneById(s, s.player.zone)!;
+    zone.light = 'dark';
+    delete (zone as { outdoor?: true }).outdoor;
+    const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
+    const before = [mod('sight'), mod('sneaking')];
+    give(s.player, 'night_eyes');
+    expect([mod('sight'), mod('sneaking')]).toEqual([situational(s, 'sight', { light: { ...zone, light: 'dim' } }).modifiers[0]?.value ?? 0, before[1]]);
+    expect(mod('sight')).toBeGreaterThan(before[0]);
   });
   it('Dodgy: attack rolls against the owner get −5 effective skill', () => {
     const s = makeVillage();

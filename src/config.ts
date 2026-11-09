@@ -131,7 +131,9 @@ const DEFAULTS = {
   FIGHTERS_FRAME_MULT: 0.9,
   DODGY_SKILL: 5,
   IRON_KNUCKLES_MULT: 1.1, // All-50 Iron Knuckles: unarmed hits deal a tenth more (placeholder)
-  BARE_HANDED_GUARD: 5, // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
+  BARE_HANDED_GUARD: 5,
+  STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
+  THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests (Ali, 07/11/2026) */
   REWARD_XP: { i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
