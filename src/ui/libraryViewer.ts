@@ -752,7 +752,8 @@ function paint(): void {
 /** does a card pass the search and the filters (leaving out one group's own picks, for that group's counts) */
 function passes(c: HTMLElement, q: string, skip?: string): boolean {
   const fs = new Set(facetsOf(c));
-  if (q && !c.dataset.q!.includes(q)) return false;
+  // the search also reads the section a card sits in (an achievement chain's title, a gear kind …)
+  if (q && !c.dataset.q!.includes(q) && !(c.closest('.lv-group')?.querySelector(':scope > h2')?.textContent ?? '').toLowerCase().includes(q)) return false;
   const shownBy = new Map<string, boolean>();
   for (const [f, st] of picks) {
     const g = f.split('\t')[0];
