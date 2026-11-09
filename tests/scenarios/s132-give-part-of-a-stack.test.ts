@@ -16,7 +16,7 @@ it('132 Give part of a stack', () => {
   expect(coins('patron_1')).toBe(before + 2);
   const give = ev.find((e) => e.actorId === 'player' && e.kind === 'give')!;
   expect(give.qty).toBe(2);
-  expect(buildNarrationView(s, [give]).events[0].item).toBe('2 coin');
+  expect(buildNarrationView(s, [give]).events[0].item).toBe('2 copper');
   // more than you have is wasted; nothing moves
   const ev2 = play(s, { intent: intent({ action: { type: 'give', target: 'patron_1', item: 'purse', qty: 30 } }) });
   expect(ev2.some((e) => e.actorId === 'player' && e.kind === 'wasted')).toBe(true);

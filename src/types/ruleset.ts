@@ -135,7 +135,7 @@ export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine'
 
 /** every order type the engine knows (trigger orders are checked against it) */
 export const ORDER_TYPES = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
-  'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'other'] as const;
+  'intimidate', 'use_item', 'equip', 'give', 'buy', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'other'] as const;
 export type Order = {
   actorId: string;
   type: string; // attack | move | search | hide | sneak | hold | call_help | alarm | flee | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | rest | wait | sleep | idle | other
@@ -151,7 +151,8 @@ export type Order = {
   aimed?: boolean;
   defense?: 'dodge' | 'block' | null;
   item?: string | null;
-  qty?: number | null; // give: how many of a stack (null: all of it)
+  qty?: number | null; // give, buy: how many (give null: the whole stack; buy null: one)
+  for?: string | null; // buy: who gets it (null: the buyer)
   mode?: string | null;
   gear?: GearOp[] | null;
   line?: { text: string; volume: 'whisper' | 'normal' | 'shout'; introduces?: string[] } | null; // talk: speech; else a bark

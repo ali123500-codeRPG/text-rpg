@@ -21,6 +21,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     aimed: !!aimed && a?.type === 'attack',
     item: a?.item ?? null,
     ...(a?.qty ? { qty: a.qty } : {}),
+    ...(a?.for ? { for: a.for } : {}),
     mode: a?.mode ?? null,
     gear: intent?.gear ?? null,
     line: intent?.spoken ? { text: intent.spoken, volume: 'normal' } : null,

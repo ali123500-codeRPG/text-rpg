@@ -19,6 +19,7 @@ import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
+import { applyHaggle, buy } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
@@ -379,18 +380,20 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
   if (threat || (last !== undefined && now(state) - last < CONFIG.REST_COOLDOWN_MIN)) {
     logCode(state, 'rest_blocked', { actorId: a.id, reason: threat ? 'hostile_in_zone' : 'cooldown' });
   } else {
-    // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, else the rest row
-    applyHealing(state, a, restRow(state, a));
+    // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, once paid for (PY8), else the rest row
+    const row = restRow(state, a);
+    applyHealing(state, a, row);
+    if (row !== 'rest') a.paid = a.paid?.filter((x) => x !== row);
     state.clocks[key] = now(state);
     ev.effects.push({ kind: 'rested', actorId: a.id, data: {} });
   }
   emit(ctx, ev);
 }
 
-/** H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, else the rest row */
+/** H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row when the actor paid for it (PY8), else the rest row */
 function restRow(state: GameState, a: Actor): string {
   const kind = state.places.find((p) => p.id === a.placeId)?.kind ?? '';
-  return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind))?.id ?? 'rest';
+  return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? 'rest';
 }
 
 const threatHere = (state: GameState, a: Actor): boolean =>
@@ -513,7 +516,19 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'give': {
       const got = giveItem(state, a, o.item, o.target, o.qty);
       if (!got) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
-      return emit(ctx, bark(mk(ctx, a, 'give', { target: o.target ?? undefined, itemId: got.id, ...(got.qty > 1 ? { qty: got.qty } : {}) }), o));
+      return emit(ctx, bark(mk(ctx, a, 'give', { target: o.target ?? undefined, itemId: got.id, qty: got.qty }), o));
+    }
+    case 'buy': {
+      const to = o.for ? actorById(state, o.for) : a;
+      const r = buy(state, a, o.target ? actorById(state, o.target) : undefined, o.item, o.qty, to ?? a);
+      if (!r.ok) {
+        logCode(state, 'buy_refused', { actorId: a.id, seller: o.target, ware: o.item, reason: r.reason });
+        return emit(ctx, bark(mk(ctx, a, 'buy_refused', { target: o.target ?? undefined, reason: r.reason }), o));
+      }
+      return emit(ctx, bark(mk(ctx, a, 'buy', {
+        target: o.target ?? undefined, qty: r.qty, price: r.price,
+        ...(r.itemInst ? { itemId: r.itemInst } : {}), ...(r.service ? { service: r.service } : {}), ...(r.to !== a ? { for: r.to.id } : {}),
+      }), o));
     }
     case 'equip': {
       if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted'), o));
@@ -648,6 +663,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     });
     emit(ctx, ev);
     ctx.exchangeEvents.push(ev);
+    // PY6: haggling with a seller sets the player's prices there for this engagement
+    if (playerOrder.type === 'barter') for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s) applyHaggle(state.player, s, r.contest); }
     if (input.quickWord) playerOrder.line = null; // A15: the line was said; the action follows in turn order
     else ctx.mainDone.add(state.player.id);
     const spokes = new Set(input.spokespeople);

@@ -9,7 +9,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
   | 'attack' | 'hide' | 'sneak' | 'vanish' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
-  | 'use_item' | 'equip' | 'give' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
+  | 'use_item' | 'equip' | 'give' | 'buy' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
@@ -24,7 +24,8 @@ export type Intent = {
     target: string | null;
     targetPart: string | null;
     item: string | null;
-    qty?: number | null; // give: how many of a stack (null: all of it)
+    qty?: number | null; // give: how many of a stack (null: all of it); buy: how many (null: one)
+    for?: string | null; // buy: who gets it (null: the buyer)
     mode: string | null;
     approach: string;
     stance: 'careful' | 'normal' | 'reckless';
@@ -120,6 +121,8 @@ export type StagePlan = {
     awarenessOfBands?: { band: string; awareness: 'unaware' | 'suspicious' | 'aware' }[];
     overrides?: { actor: string; stance: Stance }[];
     motive: string;
+    /** PY2: what a Trader-class seller sells: goods stocked into its inventory, and service ids */
+    wares?: { items: { item: string; qty?: number }[]; services: string[] };
   }[];
   seeds: { plans: (Plan & { ownerId: string })[]; triggers: Trigger[]; secrets: Secret[] };
   rewards: {

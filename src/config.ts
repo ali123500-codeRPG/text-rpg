@@ -108,6 +108,15 @@ const DEFAULTS = {
   CREATION_MAX_SKILL: 60,
   CREATION_TAGS: 3,
   STARTING_COIN: 20,
+  // Trade (D-93, PY4–PY10; placeholders): price = base × MARKUP × haggle × Hard Bargain, rounded up, at least 1
+  TRADE_MARKUP: 2,
+  HAGGLE_WIN: 0.8, // a won barter contest against a seller, until the engagement ends
+  HAGGLE_BAD_LOSS: 1.2, // lost by HAGGLE_BAD_GAP tiers or more
+  HAGGLE_BAD_GAP: 2,
+  HARD_BARGAIN_BUY: 0.9,
+  WARES_CAP: 8, // goods lines plus services per seller
+  // PY9: coin is one unit in the game; narration names it in these coins, largest first
+  COIN_NAMES: [['gold', 100], ['silver', 10], ['copper', 1]] as [string, number][],
   TURN_RECORDS_KEPT: 20, // N, Q2
   BACKUP_EVERY: 10, // Q2
   BACKUPS_KEPT: 3, // Q2

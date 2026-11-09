@@ -12,6 +12,7 @@ import { actorById, isActive, zoneById } from '../engine/relations';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyRewards } from './validate';
 import { requirement } from '../ruleset/requirements';
+import { CL } from '../library/classIds';
 
 function freshId(key: string, taken: Set<string>): string {
   let id = key;
@@ -214,6 +215,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     if (c.pronouns) a.pronouns = c.pronouns;
     if (c.knownOnSight) a.knownOnSight = true;
     a.mind!.knows = (c.knows ?? []).map((f) => ({ id: f.id, text: f.text }));
+    if (c.wares) stockWares(state, a, c.wares, turn);
     moveTo(state, a, startZone);
     castActors.push(a);
   }
@@ -367,4 +369,31 @@ export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
     if (ev.perception[p.id]) out.push(ev);
   }
   return out;
+}
+
+/** PY2: only a Trader-class actor sells. Known goods are stocked into its inventory (qty 1 when left out) and known
+ * services listed, up to WARES_CAP lines; anything else is dropped and logged. */
+function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast'][number]['wares']>, turn: number): void {
+  const dropped: string[] = [];
+  if (!a.core.classes.some((c) => c.classId === CL.trader)) {
+    state.log.push({ turn, code: 'wares_dropped', detail: { actorId: a.id, reason: 'not_a_trader' } });
+    return;
+  }
+  const known = (id: string) => { try { return itemDef(state, id); } catch { return undefined; } };
+  const items: string[] = [];
+  const services: string[] = [];
+  for (const g of w.items ?? []) {
+    const def = known(g.item);
+    if (!def || g.item === 'coin' || items.length + services.length >= CONFIG.WARES_CAP) { dropped.push(String(g.item)); continue; }
+    const qty = Math.max(1, Math.floor(g.qty ?? 1));
+    const id = `ware${turn}_${a.id}_${g.item}`;
+    a.core.inventory.push(...(def.stackable ? [{ id, itemId: g.item, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId: g.item }))));
+    if (!items.includes(g.item)) items.push(g.item);
+  }
+  for (const s of w.services ?? []) {
+    if (!getLibrary().services?.[s] || items.length + services.length >= CONFIG.WARES_CAP) dropped.push(String(s));
+    else if (!services.includes(s)) services.push(s);
+  }
+  a.wares = { items, services };
+  if (dropped.length) state.log.push({ turn, code: 'wares_dropped', detail: { actorId: a.id, dropped } });
 }
