@@ -8,6 +8,7 @@ import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll } from '../ruleset/bane';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
+import { equations } from '../ruleset/equations';
 import { fnSkills, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
@@ -151,7 +152,8 @@ function toneOf(group: string, value: string): string {
 /** the filter group each table is coloured by at first; any group can be picked with its "Colour" button */
 const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Group', standIns: 'Function', stacking: 'Type' };
 let colourBy = '';
-const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : d.allStep ? `All-${d.allStep.step}` : 'no milestone');
+const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : d.allStep ? `All-${d.allStep.step}` : d.classLevel ? `class level ${d.classLevel.level}` : 'no milestone');
+const className = (id: string) => lib.classes?.[id]?.name ?? id;
 /** a banked write-up's tag (PerkWriteup.bankedAs / aimAt): what it is meant to become */
 const treeOfSkill = (s?: string) => (s ? lib.trees[lib.skills[s]?.treeId ?? '']?.name : undefined);
 function bankedText(d: PerkWriteup): string {
@@ -163,6 +165,7 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   const r = d.rules;
   return card(sec, d.id, d, d.name, [
     d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`, '--c1') : 'allStep' in d && d.allStep ? chip(`${ms(d)} · ${lib.trees[d.allStep.treeId]?.name ?? d.allStep.treeId}`, '--c12')
+      : 'classLevel' in d && d.classLevel ? chip(`${ms(d)} · ${className(d.classLevel.classId)}`, '--c5')
       : chip(('place' in d ? d.place : '') || 'no milestone', '--c3'),
     'bankedAs' in d && d.bankedAs ? chip(bankedText(d), '--c14') : null,
     d.effect ? chip(d.effect, EFFECT_TONE[d.effect]) : null,
@@ -237,7 +240,11 @@ function perks(): HTMLElement[] {
   const allParts = all.filter((d) => d.allStep);
   const loose = [...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => !lib.perks[d.id]);
   const unused = [...all.filter((d) => !d.built), ...loose];
-  const other = all.filter((d) => d.built && !d.ladder && !d.allStep);
+  // class perks: what each class grants by level (ClassDef.levelPerks), the same source the game reads
+  const classes = Object.values(lib.classes ?? {}); // every class gets a row, so one with no level perks shows as empty
+  const classPerkIds = new Set(classes.flatMap((c) => Object.values(c.levelPerks ?? {}).flat()));
+  const classPerks = all.filter((d) => classPerkIds.has(d.id) || d.classLevel);
+  const other = all.filter((d) => d.built && !d.ladder && !d.allStep && !classPerks.includes(d));
   const quirks = all.filter((d) => d.quirk).length;
   // milestone grid: skills × 20/40/60 … ; All-XX grid: trees × 50/100/150 (dashed = not built yet, as in the game's tiles)
   const steps = [...new Set(ladder.map((d) => d.ladder!.milestone))].sort((x, y) => x - y).map(String);
@@ -246,6 +253,8 @@ function perks(): HTMLElement[] {
   const allSteps = [...new Set(allParts.map((d) => d.allStep!.step))].sort((x, y) => x - y).map(String);
   const allRows = Object.values(lib.trees).filter((t) => allParts.some((d) => d.allStep!.treeId === t.id))
     .map((t): [string, (c: string) => PerkDef[]] => [t.name, (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
+  const classLevels = [...new Set(classes.flatMap((c) => Object.keys(c.levelPerks ?? {}).map(Number)))].sort((x, y) => x - y).map(String);
+  const classRows = classes.map((c): [string, (col: string) => PerkDef[]] => [c.name, (col) => (c.levelPerks?.[+col] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
   return [
     h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a red edge is a quirk.`),
     h('p', { class: 'hs-note lv-chips' }, Object.entries(EFFECT_TONE).map(([e, t]) => chip(e, t))),
@@ -261,8 +270,12 @@ function perks(): HTMLElement[] {
         h('p', { class: 'hs-note' }, 'Written down but the game can\'t give them yet: not built (built: false), or not in the library at all.'),
         cardsOf('In the library, not built', all.filter((d) => !d.built), 'None.'),
         ...banked(loose)] },
+      { key: 'class', title: 'Class perks', n: classPerks.length, content: [
+        h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts).'),
+        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classLevels.map((l) => `Level ${l}`), classRows.map(([n, at]) => [n, (c: string) => at(c.replace('Level ', ''))]))),
+        cardsOf('Class perks', classPerks, 'No class grants a perk yet.')] },
       { key: 'other', title: 'Other', n: other.length, content: [
-        cardsOf('Built, with no milestone and no All-XX step', other, 'None right now: every built perk is a milestone or an All-XX perk.')] },
+        cardsOf('Built, with no milestone, All-XX step or class', other, 'None right now: every built perk is a milestone, All-XX or class perk.')] },
     ]),
   ];
 }
@@ -467,6 +480,28 @@ function stacking(): HTMLElement[] {
   ];
 }
 
+// ---------- Equations ----------
+const EQUATIONS = equations(lib);
+function equationsView(): HTMLElement[] {
+  return [
+    h('p', { class: 'hs-note' }, 'The general equations the rules use. Numbers come from CONFIG, and the examples and chances are worked out by the same functions the game calls.'),
+    ...panes(EQUATIONS.map((g) => ({ key: g.key, title: g.title, n: g.equations.length, content: [
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, g.title), h('p', { class: 'hs-note' }, g.about),
+        h('div', { class: 'lv-grid wide' }, g.equations.map((e, i) => {
+          const c = card('equations', `${g.key}-${i}`, e, e.name, [chip(e.at, '--c3')],
+            h('p', { class: 'lv-formula' }, e.formula),
+            ...(e.terms ?? []).map(([k, v]) => row(k, v)),
+            e.table ? h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, e.table.head.map((x) => h('th', {}, x)))),
+              h('tbody', {}, e.table.rows.map((r) => h('tr', {}, r.map((x) => h('td', {}, x)))))) : null,
+            ...(e.notes ?? []).map((x) => h('p', { class: 'hs-note' }, x)));
+          c.querySelector('.lv-id')?.remove(); // the card id is only a link target
+          c.querySelector('.lv-raw')?.remove(); // the equation is text, not a library entry
+          return c;
+        }))),
+    ] }))),
+  ];
+}
+
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
@@ -477,6 +512,7 @@ const CUSTOM: Section[] = [
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
+  { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {

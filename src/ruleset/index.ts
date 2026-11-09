@@ -60,7 +60,7 @@ export function modTotal(mods: { type: string; value: number }[]): number {
 }
 
 /** Layer 2b margin bands: the lowest margin for each tier above the worst */
-const MARGIN_BANDS = [-75, -25, 0, 25, 75];
+export const MARGIN_BANDS = [-75, -25, 0, 25, 75];
 /** the tier level a margin reaches */
 export function band(margin: number): number {
   return MARGIN_BANDS.filter((t) => margin >= t).length;
@@ -146,7 +146,7 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
 }
 
 // Part 1 §4 table on totals (d100 + modifiers), read on the margin: total − 50 with the placeholder base
-const SITUATION_BANDS = [-50, -25, 0, 25, 50];
+export const SITUATION_BANDS = [-50, -25, 0, 25, 50];
 function situation(actor: Actor, state: GameState, rng: Rng): SituationResult {
   const modifiers = situationMods(state, actor);
   const d = rng.d100();

@@ -20,10 +20,11 @@ function mark(actor: Actor, skill: string): void {
 /** SP2: does `opposition` teach this skill? From MARK_WINDOW below raw skill up to MARK_WINDOW above true skill.
  * A skill not on the sheet counts as raw 0. */
 function close(actor: Actor, skill: string, opposition: number): boolean {
-  const raw = actor.core.skills[skill]?.raw ?? 0;
-  const w = CONFIG.MARK_WINDOW;
-  return opposition >= raw - w && opposition <= Math.max(raw, trueSkill(actor, skill)) + w;
+  const [lo, hi] = learningWindow(actor.core.skills[skill]?.raw ?? 0, trueSkill(actor, skill));
+  return opposition >= lo && opposition <= hi;
 }
+/** SP2: the opposition range that teaches a skill at `raw` and `trueValue`: raw − MARK_WINDOW to max(raw, true) + MARK_WINDOW */
+export const learningWindow = (raw: number, trueValue: number): [number, number] => [raw - CONFIG.MARK_WINDOW, Math.max(raw, trueValue) + CONFIG.MARK_WINDOW];
 
 /** mark `skill` if the opposition is inside its learning window (SP2: raw − MARK_WINDOW to true + MARK_WINDOW) */
 export function markIfClose(state: GameState, actor: Actor | undefined, skill: string, opposition: number | undefined, tied = false): void {
