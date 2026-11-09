@@ -18,7 +18,7 @@ export function chainTier(key: string): number {
 export const baneSkill = (key: string): number => chainTier(key) * CONFIG.BANE_SKILL_PER_LEVEL;
 
 const COMBAT_ROLLS = new Set(['hit', 'dodge', 'block']);
-/** roll bonus of one total-defeats achievement: +DEFEATS_ROLL_PER_TIER for each tier (I = +1, II = +2, III = +3) */
+/** roll bonus of one total-defeats achievement: +DEFEATS_ROLL_PER_TIER for each tier (I = +1, II = +2, III = +3, IV = +4) */
 export const defeatsRoll = (key: string): number => chainTier(key) * CONFIG.DEFEATS_ROLL_PER_TIER;
 /** total-defeats achievements (defeats with no `by`): the highest earned one adds its roll bonus to every attack and defense roll */
 export function defeatsMods(actor: Actor, rollKind: string | undefined): Mod[] {

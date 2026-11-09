@@ -21,7 +21,8 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
-import { payDefeats, unlockClasses } from './xp';
+import { payDefeats, tally, unlockClasses } from './xp';
+import { fightEnded, turnFeats } from './feats';
 import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
@@ -148,6 +149,7 @@ function morale(ctx: Ctx, a: Actor, reason: 'level' | 'bandmate_down'): void {
   const r = moraleCheck(state, a, ctx.rng, reason);
   logCode(state, 'morale_check', { actorId: a.id, reason, result: r });
   if (r === 'steady') return;
+  if (hostile(state, a, state.player)) tally(state, 'yielded');
   a.mind!.moraleState = r;
   // Q1/Q4: a surrender, or a break, replaces hostile with yielded toward everyone it was fighting
   // (broken shares the yielded stance so both tune together until further notice)
@@ -684,7 +686,11 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
-  if (updateEngagements(state, ctx.events) || state.stage.breakCause) { improveMarked(state, rng); unlockClasses(state); }
+  const fight = state.player.engagement?.fight;
+  const ended = updateEngagements(state, ctx.events);
+  if (ended && fight) fightEnded(state, fight);
+  turnFeats(state, ctx.events);
+  if (ended || state.stage.breakCause) { improveMarked(state, rng); unlockClasses(state); }
   for (const x of allActors(state)) expireMarks(state, x);
   for (const x of allActors(state)) grantAllSteps(state, x); // All-50 parts and mastery achievements
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter

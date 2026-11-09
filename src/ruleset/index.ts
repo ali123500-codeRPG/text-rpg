@@ -14,6 +14,7 @@ import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { baneMods, defeatsMods } from './bane';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
+import { rollFeats } from '../engine/xp';
 import { shortShifts } from './requirements';
 import { blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
@@ -60,7 +61,7 @@ export function modTotal(mods: { type: string; value: number }[]): number {
 }
 
 /** Layer 2b margin bands: the lowest margin for each tier above the worst */
-const MARGIN_BANDS = [-75, -25, 0, 25, 75];
+export const MARGIN_BANDS = [-75, -25, 0, 25, 75];
 /** the tier level a margin reaches */
 export function band(margin: number): number {
   return MARGIN_BANDS.filter((t) => margin >= t).length;
@@ -125,7 +126,9 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on
   let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
-  return { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
+  const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
+  if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
+  return out;
 }
 
 function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
@@ -146,7 +149,7 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
 }
 
 // Part 1 §4 table on totals (d100 + modifiers), read on the margin: total − 50 with the placeholder base
-const SITUATION_BANDS = [-50, -25, 0, 25, 50];
+export const SITUATION_BANDS = [-50, -25, 0, 25, 50];
 function situation(actor: Actor, state: GameState, rng: Rng): SituationResult {
   const modifiers = situationMods(state, actor);
   const d = rng.d100();
@@ -190,7 +193,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
 
   const base: Omit<AttackResult, 'outcome' | 'deciding'> = {
-    attack: atk, defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
+    attack: atk, ...(req.context?.defenderUnaware ? { unaware: true as const } : {}), defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
     multiplier: 0, damage: 0, attackerId: A.id, targetId: D.id, weaponId: req.weaponId, modeId: mode.id,
   };
   if (!tierAtLeast(atk, 'near_miss')) return { ...base, outcome: 'missed', deciding: { attack: atkDeciding, defense: [], gap: [] } };

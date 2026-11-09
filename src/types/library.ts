@@ -127,10 +127,10 @@ export type BankedAs = 'milestone' | 'allX' | 'other';
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules;
   bankedAs?: BankedAs; aimAt?: number };
 
-/** X6/X11: a library achievement, each with its own id and name. 'defeats' is earned at `count`
+/** X6/X11: a library achievement, keyed by its fixed numeric id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
  * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
- * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
+ * of its skills reach `count` (50/100/150), id <id>:<tree>. */
 /** How long an action takes on the game clock (T1). `orders` lists the order types the row covers;
  * the row with no `orders` named 'action' is the default; 'fight_turn' is every turn of a fight; 'sleep' is one sleep. */
 export type DurationDef = { id: string; name: string; minutes: number; orders?: string[] };
@@ -159,4 +159,9 @@ export type RaceDef = {
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].
  * after: the key of the lower level this one builds on. Earning it switches the lower level off,
  * and its Bane bonus is the lower level's bonus plus its own. */
-export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'body_type' | 'race'; after?: string };
+/** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
+export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
+  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink';
+/** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class';
+export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string };

@@ -97,6 +97,7 @@ export type AttackRequest = {
 export type AttackOutcome = 'missed' | 'dodged' | 'grazed' | 'blocked' | 'full_hit' | 'heavy_hit' | 'crushing_hit';
 export type AttackResult = {
   attack: RollResult;
+  unaware?: true; // the target was unaware of the attacker
   defense: RollResult | null;
   defenseType: 'dodge' | 'block' | null;
   gap: number | null;

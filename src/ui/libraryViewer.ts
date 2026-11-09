@@ -6,6 +6,10 @@ import './libraryViewer.css';
 import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll } from '../ruleset/bane';
+import { ACH_RULE_TEXT } from '../library/achievementIds';
+import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
+import { modTotal, stackType } from '../ruleset';
+import { equations } from '../ruleset/equations';
 import { fnSkills, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
@@ -22,7 +26,7 @@ import { SENSE_SKILL, SK } from '../library/skillIds';
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
 type Entry = Record<string, unknown>;
-type Section = { key: string; title: string; table: keyof Library; view?: () => (HTMLElement | null)[] };
+type Section = { key: string; title: string; table: keyof Library; view?: () => (HTMLElement | null)[]; count?: number };
 
 const label = (id: string) => partName(id);
 const chip = (text: string, tone?: string) => h('span', { class: 'hs-tg cap', style: tone ? `--tg: var(${tone})` : undefined }, text);
@@ -147,9 +151,10 @@ function toneOf(group: string, value: string): string {
   return PALETTE[vals.indexOf(value) % PALETTE.length];
 }
 /** the filter group each table is coloured by at first; any group can be picked with its "Colour" button */
-const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Group', standIns: 'Function' };
+const COLOUR_BY: Record<string, string> = { gear: 'Kind', perks: 'Effect', achievements: 'Level', bodyTypes: 'Size', skills: 'Group', standIns: 'Function', stacking: 'Type' };
 let colourBy = '';
-const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : d.allStep ? `All-${d.allStep.step}` : 'no milestone');
+const ms = (d: PerkDef) => (d.ladder ? `${d.ladder.milestone} perk` : d.allStep ? `All-${d.allStep.step}` : d.classLevel ? `class level ${d.classLevel.level}` : 'no milestone');
+const className = (id: string) => lib.classes?.[id]?.name ?? id;
 /** a banked write-up's tag (PerkWriteup.bankedAs / aimAt): what it is meant to become */
 const treeOfSkill = (s?: string) => (s ? lib.trees[lib.skills[s]?.treeId ?? '']?.name : undefined);
 function bankedText(d: PerkWriteup): string {
@@ -161,6 +166,7 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   const r = d.rules;
   return card(sec, d.id, d, d.name, [
     d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`, '--c1') : 'allStep' in d && d.allStep ? chip(`${ms(d)} · ${lib.trees[d.allStep.treeId]?.name ?? d.allStep.treeId}`, '--c12')
+      : 'classLevel' in d && d.classLevel ? chip(`${ms(d)} · ${className(d.classLevel.classId)}`, '--c5')
       : chip(('place' in d ? d.place : '') || 'no milestone', '--c3'),
     'bankedAs' in d && d.bankedAs ? chip(bankedText(d), '--c14') : null,
     d.effect ? chip(d.effect, EFFECT_TONE[d.effect]) : null,
@@ -235,7 +241,11 @@ function perks(): HTMLElement[] {
   const allParts = all.filter((d) => d.allStep);
   const loose = [...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => !lib.perks[d.id]);
   const unused = [...all.filter((d) => !d.built), ...loose];
-  const other = all.filter((d) => d.built && !d.ladder && !d.allStep);
+  // class perks: what each class grants by level (ClassDef.levelPerks), the same source the game reads
+  const classes = Object.values(lib.classes ?? {}); // every class gets a row, so one with no level perks shows as empty
+  const classPerkIds = new Set(classes.flatMap((c) => Object.values(c.levelPerks ?? {}).flat()));
+  const classPerks = all.filter((d) => classPerkIds.has(d.id) || d.classLevel);
+  const other = all.filter((d) => d.built && !d.ladder && !d.allStep && !classPerks.includes(d));
   const quirks = all.filter((d) => d.quirk).length;
   // milestone grid: skills × 20/40/60 … ; All-XX grid: trees × 50/100/150 (dashed = not built yet, as in the game's tiles)
   const steps = [...new Set(ladder.map((d) => d.ladder!.milestone))].sort((x, y) => x - y).map(String);
@@ -244,6 +254,8 @@ function perks(): HTMLElement[] {
   const allSteps = [...new Set(allParts.map((d) => d.allStep!.step))].sort((x, y) => x - y).map(String);
   const allRows = Object.values(lib.trees).filter((t) => allParts.some((d) => d.allStep!.treeId === t.id))
     .map((t): [string, (c: string) => PerkDef[]] => [t.name, (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
+  const classLevels = [...new Set(classes.flatMap((c) => Object.keys(c.levelPerks ?? {}).map(Number)))].sort((x, y) => x - y).map(String);
+  const classRows = classes.map((c): [string, (col: string) => PerkDef[]] => [c.name, (col) => (c.levelPerks?.[+col] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
   return [
     h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a red edge is a quirk.`),
     h('p', { class: 'hs-note lv-chips' }, Object.entries(EFFECT_TONE).map(([e, t]) => chip(e, t))),
@@ -259,8 +271,12 @@ function perks(): HTMLElement[] {
         h('p', { class: 'hs-note' }, 'Written down but the game can\'t give them yet: not built (built: false), or not in the library at all.'),
         cardsOf('In the library, not built', all.filter((d) => !d.built), 'None.'),
         ...banked(loose)] },
+      { key: 'class', title: 'Class perks', n: classPerks.length, content: [
+        h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts).'),
+        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classLevels.map((l) => `Level ${l}`), classRows.map(([n, at]) => [n, (c: string) => at(c.replace('Level ', ''))]))),
+        cardsOf('Class perks', classPerks, 'No class grants a perk yet.')] },
       { key: 'other', title: 'Other', n: other.length, content: [
-        cardsOf('Built, with no milestone and no All-XX step', other, 'None right now: every built perk is a milestone or an All-XX perk.')] },
+        cardsOf('Built, with no milestone, All-XX step or class', other, 'None right now: every built perk is a milestone, All-XX or class perk.')] },
     ]),
   ];
 }
@@ -301,9 +317,12 @@ function bodyTypes(): HTMLElement[] {
 
 // ---------- Achievements ----------
 function achievements(): HTMLElement[] {
-  const all = Object.entries(lib.achievements ?? {});
+  // numeric keys list in number order, so show each rule's rows by count, rules in the order they first appear
+  const rows = Object.entries(lib.achievements ?? {});
+  const first = (r: string) => rows.findIndex(([, d]) => d.rule === r);
+  const all = rows.sort(([, a], [, b]) => first(a.rule) - first(b.rule) || (a.count ?? 0) - (b.count ?? 0));
   const groups: [string, (d: AchievementDef) => boolean][] = [['Per body type', (d) => d.by === 'body_type'], ['Per race', (d) => d.by === 'race'],
-    ['Total defeats', (d) => d.rule === 'defeats' && !d.by], ['Tree mastery', (d) => d.rule === 'mastery']];
+    ['Total defeats', (d) => d.rule === 'defeats' && !d.by], ['Tree mastery', (d) => d.rule === 'mastery'], ['Deeds', (d) => d.rule !== 'defeats' && d.rule !== 'mastery']];
   const name = (n: string) => h('span', {}, ...n.split(/(\{\w+\})/).map((p) => (p.startsWith('{') ? h('em', { class: 'lv-slot' }, p) : p)));
   return groups.map(([title, f]) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' },
     all.filter(([, d]) => f(d)).map(([key, d]) => {
@@ -313,10 +332,10 @@ function achievements(): HTMLElement[] {
       const c = card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, '--c15'), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`, '--c2'),
         bane ? chip(`+${bane} skill vs that ${kind}`, '--c10') : null, total ? chip(`+${total} combat rolls`, '--c10') : null],
         row('Name', name(d.name)),
-        row('Roll bonus', bane ? `+${bane} skill on every roll against that ${kind} (Bane bonus: +${CONFIG.BANE_SKILL_PER_LEVEL} for each level of the chain up to this one)`
-          : total ? `+${total} on every attack and defense roll (+${CONFIG.DEFEATS_ROLL_PER_TIER} for each level of the chain up to this one)` : none('none, XP only')),
+        row('Roll bonus', bane ? `+${bane} skill on every roll against that ${kind}`
+          : total ? `+${total} on every attack and defense roll` : none('none, XP only')),
         d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
-        row('Earned at', d.rule === 'mastery' ? `all three skills of a tree at ${d.count}` : `${d.count} defeat${d.count === 1 ? '' : 's'}${d.by ? `, once per ${d.by === 'body_type' ? 'body type' : 'race'}` : ''}`),
+        row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
         row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.id));
       return c;
     }))));
@@ -418,6 +437,75 @@ function standIns(): HTMLElement[] {
   ]);
 }
 
+// ---------- Stacking ----------
+const FEED_SEC: Record<string, string> = { perks: 'perks', items: 'gear', achievements: 'achievements' };
+function stacking(): HTMLElement[] {
+  const r = CONFIG.STACK_RATIO;
+  const x = (n: number) => `${+n.toFixed(3)}`;
+  const shares = [0, 1, 2, 3].map((i) => `×${x(r ** i)}`).join(', ');
+  const ex1 = [10, 10, 10], ex2 = [{ type: 'achievement', value: 10 }, { type: 'gear', value: 10 }];
+  const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How modifiers stack'), chip('modTotal · stackType · src/ruleset/index.ts', '--c3')),
+    h('ol', { class: 'lv-steps' },
+      h('li', {}, 'Every modifier on a roll has a type (ModType in src/types/ruleset.ts). The sections below list what feeds each type.'),
+      h('li', {}, `Within one type, the biggest counts in full and each next one at CONFIG.STACK_RATIO = ${x(r)} to the power of its place: ${shares} …`),
+      h('li', {}, 'Bonuses and penalties of a type stack apart: the biggest bonus counts in full, and so does the biggest penalty.'),
+      h('li', {}, 'The types then add together in full.'),
+      h('li', {}, `A source given in skill points counts at CONFIG.SKILL_WEIGHT = ${x(CONFIG.SKILL_WEIGHT)} as a roll modifier, like skill itself (a +5 skill Bane is +${x(5 * CONFIG.SKILL_WEIGHT)} on the roll).`)),
+    row('Example', `three +10 of one type: ${x(stackType(ex1))} on the roll (stackType)`),
+    row('Example', `+10 achievement and +10 gear: ${x(modTotal(ex2 as { type: string; value: number }[]))} (two types, both in full)`));
+  const outside = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'Not stacked this way'), chip('tier shifts · effective skill', '--c3')),
+    h('ol', { class: 'lv-steps' },
+      h('li', {}, 'Tier shifts move the result a whole tier after the roll and simply add up: cover, Hidden Strike, marks, falling short on gear, Curiouser and Curiouser.'),
+      h('li', {}, 'Skill changes act before the roll, on effective skill: true skill and its perks, gear skill effects, the stand-in share and the skill tier. See the Stand-ins tab.')));
+  const srcCard = (s: ModSource, i: number) => {
+    const feeds = s.feeds?.(lib) ?? [];
+    const c = card('stacking', `${s.roll}-${s.type}-${i}`, { type: s.type, roll: s.roll, source: s.source, when: s.when, value: s.value, at: s.at, ...(s.feeds ? { feeds } : {}) }, s.source,
+      [chip(MOD_TYPE_NAMES[s.type], toneOf('Type', MOD_TYPE_NAMES[s.type])), chip(s.feeds ? `${feeds.length} from the library` : 'fixed number', s.feeds ? '--c1' : '--c3')],
+      row('Applies to', s.when), row('Roll modifier', s.value), row('Made in', h('code', {}, s.at)),
+      s.feeds ? row('From', feeds.length ? h('div', { class: 'lv-sub' }, feeds.map((f) => h('div', {}, link(FEED_SEC[f.table], f.id, f.name), f.value ? ` · ${f.value}` : ''))) : none()) : null);
+    c.querySelector('.lv-id')?.remove(); // the card id is only a link target
+    return c;
+  };
+  const byType = (roll: ModSource['roll']) => {
+    const mine = MOD_SOURCES.map((s, i) => [s, i] as const).filter(([s]) => s.roll === roll);
+    return (Object.keys(MOD_TYPE_NAMES) as StackedType[]).filter((t) => mine.some(([s]) => s.type === t)).map((t) => {
+      const of = mine.filter(([s]) => s.type === t);
+      return h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, `${MOD_TYPE_NAMES[t]} (${of.length} source${of.length === 1 ? '' : 's'})`),
+        h('div', { class: 'lv-grid' }, of.map(([s, i]) => srcCard(s, i))));
+    });
+  };
+  const n = (roll: ModSource['roll']) => MOD_SOURCES.filter((s) => s.roll === roll).length;
+  return [
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'The rule'), h('div', { class: 'lv-grid wide' }, rule, outside)),
+    ...panes([
+      { key: 'skill', title: 'Skill rolls', n: n('skill'), content: [h('p', { class: 'hs-note' }, 'Attack, defense, sense and every other roll made with a skill (ruleset.roll).'), ...byType('skill')] },
+      { key: 'situation', title: 'Situation rolls', n: n('situation'), content: [h('p', { class: 'hs-note' }, 'The no-skill roll for luck and circumstance (ruleset.situation). Statuses will count here too once they have library entries.'), ...byType('situation')] },
+    ]),
+  ];
+}
+
+// ---------- Equations ----------
+const EQUATIONS = equations(lib);
+function equationsView(): HTMLElement[] {
+  return [
+    h('p', { class: 'hs-note' }, 'The general equations the rules use. Numbers come from CONFIG, and the examples and chances are worked out by the same functions the game calls.'),
+    ...panes(EQUATIONS.map((g) => ({ key: g.key, title: g.title, n: g.equations.length, content: [
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, g.title), h('p', { class: 'hs-note' }, g.about),
+        h('div', { class: 'lv-grid wide' }, g.equations.map((e, i) => {
+          const c = card('equations', `${g.key}-${i}`, e, e.name, [chip(e.at, '--c3')],
+            h('p', { class: 'lv-formula' }, e.formula),
+            ...(e.terms ?? []).map(([k, v]) => row(k, v)),
+            e.table ? h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, e.table.head.map((x) => h('th', {}, x)))),
+              h('tbody', {}, e.table.rows.map((r) => h('tr', {}, r.map((x) => h('td', {}, x)))))) : null,
+            ...(e.notes ?? []).map((x) => h('p', { class: 'hs-note' }, x)));
+          c.querySelector('.lv-id')?.remove(); // the card id is only a link target
+          c.querySelector('.lv-raw')?.remove(); // the equation is text, not a library entry
+          return c;
+        }))),
+    ] }))),
+  ];
+}
+
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
@@ -427,9 +515,13 @@ const CUSTOM: Section[] = [
   { key: 'achievements', title: 'Achievements', table: 'achievements', view: achievements },
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
+  { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
+  { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
+  stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],
+    ['Fed by', e.type ? (e.feeds ? 'library entries' : 'a fixed number') : undefined]],
   standIns: (e: { id?: string; functions?: string[]; own?: boolean }) => [['Rule', e.id ? (e.own ? 'own table' : 'flat share') : undefined], ['Tree', treeOf(e.id)],
     ...(e.functions ?? []).map((f): [string, string] => ['Function', functionName(f)])],
   gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
@@ -457,7 +549,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
   .map((k) => ({ key: k, title: NAMES[k] ?? label(k), table: k }))];
 
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
-  SECTIONS.map((s) => h('a', { href: `#${s.key}`, 'data-sec': s.key }, s.title, h('span', { class: 'lv-n' }, String(Object.keys(lib[s.table] as object).length)))));
+  SECTIONS.map((s) => h('a', { href: `#${s.key}`, 'data-sec': s.key }, s.title, h('span', { class: 'lv-n' }, String(s.count ?? Object.keys(lib[s.table] as object).length)))));
 const picks = new Map<string, 'shown' | 'out'>();
 const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
