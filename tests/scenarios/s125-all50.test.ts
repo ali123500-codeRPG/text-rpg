@@ -1,4 +1,4 @@
-// 125 All-50 parts (Ali, 08/11/2026, All-50 doc round 1): a tree's built parts are granted free when every skill of the
+// 125 All-50 parts (All-50 doc round 1): a tree's built parts are granted free when every skill of the
 // tree reaches 50 true skill, with the tree's mastery achievement; then the first six built parts.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place } from '../harness';

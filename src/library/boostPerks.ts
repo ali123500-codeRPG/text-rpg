@@ -1,6 +1,6 @@
-// 40 perks: the 40 milestone of each skill (Ali, 08/11/2026, "40 milestone perks: options" F1–F5, P1–P19). Every 40
+// 40 perks: the 40 milestone of each skill ("40 milestone perks: options" F1–F5, P1–P19). Every 40
 // perk gives +5 true skill in its own skill, +1 true skill in its own skill and every other skill sharing one of its
-// groups (docs/skill-tags.md; "+1 function (including itself)", Ali 08/11/2026; groups F1), so +6 in its own skill, and ONE more number: a number of the skill itself (`numbers`), or +10 true skill spent on
+// groups (docs/skill-tags.md; "+1 function (including itself)"; groups F1), so +6 in its own skill, and ONE more number: a number of the skill itself (`numbers`), or +10 true skill spent on
 // skills that work well with it (`trueSkillTo`). 40/80/120 perks have no conditions. The 20/60/100/140 perks carry the
 // rules changes. Names are placeholders. Story and Rules are written from the same row, so they always match.
 import type { BoostNumbers, PerkEffect, PerkWriteup, SkillGroup } from '../types';

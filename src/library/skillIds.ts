@@ -1,4 +1,4 @@
-// Skill IDs (Ali, 09/11/2026): every skill's ID is a fixed number, never its name, so renaming a skill touches only the
+// Skill IDs: every skill's ID is a fixed number, never its name, so renaming a skill touches only the
 // names table (skillNames.ts). Code refers to skills through SK; data and saves store the number (as a string key).
 // Never reuse or renumber an ID; a new skill takes the next free number.
 import { FN } from './functionIds';
@@ -36,6 +36,6 @@ export function skillIdOf(x: string, names: Record<string, string>): string {
   return byName ? byName[0] : x;
 }
 
-/** the name-based skill IDs used before 09/11/2026, so an older save's skills load under their numbers (library status) */
+/** the name-based skill IDs used before numeric IDs, so an older save's skills load under their numbers (library status) */
 export const OLD_SKILL_IDS: Record<string, SkillId> = Object.fromEntries(
   Object.entries(SK).map(([k, id]) => [({ eyesight: 'sight', earshot: 'hearing' } as Record<string, string>)[k] ?? k, id]));

@@ -1,4 +1,4 @@
-// Equip requirements (Ali, 08/11/2026, EQ1–EQ13). An item's level asks for true skill (EQ1) in the skill that uses it, and
+// Equip requirements (EQ1–EQ13). An item's level asks for true skill (EQ1) in the skill that uses it, and
 // stand-ins count at their usual share (EQ3). Falling short makes every roll with the item one outcome step worse per
 // EQUIP_SHORT_STEP points short (EQ12 c); worn armor's shortfall reaches Dodge and stealth rolls.
 import type { Actor, GameState, ItemDef, ItemInstance, RollKind, TierShift } from '../types';

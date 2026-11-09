@@ -1,4 +1,4 @@
-// 126 Improvised weapons strike or throw (Ali, 09/11/2026): both modes roll Improvisation; Unarmed skills stand in
+// 126 Improvised weapons strike or throw: both modes roll Improvisation; Unarmed skills stand in
 // for both, Arms skills also for the strike, Ranged skills also for the throw.
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';

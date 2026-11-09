@@ -1,4 +1,4 @@
-// Library viewer (Ali, 08/11/2026): every library table drawn from the same modules the game runs, so it shows the
+// Library viewer: every library table drawn from the same modules the game runs, so it shows the
 // library exactly as code sees it. Bundled into dist/library.html by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
 import './styles.css';
@@ -30,7 +30,7 @@ const none = (text = 'none yet') => h('span', { class: 'lv-none' }, text);
 const row = (k: string, ...v: (Node | string | null)[]) => h('div', { class: 'lv-row' }, h('span', { class: 'lv-k' }, k), h('span', { class: 'lv-v' }, ...v));
 const raw = (e: unknown) => h('details', { class: 'lv-raw' }, h('summary', {}, 'Code'), h('pre', {}, JSON.stringify(e, null, 2)));
 
-/** filter buttons (Ali, 08/11/2026): each section names [group, value] pairs per entry; generic tables get them from their short fields */
+/** filter buttons: each section names [group, value] pairs per entry; generic tables get them from their short fields */
 type Facets = (e: any) => [string, string | number | boolean | undefined][];
 let facetOf: Facets = () => [];
 function card(sec: string, id: string, entry: unknown, title: string, chips: (HTMLElement | null)[], ...body: (Node | null)[]): HTMLElement {
@@ -50,7 +50,7 @@ function val(v: unknown, depth = 0): Node | string {
   if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(k, val(x, depth + 1))));
   return String(v);
 }
-/** skill IDs are numbers (Ali, 09/11/2026): show a skill field, or a table keyed by skill, by the skill's name */
+/** skill IDs are numbers: show a skill field, or a table keyed by skill, by the skill's name */
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
@@ -109,7 +109,7 @@ function gear(): HTMLElement[] {
 
 // ---------- Perks: the ladder grid (skill × milestone), then every perk ----------
 const EFFECT_TONE: Record<string, string> = { attack: '--c10', defense: '--c1', health: '--c2', speed: '--c15', senses: '--c5', speech: '--c4' };
-/** colour coding (Ali, 08/11/2026): fixed colours where a value has a meaning, else the palette in value order */
+/** colour coding: fixed colours where a value has a meaning, else the palette in value order */
 const PALETTE = ['--c1', '--c2', '--c7', '--c5', '--c12', '--c4', '--c15', '--c10', '--c14', '--c3'];
 const FIXED: Record<string, Record<string, string>> = {
   Effect: EFFECT_TONE,
@@ -147,7 +147,7 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   d.numbers ? row('Numbers', val(d.numbers)) : null,
   ...fields(d as Entry, ['id', 'name', 'story', 'rules', 'ladder', 'effect', 'built', 'quirk', 'trueSkill', 'functionBoost', 'trueSkillTo', 'numbers', 'ref', 'skill', 'place', 'allStep']));
 }
-/** sub-tabs inside one section (Ali, 09/11/2026: Perks split into milestone, All-XX, not in use, other). Every pane is
+/** sub-tabs inside one section (Perks split into milestone, All-XX, not in use, other). Every pane is
  * built, only the chosen one shows; filters and colours count the shown pane only. */
 type Pane = { key: string; title: string; n: number; content: (HTMLElement | null)[] };
 let pane = '';
@@ -290,7 +290,7 @@ function skills(): HTMLElement[] {
       loose.length ? treeCard('no_tree', 'In no tree', loose, loose, []) : null)];
 }
 
-// ---------- Stand-ins (Ali, 08/11/2026: "show me how stand in is coded") ----------
+// ---------- Stand-ins ("show me how stand in is coded") ----------
 /** every number here comes from standInTable / standInShare in src/ruleset/gear.ts, the functions effectiveSkill uses */
 function standIns(): HTMLElement[] {
   const ids = Object.keys(lib.skills);
@@ -422,7 +422,7 @@ function filter(): void {
 }
 const viewOf = (sec: Section) => (sec.view ? sec.view() : [h('div', { class: 'lv-grid' }, generic(sec.key, lib[sec.table] as Record<string, Entry>))]).filter(Boolean) as HTMLElement[];
 
-// Details pop-up (Ali, 08/11/2026): clicking any entry link opens its full card in a floating panel that can be dragged
+// Details pop-up: clicking any entry link opens its full card in a floating panel that can be dragged
 // and closed, so the page underneath stays where it is.
 const popBody = h('div', { class: 'lv-pop-body' });
 const popTitle = h('span', { class: 'hs-label' });

@@ -111,11 +111,11 @@ export function beginScene(state: GameState, tier: Tier): void {
   endYields(state);
 }
 
-/** Q1 (Ali, 08/11/2026, option A): when the scene ends, a yielded actor holds a grudge (opposed) toward those it
+/** Q1 (option A): when the scene ends, a yielded actor holds a grudge (opposed) toward those it
  * yielded to, its surrender ends (Morale: it lasts the scene), and it leaves for its exit slot if it has one.
  * GAP: there is no off-stage yet (D-46, D-67), so "leaves" means it goes to its exit zone. */
 function endYields(state: GameState): void {
-  // Q4 (Ali, 08/11/2026): broken and surrendered last only the scene (Morale)
+  // Q4: broken and surrendered last only the scene (Morale)
   for (const a of state.actors) if (a.mind?.moraleState) delete a.mind.moraleState;
   for (const a of state.actors) {
     const o = a.mind?.overrides;

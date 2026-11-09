@@ -55,7 +55,7 @@ export type AttackMode = {
   thrown?: true;
   damageAdj?: number;
   hitAdj?: number;
-  /** extra skill functions whose skills may stand in for this mode's skill, at the usual share (Ali, 09/11/2026:
+  /** extra skill functions whose skills may stand in for this mode's skill, at the usual share (
    * an improvised melee strike takes Arms stand-ins, an improvised throw takes Ranged ones) */
   standInFns?: SkillFunction[];
   partId?: string; // natural attacks: the Strike part used

@@ -1,4 +1,4 @@
-// 108 Look around (Ali, 07/11/2026, Q17): looking is a sight roll; Success or better shows everyone in sight clearly,
+// 108 Look around (Q17): looking is a sight roll; Success or better shows everyone in sight clearly,
 // and someone seen clearly stays seen until they move.
 import { expect, it } from 'vitest';
 import type { GameEvent, GameState } from '../../src/types';

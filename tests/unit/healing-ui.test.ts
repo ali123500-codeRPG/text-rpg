@@ -1,4 +1,4 @@
-// Healing displays (Ali, 07/11/2026, H1 d / H2 a / H3 b): the turn's notes survive the log reset, and the quick slot
+// Healing displays (H1 d / H2 a / H3 b): the turn's notes survive the log reset, and the quick slot
 // shows the player's pick, else the strongest healing item (ties: the one carried most).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';

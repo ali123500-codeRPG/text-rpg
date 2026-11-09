@@ -18,7 +18,7 @@ export type Actor = {
   knownOnSight?: boolean;
   placeId: PlaceId; // always the place of `zone`
   zone: string;
-  posture?: 'open' | 'stealthy'; // NS1 (Ali, 08/11/2026): any actor can be stealthy
+  posture?: 'open' | 'stealthy'; // NS1: any actor can be stealthy
   bandId: string;
   core: Core;
   progression?: Progression;
@@ -32,7 +32,7 @@ export type Actor = {
 /** a perk's lasting effect: target is the actor it names (an opening on that foe); until is the last turn it holds */
 export type PerkMark = { perk: string; target?: string; until?: number };
 
-/** E1 (Ali, 07/11/2026): one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
+/** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
 export type EngagementKind = 'talk' | 'fight';
 export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number> };
@@ -85,11 +85,11 @@ export type Progression = {
   marks: LibraryRef[];
   xpLog?: XpAward[]; // source trail (B8); every award, in order
   /** earned, each once (B4, X6). key = the library achievements table row, of = the body type, race or tree it names;
-   * the name and XP level live only in that table (Ali, 07/11/2026). name is only on entries from older saves. */
+   * the name and XP level live only in that table. name is only on entries from older saves. */
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string }[];
   defeats?: Record<string, number>; // defeat counts: 'all', 'body_type:<type>', 'race:<race>'
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
-  quickHeal?: LibraryRef; // H3 (Ali, 07/11/2026): the healing item (item def id) the quick slot shows; absent = the strongest
+  quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
 };
 
 export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } };
@@ -129,7 +129,7 @@ export type NpcTemplate = {
   control: 'agent' | 'code';
   label: string;
   fallback?: { attackSkill: LibraryRef }; // overrides the body type's (Fallback behavior)
-  /** perks every NPC made from this template has (Ali, 08/11/2026: any patrolling template has Keen Ear) */
+  /** perks every NPC made from this template has (any patrolling template has Keen Ear) */
   perks?: LibraryRef[];
 };
 
@@ -138,7 +138,7 @@ export type Journal = {
   factsWitnessed: FactId[];
   remembered: Record<SlotKey, { value: string; seenTurn: Turn }>;
   namesKnown: ActorId[];
-  /** Q17 (Ali, 07/11/2026): actors the player has seen clearly, and the zone they were in; they stay seen until they move */
+  /** Q17: actors the player has seen clearly, and the zone they were in; they stay seen until they move */
   clearSight?: Record<ActorId, string>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;

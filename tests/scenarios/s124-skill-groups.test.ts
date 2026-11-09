@@ -1,4 +1,4 @@
-// 124 Skill groups and functions (Ali, 08/11/2026, F1–F8): a skill lists one or more narrow functions (stand-ins at
+// 124 Skill groups and functions (F1–F8): a skill lists one or more narrow functions (stand-ins at
 // SUBSTITUTE_EFFICIENCY 0.3, which perks can move); each function sits in one broad group (40 perk +1, XP category).
 import { FN } from '../../src/library/functionIds';
 import { afterEach, describe, expect, it } from 'vitest';

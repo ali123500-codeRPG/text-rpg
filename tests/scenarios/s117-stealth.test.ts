@@ -1,4 +1,4 @@
-// 117 Stealth tree (Ali, 08/11/2026, ST1–ST10; spec tests 3, 18 and 42): hide and sneak are stealth contests per observer.
+// 117 Stealth tree (ST1–ST10; spec tests 3, 18 and 42): hide and sneak are stealth contests per observer.
 // Sneaking is used outside an engagement and Combat Stealth inside one or for a shot; melee reveals, a shot does not.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
@@ -132,7 +132,7 @@ describe('117 stealth', () => {
     turn(s, intent(null, { type: 'hide' }));
     const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
     expect(a.skill).toBe(SK.sneaking);
-    // P14 (Ali, 08/11/2026): darkness gives no help against a listener
+    // P14: darkness gives no help against a listener
     expect(a.modifiers).toEqual(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 10 }] : []);
     expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
     expect(a.roles).toEqual([]);

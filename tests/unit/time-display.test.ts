@@ -1,4 +1,4 @@
-// Time of day display (Ali, 07/11/2026): T1 coloured icon in the header, T2 b "N hours later" divider, T3 b natural
+// Time of day display: T1 coloured icon in the header, T2 b "N hours later" divider, T3 b natural
 // recovery as a quiet line (the DOM parts are checked in the browser). Turn notes carry the time that passed, because the code log is cleared before display.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';

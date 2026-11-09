@@ -1,4 +1,4 @@
-// PM1–PM4 (Ali, 08/11/2026): an NPC's memory list and the agreements between actors. Agent outputs are requests;
+// PM1–PM4: an NPC's memory list and the agreements between actors. Agent outputs are requests;
 // code keeps the list to CONFIG.MEMORY_ENTRIES and records a deal only when the other party heard it said this turn.
 import type { Actor, AgreementEnd, AgreementMade, GameState, MemoryOps } from '../types';
 import { CONFIG } from '../config';

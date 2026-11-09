@@ -9,7 +9,7 @@ export type CheckReport = { errors: string[]; repairs: string[]; warnings: strin
 export const newReport = (): CheckReport => ({ errors: [], repairs: [], warnings: [], changed: new Set() });
 
 // ---------- migrations ----------
-// v4 -> v5 (Ali, 07/11/2026): "opposed" used to mean attack on sight; that is now "hostile", and "opposed" means
+// v4 -> v5: "opposed" used to mean attack on sight; that is now "hostile", and "opposed" means
 // at odds but never striking first. Saved band relations, personal overrides and planned stances keep their behavior.
 // A logged stance step "more_opposed" is now "colder".
 export function opposedToHostile(v: unknown): void {
@@ -56,7 +56,7 @@ export function levelsToKeys(v: unknown): void {
   Object.values(o).forEach(levelsToKeys);
 }
 
-// v3 -> v4 (Ali, 07/11/2026): humanoids have a left and a right leg instead of one "legs" part. Both legs start from
+// v3 -> v4: humanoids have a left and a right leg instead of one "legs" part. Both legs start from
 // the old pool; armor that covered "legs" covers both. Only humanoids had a part named "legs".
 export function splitLegs(v: unknown): void {
   if (Array.isArray(v)) return v.forEach(splitLegs);
@@ -71,7 +71,7 @@ export function splitLegs(v: unknown): void {
   Object.values(o).forEach(splitLegs);
 }
 
-// v5 -> v6 (Ali, 08/11/2026, PM1): an NPC's one memory note becomes the first entry of its memory list.
+// v5 -> v6 (PM1): an NPC's one memory note becomes the first entry of its memory list.
 export function notesToLists(pages: Pages): void {
   const h = pages.hidden as { memory?: Record<string, unknown> } | undefined;
   for (const [id, m] of Object.entries(h?.memory ?? {})) if (typeof m === 'string') h!.memory![id] = m ? [{ turn: 0, text: m }] : [];

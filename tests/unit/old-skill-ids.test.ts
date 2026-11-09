@@ -1,4 +1,4 @@
-// Skill IDs became numbers (Ali, 09/11/2026): an older save's name-keyed skills load under their numbers.
+// Skill IDs became numbers: an older save's name-keyed skills load under their numbers.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { memoryStore, saveTurn, loadStory } from '../../src/save';

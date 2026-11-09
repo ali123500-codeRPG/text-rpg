@@ -7,30 +7,30 @@ import { SK } from './library/skillIds';
 
 const DEFAULTS = {
   // ---- Part 1 ----
-  SUBSTITUTE_EFFICIENCY: 0.3, // F4 (Ali, 08/11/2026): was 0.5; perks can change it (PerkDef.standIn)
-  /** Skill tiers (Ali, 08/11/2026): the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder (Ali gave 0 and 2). */
+  SUBSTITUTE_EFFICIENCY: 0.3, // F4: was 0.5; perks can change it (PerkDef.standIn)
+  /** Skill tiers: the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder (Ali gave 0 and 2). */
   SKILL_TIER_MULT: { tier_0: 0.5, tier_1: 0.75, tier_2: 1 } as Record<string, number>,
-  /** A7 Open-Hand Guard: share of a hit through an open-hand block that lands on the blocking arm; the rest goes to the general area (placeholder, Ali 07/11/2026) */
+  /** A7 Open-Hand Guard: share of a hit through an open-hand block that lands on the blocking arm; the rest goes to the general area (placeholder) */
   OPEN_HAND_ARM_SHARE: 0.5,
-  /** A6 Leg Bolt: the leg's pool takes this multiple of the damage the hit puts on the health track (Ali, 07/11/2026) */
+  /** A6 Leg Bolt: the leg's pool takes this multiple of the damage the hit puts on the health track */
   LEG_BOLT_PART_MULT: 1.5,
-  /** Per-check substitutes (Ali, 07/11/2026): a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
+  /** Per-check substitutes: a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
    * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
   SUBSTITUTES: {
     [SK.unarmed_grapple]: [{ fn: FN.unarmed, k: 0.4 }, { fn: FN.arms, k: 0.2 }],
   } as Record<string, { fn: SkillFunction; k: number }[]>,
-  /** Pairs of skills that never stand in for each other, even when they share a function (Ali, 09/11/2026: dodge and block) */
+  /** Pairs of skills that never stand in for each other, even when they share a function (dodge and block) */
   NO_STAND_IN: [[SK.dodge, SK.block]] as [string, string][],
   SITUATION_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
-  /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … (Ali, 08/11/2026) */
+  /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … */
   STACK_RATIO: 0.5,
   KIT_BONUS: 25,
   POTENTIAL: 300,
   K: 20,
-  /** SP2 (Ali, 07/11/2026): a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
+  /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
   MARK_WINDOW: 10,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
   ENDURANCE_MARK_PCT: 10,
@@ -38,13 +38,13 @@ const DEFAULTS = {
   HP_BASE: 50,
   HP_PER_END: 1,
   HEALTH_SHOWN_FROM: 'Wounded', // others' health level shows from this level down (Voyage C2)
-  /** health % lost stops here: Dead at 150% (Ali, 08/11/2026) */
+  /** health % lost stops here: Dead at 150% */
   HP_LOST_MAX: 150,
   HEALTH_TRACK: [
     // [level, max % lost, wounds modifier]
     ['Unhurt', 0, 0], ['Bruised', 15, 0], ['Hurt', 30, -5], ['Injured', 45, -10],
     ['Wounded', 60, -15], ['Mauled', 75, -20], ['Critical', 99.999, -30], ['Incapacitated', 149.999, 0],
-    ['Dead', Infinity, 0], // Ali 08/11/2026: dead at 150% lost (was 200%); never shown in the UI
+    ['Dead', Infinity, 0], // dead at 150% lost (was 200%); never shown in the UI
   ] as [string, number, number][],
   PART_SHARE: { tiny: 0.15, extra_small: 0.15, small: 0.2, normal: 0.3, big: 0.5 } as Record<string, number>,
   HIT_WEIGHT: { tiny: 0.25, extra_small: 0.5, small: 1, normal: 2, big: 4 } as Record<string, number>,
@@ -57,7 +57,7 @@ const DEFAULTS = {
   WEAPON_CLASSES: {
     light: { damage: 20, hit: 10 }, medium: { damage: 25, hit: 0 }, heavy: { damage: 30, hit: -10 },
     punch: { damage: 15, hit: 10 }, slam: { damage: 20, hit: 10 },
-    grapple: { damage: 5, hit: 0 }, // grab and wrench (placeholder, 07/11/2026): anyone can grapple; Hold (A8) locks on
+    grapple: { damage: 5, hit: 0 }, // grab and wrench (placeholder): anyone can grapple; Hold (A8) locks on
   } as Record<string, { damage: number; hit: number }>,
   UNARMED_PROFILE: { damage: 15, hit: 10 },
   HEAVY_VS_BLOCK_GAP: -1,
@@ -69,25 +69,25 @@ const DEFAULTS = {
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
-  ENGAGEMENT_END_TURNS: 2, // E1 (Ali, 07/11/2026): an engagement ends after this many turns with no one engaged with the actor
+  ENGAGEMENT_END_TURNS: 2, // E1: an engagement ends after this many turns with no one engaged with the actor
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   // GAP (placeholders): zone links an event reaches, [full, partial], per NOISE / VISIBILITY key. −1 = nowhere, the step
-  // below 0 (same zone), so a +1 link bonus turns nowhere into same zone (Ali, 08/11/2026).
+  // below 0 (same zone), so a +1 link bonus turns nowhere into same zone.
   // Sound from another zone is partial except Loud and Deafening. A dark zone caps sight at partial.
-  // NV1–NV6 (Ali, 08/11/2026): Loud and Deafening carry further (NV6). Later comments (Ali, 08/11/2026): Loud is heard
+  // NV1–NV6: Loud and Deafening carry further (NV6). Later comments: Loud is heard
   // clearly one link away, Deafening two.
   NOISE_REACH: { silent: [-1, -1], faint: [-1, 0], hushed: [0, 0], quiet: [0, 1], normal: [0, 2], loud: [1, 4], deafening: [2, 6] } as Record<string, [number, number]>,
   SIGHT_REACH: { unseen: [-1, -1], faint: [-1, 0], close: [0, 0], low: [0, 1], normal: [1, 2], high: [2, 3], glaring: [3, 4] } as Record<string, [number, number]>,
-  /** ST21 (Ali, 08/11/2026): which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
+  /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
   SITUATION_TAGS: { light: { sight: 1, stealth: -1 }, cover: { hide: 1, ranged: -1 } } as Record<'light' | 'cover', Partial<Record<import('./types').SituationTag, number>>>,
   MORALE_DEFAULT: 50,
   PERSONALITY_MORALE: { fearless: null, bold: 70, steady: 50, timid: 30 } as Record<string, number | null>,
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
-  // ---- game clock (T1-T8, Ali 07/11/2026); durations per action are the library's durations table ----
+  // ---- game clock (T1-T8); durations per action are the library's durations table ----
   TIME_OF_DAY_FROM: { dawn: 5 * 60, day: 7 * 60, dusk: 18 * 60, night: 20 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
   SKY_LIGHT: { dawn: 'dim', day: 'bright', dusk: 'dim', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
   TIME_TAGS: { dawn: ['day', 'night'], day: ['day'], dusk: ['day', 'night'], night: ['night'] } as Record<string, string[]>, // T3b: routine-set time tags that fit
@@ -95,9 +95,9 @@ const DEFAULTS = {
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
   // ---- Part 4 ----
-  POINTS_PER_LEVEL: 10, // Ali (08/11/2026): 10 × level (was 3)
+  POINTS_PER_LEVEL: 10, // Ali: 10 × level (was 3)
   CREATION_POINTS: 250,
-  START_LEVEL: 4, // EQ13 (Ali, 08/11/2026): the player starts at level 4
+  START_LEVEL: 4, // EQ13: the player starts at level 4
   CREATION_MAX_SKILL: 60,
   CREATION_TAGS: 3,
   STARTING_COIN: 20,
@@ -110,41 +110,41 @@ const DEFAULTS = {
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
   ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
-  /** EQ9 (Ali, 08/11/2026): true skill each equipment level needs, Masterwork ending at 100 (even steps, placeholders) */
+  /** EQ9: true skill each equipment level needs, Masterwork ending at 100 (even steps, placeholders) */
   EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100 } as Record<string, number>,
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
   EQUIP_SHORT_STEP: 10,
   ARMOR_DODGE: { light: -5, medium: -10, heavy: -20 } as Record<string, number>,
-  // GAP (placeholders, AN1–AN4 Ali 08/11/2026): worn armor makes body-moving events this many NOISE steps louder, per
+  // GAP (placeholders, AN1–AN4): worn armor makes body-moving events this many NOISE steps louder, per
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
     hitAdj: [2, 4, 6, 8], damageAdj: [1, 2, 3, 4], reduction: [1, 1, 2, 2], tool: [5, 10, 15, 20],
   },
-  STALL_TURNS: 8, // placeholder (Ali, 07/11/2026, P7c): quiet turns with no beat left before a new scene
-  IMPROVISED_HIT_ADJ: -10, // placeholder (Ali, 07/11/2026, loot L3)
-  // Boon (loot V8, Ali 07/11/2026): a reward's worth to the player. Placeholders, tune after playtests (V8c).
+  STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
+  IMPROVISED_HIT_ADJ: -10, // placeholder (loot L3)
+  // Boon (loot V8): a reward's worth to the player. Placeholders, tune after playtests (V8c).
   BOON_COIN: 20, // coin value per Boon, unless the item sets its own boon
   BOON_QUALITY: [1, 2, 3, 5, 8], // multiplier by minted quality (index 0 = not minted)
   BOON_BUDGET: { none: 0, minor: 2, moderate: 5, major: 10, extreme: 20 } as Record<string, number>, // per plan, by gain
-  // XP and levels (Ali, 07/11/2026, X1–X10). Placeholders, kept small at first (X1).
+  // XP and levels (X1–X10). Placeholders, kept small at first (X1).
   LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × n
   // Kill XP from stats (X18–X23): rating = per category, skills' training effort ranked high to low at 1, ½, ¼…,
   // × the category weight; kill XP = rating × taper × KILL_XP_MULT. Placeholders, tuned later (X19).
   XP_CATEGORY_WEIGHT: { offensive: 1, defensive: 1, endurance: 1, notice: 0.5, influence: 0.25, misc: 0 } as Record<string, number>,
-  KILL_XP_MULT: 1, // X20 (Ali, 07/11/2026): ×1 for now
+  KILL_XP_MULT: 1, // X20: ×1 for now
   KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
-  /** D-111 Bane bonuses (Ali, 08/11/2026): an achievement earned against a race or body type gives this much skill on
+  /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,
-  /** All-50 part numbers (src/library/allPerks.ts; placeholders, Ali 08/11/2026) */
+  /** All-50 part numbers (src/library/allPerks.ts; placeholders) */
   FIGHTERS_FRAME_MULT: 0.9,
   DODGY_SKILL: 5,
   IRON_KNUCKLES_MULT: 1.1, // All-50 Iron Knuckles: unarmed hits deal a tenth more (placeholder)
   BARE_HANDED_GUARD: 5,
   STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
-  /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests (Ali, 07/11/2026) */
+  /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests */
   REWARD_XP: { i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
@@ -162,15 +162,15 @@ const DEFAULTS = {
   SCENE_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 1, short: 3, medium: 6, long: 12 } as Record<string, number>,
   RECENT_EVENTS: 8, // compact views: last few relevant events
-  MEMORY_ENTRIES: 8, // PM1 (Ali, 08/11/2026): an NPC's memory list holds at most this many entries (placeholder)
-  EARLIER_LINES: 6, // PM6 (Ali, 08/11/2026): code-made lines about events older than RECENT_EVENTS (placeholder)
+  MEMORY_ENTRIES: 8, // PM1: an NPC's memory list holds at most this many entries (placeholder)
+  EARLIER_LINES: 6, // PM6: code-made lines about events older than RECENT_EVENTS (placeholder)
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
   SHOW_MECHANICS: true,
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex' } as Record<string, 'quick' | 'default' | 'complex'>,
-  STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // Ali, 08/11/2026 (flavor voice V5)
+  STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // (flavor voice V5)
     length: '2 to 4 short paragraphs' },
 };
 

@@ -1,4 +1,4 @@
-// Healing (Ali, 07/11/2026, "Healing: options" H1–H15). Every source is a row of the library healing table, applied by
+// Healing ("Healing: options" H1–H15). Every source is a row of the library healing table, applied by
 // this one rule, so amounts stay consistent (B5) and new sources or tiers are new rows (H1).
 import type { Actor, GameState } from '../types';
 import { getLibrary } from '../library';
@@ -18,7 +18,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   if (!src) return false;
   const c = a.core.condition;
   const level = healthLevel(a);
-  if (level === 'Dead' && !src.revivesDead) return false; // no row heals the dead for now (Ali, 08/11/2026)
+  if (level === 'Dead' && !src.revivesDead) return false; // no row heals the dead for now
   const before = partStates(state, a);
   const lost = c.hpLostPct;
   c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct));
@@ -40,7 +40,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   return c.hpLostPct !== lost || healed;
 }
 
-/** Q3 (Ali, 08/11/2026): would this source heal anything? A healing item isn't used up when it wouldn't. */
+/** Q3: would this source heal anything? A healing item isn't used up when it wouldn't. */
 export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean {
   const src = getLibrary().healing?.[sourceId];
   if (!src) return false;

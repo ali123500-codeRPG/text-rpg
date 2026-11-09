@@ -1,4 +1,4 @@
-// Character sheet pieces (approved mock-up round 2, 07/11/2026): the character card, skill bars by tree, and the
+// Character sheet pieces (approved mock-up round 2): the character card, skill bars by tree, and the
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
 import type { Actor, GameState, LogLine } from '../types';
 import { CONFIG } from '../config';
@@ -48,7 +48,7 @@ export function trees(s: GameState, p: Actor, withZero: boolean) {
 }
 
 const tag = () => h('span', { class: 'tag', title: 'Tagged skill' }, '✦');
-/** V3a (Ali, 07/11/2026): a skill marked for an improvement roll */
+/** V3a: a skill marked for an improvement roll */
 const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to improve when this fight ends', 'aria-label': 'marked to improve' });
 const marked = (p: Actor, id: string) => !!p.progression?.marks.includes(id);
 const bar = (raw: number) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (raw / BAR_SCALE) * 100)}%` }));
@@ -56,7 +56,7 @@ const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
 
 /** one row of level names over the card's equal boxes, alternating above (0) and below (1) the bar. The boxes run
- * Critical on the left to Bruised, then a 7th box for Unhurt on the right (Ali, 08/11/2026), so the bar empties from the
+ * Critical on the left to Bruised, then a 7th box for Unhurt on the right, so the bar empties from the
  * right like the side sheet's. Unhurt and Incapacitated are not named. */
 const steps = (boxes: string[], level: string, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
   boxes.map((l, i) => (l !== 'Unhurt' && i % 2 === below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, l) : null)));
@@ -79,7 +79,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', {}, h('b', {}, p.names.current || cls.charAt(0).toUpperCase() + cls.slice(1)), h('span', {}, place ? `In the ${place}` : ''))),
     h('div', { class: 'cs-track' },
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${level} · ${whole(hp)} HP`)),
-      // each level named at its segment, alternating one above the bar and one below (Ali, 08/11/2026)
+      // each level named at its segment, alternating one above the bar and one below
       steps(boxes, level, 0),
       h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: l, 'aria-label': l }))),
       steps(boxes, level, 1),
@@ -127,7 +127,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
 const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-/** Body figure (Ali, 07/11/2026): the body type's silhouette, each part tinted by its state; the general area shows
+/** Body figure: the body type's silhouette, each part tinted by its state; the general area shows
  * total health. Clicking a part names it with its state and amount. Null for body types without a figure. */
 export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set()): HTMLElement | null {
   const ct = safe(() => actorBody(s, p));
@@ -174,9 +174,9 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
   const track = SHOWN_LEVELS();
   const segs = track.slice(1, -1).map(([l, max], i, all) => ({ l, from: 100 - Math.min(100, max), to: i ? 100 - all[i - 1][1] : 100 }));
   // each segment's level named mid-segment, alternating one above the bar and one below; Unhurt (the full bar) and
-  // Incapacitated (the empty one) are not named (Ali, 08/11/2026)
+  // Incapacitated (the empty one) are not named
   // the Unhurt section is the bar's 7th section, on the right; the six damage sections share the rest by their % ranges
-  // (Ali, 08/11/2026: a separate box read as detached)
+  // (a separate box read as detached)
   const scale = (100 - UNHURT_SECTION) / 100;
   const marks = [...segs].reverse().map((x) => ({ l: x.l, at: ((x.from + x.to) / 2) * scale }));
   const fill = level === 'Unhurt' ? 100 : left * scale;
@@ -194,10 +194,10 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
     ? h('span', { class: x.l === level ? 'now' : '', style: `left:${x.at}%` }, x.l) : null)));
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
     onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
-    // the current level sits beside the HP number, as on the character card (Ali, 08/11/2026)
+    // the current level sits beside the HP number, as on the character card
     h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${level} · ${whole(hp)} HP`)),
     sideSteps(0),
-    // the 7th section lights only when Unhurt, so a full Bruised bar can't be read as Unhurt (Ali, 08/11/2026)
+    // the 7th section lights only when Unhurt, so a full Bruised bar can't be read as Unhurt
     h('span', { class: 'cs-hptrack', title: 'Health track, Unhurt on the right' }, h('b', { style: `width:${fill}%` }),
       [...segs.slice(0, -1).map((x) => x.from * scale), 100 - UNHURT_SECTION].map((at) => h('i', { style: `left:${at}%` }))),
     sideSteps(1));

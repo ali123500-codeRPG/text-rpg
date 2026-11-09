@@ -1,4 +1,4 @@
-// 116 Quick Word (A15, Ali 07/11/2026; trial perk; action economy AE7). In a fight, a one-sentence line said beside a
+// 116 Quick Word (A15; trial perk; action economy AE7). In a fight, a one-sentence line said beside a
 // non-speech action resolves as talk without using the action, and an NPC's spoken reply to it is free as well.
 import { expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';

@@ -39,7 +39,7 @@ export function tierAt(level: number): Tiered {
 }
 /** is tier `t` at or above tier `k` */
 export const tierAtLeast = (t: Tier | Tiered, k: Tier): boolean => tierLevel(t) >= TIERS.pos(k);
-/** display name; a tier past either end shows the end name with one + or − per step past it (Ali, 07/11/2026) */
+/** display name; a tier past either end shows the end name with one + or − per step past it */
 export function tierName(t: Tier | Tiered): string {
   const tier = typeof t === 'string' ? t : t.tier;
   const past = typeof t === 'string' ? 0 : t.beyond ?? 0;
@@ -84,7 +84,7 @@ export function ladder(type: 'dodge' | 'block', gap: number): number {
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
 function locRule(type: 'dodge' | 'block', g: number): LocRule {
-  if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: never essential, like the tie (OQ-17 settled 07/11/2026)
+  if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: never essential, like the tie (OQ-17 settled)
   return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block +1..+5 off-shield keep the gap-0 limit
 }
 function rowKey(type: 'dodge' | 'block', gap: number, shield: boolean): string {
@@ -280,7 +280,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
-    return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
+    return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, 'fighters_frame') ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, 'iron_knuckles') ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
@@ -354,7 +354,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   }
   const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
   const add = T.core.condition.hpLostPct + (counted / hp) * 100;
-  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : add; // a destroyed essential part kills (Ali, 08/11/2026)
+  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : add; // a destroyed essential part kills
   T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
   const levelAfter = healthLevel(T);
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });

@@ -2,7 +2,7 @@
 
 <!-- Generated from src/library/perks.ts by `npm run perks-doc`. Edit that file, not this one. -->
 
-Ladder perks by skill and milestone (Part 1 §5, Skill ladders), as Ali picked them on the 20 milestone page (https://claude.ai/artifact/WkMeSULi8AjSWxeK4jAdwg), 07/11/2026. Review page: https://claude.ai/artifact/DE4FDK98f9uBy7s9Ce41qn. Perks are coded, so each one states exactly when it applies.
+Ladder perks by skill and milestone (Part 1 §5, Skill ladders), as Ali picked them on the 20 milestone page (https://claude.ai/artifact/WkMeSULi8AjSWxeK4jAdwg). Review page: https://claude.ai/artifact/DE4FDK98f9uBy7s9Ce41qn. Perks are coded, so each one states exactly when it applies.
 
 Each perk has two views that must say the same thing. **Story** is what a player reads when choosing. **Rules** is exactly what code applies, and is the basis for building it. The Perks screen in the game switches between them.
 

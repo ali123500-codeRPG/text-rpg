@@ -1,4 +1,4 @@
-// Healing displays (Ali, 07/11/2026): H1 d, the "Patched up" card with coloured state tags and a health-track bar
+// Healing displays: H1 d, the "Patched up" card with coloured state tags and a health-track bar
 // whose healed segment glows; H3 b, one quick-use slot beside Aim for a healing item, picked in the Inventory
 // (default: the strongest, ties to the one carried most). H2 a (the healed body part glows) is in charsheet.ts.
 import type { Actor, GameState, HealNote, HealingDef } from '../types';
@@ -27,7 +27,7 @@ function trackBar(n: HealNote): HTMLElement {
     lv.map((_, i) => h('i', { class: i <= to ? `lv${i}${i === to && from > to ? ' new' : ''}` : i <= from ? 'lost' : '' })));
 }
 
-/** healing rows that show as a quiet line instead of a card (T3 b, Ali 07/11/2026): healing the player didn't choose */
+/** healing rows that show as a quiet line instead of a card (T3 b): healing the player didn't choose */
 const QUIET = new Set(['passive']);
 
 export function healCard(n: HealNote): HTMLElement {

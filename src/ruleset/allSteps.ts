@@ -1,4 +1,4 @@
-// All-XXX perks (Ali, 08/11/2026; src/library/allPerks.ts). When every skill of a tree reaches 50 true skill, the actor
+// All-XXX perks (src/library/allPerks.ts). When every skill of a tree reaches 50 true skill, the actor
 // gets each built part of that tree's All-50 bundle for free (OwnedPerk source 'mastery'), and the player earns the
 // tree's mastery achievement ("Adept of {tree}"). Checked at the end of every turn, so raises, perks and spawns all count.
 // Also the rolls that read All-50 parts on the other side (Dodgy) or after the dice (Curiouser and Curiouser).
@@ -39,7 +39,7 @@ export function foeMods(foe: Actor | undefined, rollKind: string | undefined): M
   return [];
 }
 
-/** T5b Spotter (Ali, 09/11/2026): at turn end, the owner's band-mates in its zone become at least suspicious of every
+/** T5b Spotter: at turn end, the owner's band-mates in its zone become at least suspicious of every
  * actor the owner is aware of, so they know something is there. */
 export function shareSpotted(state: GameState, o: Actor): void {
   if (!hasPerk(o, 'spotter') || !isActive(o)) return;
@@ -51,13 +51,13 @@ export function shareSpotted(state: GameState, o: Actor): void {
   }
 }
 
-/** shifts read after the dice. T5d Curiouser and Curiouser: a sight or hearing roll (by function, Ali 09/11/2026) at Success or better counts one tier
+/** shifts read after the dice. T5d Curiouser and Curiouser: a sight or hearing roll (by function) at Success or better counts one tier
  * higher. A request's nearMissUp (T6d Hushed Steps): a Near Miss counts one tier higher. */
 export function afterRollShifts(a: Actor, skill: string, level: number, nearMissUp?: string): TierShift[] {
   const fns = getLibrary().skills[skill]?.functions ?? [];
   if ((fns.includes(FN.sight) || fns.includes(FN.hearing)) && level >= TIERS.pos('success') && hasPerk(a, 'curiouser')) return [{ source: 'Curiouser and Curiouser', value: 1 }];
   if (nearMissUp && level === TIERS.pos('near_miss')) return [{ source: nearMissUp, value: 1 }];
-  // T7a Soft Landing: a speech roll at Near Miss or worse counts one tier higher (Ali, 09/11/2026)
+  // T7a Soft Landing: a speech roll at Near Miss or worse counts one tier higher
   const speech = getLibrary().trees.speech?.skills ?? [];
   if (speech.includes(skill) && level <= TIERS.pos('near_miss') && hasPerk(a, 'soft_landing')) return [{ source: 'Soft Landing', value: 1 }];
   return [];

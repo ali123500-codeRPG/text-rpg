@@ -19,7 +19,7 @@ const any: V<unknown> = (v) => v;
 const oneOf = <T extends string | number>(vals: readonly T[]): V<T> => (v, p, e) =>
   vals.includes(v as T) ? (v as T) : (e.push(`${p}: expected one of ${vals.join(', ')}`), vals[0]);
 /** missing (undefined) or null both read as null */
-/** a skill an agent named: its ID, display name or code alias, read as the ID (skill IDs are numbers, Ali 09/11/2026) */
+/** a skill an agent named: its ID, display name or code alias, read as the ID (skill IDs are numbers) */
 const skillStr: V<string> = (v, p, e) => { const s = str(v, p, e); return s ? skillIdOf(s, SKILL_NAMES) : s; };
 const nul = <T>(c: V<T>): V<T | null> => (v, p, e) => (v === undefined || v === null ? null : c(v, p, e));
 const arr = <T>(c: V<T>): V<T[]> => (v, p, e) => (Array.isArray(v) ? v.map((x, i) => c(x, `${p}[${i}]`, e)) : (e.push(`${p}: expected array`), []));

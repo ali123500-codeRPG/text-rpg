@@ -1,4 +1,4 @@
-// Perk moves (AE5, AE8; Ali 07/11/2026; rules in src/library/perks.ts). The player names one by its perk id in the
+// Perk moves (AE5, AE8; rules in src/library/perks.ts). The player names one by its perk id in the
 // Parser's perkMove. A free move resolves beside the main action, before it; the others will be main actions of their
 // own type (Plead, Battle Cry, Buy Them Off, later milestones).
 //   Dirt in the Eyes (A9): free, once per engagement, needs a free hand; an unarmed_improvised roll against the foe's

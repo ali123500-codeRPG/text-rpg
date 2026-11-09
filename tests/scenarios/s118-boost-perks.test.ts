@@ -1,4 +1,4 @@
-// 118 40/80/120 perks (Ali, 08/11/2026, "40 milestone perks: options"): +5 true skill in the skill, +1 in every other skill
+// 118 40/80/120 perks ("40 milestone perks: options"): +5 true skill in the skill, +1 in every other skill
 // sharing a function, plus one number. Darkness never helps a sneaker against a listener (P14).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRng, forcedRng, makeVillage, place, fit } from '../harness';

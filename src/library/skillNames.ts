@@ -1,6 +1,6 @@
 import { SK } from './skillIds';
 // Skill display names: the one names table (coding rule). Code and saves use the ids; text reads names from here.
-// Sight → Eyesight, Hearing → Earshot (Ali, 08/11/2026).
+// Sight → Eyesight, Hearing → Earshot.
 export const SKILL_NAMES: Record<string, string> = {
   [SK.melee_light]: 'Light weapons', [SK.melee_medium]: 'Medium weapons', [SK.melee_heavy]: 'Heavy weapons',
   [SK.ranged_light]: 'Light ranged', [SK.ranged_medium]: 'Medium ranged', [SK.ranged_heavy]: 'Heavy ranged',

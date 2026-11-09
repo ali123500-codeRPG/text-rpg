@@ -1,4 +1,4 @@
-// 119 Set Them Up (B15, Strike 60) and One-Two (B16, Improvisation 60) (Ali, 08/11/2026, R6 in "40 milestone perks: options").
+// 119 Set Them Up (B15, Strike 60) and One-Two (B16, Improvisation 60) (R6 in "40 milestone perks: options").
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';
 import { ruleset } from '../../src/ruleset';

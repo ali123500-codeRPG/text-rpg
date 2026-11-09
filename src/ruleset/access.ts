@@ -1,4 +1,4 @@
-// Skill tree access (Ali, 08/11/2026, TA1–TA11). Each tree's library rule opens or closes it per actor; access is worked
+// Skill tree access (TA1–TA11). Each tree's library rule opens or closes it per actor; access is worked
 // out from the library every time and never saved. A skill in a tree the actor can't access counts as 0 and can't be
 // raised; its points are kept and come back with access (TA4 a). The same rules hold for the player and NPCs (TA9).
 import type { AccessCond, Actor, TreeAccess } from '../types';

@@ -65,7 +65,7 @@ export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, Skill
 }
 
 /** Copy NPC: minimums plus level points spent with the template's fixed seed (alike for every copy). Unique: rolled once, frozen. */
-/** the perks a member of this race is born with: its innate perks and innate quirks (Ali, 08/11/2026) */
+/** the perks a member of this race is born with: its innate perks and innate quirks */
 export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
   const r = raceId ? getLibrary().races?.[raceId] : undefined;
   return [...(r?.innatePerks ?? []), ...(r?.innateQuirks ?? [])].map((perkId) => ({ perkId, source: 'race', gainedTurn: turn }));
@@ -76,7 +76,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   if (t.generation === 'unique' && !rng) throw new Error(`unique template ${t.id} needs the seeded rng`);
   const skills = t.generation === 'unique'
     ? rollUniqueSkills(t, rng!)
-    // Q3 (Ali, 08/11/2026): copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
+    // Q3: copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
     : rollUniqueSkills(t, createRng(templateSeed(t.id)));
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
   const morale = CONFIG.PERSONALITY_MORALE[t.personality];
@@ -129,7 +129,7 @@ export const newPlayer = (): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'clas
 const STARTING_GEAR = ['arming_sword', 'round_shield', 'gambeson'];
 
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
- * (EQ13, Ali 08/11/2026: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
+ * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
 export function recommendedBuild(): CreationBuild {
   return {
     name: 'Aldric',
@@ -193,7 +193,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
   };
 }
 
-/** Copy NPCs follow their template live (Ali, 08/11/2026: the level × POINTS_PER_LEVEL lever must reach existing
+/** Copy NPCs follow their template live (the level × POINTS_PER_LEVEL lever must reach existing
  * templates and NPCs). On load, each copy's skills are rebuilt from its template with the current CONFIG, and the
  * template's perks are added if missing. Unique NPCs keep what they rolled. */
 export function refreshCopies(state: GameState): void {

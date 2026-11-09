@@ -24,7 +24,7 @@ describe('104 Improvised weapon', () => {
     const def = itemDef(s, inst.itemId);
     expect(def.name).toBe('a broken chair leg');
     expect(def.weapon!.modes[0].hitAdj).toBe(CONFIG.IMPROVISED_HIT_ADJ);
-    expect(def.weapon!.modes[0].skill).toBe(SK.unarmed_improvised); // rolls Improvisation (Ali, 07/11/2026)
+    expect(def.weapon!.modes[0].skill).toBe(SK.unarmed_improvised); // rolls Improvisation
     expect(def.effects ?? []).toEqual([]);
     expect(events.find((e) => e.kind === 'attack' && e.actorId === s.player.id)?.attack?.weaponId).toBe(inst.id);
   });

@@ -1,4 +1,4 @@
-// Stealth on the play screen (Ali, 08/11/2026, via the Stealth tree, ST1–ST19): Sneak, Hide and Vanish are buttons in the
+// Stealth on the play screen (via the Stealth tree, ST1–ST19): Sneak, Hide and Vanish are buttons in the
 // action bar beside Aim (they fill the box; nothing is sent until Send), and while the player is stealthy the header shows a
 // filled "Stealthy" badge in the Stealth tree's colour and the action bar is outlined in it. The name comes from POSTURES.
 import { POSTURES } from '../scales';

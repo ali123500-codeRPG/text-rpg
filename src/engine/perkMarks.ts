@@ -1,4 +1,4 @@
-// Perks that leave a short-lived mark (Ali, 07/11/2026; rules in src/library/perks.ts). attack() reads marks without
+// Perks that leave a short-lived mark (rules in src/library/perks.ts). attack() reads marks without
 // changing state; this module makes and clears them after each attack, and clears them when they run out.
 //   Turn the Blade (A2): a clean block (gap +2 or better) with a melee weapon opens the attacker to the owner's next melee attack.
 //   Hunter's Mark (A5): a ranged hit marks the target for the owner's next ranged attack.

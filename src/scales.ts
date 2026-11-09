@@ -1,4 +1,4 @@
-// Ordered scales (Ali, 07/11/2026). Each scale is one table of [key, display name] rows, lowest first.
+// Ordered scales. Each scale is one table of [key, display name] rows, lowest first.
 // Code and saves use only the key; a level's order is its row position; display names live only here.
 // Adding or renaming a level edits only its table.
 
@@ -39,7 +39,7 @@ export function scale<const K extends string>(rows: readonly (readonly [K, strin
   };
 }
 
-/** check tiers, worst first (Part 1 §4); renamed by Ali 07/11/2026 */
+/** check tiers, worst first (Part 1 §4); renamed */
 export const TIERS = scale([
   ['critical_failure', 'Critical Failure'], ['failure', 'Failure'], ['near_miss', 'Near Miss'],
   ['success', 'Success'], ['great_success', 'Great Success'], ['critical_success', 'Critical Success'],
@@ -48,18 +48,18 @@ export const TIERS = scale([
 export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], ['cunning', 'cunning']]);
 /** zone light, brightest first (V1) */
 export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
-/** stance of one actor toward another, coldest first (Ali, 07/11/2026: hostile = attacks on sight; opposed = at odds, won't strike first) */
+/** stance of one actor toward another, coldest first (hostile = attacks on sight; opposed = at odds, won't strike first) */
 export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['neutral', 'neutral'], ['friendly', 'friendly']]);
-/** XP reward levels for achievements and quests (Ali, 07/11/2026); XP per level is CONFIG.REWARD_XP */
+/** XP reward levels for achievements and quests; XP per level is CONFIG.REWARD_XP */
 export const REWARD_LEVELS = scale([['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
-/** time of day, in the order a day runs from dawn (T2, Ali 07/11/2026); each starts at CONFIG.TIME_OF_DAY_FROM */
+/** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
 export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]);
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
 export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);
 export type PartStateKey = (typeof PART_STATES.keys)[number];
-/** the player's posture (ST5, Ali 08/11/2026: not named like the Sneaking skill) */
+/** the player's posture (ST5: not named like the Sneaking skill) */
 export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
 /** how far an event is heard, quietest first; reach per level is CONFIG.NOISE_REACH */
 export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['normal', 'Normal'], ['loud', 'Loud'], ['deafening', 'Deafening']]);
@@ -67,15 +67,15 @@ export type NoiseKey = (typeof NOISE.keys)[number];
 /** how far an event is seen, least first; reach per level is CONFIG.SIGHT_REACH */
 export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];
-/** worn armor weight, lightest first (AN3, Ali 08/11/2026); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
+/** worn armor weight, lightest first (AN3); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
 export const ARMOR_WEIGHTS = scale([['light', 'Light'], ['medium', 'Medium'], ['heavy', 'Heavy']]);
 export type ArmorWeightKey = (typeof ARMOR_WEIGHTS.keys)[number];
-/** equipment levels (Ali, 08/11/2026, EQ8): what an item asks of its user's skill (CONFIG.EQUIP_NEED) */
+/** equipment levels (EQ8): what an item asks of its user's skill (CONFIG.EQUIP_NEED) */
 export const EQUIP_LEVELS = scale([['crude', 'Crude'], ['common', 'Common'], ['fine', 'Fine'], ['superior', 'Superior'], ['masterwork', 'Masterwork']]);
 export type EquipLevelKey = (typeof EQUIP_LEVELS.keys)[number];
 /** zone cover (V1) */
 export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy']]);
 
-/** Skill tiers (Ali, 08/11/2026): a skill's tier sets its final efficiency multiplier (CONFIG.SKILL_TIER_MULT). */
+/** Skill tiers: a skill's tier sets its final efficiency multiplier (CONFIG.SKILL_TIER_MULT). */
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
 export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];

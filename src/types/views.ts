@@ -50,7 +50,7 @@ export type PlayerView = {
   turn: number;
   player: {
     id: 'player'; name: string; classes: string[];
-    skills: { id: string; name: string }[]; // skill ID (a number, Ali 09/11/2026) and its name; no skill values
+    skills: { id: string; name: string }[]; // skill ID (a number) and its name; no skill values
     perks: string[];
     perkMoves?: string[]; // AE8: owned perk moves by perk id (the Parser's perkMove.perk)
     health: HealthLevel; parts: { id: string; state: PartState }[];

@@ -1,4 +1,4 @@
-// Skill tree access (Ali, 08/11/2026, TA1–TA11): per-tree Must / Either of / Blocked by rules, a block always wins, a
+// Skill tree access (TA1–TA11): per-tree Must / Either of / Blocked by rules, a block always wins, a
 // closed tree's skills count as 0 and can't be raised, and NPCs follow the same rules.
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';

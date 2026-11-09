@@ -1,4 +1,4 @@
-// Function and group IDs (Ali, 09/11/2026): like skills, skill functions and groups have fixed numeric IDs, never their
+// Function and group IDs: like skills, skill functions and groups have fixed numeric IDs, never their
 // names, so a function and a group can share a display name (Defense, Ranged, Stealth, Influence) without sharing an ID.
 // Functions are numbered from 101 and groups from 201, so no ID is shared with a skill (1–99) either. Code refers to them
 // through FN and GR; display names live only in FUNCTION_NAMES and GROUP_NAMES (functionNames.ts). Never renumber.

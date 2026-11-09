@@ -1,4 +1,4 @@
-// Ali (09/11/2026): a sight roll rolls the sight function, not one skill. Eyesight and Tremor are both sight skills,
+// Ali: a sight roll rolls the sight function, not one skill. Eyesight and Tremor are both sight skills,
 // so the higher effective skill applies at full value (its tier multiplier still counts). The same goes for hearing.
 import { FN } from '../../src/library/functionIds';
 import { describe, expect, it } from 'vitest';
@@ -48,7 +48,7 @@ describe('sense rolls use the function', () => {
   });
 });
 
-describe('Curiouser and Curiouser reads the function (Ali, 09/11/2026)', () => {
+describe('Curiouser and Curiouser reads the function', () => {
   it('a Tremor sight roll at Success or better counts one tier higher; a melee roll does not', async () => {
     const { afterRollShifts } = await import('../../src/ruleset/allSteps');
     const { TIERS } = await import('../../src/scales');
