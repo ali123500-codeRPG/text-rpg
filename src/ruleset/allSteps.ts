@@ -5,6 +5,7 @@
 import type { Actor, GameState, Mod, TierShift } from '../types';
 import { getLibrary } from '../library';
 import { ALL_BUNDLES } from '../library/allPerks';
+import { MASTERY_ACH } from '../library/achievementIds';
 import { FUNCTION_ROLLS } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
@@ -24,7 +25,7 @@ export function grantAllSteps(state: GameState, a: Actor): void {
   const perks = getLibrary().perks;
   for (const b of ALL_BUNDLES) {
     if (!treeAt(a, b.treeId, b.step)) continue;
-    if (a.id === state.player.id) grantAchievement(state, `mastery_${b.step}`, b.treeId); // once only (B4)
+    if (a.id === state.player.id) grantAchievement(state, MASTERY_ACH[b.step], b.treeId); // once only (B4)
     for (const id of b.parts) {
       if (!perks[id]?.built || a.core.perks.some((p) => p.perkId === id)) continue;
       a.core.perks.push({ perkId: id, source: 'mastery', gainedTurn: state.turn, treeId: b.treeId, tier: b.step });

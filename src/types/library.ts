@@ -127,10 +127,10 @@ export type BankedAs = 'milestone' | 'allX' | 'other';
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules;
   bankedAs?: BankedAs; aimAt?: number };
 
-/** X6/X11: a library achievement, each with its own id and name. 'defeats' is earned at `count`
+/** X6/X11: a library achievement, keyed by its fixed numeric id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
  * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
- * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
+ * of its skills reach `count` (50/100/150), id <id>:<tree>. */
 /** How long an action takes on the game clock (T1). `orders` lists the order types the row covers;
  * the row with no `orders` named 'action' is the default; 'fight_turn' is every turn of a fight; 'sleep' is one sleep. */
 export type DurationDef = { id: string; name: string; minutes: number; orders?: string[] };
