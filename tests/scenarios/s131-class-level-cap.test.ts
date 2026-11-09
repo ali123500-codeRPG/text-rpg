@@ -26,14 +26,15 @@ describe('131 Class level cap', () => {
     expect(p.core.classes[0].level).toBe(10);
     expect(levelTarget(p)).toBeUndefined();
     expect(p.core.classes).toContainEqual({ classId: CL.commoner, state: 'unlocked', level: 0 });
+    const before = pr.xp; // XP from the class achievements reached at the top level
     const banked = CONFIG.LEVEL_XP * (10 + 11 + 12);
     awardXp(s, banked + 5, 'test');
     expect(charLevel(p)).toBe(10); // banked, no level
-    expect(pr.xp).toBe(banked + 5);
+    expect(pr.xp).toBe(before + banked + 5);
     pr.nextClass = CL.commoner; // the sheet's picker
     spendXp(s);
     expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 10], [CL.commoner, 'current', 3]]);
-    expect(pr.xp).toBe(5);
+    expect(pr.xp).toBe(before + 5);
     expect(p.core.perks.filter((x) => x.source === 'class')).toEqual([]);
     p.core.classes[1].level = 4;
     awardXp(s, xpToNext(p), 'test'); // Commoner 4 → 5, its top level: the capstone Nobody Special unlocks A Nobody

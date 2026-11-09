@@ -56,7 +56,7 @@ describe('106 XP and levels', () => {
   it('every achievement pays the XP of its reward level', () => {
     const lib = getLibrary().achievements!;
     for (const d of Object.values(lib)) expect(REWARD_LEVELS.has(d.level)).toBe(true);
-    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([100, 250, 1000, 2000]);
+    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([50, 100, 250, 1000, 2000]);
     expect(CONFIG.REWARD_XP[lib[ACH.mastery_150].level]).toBe(2000);
   });
   it('a foe with a race also earns the first race defeat', () => {
