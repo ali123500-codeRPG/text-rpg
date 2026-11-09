@@ -53,6 +53,9 @@ export function parseTolerant(text: string): { ok: true; value: unknown } | { ok
     }
   }
   // a model sometimes copies the schema's "x|null" notation into its value, e.g. {"toZone":"bar"}|null (run 16)
+  // a model sometimes writes a full-width comma or colon between JSON values ("text":"…"，"narrated") (run 20)
+  const widened = text.replace(/"\s*，\s*(?=["{\[\d]|true|false|null)/g, '",').replace(/"\s*：\s*/g, '":');
+  if (widened !== text) return parseTolerant(widened);
   const unshaped = text.replace(/([}\]"\d]|true|false|null)\s*\|\s*null\b/g, '$1');
   if (unshaped !== text) return parseTolerant(unshaped);
   return { ok: false };

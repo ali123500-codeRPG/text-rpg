@@ -201,6 +201,17 @@ function need(state: GameState, id: string): Actor {
 }
 
 // ---------- PlayerView ----------
+/** people the player saw clearly earlier who are out of sight now, with the zone they were last seen in, so the Parser
+ * never answers "they aren't here" about someone a few steps away (playtest run 20) */
+function lastSeen(state: GameState, seen: SeenActor[]): { id: string; name: string; zone: string }[] {
+  const p = state.player;
+  return Object.entries(p.journal?.clearSight ?? {}).flatMap(([id, zone]) => {
+    const a = actorById(state, id);
+    if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
+    return [{ id, name: nameKnown(state, a) ? a.names.current : a.label, zone: zoneById(state, zone)?.name ?? zone }];
+  });
+}
+
 export function buildPlayerView(state: GameState): PlayerView {
   const p = state.player;
   const actors = seenActors(state, p);
@@ -221,6 +232,7 @@ export function buildPlayerView(state: GameState): PlayerView {
     zone: zoneView(state, zoneById(state, p.zone)!),
     zones: perceivedZones(state, p.zone),
     actors,
+    ...(lastSeen(state, actors).length ? { lastSeen: lastSeen(state, actors) } : {}),
     facts: factsFor(state, p.placeId, actors.filter((a) => a.level === 'full').map((a) => a.id)),
     headlines: headlinesFor(state, p.placeId, false),
     ...(agreementViews(state, p.id).length ? { agreements: agreementViews(state, p.id) } : {}),
@@ -397,7 +409,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}) },
+    player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}),
+      // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
+      gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone),
     heard,
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
