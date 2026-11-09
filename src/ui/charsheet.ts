@@ -10,6 +10,7 @@ import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
+import { CLASS_TIERS } from '../scales';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -106,7 +107,7 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const open = p.core.classes.filter((c) => c.state === 'current' || c.state === 'unlocked');
   const cur = open.find((c) => c.state === 'current');
   const target = levelTarget(p);
-  const name = (id: string) => lib.classes[id]?.name ?? id;
+  const name = (id: string) => lib.classes[id] ? `${lib.classes[id].name} (${CLASS_TIERS.name(lib.classes[id].tier)})` : id;
   const capped = (lv: number) => lv >= CONFIG.CLASS_MAX_LEVEL;
   const el: HTMLElement = h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),

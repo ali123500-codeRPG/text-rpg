@@ -39,6 +39,8 @@ export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy
 export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess };
 export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
+  /** the class's tier (CLASS_TIERS key): how strong it is next to other classes */
+  tier: import('../scales').ClassTierKey;
   /** the public stranger label a player starting in this class has */
   label?: string;
   /** a creation option: points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */

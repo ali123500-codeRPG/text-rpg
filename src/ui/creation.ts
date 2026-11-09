@@ -9,6 +9,7 @@ import { h, openPanel, readouts, type Readout } from './kit';
 import { preview } from './sheet';
 import { SK } from '../library/skillIds';
 import { CL } from '../library/classIds';
+import { CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
 export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.feint]: 'effect not designed', [SK.riposte]: 'effect not designed', [SK.disarm]: 'effect not designed' };
@@ -158,7 +159,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     h('button', { class: id === classId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(id === classId),
       title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),
       onclick: () => { if (id !== classId) switchTo(id); } },
-    `${lib.classes[id].name} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
+    `${lib.classes[id].name} · ${CLASS_TIERS.name(lib.classes[id].tier)} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
