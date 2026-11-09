@@ -9,9 +9,10 @@ import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
 import { ruleMet, skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
-import { groupName, groupsOf } from '../library/functionNames';
-import { CLASS_TIERS, TIERS } from '../scales';
+import { functionName, groupName, groupsOf } from '../library/functionNames';
+import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
 import { PK } from '../library/perkIds';
+import { skillName } from '../library/skillNames';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
 export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
@@ -224,14 +225,15 @@ export function rollFeats(state: GameState, r: { skill: string; tier: string; be
   for (const g of groups) tally(state, 'beyond_crit', { by: 'group', of: g, to: beyond });
 }
 
-/** Adds 1 to the player's tally for an achievement rule (with `to`: raises it to `to`), then grants every achievement
- * of that rule the tally reaches. With `by`, the tally and the achievement are per body type, race, group or class `of`. */
-export function tally(state: GameState, rule: AchievementRule, o: { by?: AchievementBy; of?: string; to?: number } = {}): void {
+/** Adds 1 (or `add`) to the player's tally for an achievement rule (with `to`: raises it to `to`), then grants every
+ * achievement of that rule the tally reaches. With `by`, the tally and the achievement are per body type, race, group,
+ * class, function, skill, part size or quest giver `of`. */
+export function tally(state: GameState, rule: AchievementRule, o: { by?: AchievementBy; of?: string; to?: number; add?: number } = {}): void {
   const pr = state.player.progression;
   if (!pr || (o.by && !o.of)) return;
   const t = (pr.tally ??= {});
   const k = o.by ? `${rule}:${o.by}:${o.of}` : rule;
-  t[k] = o.to === undefined ? (t[k] ?? 0) + 1 : Math.max(t[k] ?? 0, o.to);
+  t[k] = o.to === undefined ? (t[k] ?? 0) + (o.add ?? 1) : Math.max(t[k] ?? 0, o.to);
   for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
     if (d.rule !== rule || d.by !== o.by || d.count === undefined || t[k] < d.count) continue;
     if (d.every) for (let n = d.count; n <= t[k]; n += d.every) grantAchievement(state, key, String(n)); // earned at every multiple
@@ -253,9 +255,15 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
   (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), turn: state.turn });
   if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
-  const xp = d.scar ? 0 : CONFIG.REWARD_XP[d.level] ?? 0; // a scar pays no XP
+  const xp = d.scar ? 0 : CONFIG.REWARD_XP[achLevel(d, of)] ?? 0; // a scar pays no XP
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
+}
+
+/** the reward level an achievement pays for `of`: its own level, raised by levelUp for that kind (capped at the top) */
+export function achLevel(d: { level: string; levelUp?: Partial<Record<string, number>> }, of?: string): string {
+  const up = (of && d.levelUp?.[of]) || 0;
+  return up && REWARD_LEVELS.has(d.level) ? REWARD_LEVELS.at(Math.min(REWARD_LEVELS.keys.length - 1, REWARD_LEVELS.pos(d.level as 'i') + up)) : d.level;
 }
 
 /** Display name of an earned achievement, read from the library table now. */
@@ -285,5 +293,11 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   if (d.by === 'group' && a.of) what = groupName(a.of);
   if (d.by === 'class' && a.of) what = lib.classes?.[a.of]?.name ?? a.of;
   if (d.by === 'class_tier' && a.of && CLASS_TIERS.has(a.of)) what = CLASS_TIERS.name(a.of);
-  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level)\}/g, title(what));
+  if (d.by === 'function' && a.of) what = functionName(a.of);
+  if (d.by === 'skill' && a.of) what = skillName(a.of);
+  if (d.by === 'giver' && a.of) { // the giver's name once the player knows it, else how the player sees them
+    const g = state.actors.find((x) => x.id === a.of);
+    what = !g ? 'someone' : g.knownOnSight || state.player.journal?.namesKnown.includes(g.id) ? g.names.current : g.label;
+  }
+  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver)\}/g, title(what));
 }

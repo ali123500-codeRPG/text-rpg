@@ -39,6 +39,7 @@ export type Quest = {
   giver: string; dealId: string; goal: QuestGoal; progress: number;
   level: QuestRewardLevel; // QT9/QT28: from the scene's gain grade when accepted
   startTurn: number; endTurn?: number;
+  startAt?: number; // game clock minutes when it was given (set with `due`: the 'quests_early' achievement)
   after?: string; // QT24: the quest it follows
   pay?: { coin?: number; item?: string; qty?: number }; // QT10/QT23: promised payment (coin in copper, a library item)
   paid?: { coin: number; qty: number }; // what the giver has handed over since

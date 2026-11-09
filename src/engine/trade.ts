@@ -10,6 +10,7 @@ import { hasPerk } from '../ruleset';
 import { isActive, shortestPath, wary } from './relations';
 import { PK } from '../library/perkIds';
 import { IT } from '../library/itemIds';
+import { tally } from './xp';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -107,6 +108,7 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
   const price = each * qty;
   if (coins(buyer) < price) return { ok: false, reason: 'not_enough_coin' };
   payCoin(buyer, seller, price);
+  if (buyer === state.player) tally(state, 'coin_spent', { add: price }); // N5: copper spent buying
   if (!goods) {
     const id = wareId!.slice(SERVICE.length);
     const heals = getLibrary().services?.[id]?.heals;

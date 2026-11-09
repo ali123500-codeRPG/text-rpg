@@ -12,6 +12,7 @@ import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markUntilNextTurn } from './perkMarks';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { contestFeat } from './feats';
 
 /** the actor has a working Grip arm with nothing held in it */
 export const freeHand = (state: GameState, a: Actor) => {
@@ -40,6 +41,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     const req = (id: string, skill: string) => ({ actorId: id, skill, modifiers: [], tierShifts: [] });
     const c = ruleset.contested(req(a.id, SK.unarmed_improvised), req(t.id, SK.dodge), state, rng);
     markUse(state, a, c.a.skill, c);
+    contestFeat(state, c); // N4c
     markUse(state, t, c.b.skill, c);
     const dodged = c.winner === 'b'; // the foe must win outright
     if (!dodged) markUntilNextTurn(state, t, PK.dirt_in_the_eyes);

@@ -9,6 +9,7 @@ import { revealToPlayer } from './secrets';
 import type { TurnInput } from './types';
 import { applyMemoryOps, endAgreements, makeAgreement } from './memory';
 import { agentQuestEnd, makeQuest } from './quests';
+import { tally } from './xp';
 import { startSpar, yieldSpar } from './spar';
 
 const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
@@ -66,7 +67,12 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
     if (st) {
       const other = actorById(state, st.toward);
       if (!other || !ctx.heardSpeech(a.id, st.toward)) logCode(state, 'invalid_stance', { actorId: a.id, toward: st.toward });
-      else stepStance(state, a, other, st.step);
+      else {
+        // N4b: a foe hostile to the player, never hit by them, talked out of hostility by their words
+        const talkedDown = other === state.player && st.step === 'friendlier' && stance(state, a, other) === 'hostile' && !a.mind?.hitByPlayer;
+        stepStance(state, a, other, st.step);
+        if (talkedDown) tally(state, 'talked_down');
+      }
     }
     // SP2/SP5: a spar agreed aloud this turn (every other fighter heard the maker), or giving one up
     const sp = o.output.spar;
