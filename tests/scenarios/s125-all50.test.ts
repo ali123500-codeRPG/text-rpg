@@ -3,7 +3,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
-import { grantAllSteps } from '../../src/ruleset/allSteps';
+import { grantAllSteps, shareSpotted } from '../../src/ruleset/allSteps';
+import { breakFree } from '../../src/engine/held';
 import { situational } from '../../src/ruleset/gear';
 import { achievementName } from '../../src/engine';
 import { zoneById } from '../../src/engine/relations';
@@ -30,7 +31,7 @@ describe('125 All-50 parts', () => {
     grantAllSteps(s, p);
     grantAllSteps(s, p);
     const got = p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId);
-    expect(got).toEqual(['counter', 'fighters_frame']); // Weapon Drill is not built
+    expect(got).toEqual(['opening_strike', 'counter', 'fighters_frame']); // Weapon Drill is not built
     const ach = p.progression!.achievements!.filter((a) => a.key === 'mastery_50');
     expect(ach.map((a) => a.id)).toEqual(['mastery_50:melee']);
     expect(achievementName(s, ach[0])).toBe('Adept of Combat – Arms');
@@ -85,6 +86,69 @@ describe('125 All-50 parts', () => {
     expect(r('sight', 90).tierShifts).toEqual([{ source: 'Curiouser and Curiouser', value: 1 }]);
     expect(r('sight', 10).tierShifts).toEqual([]); // not a Success
     expect(r('persuasion', 90).tierShifts).toEqual([]); // not a sense roll
+  });
+  it('Iron Knuckles: unarmed hits deal ×1.1 damage before armor', () => {
+    const dmg = (perk: boolean) => {
+      const s = makeVillage();
+      place(s, 'patron_1', s.player.zone);
+      for (const i of s.player.core.inventory) delete i.equippedIn;
+      const foe = s.actors.find((a) => a.id === 'patron_1')!;
+      foe.core.inventory = foe.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
+      if (perk) give(s.player, 'iron_knuckles');
+      return ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'unarmed', modeId: 'punch', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
+    };
+    expect(dmg(false)).toBeGreaterThan(0);
+    expect(dmg(true)).toBeCloseTo(dmg(false) * 1.1);
+  });
+  it('Bare-Handed Guard: +5 true Dodge always, +5 effective on Dodge rolls only while holding no weapon', () => {
+    const s = makeVillage();
+    place(s, 'patron_1', s.player.zone);
+    arm(s, 'patron_1');
+    set(s.player, ['dodge'], 30);
+    give(s.player, 'bare_handed_guard');
+    expect(trueSkill(s.player, 'dodge')).toBe(35);
+    s.player.core.standingDefense = 'dodge';
+    for (const i of s.player.core.inventory) delete i.equippedIn;
+    const guard = () => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]))
+      .defense!.modifiers.filter((m) => m.source === 'Bare-Handed Guard');
+    expect(guard()).toEqual([{ source: 'Bare-Handed Guard', type: 'roll_perk', value: 2.5 }]);
+    arm(s, 'player');
+    expect(guard()).toEqual([]);
+  });
+  it('Hard to Hold: the owner\'s break-free roll gets tier shift +1', () => {
+    const s = makeVillage();
+    place(s, 'patron_1', s.player.zone);
+    s.player.heldBy = 'patron_1';
+    give(s.player, 'hard_to_hold');
+    const spy = vi.spyOn(ruleset, 'roll');
+    breakFree(s, s.player, forcedRng([50, 50]));
+    expect(spy.mock.calls[0][0].tierShifts).toEqual([{ source: 'Hard to Hold', value: 1 }]);
+    expect(spy.mock.calls[1][0].tierShifts).toEqual([]);
+    spy.mockRestore();
+  });
+  it('Soft Landing: a speech roll at Near Miss or worse counts one tier higher; Success is unchanged', () => {
+    const s = makeVillage();
+    set(s.player, ['persuasion', 'sight'], 40);
+    give(s.player, 'soft_landing');
+    const r = (skill: string, d: number) => ruleset.roll({ actorId: 'player', skill, modifiers: [], tierShifts: [] }, s, forcedRng([d]));
+    expect(r('persuasion', 2).tierShifts).toEqual([{ source: 'Soft Landing', value: 1 }]);
+    expect(r('persuasion', 95).tierShifts).toEqual([]);
+    expect(r('sight', 2).tierShifts).toEqual([]);
+  });
+  it('Spotter: band-mates in the owner\'s zone become suspicious of what the owner is aware of', () => {
+    const s = makeVillage();
+    const [o, mate] = s.actors.filter((a) => a.mind && a.bandId && s.actors.filter((b) => b.bandId === a.bandId).length > 1).slice(0, 1)
+      .flatMap((a) => s.actors.filter((b) => b.bandId === a.bandId).slice(0, 2));
+    place(s, mate.id, o.zone);
+    place(s, 'player', o.zone);
+    o.mind!.knowledge.player = { ...(o.mind!.knowledge.player ?? {}), status: 'aware' } as never;
+    mate.mind!.knowledge.player = { ...(mate.mind!.knowledge.player ?? {}), status: 'unaware' } as never;
+    shareSpotted(s, o);
+    expect(mate.mind!.knowledge.player.status).toBe('unaware');
+    give(o, 'spotter');
+    shareSpotted(s, o);
+    expect(mate.mind!.knowledge.player.status).toBe('suspicious');
+    expect(mate.mind!.knowledge.player.source).toBe('told');
   });
   it('Dodgy: attack rolls against the owner get −5 effective skill', () => {
     const s = makeVillage();
@@ -169,6 +233,32 @@ describe('125 All-50 moves', () => {
     expect(calls.length).toBe(2);
     expect(['slime_1', 'slime_2']).toContain(calls[1].at);
     expect(s.player.engagement?.uses?.volley).toBe(1);
+  });
+  it('Opening Strike: the first melee attack on each foe in an engagement gets tier shift +1', () => {
+    const s = makeVillage();
+    place(s, 'patron_1', s.player.zone);
+    arm(s, 'player');
+    give(s.player, 'opening_strike');
+    const shifts: unknown[] = [];
+    const real = ruleset.attack;
+    vi.spyOn(ruleset, 'attack').mockImplementation((req, st, rng) => { if (req.attackerId === 'player') shifts.push(req.context?.attackerShifts); return real(req, st, rng); });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
+    expect(shifts[0]).toEqual([{ source: 'Opening Strike', value: 1 }]);
+    expect(shifts[1]).toBeUndefined();
+  });
+  it('Unerring: the first ranged attack in an engagement, at a foe that hasn\'t acted, gives its defense roll tier shift −1', () => {
+    const s = makeVillage();
+    place(s, 'player', 'field_edge');
+    arm(s, 'player', 'shortbow');
+    give(s.player, 'unerring');
+    const shifts: unknown[] = [];
+    const real = ruleset.attack;
+    vi.spyOn(ruleset, 'attack').mockImplementation((req, st, rng) => { if (req.attackerId === 'player') shifts.push(req.context?.defenderShifts); return real(req, st, rng); });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1', item: 'w_player' } }) });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1', item: 'w_player' } }) });
+    expect(shifts[0]).toEqual([{ source: 'Unerring', value: -1 }]);
+    expect(shifts[1]).toBeUndefined();
   });
   it('Hushed Steps: a Near Miss asked to count higher becomes a Success', () => {
     const s = makeVillage();
