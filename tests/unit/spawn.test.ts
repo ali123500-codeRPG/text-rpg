@@ -1,3 +1,4 @@
+import { TR } from '../../src/library/treeIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
 import { createPlayer, recommendedBuild, refreshCopies, rollUniqueSkills, spawnNpc, validateBuild } from '../../src/library/spawn';
@@ -53,7 +54,7 @@ describe('unique generation', () => {
     expect(seeds.size).toBeGreaterThan(1); // spending is uneven across seeds
   });
   it('never goes above 100: the rest spills into the tree', () => {
-    const t = { ...bandit, minimums: { [SK.melee_medium]: 98 }, level: 0, bonusPoints: 30, focus: [{ treeId: 'melee', skill: SK.melee_medium }] };
+    const t = { ...bandit, minimums: { [SK.melee_medium]: 98 }, level: 0, bonusPoints: 30, focus: [{ treeId: TR.melee, skill: SK.melee_medium }] };
     const s = rollUniqueSkills(t, createRng(1));
     expect(s[SK.melee_medium].raw).toBe(100);
     expect(sum(s)).toBe(128);

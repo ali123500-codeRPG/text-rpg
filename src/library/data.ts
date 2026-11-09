@@ -1,5 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
+import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import type { ArmorWeightKey } from '../scales';
 import { CLASS_TIERS } from '../scales';
@@ -25,42 +26,42 @@ const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles:
   ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[FUNCTION_GROUP[functions[0]]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
-  sk(SK.melee_light, 'melee', [FN.arms], ['grip']),
-  sk(SK.melee_medium, 'melee', [FN.arms], ['grip']),
-  sk(SK.melee_heavy, 'melee', [FN.arms], ['grip']),
-  sk(SK.ranged_light, 'ranged', [FN.ranged], ['grip']),
-  sk(SK.ranged_medium, 'ranged', [FN.ranged], ['grip']),
-  sk(SK.ranged_heavy, 'ranged', [FN.ranged], ['grip']),
-  sk(SK.unarmed_strike, 'unarmed', [FN.unarmed], ['grip']),
-  sk(SK.unarmed_grapple, 'unarmed', [FN.unarmed], ['grip']),
-  sk(SK.unarmed_improvised, 'unarmed', [FN.unarmed], ['grip']), // fighting with whatever is at hand
-  sk(SK.unarmed_natural, 'natural', [FN.unarmed], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
-  sk(SK.dodge, 'defense', [FN.defense], ['move']),
-  sk(SK.block, 'defense', [FN.defense], ['grip']),
-  sk(SK.endurance, 'defense', [FN.health], []), // endurance sets total HP
+  sk(SK.melee_light, TR.melee, [FN.arms], ['grip']),
+  sk(SK.melee_medium, TR.melee, [FN.arms], ['grip']),
+  sk(SK.melee_heavy, TR.melee, [FN.arms], ['grip']),
+  sk(SK.ranged_light, TR.ranged, [FN.ranged], ['grip']),
+  sk(SK.ranged_medium, TR.ranged, [FN.ranged], ['grip']),
+  sk(SK.ranged_heavy, TR.ranged, [FN.ranged], ['grip']),
+  sk(SK.unarmed_strike, TR.unarmed, [FN.unarmed], ['grip']),
+  sk(SK.unarmed_grapple, TR.unarmed, [FN.unarmed], ['grip']),
+  sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], ['grip']), // fighting with whatever is at hand
+  sk(SK.unarmed_natural, TR.natural, [FN.unarmed], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
+  sk(SK.dodge, TR.defense, [FN.defense], ['move']),
+  sk(SK.block, TR.defense, [FN.defense], ['grip']),
+  sk(SK.endurance, TR.defense, [FN.health], []), // endurance sets total HP
   // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.
   // What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it.
-  sk(SK.light_armor, 'armor', [FN.armor], []),
-  sk(SK.medium_armor, 'armor', [FN.armor], []),
-  sk(SK.heavy_armor, 'armor', [FN.armor], []),
-  sk(SK.eyesight, 'perception', [FN.sight], ['sense'], 'sight'),
-  sk(SK.earshot, 'perception', [FN.hearing], ['sense'], 'sound'),
+  sk(SK.light_armor, TR.armor, [FN.armor], []),
+  sk(SK.medium_armor, TR.armor, [FN.armor], []),
+  sk(SK.heavy_armor, TR.armor, [FN.armor], []),
+  sk(SK.eyesight, TR.perception, [FN.sight], ['sense'], 'sight'),
+  sk(SK.earshot, TR.perception, [FN.hearing], ['sense'], 'sound'),
   // Stealth (ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
-  sk(SK.sneaking, 'stealth', [FN.stealth], ['move'], undefined, 'notice'),
-  sk(SK.combat_stealth, 'stealth', [FN.stealth], ['move'], undefined, 'offensive'),
-  sk(SK.vanishing, 'stealth', [FN.stealth], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
+  sk(SK.sneaking, TR.stealth, [FN.stealth], ['move'], undefined, 'notice'),
+  sk(SK.combat_stealth, TR.stealth, [FN.stealth], ['move'], undefined, 'offensive'),
+  sk(SK.vanishing, TR.stealth, [FN.stealth], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
   // speech role: head wounds reduce speech rolls
-  sk(SK.persuasion, 'speech', [FN.influence], ['speech']),
-  sk(SK.intimidation, 'speech', [FN.influence], ['speech']),
-  sk(SK.barter, 'speech', [FN.influence], ['speech']),
-  sk(SK.feint, 'swordsman', [], ['grip'], undefined, 'offensive'),
-  sk(SK.riposte, 'swordsman', [], ['grip'], undefined, 'offensive'),
-  sk(SK.disarm, 'swordsman', [], ['grip'], undefined, 'offensive'),
+  sk(SK.persuasion, TR.speech, [FN.influence], ['speech']),
+  sk(SK.intimidation, TR.speech, [FN.influence], ['speech']),
+  sk(SK.barter, TR.speech, [FN.influence], ['speech']),
+  sk(SK.feint, TR.swordsman, [], ['grip'], undefined, 'offensive'),
+  sk(SK.riposte, TR.swordsman, [], ['grip'], undefined, 'offensive'),
+  sk(SK.disarm, TR.swordsman, [], ['grip'], undefined, 'offensive'),
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
-  sk(SK.tremor, 'slime_senses', [FN.sight, FN.hearing], ['sense'], 'sound', undefined, 'tier_0'),
+  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], ['sense'], 'sound', undefined, 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
-  sk(SK.lockpicking, 'tools', [], ['grip']),
+  sk(SK.lockpicking, TR.tools, [], ['grip']),
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -234,26 +235,26 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.block]: 30, [SK.dodge]: 20, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
-    focus: [{ treeId: 'melee', skill: SK.melee_medium }, { treeId: 'defense', skill: SK.block }, { treeId: 'perception', skill: SK.eyesight }],
+    focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.block }, { treeId: TR.perception, skill: SK.eyesight }],
     personality: 'steady', loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
   },
   trader: {
     id: 'trader', raceId: 'human', classId: CL.trader, generation: 'copy',
     minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
-    focus: [{ treeId: 'perception', skill: SK.earshot }, { treeId: 'melee', skill: SK.melee_light }, { treeId: 'defense', skill: SK.dodge }],
+    focus: [{ treeId: TR.perception, skill: SK.earshot }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
   // NS7: a village thief, the first stealthy NPC
   thief: {
     id: 'thief', raceId: 'human', generation: 'copy',
     minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
-    focus: [{ treeId: 'stealth', skill: SK.sneaking }, { treeId: 'melee', skill: SK.melee_light }, { treeId: 'defense', skill: SK.dodge }],
+    focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
     personality: 'timid', loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
   },
   patron: {
     id: 'patron', raceId: 'human', generation: 'copy',
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0,
-    focus: [{ treeId: 'unarmed', skill: SK.unarmed_strike }, { treeId: 'defense', skill: SK.dodge }, { treeId: 'perception', skill: SK.eyesight }],
+    focus: [{ treeId: TR.unarmed, skill: SK.unarmed_strike }, { treeId: TR.defense, skill: SK.dodge }, { treeId: TR.perception, skill: SK.eyesight }],
     personality: 'timid', control: 'code', label: 'a tavern patron',
   },
 };
@@ -329,19 +330,19 @@ export function prototypeLibrary(): Library {
     // Skill tree access (TA1–TA11): each tree's own rule; no rule = open to everyone.
     // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.
     trees: {
-      melee: { id: 'melee', name: 'Combat – Arms', skills: [SK.melee_light, SK.melee_medium, SK.melee_heavy], access: { blockedBy: [AMORPHOUS] } },
-      ranged: { id: 'ranged', name: 'Combat – Ranged', skills: [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], access: { blockedBy: [AMORPHOUS] } },
-      unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: [SK.unarmed_strike, SK.unarmed_grapple, SK.unarmed_improvised], access: { blockedBy: [AMORPHOUS] } },
-      natural: { id: 'natural', name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: 'dragon' }] } /* the shape's slam; the dragon's own attacks */ },
-      defense: { id: 'defense', name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.endurance] },
-      armor: { id: 'armor', name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
-      perception: { id: 'perception', name: 'Perception', skills: [SK.eyesight, SK.earshot], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
-      stealth: { id: 'stealth', name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
-      speech: { id: 'speech', name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      swordsman: { id: 'swordsman', name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.melee]: { id: TR.melee, name: 'Combat – Arms', skills: [SK.melee_light, SK.melee_medium, SK.melee_heavy], access: { blockedBy: [AMORPHOUS] } },
+      [TR.ranged]: { id: TR.ranged, name: 'Combat – Ranged', skills: [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], access: { blockedBy: [AMORPHOUS] } },
+      [TR.unarmed]: { id: TR.unarmed, name: 'Combat – Unarmed', skills: [SK.unarmed_strike, SK.unarmed_grapple, SK.unarmed_improvised], access: { blockedBy: [AMORPHOUS] } },
+      [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: 'dragon' }] } /* the shape's slam; the dragon's own attacks */ },
+      [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.endurance] },
+      [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
+      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
+      [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
+      [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
+      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
       // BR7: from being a slime, not from a class
-      slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: 'slime' }] } },
-      tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
+      [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: 'slime' }] } },
+      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors

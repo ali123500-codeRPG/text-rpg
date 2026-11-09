@@ -1,4 +1,5 @@
 // Creation screen (Part 4 §4, approved layout B: tree grid). Point-buy over the open skills.
+import { TR } from '../library/treeIds';
 import type { Actor, CreationBuild, GameApi } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
@@ -17,9 +18,9 @@ export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [S
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
-  { id: 'melee', c: 'c10' }, { id: 'defense', c: 'c1' }, { id: 'armor', c: 'c15' }, { id: 'swordsman', c: 'c5' },
-  { id: 'perception', c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: 'ranged', c: 'c7' }, { id: 'unarmed', c: 'c14' },
-  { id: 'stealth', c: 'c3' }, { id: 'speech', c: 'c4' },
+  { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
+  { id: TR.perception, c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: TR.ranged, c: 'c7' }, { id: TR.unarmed, c: 'c14' },
+  { id: TR.stealth, c: 'c3' }, { id: TR.speech, c: 'c4' },
 ];
 
 const STEP = 5;

@@ -9,6 +9,7 @@ import { ACH } from '../../src/library/achievementIds';
 import { SV } from '../../src/library/serviceIds';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
+import { TR } from '../../src/library/treeIds';
 import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { ALL_BUNDLES } from '../../src/library/allPerks';
 import { MARK_SOURCE } from '../../src/engine/perkMarks';
@@ -18,7 +19,7 @@ const lib = () => getLibrary() as unknown as Record<string, Record<string, { id?
 
 /** a table: its library key, its prefix and its constants */
 const TABLES: [string, string, Record<string, string>][] = [
-  ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['perks', 'PK', PK], ['items', 'IT', IT],
+  ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['perks', 'PK', PK], ['items', 'IT', IT], ['trees', 'TR', TR],
 ];
 
 describe('typed IDs', () => {

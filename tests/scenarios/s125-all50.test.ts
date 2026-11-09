@@ -1,5 +1,6 @@
 // 125 All-50 parts (All-50 doc round 1): a tree's built parts are granted free when every skill of the
 // tree reaches 50 true skill, with the tree's mastery achievement; then the first six built parts.
+import { TR } from '../../src/library/treeIds';
 import { ACH } from '../../src/library/achievementIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place } from '../harness';
@@ -39,7 +40,7 @@ describe('125 All-50 parts', () => {
     const got = p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId);
     expect(got).toEqual([PK.opening_strike, PK.counter, PK.fighters_frame, PK.steady_guard]);
     const ach = p.progression!.achievements!.filter((a) => a.key === ACH.mastery_50);
-    expect(ach.map((a) => a.id)).toEqual([`${ACH.mastery_50}:melee`]);
+    expect(ach.map((a) => a.id)).toEqual([`${ACH.mastery_50}:${TR.melee}`]);
     expect(achievementName(s, ach[0])).toBe('Adept of Combat – Arms');
   });
   it("Hunter's Eye: +10 true skill in every skill with the sight function", () => {

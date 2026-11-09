@@ -1,5 +1,6 @@
 // Skill tree access (TA1–TA11): per-tree Must / Either of / Blocked by rules, a block always wins, a
 // closed tree's skills count as 0 and can't be raised, and NPCs follow the same rules.
+import { TR } from '../../src/library/treeIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
 import { getLibrary, resetLibrary, setLibrary } from '../../src/library';
@@ -32,12 +33,12 @@ describe('skill tree access', () => {
 
   it('a new swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(open(p)).toEqual(['armor', 'defense', 'melee', 'perception', 'ranged', 'speech', 'stealth', 'swordsman', 'tools', 'unarmed']);
-    expect(treeBlock(p, 'natural')).toBe('Needs one of: Amorphous, Dragon');
+    expect(open(p)).toEqual([TR.armor, TR.defense, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.unarmed].sort());
+    expect(treeBlock(p, TR.natural)).toBe('Needs one of: Amorphous, Dragon');
     const slime = spawnNpc(null, 'slime', opts);
-    expect(open(slime)).toEqual(['defense', 'natural', 'slime_senses', 'stealth']);
-    expect(treeBlock(slime, 'perception')).toBe('Blocked by: Amorphous');
-    expect(treeBlock(slime, 'armor')).toBe('Blocked by: Amorphous'); // AR6
+    expect(open(slime)).toEqual([TR.defense, TR.natural, TR.slime_senses, TR.stealth].sort());
+    expect(treeBlock(slime, TR.perception)).toBe('Blocked by: Amorphous');
+    expect(treeBlock(slime, TR.armor)).toBe('Blocked by: Amorphous'); // AR6
   });
 
   it('SR1: intimidation is open to any race with Speech; persuasion and barter need a speaking race', () => {
@@ -50,19 +51,19 @@ describe('skill tree access', () => {
 
   it('a block beats an opening (TA2), and a class counts only while Current or Previous at its level (TA3)', () => {
     const lib = prototypeLibrary();
-    lib.trees.swordsman.access = { must: [{ kind: 'class', id: CL.swordsman }], either: [{ kind: 'race', id: 'human' }, { kind: 'race', id: 'elf' }], blockedBy: [{ kind: 'perk', id: PK.leg_bolt }] };
+    lib.trees[TR.swordsman].access = { must: [{ kind: 'class', id: CL.swordsman }], either: [{ kind: 'race', id: 'human' }, { kind: 'race', id: 'elf' }], blockedBy: [{ kind: 'perk', id: PK.leg_bolt }] };
     setLibrary(lib);
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(treeOpen(p, 'swordsman')).toBe(true);
+    expect(treeOpen(p, TR.swordsman)).toBe(true);
     p.core.perks.push({ perkId: PK.leg_bolt, source: 'level', gainedTurn: 0 });
-    expect(treeBlock(p, 'swordsman')).toBe(`Blocked by: ${lib.perks[PK.leg_bolt].name}`);
+    expect(treeBlock(p, TR.swordsman)).toBe(`Blocked by: ${lib.perks[PK.leg_bolt].name}`);
     p.core.perks.pop();
     p.core.classes[0].state = 'unlocked';
-    expect(treeBlock(p, 'swordsman')).toBe('Needs: Swordsman');
+    expect(treeBlock(p, TR.swordsman)).toBe('Needs: Swordsman');
     p.core.classes[0].state = 'previous';
-    expect(treeOpen(p, 'swordsman')).toBe(true);
-    lib.trees.swordsman.access.must = [{ kind: 'class', id: CL.swordsman, level: 10 }];
-    expect(treeBlock(p, 'swordsman')).toBe('Needs: Swordsman 10');
+    expect(treeOpen(p, TR.swordsman)).toBe(true);
+    lib.trees[TR.swordsman].access!.must = [{ kind: 'class', id: CL.swordsman, level: 10 }];
+    expect(treeBlock(p, TR.swordsman)).toBe('Needs: Swordsman 10');
   });
 
   it('a closed tree counts as 0 and is not raised, and its points come back with access (TA4 a)', () => {

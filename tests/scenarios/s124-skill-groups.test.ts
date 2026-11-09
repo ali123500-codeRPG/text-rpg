@@ -1,5 +1,6 @@
 // 124 Skill groups and functions (F1–F8): a skill lists one or more narrow functions (stand-ins at
 // SUBSTITUTE_EFFICIENCY 0.3, which perks can move); each function sits in one broad group (40 perk +1, XP category).
+import { TR } from '../../src/library/treeIds';
 import { FN } from '../../src/library/functionIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
@@ -23,7 +24,7 @@ describe('124 skill groups and functions', () => {
     expect(k[SK.tremor].functions).toEqual([FN.sight, FN.hearing]);
     expect([k[SK.melee_light].xpCategory, k[SK.unarmed_strike].xpCategory, k[SK.ranged_heavy].xpCategory]).toEqual(['offensive', 'offensive', 'offensive']);
     expect([k[SK.dodge].xpCategory, k[SK.endurance].xpCategory, k[SK.eyesight].xpCategory, k[SK.tremor].xpCategory, k[SK.barter].xpCategory]).toEqual(['defensive', 'endurance', 'notice', 'notice', 'influence']);
-    expect(getLibrary().trees.melee.name).toBe('Combat – Arms'); // F7
+    expect(getLibrary().trees[TR.melee].name).toBe('Combat – Arms'); // F7
   });
   it('F4: sight and hearing no longer stand in for each other; tremor stands in for both', () => {
     const s = makeVillage();
