@@ -14,6 +14,7 @@ import { memoryStore } from '../src/save/store';
 import { CONFIG } from '../src/config';
 import { validateStagePlan } from '../src/scene';
 import { ensurePlace } from '../src/scene/apply';
+import { isSeller } from '../src/engine/trade';
 import type { GameState, StagePlan } from '../src/types';
 import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../src/ruleset/perks';
 import type { SceneDirector } from '../src/agents';
@@ -109,6 +110,13 @@ async function main() {
   const game = createGame({ client: cliClient, clock: realClock, store: memoryStore(Date.now), director });
   // --class late_bloomer starts an Unwritten Legend; the default is the Swordsman. Both use the class's recommended build.
   await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden' });
+  // --near-seller: put the player in the zone of the first seller on the stage (a buying test that skips the walk)
+  if (process.argv.includes('--near-seller')) {
+    const st = game.state()!;
+    const seller = st.actors.find((a) => isSeller(a) && st.stage.zoneIds.includes(a.zone));
+    if (seller) { st.player.zone = seller.zone; console.log(`player placed beside ${seller.id} in ${seller.zone}`); }
+    else console.log('no seller on the stage; the player starts where the story put them');
+  }
   const storyId = game.state()?.storyId;
   const st0 = game.state()!;
   const planErrors = before ? game.gm().agentLog.filter((a) => a.agent === 'weaver' && a.output).map((a) =>

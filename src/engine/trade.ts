@@ -6,7 +6,7 @@ import { CONFIG } from '../config';
 import { getLibrary, itemDef } from '../library';
 import { CL } from '../library/classIds';
 import { hasPerk } from '../ruleset';
-import { isActive, wary } from './relations';
+import { isActive, shortestPath, wary } from './relations';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -84,9 +84,16 @@ export type BuyResult =
   | { ok: true; price: number; qty: number; itemInst?: string; service?: string; to: Actor }
   | { ok: false; reason: 'not_here' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' };
 
-/** PY5/PY7: buy qty (default 1) of a ware from seller, for `to` (default the buyer). All or nothing; no roll. */
+/** zone links between two actors on the stage, or Infinity when no path joins them */
+function links(state: GameState, a: Actor, b: Actor): number {
+  return shortestPath(state, a.zone, b.zone)?.length ?? Infinity;
+}
+
+/** PY5/PY7: buy qty (default 1) of a ware from seller, for `to` (default the buyer). All or nothing; no roll.
+ * The seller may stand up to TRADE_SELLER_LINKS zone links away, `to` up to TRADE_GIFT_LINKS (S1, S2). */
 export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, wareId: string | null | undefined, qtyIn: number | null | undefined, to: Actor = buyer): BuyResult {
-  if (!seller || seller === buyer || !isActive(seller) || seller.zone !== buyer.zone || !isActive(to) || to.zone !== buyer.zone) return { ok: false, reason: 'not_here' };
+  if (!seller || seller === buyer || !isActive(seller) || links(state, buyer, seller) > CONFIG.TRADE_SELLER_LINKS) return { ok: false, reason: 'not_here' };
+  if (!isActive(to) || links(state, buyer, to) > CONFIG.TRADE_GIFT_LINKS) return { ok: false, reason: 'not_here' };
   if (wary(state, seller, buyer)) return { ok: false, reason: 'refuses' };
   const each = wareId ? warePrice(state, buyer, seller, wareId) : null;
   if (each === null) return { ok: false, reason: 'not_offered' };
