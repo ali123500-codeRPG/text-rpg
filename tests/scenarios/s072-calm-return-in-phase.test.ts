@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import type { GameEvent } from '../../src/types';
 import { makeVillage, createRng } from '../harness';
@@ -8,7 +9,7 @@ import { buildActorView } from '../../src/views';
 it('72 Calm return in phase: alarmed on turn 10, calm on turn 16, back to work with the original anchor', () => {
   const s = makeVillage();
   s.turn = 3;
-  const w = spawnNpc(null, 'patron', { id: 'worker', zone: 'street_square', placeId: 'street', bandId: 'tavern_folk', name: 'Hobb' });
+  const w = spawnNpc(null, TP.patron, { id: 'worker', zone: 'street_square', placeId: 'street', bandId: 'tavern_folk', name: 'Hobb' });
   installRoutines(w, 'street_worker', { work: 'street_square', refuge: 'street_door' }, undefined, s.turn, createRng(8));
   s.actors.push(w);
   const original = { ...w.mind!.routine! };

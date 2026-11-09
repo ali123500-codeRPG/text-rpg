@@ -14,8 +14,9 @@ import { ACH, ACH_TAGS } from '../../src/library/achievementIds';
 import { PK } from '../../src/library/perkIds';
 import { SK } from '../../src/library/skillIds';
 import { CONFIG } from '../../src/config';
+import { IT } from '../../src/library/itemIds';
 
-const sword = 'player_arming_sword_1';
+const sword = `player_${IT.arming_sword}_1`;
 
 describe('136 achievement rewards', () => {
   it('The Unseen Death: an attack on an unaware target lands one tier better', () => {

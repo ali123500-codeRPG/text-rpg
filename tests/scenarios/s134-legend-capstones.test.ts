@@ -1,5 +1,6 @@
 // 134 Unwritten Legend capstones: As Far as the Road Goes is the default at class level 20, its top level (tier 5; no ladder gating);
 // Write Your Own Ending (needs 7 classes) and No Road Closed (needs an All-50 and 10 skills above 15) are alternates.
+import { TR } from '../../src/library/treeIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { awardXp, swapCapstone, xpToNext } from '../../src/engine/xp';
@@ -37,7 +38,7 @@ describe('134 Unwritten Legend capstones', () => {
 
     const ten = (p: Actor) => { for (const id of Object.keys(getLibrary().skills).slice(0, 10)) p.core.skills[id] = { raw: 16, state: 'normal' }; };
     expect(legendAt19(ten).p.progression!.capstoneOptions).toBeUndefined(); // no All-50 yet
-    const both = legendAt19((p) => { ten(p); p.core.perks.push({ perkId: PK.spotter, source: 'mastery', gainedTurn: 0, treeId: 'perception', tier: 50 }); }).p;
+    const both = legendAt19((p) => { ten(p); p.core.perks.push({ perkId: PK.spotter, source: 'mastery', gainedTurn: 0, treeId: TR.perception, tier: 50 }); }).p;
     expect(both.progression!.capstoneOptions).toEqual({ [CL.late_bloomer]: [PK.no_road_closed] });
   });
 
@@ -60,8 +61,8 @@ describe('134 Unwritten Legend capstones', () => {
 
   it('No Road Closed: a tree the owner is barred from opens', () => {
     const s = makeVillage(), p = s.player;
-    expect(treeOpen(p, 'natural')).toBe(false); // needs an amorphous body or the dragon race
+    expect(treeOpen(p, TR.natural)).toBe(false); // needs an amorphous body or the dragon race
     give(p, PK.no_road_closed);
-    expect(treeOpen(p, 'natural')).toBe(true);
+    expect(treeOpen(p, TR.natural)).toBe(true);
   });
 });

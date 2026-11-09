@@ -1,9 +1,11 @@
+import { BT } from '../../src/library/raceIds';
+import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { bodyType } from '../../src/library';
 
-const sword = 'player_arming_sword_1';
+const sword = `player_${IT.arming_sword}_1`;
 describe('76 Gap ladder', () => {
   it('gap +1 against dodge gives 0.8×', () => {
     const s = makeVillage();
@@ -23,7 +25,7 @@ describe('76 Gap ladder', () => {
     expect(r.defenseType).toBe('block');
     expect(r.gap).toBe(0);
     expect(r.multiplier).toBe(1);
-    const parts = bodyType(s, 'humanoid').parts;
+    const parts = bodyType(s, BT.humanoid).parts;
     expect(r.location === 'general' || parts.find((p) => p.id === r.location)?.impact === 'non_essential').toBe(true);
     expect(r.locationHow).toBe('restricted');
   });

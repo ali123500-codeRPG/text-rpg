@@ -16,6 +16,7 @@ import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, wareList } from '../engine/trade';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
+import { IT } from '../library/itemIds';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -363,16 +364,21 @@ function eventTarget(state: GameState, me: string, target: string, seenIds: Set<
   return itemName(state, target);
 }
 
-function itemName(state: GameState, instanceId: string): string | undefined {
+/** the library item of an item instance anyone carries or that lies on the ground */
+function instanceItem(state: GameState, instanceId: string): string | undefined {
   for (const a of allActors(state)) {
     const i = a.core.inventory.find((x) => x.id === instanceId);
-    if (i) return itemDef(state, i.itemId).name;
+    if (i) return i.itemId;
   }
   for (const z of state.zones) {
     const i = z.groundItems.find((x) => x.id === instanceId);
-    if (i) return itemDef(state, i.itemId).name;
+    if (i) return i.itemId;
   }
   return undefined;
+}
+function itemName(state: GameState, instanceId: string): string | undefined {
+  const id = instanceItem(state, instanceId);
+  return id ? itemDef(state, id).name : undefined;
 }
 
 /** events: this turn's events (the builder keeps only those the player perceived). */
@@ -394,7 +400,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;
     const name = full && e.kind !== 'attack' ? (e.service ? getLibrary().services?.[e.service]?.name : e.itemId ? itemName(state, e.itemId) : undefined) : undefined;
-    const item = name === 'coin' && e.qty ? coinWords(e.qty) : name && e.qty && e.qty > 1 ? `${e.qty} ${name}` : name; // PY9: coin in coin words
+    const item = e.itemId && instanceItem(state, e.itemId) === IT.coin && e.qty ? coinWords(e.qty) : name && e.qty && e.qty > 1 ? `${e.qty} ${name}` : name; // PY9: coin in coin words
     const forWhom = full && e.for ? eventTarget(state, me, e.for, new Set([...seenIds, e.for])) : undefined;
     // a fully seen attack shows both sides; any other target only if the player sees it (run 15)
     const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds) : undefined;
@@ -476,7 +482,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     catalogs: {
       templates: [...templates.values()],
       services: Object.values(lib.services ?? {}).map((s) => ({ id: s.id, name: s.name, price: s.price })),
-      bodyTypes: [...new Set([...Object.keys(lib.bodyTypes), ...bp('body_type').map((b) => b.id)])],
+      bodyTypes: [...Object.values(lib.bodyTypes).map((b) => ({ id: b.id, name: b.name })), ...bp('body_type').filter((b) => !lib.bodyTypes[b.id]).map((b) => ({ id: b.id, name: String(b.data.name ?? b.id) }))],
       routineSets: Object.values(lib.routineSets).map((s) => ({
         id: s.id, brief: s.brief, tags: structuredClone(s.tags),
         slots: Object.fromEntries(Object.entries(s.slots).map(([k, v]) => [k, { kind: v.kind, hint: v.hint }])),

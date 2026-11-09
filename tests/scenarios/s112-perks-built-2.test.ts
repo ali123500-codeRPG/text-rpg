@@ -1,5 +1,6 @@
 // 112 Coded 20-milestone perks, batch 2: Turn the Blade, Hunter's Mark, Make Them Stumble (marks
 // that outlast the attack) and Cover Ally (a friend takes a ranged attack in the target's place; switchable).
+import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
@@ -19,7 +20,7 @@ describe('112 coded perks, batch 2', () => {
   it('Turn the Blade: a clean weapon block opens the attacker; the next melee attack spends it', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    for (const i of s.player.core.inventory) if (i.itemId.includes('shield')) delete i.equippedIn; // block with the sword
+    for (const i of s.player.core.inventory) if (i.itemId === IT.round_shield) delete i.equippedIn; // block with the sword
     give(s.player, PK.turn_the_blade);
     s.player.engagement = { start: 1, last: 1, kinds: ['fight'] };
     afterAttack(s, wim, s.player, result({ defenseType: 'block', gap: 1 }), false);
@@ -28,7 +29,7 @@ describe('112 coded perks, batch 2', () => {
     expect(s.player.perkMarks).toEqual([{ perk: PK.turn_the_blade, target: 'patron_1' }]);
     expect(markShifts(s, s.player, wim, false).attack).toEqual([{ source: 'Turn the Blade', value: 1 }]);
     expect(markShifts(s, s.player, wim, true).attack).toEqual([]); // melee only
-    const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
+    const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
     expect(r.attack.tierShifts).toContainEqual({ source: 'Turn the Blade', value: 1 });
     afterAttack(s, s.player, wim, r, false);
     expect(s.player.perkMarks).toBeUndefined(); // spent
@@ -39,7 +40,7 @@ describe('112 coded perks, batch 2', () => {
     give(s.player, PK.turn_the_blade);
     afterAttack(s, wim, s.player, result({ defenseType: 'block', gap: 3 }), false);
     expect(s.player.perkMarks).toBeUndefined(); // the round shield made the block
-    for (const i of s.player.core.inventory) if (i.itemId.includes('shield')) delete i.equippedIn;
+    for (const i of s.player.core.inventory) if (i.itemId === IT.round_shield) delete i.equippedIn;
     afterAttack(s, wim, s.player, result({ defenseType: 'block', gap: 3 }), false);
     expireMarks(s, s.player); // not engaged: gone
     expect(s.player.perkMarks).toBeUndefined();

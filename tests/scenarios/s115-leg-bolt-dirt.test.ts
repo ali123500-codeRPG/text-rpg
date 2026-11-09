@@ -14,13 +14,14 @@ import type { Actor, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const crossbow = (s: GameState) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
-  s.player.core.inventory.push({ id: 'xb', itemId: 'crossbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
-  fit(s.player, 'crossbow');
+  s.player.core.inventory.push({ id: 'xb', itemId: IT.crossbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  fit(s.player, IT.crossbow);
 };
 const bolt = { attackerId: 'player', targetId: 'patron_1', weaponId: 'xb', modeId: 'shoot', targetPart: 'left_leg', aimed: true };
 const legLoss = (perk: boolean) => {

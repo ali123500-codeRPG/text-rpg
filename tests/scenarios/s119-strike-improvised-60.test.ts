@@ -7,12 +7,13 @@ import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const holdImprovised = (s: GameState) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
-  s.player.core.inventory.push({ id: 'bottle', itemId: 'improvised_light', name: 'bottle', equippedIn: ['hand:right_arm'] } as never);
+  s.player.core.inventory.push({ id: 'bottle', itemId: IT.improvised_light, name: 'bottle', equippedIn: ['hand:right_arm'] } as never);
 };
 afterEach(() => vi.restoreAllMocks());
 
@@ -50,7 +51,7 @@ describe('119 One-Two', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     holdImprovised(s);
-    if (!emptyHand) s.player.core.inventory.push({ id: 'dag', itemId: 'dagger', equippedIn: ['hand:left_arm'] });
+    if (!emptyHand) s.player.core.inventory.push({ id: 'dag', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
     if (perk) give(s.player, PK.one_two);
     const calls: string[] = [];
     const real = ruleset.attack;

@@ -1,3 +1,4 @@
+import { BT } from '../../src/library/raceIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage, actor } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -8,6 +9,7 @@ import {
 } from '../../src/save';
 import type { GameState, Head, LogLine, StoryFact, TurnRecord } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 const rec = (s: GameState, turn: number, extra: Partial<TurnRecord> = {}): TurnRecord =>
   ({ storyId: s.storyId, turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [], ...extra });
@@ -84,7 +86,7 @@ describe('save and load', () => {
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
     s.player.core.classes.push({ classId: 'slime', state: 'current', level: 1 });
-    s.player.core.inventory.push({ id: 'c2', itemId: 'coin', qty: 0 });
+    s.player.core.inventory.push({ id: 'c2', itemId: IT.coin, qty: 0 });
     await saveTurn(st, s, rec(s, 1));
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
     expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/exactly one current class/), expect.stringMatching(/qty < 1/)]));
@@ -315,7 +317,7 @@ describe('migration and reconcile', () => {
     delete l.skills[SK.melee_medium];
     delete l.skills[SK.barter];
     l.status = { [SK.melee_medium]: { state: 'renamed', to: 'blades' }, [SK.barter]: { state: 'deleted' } };
-    l.bodyTypes.humanoid.parts.push({ id: 'tail', size: 'small', impact: 'non_essential', roles: [] });
+    l.bodyTypes[BT.humanoid].parts.push({ id: 'tail', size: 'small', impact: 'non_essential', roles: [] });
     const { state, report } = await loadStory(st, 'test', l);
     expect(state.player.core.skills.blades).toEqual({ raw: 50, state: 'tagged' });
     expect(state.player.core.skills[SK.melee_medium]).toBeUndefined();

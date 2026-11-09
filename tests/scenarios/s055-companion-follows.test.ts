@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import { makeVillage, place, createRng } from '../harness';
 import { spawnNpc } from '../../src/library/spawn';
@@ -7,7 +8,7 @@ import { shortestPath } from '../../src/engine/relations';
 
 it('55 Companion follows one link per turn toward its believed zone, never jumping', () => {
   const s = makeVillage({ playerZone: 'street_square' });
-  const c = spawnNpc(null, 'patron', { id: 'comp', zone: 'tav_common', placeId: 'tavern', bandId: 'player_band', name: 'Pip' });
+  const c = spawnNpc(null, TP.patron, { id: 'comp', zone: 'tav_common', placeId: 'tavern', bandId: 'player_band', name: 'Pip' });
   installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
   s.actors.push(c);
   // the player moved two zones; the companion believes it is in the square

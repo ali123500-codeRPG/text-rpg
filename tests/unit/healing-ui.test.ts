@@ -1,5 +1,6 @@
 // Healing displays (H1 d / H2 a / H3 b): the turn's notes survive the log reset, and the quick slot
 // shows the player's pick, else the strongest healing item (ties: the one carried most).
+import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { turnNotes } from '../../src/agents/game';
@@ -28,13 +29,13 @@ describe('healing displays', () => {
     const salve = (id: string, heal: string) => s.blueprints.push({ storyId: 'test', id, kind: 'item', data: { id, kind: 'consumable', name: id, look: id, bulk: 0, value: 1, stackable: true, consumable: true, heal } });
     salve('wrap', 'bandage');
     salve('tonic', 'clinic');
-    inv.push({ id: 'b1', itemId: 'bandage', qty: 1 }, { id: 'w1', itemId: 'wrap', qty: 3 });
-    expect(healItems(s, s.player).map((x) => [x.itemId, x.count])).toEqual([['wrap', 3], ['bandage', 1]]);
+    inv.push({ id: 'b1', itemId: IT.bandage, qty: 1 }, { id: 'w1', itemId: 'wrap', qty: 3 });
+    expect(healItems(s, s.player).map((x) => [x.itemId, x.count])).toEqual([['wrap', 3], [IT.bandage, 1]]);
     inv.push({ id: 't1', itemId: 'tonic', qty: 1 });
     expect(quickHeal(s, s.player)?.itemId).toBe('tonic');
-    s.player.progression!.quickHeal = 'bandage';
-    expect(quickHeal(s, s.player)?.itemId).toBe('bandage');
-    inv.splice(inv.findIndex((i) => i.itemId === 'bandage'), 1);
+    s.player.progression!.quickHeal = IT.bandage;
+    expect(quickHeal(s, s.player)?.itemId).toBe(IT.bandage);
+    inv.splice(inv.findIndex((i) => i.itemId === IT.bandage), 1);
     expect(quickHeal(s, s.player)?.itemId).toBe('tonic');
   });
 });

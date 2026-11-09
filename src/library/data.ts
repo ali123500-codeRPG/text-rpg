@@ -1,5 +1,8 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
+import { TP } from './templateIds';
+import { BT, RC } from './raceIds';
+import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import type { ArmorWeightKey } from '../scales';
 import { CLASS_TIERS } from '../scales';
@@ -15,6 +18,7 @@ import { FN, GR } from './functionIds';
 import { CL } from './classIds';
 import { SV } from './serviceIds';
 import { PK } from './perkIds';
+import { IT } from './itemIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
@@ -24,42 +28,42 @@ const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles:
   ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[FUNCTION_GROUP[functions[0]]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
-  sk(SK.melee_light, 'melee', [FN.arms], ['grip']),
-  sk(SK.melee_medium, 'melee', [FN.arms], ['grip']),
-  sk(SK.melee_heavy, 'melee', [FN.arms], ['grip']),
-  sk(SK.ranged_light, 'ranged', [FN.ranged], ['grip']),
-  sk(SK.ranged_medium, 'ranged', [FN.ranged], ['grip']),
-  sk(SK.ranged_heavy, 'ranged', [FN.ranged], ['grip']),
-  sk(SK.unarmed_strike, 'unarmed', [FN.unarmed], ['grip']),
-  sk(SK.unarmed_grapple, 'unarmed', [FN.unarmed], ['grip']),
-  sk(SK.unarmed_improvised, 'unarmed', [FN.unarmed], ['grip']), // fighting with whatever is at hand
-  sk(SK.unarmed_natural, 'natural', [FN.unarmed], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
-  sk(SK.dodge, 'defense', [FN.defense], ['move']),
-  sk(SK.block, 'defense', [FN.defense], ['grip']),
-  sk(SK.endurance, 'defense', [FN.health], []), // endurance sets total HP
+  sk(SK.melee_light, TR.melee, [FN.arms], ['grip']),
+  sk(SK.melee_medium, TR.melee, [FN.arms], ['grip']),
+  sk(SK.melee_heavy, TR.melee, [FN.arms], ['grip']),
+  sk(SK.ranged_light, TR.ranged, [FN.ranged], ['grip']),
+  sk(SK.ranged_medium, TR.ranged, [FN.ranged], ['grip']),
+  sk(SK.ranged_heavy, TR.ranged, [FN.ranged], ['grip']),
+  sk(SK.unarmed_strike, TR.unarmed, [FN.unarmed], ['grip']),
+  sk(SK.unarmed_grapple, TR.unarmed, [FN.unarmed], ['grip']),
+  sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], ['grip']), // fighting with whatever is at hand
+  sk(SK.unarmed_natural, TR.natural, [FN.unarmed], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
+  sk(SK.dodge, TR.defense, [FN.defense], ['move']),
+  sk(SK.block, TR.defense, [FN.defense], ['grip']),
+  sk(SK.endurance, TR.defense, [FN.health], []), // endurance sets total HP
   // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.
   // What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it.
-  sk(SK.light_armor, 'armor', [FN.armor], []),
-  sk(SK.medium_armor, 'armor', [FN.armor], []),
-  sk(SK.heavy_armor, 'armor', [FN.armor], []),
-  sk(SK.eyesight, 'perception', [FN.sight], ['sense'], 'sight'),
-  sk(SK.earshot, 'perception', [FN.hearing], ['sense'], 'sound'),
+  sk(SK.light_armor, TR.armor, [FN.armor], []),
+  sk(SK.medium_armor, TR.armor, [FN.armor], []),
+  sk(SK.heavy_armor, TR.armor, [FN.armor], []),
+  sk(SK.eyesight, TR.perception, [FN.sight], ['sense'], 'sight'),
+  sk(SK.earshot, TR.perception, [FN.hearing], ['sense'], 'sound'),
   // Stealth (ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
-  sk(SK.sneaking, 'stealth', [FN.stealth], ['move'], undefined, 'notice'),
-  sk(SK.combat_stealth, 'stealth', [FN.stealth], ['move'], undefined, 'offensive'),
-  sk(SK.vanishing, 'stealth', [FN.stealth], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
+  sk(SK.sneaking, TR.stealth, [FN.stealth], ['move'], undefined, 'notice'),
+  sk(SK.combat_stealth, TR.stealth, [FN.stealth], ['move'], undefined, 'offensive'),
+  sk(SK.vanishing, TR.stealth, [FN.stealth], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
   // speech role: head wounds reduce speech rolls
-  sk(SK.persuasion, 'speech', [FN.influence], ['speech']),
-  sk(SK.intimidation, 'speech', [FN.influence], ['speech']),
-  sk(SK.barter, 'speech', [FN.influence], ['speech']),
-  sk(SK.feint, 'swordsman', [], ['grip'], undefined, 'offensive'),
-  sk(SK.riposte, 'swordsman', [], ['grip'], undefined, 'offensive'),
-  sk(SK.disarm, 'swordsman', [], ['grip'], undefined, 'offensive'),
+  sk(SK.persuasion, TR.speech, [FN.influence], ['speech']),
+  sk(SK.intimidation, TR.speech, [FN.influence], ['speech']),
+  sk(SK.barter, TR.speech, [FN.influence], ['speech']),
+  sk(SK.feint, TR.swordsman, [], ['grip'], undefined, 'offensive'),
+  sk(SK.riposte, TR.swordsman, [], ['grip'], undefined, 'offensive'),
+  sk(SK.disarm, TR.swordsman, [], ['grip'], undefined, 'offensive'),
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
-  sk(SK.tremor, 'slime_senses', [FN.sight, FN.hearing], ['sense'], 'sound', undefined, 'tier_0'),
+  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], ['sense'], 'sound', undefined, 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
-  sk(SK.lockpicking, 'tools', [], ['grip']),
+  sk(SK.lockpicking, TR.tools, [], ['grip']),
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -127,58 +131,58 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
-  { id: 'dagger', level: 'common', tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
+  { id: IT.dagger, level: 'common', tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'slash', tree: 'melee', class: 'light', reach: 0, hands: 1 }), mode({ id: 'throw', tree: 'ranged', class: 'light', reach: 1, hands: 1, thrown: true })] } },
-  { id: 'arming_sword', level: 'fine', tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
+  { id: IT.arming_sword, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'cut', tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
-  { id: 'greataxe', level: 'superior', tags: ['starter'], kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
+  { id: IT.greataxe, level: 'superior', tags: ['starter'], kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: 'chop', tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
-  { id: 'spear', level: 'fine', tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
+  { id: IT.spear, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'thrust', tree: 'melee', class: 'medium', reach: 1, hands: 2 }), mode({ id: 'throw', tree: 'ranged', class: 'medium', reach: 1, hands: 1, thrown: true })] } },
-  { id: 'shortbow', level: 'common', tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
+  { id: IT.shortbow, level: 'common', tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'light', reach: 3, hands: 2 })] } },
-  { id: 'longbow', level: 'fine', tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
+  { id: IT.longbow, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'medium', reach: 4, hands: 2 })] } },
-  { id: 'crossbow', level: 'superior', tags: ['starter'], kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
+  { id: IT.crossbow, level: 'superior', tags: ['starter'], kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
-  { id: 'hidden_blade', level: 'fine', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
+  { id: IT.hidden_blade, level: 'fine', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
     weapon: { modes: [mode({ id: 'stab', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
-  { id: 'crude_clothes', level: 'crude', tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
+  { id: IT.crude_clothes, level: 'crude', tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
     armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
-  { id: 'cudgel', level: 'crude', kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
+  { id: IT.cudgel, level: 'crude', kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'club', tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
-  { id: 'rusty_knife', level: 'crude', kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
+  { id: IT.rusty_knife, level: 'crude', kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'slash', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
-  { id: 'gambeson', level: 'common', tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.gambeson, level: 'common', tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light') } },
-  { id: 'mail_hauberk', level: 'fine', tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.mail_hauberk, level: 'fine', tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
     armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium') } },
-  { id: 'plate_harness', level: 'superior', tags: ['starter'], kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.plate_harness, level: 'superior', tags: ['starter'], kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy'), pools: { head: 20 } } },
-  { id: 'round_shield', level: 'common', tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: { pool: 30 } },
-  { id: 'signet_ring', kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
-  { id: 'lucky_charm', kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
+  { id: IT.round_shield, level: 'common', tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: { pool: 30 } },
+  { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
+  { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'situation', value: 5, active: 'carried', scope: 'any' }] },
-  { id: 'lockpicks', kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
+  { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
-  { id: 'healing_draught', kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
+  { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
   // generic bases for minted items with no close match, and for scene objects the player grabs (loot L2, L3)
-  { id: 'improvised_light', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_light, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('light', 1) } },
-  { id: 'improvised_medium', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_medium, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('medium', 1) } },
-  { id: 'improvised_heavy', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
+  { id: IT.improvised_heavy, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
-  { id: 'curio', kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
-  { id: 'bandage', kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: 'bandage' },
-  { id: 'coin', kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
+  { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
+  { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: 'bandage' },
+  { id: IT.coin, kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
 export const BODY_TYPES: Record<string, BodyType> = {
-  humanoid: {
-    id: 'humanoid', general: { name: 'torso', size: 'normal' },
+  [BT.humanoid]: {
+    id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
     naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' },
       { id: 'grapple', tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reach: 0, hands: 0, name: 'grapple' }],
     parts: [
@@ -206,14 +210,14 @@ export const BODY_TYPES: Record<string, BodyType> = {
     },
   },
   // BR4: shape names, so later races can reuse them; Slime and Dragon are races
-  amorphous: {
-    id: 'amorphous', general: { name: 'body', size: 'normal' },
+  [BT.amorphous]: {
+    id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
     naturalAttacks: [{ id: 'slam', tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reach: 0, hands: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.unarmed_natural },
   },
-  winged_quadruped: {
-    id: 'winged_quadruped', general: { name: 'body', size: 'big' },
+  [BT.winged_quadruped]: {
+    id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
     naturalAttacks: [],
     parts: [
       { id: 'head', size: 'normal', impact: 'essential', roles: ['sense', 'strike', 'speech'] },
@@ -228,36 +232,36 @@ export const BODY_TYPES: Record<string, BodyType> = {
 };
 
 export const TEMPLATES: Record<string, NpcTemplate> = {
-  slime: {
-    id: 'slime', raceId: 'slime', generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
+  [TP.slime]: {
+    id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
     level: 0, bonusPoints: 0, focus: [], personality: 'fearless', control: 'code', label: 'a slime',
     fallback: { attackSkill: SK.unarmed_natural },
   },
-  guard: {
-    id: 'guard', raceId: 'human', generation: 'copy',
+  [TP.guard]: {
+    id: TP.guard, raceId: RC.human, generation: 'copy',
     minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.block]: 30, [SK.dodge]: 20, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
-    focus: [{ treeId: 'melee', skill: SK.melee_medium }, { treeId: 'defense', skill: SK.block }, { treeId: 'perception', skill: SK.eyesight }],
-    personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
+    focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.block }, { treeId: TR.perception, skill: SK.eyesight }],
+    personality: 'steady', loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
   },
-  trader: {
-    id: 'trader', raceId: 'human', classId: CL.trader, generation: 'copy',
+  [TP.trader]: {
+    id: TP.trader, raceId: RC.human, classId: CL.trader, generation: 'copy',
     minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
-    focus: [{ treeId: 'perception', skill: SK.earshot }, { treeId: 'melee', skill: SK.melee_light }, { treeId: 'defense', skill: SK.dodge }],
+    focus: [{ treeId: TR.perception, skill: SK.earshot }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
   // NS7: a village thief, the first stealthy NPC
-  thief: {
-    id: 'thief', raceId: 'human', generation: 'copy',
+  [TP.thief]: {
+    id: TP.thief, raceId: RC.human, generation: 'copy',
     minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
-    focus: [{ treeId: 'stealth', skill: SK.sneaking }, { treeId: 'melee', skill: SK.melee_light }, { treeId: 'defense', skill: SK.dodge }],
-    personality: 'timid', loadout: ['dagger', 'gambeson'], control: 'agent', label: 'a shifty villager',
+    focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
+    personality: 'timid', loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
   },
-  patron: {
-    id: 'patron', raceId: 'human', generation: 'copy',
+  [TP.patron]: {
+    id: TP.patron, raceId: RC.human, generation: 'copy',
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0,
-    focus: [{ treeId: 'unarmed', skill: SK.unarmed_strike }, { treeId: 'defense', skill: SK.dodge }, { treeId: 'perception', skill: SK.eyesight }],
+    focus: [{ treeId: TR.unarmed, skill: SK.unarmed_strike }, { treeId: TR.defense, skill: SK.dodge }, { treeId: TR.perception, skill: SK.eyesight }],
     personality: 'timid', control: 'code', label: 'a tavern patron',
   },
 };
@@ -323,7 +327,7 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
 ].map((s) => [s.id, s]));
 
 // BR9: a rule names a body type or a race; a block the shape already gives is not repeated on the race
-const AMORPHOUS: AccessCond = { kind: 'body', id: 'amorphous' }; // no hands, eyes, ears or voice
+const AMORPHOUS: AccessCond = { kind: 'body', id: BT.amorphous }; // no hands, eyes, ears or voice
 
 export function prototypeLibrary(): Library {
   const lib: Library = structuredClone({
@@ -333,19 +337,19 @@ export function prototypeLibrary(): Library {
     // Skill tree access (TA1–TA11): each tree's own rule; no rule = open to everyone.
     // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.
     trees: {
-      melee: { id: 'melee', name: 'Combat – Arms', skills: [SK.melee_light, SK.melee_medium, SK.melee_heavy], access: { blockedBy: [AMORPHOUS] } },
-      ranged: { id: 'ranged', name: 'Combat – Ranged', skills: [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], access: { blockedBy: [AMORPHOUS] } },
-      unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: [SK.unarmed_strike, SK.unarmed_grapple, SK.unarmed_improvised], access: { blockedBy: [AMORPHOUS] } },
-      natural: { id: 'natural', name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: 'dragon' }] } /* the shape's slam; the dragon's own attacks */ },
-      defense: { id: 'defense', name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.endurance] },
-      armor: { id: 'armor', name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
-      perception: { id: 'perception', name: 'Perception', skills: [SK.eyesight, SK.earshot], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
-      stealth: { id: 'stealth', name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
-      speech: { id: 'speech', name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      swordsman: { id: 'swordsman', name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.melee]: { id: TR.melee, name: 'Combat – Arms', skills: [SK.melee_light, SK.melee_medium, SK.melee_heavy], access: { blockedBy: [AMORPHOUS] } },
+      [TR.ranged]: { id: TR.ranged, name: 'Combat – Ranged', skills: [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], access: { blockedBy: [AMORPHOUS] } },
+      [TR.unarmed]: { id: TR.unarmed, name: 'Combat – Unarmed', skills: [SK.unarmed_strike, SK.unarmed_grapple, SK.unarmed_improvised], access: { blockedBy: [AMORPHOUS] } },
+      [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: RC.dragon }] } /* the shape's slam; the dragon's own attacks */ },
+      [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.endurance] },
+      [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
+      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
+      [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
+      [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
+      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
       // BR7: from being a slime, not from a class
-      slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: 'slime' }] } },
-      tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
+      [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
+      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
@@ -395,11 +399,11 @@ export function prototypeLibrary(): Library {
     // Humans and elves for now, identical
     // innate perks and quirks per race: lists, empty until chosen
     races: {
-      human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
-      elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
+      [RC.human]: { id: RC.human, name: 'Human', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
+      [RC.elf]: { id: RC.elf, name: 'Elf', bodyTypeId: BT.humanoid, hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
       // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
-      slime: { id: 'slime', name: 'Slime', bodyTypeId: 'amorphous', hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [] },
-      dragon: { id: 'dragon', name: 'Dragon', bodyTypeId: 'winged_quadruped', hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [] },
+      [RC.slime]: { id: RC.slime, name: 'Slime', bodyTypeId: BT.amorphous, hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [] },
+      [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [] },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     zoneKinds: Object.fromEntries(([

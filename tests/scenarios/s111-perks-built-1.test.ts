@@ -8,10 +8,11 @@ import { buildPlayerView } from '../../src/views';
 import type { Actor, GameEvent, GameState } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
-const sword = 'player_arming_sword_1';
+const sword = `player_${IT.arming_sword}_1`;
 
 describe('111 coded perks, batch 1', () => {
   it('Hidden Strike: an attack on an unaware target lands one tier better', () => {
@@ -29,7 +30,7 @@ describe('111 coded perks, batch 1', () => {
     const s = makeVillage();
     place(s, 'player', 'field_mid');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     const req = { attackerId: 'player', targetId: 'slime_1', weaponId: 'bow', targetPart: null, aimed: false };
     const has = (r: ReturnType<typeof ruleset.attack>) => r.attack.modifiers.some((m) => m.source === 'hostile in zone');
     expect(has(ruleset.attack(req, s, forcedRng([50, 50, 50])))).toBe(true);
@@ -39,11 +40,11 @@ describe('111 coded perks, batch 1', () => {
   it('Shield Breaker: a heavy melee hit on a shield does double damage to the shield', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    fit(wim, 'round_shield').core.inventory.push({ id: 'wim_shield', itemId: 'round_shield', equippedIn: ['hand:left_arm'] });
+    fit(wim, IT.round_shield).core.inventory.push({ id: 'wim_shield', itemId: IT.round_shield, equippedIn: ['hand:left_arm'] });
     wim.core.standingDefense = 'block';
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'axe', itemId: 'greataxe', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
-    fit(s.player, 'greataxe');
+    s.player.core.inventory.push({ id: 'axe', itemId: IT.greataxe, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    fit(s.player, IT.greataxe);
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'axe', targetPart: null, aimed: false };
     const lost = (r: ReturnType<typeof ruleset.attack>) => {
       const sh = wim.core.inventory.find((i) => i.id === 'wim_shield')!;

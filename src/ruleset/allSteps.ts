@@ -2,6 +2,7 @@
 // gets each built part of that tree's All-50 bundle for free (OwnedPerk source 'mastery'), and the player earns the
 // tree's mastery achievement ("Adept of {tree}"). Checked at the end of every turn, so raises, perks and spawns all count.
 // Also the rolls that read All-50 parts on the other side (Dodgy) or after the dice (Curiouser and Curiouser).
+import { TR } from '../library/treeIds';
 import type { Actor, GameState, Mod, TierShift } from '../types';
 import { getLibrary } from '../library';
 import { ALL_BUNDLES } from '../library/allPerks';
@@ -60,7 +61,7 @@ export function afterRollShifts(a: Actor, skill: string, level: number, nearMiss
   if (FUNCTION_ROLLS.some((f) => fns.includes(f)) && level >= TIERS.pos('success') && hasPerk(a, PK.curiouser)) return [{ source: 'Curiouser and Curiouser', value: 1 }];
   if (nearMissUp && level === TIERS.pos('near_miss')) return [{ source: nearMissUp, value: 1 }];
   // T7a Soft Landing: a speech roll at Near Miss or worse counts one tier higher
-  const speech = getLibrary().trees.speech?.skills ?? [];
+  const speech = getLibrary().trees[TR.speech]?.skills ?? [];
   if (speech.includes(skill) && level <= TIERS.pos('near_miss') && hasPerk(a, PK.soft_landing)) return [{ source: 'Soft Landing', value: 1 }];
   return [];
 }

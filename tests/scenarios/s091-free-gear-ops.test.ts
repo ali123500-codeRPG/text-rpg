@@ -3,15 +3,16 @@ import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 const MAIN = new Set(['attack', 'wasted', 'equip', 'hold', 'speak', 'give', 'rest']);
 
 it('91 Free gear ops', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
-  s.player.core.inventory.push({ id: 'dg', itemId: 'dagger' });
-  s.zones.find((z) => z.id === 'tav_common')!.groundItems.push({ id: 'dg2', itemId: 'dagger' });
+  s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger });
+  s.zones.find((z) => z.id === 'tav_common')!.groundItems.push({ id: 'dg2', itemId: IT.dagger });
   const ev = play(s, { intent: intent({
-    gear: [{ op: 'pick_up', item: 'dg2' }, { op: 'stow', item: 'player_round_shield_2' }, { op: 'draw', item: 'dg' }, { op: 'swap', item: 'dg2' }],
+    gear: [{ op: 'pick_up', item: 'dg2' }, { op: 'stow', item: `player_${IT.round_shield}_2` }, { op: 'draw', item: 'dg' }, { op: 'swap', item: 'dg2' }],
     action: { type: 'attack', target: 'patron_1', skill: SK.melee_light },
   }) });
   const mine = ev.filter((e) => e.actorId === 'player');
@@ -22,7 +23,7 @@ it('91 Free gear ops', () => {
   expect(inv.dg).toBeUndefined();
   expect(inv.player_arming_sword_1).toBeUndefined();
   // equip on armor is the main action
-  const ev2 = play(s, { intent: intent({ action: { type: 'equip', item: 'player_gambeson_3' } }) });
+  const ev2 = play(s, { intent: intent({ action: { type: 'equip', item: `player_${IT.gambeson}_3` } }) });
   expect(ev2.filter((e) => e.actorId === 'player' && MAIN.has(e.kind)).map((e) => e.kind)).toEqual(['equip']);
-  expect(s.player.core.inventory.find((i) => i.id === 'player_gambeson_3')!.equippedIn).toBeUndefined();
+  expect(s.player.core.inventory.find((i) => i.id === `player_${IT.gambeson}_3`)!.equippedIn).toBeUndefined();
 });

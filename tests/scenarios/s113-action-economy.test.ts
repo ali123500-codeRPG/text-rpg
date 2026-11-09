@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import type { GameState, Intent } from '../../src/types';
+import { IT } from '../../src/library/itemIds';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null): Intent => ({
   move, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -12,7 +13,7 @@ const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action
 const turn = (s: GameState, i: Intent) => { s.turn += 1; return resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1)); };
 const bow = (s: GameState) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
-  s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
 };
 
 describe('113 action economy', () => {

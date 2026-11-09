@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import { makeVillage, place, createRng } from '../harness';
 import { installRoutines } from '../../src/minds';
 import { resolveTurn } from '../../src/engine';
+import { IT } from '../../src/library/itemIds';
 
 // AN1–AN4: worn armor makes body-moving events louder by noise steps (light +0, medium +1, heavy +2)
 function patrolNoise(armor: string | null) {
@@ -16,9 +17,9 @@ function patrolNoise(armor: string | null) {
 
 it('123 Armor noise: a patrol walk is louder in heavier armor', () => {
   const base = patrolNoise(null);
-  expect(patrolNoise('gambeson')).toBe(base);
-  expect(patrolNoise('mail_hauberk')).not.toBe(base);
+  expect(patrolNoise(IT.gambeson)).toBe(base);
+  expect(patrolNoise(IT.mail_hauberk)).not.toBe(base);
   const order = ['silent', 'faint', 'hushed', 'quiet', 'normal', 'loud', 'deafening'];
-  expect(order.indexOf(patrolNoise('mail_hauberk'))).toBe(order.indexOf(base) + 1);
-  expect(order.indexOf(patrolNoise('plate_harness'))).toBe(order.indexOf(base) + 2);
+  expect(order.indexOf(patrolNoise(IT.mail_hauberk))).toBe(order.indexOf(base) + 1);
+  expect(order.indexOf(patrolNoise(IT.plate_harness))).toBe(order.indexOf(base) + 2);
 });
