@@ -3,7 +3,7 @@
 // perk unlocks A Nobody, a starting class with Quick Study at level 1 and Every Fall a Lesson at 20.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { awardXp, charLevel, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
+import { awardXp, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { createPlayer, recommendedBuild } from '../../src/library/spawn';
 import { CONFIG } from '../../src/config';
@@ -79,11 +79,17 @@ describe('131 Class level cap', () => {
     expect(reach20(10).p.progression!.capstoneOptions).toBeUndefined(); // Dodge 10: nothing on offer
     const { s, p } = reach20(40);
     expect(p.progression!.capstoneOptions).toEqual({ [CL.swordsman]: ['every_fall_a_lesson'] }); // the dragon one isn't met
-    expect(p.core.perks.map((x) => x.perkId)).toEqual(['quick_study']); // the default until a swap
+    expect(p.core.perks).toEqual([expect.objectContaining({ perkId: 'quick_study', dormant: true })]); // the default waits, inactive
     expect(swapCapstone(p, CL.swordsman, 'nobody_special', s.turn)).toBe(false);
     expect(swapCapstone(p, CL.swordsman, 'every_fall_a_lesson', s.turn)).toBe(true);
     expect(p.core.perks.map((x) => x.perkId)).toEqual(['every_fall_a_lesson']);
     expect(swapCapstone(p, CL.swordsman, 'every_fall_a_lesson', s.turn)).toBe(false); // once
+    const kept = reach20(40);
+    expect(keepCapstone(kept.p, CL.swordsman)).toBe(true); // keeping the default makes it active and closes the offer
+    expect(kept.p.core.perks).toEqual([{ perkId: 'quick_study', source: 'class', gainedTurn: kept.s.turn }]);
+    expect(kept.p.progression!.capstoneOptions).toEqual({});
+    expect(swapCapstone(kept.p, CL.swordsman, 'every_fall_a_lesson', kept.s.turn)).toBe(false);
+    expect(reach20(10).p.core.perks[0].dormant).toBeUndefined(); // nothing on offer: active at once
     makeVillage(); // restore the library
   });
 

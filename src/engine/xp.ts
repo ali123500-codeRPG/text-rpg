@@ -68,15 +68,33 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
   pick.level += 1;
   if (pick.level === CONFIG.CLASS_MAX_LEVEL) offerCapstones(p, pick.classId);
   p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn).filter((x) => !p.core.perks.some((o) => o.perkId === x.perkId))); // class-level perks, once each
+  if (pr.capstoneOptions?.[pick.classId]) for (const x of capstonePerks(p, pick.classId)) x.dormant = true; // inactive until the player picks
   if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
   return { classId: pick.classId, level: charLevel(p) };
 }
 
 /** Alternate capstones: when a class reaches CLASS_MAX_LEVEL, every alternate whose conditions hold right then is
- * offered in place of the default capstone (the class's levelPerks at that level). The offer stays until a swap. */
+ * offered in place of the default capstone (the class's levelPerks at that level). While an offer stands the default
+ * is held dormant (it does nothing); the player either keeps it (keepCapstone) or swaps in an alternate (swapCapstone).
+ * Either choice is final. With nothing on offer the default is active at once. */
 function offerCapstones(p: Actor, classId: string): void {
   const ok = (getLibrary().classes[classId]?.capstones ?? []).filter((c) => ruleMet(p, c.needs)).map((c) => c.perk);
   if (ok.length) (p.progression!.capstoneOptions ??= {})[classId] = ok;
+}
+
+/** the owned default capstone perks of a class (its class perks at CLASS_MAX_LEVEL) */
+function capstonePerks(p: Actor, classId: string) {
+  const base = getLibrary().classes[classId]?.levelPerks?.[CONFIG.CLASS_MAX_LEVEL] ?? [];
+  return p.core.perks.filter((x) => x.source === 'class' && base.includes(x.perkId));
+}
+
+/** keep a class's default capstone: it becomes active and the offer closes. False when nothing is on offer. */
+export function keepCapstone(p: Actor, classId: string): boolean {
+  const pr = p.progression;
+  if (!pr?.capstoneOptions?.[classId]) return false;
+  for (const x of capstonePerks(p, classId)) delete x.dormant;
+  delete pr.capstoneOptions[classId];
+  return true;
 }
 
 /** swap a class's default capstone for an offered alternate; once per class. False when it isn't on offer. */
