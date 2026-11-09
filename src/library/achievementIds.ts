@@ -26,8 +26,8 @@ export const ACH = {
 /** what each achievement rule counts, for display; the count is AchievementDef.count */
 export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   defeats: 'defeats', mastery: 'true skill in all three skills of a tree', unaware_defeats: 'foes defeated while unaware of you',
-  yielded: 'foes who surrendered or broke while fighting you', crits: 'combat rolls at Critical Success or better with a skill of the group',
-  beyond_crit: 'step(s) past Critical Success on a combat roll', crippled_defeats: 'foes defeated while one of your parts is Crippled',
+  yielded: 'foes who surrendered or broke while fighting you', crits: 'rolls at Critical Success or better with a skill of the group',
+  beyond_crit: 'step(s) past Critical Success on a roll', crippled_defeats: 'foes defeated while one of your parts is Crippled',
   zones: 'different zones entered', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',
   flawless: 'fights won without losing HP, after at least one defense roll', outnumbered: `fights won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
   brink: 'fights survived after reaching Critical health (once per fight)',

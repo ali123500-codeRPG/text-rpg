@@ -9,7 +9,8 @@ import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
 import { skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
-import { groupName } from '../library/functionNames';
+import { groupName, groupsOf } from '../library/functionNames';
+import { TIERS } from '../scales';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
 export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
@@ -114,6 +115,18 @@ function defeatAchievements(state: GameState, t: Actor): void {
   tally(state, 'defeats');
   if (t.mind?.hitUnaware) tally(state, 'unaware_defeats');
   if (partStates(state, state.player).some((p) => !working(p.state))) tally(state, 'crippled_defeats');
+}
+
+/** every roll the player makes: Critical Success or better counts for each group of the rolled skill, and each step
+ * past Critical Success counts once in general and per group */
+export function rollFeats(state: GameState, r: { skill: string; tier: string; beyond?: number }): void {
+  const beyond = TIERS.pos(r.tier as 'success') + (r.beyond ?? 0) - TIERS.pos('critical_success');
+  if (beyond < 0) return;
+  const groups = groupsOf(getLibrary().skills[r.skill]);
+  for (const g of groups) tally(state, 'crits', { by: 'group', of: g });
+  if (beyond === 0) return;
+  tally(state, 'beyond_crit', { to: beyond });
+  for (const g of groups) tally(state, 'beyond_crit', { by: 'group', of: g, to: beyond });
 }
 
 /** Adds 1 to the player's tally for an achievement rule (with `to`: raises it to `to`), then grants every achievement

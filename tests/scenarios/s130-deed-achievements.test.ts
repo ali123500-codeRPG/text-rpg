@@ -3,7 +3,9 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, payDefeats, tally, unlockClasses } from '../../src/engine/xp';
+import { achievementName, payDefeats, rollFeats, tally, unlockClasses } from '../../src/engine/xp';
+import { forcedRng } from '../harness';
+import { ruleset } from '../../src/ruleset';
 import { fightEnded, turnFeats } from '../../src/engine/feats';
 import { ACH } from '../../src/library/achievementIds';
 import { GR } from '../../src/library/functionIds';
@@ -11,8 +13,6 @@ import { SK } from '../../src/library/skillIds';
 import type { GameEvent, GameState } from '../../src/types';
 
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.id);
-const playerRoll = (tier: string, beyond = 0, skill: string = SK.melee_light) =>
-  ({ attack: { attackerId: 'player', targetId: 'x', attack: { tier, beyond, skill }, defense: null, damage: 0 } }) as unknown as GameEvent;
 
 describe('130 deed achievements', () => {
   it('a tally grants each level it reaches; a higher level replaces the lower', () => {
@@ -26,14 +26,18 @@ describe('130 deed achievements', () => {
     expect(s.player.progression!.tally!.days).toBe(30);
     expect(earned(s)).toContain(ACH.days_30);
   });
-  it('Critical Success combat rolls count per skill group; steps past it count once in general and per group', () => {
+  it('Critical Success rolls of any skill count per skill group; steps past it count once in general and per group', () => {
     const s = makeVillage();
-    for (let i = 0; i < 10; i++) turnFeats(s, [playerRoll('critical_success')]);
+    for (let i = 0; i < 10; i++) rollFeats(s, { skill: SK.melee_light, tier: 'critical_success' });
     expect(earned(s)).toContain(`${ACH.crits_10}:${GR.melee}`);
     expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === `${ACH.crits_10}:${GR.melee}`)!)).toBe('Sure Hand (Melee)');
-    turnFeats(s, [playerRoll('great_success'), playerRoll('critical_success', 2, SK.dodge)]);
+    rollFeats(s, { skill: SK.melee_light, tier: 'great_success' });
+    rollFeats(s, { skill: SK.dodge, tier: 'critical_success', beyond: 2 });
     expect(earned(s)).toEqual(expect.arrayContaining([ACH.beyond_2, `${ACH.beyond_group_2}:${GR.defense}`]));
     expect(earned(s)).not.toContain(ACH.beyond_1); // replaced by Past the Limit
+    // a non-combat roll counts too: a natural 100 on Persuasion reaches Critical Success or better
+    ruleset.roll({ actorId: 'player', skill: SK.persuasion, modifiers: [], tierShifts: [] }, s, forcedRng([100]));
+    expect(s.player.progression!.tally![`crits:group:${GR.influence}`]).toBe(1);
   });
   it('zones entered count once each', () => {
     const s = makeVillage();
