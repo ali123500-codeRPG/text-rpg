@@ -186,5 +186,7 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string; scar?: true;
+  /** reward: every healing source reaches this many part states further (Damaged to Crippled), never to Destroyed */
+  healReach?: number;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };

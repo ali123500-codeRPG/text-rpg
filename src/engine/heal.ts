@@ -1,6 +1,7 @@
 // Healing ("Healing: options" H1–H15). Every source is a row of the library healing table, applied by
 // this one rule, so amounts stay consistent (B5) and new sources or tiers are new rows (H1).
 import type { Actor, GameState } from '../types';
+import type { PartStateKey } from '../scales';
 import { getLibrary } from '../library';
 import { PART_STATES } from '../scales';
 import { boostMult, healthLevel, partStates, trueSkill } from '../ruleset';
@@ -8,6 +9,15 @@ import { isActive } from './relations';
 import { logCode } from './effects';
 
 export const healingName = (id: string) => getLibrary().healing?.[id]?.name ?? id;
+
+/** a source's reach for this actor, as a PART_STATES position: the row's reach plus the best healReach of the actor's
+ * current achievements. The bonus stops short of Destroyed, which only a row that names it reaches. */
+export function healReach(a: Actor, reach: PartStateKey): number {
+  const lib = getLibrary().achievements ?? {};
+  const bonus = Math.max(0, ...(a.progression?.achievements ?? []).filter((x) => x.key && !x.replacedBy).map((x) => lib[x.key!]?.healReach ?? 0));
+  const base = PART_STATES.pos(reach);
+  return Math.max(base, Math.min(base + bonus, PART_STATES.pos('destroyed') - 1));
+}
 
 /** Restores the row's share of HP and of each part pool (`pct` replaces both, for hourly rows). A part heals only if its state is no worse
  * than the row's reach (H4/H12); a Crippled or worse part a row reaches starts again from 0. Destroyed parts need a row
@@ -22,7 +32,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   const before = partStates(state, a);
   const lost = c.hpLostPct;
   c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct));
-  const reach = PART_STATES.pos(src.reach);
+  const reach = healReach(a, src.reach);
   const changed: { id: string; from: string; to: string }[] = [];
   let healed = false;
   for (const p of before) {
@@ -47,7 +57,7 @@ export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean
   const c = a.core.condition;
   if (healthLevel(a) === 'Dead' && !src.revivesDead) return false;
   if (c.hpLostPct > 0 && src.hpPct > 0) return true;
-  const reach = PART_STATES.pos(src.reach);
+  const reach = healReach(a, src.reach);
   return src.partPct > 0 && partStates(state, a).some((p) => p.id in c.parts && c.parts[p.id] < 100
     && PART_STATES.pos(PART_STATES.keyOf(p.state)!) <= reach);
 }
