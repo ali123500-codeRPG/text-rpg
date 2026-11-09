@@ -48,8 +48,10 @@ export const TIERS = scale([
 export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], ['cunning', 'cunning']]);
 /** zone light, brightest first (V1) */
 export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
-/** stance of one actor toward another, coldest first (hostile = attacks on sight; opposed = at odds, won't strike first) */
-export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['neutral', 'neutral'], ['friendly', 'friendly']]);
+/** stance of one actor toward another, coldest first (hostile = attacks on sight; opposed = at odds, on guard, won't strike
+ * first; unfriendly = dislike without a standoff: not on guard, still trades, pays no XP; friend = helps at a cost to itself;
+ * loyal = takes the other's side: anyone hostile to them it treats as hostile too) */
+export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['unfriendly', 'unfriendly'], ['neutral', 'neutral'], ['friendly', 'friendly'], ['friend', 'friend'], ['loyal', 'loyal']]);
 /** how much a race thinks, least first: an achievement's first-sight reward covers races up to one of these */
 export const INTELLIGENCE = scale([['unintelligent', 'Unintelligent'], ['semi', 'Semi-intelligent'], ['intelligent', 'Intelligent']]);
 export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];

@@ -8,6 +8,7 @@ import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
+import { placeName } from '../agents/game';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -20,6 +21,8 @@ export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(
 export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
   let state: GameState | null = null;
   let lines: LogLine[] = [];
+  const KETTLE = { id: 'tavern', name: 'The Crooked Kettle' };
+  const placeOf = (st: GameState) => ({ id: st.player.placeId, name: placeName(st) });
   let busy = false, fell = !!opts.fell, n = 0;
   const notices: Notice[] = opts.notices ?? [];
   const subs = new Set<() => void>();
@@ -32,7 +35,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     slime.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'field_edge', lastSeenTurn: 2, source: 'seen', revealed: [] } };
     const guard = spawnNpc(null, TP.guard, { id: 'guard_1', zone: 'tav_common', placeId: 'tavern', bandId: 'village_watch', storyId: 'fake', name: 'Bren' });
     state = {
-      storyId: 'fake', turn: 3, mode: 'tactical', zones: [], player, actors: [slime, guard], bands: [], events: [],
+      storyId: 'fake', turn: 4, mode: 'tactical', zones: [], player, actors: [slime, guard], bands: [], events: [],
       hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], agreements: [{ id: 'ag_1', parties: ['player', 'guard_1'], text: 'He lets you back in after dark; you tell him if you see the thief.', madeTurn: 2, madeBy: 'guard_1' }], weaverNote: 'the slimes are fleeing something in the woods', stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
@@ -46,15 +49,16 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
-      { turn: 1, kind: 'narration', text: NARRATION[0] },
+      { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scene: 1 },
       { turn: 2, kind: 'player', text: 'I head out through the gate to the field' },
-      { turn: 2, kind: 'narration', text: NARRATION[1] },
-      { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it' },
-      { turn: 3, kind: 'narration', text: NARRATION[2],
+      { turn: 2, kind: 'narration', text: NARRATION[1], place: KETTLE, scene: 2, gear: ['Now held: right hand · Arming sword', 'Now held: left hand · Round shield'] },
+      { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it', aimed: true },
+      { turn: 3, kind: 'narration', text: NARRATION[2], place: KETTLE, scene: 2,
         check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
         heals: [{ source: 'bandage', from: 'Hurt', to: 'Bruised', parts: [{ id: 'left_leg', from: 'Damaged', to: 'Healthy' }] }],
         unlocks: [{ skill: SK.block, milestone: 40 }], gains: { [SK.block]: 3 },
+        incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'great_success', against: { what: 'your block', tier: 'success' }, result: 'blocked, shield', by: 'the slime' }],
         changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],
         mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Great Success', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Great Success · dodge 0 · full hit · 25 damage to body'] },
     ];
@@ -73,14 +77,16 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     async resume() { return state !== null; },
     async submit(text, o) {
       if (busy || !state) return;
-      const t = state.turn + 1;
-      lines = [...lines, { turn: t, kind: text.startsWith('/') ? 'command' : 'player', text: o.aimed ? `${text} (aimed)` : text }];
-      if (text === '/undo') { fell = false; lines = [...lines, { turn: t, kind: 'notice', text: 'Rewound one turn.' }]; emit(); return; }
+      // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one
+      const t = state.turn;
+      if (text === '/undo') { fell = false; state.turn = Math.max(1, t - 1); lines = [...lines, { turn: state.turn, kind: 'command', text: 'Turn undone.' }]; emit(); return; }
+      lines = [...lines, { turn: t, kind: text.startsWith('/') ? 'command' : 'player', text, ...(o?.aimed ? { aimed: true } : {}) }];
       busy = true; emit();
       await new Promise((r) => setTimeout(r, 600));
-      state.turn = t;
+      state.turn = t + 1;
       if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
-      lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`] }];
+      lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
+        place: placeOf(state), scene: state.stage.sceneNumber }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },

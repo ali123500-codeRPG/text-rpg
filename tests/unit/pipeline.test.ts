@@ -16,6 +16,7 @@ const H = vi.hoisted(() => ({
   firedOrders: [] as unknown[],
   secrets: [] as unknown[],
   sets: [] as [string, unknown][],
+  onResolve: null as ((s: GameState) => void) | null,
 }));
 
 vi.mock('../../src/engine', () => ({
@@ -26,8 +27,9 @@ vi.mock('../../src/engine', () => ({
   quickWord: () => false,
   resolveSpeech: () => ({ skill: SK.persuasion, playerTier: 'success', impression: 'convincing', perSpokesperson: {} }),
   firedOrders: () => H.firedOrders,
-  resolveTurn: (_s: GameState, input: TurnInput) => {
+  resolveTurn: (s: GameState, input: TurnInput) => {
     H.resolved.push({ at: H.clockNow(), input });
+    H.onResolve?.(s);
     return [];
   },
 }));
@@ -79,6 +81,7 @@ beforeEach(() => {
   H.firedOrders = [];
   H.secrets = [];
   H.sets = [];
+  H.onResolve = null;
   claude = new ScriptedClaude(clock);
   game = createGame({ client: claude, clock, store });
 });
@@ -220,6 +223,26 @@ describe('errors and commands', () => {
     await game.submit('strike', { aimed: false });
     await game.submit('strike', { aimed: false });
     expect(H.resolved.map((r) => r.input.aimed)).toEqual([true, false]);
+    expect(game.lines().filter((l) => l.kind === 'player').map((l) => l.aimed)).toEqual([true, undefined]); // shown after a reload
+  });
+
+  it('a narration line keeps the turn\'s gear rows, the place it ended in and the scene number', async () => {
+    start();
+    H.onResolve = (s) => {
+      const inv = s.player.core.inventory;
+      const coin = inv.find((i) => i.id === 'player_coin')!;
+      coin.qty = 15;
+      const sword = inv.find((i) => i.equippedIn?.some((x) => x.startsWith('hand:')))!;
+      sword.equippedIn = [];
+      inv.push({ id: 'found_1', itemId: 'odd_stone', qty: 1 });
+      s.stage.sceneNumber = 3;
+    };
+    claude.push('parser', intentOf()).push('narrator', narr);
+    await game.submit('look around', { aimed: false });
+    const l = game.lines().at(-1)!;
+    expect(l.gear).toEqual(['Put away: arming sword', 'Used: coin', 'Picked up: odd_stone']);
+    expect(l.place).toEqual({ id: state.player.placeId, name: expect.stringMatching(/^[A-Z]/) });
+    expect(l.scene).toBe(3);
   });
 });
 

@@ -4,8 +4,8 @@
 // through FN and GR; display names live only in FUNCTION_NAMES and GROUP_NAMES (functionNames.ts). Never renumber.
 export const FN = {
   arms: 'FN1', unarmed: 'FN2', ranged: 'FN3', defense: 'FN4', armor: 'FN5', health: 'FN6',
-  sight: 'FN7', hearing: 'FN8', stealth: 'FN9', influence: 'FN10',
+  sight: 'FN7', hearing: 'FN8', stealth: 'FN9', influence: 'FN10', initiative: 'FN11',
 } as const;
 export const GR = {
-  melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7',
+  melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7', speed: 'GR8',
 } as const;

@@ -175,7 +175,7 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
     return `<path data-part="${esc(id)}" class="bf-${i.state.toLowerCase()}${hl ? ' bf-healed' : ''}" d="${esc(d)}"><title>${esc(i.name)} · ${i.state}${hl}</title></path>`;
   }).join('');
   const svg = h('div', { class: 'bf-svg' });
-  svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#5a6488"/><rect width="2.5" height="6" fill="#0b1330" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
+  svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--c3)"/><rect width="2.5" height="6" style="fill:var(--bg)" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
   const out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
   svg.addEventListener('click', (e) => {
     const el = (e.target as Element).closest('[data-part]');
@@ -194,8 +194,9 @@ const partName = (id: string) => cap(id.replace(/_/g, ' '));
 /** width of the side sheet bar's Unhurt section, in % of the bar */
 const UNHURT_SECTION = 12;
 
-function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): HTMLElement[] {
-  if (healed.size && partOpen.autoTurn !== turn) { partOpen.on = true; partOpen.autoTurn = turn; }
+function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, changed: Set<string> = new Set()): HTMLElement[] {
+  // the body figure opens by itself once on a turn that healed or changed a part
+  if ((healed.size || changed.size) && partOpen.autoTurn !== turn) { partOpen.on = true; partOpen.autoTurn = turn; }
   const { hp, total } = hpLeft(s, p);
   const level = shownLevel(healthLevel(p));
   const left = Math.max(0, 100 - p.core.condition.hpLostPct);
@@ -231,17 +232,45 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number): H
       [...segs.slice(0, -1).map((x) => x.from * scale), 100 - UNHURT_SECTION].map((at) => h('i', { style: `left:${at}%` }))),
     sideSteps(1));
   btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health ${partOpen.on ? '⌄' : '›'}`; });
-  return [btn, parts];
+  return [btn, partChips(s, p), parts];
+}
+
+/** each body part that is not Healthy, as "Left leg crippled" in its state's colour; none while all are Healthy */
+export function partChips(s: GameState, p: Actor): HTMLElement {
+  const bad = (safe(() => actorBody(s, p).parts) ?? []).map((d) => ({ id: d.id, st: poolState(p.core.condition.parts[d.id] ?? 100) })).filter((x) => x.st !== 'Healthy');
+  return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st.toLowerCase()}` }, `${partName(x.id)} ${x.st.toLowerCase()}`)));
+}
+
+/** what the character holds and wears, by item name: "arming sword · round shield" */
+export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string[] } {
+  const on = p.core.inventory.filter((i) => i.equippedIn?.length);
+  const name = (i: Actor['core']['inventory'][number]) => safe(() => itemDef(s, i.itemId).name) ?? i.itemId;
+  return { held: on.filter((i) => i.equippedIn!.some((x) => x.startsWith('hand:'))).map(name), worn: on.filter((i) => !i.equippedIn!.some((x) => x.startsWith('hand:'))).map(name) };
+}
+
+/** Layout A: the narrow status strip beside the story (health word and bar, damaged parts, what is held); a click opens the full sheet */
+export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
+  const level = shownLevel(healthLevel(p));
+  const left = level === 'Unhurt' ? 100 : Math.max(0, 100 - p.core.condition.hpLostPct) * (100 - UNHURT_SECTION) / 100;
+  const hw = heldWorn(s, p);
+  return [
+    h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, level)),
+    h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` })),
+    partChips(s, p),
+    h('span', { class: 'cs-held' }, h('span', { class: 'hs-label' }, 'Held'), hw.held.length ? hw.held.map(cap).join(' · ') : 'Nothing'),
+  ];
 }
 
 /** Compact sheet beside the story: health, standing defense and skills above 0. */
-export function sideSheet(s: GameState, p: Actor, last?: LogLine): HTMLElement[] {
+export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<string>): HTMLElement[] {
   const def = standing(s, p);
   const gains = last?.gains ?? {}; // V1b: skill gains from the last played turn
   const healed = new Set((last?.heals ?? []).flatMap((x) => x.parts.filter((pt) => pt.to !== pt.from).map((pt) => pt.id))); // H2 a
   const atk = attackOf(s, p);
+  const hw = heldWorn(s, p);
   return [
-    ...healthBar(s, p, healed, last?.turn ?? -1),
+    ...healthBar(s, p, healed, last?.turn ?? -1, changed),
+    h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },

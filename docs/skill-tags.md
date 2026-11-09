@@ -6,8 +6,8 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 | Tag | Values | Used for |
 |---|---|---|
 | Tree | melee, ranged, unarmed, natural, defense, armor, perception, stealth, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
-| Functions (narrow, one or more) | arms, unarmed, ranged, defense, armor, health, sight, hearing, stealth, influence | Stand-ins: a skill sharing a function stands in for a missing one |
-| Group (broad, from the functions) | melee, ranged, defense, health, notice, stealth, influence | The 40 perk's +1 (every skill sharing a group with the ladder skill), XP category |
+| Functions (narrow, one or more) | arms, unarmed, ranged, defense, armor, health, sight, hearing, stealth, influence, initiative | Stand-ins: a skill sharing a function stands in for a missing one |
+| Group (broad, from the functions) | melee, ranged, defense, health, notice, stealth, influence, speed | The 40 perk's +1 (every skill sharing a group with the ladder skill), XP category. A skill can also join a group directly (`groups`, e.g. dodge in Speed) without its function |
 | Situation tags | sight, hearing, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. No table reads hearing yet. An action can add a tag (a Hide adds hide, ST22) |
 | Roles | grip, strike, move, sense, fly, speech | Which wounded body parts lower the roll |
 | Cue | sight, sound (notice skills only) | Which cue a notice roll reads |
@@ -31,6 +31,7 @@ function in its group; adding a function or group is one row there.
 | Notice | hearing | hearing, tremor |
 | Stealth | stealth | sneaking, combat_stealth, vanishing |
 | Influence | influence | persuasion, intimidation, barter |
+| Speed | initiative | none yet (the best one adds to the initiative d100); dodge joins the Speed group directly, without the function |
 | none | none | feint, riposte, disarm (placeholders), lockpicking |
 
 | Skill | Tree | Roles | Cue | Situation tags |
