@@ -600,6 +600,8 @@ const picks = new Map<string, 'shown' | 'out'>();
 const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
 const titleEl = h('h1', {});
+const results = h('p', { class: 'lv-results', 'aria-live': 'polite' });
+const empty = h('div', { class: 'lv-empty', hidden: true });
 const body = h('div', { class: 'lv-body' });
 // Refresh: posts a comment sent to Claude (the comments capability), which wakes the viewer's thread to rebuild
 // from main and republish. Hidden when the page runs outside claude.ai or the viewer can't send to Claude.
@@ -622,7 +624,7 @@ claudeRt?.use('comments').then(async (api) => {
     }
   };
 }).catch(() => undefined);
-const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl,
+const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl, results,
   h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)), search), bar, body);
 // sub-tabs live in a rail on the right, mirroring the table rail on the left; hidden when the tab has none
 const subRail = h('nav', { class: 'hs-rail lv-subrail', 'aria-label': 'Sub-tabs' });
@@ -633,10 +635,12 @@ const facetsOf = (c: HTMLElement) => (c.dataset.f ? c.dataset.f.split('\n') : []
 /** buttons cycle off → Shown → Left out (several Shown in a group = either), as on the game's tiles */
 function drawBar(): void {
   const groups = new Map<string, Map<string, number>>();
+  const q = search.value.trim().toLowerCase();
   for (const c of cards()) for (const f of facetsOf(c)) {
     const [g] = f.split('\t');
     const vals = groups.get(g) ?? groups.set(g, new Map()).get(g)!;
-    vals.set(f, (vals.get(f) ?? 0) + 1);
+    // each count is what clicking the chip would show: the other groups' filters and the search still apply
+    vals.set(f, (vals.get(f) ?? 0) + (passes(c, q, g) ? 1 : 0));
   }
   const next = { off: 'shown', shown: 'out', out: 'off' } as const;
   const shownGroups = [...groups].filter(([, v]) => v.size > 1);
@@ -648,13 +652,13 @@ function drawBar(): void {
     [...vals].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })).map(([f, n]) => {
       const st = picks.get(f) ?? 'off';
       const v = f.split('\t')[1];
-      return h('button', { type: 'button', class: 'lv-fb', 'data-st': st, 'aria-pressed': st === 'shown' ? 'true' : st === 'out' ? 'mixed' : 'false',
+      return h('button', { type: 'button', class: `lv-fb${n ? '' : ' lv-zero'}`, 'data-st': st, 'aria-pressed': st === 'shown' ? 'true' : st === 'out' ? 'mixed' : 'false',
         style: g === colourBy ? `--tone: var(${toneFor(g, v) ?? '--c3'})` : undefined,
         title: st === 'off' ? 'Click for Shown (several Shown = either)' : st === 'shown' ? 'Click for Left out' : 'Click to clear',
-        onclick: () => { const to = next[st]; if (to === 'off') picks.delete(f); else picks.set(f, to); drawBar(); filter(); } },
+        onclick: () => { const to = next[st]; if (to === 'off') picks.delete(f); else picks.set(f, to); filter(); } },
       g === colourBy ? h('i', { class: 'lv-sw' }) : null, v, h('small', {}, String(n)), st === 'off' ? null : h('b', {}, st === 'shown' ? 'Shown' : 'Left out'));
     }))),
-  ...(picks.size ? [h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { picks.clear(); drawBar(); filter(); } }, 'Clear filters')] : []));
+  ...(picks.size ? [h('button', { type: 'button', class: 'hs-btn-text', onclick: clearFilters }, 'Clear filters')] : []));
   bar.hidden = !bar.childElementCount;
 }
 /** tint each card by its value in the colour group */
@@ -665,16 +669,46 @@ function paint(): void {
     if (f) c.style.setProperty('--tone', `var(${toneFor(colourBy, f.split('\t')[1]) ?? '--c3'})`);
   }
 }
+/** does a card pass the search and the filters (leaving out one group's own picks, for that group's counts) */
+function passes(c: HTMLElement, q: string, skip?: string): boolean {
+  const fs = new Set(facetsOf(c));
+  if (q && !c.dataset.q!.includes(q)) return false;
+  const shownBy = new Map<string, boolean>();
+  for (const [f, st] of picks) {
+    const g = f.split('\t')[0];
+    if (g === skip) continue;
+    if (st === 'out' && fs.has(f)) return false;
+    if (st === 'shown') shownBy.set(g, (shownBy.get(g) ?? false) || fs.has(f));
+  }
+  return [...shownBy.values()].every(Boolean);
+}
+function clearFilters(): void { picks.clear(); filter(); }
+function clearSearch(): void { search.value = ''; filter(); search.focus(); }
+/** "Kind: melee shown, accessory left out" for each group with picks */
+function pickWords(): string {
+  const by = new Map<string, string[]>();
+  for (const [f, st] of picks) { const [g, v] = f.split('\t'); by.set(g, [...(by.get(g) ?? []), `${v} ${st === 'shown' ? 'shown' : 'left out'}`]); }
+  return [...by].map(([g, vs]) => `${g}: ${vs.join(', ')}`).join('; ');
+}
 function filter(): void {
   const q = search.value.trim().toLowerCase();
-  const shownBy = new Map<string, string[]>();
-  for (const [f, st] of picks) if (st === 'shown') { const g = f.split('\t')[0]; shownBy.set(g, [...(shownBy.get(g) ?? []), f]); }
-  for (const c of cards()) {
-    const fs = new Set(facetsOf(c));
-    c.hidden = (!!q && !c.dataset.q!.includes(q)) || [...picks].some(([f, st]) => st === 'out' && fs.has(f)) || [...shownBy.values()].some((fs2) => !fs2.some((f) => fs.has(f)));
-  }
+  const all = cards();
+  for (const c of all) c.hidden = !passes(c, q);
   body.querySelectorAll<HTMLElement>('.lv-group').forEach((g) => { g.hidden = !!g.querySelector('.lv-card') && !g.querySelector('.lv-card:not([hidden])'); });
   body.querySelectorAll<HTMLAnchorElement>('.lv-cell').forEach((a) => a.classList.toggle('dim', !!document.getElementById(a.hash.slice(1))?.hidden));
+  const n = all.filter((c) => !c.hidden).length;
+  const filtering = !!q || picks.size > 0;
+  results.replaceChildren(...(all.length ? [`${n} of ${all.length} shown`] : []),
+    ...(filtering ? [' ', h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { search.value = ''; clearFilters(); } }, 'Clear')] : []));
+  empty.hidden = !(filtering && all.length && !n);
+  if (!empty.hidden) {
+    const what = `${q ? `matches “${search.value.trim()}”` : 'is left'}${picks.size ? ` with ${pickWords()}` : ''}`;
+    empty.replaceChildren(h('p', {}, `Nothing in ${titleEl.textContent} ${what}.`),
+      h('p', { class: 'lv-empty-acts' }, q ? h('button', { type: 'button', class: 'hs-btn-main', onclick: clearSearch }, 'Clear the search') : null,
+        picks.size ? h('button', { type: 'button', class: q ? 'hs-btn-text' : 'hs-btn-main', onclick: clearFilters }, 'Clear the filters') : null));
+  }
+  if (empty.parentNode !== body) body.prepend(empty);
+  drawBar();
 }
 const facetsFor = (sec: Section): Facets => FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
 const viewOf = (sec: Section) => (sec.view ? sec.view() : [h('div', { class: 'lv-grid' }, generic(sec.key, lib[sec.table] as Record<string, Entry>))]).filter(Boolean) as HTMLElement[];
