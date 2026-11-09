@@ -269,7 +269,7 @@ export async function archiveStory(store: Store, storyId: string, at: string): P
 }
 
 // ---------- a story still starting ----------
-/** Ali: closing the game during turn 0 lost the new story, because nothing is saved until the opening
+/** Closing the game during turn 0 lost the new story, because nothing is saved until the opening
  * scene is planned and narrated. The build is written first; resume finds it and starts the opening again. */
 export type PendingStart = { storyId: string; build: CreationBuild; at: string };
 const PENDING_START = 'pending/start';

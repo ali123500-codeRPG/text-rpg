@@ -63,7 +63,7 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
   if (used(MARK_SOURCE.dirt_in_the_eyes, r.defense?.tierShifts)) drop(D, (m) => m.perk === 'dirt_in_the_eyes');
   const setUp = skill ? SET_UP[skill] : undefined;
   if (setUp && used(MARK_SOURCE.set_them_up, r.attack.tierShifts)) drop(A, (m) => m.perk === setUp.uses && m.target === D.id);
-  if (setUp && hasPerk(A, 'set_them_up')) add(A, { perk: setUp.leaves, target: D.id }); // on the attempt, hit or miss (Ali)
+  if (setUp && hasPerk(A, 'set_them_up')) add(A, { perk: setUp.leaves, target: D.id }); // on the attempt, hit or miss
   if (r.legBolt && hasPerk(A, 'leg_bolt')) markUntilNextTurn(state, D, 'leg_bolt');
   const clean = r.gap !== null && r.gap >= 2;
   if (!ranged && clean && r.defenseType === 'block' && hasPerk(D, 'turn_the_blade')) {

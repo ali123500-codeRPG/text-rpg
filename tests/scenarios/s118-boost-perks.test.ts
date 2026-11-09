@@ -48,7 +48,7 @@ describe('118 40/80/120 perks', () => {
     for (const k of [SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.block, SK.dodge, SK.eyesight]) p.core.skills[k] = { ...p.core.skills[k], raw: 30, state: p.core.skills[k]?.state ?? 'normal' };
     const before = Object.fromEntries([SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.block, SK.dodge, SK.eyesight].map((k) => [k, trueSkill(p, k)]));
     give(p, 'guard_drill');
-    expect(trueSkill(p, SK.melee_medium)).toBe(before[SK.melee_medium] + 6); // +5, and +1 for its function (Ali: including itself)
+    expect(trueSkill(p, SK.melee_medium)).toBe(before[SK.melee_medium] + 6); // +5, and +1 for its function (including itself)
     expect(trueSkill(p, SK.melee_light)).toBe(before[SK.melee_light] + 1);
     expect(trueSkill(p, SK.melee_heavy)).toBe(before[SK.melee_heavy] + 1);
     expect(trueSkill(p, SK.block)).toBe(before[SK.block] + 10);
