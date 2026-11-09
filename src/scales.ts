@@ -53,6 +53,8 @@ export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['
 /** how much a race thinks, least first: an achievement's first-sight reward covers races up to one of these */
 export const INTELLIGENCE = scale([['unintelligent', 'Unintelligent'], ['semi', 'Semi-intelligent'], ['intelligent', 'Intelligent']]);
 export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];
+/** how much one actor knows of another, least first (Belief.status; decays one step at a time) */
+export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicious'], ['aware', 'Aware'], ['tracking', 'Tracking']]);
 /** XP reward levels for achievements and quests; XP per level is CONFIG.REWARD_XP */
 export const REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
