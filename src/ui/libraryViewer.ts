@@ -10,7 +10,7 @@ import { ACH_RULE_TEXT } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
-import { fnSkills, standInShare, standInTable } from '../ruleset/gear';
+import { fnSkills, kitBonus, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
@@ -59,6 +59,9 @@ function val(v: unknown, depth = 0): Node | string {
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
+  const perkName = (id: string) => lib.perks[id]?.name ?? id;
+  if (k === 'unlockPerk' && typeof v === 'string') return perkName(v); // class fields name perks by id
+  if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, (ids as string[]).map(perkName)]));
   if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => [a, named(a, b)])) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
   if (SKILL_KEYED.has(k) && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([a, b]) => [skillName(a), b]));
   return v;
@@ -85,9 +88,10 @@ const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essentia
 
 // ---------- Gear ----------
 const ACTIVE: Record<ItemEffect['active'], string> = { worn: 'when worn', held: 'when held', inUse: 'while in use', carried: 'when carried' };
-function effectText(e: ItemEffect): string {
+function effectText(e: ItemEffect, def?: ItemDef): string {
   const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : skillName(String(e.skill))) : `${e.roll} rolls`;
-  return `${e.value > 0 ? '+' : ''}${e.value} ${what} · ${ACTIVE[e.active]}${e.scope === 'withItem' ? ' · with this item only' : ''}${e.kit ? ' · kit' : ''}`;
+  const v = e.kit && def ? kitBonus(def, e) : e.value; // a kit piece: EQUIP_FACTOR × its need, as the game reads it
+  return `${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what} · ${ACTIVE[e.active]}${e.scope === 'withItem' ? ' · with this item only' : ''}${e.kit ? ' · kit' : ''}`;
 }
 function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const humanoid = lib.bodyTypes.humanoid;
@@ -106,7 +110,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
         row('Covers', val(i.armor.covers.map(label))), i.armor.pools ? row('Pools', val(i.armor.pools)) : null)) : null,
     i.shield ? row('Shield pool', String(i.shield.pool)) : null,
-    i.effects?.length ? row('Effects', h('div', { class: 'lv-sub' }, i.effects.map((e) => h('div', {}, effectText(e))))) : null,
+    i.effects?.length ? row('Effects', h('div', { class: 'lv-sub' }, i.effects.map((e) => h('div', {}, effectText(e, i))))) : null,
     i.heal ? row('Heals as', link('healing', i.heal, lib.healing?.[i.heal]?.name ?? i.heal)) : null);
 }
 function gear(): HTMLElement[] {
