@@ -9,6 +9,8 @@ import { isActive, shortestPath, wary } from './relations';
 import type { ExchangeSpeech } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { tally } from './xp';
+import { contestFeat } from './feats';
 
 export const SPEECH_SKILL: Record<string, string> = {
   talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.persuasion, intimidate: SK.intimidation, barter: SK.barter,
@@ -147,6 +149,9 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     const contest: ContestResult = { a: mine, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
     const skills = [named, mine.skill, ...(t && mine.skill === SK.intimidation ? INFLUENCE() : [])];
     perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, skills, contest) };
+    // N4a/N4c: a speech contest won counts for the influence skill used, and against a better speaker
+    if (contest.winner === 'a' && INFLUENCE().includes(mine.skill)) tally(state, 'speech_won', { by: 'skill', of: mine.skill });
+    contestFeat(state, contest);
     markUse(state, p, mine.skill, contest); // SP2: talking to someone near your level marks the skill
   }
   return { skill: shown.skill, playerTier: shown.tier, impression: impressionWords(type, shown.tier) ?? null, perSpokesperson };

@@ -93,7 +93,7 @@ export function makeQuest(state: GameState, giver: Actor, dealId: string, job: J
     level: CONFIG.QUEST_GAIN_LEVEL[state.hidden.stage.gain] ?? 'zero', startTurn: state.turn,
     ...(prev ? { after: prev.id } : {}),
     ...(pay ? { pay, paid: { coin: 0, qty: 0 } } : {}),
-    ...(job.due ? { due: dueAt(state, job.due), ...(job.due.by ? { dueBy: job.due.by } : {}) } : {}),
+    ...(job.due ? { due: dueAt(state, job.due), startAt: now(state), ...(job.due.by ? { dueBy: job.due.by } : {}) } : {}),
   };
   state.quests.push(q);
   logCode(state, 'quest_made', { id, giver: giver.id, goal: goal.kind, level: q.level });
@@ -107,8 +107,29 @@ function endQuest(state: GameState, q: Quest, to: QuestState, why: string, colde
   state.hidden.agreements = (state.hidden.agreements ?? []).filter((g) => g.id !== q.dealId);
   logCode(state, 'quest_ended', { id: q.id, state: to, why });
   const giver = actorById(state, q.giver);
-  if (to === 'done') { awardXp(state, CONFIG.QUEST_REWARD_XP[q.level] ?? 0, `quest:${q.id}`); tally(state, 'quests_done'); }
+  if (to === 'done') { awardXp(state, CONFIG.QUEST_REWARD_XP[q.level] ?? 0, `quest:${q.id}`); tally(state, 'quests_done'); questFeats(state, q); }
   if (giver && (to === 'done' || colder)) stepStance(state, giver, state.player, to === 'done' ? 'friendlier' : 'colder');
+}
+
+/** N9: the quest achievements read from the quest list: jobs done for this giver, different givers, finished runs of
+ * follow-ups (QT24 `after`, counted once per first quest), done before half the time ran out, done with no pay promised */
+function questFeats(state: GameState, q: Quest): void {
+  const done = state.quests.filter((x) => x.state === 'done');
+  tally(state, 'quests_for_giver', { by: 'giver', of: q.giver, to: done.filter((x) => x.giver === q.giver).length });
+  tally(state, 'quest_givers', { to: new Set(done.map((x) => x.giver)).size });
+  // a run: a done follow-up whose every earlier quest is done too; it counts once, by the run's first quest
+  const runFirst = (x: Quest): string | null => {
+    let cur = x;
+    for (let i = 0; cur.after && i < 100; i++) {
+      const prev = state.quests.find((y) => y.id === cur.after);
+      if (!prev || prev.state !== 'done') return null;
+      cur = prev;
+    }
+    return cur === x ? null : cur.id;
+  };
+  tally(state, 'quest_chains', { to: new Set(done.map(runFirst).filter((x) => x !== null)).size });
+  if (q.due !== undefined && q.startAt !== undefined && now(state) - q.startAt <= (q.due - q.startAt) / 2) tally(state, 'quests_early');
+  if (!q.pay?.coin && !q.pay?.item) tally(state, 'quests_unpaid');
 }
 
 /** QT12: the player gives up a job (the Quests page, or telling the giver) */

@@ -366,6 +366,7 @@ function achievements(): HTMLElement[] {
       row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
         ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),
+      d.levelUp ? row('Pays more', Object.entries(d.levelUp).map(([k, n]) => `${k.replace("_", " ")}: +${n} reward level${n === 1 ? '' : 's'}`).join('; ')) : null,
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
       row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));

@@ -10,6 +10,8 @@ import { hasPerk } from '../ruleset/perks';
 import { bindTemplate, expandSteps, slotsRead } from './routines';
 import { SK, SENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { contestFeat } from '../engine/feats';
+import { tally } from '../engine/xp';
 
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
@@ -164,6 +166,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const sc = (state.scratch ??= {});
   const done = (sc.stealthContested as { turn: number; ids: string[] } | undefined)?.turn === state.turn ? (sc.stealthContested as { turn: number; ids: string[] }) : { turn: state.turn, ids: [] };
   sc.stealthContested = done;
+  let saw = 0, lost = 0; // a player's Vanish: those who saw them, and those it lost (N2)
   for (const a of allActors(state)) {
     const key = s.kind === 'player' ? a.id : `${s.id}>${a.id}`;
     if (a.id === s.id || a.bandId === s.bandId || (!a.mind && a.kind !== 'player') || !isActive(a) || done.ids.includes(key)) continue;
@@ -175,6 +178,9 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     const sense = seen.cue === 'sound' ? FN.hearing : FN.sight;
     const r = ruleset.contested(mine(skill, sense), theirs(a, sense), state, rng);
     done.ids.push(key);
+    if (sees) saw++;
+    contestFeat(state, r, a.kind === 'player' ? [sense] : undefined); // N4c
+    if (a.kind === 'player' && !sees && r.gap > 0) { tally(state, 'spotted'); tally(state, 'spotted', { by: 'function', of: sense }); } // N3
     markUse(state, s, skill, r); // ST8
     markUse(state, a, r.b.skill, r); // the watcher's sense learns too (only the player keeps marks)
     log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill, kind: event.kind, gap: r.gap });
@@ -185,14 +191,17 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
       if (hasPerk(a, PK.unblinking)) {
         const second = stealthSkill(s);
         const r2 = ruleset.contested(mine(second, sense), theirs(a, sense), state, rng);
+        contestFeat(state, r2, a.kind === 'player' ? [sense] : undefined);
         markUse(state, s, second, r2);
         markUse(state, a, r2.b.skill, r2);
         log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill: second, kind: event.kind, gap: r2.gap, perk: PK.unblinking });
         if (r2.gap >= 0) continue;
       }
       updateBeliefs(state, { kind: 'lost', observerId: a.id, aboutId: s.id, zone: event.fromZone });
+      lost++;
     } else if (r.gap === 0 || (event.kind === 'attack' && event.target === a.id)) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'suspicious', event });
   }
+  if (vanish && s.kind === 'player' && saw && lost === saw) tally(state, 'vanished'); // N2: everyone who saw you lost you
 }
 
 export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void {

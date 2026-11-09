@@ -184,9 +184,12 @@ export type RaceDef = {
  * and its Bane bonus is the lower level's bonus plus its own. */
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
 export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
-  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned' | 'spar_wins';
+  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
+  | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
+  | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
+  | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
-export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier';
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
 /** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
@@ -211,5 +214,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   restPct?: number; // + this % HP and part healing on each rest
   situation?: number; // + this on the owner's situation rolls
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
+  /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
+  levelUp?: Partial<Record<string, number>>;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };
