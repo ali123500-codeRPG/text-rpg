@@ -42,6 +42,8 @@ export type RollRequest = {
   rollKind?: import('./items').RollKind;
   /** skills that count at full value here instead of as substitutes (perks such as Threaten for Answers) */
   fullValue?: string[];
+  /** extra functions whose skills may stand in here (an attack mode's standInFns) */
+  standInFns?: string[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
