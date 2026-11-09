@@ -1,9 +1,11 @@
 // W6 unit tests: validator (every Validation bullet), grades table, apply, fallback, trim, director.
 // Other workstreams' functions are replaced with small local fakes.
+import { TP } from '../../src/library/templateIds';
 import type { Tier } from '../../src/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, GameState, StagePlan } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 vi.mock('../../src/minds', () => ({
   installRoutines: vi.fn((a: Actor, setId: string, slots: Record<string, string | string[]>, _s: string | undefined, turn: number) => {
@@ -68,7 +70,7 @@ describe('validateStagePlan', () => {
     p.cast[1].template = 'wyvern_rider';
     const e = validateStagePlan(s, p, ctx);
     expect(e.map((x) => x.code)).toEqual(expect.arrayContaining(['unknown_template', 'unknown_body_type']));
-    expect(e.find((x) => x.code === 'unknown_body_type')!.message).toContain('human, elf, slime, dragon');
+    expect(e.find((x) => x.code === 'unknown_body_type')!.message).toContain('(Human), RC2 (Elf), RC3 (Slime), RC4 (Dragon)');
     expect(e.every((x) => !x.routineOnly)).toBe(true);
   });
   it('caps on cast, zones and knows', () => {
@@ -118,7 +120,7 @@ describe('validateStagePlan', () => {
     p.hiddenTerms = ['nest', 'smugglers', 'tab']; // whole words: 'tab' does not match 'table' (V10)
     p.bands[0].name = 'the nest watch';
     p.cast[1].knows![0].text = 'Smugglers use the cellar.';
-    p.rewards.push({ item: { base: 'arming_sword', quality: 1, boosts: 'hitAdj', name: 'nest blade', look: 'plain' }, place: { groundIn: 'tav_cellar' } });
+    p.rewards.push({ item: { base: IT.arming_sword, quality: 1, boosts: 'hitAdj', name: 'nest blade', look: 'plain' }, place: { groundIn: 'tav_cellar' } });
     p.seeds.secrets.push({ id: 's1', holderId: 'barkeep', fact: 'x', leakTerms: ['kegs'], revealWhen: { type: 'event_in_zone', kind: 'search', zone: 'tav_cellar' } });
     const leaks = validateStagePlan(fresh(), p, ctx).filter((e) => e.code === 'public_leak').map((e) => e.message);
     expect(leaks.some((m) => m.includes('band village_watch name'))).toBe(true);
@@ -163,30 +165,30 @@ describe('validateStagePlan', () => {
     const p = villageStagePlan(); // moderate gain: quality 2 at most
     const n = p.rewards.length;
     p.rewards.push({ item: 'excalibur', place: { carriedBy: 'barkeep' } });
-    p.rewards.push({ item: { base: 'arming_sword', quality: 3, boosts: 'keen edge', name: 'a fine sword', look: 'bright' }, place: { carriedBy: 'guard_1' } });
-    p.rewards.push({ item: 'coin', place: { groundIn: 'woods' } });
+    p.rewards.push({ item: { base: IT.arming_sword, quality: 3, boosts: 'keen edge', name: 'a fine sword', look: 'bright' }, place: { carriedBy: 'guard_1' } });
+    p.rewards.push({ item: IT.coin, place: { groundIn: 'woods' } });
     const e = validateStagePlan(fresh(), p, ctx);
     expect(e.every((x) => x.repaired)).toBe(true);
     expect(e.map((x) => x.code)).toEqual(['reward_dropped', 'reward_quality', 'reward_boosts', 'reward_dropped']);
     const t = tidyRewards(fresh(), p).rewards;
     expect(t).toHaveLength(n + 1);
-    expect(t[n].item).toMatchObject({ base: 'arming_sword', quality: 2, boosts: 'hitAdj' });
+    expect(t[n].item).toMatchObject({ base: IT.arming_sword, quality: 2, boosts: 'hitAdj' });
     const q = villageStagePlan();
     q.rewards = []; // 2 + 2 + plain 1 = 5 Boon, the moderate budget
-    for (let i = 0; i < 3; i++) q.rewards.push({ item: { base: 'arming_sword', quality: 1, boosts: 'damageAdj', name: 'a sword', look: 'plain' }, place: { carriedBy: 'guard_1' } });
+    for (let i = 0; i < 3; i++) q.rewards.push({ item: { base: IT.arming_sword, quality: 1, boosts: 'damageAdj', name: 'a sword', look: 'plain' }, place: { carriedBy: 'guard_1' } });
     expect(codes(fresh(), q)).toEqual(['reward_plain']);
   });
   it('rewards fit the Boon budget of the gain, with no flat cap (loot V8)', () => {
     const q = villageStagePlan(); // moderate gain: 5 Boon
     q.rewards = [];
-    for (let i = 0; i < 6; i++) q.rewards.push({ item: 'arming_sword', place: { carriedBy: 'guard_1' } }); // 20 coin = 1 Boon each
-    expect(boon(fresh(), 'arming_sword')).toBe(1);
-    expect(boon(fresh(), { base: 'arming_sword', quality: 2, boosts: 'hitAdj', name: 'x', look: 'y' })).toBe(3);
-    expect(boon(fresh(), 'coin', 10)).toBe(0.5);
+    for (let i = 0; i < 6; i++) q.rewards.push({ item: IT.arming_sword, place: { carriedBy: 'guard_1' } }); // 20 coin = 1 Boon each
+    expect(boon(fresh(), IT.arming_sword)).toBe(1);
+    expect(boon(fresh(), { base: IT.arming_sword, quality: 2, boosts: 'hitAdj', name: 'x', look: 'y' })).toBe(3);
+    expect(boon(fresh(), IT.coin, 10)).toBe(0.5);
     const t = tidyRewards(fresh(), q);
     expect(t.rewards).toHaveLength(5);
     expect(t.notes.map((n) => n.code)).toEqual(['reward_dropped']);
-    q.rewards = [{ item: 'coin', qty: 200, place: { carriedBy: 'guard_1' } }, { item: 'coin', qty: 100, place: { carriedBy: 'guard_1' } }];
+    q.rewards = [{ item: IT.coin, qty: 200, place: { carriedBy: 'guard_1' } }, { item: IT.coin, qty: 100, place: { carriedBy: 'guard_1' } }];
     expect(tidyRewards(fresh(), q).rewards).toHaveLength(1); // 10 Boon is over 5, 5 fits
   });
   it('routine errors are routineOnly and name the cast entry', () => {
@@ -212,7 +214,7 @@ describe('validateStagePlan', () => {
   });
   it('player-band entries use the companion set and bind nothing', () => {
     const p = villageStagePlan();
-    p.cast.push({ template: 'guard', key: 'squire', label: 'a squire', name: 'Tam', appearance: 'young', band: 'player_band', routineSetId: 'gate_guard', slots: { post: 'gate_inner' }, awarenessOfPlayer: 'aware', motive: 'loyal' });
+    p.cast.push({ template: TP.guard, key: 'squire', label: 'a squire', name: 'Tam', appearance: 'young', band: 'player_band', routineSetId: 'gate_guard', slots: { post: 'gate_inner' }, awarenessOfPlayer: 'aware', motive: 'loyal' });
     expect(codes(fresh(), p)).toEqual(['companion_set', 'invalid_slot']);
     p.cast[5].routineSetId = 'companion';
     p.cast[5].slots = {};
@@ -247,7 +249,7 @@ describe('applyStagePlan', () => {
     expect(mags.knownOnSight).toBe(true);
     expect(mags.pronouns).toBe('she'); // run 14 Q3: pronouns are kept on the actor
     expect(mags.mind!.knows).toHaveLength(1);
-    expect(mags.core.inventory.find((i) => i.itemId === 'coin')!.qty).toBe(5);
+    expect(mags.core.inventory.find((i) => i.itemId === IT.coin)!.qty).toBe(5);
     expect(s.hidden.stage).toEqual({ eventSummary: villageStagePlan().event.summary, challenge: 'moderate', gain: 'moderate', hiddenTerms: ['nest'] });
     expect(s.hidden.castNotes!.guard_1.motive).toContain('harvest');
     expect(s.hidden.memory).toEqual({});
@@ -273,7 +275,7 @@ describe('applyStagePlan', () => {
     p.seeds.plans.push({ ownerId: 'guard_1', goal: 'catch the thief', steps: ['watch'], triggers: [], createdTurn: 99 });
     p.seeds.triggers.push({ id: 't1', ownerId: 'patron_1', when: { type: 'player_seen_in_zone', zone: 'tav_cellar' }, then: { type: 'call_help', target: 'barkeep', skill: null, intent: 'shout' }, once: true });
     p.seeds.secrets.push({ id: 's1', holderId: 'barkeep', fact: 'owes money', leakTerms: ['debt'], revealWhen: { type: 'check_passed', skill: SK.persuasion, minTier: 'success', againstActorId: 'barkeep' } });
-    p.rewards.push({ item: { base: 'arming_sword', quality: 2, boosts: 'hitAdj', name: 'Wim\'s old blade', look: 'a notched sword' }, place: { groundIn: 'tav_cellar' } });
+    p.rewards.push({ item: { base: IT.arming_sword, quality: 2, boosts: 'hitAdj', name: 'Wim\'s old blade', look: 'a notched sword' }, place: { groundIn: 'tav_cellar' } });
     const s = fresh();
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
     expect(s.hidden.plans.guard_1.createdTurn).toBe(0);
@@ -290,7 +292,7 @@ describe('applyStagePlan', () => {
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
       bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tactics: 'simple', lethal: undefined as never, relations: { player_band: 'hostile' } }],
       zones: [{ key: 'field_mid', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }],
-      cast: [{ template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
+      cast: [{ template: TP.slime, key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(s.stage.zoneIds).toContain('field_mid_2');
     expect(s.bands.find((b) => b.id === 'slimes_2')!.lethal).toBe(true);

@@ -4,6 +4,7 @@
 
 import { CONFIG } from '../config';
 import { CL } from '../library/classIds';
+import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scene/validate';
 import { GRADES, ORDER_TYPES } from '../types';
 import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, type Scale } from '../scales';
@@ -89,8 +90,8 @@ a reward's Boon is its catalog item's boon × qty, × ${CONFIG.BOON_QUALITY.slic
 at most ${CONFIG.SCENE_CAPS.minted} minted items (rewards whose item is an object) per scene. A minted item's quality is at most
 ${Object.entries(CONFIG.GAIN_MAX_QUALITY).map(([g, q]) => `${q} for ${g} gain`).join(', ')}; a minted weapon's boosts is "hitAdj" or "damageAdj".
 A reward that breaks these rules is not refused: code drops it or places it as its plain base item.
-A minted item with no close library match uses the nearest generic base: improvised_light, improvised_medium or
-improvised_heavy for an odd weapon, curio for a thing with no game effect.`;
+A minted item with no close library match uses the nearest generic base: ${IT.improvised_light}, ${IT.improvised_medium} or
+${IT.improvised_heavy} (an improvised light, medium or heavy weapon) for an odd weapon, ${IT.curio} (curio) for a thing with no game effect.`;
 
 const fixed = (instr: string, shape: string) => `${instr}\n\nSCHEMA:\n${shape}`;
 /** the whole fixed (leading) user turn per agent */

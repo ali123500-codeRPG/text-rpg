@@ -1,4 +1,5 @@
 // detectPlayer and resolveAmbush with local fakes for W3's updateBeliefs and W2's roll.
+import { IT } from '../../src/library/itemIds';
 import type { Tier } from '../../src/types';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { Actor, GameEvent, GameState, RollRequest } from '../../src/types';
@@ -19,7 +20,7 @@ vi.mock('../../src/ruleset', async (orig) => {
   return {
     ...real,
     usableModes: () => [],
-    defaultMode: () => ({ itemId: 'player_arming_sword_1', mode: { id: 'cut', tree: 'melee', class: 'medium', reach: 0, hands: 1 } }),
+    defaultMode: () => ({ itemId: `player_${IT.arming_sword}_1`, mode: { id: 'cut', tree: 'melee', class: 'medium', reach: 0, hands: 1 } }),
     modeSkill: () => SK.melee_medium,
     ruleset: { ...real.ruleset, roll: vi.fn((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, tier: tiers[req.actorId] ?? 'near_miss' })) },
   };

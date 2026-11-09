@@ -1,5 +1,6 @@
 // 125 All-50 parts (All-50 doc round 1): a tree's built parts are granted free when every skill of the
 // tree reaches 50 true skill, with the tree's mastery achievement; then the first six built parts.
+import { TR } from '../../src/library/treeIds';
 import { ACH } from '../../src/library/achievementIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place } from '../harness';
@@ -14,10 +15,11 @@ import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const set = (a: Actor, skills: string[], raw: number) => { for (const k of skills) a.core.skills[k] = { raw, state: 'normal' }; };
-const arm = (s: GameState, id: string, itemId = 'dagger') => {
+const arm = (s: GameState, id: string, itemId: string = IT.dagger) => {
   const a = id === 'player' ? s.player : s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
   a.core.inventory.push({ id: `w_${id}`, itemId, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
@@ -38,7 +40,7 @@ describe('125 All-50 parts', () => {
     const got = p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId);
     expect(got).toEqual([PK.opening_strike, PK.counter, PK.fighters_frame, PK.steady_guard]);
     const ach = p.progression!.achievements!.filter((a) => a.key === ACH.mastery_50);
-    expect(ach.map((a) => a.id)).toEqual([`${ACH.mastery_50}:melee`]);
+    expect(ach.map((a) => a.id)).toEqual([`${ACH.mastery_50}:${TR.melee}`]);
     expect(achievementName(s, ach[0])).toBe('Adept of Combat – Arms');
   });
   it("Hunter's Eye: +10 true skill in every skill with the sight function", () => {
@@ -71,7 +73,7 @@ describe('125 All-50 parts', () => {
       const s = makeVillage();
       place(s, 'player', 'field_edge');
       zoneById(s, 'field_mid')!.cover = 'heavy';
-      arm(s, 'player', 'shortbow');
+      arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.past_the_cover);
       return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).gapShifts;
     };
@@ -268,7 +270,7 @@ describe('125 All-50 moves', () => {
       const s = makeVillage();
       place(s, 'player', 'field_mid');
       place(s, 'slime_2', 'field_mid');
-      arm(s, 'player', 'shortbow');
+      arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.volley);
       const hit = (r: AttackResult) => ({ ...r, outcome: 'full_hit' as const, location: 'general', damage: 0.01 });
       return { s, calls: fight(s, 'slime_1', 'w_player', hit).filter((c) => c.by === 'player') };
@@ -295,7 +297,7 @@ describe('125 All-50 moves', () => {
   it('Unerring: the first ranged attack in an engagement, at a foe that hasn\'t acted, gives its defense roll tier shift −1', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
-    arm(s, 'player', 'shortbow');
+    arm(s, 'player', IT.shortbow);
     give(s.player, PK.unerring);
     const shifts: unknown[] = [];
     const real = ruleset.attack;

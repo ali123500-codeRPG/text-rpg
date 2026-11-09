@@ -1,6 +1,7 @@
 // Library viewer: every library table drawn from the same modules the game runs, so it shows the
 // library exactly as code sees it. Bundled into dist/library.html by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
+import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
 import type { ClassDef, AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
@@ -99,7 +100,7 @@ function effectText(e: ItemEffect, def?: ItemDef): string {
   return `${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what} · ${ACTIVE[e.active]}${e.scope === 'withItem' ? ' · with this item only' : ''}${e.kit ? ' · kit' : ''}`;
 }
 function gearCard(i: ItemDef, id = i.id): HTMLElement {
-  const humanoid = lib.bodyTypes.humanoid;
+  const humanoid = lib.bodyTypes[BT.humanoid];
   const req = requirement(i);
   const flags = (['concealed', 'stackable', 'consumable', 'visible'] as const).filter((f) => i[f]).map((f) => chip(f, '--c3'));
   const covers = new Set(i.armor?.covers ?? []);

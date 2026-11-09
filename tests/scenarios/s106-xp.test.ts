@@ -1,5 +1,7 @@
 // 106 XP and levels (X1–X10): a defeat pays once, a first defeat earns an achievement,
 // fled or untouched foes pay nothing, and a level-up goes to the chosen class.
+import { TP } from '../../src/library/templateIds';
+import { BT, RC } from '../../src/library/raceIds';
 import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
@@ -41,7 +43,7 @@ describe('106 XP and levels', () => {
     }
     const ids = s.player.progression!.achievements!.map((a) => a.id);
     // BR8: a slime counts for its body type (amorphous) and its race (Slime)
-    expect(ids).toEqual([`${ACH.first_defeat_body_type}:amorphous`, `${ACH.first_defeat_race}:slime`, `${ACH.defeats_10_body_type}:amorphous`, `${ACH.defeats_10_race}:slime`, ACH.defeats_10]);
+    expect(ids).toEqual([`${ACH.first_defeat_body_type}:${BT.amorphous}`, `${ACH.first_defeat_race}:${RC.slime}`, `${ACH.defeats_10_body_type}:${BT.amorphous}`, `${ACH.defeats_10_race}:${RC.slime}`, ACH.defeats_10]);
     expect(s.player.progression!.achievements!.map((a) => achievementName(s, a)).filter((n) => !n.includes('kind'))).toEqual(['First Amorphous Felled', 'Amorphousbane', 'Blooded Fighter']);
     getLibrary().achievements![ACH.defeats_10_body_type].name = 'Hunter of the {body_type}'; // renaming edits only the table
     expect(achievementName(s, s.player.progression!.achievements![2])).toBe('Hunter of the Amorphous');
@@ -61,13 +63,13 @@ describe('106 XP and levels', () => {
   });
   it('a foe with a race also earns the first race defeat', () => {
     const s = makeVillage();
-    expect(s.actors.filter((x) => x.core.templateId === 'guard').every((x) => x.core.raceId === 'human')).toBe(true);
+    expect(s.actors.filter((x) => x.core.templateId === TP.guard).every((x) => x.core.raceId === RC.human)).toBe(true);
     const a = actor(s, 'slime_1');
-    a.core.raceId = 'elf';
+    a.core.raceId = RC.elf;
     a.mind!.moraleState = 'surrendered';
     payDefeats(s, []);
     const got = s.player.progression!.achievements!;
-    expect(got.map((x) => [x.id, achievementName(s, x)])).toEqual([[`${ACH.first_defeat_body_type}:amorphous`, 'First Amorphous Felled'], [`${ACH.first_defeat_race}:elf`, 'First of Elfkind Felled']]);
+    expect(got.map((x) => [x.id, achievementName(s, x)])).toEqual([[`${ACH.first_defeat_body_type}:${BT.amorphous}`, 'First Amorphous Felled'], [`${ACH.first_defeat_race}:${RC.elf}`, 'First of Elfkind Felled']]);
   });
   it('a slime the player hit and downed pays its kill XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();
@@ -79,8 +81,8 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     payDefeats(s, []);
     const pr = s.player.progression!;
-    expect(pr.achievements!.map((a) => a.id)).toEqual([`${ACH.first_defeat_body_type}:amorphous`, `${ACH.first_defeat_race}:slime`]);
-    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:amorphous`, 'level', `achievement:${ACH.first_defeat_race}:slime`]); // 100 XP: level 2
+    expect(pr.achievements!.map((a) => a.id)).toEqual([`${ACH.first_defeat_body_type}:${BT.amorphous}`, `${ACH.first_defeat_race}:${RC.slime}`]);
+    expect(pr.xpLog!.map((x) => x.source)).toEqual(['defeat:slime_1', `achievement:${ACH.first_defeat_body_type}:${BT.amorphous}`, 'level', `achievement:${ACH.first_defeat_race}:${RC.slime}`]); // 100 XP: level 2
     expect(pr.xpLog![0].amount).toBe(xp);
     expect(pr.xpLog![1].amount).toBe(100);
     const other = actor(s, 'slime_2');

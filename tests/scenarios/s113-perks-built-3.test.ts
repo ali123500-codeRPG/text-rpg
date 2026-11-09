@@ -10,6 +10,7 @@ import type { Actor, GameState } from '../../src/types';
 import { intent } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -20,7 +21,7 @@ describe('113 coded perks, batch 3', () => {
     const wim = npc(s, 'patron_1');
     for (const i of wim.core.inventory) delete i.equippedIn;
     wim.core.standingDefense = 'block';
-    const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false };
+    const req = { attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false };
     const plain = ruleset.attack(req, s, forcedRng([60, 40, 50]));
     expect(plain.defenseType).toBe('dodge'); // no shield or weapon: falls back to dodge
     give(wim, PK.open_hand_guard);
@@ -36,7 +37,7 @@ describe('113 coded perks, batch 3', () => {
     expect(wim.core.condition.parts[og.location!]).toBeLessThan(100);
     expect(wim.core.condition.hpLostPct).toBeGreaterThan(hpBefore);
     // holding a weapon or shield turns it off (the normal block takes over)
-    wim.core.inventory.push({ id: 'wim_club', itemId: 'arming_sword', equippedIn: ['hand:right_arm'] });
+    wim.core.inventory.push({ id: 'wim_club', itemId: IT.arming_sword, equippedIn: ['hand:right_arm'] });
     expect(ruleset.attack(req, s, forcedRng([60, 40, 50])).locationHow).not.toBe('open_hand');
     expect(CONFIG.OPEN_HAND_ARM_SHARE).toBe(0.5);
   });

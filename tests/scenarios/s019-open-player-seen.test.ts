@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import type { GameEvent } from '../../src/types';
 import { makeVillage, actor, place, createRng } from '../harness';
@@ -6,7 +7,7 @@ import { detectPlayer } from '../../src/minds';
 
 it('19 Open player is seen: full → aware, partial → suspicious, with no check or roll', () => {
   const s = makeVillage({ playerZone: 'street_square' });
-  s.actors.push(spawnNpc(null, 'guard', { id: 'guard_2', zone: 'street_door', placeId: 'street', bandId: 'village_watch' }));
+  s.actors.push(spawnNpc(null, TP.guard, { id: 'guard_2', zone: 'street_door', placeId: 'street', bandId: 'village_watch' }));
   place(s, 'guard_1', 'gate_inner');
   const event: GameEvent = {
     id: 'ev_1', turn: s.turn, actorId: 'player', kind: 'interact', zone: 'street_square', effects: [], noise: 'quiet', visibility: 'normal',
