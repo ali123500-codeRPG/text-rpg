@@ -1,4 +1,4 @@
-// 117 Closing the game during the opening (Ali, 08/11/2026): turn 0 saves nothing until the opening scene is planned
+// 117 Closing the game during the opening: turn 0 saves nothing until the opening scene is planned
 // and narrated, so a game closed then came back to "Create your swordsman". The build is kept until turn 0 is saved;
 // reopening starts that opening again.
 import { describe, expect, it } from 'vitest';

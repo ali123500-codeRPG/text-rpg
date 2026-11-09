@@ -62,7 +62,7 @@ describe('unique generation', () => {
     expect(b.core.generation).toBe('unique');
     expect(b.core.skills).toEqual(rollUniqueSkills(bandit, createRng(5)));
     expect(b.progression!.unspentPerkPoints).toBe(Math.floor(bandit.level / 2));
-    // Q3 (Ali, 08/11/2026): copies get level points too, with a fixed per-template seed, so every guard is alike
+    // Q3: copies get level points too, with a fixed per-template seed, so every guard is alike
     const g1 = spawnNpc(null, 'guard', opts), g2 = spawnNpc(null, 'guard', { ...opts, id: 'b2' });
     expect(g1.core.skills).toEqual(g2.core.skills);
     const guard = npcTemplate(null, 'guard');
@@ -83,7 +83,7 @@ describe('unique generation', () => {
   });
 });
 
-describe('race innate perks and quirks (Ali, 08/11/2026)', () => {
+describe('race innate perks and quirks', () => {
   it('every listed innate perk exists and is not a quirk; every innate quirk is one', () => {
     const lib = getLibrary();
     for (const r of Object.values(lib.races ?? {})) {

@@ -1,5 +1,5 @@
 // Skill display names: the one names table (coding rule). Code and saves use the ids; text reads names from here.
-// Sight → Eyesight, Hearing → Earshot (Ali, 08/11/2026).
+// Sight → Eyesight, Hearing → Earshot.
 export const SKILL_NAMES: Record<string, string> = {
   melee_light: 'Light weapons', melee_medium: 'Medium weapons', melee_heavy: 'Heavy weapons',
   ranged_light: 'Light ranged', ranged_medium: 'Medium ranged', ranged_heavy: 'Heavy ranged',

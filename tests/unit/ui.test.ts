@@ -20,7 +20,7 @@ describe('ui helpers', () => {
   });
 });
 
-describe('play screen extras (Voyage UI check, 07/11/2026)', async () => {
+describe('play screen extras (Voyage UI check)', async () => {
   const { makeVillage } = await import('../harness');
   const { buildPlayerView } = await import('../../src/views');
   const { ideas } = await import('../../src/ui/play');

@@ -3,7 +3,7 @@
 @font-face { font-family: "HISAB Round"; font-weight: 400 600; font-display: block; src: url(./assets/HISABRound-Regular.woff2) format("woff2"); }
 @font-face { font-family: "HISAB Round"; font-weight: 700; font-display: block; src: url(./assets/HISABRound-Bold.woff2) format("woff2"); }
 @font-face { font-family: "HISAB Round"; font-weight: 800 900; font-display: block; src: url(./assets/HISABRound-ExtraBold.woff2) format("woff2"); }
-/* Story text only (Ali, 07/11/2026): Literata, SIL OFL 1.1 (assets/Literata-OFL.txt), latin subset */
+/* Story text only: Literata, SIL OFL 1.1 (assets/Literata-OFL.txt), latin subset */
 @font-face { font-family: "Literata"; font-weight: 400; font-style: normal; font-display: block; src: url(./assets/Literata-Regular.woff2) format("woff2"); }
 @font-face { font-family: "Literata"; font-weight: 400; font-style: italic; font-display: block; src: url(./assets/Literata-Italic.woff2) format("woff2"); }
 @font-face { font-family: "Literata"; font-weight: 700; font-style: normal; font-display: block; src: url(./assets/Literata-Bold.woff2) format("woff2"); }
@@ -328,7 +328,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-mini .r .cs-bar { height: 6px; }
 .cs-mini .r b { text-align: right; }
 
-/* body figure (Ali, 07/11/2026) */
+/* body figure */
 .bf { display: grid; justify-items: center; gap: 4px; }
 .bf-svg svg { width: 140px; height: auto; display: block; cursor: pointer; }
 .cs-card .bf-svg svg { width: 120px; }
@@ -421,7 +421,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
   .pk-card { position: static; width: auto; margin-top: var(--space-3); }
 }
 
-/* Healing (Ali, 07/11/2026): H1 d card, H2 a healed part glow, H3 b quick slot. Level colours go by position on the
+/* Healing: H1 d card, H2 a healed part glow, H3 b quick slot. Level colours go by position on the
    health track (lv0 Unhurt … lv7 Incapacitated); part states ps0 Healthy … ps3 Destroyed. */
 .hcard { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 10px 12px; border: 1px solid color-mix(in oklch, var(--ok) 55%, transparent); border-radius: var(--r-lg);
   background: linear-gradient(90deg, color-mix(in oklch, var(--ok) 16%, transparent), color-mix(in oklch, var(--ok) 4%, transparent)); color: #c9f3d6; font-weight: 600; }
@@ -444,7 +444,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .hquiet .x { color: var(--ok); font-size: 15px; }
 .hquiet .src { color: inherit; }
 .hquiet .ar, .hquiet .pt { color: var(--faint); }
-/* Time of day (Ali, 07/11/2026): T1 coloured icon by the title, T2 divider when time passes; colours keyed by TIME_OF_DAY key */
+/* Time of day: T1 coloured icon by the title, T2 divider when time passes; colours keyed by TIME_OF_DAY key */
 .tod-dawn { --tod: #f0a8a0; } .tod-day { --tod: #f2d36b; } .tod-dusk { --tod: #e59a6b; } .tod-night { --tod: #9db4ff; }
 .tod-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tod { display: inline-flex; vertical-align: middle; margin-left: 12px; position: relative; top: -2px; color: var(--tod); cursor: default; }

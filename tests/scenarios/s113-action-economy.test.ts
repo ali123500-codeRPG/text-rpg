@@ -1,4 +1,4 @@
-// 113 Action economy (Ali, 07/11/2026, AE1–AE12): a turn is one move plus one main action. A ranged attack and a
+// 113 Action economy (AE1–AE12): a turn is one move plus one main action. A ranged attack and a
 // move don't share a turn; a player with no action dashes a second link unless a leg is Crippled; "after" acts first.
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';

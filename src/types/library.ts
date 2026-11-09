@@ -5,13 +5,13 @@ import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
 import type { PartStateKey, SkillTierKey } from '../scales';
 
-/** F1–F8 (Ali, 08/11/2026): a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
+/** F1–F8: a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
 export type SkillFunction = 'arms' | 'unarmed' | 'ranged' | 'defense' | 'armor' | 'health' | 'sight' | 'hearing' | 'stealth' | 'influence';
 export type SkillGroup = 'melee' | 'ranged' | 'defense' | 'health' | 'notice' | 'stealth' | 'influence';
-/** XP rating category of a skill (Ali, 07/11/2026, X18–X23). Set per skill: one tree may mix categories. */
+/** XP rating category of a skill (X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
-/** Situation tags (Ali, 08/11/2026, ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
+/** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike' | 'speech';
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
@@ -28,7 +28,7 @@ export type SkillDef = {
   tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
   access?: TreeAccess; // a skill's own rule on top of its tree's (SR1: persuasion and barter need a speaking race)
 };
-/** A source that opens or blocks a skill tree (Ali, 08/11/2026, TA1–TA11). 'class': the actor has that class, Current or
+/** A source that opens or blocks a skill tree (TA1–TA11). 'class': the actor has that class, Current or
  * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
 /** raceTag: the actor's race carries that tag (RaceDef.tags), e.g. 'speaks' */
 export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk'; id: string; level?: number };
@@ -40,7 +40,7 @@ export type ClassDef = { id: string; name: string; floors: Record<string, number
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
 export type NaturalArmor = { covers: string[]; reduction: number; multiplier: number; pools?: Record<string, number> };
-/** BR1 (Ali, 08/11/2026): a body type is the shape only: parts, general area, silhouette, and the attacks the shape
+/** BR1: a body type is the shape only: parts, general area, silhouette, and the attacks the shape
  * always has (BR3). Toughness, natural armor and a being's own attacks are on its race. */
 export type BodyType = {
   id: string;
@@ -73,11 +73,11 @@ export type Library = {
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
 };
 
-/** Z1–Z3 (Ali, 08/11/2026): a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
+/** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
  * indoor or outdoor and gives the default cover and light, which the Weaver may change. */
 export type ZoneKind = { id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light };
 
-/** Perk page S1–S9 (Ali, 07/11/2026): a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
+/** Perk page S1–S9: a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
  * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */
 export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 export type PerkDef = {
@@ -86,7 +86,7 @@ export type PerkDef = {
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
   trueSkillTo?: Record<string, number>; functionBoost?: number; numbers?: BoostNumbers;
-  /** F4 (Ali, 08/11/2026): raises (or, negative, lowers) the owner's stand-in share for skills of function `fn` (every
+  /** F4: raises (or, negative, lowers) the owner's stand-in share for skills of function `fn` (every
    * function if left out), on top of CONFIG.SUBSTITUTE_EFFICIENCY or the skill's own table; the share stays within 0–1 */
   standIn?: { add: number; fn?: SkillFunction };
   /** player-facing write-up (the Story view); must say the same thing as `rules` */
@@ -95,7 +95,7 @@ export type PerkDef = {
   rules?: PerkRules;
   /** false: written down but not coded yet, so it can't be taken */
   built?: boolean;
-  /** a quirk: a perk that is negative in nature (Ali, 08/11/2026) */
+  /** a quirk: a perk that is negative in nature */
   quirk?: boolean;
   /** an All-XXX part (src/library/allPerks.ts): granted when every skill of the tree reaches `step` true skill */
   allStep?: { treeId: string; step: 50 | 100 | 150 };
@@ -108,36 +108,36 @@ export type PerkRules = { kind: string; trigger: string; conditions: string[]; e
 /** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules };
 
-/** X6/X11 (Ali, 07/11/2026): a library achievement, each with its own id and name. 'defeats' is earned at `count`
+/** X6/X11: a library achievement, each with its own id and name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
  * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree> (awarded when mastery perks exist). */
-/** How long an action takes on the game clock (T1, Ali 07/11/2026). `orders` lists the order types the row covers;
+/** How long an action takes on the game clock (T1). `orders` lists the order types the row covers;
  * the row with no `orders` named 'action' is the default; 'fight_turn' is every turn of a fight; 'sleep' is one sleep. */
 export type DurationDef = { id: string; name: string; minutes: number; orders?: string[] };
 
-/** A healing source (Ali, 07/11/2026, H1/H12): what it restores, the worst part state it can heal (`reach`, a
+/** A healing source (H1/H12): what it restores, the worst part state it can heal (`reach`, a
  * PART_STATES key), whether it works in a fight, and what it needs (a place kind; an item names its source with
  * ItemDef.heal). `hourly` makes it passive: per game hour it restores skill × pctPerPoint % (H12). */
 export type HealingDef = {
   id: string; name: string; hpPct: number; partPct: number; reach: PartStateKey; inFight: boolean; placeKinds?: string[];
-  /** heals a Dead actor (Ali, 08/11/2026: no for every row for now; a lever for resurrection later) */
+  /** heals a Dead actor (no for every row for now; a lever for resurrection later) */
   revivesDead: boolean;
   hourly?: { skill: string; pctPerPoint: number };
 };
 
-/** innatePerks / innateQuirks (Ali, 08/11/2026): perk ids every member of the race is born with (OwnedPerk source 'race').
+/** innatePerks / innateQuirks: perk ids every member of the race is born with (OwnedPerk source 'race').
  * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
-/** BR1–BR6 (Ali, 08/11/2026): a race is what the being is. It names exactly one body type (BR5), its HP multiplier
+/** BR1–BR6: a race is what the being is. It names exactly one body type (BR5), its HP multiplier
  * (BR2) and natural armor (BR6), and adds its own natural attacks and fallback skill to the shape's (BR3). */
 export type RaceDef = {
   id: string; name: string; bodyTypeId: string; hpMultiplier: number;
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
   innatePerks?: string[]; innateQuirks?: string[];
-  tags?: string[]; // 'speaks' (Ali, 08/11/2026): the race can talk, which opens persuasion and barter
+  tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
 };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].
- * after: the key of the lower level this one builds on (Ali, 08/11/2026). Earning it switches the lower level off,
+ * after: the key of the lower level this one builds on. Earning it switches the lower level off,
  * and its Bane bonus is the lower level's bonus plus its own. */
 export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'body_type' | 'race'; after?: string };

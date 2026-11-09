@@ -1,4 +1,4 @@
-// 122 NPC memory and agreements (Ali, 08/11/2026, PM1–PM8): a memory list of up to MEMORY_ENTRIES the agent edits
+// 122 NPC memory and agreements (PM1–PM8): a memory list of up to MEMORY_ENTRIES the agent edits
 // without resending its plan; deals between the player and an NPC or between NPCs, recorded only when the other party
 // heard them said; a companion in a deal gets a Planner call; events that fall out of the recent window become
 // code-made earlier lines.

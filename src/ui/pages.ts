@@ -113,7 +113,7 @@ export function inventoryPage(api: GameApi) {
       if (heal) {
         const r = heal.row;
         rows.push({ k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}${r.inFight ? ', works in a fight' : ', not in a fight'}` });
-        // H3 b (Ali, 07/11/2026): the player picks which healing item the quick slot beside Aim shows
+        // H3 b: the player picks which healing item the quick slot beside Aim shows
         const btn = h('button', { type: 'button', class: 'hs-btn-text', style: 'min-height:0;padding:0' });
         const draw = () => {
           const on = quickHeal(s, s.player)?.itemId === heal.itemId;
@@ -124,7 +124,7 @@ export function inventoryPage(api: GameApi) {
         draw();
         rows.push({ k: 'Quick slot', v: btn });
       }
-      // EQ7 (Ali, 09/11/2026): the requirement, red while the player is short, grey once met
+      // EQ7: the requirement, red while the player is short, grey once met
       const need = requirement(d);
       if (need) {
         const short = shortBy(s.player, d), steps = Math.ceil(short / CONFIG.EQUIP_SHORT_STEP);
@@ -182,7 +182,7 @@ export function questsPage(api: GameApi) {
   });
 }
 
-// ---------- Journal (Voyage U26, U28; Ali 07/11/2026) ----------
+// ---------- Journal (Voyage U26, U28) ----------
 // Built only from what the character knows: people in view or whose name was learned, places the character was in or
 // heard facts about, and the turns played since this page was opened. Never the hidden store.
 

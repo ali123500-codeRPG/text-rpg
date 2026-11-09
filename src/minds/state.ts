@@ -133,7 +133,7 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
   return out;
 }
 
-/** ST2 (Ali, 08/11/2026): Combat Stealth in an engagement, or for a shot, which starts one (ST5); Sneaking otherwise */
+/** ST2: Combat Stealth in an engagement, or for a shot, which starts one (ST5); Sneaking otherwise */
 export const stealthSkill = (s: Actor, event?: GameEvent): string => (s.engagement || event?.kind === 'attack' ? 'combat_stealth' : 'sneaking');
 
 /** ST3–ST8, ST11–ST19, NS1–NS5: while an actor is stealthy, every observer outside its band who could perceive the event and
@@ -152,7 +152,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   const zone = zoneById(state, s.zone);
   const skill = vanish ? 'vanishing' : stealthSkill(s, event);
   // ST21/ST22: light and cover reach the rolls by situation tag; a Hide adds the hide tag and ignores leg wounds (ST10)
-  // P14 (Ali, 08/11/2026): darkness never hurts hearing, so it gives no help against an observer who only hears
+  // P14: darkness never hurts hearing, so it gives no help against an observer who only hears
   // All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against an observer who only hears
   const hushed = (sk: string, sense: string) => (sk === 'sneaking' && sense === 'hearing' && hasPerk(s, 'hushed_steps') ? { nearMissUp: 'Hushed Steps' } : {});
   const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === 'sight' ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}), ...hushed(sk, sense) });
@@ -206,7 +206,7 @@ export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void
   }
 }
 
-/** the attack skill for the weapon used (ambush skill; OQ-4 settled 07/11/2026: every attack on an unaware actor rolls). */
+/** the attack skill for the weapon used (ambush skill; OQ-4 settled: every attack on an unaware actor rolls). */
 function ambushSkill(state: GameState, attacker: Actor, itemId: string | undefined): string {
   const used = itemId ? usableModes(state, attacker).find((m) => m.itemId === itemId) : undefined;
   const m = used ?? defaultMode(state, attacker, 0);

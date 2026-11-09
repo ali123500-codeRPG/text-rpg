@@ -125,7 +125,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     const t = aT && threat(sp);
     const mine = t ? aT : a;
     if (t && spokespeople.every(threat)) shown = aT;
-    // All-50 Easy Speaker (Ali, 09/11/2026, option a): a listener who owns it answers one outcome better
+    // All-50 Easy Speaker (option a): a listener who owns it answers one outcome better
     const listener = state.actors.find((x) => x.id === sp);
     const b = ruleset.roll({ ...req(sp), tierShifts: hasPerk(listener, 'easy_speaker') ? [{ source: 'Easy Speaker', value: 1 }] : [] }, state, rng);
     const gap = tierLevel(b) - tierLevel(mine);

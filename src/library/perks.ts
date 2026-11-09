@@ -1,5 +1,5 @@
-// Every chosen and banked perk (Ali, 07/11/2026). One source for the game and for docs/perks.md (npm run perks-doc).
-// Two views that must match (Ali, 07/11/2026): `story` is the write-up a player reads when choosing; `rules` is exactly
+// Every chosen and banked perk. One source for the game and for docs/perks.md (npm run perks-doc).
+// Two views that must match: `story` is the write-up a player reads when choosing; `rules` is exactly
 // what code applies and is the basis for building it. The Perks screen switches between them. None is built yet, so
 // none can be taken; set built: true when a perk's rules are coded.
 import type { PerkWriteup } from '../types';

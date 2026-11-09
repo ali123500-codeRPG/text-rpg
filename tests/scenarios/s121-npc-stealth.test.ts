@@ -1,4 +1,4 @@
-// 121 NPC stealth (Ali, 08/11/2026, NS1–NS10): NPCs sneak, hide and vanish by the player's rules. The player is an observer
+// 121 NPC stealth (NS1–NS10): NPCs sneak, hide and vanish by the player's rules. The player is an observer
 // like any other and keeps a belief about each stealthy NPC; a stealthy NPC can ambush the player; a companion following
 // the player copies the player's posture; the village thief prowls stealthily.
 import { afterEach, describe, expect, it, vi } from 'vitest';

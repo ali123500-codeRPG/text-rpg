@@ -1,4 +1,4 @@
-// Skill tiers (Ali, 08/11/2026): a skill's tier sets its final efficiency multiplier, in rolls and in the rating.
+// Skill tiers: a skill's tier sets its final efficiency multiplier, in rolls and in the rating.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { effectiveSkill } from '../../src/ruleset';

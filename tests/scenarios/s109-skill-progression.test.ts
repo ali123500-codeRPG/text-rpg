@@ -1,4 +1,4 @@
-// 109 Skill progression (Ali, 07/11/2026, SP1–SP11): a use marks a skill when the opposition is within MARK_WINDOW of
+// 109 Skill progression (SP1–SP11): a use marks a skill when the opposition is within MARK_WINDOW of
 // raw or true skill; a big hit marks endurance; marked skills make the Part 1 §6 roll and the marks clear.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';

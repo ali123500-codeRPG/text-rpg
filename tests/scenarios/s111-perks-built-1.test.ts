@@ -1,4 +1,4 @@
-// 111 Coded 20-milestone perks, batch 1 (Ali, 07/11/2026; rules in src/library/perks.ts): Hidden Strike, Shield
+// 111 Coded 20-milestone perks, batch 1 (rules in src/library/perks.ts): Hidden Strike, Shield
 // Breaker, Point Blank, Iron Frame, Read Wounds, Keen Ear. Each is checked with and without the perk.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng, fit } from '../harness';

@@ -1,4 +1,4 @@
-// 106 XP and levels (Ali, 07/11/2026, X1–X10): a defeat pays once, a first defeat earns an achievement,
+// 106 XP and levels (X1–X10): a defeat pays once, a first defeat earns an achievement,
 // fled or untouched foes pay nothing, and a level-up goes to the chosen class.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
@@ -16,7 +16,7 @@ describe('106 XP and levels', () => {
   it('rating: categories ranked 1, ½, ¼, weighted; weak foes taper (X18–X23)', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
-    // one offensive skill, plus tremor (50, tier 0 so read as 25) at the notice weight (Taste removed, Ali 08/11/2026)
+    // one offensive skill, plus tremor (50, tier 0 so read as 25) at the notice weight (Taste removed)
     expect(rating(slime)).toBeCloseTo(effort(30) + CONFIG.XP_CATEGORY_WEIGHT.notice * effort(25), 5);
     const g = actor(s, 'guard_1');
     expect(rating(g)).toBeGreaterThan(rating(slime));
@@ -37,7 +37,7 @@ describe('106 XP and levels', () => {
       payDefeats(s, []);
     }
     const ids = s.player.progression!.achievements!.map((a) => a.id);
-    // BR8 (Ali, 08/11/2026): a slime counts for its body type (amorphous) and its race (Slime)
+    // BR8: a slime counts for its body type (amorphous) and its race (Slime)
     expect(ids).toEqual(['first_defeat:amorphous', 'first_defeat_race:slime', 'defeats_10:amorphous', 'defeats_10_race:slime', 'defeats_10']);
     expect(s.player.progression!.achievements!.map((a) => achievementName(s, a)).filter((n) => !n.includes('kind'))).toEqual(['First Amorphous Felled', 'Amorphousbane', 'Blooded Fighter']);
     getLibrary().achievements!.defeats_10_body_type.name = 'Hunter of the {body_type}'; // renaming edits only the table

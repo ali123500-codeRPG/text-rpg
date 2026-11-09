@@ -1,4 +1,4 @@
-// 111 Game clock (Ali, 07/11/2026, T1–T11) and natural recovery (H12–H15). Code owns one clock in game minutes;
+// 111 Game clock (T1–T11) and natural recovery (H12–H15). Code owns one clock in game minutes;
 // each action's time is a durations row; the time of day lights outdoor zones and picks routine sets; waiting moves
 // the clock and breaks the scene; natural recovery heals endurance × 0.01 % an hour, never Crippled or worse.
 import { describe, expect, it } from 'vitest';
@@ -38,7 +38,7 @@ describe('111 game clock', () => {
     expect(timeView(s)).toEqual({ day: 2, timeOfDay: 'Dawn' });
     expect(s.stage.breakCause).toBe('time_skip');
     expect(mechanicsLines(s, ev)).toContain('Time passes: 11 h (Day 2 · Dawn)');
-    // Q2 (Ali, 08/11/2026): waiting until the time of day it already is moves nothing
+    // Q2: waiting until the time of day it already is moves nothing
     const at = now(s);
     const again = turn(s, act('wait', 'dawn'));
     expect(now(s) - at).toBeLessThan(60);
