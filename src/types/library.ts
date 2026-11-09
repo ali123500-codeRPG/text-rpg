@@ -23,6 +23,7 @@ export type SkillDef = {
   id: string;
   treeId: string;
   functions: SkillFunction[];
+  groups?: SkillGroup[]; // groups the skill joins directly, without that group's function (Dodge: Speed)
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   xpCategory: XpCategory;
