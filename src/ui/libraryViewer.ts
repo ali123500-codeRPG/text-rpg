@@ -595,9 +595,18 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? label(k), table: k }))];
 
+// the rail in three groups; a table not named here (a new one) lands in World
+const RAIL_GROUPS: [string, string[] | null][] = [
+  ['Library', ['gear', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'status']],
+  ['World', null],
+];
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
-  SECTIONS.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); }));
+  RAIL_GROUPS.flatMap(([g, keys]) => {
+    const list = keys ? keys.flatMap((k) => SECTIONS.filter((s) => s.key === k)) : SECTIONS.filter((s) => !RAIL_GROUPS.some(([, k]) => k?.includes(s.key)));
+    return list.length ? [h('div', { class: 'lv-railgroup', 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
+  }));
 const picks = new Map<string, 'shown' | 'out'>();
 const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
@@ -631,7 +640,18 @@ const main = h('main', {}, h('div', { class: 'head' }, h('div', { class: 'lv-hea
   h('div', { class: 'lv-meta' }, results)), search), bar, body);
 // sub-tabs live in a rail on the right, mirroring the table rail on the left; hidden when the tab has none
 const subRail = h('nav', { class: 'hs-rail lv-subrail', 'aria-label': 'Sub-tabs' });
-document.body.append(rail, main, subRail);
+body.id = 'lv-content';
+body.tabIndex = -1;
+const skip = h('button', { type: 'button', class: 'lv-skip', onclick: () => body.focus() }, 'Skip to the entries');
+document.body.append(skip, rail, main, subRail);
+// "/" jumps to the search, as in most tools
+addEventListener('keydown', (e) => {
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target as HTMLElement;
+  if (t.closest('input, textarea, [contenteditable]')) return;
+  e.preventDefault();
+  search.focus();
+});
 
 const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card:not(.lv-fixed)'))].filter((c) => !c.closest('.lv-pane[hidden]'));
 const facetsOf = (c: HTMLElement) => (c.dataset.f ? c.dataset.f.split('\n') : []);
@@ -770,7 +790,8 @@ TONES = (() => {
 // closed, so the page underneath stays where it is. Pinning keeps a pop-up open (up to MAX_PINS); the next entry
 // opens beside it, and Compare lays the pinned entries out side by side in a dock under the content.
 const MAX_PINS = 4;
-type Pop = { el: HTMLElement; ref: string; title: string; card: HTMLElement; pinned: boolean; pin: HTMLButtonElement };
+type Pop = { el: HTMLElement; ref: string; title: string; card: HTMLElement; pinned: boolean; pin: HTMLButtonElement; opener?: HTMLElement };
+let popSeq = 0;
 const pops: Pop[] = []; // oldest first; at most one is not pinned
 const pinned = () => pops.filter((p) => p.pinned);
 const compareBtn = h('button', { type: 'button', class: 'hs-btn-text lv-compare', hidden: true, onclick: () => { dock.hidden = false; pinsChanged(); dock.scrollIntoView({ block: 'nearest' }); } }) as HTMLButtonElement;
@@ -784,6 +805,7 @@ search.replaceWith(headActs);
 headActs.append(compareBtn, search);
 function closePop(p: Pop): void {
   pops.splice(pops.indexOf(p), 1);
+  if (p.el.contains(document.activeElement) && p.opener?.isConnected) p.opener.focus(); // back to the link that opened it
   p.el.remove();
   pinsChanged();
 }
@@ -804,19 +826,20 @@ function pinsChanged(): void {
   if (!dock.hidden) drawDock();
 }
 function newPop(): Pop {
-  const title = h('span', { class: 'hs-label' });
+  const tid = `lv-pop-t${++popSeq}`;
+  const title = h('span', { class: 'hs-label', id: tid });
   const open = h('a', { class: 'lv-link', href: '#' }, 'Open in its table');
   const pin = h('button', { type: 'button', class: 'hs-btn-text lv-pin', 'aria-pressed': 'false' }) as HTMLButtonElement;
   const x = h('button', { type: 'button', class: 'hs-icon-btn lv-pop-x', 'aria-label': 'Close', title: 'Close (Esc)' }, '✕');
   const head = h('div', { class: 'lv-pop-head' }, title, open, pin, x);
-  const el = h('aside', { class: 'lv-pop', 'aria-label': 'Details' }, head, h('div', { class: 'lv-pop-body' }));
+  const el = h('aside', { class: 'lv-pop', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': tid, tabindex: '-1' }, head, h('div', { class: 'lv-pop-body' }));
   const p: Pop = { el, ref: '', title: '', card: el, pinned: false, pin };
   pin.onclick = () => { p.pinned = !p.pinned; if (!p.pinned) pops.filter((o) => o !== p && !o.pinned).forEach(closePop); pinsChanged(); };
   x.addEventListener('click', () => closePop(p));
   open.addEventListener('click', () => closePop(p));
   // a new pop-up opens beside the ones already open
   const i = pops.length;
-  el.style.right = `calc(var(--space-8) + ${i * 32}px)`;
+  el.style.right = `calc(var(--space-8) + ${(document.body.classList.contains('lv-has-sub') ? subRail.offsetWidth : 0) + i * 32}px)`; // inside the main column
   el.style.top = `${96 + i * 40}px`;
   // drag by the head
   head.addEventListener('pointerdown', (e) => {
@@ -902,7 +925,11 @@ document.addEventListener('click', (e) => {
   const a = (e.target as Element).closest<HTMLAnchorElement>('main a[href^="#"], .lv-pop-body a[href^="#"]');
   if (!a) return;
   const [key, ...rest] = decodeURIComponent(a.hash.slice(1)).split('/');
-  if (rest.length && showPop(key, rest.join('/'))) e.preventDefault();
+  if (rest.length && showPop(key, rest.join('/'))) {
+    e.preventDefault();
+    const p = pops.find((o) => o.ref === `${key}/${rest.join('/')}`);
+    if (p) { p.opener = a; if (e.detail === 0) p.el.focus(); } // opened from the keyboard: the pop-up takes focus
+  }
 });
 
 // Folding: clicking a section header, or the title of a foldable card (Skills trees), folds what is under it
@@ -931,9 +958,12 @@ body.addEventListener('keydown', (e) => {
 });
 
 let shown = '';
+let notice = ''; // one-line message for the next draw (an unknown deep link)
 function route(): void {
   const [key, ...rest] = decodeURIComponent(location.hash.slice(1)).split('/');
-  const sec = SECTIONS.find((s) => s.key === key) ?? SECTIONS[0];
+  const found = SECTIONS.find((s) => s.key === key);
+  const sec = found ?? SECTIONS[0];
+  if (!found && key) { history.replaceState(null, '', `#${sec.key}`); notice = `There is no table called “${key}”, so this is ${sec.title}.`; shown = ''; }
   if (sec.key !== shown) {
     shown = sec.key;
     titleEl.replaceChildren(sec.title, h('span', { class: 'lv-size' }, ` · ${sizeOf(sec)}`));
@@ -942,7 +972,8 @@ function route(): void {
     pane = paneOf[sec.key] ?? '';
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = facetsFor(sec);
-    body.replaceChildren(...viewOf(sec));
+    body.replaceChildren(...(notice ? [h('p', { class: 'lv-notice', role: 'status' }, notice)] : []), ...viewOf(sec));
+    notice = '';
     const tabs = body.querySelector('.lv-tabs');
     subRail.replaceChildren(...(tabs ? [tabs] : []));
     document.body.classList.toggle('lv-has-sub', !!tabs);

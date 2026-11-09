@@ -152,3 +152,10 @@ main .lv-raw { display: none; }
 /* ids show in the pop-up only */
 main .lv-card .lv-id { display: none; }
 main .lv-card > header > h3 { margin-right: auto; }
+/* rail groups */
+.lv-railgroup { flex: none; padding: var(--space-3) 0 var(--space-1); text-align: center; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-top: 1px solid var(--border); }
+.hs-brand + .lv-railgroup { border-top: 0; }
+.lv-notice { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--warn); background: var(--warn-soft); color: var(--text); }
+.lv-skip { position: fixed; left: var(--space-2); top: var(--space-2); z-index: 30; transform: translateY(-200%); background: var(--surface); color: var(--text); border: 1px solid var(--accent); border-radius: var(--r-md); padding: var(--space-2) var(--space-3); font: inherit; }
+.lv-skip:focus { transform: none; }
+#lv-content:focus { outline: none; }
