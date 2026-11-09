@@ -31,6 +31,8 @@ const DEFAULTS = {
   ROLL_NEEDED: 63.5,
   /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … */
   STACK_RATIO: 0.5,
+  /** the quality lever: a minted weapon's hit bonus = QUALITY_HIT_FACTOR × its need × its quality (1–4) */
+  QUALITY_HIT_FACTOR: 0.04,
   /** the balance lever for all equipment: a standard-kit piece's bonus = EQUIP_FACTOR × its need (EQUIP_NEED) */
   EQUIP_FACTOR: 0.4,
   POTENTIAL: 300,
@@ -124,7 +126,7 @@ const DEFAULTS = {
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
-    hitAdj: [2, 4, 6, 8], damageAdj: [1, 2, 3, 4], reduction: [1, 1, 2, 2], tool: [5, 10, 15, 20],
+    damageAdj: [1, 2, 3, 4], reduction: [1, 1, 2, 2], tool: [5, 10, 15, 20],
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10, // placeholder (loot L3)
