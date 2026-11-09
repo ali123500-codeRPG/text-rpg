@@ -595,8 +595,9 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? label(k), table: k }))];
 
+const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
-  SECTIONS.map((s) => h('a', { href: `#${s.key}`, 'data-sec': s.key }, s.title, h('span', { class: 'lv-n' }, String(s.count ?? Object.keys(lib[s.table] as object).length)))));
+  SECTIONS.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); }));
 const picks = new Map<string, 'shown' | 'out'>();
 const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
@@ -673,7 +674,7 @@ function drawBar(): void {
     return popover(g, label, !!(sh || out), [h('div', { class: 'lv-fvals' }, sortVals(vals).map(([f, n]) => {
       const st = picks.get(f) ?? 'off';
       const v = f.split('\t')[1];
-      return h('button', { type: 'button', class: `lv-fb${n ? '' : ' lv-zero'}`, 'data-st': st, 'aria-pressed': st === 'shown' ? 'true' : st === 'out' ? 'mixed' : 'false',
+      return h('button', { type: 'button', class: `lv-fb${n ? '' : ' lv-zero'}`, 'data-st': st, 'aria-pressed': String(st !== 'off'), 'aria-label': `${v}, ${n} ${n === 1 ? 'entry' : 'entries'}${st === 'off' ? '' : st === 'shown' ? ', shown' : ', left out'}`,
         style: g === colourBy ? `--tone: var(${toneFor(g, v) ?? '--c3'})` : undefined,
         title: st === 'off' ? 'Click for Shown (several Shown = either)' : st === 'shown' ? 'Click for Left out' : 'Click to clear',
         onclick: () => { const to = next[st]; if (to === 'off') picks.delete(f); else picks.set(f, to); filter(); } },
@@ -700,6 +701,9 @@ function paint(): void {
     const f = facetsOf(c).find((x) => x.split('\t')[0] === colourBy);
     c.classList.toggle('lv-toned', !!f);
     if (f) c.style.setProperty('--tone', `var(${toneFor(colourBy, f.split('\t')[1]) ?? '--c3'})`);
+    // a chip that only repeats the section heading or the colour-by value says nothing new
+    const same = [c.closest('.lv-group')?.querySelector(':scope > h2')?.textContent ?? '', f?.split('\t')[1] ?? ''].map((x) => x.trim().toLowerCase()).filter(Boolean);
+    c.querySelectorAll<HTMLElement>(':scope > header > .hs-tg').forEach((t) => { t.hidden = same.includes((t.textContent ?? '').trim().toLowerCase()); });
   }
 }
 /** does a card pass the search and the filters (leaving out one group's own picks, for that group's counts) */
@@ -736,7 +740,7 @@ function filter(): void {
   empty.hidden = !(filtering && all.length && !n);
   if (!empty.hidden) {
     const what = `${q ? `matches “${search.value.trim()}”` : 'is left'}${picks.size ? ` with ${pickWords()}` : ''}`;
-    empty.replaceChildren(h('p', {}, `Nothing in ${titleEl.textContent} ${what}.`),
+    empty.replaceChildren(h('p', {}, `Nothing in ${SECTIONS.find((x) => x.key === shown)?.title ?? ''} ${what}.`),
       h('p', { class: 'lv-empty-acts' }, q ? h('button', { type: 'button', class: 'hs-btn-main', onclick: clearSearch }, 'Clear the search') : null,
         picks.size ? h('button', { type: 'button', class: q ? 'hs-btn-text' : 'hs-btn-main', onclick: clearFilters }, 'Clear the filters') : null));
   }
@@ -932,8 +936,9 @@ function route(): void {
   const sec = SECTIONS.find((s) => s.key === key) ?? SECTIONS[0];
   if (sec.key !== shown) {
     shown = sec.key;
-    titleEl.textContent = sec.title;
+    titleEl.replaceChildren(sec.title, h('span', { class: 'lv-size' }, ` · ${sizeOf(sec)}`));
     picks.clear();
+    search.value = ''; // a new table starts unfiltered
     pane = paneOf[sec.key] ?? '';
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = facetsFor(sec);
