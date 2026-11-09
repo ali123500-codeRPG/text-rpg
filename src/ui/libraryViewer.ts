@@ -262,7 +262,10 @@ function perks(): HTMLElement[] {
   const allRows = Object.values(lib.trees).filter((t) => allParts.some((d) => d.allStep!.treeId === t.id))
     .map((t): [string, (c: string) => PerkDef[]] => [t.name, (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
   const classLevels = [...new Set(classes.flatMap((c) => Object.keys(c.levelPerks ?? {}).map(Number)))].sort((x, y) => x - y).map(String);
-  const classRows = classes.map((c): [string, (col: string) => PerkDef[]] => [`${c.name} · ${CLASS_TIERS.name(c.tier)}`, (col) => (c.levelPerks?.[+col] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
+  // capstones (ClassDef.capstones) get their own column: picked at the level cap, each with its own access rule
+  const classCols = [...classLevels.map((l) => `Level ${l}`), ...(classes.some((c) => c.capstones?.length) ? ['Capstones'] : [])];
+  const classRows = classes.map((c): [string, (col: string) => PerkDef[]] => [`${c.name} · ${CLASS_TIERS.name(c.tier)}`,
+    (col) => (col === 'Capstones' ? (c.capstones ?? []).map((x) => x.perk) : c.levelPerks?.[+col.replace('Level ', '')] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
   return [
     h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a red edge is a quirk.`),
     h('p', { class: 'hs-note lv-chips' }, Object.entries(EFFECT_TONE).map(([e, t]) => chip(e, t))),
@@ -279,8 +282,8 @@ function perks(): HTMLElement[] {
         cardsOf('In the library, not built', all.filter((d) => !d.built), 'None.'),
         ...banked(loose)] },
       { key: 'class', title: 'Class perks', n: classPerks.length, content: [
-        h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts).'),
-        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classLevels.map((l) => `Level ${l}`), classRows.map(([n, at]) => [n, (c: string) => at(c.replace('Level ', ''))]))),
+        h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts). Capstones are picked at the level cap; the Classes tab shows what each one needs.'),
+        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classCols, classRows)),
         cardsOf('Class perks', classPerks, 'No class grants a perk yet.')] },
       { key: 'other', title: 'Other', n: other.length, content: [
         cardsOf('Built, with no milestone, All-XX step or class', other, 'None right now: every built perk is a milestone, All-XX or class perk.')] },
