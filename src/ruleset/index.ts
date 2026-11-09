@@ -190,7 +190,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
 
   const base: Omit<AttackResult, 'outcome' | 'deciding'> = {
-    attack: atk, defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
+    attack: atk, ...(req.context?.defenderUnaware ? { unaware: true as const } : {}), defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
     multiplier: 0, damage: 0, attackerId: A.id, targetId: D.id, weaponId: req.weaponId, modeId: mode.id,
   };
   if (!tierAtLeast(atk, 'near_miss')) return { ...base, outcome: 'missed', deciding: { attack: atkDeciding, defense: [], gap: [] } };
