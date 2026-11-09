@@ -191,11 +191,11 @@ function perks(): HTMLElement[] {
     h('p', { class: 'hs-note lv-chips' }, Object.entries(EFFECT_TONE).map(([e, t]) => chip(e, t))),
     ...panes([
       { key: 'milestone', title: 'Milestone perks (20, 40, 60 …)', n: ladder.length, content: [
-        grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))])),
+        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By skill and milestone'), grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))]))),
         cardsOf('Built', ladder.filter((d) => d.built), 'None built yet.')] },
       { key: 'all', title: 'All-XX perks', n: allParts.length, content: [
         h('p', { class: 'hs-note' }, 'Granted when every skill of a tree reaches the step (allStep in src/library/allPerks.ts).'),
-        grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))])),
+        h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By tree and step'), grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))]))),
         cardsOf('Built', allParts.filter((d) => d.built), 'None built yet.')] },
       { key: 'unused', title: 'Not in use', n: unused.length, content: [
         h('p', { class: 'hs-note' }, 'Written down but the game can\'t give them yet: not built (built: false), or not in the library at all.'),
@@ -508,6 +508,21 @@ document.addEventListener('click', (e) => {
 });
 popOpen.addEventListener('click', () => { pop.hidden = true; });
 
+// Folding: clicking a section header (or Enter/Space on it) folds what is under it
+const HEAD = '.lv-group > h2.hs-section';
+function fold(head: Element, open?: boolean): void {
+  const folded = head.parentElement!.classList.toggle('lv-folded', open === undefined ? undefined : !open);
+  head.setAttribute('aria-expanded', String(!folded));
+}
+function foldable(): void {
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', 'true'); h2.title = 'Click to fold or unfold'; });
+}
+body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
+body.addEventListener('keydown', (e) => {
+  const h2 = (e.target as Element).closest(HEAD);
+  if (h2 && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); fold(h2); }
+});
+
 let shown = '';
 function route(): void {
   const [key, ...rest] = decodeURIComponent(location.hash.slice(1)).split('/');
@@ -520,6 +535,7 @@ function route(): void {
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
     body.replaceChildren(...viewOf(sec));
+    foldable();
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
     drawBar();
     paint();
@@ -530,6 +546,8 @@ function route(): void {
     const el = document.getElementById(`${sec.key}/${rest.join('/')}`);
     const holder = el?.closest<HTMLElement>('.lv-pane[hidden]');
     if (holder) showPane(holder.dataset.pane!);
+    const shut = el?.closest('.lv-folded')?.querySelector(':scope > h2.hs-section');
+    if (shut) fold(shut, true);
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
     el?.scrollIntoView({ block: 'center' });
