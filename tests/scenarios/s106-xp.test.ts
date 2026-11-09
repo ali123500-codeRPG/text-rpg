@@ -47,9 +47,9 @@ describe('106 XP and levels', () => {
     expect(achievementName(s, s.player.progression!.achievements![2])).toBe('Hunter of the Amorphous');
     getLibrary().achievements![ACH.defeats_10_body_type].name = '{body_type}bane';
   });
-  it('every achievement row is keyed by its own fixed numeric ID', () => {
+  it('every achievement row is keyed by its own fixed AC-prefixed ID', () => {
     const lib = getLibrary().achievements!;
-    expect(Object.entries(lib).every(([k, d]) => k === d.id && /^\d+$/.test(k))).toBe(true);
+    expect(Object.entries(lib).every(([k, d]) => k === d.id && /^AC\d+$/.test(k))).toBe(true);
     expect(new Set(Object.values(ACH)).size).toBe(Object.values(ACH).length);
     expect(Object.keys(lib).sort()).toEqual([...Object.values(ACH)].sort());
   });

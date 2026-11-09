@@ -56,7 +56,7 @@ function val(v: unknown, depth = 0): Node | string {
   if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(k, val(x, depth + 1))));
   return String(v);
 }
-/** skill IDs are numbers: show a skill field, or a table keyed by skill, by the skill's name */
+/** skill IDs are codes: show a skill field, or a table keyed by skill, by the skill's name */
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
@@ -327,7 +327,7 @@ function bodyTypes(): HTMLElement[] {
 
 // ---------- Achievements ----------
 function achievements(): HTMLElement[] {
-  // numeric keys list in number order, so show each rule's rows by count, rules in the order they first appear
+  // show each rule's rows by count, rules in the order they first appear
   const rows = Object.entries(lib.achievements ?? {});
   const first = (r: string) => rows.findIndex(([, d]) => d.rule === r);
   const all = rows.sort(([, a], [, b]) => first(a.rule) - first(b.rule) || (a.count ?? 0) - (b.count ?? 0));

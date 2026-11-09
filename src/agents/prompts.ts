@@ -3,6 +3,7 @@
 // written from the spec's output notation, and appended to the fixed part (still fixed, never per turn).
 
 import { CONFIG } from '../config';
+import { CL } from '../library/classIds';
 import { gradesFitText } from '../scene/validate';
 import { GRADES, ORDER_TYPES } from '../types';
 import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, type Scale } from '../scales';
@@ -79,7 +80,7 @@ In a dark zone people are only half seen. A zone's light is its own light (heart
 WEAVER_VIEW.time is the day and time of day. If it is null the story is starting: set "timeOfDay" to when it opens (${words(TIME_OF_DAY)}). Otherwise leave "timeOfDay" out or give the current one.
 Pick routine sets whose time tags fit the time of day.
 A healer's house or infirmary is a place of kind "clinic": resting there heals fully, crippled limbs included, once the patient has bought clinic care from its healer. Settlements may have one.
-Sellers (a shopkeeper, a barkeep, a healer) are cast from a template whose classId is the Trader class ("6") and given wares: goods from catalogs.items with how many are in stock, and services from catalogs.services. Code sets every price; never write one. Only Trader-class cast may have wares, at most ${CONFIG.WARES_CAP} lines.
+Sellers (a shopkeeper, a barkeep, a healer) are cast from a template whose classId is the Trader class ("${CL.trader}") and given wares: goods from catalogs.items with how many are in stock, and services from catalogs.services. Code sets every price; never write one. Only Trader-class cast may have wares, at most ${CONFIG.WARES_CAP} lines.
 Slots bind zones only, never frontiers; every zone an actor's slots bind must be reachable from its first bound zone by links.
 A player-band cast entry uses routine set "companion" and binds no slots.
 Limits: at most ${Object.entries(CONFIG.PLAN_CAPS).filter(([k]) => k !== 'knows').map(([k, n]) => `${n} ${k}`).join(', ')}; at most ${CONFIG.PLAN_CAPS.knows} knows per actor;
