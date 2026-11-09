@@ -42,6 +42,9 @@ export type RollRequest = {
   rollKind?: import('./items').RollKind;
   /** skills that count at full value here instead of as substitutes (perks such as Threaten for Answers) */
   fullValue?: string[];
+  /** a function roll (Ali, 09/11/2026): every skill with this function counts at full value and the best one rolls,
+   * e.g. 'sight' = Eyesight or Tremor, 'hearing' = Earshot or Tremor. `skill` is then only the default. */
+  fn?: string;
   /** extra functions whose skills may stand in here (an attack mode's standInFns) */
   standInFns?: string[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
