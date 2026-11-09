@@ -30,7 +30,7 @@ export type ItemDef = {
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level; the skill it asks for comes from the item (src/ruleset/requirements.ts)
   base?: { itemId: LibraryRef; quality: 1 | 2 | 3 | 4; boosts: string };
-  tags?: string[]; // 'kit' marks a standard-kit piece (one shared +25 per roll)
+  tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
 };
 
 export type RollKind = 'hit' | 'dodge' | 'block' | 'perception' | 'stealth' | 'situation';
@@ -42,7 +42,7 @@ export type ItemEffect = {
   value: number;
   active: 'worn' | 'held' | 'inUse' | 'carried';
   scope: 'withItem' | 'any';
-  kit?: true; // standard kit: all kit effects share one KIT_BONUS per roll
+  kit?: true; // standard kit: worth EQUIP_FACTOR × the item's need; kit effects share one bonus per roll
 };
 
 export type AttackMode = {

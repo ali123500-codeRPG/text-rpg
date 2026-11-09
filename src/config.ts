@@ -31,7 +31,8 @@ const DEFAULTS = {
   ROLL_NEEDED: 63.5,
   /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … */
   STACK_RATIO: 0.5,
-  KIT_BONUS: 25,
+  /** the balance lever for all equipment: a standard-kit piece's bonus = EQUIP_FACTOR × its need (EQUIP_NEED) */
+  EQUIP_FACTOR: 0.4,
   POTENTIAL: 300,
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
