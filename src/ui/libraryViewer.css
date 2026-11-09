@@ -8,7 +8,7 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-group { display: grid; gap: var(--space-3); }
 .lv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: var(--space-4); align-items: start; }
 .lv-grid.wide { grid-template-columns: repeat(auto-fill, minmax(640px, 1fr)); }
-.lv-card { background: color-mix(in srgb, var(--surface) 88%, transparent); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--space-3) var(--space-4); display: grid; gap: var(--space-2); min-width: 0; scroll-margin: var(--space-8); }
+.lv-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--space-3) var(--space-4); display: grid; gap: var(--space-2); min-width: 0; scroll-margin: var(--space-8); }
 .lv-card.lv-hit { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 .lv-card header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .lv-card h3 { margin: 0; font-size: 16px; font-weight: 800; }
@@ -76,7 +76,7 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-pop-body { overflow: auto; padding: var(--space-3); }
 .lv-pop-body .lv-card { border: 0; background: none; padding: 0; }
 /* colour coding: a card takes its colour group's tone; the group's buttons carry the same swatch, so they are the key */
-.lv-card.lv-toned { border-color: color-mix(in srgb, var(--tone) 65%, var(--border)); background: color-mix(in srgb, var(--tone) 12%, color-mix(in srgb, var(--surface) 88%, transparent)); }
+.lv-card.lv-toned { box-shadow: inset 3px 0 0 var(--tone); background: color-mix(in srgb, var(--tone) 8%, var(--surface)); }
 .lv-card.lv-toned h3 { color: color-mix(in srgb, var(--tone) 35%, var(--text)); }
 .lv-pop-body .lv-card.lv-toned { background: none; }
 .lv-sw { width: 10px; height: 10px; border-radius: var(--r-sm); background: var(--tone); }
@@ -143,3 +143,19 @@ body.lv-has-sub .lv-subrail { display: flex; }
 .lv-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4); margin-top: var(--space-1); }
 .lv-meta .lv-results { margin: 0; }
 .lv-caret { margin-left: var(--space-1); color: var(--muted); }
+/* section headings: sentence case, no star, a step up from card titles' labels */
+.lv-group > h2.hs-section { text-transform: none; letter-spacing: 0; font-size: 20px; font-weight: 700; color: var(--text); }
+.lv-group > h2.hs-section::before { content: none; }
+.lv-size { color: var(--faint); font-weight: 400; }
+/* raw code shows in the pop-up only, so the page has fewer stops */
+main .lv-raw { display: none; }
+/* ids show in the pop-up only */
+main .lv-card .lv-id { display: none; }
+main .lv-card > header > h3 { margin-right: auto; }
+/* rail groups */
+.lv-railgroup { flex: none; padding: var(--space-3) 0 var(--space-1); text-align: center; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border-top: 1px solid var(--border); }
+.hs-brand + .lv-railgroup { border-top: 0; }
+.lv-notice { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--warn); background: var(--warn-soft); color: var(--text); }
+.lv-skip { position: fixed; left: var(--space-2); top: var(--space-2); z-index: 30; transform: translateY(-200%); background: var(--surface); color: var(--text); border: 1px solid var(--accent); border-radius: var(--r-md); padding: var(--space-2) var(--space-3); font: inherit; }
+.lv-skip:focus { transform: none; }
+#lv-content:focus { outline: none; }
