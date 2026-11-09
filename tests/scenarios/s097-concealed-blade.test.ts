@@ -4,10 +4,11 @@ import type { GameEvent } from '../../src/types';
 import { makeVillage, actor, createRng } from '../harness';
 import { computePerception, updateBeliefs } from '../../src/perception';
 import { buildActorView } from '../../src/views';
+import { IT } from '../../src/library/itemIds';
 
 it('97 Concealed blade', () => {
   const s = makeVillage();
-  actor(s, 'patron_1').core.inventory.push({ id: 'blade_1', itemId: 'hidden_blade', equippedIn: ['hand:right_arm'] });
+  actor(s, 'patron_1').core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['hand:right_arm'] });
   const gearSeen = () => buildActorView(s, 'trader').seen.find((x) => x.id === 'patron_1')?.gear.map((g) => g.id) ?? [];
   // trader behind the bar sees the common room through a sight link
   expect(buildActorView(s, 'trader').seen.some((x) => x.id === 'patron_1')).toBe(true);

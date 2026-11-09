@@ -8,6 +8,7 @@ import { CL } from '../../src/library/classIds';
 import { ACH } from '../../src/library/achievementIds';
 import { SV } from '../../src/library/serviceIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { ALL_BUNDLES } from '../../src/library/allPerks';
 import { MARK_SOURCE } from '../../src/engine/perkMarks';
@@ -17,7 +18,7 @@ const lib = () => getLibrary() as unknown as Record<string, Record<string, { id?
 
 /** a table: its library key, its prefix and its constants */
 const TABLES: [string, string, Record<string, string>][] = [
-  ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['perks', 'PK', PK],
+  ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['perks', 'PK', PK], ['items', 'IT', IT],
 ];
 
 describe('typed IDs', () => {
@@ -52,5 +53,10 @@ describe('typed IDs', () => {
     for (const id of BUILT_PERKS) known(id, 'BUILT_PERKS');
     for (const id of Object.keys(MARK_SOURCE)) known(id, 'MARK_SOURCE');
     for (const id of Object.keys(PERK_MOVES)) known(id, 'PERK_MOVES');
+  });
+
+  it('every item reference names a library item', () => {
+    const L = getLibrary();
+    for (const t of Object.values(L.templates)) for (const id of t.loadout ?? []) expect(L.items[id], `template ${t.id}: ${id}`).toBeDefined();
   });
 });

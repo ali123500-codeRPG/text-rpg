@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng, fit } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
+import { IT } from '../../src/library/itemIds';
 
 describe('95 Stacked armor', () => {
   it('worn armor, then natural armor, floor 0, not rounded', () => {
@@ -11,10 +12,10 @@ describe('95 Stacked armor', () => {
     getLibrary().races!.scaled_man = scaled;
     const t = s.actors.find((a) => a.id === 'patron_1')!;
     t.core.raceId = 'scaled_man';
-    t.core.inventory.push({ id: 'gam', itemId: 'gambeson', equippedIn: ['armor'] });
-    fit(t, 'gambeson');
+    t.core.inventory.push({ id: 'gam', itemId: IT.gambeson, equippedIn: ['armor'] });
+    fit(t, IT.gambeson);
     // player 50 → Success; patron dodge 0 − 5 (gambeson): 30 − 2.5 − 63.5 → Failure; gap −2; location 80 → general
-    const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false };
+    const req = { attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false };
     const r = ruleset.attack(req, s, forcedRng([50, 30, 80]));
     expect(r.location).toBe('general');
     expect(r.damage).toBeCloseTo(((25 - 2) * 0.8 - 2) * 0.5, 9); // 8.2, fractions allowed (OQ-25)

@@ -13,6 +13,7 @@ import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { beliefStatus } from '../../src/perception';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const NOISE = ['silent', 'faint', 'hushed', 'quiet', 'normal', 'loud', 'deafening'];
@@ -24,8 +25,8 @@ const wear = (a: Actor, itemId: string) => {
 const arm = (s: GameState, id: string) => {
   const a = s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
-  a.core.inventory.push({ id: `w_${id}`, itemId: 'dagger', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
-  fit(a, 'dagger');
+  a.core.inventory.push({ id: `w_${id}`, itemId: IT.dagger, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  fit(a, IT.dagger);
 };
 
 function patrolNoise(armor: string, perk: boolean) {
@@ -49,9 +50,9 @@ function attackAtGap(s: GameState, gap: number) {
 
 describe('127 20 perks for the new skills', () => {
   it('Quiet Mail: worn armor adds one noise step less, never below none', () => {
-    expect(patrolNoise('mail_hauberk', true)).toBe(patrolNoise('gambeson', false));
-    expect(patrolNoise('plate_harness', true)).toBe(patrolNoise('mail_hauberk', false));
-    expect(patrolNoise('gambeson', true)).toBe(patrolNoise('gambeson', false));
+    expect(patrolNoise(IT.mail_hauberk, true)).toBe(patrolNoise(IT.gambeson, false));
+    expect(patrolNoise(IT.plate_harness, true)).toBe(patrolNoise(IT.mail_hauberk, false));
+    expect(patrolNoise(IT.gambeson, true)).toBe(patrolNoise(IT.gambeson, false));
   });
 
   it('Soft Tread: a Stealthy move is one noise step quieter; an open move is not', () => {
@@ -97,13 +98,13 @@ describe('127 20 perks for the new skills', () => {
       if (perk) give(s.player, PK.slip_the_blow);
       return s;
     };
-    const d = attackAtGap(setup('gambeson', false), 0);
+    const d = attackAtGap(setup(IT.gambeson, false), 0);
     const hit = (s: GameState) => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([60, d, 50, 50, 50]));
-    const r = hit(setup('gambeson', true));
+    const r = hit(setup(IT.gambeson, true));
     expect(r.gapShifts).toEqual([{ source: 'Slip the Blow', value: 1 }]);
     expect(r.outcome).toBe('grazed');
     expect(r.multiplier).toBeCloseTo(0.8);
-    expect(hit(setup('mail_hauberk', true)).gapShifts).toEqual([]);
+    expect(hit(setup(IT.mail_hauberk, true)).gapShifts).toEqual([]);
   });
 
   it('Turn Aside: a heavy or crushing hit on a part heavy armor covers lands as a full hit', () => {
@@ -112,7 +113,7 @@ describe('127 20 perks for the new skills', () => {
       place(s, 'patron_1', s.player.zone);
       arm(s, 'patron_1');
       s.player.core.standingDefense = 'dodge';
-      wear(s.player, 'plate_harness');
+      wear(s.player, IT.plate_harness);
       s.player.core.skills[SK.dodge] = { raw: 0, state: 'normal' };
       if (perk) give(s.player, PK.turn_aside);
       return s;
@@ -131,8 +132,8 @@ describe('127 20 perks for the new skills', () => {
     const run = (perk: boolean) => {
       const s = makeVillage();
       place(s, 'patron_1', s.player.zone);
-      s.player.core.inventory.push({ id: 'w_player', itemId: 'dagger', equippedIn: ['hand:right_arm'] });
-      fit(s.player, 'dagger');
+      s.player.core.inventory.push({ id: 'w_player', itemId: IT.dagger, equippedIn: ['hand:right_arm'] });
+      fit(s.player, IT.dagger);
       if (perk) give(s.player, PK.in_and_out);
       s.player.posture = 'stealthy';
       play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
@@ -157,9 +158,9 @@ describe('127 20 perks for the new skills', () => {
       const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false, context: { defensesThisTurn: 1 } }, s, forcedRng([60, 50, 50, 50, 50]));
       return r.defense!.modifiers.some((m) => m.source === 'outnumbered');
     };
-    expect(mods('arming_sword', false)).toBe(true);
-    expect(mods('arming_sword', true)).toBe(false);
-    expect(mods('dagger', true)).toBe(true);
-    expect(mods('round_shield', true)).toBe(true);
+    expect(mods(IT.arming_sword, false)).toBe(true);
+    expect(mods(IT.arming_sword, true)).toBe(false);
+    expect(mods(IT.dagger, true)).toBe(true);
+    expect(mods(IT.round_shield, true)).toBe(true);
   });
 });

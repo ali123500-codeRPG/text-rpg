@@ -11,6 +11,7 @@ import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -35,7 +36,7 @@ describe('114 Hold', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'axe', itemId: 'greataxe', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'axe', itemId: IT.greataxe, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     expect(usableModes(s, s.player).some((m) => m.itemId === 'axe')).toBe(true);
     s.player.heldBy = wim.id;
     wim.zone = s.player.zone;

@@ -9,6 +9,7 @@ import { getLibrary } from '../../src/library';
 import type { Actor, ContestResult, GameState, Intent, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const wield = (s: GameState, itemId: string) => {
@@ -57,13 +58,13 @@ describe('118 40/80/120 perks', () => {
     expect(trueSkill(p, SK.eyesight)).toBe(before[SK.eyesight]);
   });
   it('Keen Edge: +10 to hit with light weapons only; Steady Draw: +5 to hit and ×1.1 damage with medium ranged', () => {
-    expect(hit('dagger', 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
-    expect(hit('greataxe', 'patron_1', PK.keen_edge).perkMods).toEqual([]);
-    expect(hit('dagger', 'patron_1').perkMods).toEqual([]);
-    expect(hit('longbow', 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
-    const plain = hit('longbow', 'patron_1', undefined, undefined, undefined, 85).r.damage; // both rolls in the same tier
+    expect(hit(IT.dagger, 'patron_1', PK.keen_edge).perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
+    expect(hit(IT.greataxe, 'patron_1', PK.keen_edge).perkMods).toEqual([]);
+    expect(hit(IT.dagger, 'patron_1').perkMods).toEqual([]);
+    expect(hit(IT.longbow, 'patron_1', PK.steady_draw).perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
+    const plain = hit(IT.longbow, 'patron_1', undefined, undefined, undefined, 85).r.damage; // both rolls in the same tier
     expect(plain).toBeGreaterThan(0);
-    expect(hit('longbow', 'patron_1', PK.steady_draw, undefined, undefined, 85).r.damage).toBeCloseTo(plain * 1.1, 5);
+    expect(hit(IT.longbow, 'patron_1', PK.steady_draw, undefined, undefined, 85).r.damage).toBeCloseTo(plain * 1.1, 5);
   });
   it('Iron Grip: +10 on every grapple roll, attack or not', () => {
     const s = makeVillage();
@@ -74,17 +75,17 @@ describe('118 40/80/120 perks', () => {
     expect(d.modifiers.some((m) => m.type === 'roll_perk')).toBe(false);
   });
   it('Heavy Hand: heavy melee damage ×1.2', () => {
-    const plain = hit('greataxe', 'patron_1', undefined, undefined, undefined, 85).r, boosted = hit('greataxe', 'patron_1', PK.heavy_hand, undefined, undefined, 85).r;
+    const plain = hit(IT.greataxe, 'patron_1', undefined, undefined, undefined, 85).r, boosted = hit(IT.greataxe, 'patron_1', PK.heavy_hand, undefined, undefined, 85).r;
     expect(plain.damage).toBeGreaterThan(0);
     expect(boosted.damage).toBeCloseTo(plain.damage * 1.2, 5);
-    expect(hit('dagger', 'patron_1', PK.heavy_hand).r.damage).toBe(hit('dagger', 'patron_1').r.damage);
+    expect(hit(IT.dagger, 'patron_1', PK.heavy_hand).r.damage).toBe(hit(IT.dagger, 'patron_1').r.damage);
   });
   it('Armor Piercer: each armor stops 2 less of a heavy ranged hit', () => {
-    const plain = hit('crossbow', 'patron_1', undefined, 'left_leg', 'plate_harness').r;
-    const pierced = hit('crossbow', 'patron_1', PK.armor_piercer, 'left_leg', 'plate_harness').r;
+    const plain = hit(IT.crossbow, 'patron_1', undefined, 'left_leg', IT.plate_harness).r;
+    const pierced = hit(IT.crossbow, 'patron_1', PK.armor_piercer, 'left_leg', IT.plate_harness).r;
     expect(pierced.location).toBe('left_leg');
     expect(pierced.damage).toBeGreaterThan(plain.damage);
-    expect(hit('crossbow', 'patron_1', PK.armor_piercer, undefined, undefined, 85).r.damage).toBe(hit('crossbow', 'patron_1', undefined, undefined, undefined, 85).r.damage); // no armor: no change
+    expect(hit(IT.crossbow, 'patron_1', PK.armor_piercer, undefined, undefined, 85).r.damage).toBe(hit(IT.crossbow, 'patron_1', undefined, undefined, undefined, 85).r.damage); // no armor: no change
   });
   it('Quick Mend doubles natural recovery', () => {
     const healed = (perk: boolean) => {

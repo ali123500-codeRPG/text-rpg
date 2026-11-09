@@ -10,6 +10,7 @@ import { getLibrary } from '../../src/library';
 import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 describe('128 Late bloomer and class-level perks', () => {
   it('the late bloomer: 50 points, no floors, level 1, Quick Study, no Swordsman tree', () => {
@@ -23,7 +24,7 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(p.core.perks).toContainEqual({ perkId: PK.quick_study, source: 'class', gainedTurn: 0 });
     expect(p.progression!.unspentPerkPoints).toBe(0);
     expect(p.label).toBe('a young stranger');
-    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([['crude_clothes', ['armor']], ['coin', null], ['bandage', null]]); // 50 points: crude clothes, no weapon yet
+    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.crude_clothes, ['armor']], [IT.coin, null], [IT.bandage, null]]); // 50 points: crude clothes, no weapon yet
   });
 
   it('Quick Study: a marked skill below 15 gets two improvement rolls, each with its own gain', () => {
@@ -49,9 +50,9 @@ describe('128 Late bloomer and class-level perks', () => {
     const b = recommendedBuild();
     const p = createPlayer({ ...b, skills: { ...b.skills, [SK.melee_medium]: 40, [SK.earshot]: 40 } }, 's1');
     const kit = p.core.inventory.filter((i) => getLibrary().items[i.itemId].tags?.includes('starter'));
-    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([['crude_clothes', null], ['gambeson', ['armor']], ['round_shield', ['hand:left_arm']]]); // no weapon met at 40
+    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.crude_clothes, null], [IT.gambeson, ['armor']], [IT.round_shield, ['hand:left_arm']]]); // no weapon met at 40
     const q = createPlayer(b, 's1');
-    expect(q.core.inventory.find((i) => i.equippedIn?.includes('hand:right_arm'))?.itemId).toBe('arming_sword');
+    expect(q.core.inventory.find((i) => i.equippedIn?.includes('hand:right_arm'))?.itemId).toBe(IT.arming_sword);
   });
 
   it('Swordsman unlocks at Medium Weapons 40 and Block 40', () => {

@@ -1,9 +1,10 @@
+import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { bodyType } from '../../src/library';
 
-const sword = 'player_arming_sword_1';
+const sword = `player_${IT.arming_sword}_1`;
 describe('76 Gap ladder', () => {
   it('gap +1 against dodge gives 0.8×', () => {
     const s = makeVillage();

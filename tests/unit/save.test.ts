@@ -8,6 +8,7 @@ import {
 } from '../../src/save';
 import type { GameState, Head, LogLine, StoryFact, TurnRecord } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 const rec = (s: GameState, turn: number, extra: Partial<TurnRecord> = {}): TurnRecord =>
   ({ storyId: s.storyId, turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [], ...extra });
@@ -84,7 +85,7 @@ describe('save and load', () => {
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
     s.player.core.classes.push({ classId: 'slime', state: 'current', level: 1 });
-    s.player.core.inventory.push({ id: 'c2', itemId: 'coin', qty: 0 });
+    s.player.core.inventory.push({ id: 'c2', itemId: IT.coin, qty: 0 });
     await saveTurn(st, s, rec(s, 1));
     const err = await loadStory(st, 'test', lib()).catch((e) => e);
     expect(err.report).toEqual(expect.arrayContaining([expect.stringMatching(/exactly one current class/), expect.stringMatching(/qty < 1/)]));

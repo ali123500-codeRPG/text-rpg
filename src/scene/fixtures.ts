@@ -2,6 +2,7 @@
 // Used by W6 tests, the pipeline (W7) and the integration owner. Expects the player's band id 'player_band'.
 import { SV } from '../library/serviceIds';
 import type { Clock, GameState, Grade, StagePlan, Tier } from '../types';
+import { IT } from '../library/itemIds';
 
 /** a challenge/gain pair that fits each tier (Agent Weaver: grades table) */
 export const FITTING_GRADES: Record<Tier, { challenge: Grade; gain: Grade }> = {
@@ -53,7 +54,7 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
       { template: 'trader', key: 'barkeep', label: 'the barkeep', name: 'Mags', pronouns: 'she', appearance: 'a broad woman with flour on her apron', knownOnSight: true,
         knows: [{ id: 'slimes_field', text: 'Slimes have been coming over the east field most nights.' }],
         band: 'tavern_folk', routineSetId: 'barkeep', slots: { counter: 'tav_counter', refuge: 'tav_cellar' }, awarenessOfPlayer: 'aware', motive: 'wants someone to deal with the slimes cheaply',
-        wares: { items: [{ item: 'bandage', qty: 4 }], services: [SV.drink, SV.meal, SV.bed] } },
+        wares: { items: [{ item: IT.bandage, qty: 4 }], services: [SV.drink, SV.meal, SV.bed] } },
       { template: 'patron', key: 'patron_1', label: 'an old drinker', name: 'Old Wim', pronouns: 'he', appearance: 'a stooped old man nursing a mug',
         band: 'tavern_folk', routineSetId: 'patron', slots: { seat: 'tav_common', refuge: 'tav_cellar', exit: 'street_door' }, awarenessOfPlayer: 'suspicious', motive: 'wants a free drink' },
       { template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', pronouns: 'it', appearance: 'a quivering green mass',
@@ -62,7 +63,7 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
         band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_far', 'field_mid'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: 'hunger' },
     ],
     seeds: { plans: [], triggers: [], secrets: [] },
-    rewards: [{ item: 'coin', qty: 5, place: { carriedBy: 'barkeep' } }],
+    rewards: [{ item: IT.coin, qty: 5, place: { carriedBy: 'barkeep' } }],
     hiddenTerms: ['nest'],
     weaverNote: 'Opening: slimes raid the field from a nest in the woods. Mags will pay for help.',
   };

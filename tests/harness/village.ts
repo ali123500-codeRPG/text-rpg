@@ -8,6 +8,7 @@ import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
 import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
+import { IT } from '../../src/library/itemIds';
 
 const L = (to: string, label: string, sight = true, frontier = false): ZoneLink => ({ to, label, sight, ...(frontier ? { frontier: true as const } : {}) });
 const Z = (id: string, placeId: string, name: string, look: string, links: ZoneLink[], cover: Cover = 'none', light: Light = 'bright'): Zone =>
@@ -63,8 +64,8 @@ export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId
       perks: [],
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
       inventory: [
-        ...equipLoadout(null, ['arming_sword', 'round_shield', 'gambeson'], 'player'),
-        { id: 'player_coin', itemId: 'coin', qty: 20 },
+        ...equipLoadout(null, [IT.arming_sword, IT.round_shield, IT.gambeson], 'player'),
+        { id: 'player_coin', itemId: IT.coin, qty: 20 },
       ],
       standingDefense: 'block',
     },

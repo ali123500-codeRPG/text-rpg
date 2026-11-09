@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
+import { IT } from '../../src/library/itemIds';
 
 describe('87 Carried charm', () => {
   it('a carried charm naming the situation roll modifies it; one without never does', () => {
@@ -11,7 +12,7 @@ describe('87 Carried charm', () => {
     expect(ruleset.situation(s.player, s, forcedRng([47])).tier).toBe('near_miss');
     s.player.core.inventory.push({ id: 'p1', itemId: 'plain_charm' });
     expect(ruleset.situation(s.player, s, forcedRng([47])).modifiers).toEqual([]);
-    s.player.core.inventory.push({ id: 'c1', itemId: 'lucky_charm' }); // carried, not equipped
+    s.player.core.inventory.push({ id: 'c1', itemId: IT.lucky_charm }); // carried, not equipped
     const lucky = ruleset.situation(s.player, s, forcedRng([47]));
     expect(lucky.modifiers).toEqual([{ source: 'Gear (carried): lucky charm', type: 'gear', value: 5 }]);
     expect(lucky.tier).toBe('success');

@@ -15,6 +15,7 @@ import { FN, GR } from './functionIds';
 import { CL } from './classIds';
 import { SV } from './serviceIds';
 import { PK } from './perkIds';
+import { IT } from './itemIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
@@ -122,53 +123,53 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
-  { id: 'dagger', level: 'common', tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
+  { id: IT.dagger, level: 'common', tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'slash', tree: 'melee', class: 'light', reach: 0, hands: 1 }), mode({ id: 'throw', tree: 'ranged', class: 'light', reach: 1, hands: 1, thrown: true })] } },
-  { id: 'arming_sword', level: 'fine', tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
+  { id: IT.arming_sword, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'cut', tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
-  { id: 'greataxe', level: 'superior', tags: ['starter'], kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
+  { id: IT.greataxe, level: 'superior', tags: ['starter'], kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: 'chop', tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
-  { id: 'spear', level: 'fine', tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
+  { id: IT.spear, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'thrust', tree: 'melee', class: 'medium', reach: 1, hands: 2 }), mode({ id: 'throw', tree: 'ranged', class: 'medium', reach: 1, hands: 1, thrown: true })] } },
-  { id: 'shortbow', level: 'common', tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
+  { id: IT.shortbow, level: 'common', tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'light', reach: 3, hands: 2 })] } },
-  { id: 'longbow', level: 'fine', tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
+  { id: IT.longbow, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'medium', reach: 4, hands: 2 })] } },
-  { id: 'crossbow', level: 'superior', tags: ['starter'], kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
+  { id: IT.crossbow, level: 'superior', tags: ['starter'], kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
-  { id: 'hidden_blade', level: 'fine', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
+  { id: IT.hidden_blade, level: 'fine', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
     weapon: { modes: [mode({ id: 'stab', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
-  { id: 'crude_clothes', level: 'crude', tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
+  { id: IT.crude_clothes, level: 'crude', tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
     armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
-  { id: 'cudgel', level: 'crude', kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
+  { id: IT.cudgel, level: 'crude', kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'club', tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
-  { id: 'rusty_knife', level: 'crude', kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
+  { id: IT.rusty_knife, level: 'crude', kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: 'slash', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
-  { id: 'gambeson', level: 'common', tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.gambeson, level: 'common', tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light') } },
-  { id: 'mail_hauberk', level: 'fine', tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.mail_hauberk, level: 'fine', tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
     armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium') } },
-  { id: 'plate_harness', level: 'superior', tags: ['starter'], kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.plate_harness, level: 'superior', tags: ['starter'], kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy'), pools: { head: 20 } } },
-  { id: 'round_shield', level: 'common', tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: { pool: 30 } },
-  { id: 'signet_ring', kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
-  { id: 'lucky_charm', kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
+  { id: IT.round_shield, level: 'common', tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: { pool: 30 } },
+  { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
+  { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'situation', value: 5, active: 'carried', scope: 'any' }] },
-  { id: 'lockpicks', kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
+  { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
-  { id: 'healing_draught', kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
+  { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
   // generic bases for minted items with no close match, and for scene objects the player grabs (loot L2, L3)
-  { id: 'improvised_light', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_light, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('light', 1) } },
-  { id: 'improvised_medium', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_medium, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('medium', 1) } },
-  { id: 'improvised_heavy', level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
+  { id: IT.improvised_heavy, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
-  { id: 'curio', kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
-  { id: 'bandage', kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: 'bandage' },
-  { id: 'coin', kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
+  { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
+  { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: 'bandage' },
+  { id: IT.coin, kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
 export const BODY_TYPES: Record<string, BodyType> = {
@@ -234,7 +235,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
     focus: [{ treeId: 'melee', skill: SK.melee_medium }, { treeId: 'defense', skill: SK.block }, { treeId: 'perception', skill: SK.eyesight }],
-    personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
+    personality: 'steady', loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
   },
   trader: {
     id: 'trader', raceId: 'human', classId: CL.trader, generation: 'copy',
@@ -247,7 +248,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     id: 'thief', raceId: 'human', generation: 'copy',
     minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
     focus: [{ treeId: 'stealth', skill: SK.sneaking }, { treeId: 'melee', skill: SK.melee_light }, { treeId: 'defense', skill: SK.dodge }],
-    personality: 'timid', loadout: ['dagger', 'gambeson'], control: 'agent', label: 'a shifty villager',
+    personality: 'timid', loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
   },
   patron: {
     id: 'patron', raceId: 'human', generation: 'copy',

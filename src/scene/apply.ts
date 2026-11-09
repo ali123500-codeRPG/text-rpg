@@ -13,6 +13,7 @@ import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyRewards } from './validate';
 import { requirement } from '../ruleset/requirements';
 import { CL } from '../library/classIds';
+import { IT } from '../library/itemIds';
 
 function freshId(key: string, taken: Set<string>): string {
   let id = key;
@@ -384,7 +385,7 @@ function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast']
   const services: string[] = [];
   for (const g of w.items ?? []) {
     const def = known(g.item);
-    if (!def || g.item === 'coin' || items.length + services.length >= CONFIG.WARES_CAP) { dropped.push(String(g.item)); continue; }
+    if (!def || g.item === IT.coin || items.length + services.length >= CONFIG.WARES_CAP) { dropped.push(String(g.item)); continue; }
     const qty = Math.max(1, Math.floor(g.qty ?? 1));
     const id = `ware${turn}_${a.id}_${g.item}`;
     a.core.inventory.push(...(def.stackable ? [{ id, itemId: g.item, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId: g.item }))));

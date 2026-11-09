@@ -9,6 +9,7 @@ import { spawnNpc } from '../../src/library/spawn';
 import type { ContestResult, GameState, Intent, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
@@ -66,7 +67,7 @@ describe('117 stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     s.player.posture = 'stealthy';
     rig({ slime_1: -1 });
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
@@ -117,7 +118,7 @@ describe('117 stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     s.player.posture = 'stealthy';
     const calls = rig();
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));

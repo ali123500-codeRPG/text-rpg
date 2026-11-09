@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, Order, RollRequest } from '../../src/types';
 import { makeVillage, actor, place, createRng } from '../harness';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 const F = vi.hoisted(() => ({
   init: {} as Record<string, number>,
@@ -303,7 +304,7 @@ describe('gear and combat', () => {
     s.bands.find((b) => b.id === actor(s, id).bandId)!.relations.player_band = 'hostile';
   };
   it('reach counts links with sight; no sight is a wasted action', () => {
-    s.player.core.inventory.push({ id: 'sp', itemId: 'spear' });
+    s.player.core.inventory.push({ id: 'sp', itemId: IT.spear });
     s.player.core.inventory.forEach((i) => { if (i.equippedIn?.some((x) => x.startsWith('hand:'))) delete i.equippedIn; });
     s.player.zone = 'tav_common';
     // tav_counter linked with sight; street_door linked without sight
@@ -316,8 +317,8 @@ describe('gear and combat', () => {
     expect(r2.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'wasted', target: 'trader' });
   });
   it('a thrown dagger lands on the target zone ground, hit or miss', () => {
-    s.player.core.inventory.push({ id: 'dg', itemId: 'dagger', equippedIn: ['hand:left_arm'] });
-    s.player.core.inventory.find((i) => i.itemId === 'round_shield')!.equippedIn = undefined;
+    s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
+    s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
     place(s, 'patron_1', 'tav_counter');
     F.defended = false;
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: 'throw' } }) }), createRng(1));
@@ -329,18 +330,18 @@ describe('gear and combat', () => {
     F.destroyPart = 'right_arm';
     const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     const drop = ev.find((e) => e.kind === 'item_dropped')!;
-    expect(drop).toMatchObject({ actorId: 'guard_1', itemId: 'guard_1_arming_sword_1' });
+    expect(drop).toMatchObject({ actorId: 'guard_1', itemId: `guard_1_${IT.arming_sword}_1` });
     expect(drop.perception.player).toBeTruthy();
     F.destroyPart = null;
     s.turn = 2;
-    const ev2 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'pick_up', item: 'guard_1_arming_sword_1' }], action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
-    expect(s.player.core.inventory.some((i) => i.id === 'guard_1_arming_sword_1')).toBe(true);
+    const ev2 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'pick_up', item: `guard_1_${IT.arming_sword}_1` }], action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
+    expect(s.player.core.inventory.some((i) => i.id === `guard_1_${IT.arming_sword}_1`)).toBe(true);
     expect(ev2.filter((e) => e.actorId === 'player').map((e) => e.kind)).toEqual(['pick_up', 'attack']);
   });
   it('equip on armor takes the main action', () => {
-    const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'equip', item: 'player_gambeson_3' } }) }), createRng(1));
+    const ev = resolveTurn(s, input({ intent: intent({ action: { type: 'equip', item: `player_${IT.gambeson}_3` } }) }), createRng(1));
     expect(ev.filter((e) => e.actorId === 'player').map((e) => e.kind)).toEqual(['equip']);
-    expect(s.player.core.inventory.find((i) => i.id === 'player_gambeson_3')!.equippedIn).toBeUndefined();
+    expect(s.player.core.inventory.find((i) => i.id === `player_${IT.gambeson}_3`)!.equippedIn).toBeUndefined();
   });
   it('second defense counts as outnumbered; morale breaks an engaged NPC reaching Injured', () => {
     place(s, 'guard_1', 'tav_common');

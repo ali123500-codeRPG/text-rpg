@@ -7,6 +7,7 @@ import {
   buildActorView, buildCombatPacket, buildDialogueView, buildNarrationView, buildOppositionView, buildPlayerView, buildWeaverView,
 } from '../../src/views';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 // W2's healthLevel/partStates are stubs until integration: thin fakes from the health track.
 vi.mock('../../src/ruleset', async (orig) => {
@@ -154,7 +155,7 @@ describe('NarrationView and the packet', () => {
     const result: AttackResult = {
       attack: roll('great_success', 87, 13.5, 1), defense: roll('success', 42, 7), defenseType: 'block', gap: -1, gapShifts: [],
       outcome: 'full_hit', location: 'general', locationHow: 'rolled', multiplier: 0.8, damage: 17,
-      deciding: { attack: ['aim'], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', modeId: 'cut',
+      deciding: { attack: ['aim'], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: 'cut',
     };
     const e = run(s, ev({ id: 'evt_a', actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', attack: result,
       effects: [{ kind: 'part_state_changed', actorId: 'guard_1', data: { part: 'left_arm', from: 'Healthy', to: 'Damaged' } }] }));
@@ -178,7 +179,7 @@ describe('NarrationView and the packet', () => {
     const result: AttackResult = {
       attack: roll('great_success', 87, 13.5), defense: def, defenseType: 'block', gap: -1, gapShifts: [],
       outcome: 'full_hit', location: 'general', locationHow: 'rolled', multiplier: 0.8, damage: 17,
-      deciding: { attack: ['aim'], defense: [...shown, ...hidden], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', modeId: 'cut',
+      deciding: { attack: ['aim'], defense: [...shown, ...hidden], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: 'cut',
     };
     const e = run(s, ev({ id: 'evt_b', actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', attack: result }));
     expect(buildCombatPacket(s, e, 'player').defense!.deciding).toEqual(shown);

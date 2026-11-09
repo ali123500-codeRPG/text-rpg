@@ -14,10 +14,11 @@ import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
 import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const set = (a: Actor, skills: string[], raw: number) => { for (const k of skills) a.core.skills[k] = { raw, state: 'normal' }; };
-const arm = (s: GameState, id: string, itemId = 'dagger') => {
+const arm = (s: GameState, id: string, itemId: string = IT.dagger) => {
   const a = id === 'player' ? s.player : s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
   a.core.inventory.push({ id: `w_${id}`, itemId, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
@@ -71,7 +72,7 @@ describe('125 All-50 parts', () => {
       const s = makeVillage();
       place(s, 'player', 'field_edge');
       zoneById(s, 'field_mid')!.cover = 'heavy';
-      arm(s, 'player', 'shortbow');
+      arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.past_the_cover);
       return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).gapShifts;
     };
@@ -268,7 +269,7 @@ describe('125 All-50 moves', () => {
       const s = makeVillage();
       place(s, 'player', 'field_mid');
       place(s, 'slime_2', 'field_mid');
-      arm(s, 'player', 'shortbow');
+      arm(s, 'player', IT.shortbow);
       if (perk) give(s.player, PK.volley);
       const hit = (r: AttackResult) => ({ ...r, outcome: 'full_hit' as const, location: 'general', damage: 0.01 });
       return { s, calls: fight(s, 'slime_1', 'w_player', hit).filter((c) => c.by === 'player') };
@@ -295,7 +296,7 @@ describe('125 All-50 moves', () => {
   it('Unerring: the first ranged attack in an engagement, at a foe that hasn\'t acted, gives its defense roll tier shift −1', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
-    arm(s, 'player', 'shortbow');
+    arm(s, 'player', IT.shortbow);
     give(s.player, PK.unerring);
     const shifts: unknown[] = [];
     const real = ruleset.attack;

@@ -8,6 +8,7 @@ import { CL } from '../library/classIds';
 import { hasPerk } from '../ruleset';
 import { isActive, shortestPath, wary } from './relations';
 import { PK } from '../library/perkIds';
+import { IT } from '../library/itemIds';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -25,7 +26,7 @@ export function coinWords(n: number): string {
   return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
 }
 
-export const coins = (a: Actor): number => a.core.inventory.filter((i) => i.itemId === 'coin').reduce((n, i) => n + (i.qty ?? 1), 0);
+export const coins = (a: Actor): number => a.core.inventory.filter((i) => i.itemId === IT.coin).reduce((n, i) => n + (i.qty ?? 1), 0);
 
 export const isSeller = (a: Actor): boolean => !!a.wares && a.core.classes.some((c) => c.classId === CL.trader);
 
@@ -69,16 +70,16 @@ export function applyHaggle(buyer: Actor, seller: Actor, contest: ContestResult)
 
 /** moves n of the buyer's coin into the seller's purse (both stacks merge by item id) */
 function payCoin(from: Actor, to: Actor, n: number): void {
-  for (const i of from.core.inventory.filter((x) => x.itemId === 'coin')) {
+  for (const i of from.core.inventory.filter((x) => x.itemId === IT.coin)) {
     if (!n) break;
     const take = Math.min(n, i.qty ?? 1);
     i.qty = (i.qty ?? 1) - take;
     n -= take;
-    const purse = to.core.inventory.find((x) => x.itemId === 'coin');
+    const purse = to.core.inventory.find((x) => x.itemId === IT.coin);
     if (purse) purse.qty = (purse.qty ?? 1) + take;
-    else to.core.inventory.push({ id: `${i.id}_${to.id}`, itemId: 'coin', qty: take });
+    else to.core.inventory.push({ id: `${i.id}_${to.id}`, itemId: IT.coin, qty: take });
   }
-  from.core.inventory = from.core.inventory.filter((x) => x.itemId !== 'coin' || (x.qty ?? 1) > 0);
+  from.core.inventory = from.core.inventory.filter((x) => x.itemId !== IT.coin || (x.qty ?? 1) > 0);
 }
 
 export type BuyResult =

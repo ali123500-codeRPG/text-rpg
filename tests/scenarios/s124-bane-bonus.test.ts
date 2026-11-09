@@ -8,11 +8,12 @@ import { modTotal, ruleset } from '../../src/ruleset';
 import { grantAchievement } from '../../src/engine';
 import { baneSkill } from '../../src/ruleset/bane';
 import type { GameState } from '../../src/types';
+import { IT } from '../../src/library/itemIds';
 
 const arm = (s: GameState, id: string) => {
   const a = id === 'player' ? s.player : s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
-  a.core.inventory.push({ id: `w_${id}`, itemId: 'dagger', equippedIn: ['hand:right_arm'] });
+  a.core.inventory.push({ id: `w_${id}`, itemId: IT.dagger, equippedIn: ['hand:right_arm'] });
 };
 const bane = (s: GameState, target: string) => {
   arm(s, 'player');

@@ -10,8 +10,9 @@ import { SK } from '../../src/library/skillIds';
 import { kitBonus } from '../../src/ruleset/gear';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
+import { IT } from '../../src/library/itemIds';
 
-const sword = 'player_arming_sword_1';
+const sword = `player_${IT.arming_sword}_1`;
 
 describe('ruleset maths', () => {
   it('stacks within a type (Part 1 §4 example)', () => {
@@ -46,8 +47,8 @@ describe('ruleset maths', () => {
     const lib = getLibrary();
     const bonus = (id: string) => kitBonus(lib.items[id], lib.items[id].effects!.find((e) => e.kit)!);
     expect(CONFIG.EQUIP_FACTOR).toBe(0.4);
-    expect(['cudgel', 'dagger', 'round_shield', 'arming_sword', 'greataxe'].map(bonus)).toEqual([0, 10, 10, 20, 30]);
-    const minted = { ...lib.items.arming_sword, base: { itemId: 'arming_sword', quality: 3 as const, boosts: 'hitAdj' } };
+    expect([IT.cudgel, IT.dagger, IT.round_shield, IT.arming_sword, IT.greataxe].map(bonus)).toEqual([0, 10, 10, 20, 30]);
+    const minted = { ...lib.items[IT.arming_sword], base: { itemId: IT.arming_sword, quality: 3 as const, boosts: 'hitAdj' } };
     expect(kitBonus(minted, minted.effects![0])).toBe(30); // quality 3: one level up (superior, need 75)
   });
   it('kit pieces share one bonus, the best of them', () => {
@@ -126,9 +127,9 @@ describe('ruleset methods', () => {
       multiplier: 1, deciding: { attack: [], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: sword, modeId: 'cut' };
     const fx = ruleset.applyEffects({ ...hit, location: 'right_arm', damage: 5 }, s);
     expect(fx.map((e) => e.kind)).toContain('item_dropped');
-    expect(g.core.inventory.some((i) => i.itemId === 'arming_sword')).toBe(false);
+    expect(g.core.inventory.some((i) => i.itemId === IT.arming_sword)).toBe(false);
     const dropped = s.zones.find((z) => z.id === 'tav_common')!.groundItems;
-    expect(dropped.map((i) => i.itemId)).toEqual(['arming_sword']);
+    expect(dropped.map((i) => i.itemId)).toEqual([IT.arming_sword]);
     expect(dropped[0].equippedIn).toBeUndefined();
     g.core.condition.parts.neck = -95;
     ruleset.applyEffects({ ...hit, location: 'neck', damage: 1 }, s);

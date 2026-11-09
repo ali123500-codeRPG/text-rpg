@@ -6,6 +6,7 @@ import { takePerk, undoPerk } from '../ruleset';
 import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
+import { IT } from '../library/itemIds';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -41,7 +42,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
-    player.core.inventory.push({ id: 'player_draught', itemId: 'healing_draught', qty: 2 }, { id: 'player_draught_2', itemId: 'healing_draught', qty: 1 }, { id: 'player_bandage', itemId: 'bandage', qty: 2 });
+    player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0] },

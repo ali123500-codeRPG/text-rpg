@@ -9,6 +9,7 @@ import { createRng } from '../rng';
 import { SK } from './skillIds';
 import { skillName } from './skillNames';
 import { CL } from './classIds';
+import { IT } from './itemIds';
 
 /** a fixed seed per template id, so every copy of a template spends its level points the same way */
 const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
@@ -227,7 +228,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       ...newPlayer(build.classId ?? PLAYER_CLASS),
       skills,
       condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
-      inventory: [{ id: 'player_coin', itemId: 'coin', qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: 'bandage', qty: CONFIG.STARTING_BANDAGES }],
+      inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here
       standingDefense: (build.skills[SK.block] ?? 0) >= (build.skills[SK.dodge] ?? 0) ? 'block' : 'dodge',
     },

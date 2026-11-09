@@ -3,6 +3,7 @@ import type { ActorView, DialogueView, NarrationView, PlayerView, ZoneView, Plan
 import { SK } from '../../src/library/skillIds';
 import { skillName } from '../../src/library/skillNames';
 import { CL } from '../../src/library/classIds';
+import { IT } from '../../src/library/itemIds';
 
 export const zone = (id: string, links: string[] = [], ground: string[] = []): ZoneView => ({
   id, name: id.replace(/_/g, ' '), look: `the ${id}`, cover: 'none', light: 'bright',
@@ -15,7 +16,7 @@ export function playerView(): PlayerView {
     player: {
       id: 'player', name: 'Aldric', classes: [CL.swordsman], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
       health: 'Unhurt', parts: [],
-      inventory: [{ id: 'sword_1', itemId: 'arming_sword', name: 'arming sword', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['cut', 'thrust'] }],
+      inventory: [{ id: 'sword_1', itemId: IT.arming_sword, name: 'arming sword', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['cut', 'thrust'] }],
       posture: 'open', standingDefense: 'block',
     },
     zone: zone('tav_common', ['tav_counter', 'street_door'], ['mug_1']),
@@ -32,7 +33,7 @@ export function actorView(id = 'guard_1'): ActorView {
     self: {
       id, label: 'a gate guard', name: 'Bertram', kind: 'npc', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch',
       health: 'Unhurt', parts: [], active: true, broken: false, surrendered: false, fearless: false, control: 'agent', standingDefense: 'block',
-      gear: [{ id: 'spear_1', itemId: 'spear', name: 'spear', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['thrust'] }],
+      gear: [{ id: 'spear_1', itemId: IT.spear, name: 'spear', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['thrust'] }],
       attackSkill: SK.melee_medium, routines: [{ id: 'guard_post', brief: 'stand at the post' }, { id: 'guard_alert', brief: 'watch hard' }],
       slots: { post: 'gate_inner' },
     },

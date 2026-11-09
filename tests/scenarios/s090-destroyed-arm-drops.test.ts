@@ -1,5 +1,6 @@
 // 90 Destroyed arm drops: a Destroyed sword arm puts the sword on the zone's ground; an observer perceives an
 // item_dropped event; pick up returns it.
+import { IT } from '../../src/library/itemIds';
 import type { Tier } from '../../src/types';
 import { afterEach, expect, it, vi } from 'vitest';
 import { actor, makeVillage, place } from '../harness';
@@ -19,7 +20,7 @@ it('90 Destroyed arm drops', () => {
   g.mind!.slots!.post = 'tav_common'; // keep the guard here (its routine would walk it back to the gate first)
   g.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: 1, source: 'seen', revealed: [] };
   g.core.condition.parts.right_arm = 1; // one more hit there destroys it
-  const sword = 'guard_1_arming_sword_1';
+  const sword = `guard_1_${IT.arming_sword}_1`;
   expect(g.core.inventory.find((i) => i.id === sword)!.equippedIn).toEqual(['hand:right_arm']);
   // force the blow onto the sword arm; damage still goes through the real applyEffects
   vi.spyOn(ruleset, 'attack').mockImplementationOnce((req: AttackRequest): AttackResult => ({
