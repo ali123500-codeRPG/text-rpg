@@ -62,6 +62,8 @@ export type PlayerView = {
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
   actors: SeenActor[];
+  /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
+  lastSeen?: { id: string; name: string; zone: string }[];
   facts: string[];
   headlines: string[];
   agreements?: AgreementView[]; // PM5: the player's deals with NPCs
@@ -154,7 +156,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true }; // ST3: moving or hiding unseen
+  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[] }; // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
