@@ -81,3 +81,10 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-tabs button small { color: var(--faint); font-weight: 400; }
 .lv-tabs button:hover { border-color: var(--accent); }
 .lv-tabs button[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); }
+
+/* foldable section headers: click (or Enter/Space) folds what is under them */
+.lv-group > h2.hs-section { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0; }
+.lv-group > h2.hs-section::after { content: "\25BE"; margin-left: 8px; font-size: 12px; transition: transform .15s; }
+.lv-group.lv-folded > h2.hs-section::after { transform: rotate(-90deg); }
+.lv-group > h2.hs-section:hover, .lv-group > h2.hs-section:focus-visible { color: var(--text); }
+.lv-group.lv-folded > :not(h2) { display: none !important; }
