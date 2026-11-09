@@ -1,5 +1,6 @@
 // 125 All-50 parts (All-50 doc round 1): a tree's built parts are granted free when every skill of the
 // tree reaches 50 true skill, with the tree's mastery achievement; then the first six built parts.
+import { TR } from '../../src/library/treeIds';
 import { ACH } from '../../src/library/achievementIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place } from '../harness';
@@ -13,10 +14,12 @@ import { zoneById } from '../../src/engine/relations';
 import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const set = (a: Actor, skills: string[], raw: number) => { for (const k of skills) a.core.skills[k] = { raw, state: 'normal' }; };
-const arm = (s: GameState, id: string, itemId = 'dagger') => {
+const arm = (s: GameState, id: string, itemId: string = IT.dagger) => {
   const a = id === 'player' ? s.player : s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
   a.core.inventory.push({ id: `w_${id}`, itemId, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
@@ -35,22 +38,22 @@ describe('125 All-50 parts', () => {
     grantAllSteps(s, p);
     grantAllSteps(s, p);
     const got = p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId);
-    expect(got).toEqual(['opening_strike', 'counter', 'fighters_frame', 'steady_guard']);
+    expect(got).toEqual([PK.opening_strike, PK.counter, PK.fighters_frame, PK.steady_guard]);
     const ach = p.progression!.achievements!.filter((a) => a.key === ACH.mastery_50);
-    expect(ach.map((a) => a.id)).toEqual([`${ACH.mastery_50}:melee`]);
+    expect(ach.map((a) => a.id)).toEqual([`${ACH.mastery_50}:${TR.melee}`]);
     expect(achievementName(s, ach[0])).toBe('Adept of Combat – Arms');
   });
   it("Hunter's Eye: +10 true skill in every skill with the sight function", () => {
     const s = makeVillage();
     set(s.player, [SK.eyesight, SK.earshot], 30);
-    give(s.player, 'hunters_eye');
+    give(s.player, PK.hunters_eye);
     expect(trueSkill(s.player, SK.eyesight)).toBe(40);
     expect(trueSkill(s.player, SK.earshot)).toBe(30);
   });
   it('Silver Words: +5 true skill in Persuasion, Intimidation and Barter', () => {
     const s = makeVillage();
     set(s.player, [SK.persuasion, SK.intimidation, SK.barter, SK.eyesight], 30);
-    give(s.player, 'silver_words');
+    give(s.player, PK.silver_words);
     expect([SK.persuasion, SK.intimidation, SK.barter, SK.eyesight].map((k) => trueSkill(s.player, k))).toEqual([35, 35, 35, 30]);
   });
   it("Fighter's Frame: melee hits on the owner deal ×0.9 damage before armor", () => {
@@ -59,7 +62,7 @@ describe('125 All-50 parts', () => {
       place(s, 'patron_1', s.player.zone);
       arm(s, 'patron_1');
       s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
-      if (perk) give(s.player, 'fighters_frame');
+      if (perk) give(s.player, PK.fighters_frame);
       return ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
     };
     expect(dmg(false)).toBeGreaterThan(0);
@@ -70,8 +73,8 @@ describe('125 All-50 parts', () => {
       const s = makeVillage();
       place(s, 'player', 'field_edge');
       zoneById(s, 'field_mid')!.cover = 'heavy';
-      arm(s, 'player', 'shortbow');
-      if (perk) give(s.player, 'past_the_cover');
+      arm(s, 'player', IT.shortbow);
+      if (perk) give(s.player, PK.past_the_cover);
       return ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'w_player', targetPart: null, aimed: false }, s, forcedRng([100, 50, 50])).gapShifts;
     };
     expect(gap(false)).toEqual([{ source: 'cover', value: 2 }]);
@@ -84,14 +87,14 @@ describe('125 All-50 parts', () => {
     delete (zone as { outdoor?: true }).outdoor;
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.sneaking), mod(SK.eyesight)];
-    give(s.player, 'child_of_night');
+    give(s.player, PK.child_of_night);
     expect(before).toEqual([5, -5]);
     expect([mod(SK.sneaking), mod(SK.eyesight)]).toEqual([10, -5]); // dim read as dark for sneaking; sight unchanged
   });
   it('Curiouser and Curiouser: a sight or hearing roll at Success or better counts one tier higher', () => {
     const s = makeVillage();
     set(s.player, [SK.eyesight, SK.persuasion], 50);
-    give(s.player, 'curiouser');
+    give(s.player, PK.curiouser);
     const r = (skill: string, d: number) => ruleset.roll({ actorId: 'player', skill, modifiers: [], tierShifts: [] }, s, forcedRng([d]));
     expect(r(SK.eyesight, 90).tierShifts).toEqual([{ source: 'Curiouser and Curiouser', value: 1 }]);
     expect(r(SK.eyesight, 10).tierShifts).toEqual([]); // not a Success
@@ -104,7 +107,7 @@ describe('125 All-50 parts', () => {
       for (const i of s.player.core.inventory) delete i.equippedIn;
       const foe = s.actors.find((a) => a.id === 'patron_1')!;
       foe.core.inventory = foe.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
-      if (perk) give(s.player, 'iron_knuckles');
+      if (perk) give(s.player, PK.iron_knuckles);
       return ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'unarmed', modeId: 'punch', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
     };
     expect(dmg(false)).toBeGreaterThan(0);
@@ -115,7 +118,7 @@ describe('125 All-50 parts', () => {
     place(s, 'patron_1', s.player.zone);
     arm(s, 'patron_1');
     set(s.player, [SK.dodge], 30);
-    give(s.player, 'bare_handed_guard');
+    give(s.player, PK.bare_handed_guard);
     expect(trueSkill(s.player, SK.dodge)).toBe(35);
     s.player.core.standingDefense = 'dodge';
     for (const i of s.player.core.inventory) delete i.equippedIn;
@@ -129,7 +132,7 @@ describe('125 All-50 parts', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     s.player.heldBy = 'patron_1';
-    give(s.player, 'hard_to_hold');
+    give(s.player, PK.hard_to_hold);
     const spy = vi.spyOn(ruleset, 'roll');
     breakFree(s, s.player, forcedRng([50, 50]));
     expect(spy.mock.calls[0][0].tierShifts).toEqual([{ source: 'Hard to Hold', value: 1 }]);
@@ -139,7 +142,7 @@ describe('125 All-50 parts', () => {
   it('Soft Landing: a speech roll at Near Miss or worse counts one tier higher; Success is unchanged', () => {
     const s = makeVillage();
     set(s.player, [SK.persuasion, SK.eyesight], 40);
-    give(s.player, 'soft_landing');
+    give(s.player, PK.soft_landing);
     const r = (skill: string, d: number) => ruleset.roll({ actorId: 'player', skill, modifiers: [], tierShifts: [] }, s, forcedRng([d]));
     expect(r(SK.persuasion, 2).tierShifts).toEqual([{ source: 'Soft Landing', value: 1 }]);
     expect(r(SK.persuasion, 95).tierShifts).toEqual([]);
@@ -155,7 +158,7 @@ describe('125 All-50 parts', () => {
     mate.mind!.knowledge.player = { ...(mate.mind!.knowledge.player ?? {}), status: 'unaware' } as never;
     shareSpotted(s, o);
     expect(mate.mind!.knowledge.player.status).toBe('unaware');
-    give(o, 'spotter');
+    give(o, PK.spotter);
     shareSpotted(s, o);
     expect(mate.mind!.knowledge.player.status).toBe('suspicious');
     expect(mate.mind!.knowledge.player.source).toBe('told');
@@ -166,7 +169,7 @@ describe('125 All-50 parts', () => {
     arm(s, 'patron_1');
     arm(s, 'player');
     set(s.player, [SK.block], 30);
-    give(s.player, 'steady_guard');
+    give(s.player, PK.steady_guard);
     expect(trueSkill(s.player, SK.block)).toBe(35);
     s.player.core.standingDefense = 'block';
     const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]));
@@ -177,7 +180,7 @@ describe('125 All-50 parts', () => {
       const s = makeVillage();
       place(s, 'patron_1', s.player.zone);
       arm(s, 'patron_1');
-      if (perk) give(s.player, 'thick_hide');
+      if (perk) give(s.player, PK.thick_hide);
       return ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
     };
     expect(dmg(false)).toBeGreaterThan(0);
@@ -190,7 +193,7 @@ describe('125 All-50 parts', () => {
     delete (zone as { outdoor?: true }).outdoor;
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
     const before = [mod(SK.eyesight), mod(SK.sneaking)];
-    give(s.player, 'night_eyes');
+    give(s.player, PK.night_eyes);
     expect([mod(SK.eyesight), mod(SK.sneaking)]).toEqual([situational(s, SK.eyesight, { light: { ...zone, light: 'dim' } }).modifiers[0]?.value ?? 0, before[1]]);
     expect(mod(SK.eyesight)).toBeGreaterThan(before[0]);
   });
@@ -198,7 +201,7 @@ describe('125 All-50 parts', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     arm(s, 'patron_1');
-    give(s.player, 'dodgy');
+    give(s.player, PK.dodgy);
     const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
     expect(r.attack.modifiers.filter((m) => m.type === 'foe_perk')).toEqual([{ source: 'Dodgy', type: 'foe_perk', value: -2.5 }]);
   });
@@ -224,7 +227,7 @@ describe('125 All-50 moves', () => {
     place(s, 'patron_1', s.player.zone);
     arm(s, 'player');
     arm(s, 'patron_1');
-    give(s.actors.find((a) => a.id === 'patron_1')!, 'counter');
+    give(s.actors.find((a) => a.id === 'patron_1')!, PK.counter);
     expect(fight(s, 'patron_1', 'w_player', fumble).slice(0, 2)).toEqual([{ by: 'player', at: 'patron_1' }, { by: 'patron_1', at: 'player' }]);
     const t = makeVillage();
     place(t, 'patron_1', t.player.zone);
@@ -235,7 +238,7 @@ describe('125 All-50 moves', () => {
     place(u, 'patron_1', u.player.zone);
     arm(u, 'player');
     arm(u, 'patron_1');
-    give(u.actors.find((a) => a.id === 'patron_1')!, 'counter');
+    give(u.actors.find((a) => a.id === 'patron_1')!, PK.counter);
     const plain = fight(u, 'patron_1', 'w_player', (r) => ({ ...r, attack: { ...r.attack, tier: 'failure' as const }, outcome: 'missed' as const, damage: 0, location: null }));
     expect(plain[1]).not.toEqual({ by: 'patron_1', at: 'player' }); // a plain Failure gives nothing at once
   });
@@ -244,22 +247,22 @@ describe('125 All-50 moves', () => {
     place(s, 'patron_1', s.player.zone);
     arm(s, 'player');
     const foe = s.actors.find((a) => a.id === 'patron_1')!;
-    give(foe, 'second_wind');
+    give(foe, PK.second_wind);
     foe.core.condition.hpLostPct = 50; // Wounded
     const graze = (r: AttackResult) => ({ ...r, outcome: 'grazed' as const, location: 'general', damage: 0.01 });
     fight(s, 'patron_1', 'w_player', graze);
     expect(foe.core.condition.hpLostPct).toBeLessThanOrEqual(45); // Injured at most
-    expect(foe.engagement?.uses?.second_wind).toBe(1);
+    expect(foe.engagement?.uses?.[PK.second_wind]).toBe(1);
   });
   it('Strike and Fade: right after an attack from hiding the owner is stealthy again and vanishes in place', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     arm(s, 'player');
-    give(s.player, 'strike_and_fade');
+    give(s.player, PK.strike_and_fade);
     s.player.posture = 'stealthy';
     const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
     const fade = ev.find((e) => e.actorId === 'player' && e.kind === 'hide' && e.vanish);
-    expect(fade?.effects.map((f) => f.kind)).toContain('strike_and_fade');
+    expect(fade?.effects.map((f) => f.kind)).toContain(PK.strike_and_fade);
     expect(s.log.some((l) => l.code === 'stealth_contest' && (l.detail as { skill: string }).skill === SK.vanishing)).toBe(true);
   });
   it('Volley: once per engagement, a ranged hit is followed by a free shot at a foe already hostile and known', () => {
@@ -267,8 +270,8 @@ describe('125 All-50 moves', () => {
       const s = makeVillage();
       place(s, 'player', 'field_mid');
       place(s, 'slime_2', 'field_mid');
-      arm(s, 'player', 'shortbow');
-      if (perk) give(s.player, 'volley');
+      arm(s, 'player', IT.shortbow);
+      if (perk) give(s.player, PK.volley);
       const hit = (r: AttackResult) => ({ ...r, outcome: 'full_hit' as const, location: 'general', damage: 0.01 });
       return { s, calls: fight(s, 'slime_1', 'w_player', hit).filter((c) => c.by === 'player') };
     };
@@ -276,13 +279,13 @@ describe('125 All-50 moves', () => {
     const { s, calls } = run(true);
     expect(calls.length).toBe(2);
     expect(['slime_1', 'slime_2']).toContain(calls[1].at);
-    expect(s.player.engagement?.uses?.volley).toBe(1);
+    expect(s.player.engagement?.uses?.[PK.volley]).toBe(1);
   });
   it('Opening Strike: the first melee attack on each foe in an engagement gets tier shift +1', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     arm(s, 'player');
-    give(s.player, 'opening_strike');
+    give(s.player, PK.opening_strike);
     const shifts: unknown[] = [];
     const real = ruleset.attack;
     vi.spyOn(ruleset, 'attack').mockImplementation((req, st, rng) => { if (req.attackerId === 'player') shifts.push(req.context?.attackerShifts); return real(req, st, rng); });
@@ -294,8 +297,8 @@ describe('125 All-50 moves', () => {
   it('Unerring: the first ranged attack in an engagement, at a foe that hasn\'t acted, gives its defense roll tier shift −1', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
-    arm(s, 'player', 'shortbow');
-    give(s.player, 'unerring');
+    arm(s, 'player', IT.shortbow);
+    give(s.player, PK.unerring);
     const shifts: unknown[] = [];
     const real = ruleset.attack;
     vi.spyOn(ruleset, 'attack').mockImplementation((req, st, rng) => { if (req.attackerId === 'player') shifts.push(req.context?.defenderShifts); return real(req, st, rng); });
@@ -324,7 +327,7 @@ describe('125 All-50 Easy Speaker', () => {
     resolveSpeech(s, intent({ action: { type: 'persuade', target: 'patron_1' } }), ['patron_1'], forcedRng([50, 50]));
     expect(shiftsOf()).toEqual([[]]);
     spy.mockClear();
-    give(foe, 'easy_speaker');
+    give(foe, PK.easy_speaker);
     resolveSpeech(s, intent({ action: { type: 'persuade', target: 'patron_1' } }), ['patron_1'], forcedRng([50, 50]));
     expect(shiftsOf()).toEqual([[{ source: 'Easy Speaker', value: 1 }]]);
     spy.mockRestore();

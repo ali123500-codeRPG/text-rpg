@@ -6,13 +6,14 @@ import type { Actor, AttackResult, Effect, GameState, Rng } from '../types';
 import { hasPerk, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { heldBy, isActive } from './relations';
 import { SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 const GRAPPLE = SK.unarmed_grapple;
 const MISSES = new Set(['missed', 'dodged']);
 
 /** after a grapple attack: lock on if the attacker has Hold and the roll was a Great Success or better that hit */
 export function applyHold(A: Actor, D: Actor, r: AttackResult, modeSkill: string): Effect | null {
-  if (modeSkill !== GRAPPLE || !hasPerk(A, 'hold') || MISSES.has(r.outcome) || !tierAtLeast(r.attack, 'great_success') || !isActive(D)) return null;
+  if (modeSkill !== GRAPPLE || !hasPerk(A, PK.hold) || MISSES.has(r.outcome) || !tierAtLeast(r.attack, 'great_success') || !isActive(D)) return null;
   D.heldBy = A.id;
   return { kind: 'held', actorId: D.id, data: { by: A.id } };
 }
@@ -26,7 +27,7 @@ export function breakFree(state: GameState, a: Actor, rng: Rng): { free: boolean
   }
   const req = (id: string) => ({ actorId: id, skill: GRAPPLE, modifiers: [], tierShifts: [] });
   // All-50 Hard to Hold: the owner's break-free roll gets tier shift +1
-  const mine = ruleset.roll({ ...req(a.id), tierShifts: hasPerk(a, 'hard_to_hold') ? [{ source: 'Hard to Hold', value: 1 }] : [] }, state, rng);
+  const mine = ruleset.roll({ ...req(a.id), tierShifts: hasPerk(a, PK.hard_to_hold) ? [{ source: 'Hard to Hold', value: 1 }] : [] }, state, rng);
   const theirs = ruleset.roll(req(h.id), state, rng);
   const free = tierLevel(mine) - tierLevel(theirs) >= 0;
   if (free) delete a.heldBy;

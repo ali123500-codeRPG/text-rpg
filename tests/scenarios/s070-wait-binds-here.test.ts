@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { spawnNpc } from '../../src/library/spawn';
@@ -6,7 +7,7 @@ import { buildActorView } from '../../src/views';
 
 it('70 Wait binds here: told to wait it stays where it switched; told to follow it follows again', () => {
   const s = makeVillage({ playerZone: 'street_door' });
-  const c = spawnNpc(null, 'patron', { id: 'comp', zone: 'street_door', placeId: 'street', bandId: 'player_band', name: 'Pip' });
+  const c = spawnNpc(null, TP.patron, { id: 'comp', zone: 'street_door', placeId: 'street', bandId: 'player_band', name: 'Pip' });
   installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
   s.actors.push(c);
   c.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'street_door', lastSeenTurn: s.turn, source: 'seen', revealed: [] };

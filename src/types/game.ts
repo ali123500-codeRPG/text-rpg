@@ -21,6 +21,9 @@ export type LogLine = {
   unlocks?: { skill: string; milestone: number }[]; // V2a: milestones a skill crossed this turn
   gains?: Record<string, number>; // V1b: skill points gained this turn, by skill
   timePassed?: { minutes: number; day: number; timeOfDay: string }; // T2 b: a wait or sleep; timeOfDay is a TIME_OF_DAY key
+  levelUps?: { classId: string; level: number }[]; // X9: levels the player reached this turn, by class (library classes id)
+  achievements?: { id: string; name: string }[]; // achievements and scars earned this turn (progression.achievements id, its name now)
+  incomingChecks?: (LineCheck & { by: string })[]; // rolls others made against the player this turn; by = how the player knows them
 };
 
 /** one healing of the player: the health level and each body part that changed state */

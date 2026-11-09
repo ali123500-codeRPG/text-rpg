@@ -6,6 +6,7 @@ import { getLibrary } from '../library';
 import { ALL_STEPS, MILESTONES, canUndo, milestonePerk, milestoneState, trueSkill, type MilestoneState } from '../ruleset';
 import { h } from './kit';
 import { skillName, TREE_VIEW } from './creation';
+import { PK } from '../library/perkIds';
 
 const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
 const TOP = 150;
@@ -68,7 +69,7 @@ function effectView(p: Actor) {
 }
 
 /** perks the owner can switch on and off */
-const SWITCHABLE = new Set(['cover_ally']);
+const SWITCHABLE = new Set<string>([PK.cover_ally]);
 
 function card(s: GameState, p: Actor, api: GameApi) {
   if (!ui.sel) return null;

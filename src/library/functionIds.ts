@@ -1,11 +1,11 @@
-// Function and group IDs: like skills, skill functions and groups have fixed numeric IDs, never their
-// names, so a function and a group can share a display name (Defense, Ranged, Stealth, Influence) without sharing an ID.
-// Functions are numbered from 101 and groups from 201, so no ID is shared with a skill (1–99) either. Code refers to them
+// Function and group IDs: like skills, skill functions and groups have fixed IDs, never their names, so a function and
+// a group can share a display name (Defense, Ranged, Stealth, Influence) without sharing an ID. The type prefix (FN, GR)
+// keeps them apart from each other and from skills (SK). Code refers to them
 // through FN and GR; display names live only in FUNCTION_NAMES and GROUP_NAMES (functionNames.ts). Never renumber.
 export const FN = {
-  arms: '101', unarmed: '102', ranged: '103', defense: '104', armor: '105', health: '106',
-  sight: '107', hearing: '108', stealth: '109', influence: '110',
+  arms: 'FN1', unarmed: 'FN2', ranged: 'FN3', defense: 'FN4', armor: 'FN5', health: 'FN6',
+  sight: 'FN7', hearing: 'FN8', stealth: 'FN9', influence: 'FN10',
 } as const;
 export const GR = {
-  melee: '201', ranged: '202', defense: '203', health: '204', notice: '205', stealth: '206', influence: '207',
+  melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7',
 } as const;

@@ -13,7 +13,7 @@ export const GRADES: readonly Grade[] = ['none', 'minor', 'moderate', 'major', '
 /** a tier's display name, only in text for people and for Claude */
 export type TierName = string;
 
-import type { COVER, LIGHT, NoiseKey, STANCES, TACTICS, TIERS, VisibilityKey } from '../scales';
+import type { AWARENESS, COVER, LIGHT, NoiseKey, STANCES, TACTICS, TIERS, VisibilityKey } from '../scales';
 /** keys of the ordered scales in src/scales.ts (code and saves use only keys) */
 export type Light = (typeof LIGHT.keys)[number];
 export type Cover = (typeof COVER.keys)[number];
@@ -29,8 +29,7 @@ export type Cue = 'sight' | 'sound' | 'smell' | 'touch';
  * nothing; attacked again it turns hostile; at the scene's end it turns opposed (a grudge) and leaves. Not on the
  * STANCES scale: agents can't choose it, only a surrender sets it. */
 export type Stance = (typeof STANCES.keys)[number] | 'yielded';
-export type BeliefStatus = 'unaware' | 'suspicious' | 'aware' | 'tracking';
-export const BELIEF_ORDER: readonly BeliefStatus[] = ['unaware', 'suspicious', 'aware', 'tracking'];
+export type BeliefStatus = (typeof AWARENESS.keys)[number];
 
 export type Band = {
   id: string;

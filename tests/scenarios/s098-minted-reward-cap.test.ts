@@ -6,13 +6,14 @@ import { applyStagePlan, SceneDirector, validateStagePlan } from '../../src/scen
 import { toStoryStart, villageStagePlan, VirtualClock } from '../../src/scene/fixtures';
 import { ruleset } from '../../src/ruleset';
 import { CONFIG } from '../../src/config';
+import { IT } from '../../src/library/itemIds';
 
 describe('98 Minted reward cap', () => {
   const ctx = { tier: 'success' as const, kind: 'scene' as const, placeId: 'tavern' };
   const withSword = (quality: 1 | 2 | 3 | 4, boosts = 'hitAdj') => {
     const p = villageStagePlan('success');
     expect(p.event.gain).toBe('moderate');
-    p.rewards.push({ item: { base: 'arming_sword', quality, boosts, name: 'a watchman\'s sword', look: 'a well-kept blade' }, place: { carriedBy: 'guard_1' } });
+    p.rewards.push({ item: { base: IT.arming_sword, quality, boosts, name: 'a watchman\'s sword', look: 'a well-kept blade' }, place: { carriedBy: 'guard_1' } });
     return p;
   };
   it('quality 2 passes clean; quality 3 is lowered to 2 without blocking', () => {

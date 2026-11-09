@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import type { GameEvent } from '../../src/types';
 import { makeVillage, actor, createRng } from '../harness';
@@ -9,7 +10,7 @@ it('53 Calm bandmates: one who heard follows the new routine next turn; one who 
   const s = makeVillage();
   const slots = { seat: 'tav_common', refuge: 'tav_cellar', exit: 'street_door' };
   for (const [id, zone] of [['patron_2', 'tav_common'], ['patron_3', 'street_square']] as const) {
-    const p = spawnNpc(null, 'patron', { id, zone, placeId: zone.startsWith('tav') ? 'tavern' : 'street', bandId: 'tavern_folk' });
+    const p = spawnNpc(null, TP.patron, { id, zone, placeId: zone.startsWith('tav') ? 'tavern' : 'street', bandId: 'tavern_folk' });
     installRoutines(p, 'patron', zone === 'tav_common' ? slots : { ...slots, seat: 'street_square' }, undefined, s.turn, createRng(7));
     s.actors.push(p);
   }

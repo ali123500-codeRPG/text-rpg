@@ -12,12 +12,14 @@ import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMod
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { baneMods, defeatsMods } from './bane';
+import { bestReward, deathsDoor, renownMods } from './achRewards';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats } from '../engine/xp';
 import { shortShifts } from './requirements';
 import { blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
@@ -181,13 +183,15 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (ranged) {
     if (dist >= 1 && CONFIG.RANGE_MODS[dist]) am.push({ source: 'range', type: 'situational', value: CONFIG.RANGE_MODS[dist] });
     const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && hostile(state, A, o));
-    if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, 'point_blank')) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
+    if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
   const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15
-  const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, 'hidden_strike') ? [{ source: 'Hidden Strike', value: 1 }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
+  const unseen = req.context?.defenderUnaware ? bestReward(A, 'unawareShift') : undefined; // an achievement reward
+  const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []),
+    ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, standInFns: mode.standInFns }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
@@ -205,17 +209,17 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (!blocker && !openArm) type = 'dodge'; // GAP: no working arm holding a shield or melee weapon, so the free reaction falls back to dodge
   const dm: Mod[] = [];
   // B19 Blade Wall: Block rolls with a medium melee weapon never take the outnumbered penalty
-  const bladeWall = type === 'block' && !!blocker && hasPerk(D, 'blade_wall') && !!itemDef(state, blocker.itemId).weapon?.modes.some((x) => x.tree === 'melee' && x.class === 'medium');
+  const bladeWall = type === 'block' && !!blocker && hasPerk(D, PK.blade_wall) && !!itemDef(state, blocker.itemId).weapon?.modes.some((x) => x.tree === 'melee' && x.class === 'medium');
   if ((req.context?.defensesThisTurn ?? 0) >= 1 && !bladeWall) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
   dm.push(...situational(state, DEFENSE_SKILL[type], { light: zoneA }).modifiers); // ST21: light by tag (sight)
   // All-50 Steady Guard: Block rolls made with a melee weapon (not a shield)
-  if (type === 'block' && blocker && !itemDef(state, blocker.itemId).shield && hasPerk(D, 'steady_guard')) {
+  if (type === 'block' && blocker && !itemDef(state, blocker.itemId).shield && hasPerk(D, PK.steady_guard)) {
     dm.push({ source: 'Steady Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.STEADY_GUARD });
   }
   // All-50 Bare-Handed Guard: Dodge rolls while the owner holds no weapon
-  if (type === 'dodge' && hasPerk(D, 'bare_handed_guard') && !D.core.inventory.some((i) => isHeld(i) && !!itemDef(state, i.itemId).weapon)) {
+  if (type === 'dodge' && hasPerk(D, PK.bare_handed_guard) && !D.core.inventory.some((i) => isHeld(i) && !!itemDef(state, i.itemId).weapon)) {
     dm.push({ source: 'Bare-Handed Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
   }
   dm.push(...(req.context?.defenderMods ?? []));
@@ -227,13 +231,13 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const gapShifts: TierShift[] = [];
   if (mode.class === 'heavy' && type === 'block') gapShifts.push({ source: 'heavy vs block', value: CONFIG.HEAVY_VS_BLOCK_GAP });
   // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
-  const coverKey = zoneD && ranged && hasPerk(A, 'past_the_cover') ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
+  const coverKey = zoneD && ranged && hasPerk(A, PK.past_the_cover) ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
   // A20 Slip the Blow: in light armor, a Dodge that ties counts as a graze
   const wornArmor = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const armor = wornArmor ? itemDef(state, wornArmor.itemId).armor : undefined;
-  if (type === 'dodge' && armor?.weight === 'light' && hasPerk(D, 'slip_the_blow') && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
+  if (type === 'dodge' && armor?.weight === 'light' && hasPerk(D, PK.slip_the_blow) && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
     gapShifts.push({ source: 'Slip the Blow', value: 1 });
   }
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
@@ -287,7 +291,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   }
 
   // A22 Turn Aside: heavy armor turns a heavy or crushing hit on a part it covers into a full hit
-  if ((outcome === 'heavy_hit' || outcome === 'crushing_hit') && armor?.weight === 'heavy' && armor.covers.includes(location) && hasPerk(D, 'turn_aside')) {
+  if ((outcome === 'heavy_hit' || outcome === 'crushing_hit') && armor?.weight === 'heavy' && armor.covers.includes(location) && hasPerk(D, PK.turn_aside)) {
     outcome = 'full_hit';
     multiplier = 1;
   }
@@ -299,16 +303,16 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
-  const frame = !ranged && hasPerk(D, 'fighters_frame') ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame
-  const knuckles = mode.tree === 'unarmed' && hasPerk(A, 'iron_knuckles') ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
+  const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame
+  const knuckles = mode.tree === 'unarmed' && hasPerk(A, PK.iron_knuckles) ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
   const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * frame * knuckles; // 40/80/120 perk: Heavy Hand
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
-  const hide = hasPerk(D, 'thick_hide') ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on health lost (after armor)
+  const hide = hasPerk(D, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on health lost (after armor)
   const damage = location === 'shield' ? Math.max(0, raw) : (afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare) * hide;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
-  const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, 'leg_bolt')
+  const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, PK.leg_bolt)
     && !!ct.parts.find((p) => p.id === location)?.roles.includes('move');
-  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(openArm ? { generalShare } : {}), ...(legBolt ? { legBolt } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, 'shield_breaker') ? { shieldMult: 2 } : {}) } : {}) };
+  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(openArm ? { generalShare } : {}), ...(legBolt ? { legBolt } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, PK.shield_breaker) ? { shieldMult: 2 } : {}) } : {}) };
 }
 
 function applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[] {
@@ -371,7 +375,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   }
   const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
   const add = T.core.condition.hpLostPct + (counted / hp) * 100;
-  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : add; // a destroyed essential part kills
+  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : deathsDoor(state, T, T.core.condition.hpLostPct, add); // a destroyed essential part kills
   T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
   const levelAfter = healthLevel(T);
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
@@ -384,7 +388,7 @@ function recordUse(actor: Actor, skill: string, result: CheckResult | ContestRes
 }
 
 export const ruleset: Ruleset = {
-  initiative: (_actor, _state, rng) => rng.d100(), // INIT_UNAWARE for unaware actors is the engine's call
+  initiative: (_actor, _state, rng) => rng.d100(), // the engine gives INIT_UNAWARE to an actor unaware of its attacker (initiativeOrder)
   check,
   contested,
   roll,
@@ -401,6 +405,6 @@ export function moraleCheck(state: GameState, actor: Actor, rng: Rng, reason: 'l
   if (healthLevel(actor) === 'Critical') return 'broken';
   const d = rng.d100();
   const morale = actor.mind.morale ?? CONFIG.MORALE_DEFAULT;
-  const level = tierOf(d, morale, woundsMods(state, actor, 'morale'), []);
+  const level = tierOf(d, morale, [...woundsMods(state, actor, 'morale'), ...renownMods(state, actor, hostile(state, actor, state.player))], []);
   return level < TIERS.pos('failure') ? 'surrendered' : level < TIERS.pos('near_miss') ? 'broken' : 'steady';
 }

@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import type { GameEvent } from '../../src/types';
 import { makeVillage, actor, createRng } from '../harness';
@@ -7,7 +8,7 @@ import { buildActorView } from '../../src/views';
 
 it('100 Fallback target: the companion that hit it last turn is attacked, even with the player there', () => {
   const s = makeVillage({ playerZone: 'field_mid' });
-  const c = spawnNpc(null, 'patron', { id: 'comp', zone: 'field_mid', placeId: 'field', bandId: 'player_band', name: 'Pip' });
+  const c = spawnNpc(null, TP.patron, { id: 'comp', zone: 'field_mid', placeId: 'field', bandId: 'player_band', name: 'Pip' });
   installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
   s.actors.push(c);
   const sl = actor(s, 'slime_1');

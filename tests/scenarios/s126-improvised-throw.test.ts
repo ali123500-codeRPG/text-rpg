@@ -6,10 +6,11 @@ import { ruleset } from '../../src/ruleset';
 import { itemDef } from '../../src/library';
 import type { GameState } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 const holdImprovised = (s: GameState) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
-  s.player.core.inventory.push({ id: 'vase', itemId: 'improvised_light', equippedIn: ['hand:right_arm'] } as never);
+  s.player.core.inventory.push({ id: 'vase', itemId: IT.improvised_light, equippedIn: ['hand:right_arm'] } as never);
 };
 const setSkills = (s: GameState, raw: Record<string, number>) => {
   for (const k of [SK.unarmed_improvised, SK.unarmed_strike, SK.unarmed_grapple, SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.ranged_light, SK.ranged_medium, SK.ranged_heavy])
@@ -19,7 +20,7 @@ const setSkills = (s: GameState, raw: Record<string, number>) => {
 describe('126 improvised strike and throw', () => {
   it('every improvised base has a melee strike and a ranged throw, both on Improvisation', () => {
     const s = makeVillage();
-    for (const id of ['improvised_light', 'improvised_medium', 'improvised_heavy']) {
+    for (const id of [IT.improvised_light, IT.improvised_medium, IT.improvised_heavy]) {
       const modes = itemDef(s, id).weapon!.modes;
       expect(modes.map((m) => [m.id, m.tree, m.skill])).toEqual([['strike', 'melee', SK.unarmed_improvised], ['throw', 'ranged', SK.unarmed_improvised]]);
       expect(modes[1].thrown).toBe(true);

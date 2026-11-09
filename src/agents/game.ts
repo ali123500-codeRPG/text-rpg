@@ -16,14 +16,15 @@ import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
-import { getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef } from '../library';
+import { actorById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
-import { isComm } from '../perception';
+import { isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 
@@ -682,8 +683,9 @@ function nameOf(s: GameState, itemId: string): string {
  * turn, the lines heard (word for word, unless the narration already quotes them) and the turn's visible changes.
  */
 /** H11, V1b, V2a: the player's healing, skill gains and milestones from this turn's code log, kept on the story line
- * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. */
-export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains' | 'timePassed'> {
+ * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. X9: level-ups and
+ * achievements from the player's progression, so the play screen can show them with mechanics off. */
+export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains' | 'timePassed' | 'levelUps' | 'achievements'> {
   const heals: HealNote[] = [], unlocks: { skill: string; milestone: number }[] = [], gains: Record<string, number> = {};
   let minutes = 0;
   for (const l of s.log) {
@@ -698,16 +700,21 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
     } else if (l.code === 'time_passed') minutes += (l.detail as { minutes: number }).minutes;
   }
   const timePassed = minutes > 0 ? { minutes: Math.round(minutes), day: timeView(s).day, timeOfDay: timeOfDay(now(s)) } : undefined;
-  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}) };
+  const pr = s.player.progression;
+  const levelUps = (pr?.xpLog ?? []).filter((x) => x.turn === s.turn && x.levelUp).map((x) => ({ ...x.levelUp! }));
+  const achievements = (pr?.achievements ?? []).filter((a) => a.turn === s.turn).map((a) => ({ id: a.id, name: engine.achievementName(s, a) }));
+  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}),
+    ...(levelUps.length ? { levelUps } : {}), ...(achievements.length ? { achievements } : {}) };
 }
 
-export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes'> {
-  const out: Pick<LogLine, 'check' | 'speech' | 'changes'> = {};
+export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> {
+  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> = {};
   const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? n.charAt(0).toUpperCase() + n.slice(1) : n);
   const words = (x: string) => x.replace(/_/g, ' ');
-  let check: LineCheck | undefined;
+  let check: LineCheck | undefined, checkEv: string | undefined;
   for (const e of events) {
     if (check) break;
+    checkEv = e.id;
     if (e.attack && e.attack.attackerId === 'player') {
       const a = e.attack;
       const pk = nv.events.find((x) => x.id === e.id)?.packet;
@@ -727,6 +734,26 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     }
   }
   if (check) out.check = check;
+  // rolls others made against the player: attacks on them, and contests they were drawn into beyond their own check
+  const incoming: NonNullable<LogLine['incomingChecks']> = [];
+  for (const e of events) {
+    const pk = nv.events.find((x) => x.id === e.id)?.packet;
+    if (e.attack && e.attack.targetId === 'player' && e.attack.attackerId !== 'player') {
+      const a = e.attack;
+      const loc = pk?.location?.part ?? '';
+      incoming.push({ by: pk?.actor ?? 'someone', kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
+        ...(a.defense && a.defenseType ? { against: { what: `your ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
+        result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}` });
+    } else if (e.contest && e.actorId !== 'player' && e.id !== checkEv) {
+      const c = e.contest;
+      const mine = c.a.actorId === 'player' ? c.a : c.b.actorId === 'player' ? c.b : null;
+      if (!mine) continue;
+      const other = mine === c.a ? c.b : c.a;
+      const result = c.winner === 'tie' ? 'a tie' : (c.winner === 'a') === (mine === c.a) ? 'you win' : 'you lose';
+      incoming.push({ by: views.callName(s, 'player', other.actorId), kind: 'contest', skill: other.skill, ...tierPart(other), against: { what: `your ${skillName(mine.skill).toLowerCase()}`, ...tierPart(mine) }, result });
+    }
+  }
+  if (incoming.length) out.incomingChecks = incoming;
   const speech = nv.heard.filter((l) => !narration.includes(l.text)).map((l) => ({ speaker: l.speaker, volume: l.volume, text: l.text }));
   if (speech.length) out.speech = speech;
   const changes: NonNullable<LogLine['changes']> = [];
@@ -748,25 +775,47 @@ export function tierGap(mine: TierRoll, theirs: TierRoll): string {
   return d === 0 ? 'same tier' : `${Math.abs(d)} tier${Math.abs(d) === 1 ? '' : 's'} ${d > 0 ? 'ahead' : 'behind'}`;
 }
 
-/** mechanics panel: dice, modifiers and damage of events the player took part in or perceived (never sent to an agent) */
+/** mechanics panel: dice, modifiers and damage of events the player took part in or perceived clearly (never sent to an
+ * agent). Someone the player doesn't clearly perceive stays "someone", an event only heard or glimpsed shows no dice,
+ * and a sight or hearing roll shows only once its target is perceived (UI5). */
 export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
-  const label = (id: string) => (id === 'player' ? 'You' : s.actors.find((a) => a.id === id)?.label ?? id);
-  const mods = (m: { source: string; value: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.value >= 0 ? '+' : ''}${x.value}`).join(', ')}]` : '');
+  const me = s.player.id;
+  const pv = views.buildPlayerView(s).actors;
+  const seen = new Set(pv.map((a) => a.id)), clear = new Set(pv.filter((a) => a.level === 'full').map((a) => a.id));
+  const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+  const name = (id: string) => (id === me ? 'You' : clear.has(id) ? cap(views.callName(s, me, id)) : 'Someone');
+  const whose = (id: string) => (id === me ? 'Your' : `${name(id)}’s`);
+  const num = (n: number) => String(Math.round(n * 10) / 10);
+  const mods = (m: { source: string; value: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.value >= 0 ? '+' : ''}${num(x.value)}`).join(', ')}]` : '');
+  const roll = (r: TierRoll & { actorId: string; skill: string; d100: number }) => `${whose(r.actorId)} ${skillName(r.skill).toLowerCase()} d100 ${r.d100} → ${tierName(r)}`;
+  const sense = (skill: string) => !!noticeCue(skill);
+  const unseen = (id: string | undefined) => !!id && id !== me && s.actors.some((a) => a.id === id) && !seen.has(id);
+  const part = (a: { location: string | null; targetId: string }) => {
+    const t = a.location === 'general' ? actorById(s, a.targetId) : undefined;
+    return t ? actorBody(s, t).general.name : a.location?.replace(/_/g, ' ');
+  };
   const out: string[] = [];
   for (const e of events) {
-    if (e.actorId !== 'player' && !e.perception.player) continue;
+    const target = e.attack?.targetId ?? e.target;
+    if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;
     if (e.attack) {
       const a = e.attack;
       const def = a.defense ? `; ${a.defenseType} d100 ${a.defense.d100} → ${tierName(a.defense)}${mods(a.defense.modifiers)}` : '';
-      out.push(`${label(a.attackerId)} → ${label(a.targetId)}: ${skillName(a.attack.skill)} d100 ${a.attack.d100} → ${tierName(a.attack)}${mods(a.attack.modifiers)}${def}` +
-        `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${a.outcome.replace(/_/g, ' ')}${a.location ? ` (${a.location})` : ''}${a.damage ? `, damage ${a.damage}` : ''}`);
+      const where = part(a);
+      out.push(`${name(a.attackerId)} → ${a.targetId === me ? 'you' : name(a.targetId)}: ${skillName(a.attack.skill)} d100 ${a.attack.d100} → ${tierName(a.attack)}${mods(a.attack.modifiers)}${def}` +
+        `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${a.outcome.replace(/_/g, ' ')}${where ? ` (${where})` : ''}${a.damage ? `, damage ${num(a.damage)}` : ''}`);
     } else if (e.contest) {
       const c = e.contest;
-      out.push(`${label(c.a.actorId)} ${skillName(c.a.skill)} d100 ${c.a.d100} → ${tierName(c.a)} vs ${label(c.b.actorId)} d100 ${c.b.d100} → ${tierName(c.b)}: ${c.winner}`);
+      if ((sense(c.a.skill) || sense(c.b.skill)) && (unseen(c.a.actorId) || unseen(c.b.actorId))) continue;
+      const won = c.winner === 'tie' ? 'a tie' : (c.winner === 'a' ? c.a : c.b).actorId === me ? 'you win' : `${name((c.winner === 'a' ? c.a : c.b).actorId)} wins`;
+      out.push(`${roll(c.a)} vs ${roll(c.b).replace(/^Your/, 'your')}: ${won}`);
     } else if (e.roll) {
-      out.push(`${label(e.roll.actorId)} ${skillName(e.roll.skill)} d100 ${e.roll.d100} → ${tierName(e.roll)}${mods(e.roll.modifiers)}`);
+      if (sense(e.roll.asked ?? e.roll.skill) && unseen(e.target)) continue;
+      out.push(`${roll(e.roll)}${mods(e.roll.modifiers)}`);
     } else if (e.check) {
-      out.push(`${label(e.check.actorId)} ${skillName(e.check.skill)} vs ${e.check.target}: ${e.check.passed ? 'passed' : 'failed'}${mods(e.check.modifiers)}`);
+      const k = e.check;
+      if (sense(k.asked ?? k.skill) && unseen(e.target)) continue;
+      out.push(`${whose(k.actorId)} ${skillName(k.skill).toLowerCase()} vs difficulty ${k.target}: ${k.passed ? 'passed' : 'failed'}${mods(k.modifiers)}`);
     }
   }
   // X9: XP awards and level-ups this turn
@@ -774,10 +823,10 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   const ach = s.player.progression?.achievements ?? [];
   for (const x of s.player.progression?.xpLog ?? []) {
     if (x.turn !== turn) continue;
-    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${x.levelUp.classId})`); continue; }
+    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${getLibrary().classes[x.levelUp.classId]?.name ?? x.levelUp.classId})`); continue; }
     const [kind, id] = x.source.split(/:(.*)/);
-    const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
-    out.push(`+${x.amount} XP (${what})`);
+    const what = kind === 'defeat' ? name(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
+    out.push(`+${num(x.amount)} XP (${what})`);
   }
   // H11: healing; the look is the designer's (plain text for now)
   for (const l of s.log) {

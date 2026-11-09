@@ -72,7 +72,7 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race' | 'template' | 'class'; // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
+  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement'; // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
@@ -98,9 +98,11 @@ export type Progression = {
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string }[];
   /** achievement tallies: '<rule>' or '<rule>:<by>:<of>' (a count, or the best reached for days, zones and beyond_crit) */
   tally?: Record<string, number>;
+  /** achievement charges: the game day each was last spent, by achievement key */
+  charges?: Record<string, number>;
   zonesSeen?: string[]; // zones the player has entered
   /** alternate capstones the player may swap in for a class's default, by class id; set when the class reaches
-   * CLASS_MAX_LEVEL with those alternates' conditions met, and cleared by a swap */
+   * its top level with those alternates' conditions met, and cleared by a swap */
   capstoneOptions?: Record<LibraryRef, LibraryRef[]>;
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
   quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
@@ -115,6 +117,7 @@ export type Mind = {
   behavior: string;
   morale?: number;
   fearless?: boolean; // from the template's personality
+  renownFelt?: true; // this actor has made its first morale check against a player with renown
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware

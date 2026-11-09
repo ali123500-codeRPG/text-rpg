@@ -12,6 +12,7 @@ import { GR } from '../../src/library/functionIds';
 import { SK } from '../../src/library/skillIds';
 import type { GameEvent, GameState } from '../../src/types';
 import { isBane } from '../../src/ruleset/bane';
+import { grantAchievement } from '../../src/engine/xp';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import { getLibrary } from '../../src/library';
 import { CL } from '../../src/library/classIds';

@@ -7,6 +7,7 @@ import { PERK_WRITEUPS } from '../../src/library/perks';
 import { canTake } from '../../src/ruleset';
 import { perksMarkdown } from '../../src/ui/perkDoc';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 describe('perk write-ups (story and rules views)', () => {
   it('docs/perks.md matches the game data (run npm run perks-doc after editing src/library/perks.ts)', () => {
@@ -24,8 +25,8 @@ describe('perk write-ups (story and rules views)', () => {
     for (const p of twenties) expect(L[p.id]).toMatchObject({ ladder: { skill: p.skill, milestone: 20 }, built: BUILT_PERKS.has(p.id), story: p.story });
     for (const id of BUILT_PERKS) expect(L[id]).toBeDefined(); // no stale ids
     const a = { core: { perks: [], skills: { [SK.melee_medium]: { raw: 40 } } }, progression: { unspentPerkPoints: 1 } } as never;
-    expect(canTake(a, 'answer_the_blow')).toBe('not in the game yet');
-    expect(canTake(a, 'haggler')).toBe('milestone not reached'); // built (buying half), but Barter is under 20
+    expect(canTake(a, PK.answer_the_blow)).toBe('not in the game yet');
+    expect(canTake(a, PK.haggler)).toBe('milestone not reached'); // built (buying half), but Barter is under 20
   });
   it('every write-up with no ladder yet says what it is banked as, with a fitting suggested milestone', () => {
     const banked = PERK_WRITEUPS.filter((p) => !p.ladder && ['higher', 'very_high', 'banked'].includes(p.place));

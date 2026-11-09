@@ -4,12 +4,13 @@ import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { buildNarrationView } from '../../src/views';
 import { actorById } from '../../src/engine/relations';
+import { IT } from '../../src/library/itemIds';
 
 it('132 Give part of a stack', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
-  s.player.core.inventory = s.player.core.inventory.filter((i) => i.itemId !== 'coin');
-  s.player.core.inventory.push({ id: 'purse', itemId: 'coin', qty: 20 });
-  const coins = (id: string) => actorById(s, id)!.core.inventory.filter((i) => i.itemId === 'coin').reduce((n, i) => n + (i.qty ?? 1), 0);
+  s.player.core.inventory = s.player.core.inventory.filter((i) => i.itemId !== IT.coin);
+  s.player.core.inventory.push({ id: 'purse', itemId: IT.coin, qty: 20 });
+  const coins = (id: string) => actorById(s, id)!.core.inventory.filter((i) => i.itemId === IT.coin).reduce((n, i) => n + (i.qty ?? 1), 0);
   const before = coins('patron_1');
   const ev = play(s, { intent: intent({ action: { type: 'give', target: 'patron_1', item: 'purse', qty: 2 } }) });
   expect(coins('player')).toBe(18);

@@ -1,6 +1,7 @@
-// Play screen (Part 2, Play screen): place line and Claude-call count in the header, who's-here strip, narration log
+// Play screen (Part 2, Play screen): turn and place line in the header, who's-here strip, narration log
 // newest last with the check line, speaker lines and folded turn changes, "…" while waiting, Commands and Ideas
 // panels (D-100, D-107), one input (/ starts a command), Aim toggle, mechanics panel, notices and the "You fell" screen.
+import { PK } from '../library/perkIds';
 import type { GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView } from '../views';
@@ -20,7 +21,6 @@ const NOTICE_KIND: Record<Notice['kind'], string> = {
   read_only: 'Read-only', save_failed: 'Not saved', load_refused: 'Not loaded',
 };
 
-const MODE_WORD: Record<string, string> = { explore: 'Exploring', dialogue: 'Talking', tactical: 'Fighting' };
 const VOLUME_WORD: Record<string, string> = { whisper: 'whispering', normal: '', shout: 'shouting' };
 const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'], condition: ['Condition', 'c7'], health: ['Health', 'c2'] };
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
@@ -41,11 +41,6 @@ function checkIcon(kind: 'attack' | 'contest' | 'roll'): SVGSVGElement {
 }
 const tierChip = (t: TierRoll) => h('span', { class: 'tier ' + (tierAtLeast(t, 'great_success') ? 'great' : tierAtLeast(t, 'success') ? 'ok' : tierAtLeast(t, 'near_miss') ? 'near' : 'bad') }, tierName(t));
 
-// what each Claude agent is doing, in the player's words (shown while it runs)
-const DOING: Record<string, string> = {
-  weaver: 'setting the scene', parser: 'reading what you typed', planner: 'deciding what the others do',
-  responder: 'working out a reply', voice: 'working out a reply', narrator: 'writing what happens',
-};
 const SLOW_AFTER_S = 90; // past this a running call gets a "taking longer than usual" note
 const secs = (since: number) => Math.max(0, Math.round((Date.now() - since) / 1000));
 
@@ -61,7 +56,7 @@ const colourOf = (name: string) => SPEAKER_COLOURS[[...name].reduce((a, c) => (a
 
 // AE8: how Ideas offers each perk move against someone in view
 const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
-  dirt_in_the_eyes: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
+  [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
 };
 
 /** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Three per group. */
@@ -83,7 +78,7 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Use', items: [
       ...held.map((i) => ({ text: `Stow the ${i.name}`, note: 'free' })), ...stowed.map((i) => ({ text: `Draw the ${i.name}`, note: 'free' })),
       ...pv.zone.groundItems.map((i) => ({ text: `Pick up the ${i.name}`, note: 'free' })), { text: 'Look around' }] },
-    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.flatMap((p) => PERK_IDEA[p]
+    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.map((m) => m.id).flatMap((p) => PERK_IDEA[p]
       ? people.filter((a) => a.zone === pv.zone.id).map((a) => ({ text: PERK_IDEA[p].text(nm(a)), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ ...g, items: g.items.slice(0, 3) }));
 }
@@ -172,20 +167,14 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     ];
   }
 
-  /** the story column's row while the player waits: what Claude is doing and for how long */
+  /** the story column's row while the player waits. The same words and parts on every turn: which agent runs, and how
+   * many, would tell the player which mode the game is in (hidden information), so they show only in the GM view. */
+  let busySince = 0;
   function workingRow(): HTMLElement {
-    const w = api.working()[0];
-    const doing = w ? `Claude is ${DOING[w.agent] ?? 'working'}` : 'Working on your turn';
-    return h('p', { class: 'working', role: 'status' }, h('span', { class: 'spin', 'aria-hidden': 'true' }), h('span', {}, doing),
-      w ? h('span', { class: 'secs', 'data-since': String(w.since) }, `${secs(w.since)} s`) : null,
-      w ? h('span', { class: 'slow', 'data-slow-since': String(w.since), hidden: secs(w.since) < SLOW_AFTER_S }, 'Taking longer than usual. It is still running; the game waits for it.') : null);
-  }
-  /** header note for calls running while the player is free to act (background Planners and Weaver) */
-  function bgNote(): HTMLElement | null {
-    const n = api.working().length;
-    if (!n || api.busy()) return null;
-    return h('p', { class: 'hs-note bg-run', title: 'Claude is preparing the next turn in the background. You can act now.' },
-      h('span', { class: 'spin sm', 'aria-hidden': 'true' }), `Claude is preparing ${n === 1 ? '1 call' : `${n} calls`} in the background`);
+    if (!busySince) busySince = Date.now();
+    return h('p', { class: 'working', role: 'status' }, h('span', { class: 'spin', 'aria-hidden': 'true' }), h('span', {}, 'The story is moving…'),
+      h('span', { class: 'secs', 'data-since': String(busySince) }, `${secs(busySince)} s`),
+      h('span', { class: 'slow', 'data-slow-since': String(busySince), hidden: secs(busySince) < SLOW_AFTER_S }, 'Taking longer than usual. It is still running; the game waits for it.'));
   }
 
   function update() {
@@ -204,10 +193,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       dealsOpen ? h('section', { class: 'dl-pop', 'aria-label': 'Your deals', onclick: (e: Event) => e.stopPropagation() },
         h('p', { class: 'hs-section' }, 'Your deals'),
         deals.map((d) => h('div', { class: 'dl-row' }, h('b', {}, cap(d.with)), h('span', {}, d.text), h('small', {}, `Made turn ${d.madeTurn}`)))) : null) : null;
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip), h('p', {}, s ? [`Turn ${s.turn} · ${MODE_WORD[s.mode] ?? s.mode}`, ...placeLine(s, pv)] : 'No story yet')),
-      h('p', { class: 'hs-note calls', title: 'Every request this page sent to Claude since it was opened, counted by code. Repairs and background calls count too.' },
-        `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`),
-      bgNote() ?? '');
+    // no mode word, call count or background-call note here: each changes with the encounter mode (hidden); the GM view has them
+    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip), h('p', {}, s ? [`Turn ${s.turn}`, ...placeLine(s, pv)] : 'No story yet')));
     // who's here: only actors the character fully perceives (PlayerView); others' health only from Wounded down
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
     who.hidden = !seen.length;
@@ -221,6 +208,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const nextLine = lines.at(-1);
     if (nextLine?.next && nextLine !== offered && !input.value && !api.busy()) { input.value = nextLine.next; offered = nextLine; }
     const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    if (!api.busy()) busySince = 0;
     log.replaceChildren(...lines.flatMap(lineEl).filter((x): x is HTMLElement => !!x), api.busy() ? workingRow() : '');
 
     helpPanel.hidden = !open;

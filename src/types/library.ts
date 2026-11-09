@@ -1,4 +1,5 @@
 // Library content shapes (Part 1 §3 skills, Part 3 body type database, Part 4 classes/templates, Part 5 items, routine bank).
+import type { IntelligenceKey } from '../scales';
 import type { AttackMode, ItemDef } from './items';
 import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
@@ -8,7 +9,7 @@ import type { PartStateKey, SkillTierKey } from '../scales';
 
 /** F1–F8: a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
-export type SkillFunction = (typeof FN)[keyof typeof FN]; // numeric IDs: src/library/functionIds.ts
+export type SkillFunction = (typeof FN)[keyof typeof FN]; // fixed IDs: src/library/functionIds.ts
 export type SkillGroup = (typeof GR)[keyof typeof GR];
 /** XP rating category of a skill (X18–X23). Set per skill: one tree may mix categories. */
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
@@ -32,7 +33,9 @@ export type SkillDef = {
 /** A source that opens or blocks a skill tree (TA1–TA11). 'class': the actor has that class, Current or
  * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
 /** raceTag: the actor's race carries that tag (RaceDef.tags), e.g. 'speaks' */
-export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' | 'skill'; id: string; level?: number };
+/** One access condition. Count kinds read `level` as the count: 'classes' = classes on the sheet in any state (id unused);
+ * 'allStep' = trees whose All-XXX at step `id` (e.g. '50') the actor has; 'skillsAbove' = skills whose true skill is above `id`. */
+export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' | 'skill' | 'classes' | 'allStep' | 'skillsAbove'; id: string; level?: number };
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
@@ -49,16 +52,18 @@ export type ClassDef = {
   creation?: { points?: number; level?: number };
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
   levelPerks?: Record<number, string[]>;
+  /** the default capstone: perk ids granted when the class reaches its top level (classMaxLevel, set by its tier) */
+  capstone?: string[];
   /** true skill each skill needs before a character without this class unlocks it */
   unlock?: Record<string, number>;
   /** either-of unlock: at least one of these skills must also reach its true skill */
   unlockAny?: Record<string, number>;
-  /** the default class: unlocked for a player whose current class reaches CLASS_MAX_LEVEL, so banked XP has somewhere to go */
+  /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
   fallback?: true;
   /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
   unlockPerk?: string;
-  /** alternate capstones: each can replace the default capstone (levelPerks at CLASS_MAX_LEVEL) when its conditions
-   * hold as the class reaches CLASS_MAX_LEVEL (Must / Either of / Blocked by, as in tree access) */
+  /** alternate capstones: each can replace the default capstone when its conditions hold as the class reaches its
+   * top level (Must / Either of / Blocked by, as in tree access) */
   capstones?: { perk: string; needs: TreeAccess }[];
 };
 
@@ -68,6 +73,8 @@ export type NaturalArmor = { covers: string[]; reduction: number; multiplier: nu
  * always has (BR3). Toughness, natural armor and a being's own attacks are on its race. */
 export type BodyType = {
   id: string;
+  /** the shape's display name (its id is BT + a number) */
+  name: string;
   general: { name: string; size: SizeId };
   naturalAttacks: AttackMode[];
   parts: PartDef[];
@@ -91,7 +98,7 @@ export type Library = {
   routineSets: Record<string, RoutineSet>;
   perks: Record<string, PerkDef>;
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
-  services?: Record<string, ServiceDef>; // PY3: services sellers offer, by numeric ID
+  services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
@@ -141,7 +148,7 @@ export type BankedAs = 'milestone' | 'allX' | 'other';
 export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules;
   bankedAs?: BankedAs; aimAt?: number };
 
-/** X6/X11: a library achievement, keyed by its fixed numeric id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is earned at `count`
+/** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
  * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree>. */
@@ -168,6 +175,7 @@ export type RaceDef = {
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
+  intelligence: IntelligenceKey; // an INTELLIGENCE key (src/scales.ts)
 };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].
@@ -175,8 +183,25 @@ export type RaceDef = {
  * and its Bane bonus is the lower level's bonus plus its own. */
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
 export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
-  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink';
+  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
-export type AchievementBy = 'body_type' | 'race' | 'group' | 'class';
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
-export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string; scar?: true };
+/** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
+export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
+/** a reward field of AchievementDef */
+export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight';
+export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
+  /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
+   * read from their rows; `excludes` names inherited rewards this level drops */
+  perk?: string; // granted when earned, kept for good
+  unawareShift?: number; // tier steps up on attacks against a target unaware of the owner
+  quieter?: number; // the owner's moves are this many steps quieter on the noise scale
+  readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
+  skillAdd?: Record<string, number>; // true skill added to these skills
+  renown?: number; // every foe fighting the owner takes this much off its first morale check against the owner
+  deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
+  excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
+  firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
+  /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
+  every?: number };

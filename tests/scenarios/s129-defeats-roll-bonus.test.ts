@@ -1,4 +1,6 @@
 // 129 D-119: total-defeats achievements add +1 per tier (I = +1, II = +2, III = +3) to every attack and
+import { RC } from '../../src/library/raceIds';
+import { SK } from '../../src/library/skillIds';
 // defense roll. Only the highest earned level counts; it stacks with Bane bonuses as one modifier type.
 import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
@@ -7,11 +9,12 @@ import { modTotal, ruleset } from '../../src/ruleset';
 import { grantAchievement } from '../../src/engine';
 import { defeatsRoll } from '../../src/ruleset/bane';
 import type { GameState } from '../../src/types';
+import { IT } from '../../src/library/itemIds';
 
 const arm = (s: GameState, id: string) => {
   const a = id === 'player' ? s.player : s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
-  a.core.inventory.push({ id: `w_${id}`, itemId: 'dagger', equippedIn: ['hand:right_arm'] });
+  a.core.inventory.push({ id: `w_${id}`, itemId: IT.dagger, equippedIn: ['hand:right_arm'] });
 };
 const fight = (s: GameState) => {
   place(s, 'patron_1', s.player.zone);
@@ -36,13 +39,13 @@ describe('129 total-defeats roll bonus', () => {
     grantAchievement(s, ACH.defeats_100);
     const m = [{ source: `achievement: ${ACH.defeats_100}`, type: 'achievement', value: 2 }];
     expect(fight(s)).toEqual({ atk: m, def: m });
-    const look = ruleset.roll({ actorId: 'player', skill: '14', modifiers: [], tierShifts: [], rollKind: 'perception' }, s, forcedRng([50]));
+    const look = ruleset.roll({ actorId: 'player', skill: SK.eyesight, modifiers: [], tierShifts: [], rollKind: 'perception' }, s, forcedRng([50]));
     expect(look.modifiers.filter((x) => x.type === 'achievement')).toEqual([]);
   });
   it('stacks with a Bane bonus as one modifier type: the weaker counts at half', () => {
     const s = makeVillage();
     grantAchievement(s, ACH.defeats_10); // +1
-    grantAchievement(s, ACH.first_defeat_race, 'human'); // +5 skill = +2.5 on the roll
+    grantAchievement(s, ACH.first_defeat_race, RC.human); // +5 skill = +2.5 on the roll
     expect(modTotal(fight(s).atk)).toBe(2.5 + 1 * 0.5);
   });
 });

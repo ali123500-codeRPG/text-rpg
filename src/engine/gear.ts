@@ -2,6 +2,7 @@
 import type { Actor, GameState, GearOp, ImprovisedBase, ItemInstance } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, itemDef } from '../library';
+import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
 import { actorById, isActive, zoneById } from './relations';
 
@@ -135,9 +136,11 @@ export function equipArmor(state: GameState, actor: Actor, instId: string | null
  * Loot L3: a scene object the player fights with becomes a story item on its improvised base (the base carries
  * IMPROVISED_HIT_ADJ). It goes into the actor's inventory; the caller draws it. Returns the instance id.
  */
+/** the Parser's improvised base words and their library items */
+export const IMPROVISED_ITEM: Record<ImprovisedBase, string> = { improvised_light: IT.improvised_light, improvised_medium: IT.improvised_medium, improvised_heavy: IT.improvised_heavy };
 export function improvise(state: GameState, actor: Actor, imp: { base: ImprovisedBase; name: string }): string {
-  const base = itemDef(state, imp.base);
-  const id = `${imp.base}_i${state.turn}`;
+  const base = itemDef(state, IMPROVISED_ITEM[imp.base]);
+  const id = `${base.id}_i${state.turn}`;
   const name = imp.name.trim().slice(0, CONFIG.TEXT_CAP) || base.name;
   if (!state.blueprints.some((b) => b.id === id))
     state.blueprints.push({ storyId: state.storyId, id, kind: 'item', data: { ...structuredClone(base), id, name, look: name } as unknown as Record<string, unknown> });

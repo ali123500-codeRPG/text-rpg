@@ -15,6 +15,7 @@ import { groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, vis
 import { charCard, invFocus, treeBars } from './charsheet';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
+import { IT } from '../library/itemIds';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -144,7 +145,7 @@ export function inventoryPage(api: GameApi) {
     cols: [{ key: 'name', title: 'Item' }, { key: 'where', title: 'Where' }, { key: 'needs', title: 'Needs' }, { key: 'qty', title: 'Qty', right: true }, { key: 'cond', title: 'Condition' }],
     groups: (s) => {
       const p = s.player, groups = new Map<string, TGroup & { sub: string; value: string; unit: string; how: string }>();
-      p.core.inventory.filter((i) => i.itemId !== 'coin').forEach((it, n) => {
+      p.core.inventory.filter((i) => i.itemId !== IT.coin).forEach((it, n) => {
         const d = safe(() => itemDef(s, it.itemId));
         const [id, title, color] = KIND_GROUP[d?.kind ?? ''] ?? ['other', 'Other', 'c3'];
         const g = groups.get(id) ?? { id, title, color, rows: [], combined: {}, value: '', unit: 'items', sub: '', how: `Everything of this kind you carry.` };
@@ -165,7 +166,7 @@ export function inventoryPage(api: GameApi) {
       }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title));
     },
     line: (s) => {
-      const coin = s.player.core.inventory.filter((i) => i.itemId === 'coin').reduce((a, i) => a + (i.qty ?? 1), 0);
+      const coin = s.player.core.inventory.filter((i) => i.itemId === IT.coin).reduce((a, i) => a + (i.qty ?? 1), 0);
       return `Coin ${coin}`;
     },
   });

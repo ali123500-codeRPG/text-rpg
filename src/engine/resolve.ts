@@ -1,4 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { bestReward } from '../ruleset/achRewards';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
@@ -28,6 +29,7 @@ import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } 
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
 import { SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
@@ -71,9 +73,10 @@ function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): 
   if (!BODY_MOVING.has(kind)) return noise;
   const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const w = worn && itemDef(state, worn.itemId).armor?.weight;
-  const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, 'quiet_mail') ? 1 : 0)) : 0;
-  const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, 'soft_tread') ? 1 : 0;
-  return NOISE.at(NOISE.pos(noise) + steps - soft);
+  const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
+  const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, PK.soft_tread) ? 1 : 0;
+  const quiet = kind === 'move' ? bestReward(a, 'quieter')?.value ?? 0 : 0; // an achievement reward
+  return NOISE.at(NOISE.pos(noise) + steps - soft - quiet);
 }
 
 function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined): GameEvent {
@@ -86,10 +89,14 @@ function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined)
   }
 }
 
-function initiativeOrder(state: GameState, ids: string[], rng: Rng): string[] {
+/** initiative: the ruleset's roll, but an actor unaware of anyone attacking it this turn takes INIT_UNAWARE (acts last); ties go to the seeded rng */
+function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Order>, rng: Rng): string[] {
+  const attackers = (id: string) => [...orders].filter(([, o]) => o.type === 'attack' && o.target === id).map(([by]) => actorById(state, by)!);
   const rows = ids.map((id) => {
-    // the ruleset applies INIT_UNAWARE to unaware actors (First-build ruleset); ties go to the seeded rng
-    return { id, init: ruleset.initiative(actorById(state, id)!, state, rng), tie: rng.next() };
+    const a = actorById(state, id)!;
+    const roll = ruleset.initiative(a, state, rng);
+    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware');
+    return { id, init: caught ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() };
   });
   rows.sort((x, y) => y.init - x.init || y.tie - x.tie);
   return rows.map((r) => r.id);
@@ -241,7 +248,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   // target moved first: resolves only within the mode's reach (links with sight); else a wasted action
   if (!m || dist > m.mode.reach) return wasted();
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
-  const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, 'in_and_out'); // A23 In and Out: only the target sees you
+  const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, PK.in_and_out); // A23 In and Out: only the target sees you
   const shows = fromHiding && m.mode.tree !== 'ranged' && !inAndOut;
   if (shows) a.posture = 'open'; // ST5: a melee blow shows you
   const ev = bark(mk(ctx, a, 'attack', { target: t.id, itemId: m.itemId }), o);
@@ -292,7 +299,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     for (const p of state.actors) if (p !== t && p.bandId === t.bandId && ev.perception[p.id]) morale(ctx, p, 'bandmate_down');
   }
   // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
-  if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'one_two')
+  if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, PK.one_two)
     && isActive(t) && t.zone === a.zone && freeHand(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
     if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
@@ -319,11 +326,11 @@ function onceThisEngagement(state: GameState, a: Actor, id: string): boolean {
  * yet in its engagement, gives the foe's defense roll tier shift −1. Each is used up when it applies. */
 function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerShifts?: TierShift[]; defenderShifts?: TierShift[] } {
   const { state } = ctx;
-  if (tree === 'melee' && hasPerk(a, 'opening_strike') && onceThisEngagement(state, a, `opening_strike:${t.id}`)) {
+  if (tree === 'melee' && hasPerk(a, PK.opening_strike) && onceThisEngagement(state, a, `opening_strike:${t.id}`)) {
     return { attackerShifts: [{ source: 'Opening Strike', value: 1 }] };
   }
   const fresh = !t.engagement || (t.engagement.start === state.turn && !ctx.acted.has(t.id));
-  if (tree === 'ranged' && fresh && hasPerk(a, 'unerring') && onceThisEngagement(state, a, 'unerring')) {
+  if (tree === 'ranged' && fresh && hasPerk(a, PK.unerring) && onceThisEngagement(state, a, PK.unerring)) {
     return { defenderShifts: [{ source: 'Unerring', value: -1 }] };
   }
   return {};
@@ -335,13 +342,13 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   // T4b Second Wind: once per engagement, at Wounded or worse (not down), the health track moves one level better
   const L = CONFIG.HEALTH_TRACK;
   const i = L.findIndex(([l]) => l === healthLevel(t));
-  if (isActive(t) && hasPerk(t, 'second_wind') && i >= L.findIndex(([l]) => l === 'Wounded') && !isDownLevel(L[i][0]) && onceThisEngagement(state, t, 'second_wind')) {
+  if (isActive(t) && hasPerk(t, PK.second_wind) && i >= L.findIndex(([l]) => l === 'Wounded') && !isDownLevel(L[i][0]) && onceThisEngagement(state, t, PK.second_wind)) {
     t.core.condition.hpLostPct = L[i - 1][1] as number;
-    emit(ctx, mk(ctx, t, 'perk_move', { effects: [{ kind: 'second_wind', actorId: t.id, data: { from: L[i][0], to: L[i - 1][0] } }] }));
+    emit(ctx, mk(ctx, t, 'perk_move', { effects: [{ kind: PK.second_wind, actorId: t.id, data: { from: L[i][0], to: L[i - 1][0] } }] }));
   }
   if (followUp) return;
   // T1c Counter: a melee attack on the owner that ends in Critical Failure or worse earns a free melee attack back, once per turn
-  if (!ranged && tierLevel(res.attack) <= TIERS.pos('critical_failure') && hasPerk(t, 'counter') && isActive(t) && isActive(a) && t.zone === a.zone
+  if (!ranged && tierLevel(res.attack) <= TIERS.pos('critical_failure') && hasPerk(t, PK.counter) && isActive(t) && isActive(a) && t.zone === a.zone
     && !ctx.counters.has(t.id)) {
     const back = defaultMode(state, t, 0);
     if (back && back.mode.tree !== 'ranged') {
@@ -350,21 +357,21 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
     }
   }
   // T2b Volley: once per engagement, after a ranged hit, a free shot at a foe already hostile to the owner that it sees
-  if (ranged && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'volley') && isActive(a) && readyThisEngagement(state, a, 'volley')) {
+  if (ranged && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, PK.volley) && isActive(a) && readyThisEngagement(state, a, PK.volley)) {
     const mode = usableModes(state, a).find((x) => x.itemId === itemId && x.mode.tree === 'ranged');
     const foes = allActors(state).filter((x) => x !== a && isActive(x) && hostile(state, x, a) && atLeast(beliefStatus(state, a, x), 'aware')
       && (shortestPath(state, a.zone, x.zone, true)?.length ?? Infinity) <= (mode?.mode.reach ?? -1));
     if (mode && foes.length) {
-      useThisEngagement(a, 'volley');
+      useThisEngagement(a, PK.volley);
       const pick = foes[rng.int(0, foes.length - 1)];
       doAttack(ctx, a, { ...nullOrder(a.id), type: 'attack', target: pick.id, item: mode.itemId, mode: mode.mode.id }, true);
     }
   }
   // T6a Strike and Fade: right after an attack from hiding, a free Vanishing roll in place
-  if (fromHiding && hasPerk(a, 'strike_and_fade') && isActive(a)) {
+  if (fromHiding && hasPerk(a, PK.strike_and_fade) && isActive(a)) {
     if (a.posture !== 'stealthy') { a.posture = 'stealthy'; stealthStart(state, a); }
     const ev = mk(ctx, a, 'hide', { vanish: true });
-    ev.effects.push({ kind: 'strike_and_fade', actorId: a.id, data: {} });
+    ev.effects.push({ kind: PK.strike_and_fade, actorId: a.id, data: {} });
     emit(ctx, ev);
   }
 }
@@ -617,7 +624,7 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
     if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
     // A19 Melt Away: a Vanish with nowhere to go vanishes in place, as the main action, where cover or shade allows
     const zone = zoneById(state, a.zone);
-    const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, 'melt_away') && !!zone && meltAwayHere(zone.cover, zoneLight(state, zone));
+    const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, PK.melt_away) && !!zone && meltAwayHere(zone.cover, zoneLight(state, zone));
     if (inPlace) o.vanish = true;
     o.type = inPlace ? 'hide' : goTo ? 'move' : 'hold';
   }
@@ -652,7 +659,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const ctx: Ctx = {
     state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(),
   };
-  const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), rng);
+  const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), orders, rng);
 
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order
   const ex = input.exchange;
