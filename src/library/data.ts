@@ -316,6 +316,9 @@ export function prototypeLibrary(): Library {
     classes: {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
       swordsman: { id: 'swordsman', name: 'Swordsman', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
+      // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
+      // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
+      sword_dancer: { id: 'sword_dancer', name: 'Sword-dancer', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
       late_bloomer: { id: 'late_bloomer', name: 'Unwritten Legend', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
     },

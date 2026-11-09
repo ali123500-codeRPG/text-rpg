@@ -47,6 +47,8 @@ export type ClassDef = {
   levelPerks?: Record<number, string[]>;
   /** true skill each skill needs before a character without this class unlocks it */
   unlock?: Record<string, number>;
+  /** either-of unlock: at least one of these skills must also reach its true skill */
+  unlockAny?: Record<string, number>;
 };
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
