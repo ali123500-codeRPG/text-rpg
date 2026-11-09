@@ -4,7 +4,7 @@ import type { AgentTurnLog, Volume } from './agents';
 import type { Tier } from './core';
 import type { LogEntry } from './core';
 
-export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[] };
+export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; classId?: string /* the starting class; left out = swordsman */ };
 
 export type LogLine = {
   turn: number;

@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
 import { MILESTONES, trueSkill } from './perks';
 import { skillOpen } from './access';
-import { itemDef } from '../library';
+import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
 import { SK } from '../library/skillIds';
 
@@ -72,6 +72,12 @@ export function markEndurance(state: GameState, actor: Actor, lostPct: number): 
   if (actor.id === state.player.id && lostPct >= CONFIG.ENDURANCE_MARK_PCT) mark(actor, SK.endurance);
 }
 
+/** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit */
+function improveRolls(a: Actor, raw: number): number {
+  const perks = getLibrary().perks;
+  return Math.max(1, ...a.core.perks.filter((p) => !p.dormant).map((p) => perks[p.perkId]?.improveRolls).filter((r) => r && raw < r.below).map((r) => r!.rolls));
+}
+
 /** Part 1 §6, unchanged: Burden snapshot, then one improvement roll per marked skill; marks clear. Returns the gains. */
 export function improveMarked(state: GameState, rng: Rng): { skill: string; from: number; to: number; milestone?: number }[] {
   const a = state.player, pr = a.progression;
@@ -85,13 +91,15 @@ export function improveMarked(state: GameState, rng: Rng): { skill: string; from
     const s = a.core.skills[id];
     if (!s || !skillOpen(a, id)) continue;
     const target = s.state === 'tagged' ? s.raw : s.raw + burden;
-    const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
-    if (!(roll > target || roll >= 99)) continue;
-    const from = s.raw, trueBefore = trueSkill(a, id);
-    s.raw += rng.int(1, 5);
-    const crossed = MILESTONES.filter((m) => trueBefore < m && trueSkill(a, id) >= m).pop();
-    gains.push({ skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) });
-    state.log.push({ turn: state.turn, code: 'skill_improved', detail: { skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) } });
+    for (let n = improveRolls(a, s.raw); n > 0; n--) { // Quick Study: two rolls below 15, each with its own gain
+      const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
+      if (!(roll > target || roll >= 99)) continue;
+      const from = s.raw, trueBefore = trueSkill(a, id);
+      s.raw += rng.int(1, 5);
+      const crossed = MILESTONES.filter((m) => trueBefore < m && trueSkill(a, id) >= m).pop();
+      gains.push({ skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) });
+      state.log.push({ turn: state.turn, code: 'skill_improved', detail: { skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) } });
+    }
   }
   pr.marks = [];
   return gains;

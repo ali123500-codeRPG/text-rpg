@@ -21,7 +21,7 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
-import { payDefeats } from './xp';
+import { payDefeats, unlockClasses } from './xp';
 import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
@@ -682,7 +682,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
-  if (updateEngagements(state, ctx.events) || state.stage.breakCause) improveMarked(state, rng);
+  if (updateEngagements(state, ctx.events) || state.stage.breakCause) { improveMarked(state, rng); unlockClasses(state); }
   for (const x of allActors(state)) expireMarks(state, x);
   for (const x of allActors(state)) grantAllSteps(state, x); // All-50 parts and mastery achievements
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter

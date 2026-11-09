@@ -2,7 +2,7 @@
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
 import { CONFIG } from '../config';
 import type { ArmorWeightKey } from '../scales';
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, Routine, RoutineSet, SituationTag, SkillDef, SkillGroup, XpCategory } from '../types';
+import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef, SkillGroup, XpCategory } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -81,6 +81,15 @@ const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
 ];
 const ARMOR = (w: ArmorWeightKey) => ({ reduction: CONFIG.ARMOR_PROTECTION[w][0], multiplier: CONFIG.ARMOR_PROTECTION[w][1], weight: w });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any' });
+
+/** class-level perks (ClassDef.levelPerks), granted by a class at a level */
+const CLASS_PERKS: Record<string, PerkDef> = {
+  quick_study: {
+    id: 'quick_study', name: 'Quick Study', built: true, classLevel: { classId: 'late_bloomer', level: 1 }, improveRolls: { below: 15, rolls: 2 },
+    story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
+    rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
+  },
+};
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: 'dagger', level: 'common', kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
@@ -296,7 +305,10 @@ export function prototypeLibrary(): Library {
       tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
-      swordsman: { id: 'swordsman', name: 'Swordsman', floors: { [SK.melee_medium]: 25, [SK.block]: 15 } },
+      // Ali (09/11/2026): Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
+      swordsman: { id: 'swordsman', name: 'Swordsman', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
+      // Ali (09/11/2026): the late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
+      late_bloomer: { id: 'late_bloomer', name: 'Unwritten Legend', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
@@ -338,7 +350,10 @@ export function prototypeLibrary(): Library {
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,
     // the 20 milestone picks; higher and banked perks stay in PERK_WRITEUPS until they get a milestone; All-50 parts (allStep) too
-    perks: Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS, ...ALL_PARTS].filter((d) => d.ladder || d.allStep).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
+    perks: {
+      ...Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS, ...ALL_PARTS].filter((d) => d.ladder || d.allStep).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
+      ...CLASS_PERKS,
+    },
     achievements: {
       // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level. Names grow grander with the feat.
       // after = the lower level it builds on; earning it switches the lower one off.
