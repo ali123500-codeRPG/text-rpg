@@ -26,4 +26,17 @@ describe('perk write-ups (story and rules views)', () => {
     const a = { core: { perks: [], skills: { [SK.melee_medium]: { raw: 40 } } }, progression: { unspentPerkPoints: 1 } } as never;
     expect(canTake(a, 'haggler')).toBe('not in the game yet');
   });
+  it('every write-up with no ladder yet says what it is banked as, with a fitting suggested milestone', () => {
+    const banked = PERK_WRITEUPS.filter((p) => !p.ladder && ['higher', 'very_high', 'banked'].includes(p.place));
+    expect(banked.length).toBeGreaterThan(0);
+    for (const p of banked) {
+      expect(p.bankedAs, p.ref).toBeDefined();
+      if (p.bankedAs === 'milestone' && p.aimAt) expect([60, 100, 140], p.ref).toContain(p.aimAt);
+      if (p.bankedAs === 'allX' && p.aimAt) expect([100, 150], p.ref).toContain(p.aimAt);
+    }
+    for (const p of PERK_WRITEUPS.filter((x) => x.ladder)) expect(p.bankedAs, p.ref).toBeUndefined();
+    // a suggestion never lands on a milestone a skill already fills
+    const taken = new Set(PERK_WRITEUPS.filter((p) => p.ladder).map((p) => `${p.ladder!.skill}:${p.ladder!.milestone}`));
+    for (const p of banked.filter((x) => x.bankedAs === 'milestone' && x.aimAt)) expect(taken.has(`${p.skill}:${p.aimAt}`), p.ref).toBe(false);
+  });
 });

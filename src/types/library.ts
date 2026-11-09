@@ -121,7 +121,11 @@ export type PerkDef = {
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
 export type PerkRules = { kind: string; trigger: string; conditions: string[]; effect: string; lasts: string; cooldown?: string; needs?: string; open?: string };
 /** a chosen or banked perk write-up (src/library/perks.ts): ref is its review-page id; place is where it sits for now */
-export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules };
+/** What a write-up with no ladder yet is kept for: a later milestone perk of its own skill, an All-X candidate
+ * (All-100/150 of the skill's tree), or something else. `aimAt` is the suggested milestone (60/100/140) or All tier (100/150). */
+export type BankedAs = 'milestone' | 'allX' | 'other';
+export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules;
+  bankedAs?: BankedAs; aimAt?: number };
 
 /** X6/X11: a library achievement, each with its own id and name. 'defeats' is earned at `count`
  * defeats (first defeat = count 1). With `by`, it is earned once per body type or race: the granted id is
