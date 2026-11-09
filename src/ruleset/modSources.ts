@@ -94,7 +94,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Scene difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scene\'s difficulty.',
     value: list(Object.fromEntries(Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => [k, CONFIG.DIFFICULTY.moderate - v]))) },
   // aim
-  { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at. Contests drop it.',
+  { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at.',
     value: list(CONFIG.AIM_PENALTY) },
   // the situation roll (no skill)
   { type: 'perk', roll: 'situation', source: 'Perk situation bonus', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for each perk with a situation value.',
