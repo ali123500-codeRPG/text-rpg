@@ -50,15 +50,34 @@ function card(sec: string, id: string, entry: unknown, title: string, chips: (HT
 }
 
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
+/** a field key as words: raceId → Race, focusTreeId → Focus tree, hpMultiplier → Hp multiplier */
+const humanKey = (k: string): string => { if (!/^[a-z][A-Za-z0-9_]*$/.test(k)) return k; const w = k.replace(/Ids?$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase(); return w.charAt(0).toUpperCase() + w.slice(1); };
+/** typed ids (RC1, CL6, IT2, SK1 …) shown as their entry's name, linked to its pop-up; the raw id stays in the Code view */
+let idIndex: Map<string, [string | null, string]> | undefined;
+function typedId(v: string): Node | null {
+  if (!/^[A-Z]{2,3}\d+$/.test(v)) return null;
+  if (!idIndex) {
+    idIndex = new Map();
+    for (const sec of SECTIONS) for (const [id, e] of Object.entries(lib[sec.table] as Record<string, Entry>)) {
+      if (!idIndex.has(id)) idIndex.set(id, [sec.key, String(e.name ?? e.label ?? (sec.table === 'skills' ? skillName(id) : id))]);
+    }
+    for (const [id, t] of Object.entries(lib.trees)) if (!idIndex.has(id)) idIndex.set(id, [null, (t as { name?: string }).name ?? id]);
+  }
+  const hit = idIndex.get(v);
+  if (!hit) return null;
+  return hit[0] ? link(hit[0], v, hit[1]) : h('span', { title: v }, hit[1]);
+}
 function val(v: unknown, depth = 0): Node | string {
   if (v === null || v === undefined) return none('—');
   if (v instanceof Node) return v;
+  if (typeof v === 'string') { const t = typedId(v); if (t) return t; }
   if (Array.isArray(v)) {
     if (!v.length) return none('empty');
+    if (v.every((x) => typeof x === 'string' && typedId(x))) return h('span', {}, ...v.flatMap((x, i) => [i ? ', ' : '', typedId(x as string)!]));
     if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(String(x))));
     return h('div', { class: 'lv-sub' }, v.map((x) => h('div', { class: 'lv-subitem' }, val(x, depth + 1))));
   }
-  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(k, val(x, depth + 1))));
+  if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(humanKey(k), val(x, depth + 1))));
   return String(v);
 }
 /** skill IDs are codes: show a skill field, or a table keyed by skill, by the skill's name */
@@ -74,7 +93,7 @@ const named = (k: string, v: unknown): unknown => {
   if (SKILL_KEYED.has(k) && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([a, b]) => [skillName(a), b]));
   return v;
 };
-const fields = (e: Entry, skip: string[]) => Object.entries(e).filter(([k]) => !skip.includes(k)).map(([k, v]) => row(k, val(named(k, v))));
+const fields = (e: Entry, skip: string[]) => Object.entries(e).filter(([k]) => !skip.includes(k)).map(([k, v]) => row(humanKey(k), val(named(k, v))));
 
 function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
   return Object.entries(table).map(([id, e]) => {
@@ -88,7 +107,7 @@ const IMPACT_TONE: Record<string, string> = { essential: 'lv-ess', normal: 'lv-n
 function figure(ct: BodyType | undefined, cls: (part: string) => string): HTMLElement | null {
   if (!ct?.figure) return null;
   const f = h('div', { class: 'bf-svg lv-fig' });
-  f.innerHTML = `<svg viewBox="${ct.figure.viewBox}" role="img" aria-label="${ct.id} body">${Object.entries(ct.figure.parts)
+  f.innerHTML = `<svg viewBox="${ct.figure.viewBox}" role="img" aria-label="${ct.name} body">${Object.entries(ct.figure.parts)
     .map(([id, d]) => `<path class="${cls(id)}" d="${d}"><title>${id === 'general' ? ct.general.name : label(id)}</title></path>`).join('')}</svg>`;
   return f;
 }
@@ -297,7 +316,7 @@ function races(): HTMLElement[] {
     const ct = lib.bodyTypes[r.bodyTypeId];
     return card('races', r.id, r, r.name, [chip(INTELLIGENCE.name(r.intelligence), toneFor('Intelligence', INTELLIGENCE.name(r.intelligence)))],
       h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)]), h('div', {},
-        row('Body', link('bodyTypes', r.bodyTypeId, label(r.bodyTypeId))),
+        row('Body', link('bodyTypes', r.bodyTypeId, lib.bodyTypes[r.bodyTypeId]?.name ?? r.bodyTypeId)),
         row('HP multiplier', `×${r.hpMultiplier}`),
         row('Intelligence', INTELLIGENCE.name(r.intelligence)),
         r.naturalAttacks?.length ? row('Own natural attacks', val(r.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`))) : null,
@@ -310,7 +329,7 @@ function races(): HTMLElement[] {
 }
 function bodyTypes(): HTMLElement[] {
   return [h('p', { class: 'hs-note' }, h('span', { class: 'lv-key lv-ess' }), 'essential ', h('span', { class: 'lv-key lv-norm' }), 'normal ', h('span', { class: 'lv-key lv-non' }), 'non-essential part'),
-    h('div', { class: 'lv-grid wide' }, Object.values(lib.bodyTypes).map((c) => card('bodyTypes', c.id, c, label(c.id), [chip(c.general.size, toneFor('Size', c.general.size))],
+    h('div', { class: 'lv-grid wide' }, Object.values(lib.bodyTypes).map((c) => card('bodyTypes', c.id, c, c.name, [chip(c.general.size, toneFor('Size', c.general.size))],
       h('div', { class: 'lv-armor' }, figure(c, (p) => IMPACT_TONE[impactOf(c, p)]), h('div', {},
         row('General area', `${c.general.name} · ${c.general.size}`),
         row('Natural attacks', c.naturalAttacks.length ? val(c.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`)) : none('none')),
@@ -588,7 +607,8 @@ function autoFacets(table: Record<string, Entry>): Facets {
   const keys = [...new Set(rows.flatMap(Object.keys))].filter((k) => k !== 'id' && rows.every((r) => r[k] === undefined || ['string', 'number', 'boolean'].includes(typeof r[k])))
     .filter((k) => { const n = new Set(rows.map((r) => r[k]).filter((v) => v !== undefined)).size; return n >= 2 && n <= 8 && n < rows.length; })
     .sort((a, b) => Number(rows.some((r) => typeof r[a] !== 'string')) - Number(rows.some((r) => typeof r[b] !== 'string'))).slice(0, 4); // words before numbers
-  return (e: Entry) => keys.map((k) => [k, e[k] as string]);
+  // groups and values in words: raceId RC1 → Race: Human
+  return (e: Entry) => keys.map((k) => [humanKey(k), typeof e[k] === 'string' ? typedId(e[k] as string)?.textContent ?? (e[k] as string) : (e[k] as string)]);
 }
 
 const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds' };
