@@ -6,7 +6,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, standInAdd, trueSkill } from './perks';
-import { achievementStandIn } from './achRewards';
+import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
@@ -135,14 +135,16 @@ export function rollMods(state: GameState, actor: Actor, kind: RollKind, itemId?
 }
 
 /** situation-roll modifiers from perks, gear and statuses naming the situation roll (one copy counts). */
-export function situationMods(state: GameState, actor: Actor): { source: string; type: 'perk' | 'gear' | 'status'; value: number }[] {
+export function situationMods(state: GameState, actor: Actor): { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] {
   const perks = getLibrary().perks;
-  const out: { source: string; type: 'perk' | 'gear' | 'status'; value: number }[] = [];
+  const out: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] = [];
   for (const p of actor.core.perks) {
     const def = perks[p.perkId];
     if (!p.dormant && def?.situation) out.push({ source: def.name, type: 'perk', value: def.situation });
   }
   for (const m of rollMods(state, actor, 'situation')) out.push({ ...m, type: 'gear' });
+  const ach = bestReward(actor, 'situation'); // an achievement reward (Old Blood)
+  if (ach) out.push({ source: ach.name, type: 'achievement', value: ach.value });
   // GAP: statuses have no library entries yet, so none can name the situation roll
   return out;
 }

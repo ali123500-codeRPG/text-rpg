@@ -101,4 +101,6 @@ export const MOD_SOURCES: ModSource[] = [
     value: 'the perk\'s situation value', feeds: (lib) => Object.values(lib.perks).filter((d) => d.situation).map((d) => ({ table: 'perks', id: d.id, name: d.name, value: sg(d.situation!) })) },
   { type: 'gear', roll: 'situation', source: 'Item situation effects', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for each item effect that names the situation roll.',
     value: 'the effect\'s value', feeds: (lib) => itemRollMods(lib, true) },
+  { type: 'achievement', roll: 'situation', source: 'Achievement situation bonus', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for the best current achievement with a situation value.',
+    value: 'the achievement\'s situation value', feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.situation).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(a.situation!) })) },
 ];

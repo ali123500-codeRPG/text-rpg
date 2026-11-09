@@ -192,7 +192,7 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
-  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct';
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -209,6 +209,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   pricePct?: number; // + this % off the owner's buying prices
   rally?: number; // allies fighting beside the owner get + this on their morale checks
   restPct?: number; // + this % HP and part healing on each rest
+  situation?: number; // + this on the owner's situation rolls
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };
