@@ -813,11 +813,11 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 ### Easy Speaker (Speech) · T7d
 
-*Story:* Words slide off you. Threats and coaxing aimed at you land one outcome worse.
+*Story:* Words slide off you. When someone tries to talk you round, your answer lands one outcome better.
 
 - **Kind:** Always on
-- **Trigger:** An NPC makes a Persuasion or Intimidation roll at the owner.
-- **Effect:** Tier shift −1 on that roll.
+- **Trigger:** The owner answers a speech contest: someone speaks to it with Persuasion, Intimidation or Barter.
+- **Effect:** Tier shift +1 on the owner's answering roll (Ali, 09/11/2026, option a).
 - **Lasts:** That roll.
-- **Needs first:** NPC speech aimed at the player: today only the player rolls speech, and NPCs answer with a contest roll.
-- **Built:** not yet
+- **Open:** Only the player starts speech contests today, so this helps NPC owners. When NPCs speak to the player with a roll (OQ-29), it covers the player too.
+- **Built:** yes
