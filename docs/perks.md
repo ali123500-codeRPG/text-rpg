@@ -748,10 +748,10 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 ### Curiouser and Curiouser (Perception) · T5d
 
-*Story:* Once you notice something, you notice everything. A good Eyesight or Earshot roll counts one outcome better.
+*Story:* Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.
 
 - **Kind:** Always on
-- **Trigger:** The owner makes an Eyesight or Earshot roll.
+- **Trigger:** The owner makes a sight or hearing roll (any skill with that function, Tremor included).
 - **Conditions:** The roll ends in Success or better.
 - **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
 - **Lasts:** That roll.

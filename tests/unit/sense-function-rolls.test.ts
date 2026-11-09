@@ -45,3 +45,14 @@ describe('sense rolls use the function', () => {
     expect(light(p)[0].value).toBeLessThan(0);
   });
 });
+
+describe('Curiouser and Curiouser reads the function (Ali, 09/11/2026)', () => {
+  it('a Tremor sight roll at Success or better counts one tier higher; a melee roll does not', async () => {
+    const { afterRollShifts } = await import('../../src/ruleset/allSteps');
+    const { TIERS } = await import('../../src/scales');
+    const s = makeVillage(), slime = actor(s, 'slime_1');
+    slime.core.perks.push({ perkId: 'curiouser', source: 'mastery', gainedTurn: 0 });
+    expect(afterRollShifts(slime, 'tremor', TIERS.pos('success'))).toEqual([{ source: 'Curiouser and Curiouser', value: 1 }]);
+    expect(afterRollShifts(slime, 'unarmed_natural', TIERS.pos('success'))).toEqual([]);
+  });
+});
