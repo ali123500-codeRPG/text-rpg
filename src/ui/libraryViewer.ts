@@ -771,6 +771,15 @@ function pickWords(): string {
 }
 function filter(): void {
   const q = search.value.trim().toLowerCase();
+  const allOn = allBox.checked && !!q;
+  document.body.classList.toggle('lv-allmode', allOn);
+  if (allOn) {
+    const n = searchAll(q);
+    if (allRes.parentNode !== body) body.prepend(allRes);
+    results.replaceChildren(`${n} match${n === 1 ? '' : 'es'} across all tables`, ' ', h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { search.value = ''; filter(); } }, 'Clear'));
+    return;
+  }
+  allRes.remove();
   const all = cards();
   for (const c of all) c.hidden = !passes(c, q);
   body.querySelectorAll<HTMLElement>('.lv-group').forEach((g) => { g.hidden = !!g.querySelector('.lv-card') && !g.querySelector('.lv-card:not([hidden])'); });
@@ -988,6 +997,24 @@ const viewOfTable: Record<string, 'cards' | 'table'> = remember<Record<string, '
 const modeOf = (key: string) => viewOfTable[key] ?? (TABLE_FIRST.has(key) ? 'table' : 'cards');
 const viewSwitch = h('div', { class: 'lv-seg', role: 'group', 'aria-label': 'Show entries as' });
 compareBtn.before(viewSwitch);
+// All tables (VR7): the search lists matches from every table, grouped by table; it stays on across tables
+const allBox = h('input', { type: 'checkbox', onchange: () => filter() }) as HTMLInputElement;
+search.after(h('label', { class: 'lv-all' }, allBox, 'All tables'));
+const allRes = h('div', { class: 'lv-allres' });
+function searchAll(q: string): number {
+  const seen = new Set<string>();
+  let n = 0;
+  const groups = SECTIONS.flatMap((sec) => {
+    if (seen.has(sec.table)) return [];
+    seen.add(sec.table);
+    const hits = Object.entries(lib[sec.table] as Record<string, Entry>).filter(([id, e]) => `${typedId(id)?.textContent ?? ''} ${JSON.stringify(e)}`.toLowerCase().includes(q));
+    n += hits.length;
+    return hits.length ? [h('section', { class: 'lv-allgroup' }, h('h2', {}, sec.title, h('span', { class: 'lv-size' }, ` · ${hits.length}`)),
+      h('ul', { class: 'lv-hits' }, hits.map(([id]) => h('li', {}, typedId(id) ?? link(sec.key, id, id)))))] : [];
+  });
+  allRes.replaceChildren(...(groups.length ? groups : [h('p', { class: 'lv-empty' }, `Nothing in any table matches “${search.value.trim()}”.`)]));
+  return n;
+}
 function drawSwitch(): void {
   const can = !!body.querySelector('.lv-grid > .lv-card:not(.lv-fixed)');
   viewSwitch.hidden = !can;
@@ -1050,7 +1077,7 @@ function route(): void {
     shown = sec.key;
     titleEl.replaceChildren(sec.title, h('span', { class: 'lv-size' }, ` · ${sizeOf(sec)}`));
     picks.clear();
-    search.value = ''; // a new table starts unfiltered
+    if (!allBox.checked) search.value = ''; // a new table starts unfiltered, unless the search covers all tables
     pane = paneOf[sec.key] ?? '';
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = facetsFor(sec);
