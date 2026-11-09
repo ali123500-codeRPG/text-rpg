@@ -3,8 +3,8 @@
 // another value of its group that shows on the same tab. A group with more values on one tab than there are
 // colours gets none (it stays a filter). Pure, so tests/unit/library-tones.test.ts can check it.
 
-/** the categorical hues from styles.css, in assignment order; --c3 (grey) last */
-export const PALETTE = ['--c1', '--c2', '--c7', '--c5', '--c12', '--c4', '--c15', '--c10', '--c14', '--c3'] as const;
+/** the HISAB category colours from styles.css, in assignment order: the most distinct first, --c3 (grey) last */
+export const PALETTE = ['--c1', '--c2', '--c7', '--c5', '--c12', '--c4', '--c15', '--c10', '--c14', '--c9', '--c13', '--c11', '--c8', '--c6', '--c16', '--c17', '--c19', '--c20', '--c21', '--c18', '--c22', '--c3'] as const;
 
 /** values whose colour carries a meaning of its own */
 export const FIXED: Record<string, Record<string, string>> = {
