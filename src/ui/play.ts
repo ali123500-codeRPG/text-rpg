@@ -6,10 +6,10 @@ import { PK } from '../library/perkIds';
 import type { Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView } from '../views';
-import { tierGap } from '../agents/game';
+import { gearRows, gearSnap, placeName, tierGap, type GearSnap } from '../agents/game';
 import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
-import { actorBody, getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
@@ -111,40 +111,12 @@ function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
   return zone ? [' · ', h('b', {}, zone), where ? ' · ' + where : ''] : where ? [' · ', h('b', {}, where)] : [];
 }
 
-/** "River path · the Riverside": the player's place and the place around it, for a place-break row */
-function placeName(s: GameState): string {
-  const place = s.places.find((x) => x.id === s.player.placeId);
-  const parent = place?.parentId ? s.places.find((x) => x.id === place.parentId) : undefined;
-  return cap([place?.names.current, parent?.names.current].filter(Boolean).join(' · '));
-}
-
 /** the player's gear and body as the UI saw them, to name what a turn changed (UI-only: nothing is stored) */
-type Snap = { gear: Map<string, { name: string; where: string; qty: number }>; parts: Record<string, string> };
-const handWord = (slot: string) => slot.replace(/^hand:/, '').replace(/_arm$/, '').replace(/_/g, ' ') + ' hand';
+type Snap = { gear: GearSnap; parts: Record<string, string> };
 function snapOf(s: GameState, p: Actor): Snap {
-  const gear = new Map<string, { name: string; where: string; qty: number }>();
-  for (const i of p.core.inventory) {
-    const hands = (i.equippedIn ?? []).filter((x) => x.startsWith('hand:'));
-    gear.set(i.id, { name: safe(() => itemDef(s, i.itemId).name) ?? i.itemId, qty: i.qty ?? 1,
-      where: hands.length ? `held:${hands.map(handWord).join(' and ')}` : i.equippedIn?.length ? 'worn' : 'pack' });
-  }
   const parts: Record<string, string> = {};
   for (const d of safe(() => actorBody(s, p).parts) ?? []) parts[d.id] = poolState(p.core.condition.parts[d.id] ?? 100);
-  return { gear, parts };
-}
-function gearRows(a: Snap, b: Snap): string[] {
-  const rows: string[] = [];
-  for (const [id, x] of b.gear) {
-    const was = a.gear.get(id);
-    if (!was || x.qty > was.qty) rows.push(`Picked up: ${x.name}`);
-    else if (x.qty < was.qty) rows.push(`Used: ${x.name}`);
-    if (was && was.where === x.where) continue;
-    if (x.where.startsWith('held:')) rows.push(`Now held: ${x.where.slice(5)} · ${x.name}`);
-    else if (x.where === 'worn') rows.push(`Now worn: ${x.name}`);
-    else if (was) rows.push(`Put away: ${x.name}`);
-  }
-  for (const [id, x] of a.gear) if (!b.gear.has(id)) rows.push(`Gone: ${x.name}`);
-  return rows;
+  return { gear: gearSnap(s, p), parts };
 }
 
 export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void };
@@ -301,7 +273,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (s && !api.busy()) {
       const cur = snapOf(s, s.player);
       if (snap && snapLine !== undefined && lastNarr && lastNarr !== snapLine && !entries.has(lastNarr)) {
-        gearOf.set(lastNarr, gearRows(snap, cur));
+        gearOf.set(lastNarr, gearRows(snap.gear, cur.gear));
         changedParts = new Set(Object.keys(cur.parts).filter((k) => snap!.parts[k] && snap!.parts[k] !== cur.parts[k]));
       }
       const at = { place: s.player.placeId, scene: s.stage.sceneNumber };
