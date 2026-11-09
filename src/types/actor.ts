@@ -35,7 +35,10 @@ export type PerkMark = { perk: string; target?: string; until?: number };
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
 export type EngagementKind = 'talk' | 'fight';
-export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number> };
+export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog };
+/** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
+ * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
+export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true };
 
 export type SkillState = 'tagged' | 'normal' | 'flawed';
 export type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };
@@ -87,7 +90,9 @@ export type Progression = {
   /** earned, each once (B4, X6). key = the library achievements table row, of = the body type, race or tree it names;
    * the name and XP level live only in that table. name is only on entries from older saves. */
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string }[];
-  defeats?: Record<string, number>; // defeat counts: 'all', 'body_type:<type>', 'race:<race>'
+  /** achievement tallies: '<rule>' or '<rule>:<by>:<of>' (a count, or the best reached for days, zones and beyond_crit) */
+  tally?: Record<string, number>;
+  zonesSeen?: string[]; // zones the player has entered
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
   quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
 };
@@ -103,6 +108,7 @@ export type Mind = {
   fearless?: boolean; // from the template's personality
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
+  hitUnaware?: true; // the player's last damaging hit landed while it was unaware
   xpPaid?: true; // its defeat has paid XP (B4)
   knowledge: Record<ActorId, Belief>;
   overrides?: Record<ActorId, Stance>;

@@ -3,6 +3,7 @@
 import type { Actor, AgreementEnd, AgreementMade, GameState, MemoryOps } from '../types';
 import { CONFIG } from '../config';
 import { actorById, isActive } from './relations';
+import { tally } from './xp';
 
 const logCode = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
@@ -37,6 +38,7 @@ export function makeAgreement(state: GameState, a: Actor, made: AgreementMade, h
   for (let i = 2; list.some((g) => g.id === id); i++) id = `deal_${state.turn}_${a.id}_${i}`;
   list.push({ id, parties: [a.id, other.id], text, madeTurn: state.turn, madeBy: a.id });
   logCode(state, 'agreement_made', { id, parties: [a.id, other.id] });
+  if (a === state.player || other === state.player) tally(state, 'deals');
 }
 
 /** a party ends its own deal as done or broken */

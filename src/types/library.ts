@@ -47,6 +47,8 @@ export type ClassDef = {
   levelPerks?: Record<number, string[]>;
   /** true skill each skill needs before a character without this class unlocks it */
   unlock?: Record<string, number>;
+  /** either-of unlock: at least one of these skills must also reach its true skill */
+  unlockAny?: Record<string, number>;
 };
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
@@ -159,4 +161,10 @@ export type RaceDef = {
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].
  * after: the key of the lower level this one builds on. Earning it switches the lower level off,
  * and its Bane bonus is the lower level's bonus plus its own. */
-export type AchievementDef = { id: string; name: string; level: string; rule: 'defeats' | 'mastery'; count?: number; by?: 'body_type' | 'race'; after?: string };
+/** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
+export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
+  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink';
+/** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class';
+/** scar: a negative achievement, listed under Scars instead of Achievements */
+export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string; scar?: true };
