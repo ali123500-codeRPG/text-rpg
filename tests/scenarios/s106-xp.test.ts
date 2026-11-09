@@ -10,6 +10,7 @@ import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
 import type { GameEvent } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { CL } from '../../src/library/classIds';
 
 const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'player', kind: 'attack', zone: 'field_mid', effects: [], noise: 'quiet', visibility: 'low', perception: {},
   attack: { attackerId: 'player', targetId: target, damage: 5 } as never });
@@ -102,7 +103,7 @@ describe('106 XP and levels', () => {
     pr.nextClass = 'slime';
     awardXp(s, CONFIG.LEVEL_XP + 5, 'test');
     expect(pr.xp).toBe(5);
-    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([['swordsman', 'previous', 1], ['slime', 'current', 1]]);
+    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 1], ['slime', 'current', 1]]);
     expect(pr.unspentPerkPoints).toBe(1); // level 2 is even
     expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: 'slime', level: 2 });
   });

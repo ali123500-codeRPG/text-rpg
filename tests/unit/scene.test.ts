@@ -281,7 +281,7 @@ describe('applyStagePlan', () => {
     expect(s.hidden.secrets[0].holderId).toBe('barkeep');
     const bp = s.blueprints.find((b) => b.kind === 'item')!;
     expect((bp.data as { name: string }).name).toBe("Wim's old blade");
-    expect((bp.data as { weapon: { modes: { hitAdj: number }[] } }).weapon.modes[0].hitAdj).toBe(CONFIG.QUALITY_TABLE.hitAdj[1]);
+    expect((bp.data as { weapon: { modes: { hitAdj: number }[] } }).weapon.modes[0].hitAdj).toBe(4); // QUALITY_HIT_FACTOR 0.04 × need 50 (fine) × quality 2
     expect(s.zones.find((z) => z.id === 'tav_cellar')!.groundItems[0].itemId).toBe(bp.id);
     expect(s.sceneCaps.minted).toBe(1);
   });

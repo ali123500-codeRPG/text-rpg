@@ -32,13 +32,15 @@ export type SkillDef = {
 /** A source that opens or blocks a skill tree (TA1–TA11). 'class': the actor has that class, Current or
  * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
 /** raceTag: the actor's race carries that tag (RaceDef.tags), e.g. 'speaks' */
-export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk'; id: string; level?: number };
+export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' | 'skill'; id: string; level?: number };
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
 export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess };
 export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
+  /** the class's tier (CLASS_TIERS key): how strong it is next to other classes */
+  tier: import('../scales').ClassTierKey;
   /** the public stranger label a player starting in this class has */
   label?: string;
   /** a creation option: points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
@@ -49,6 +51,13 @@ export type ClassDef = {
   unlock?: Record<string, number>;
   /** either-of unlock: at least one of these skills must also reach its true skill */
   unlockAny?: Record<string, number>;
+  /** the default class: unlocked for a player whose current class reaches CLASS_MAX_LEVEL, so banked XP has somewhere to go */
+  fallback?: true;
+  /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
+  unlockPerk?: string;
+  /** alternate capstones: each can replace the default capstone (levelPerks at CLASS_MAX_LEVEL) when its conditions
+   * hold as the class reaches CLASS_MAX_LEVEL (Must / Either of / Blocked by, as in tree access) */
+  capstones?: { perk: string; needs: TreeAccess }[];
 };
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };

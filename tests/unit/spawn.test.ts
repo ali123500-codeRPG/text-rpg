@@ -5,6 +5,7 @@ import { getLibrary, itemDef, npcTemplate, resetLibrary, setLibrary } from '../.
 import { shortBy } from '../../src/ruleset/requirements';
 import { CONFIG, resetConfig } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
+import { CL } from '../../src/library/classIds';
 
 afterEach(() => { resetConfig(); resetLibrary(); });
 
@@ -30,7 +31,7 @@ describe('player creation', () => {
       ['arming_sword', 'hand:right_arm', undefined], ['spear', undefined, undefined], ['crude_clothes', undefined, undefined], ['gambeson', 'armor', undefined], ['round_shield', 'hand:left_arm', undefined],
       ['coin', undefined, CONFIG.STARTING_COIN], ['bandage', undefined, CONFIG.STARTING_BANDAGES],
     ]);
-    expect(p.core.classes).toEqual([{ classId: 'swordsman', state: 'current', level: 4 }]); // EQ13: the player starts at level 4
+    expect(p.core.classes).toEqual([{ classId: CL.swordsman, state: 'current', level: 4 }]); // EQ13: the player starts at level 4
     expect(p.progression!.unspentPerkPoints).toBe(2); // the perk points of levels 2 and 4
     for (const i of p.core.inventory) expect(shortBy(p, itemDef(null, i.itemId))).toBe(0); // EQ13: the build meets its starting gear
     expect(() => createPlayer({ ...recommendedBuild(), tagged: [] }, 's1')).toThrow(/invalid build/);

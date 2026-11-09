@@ -9,6 +9,7 @@ import { hasPerk, standInAdd, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
+import { requirement } from './requirements';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
@@ -40,19 +41,25 @@ export function modeSkill(mode: AttackMode): string {
   return mode.skill ?? (mode.tree === 'unarmed' ? SK.unarmed_strike : CLASS_SKILL[mode.tree]?.[mode.class]);
 }
 
-/** gear skill bonuses for one skill; all kit effects share one KIT_BONUS */
+/** a standard-kit piece's bonus: EQUIP_FACTOR × the item's need; an item with no level keeps its own value */
+export function kitBonus(def: ItemDef, e: ItemEffect): number {
+  const r = requirement(def);
+  return r ? CONFIG.EQUIP_FACTOR * r.need : e.value;
+}
+
+/** gear skill bonuses for one skill; all kit effects share one bonus, the best of them */
 function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string }) {
   const out: { source: string; value: number }[] = [];
-  let kit: string | null = null;
+  let kit: { source: string; value: number } | null = null;
   for (const { def, e, source } of activeEffects(state, actor, ctx.itemId)) {
     if (e.kind !== 'skill') continue;
     const fits = e.skill === skill ||
       (e.skill === '$mode' && (def.weapon?.modes ?? []).some((m) => (!ctx.modeId || m.id === ctx.modeId) && modeSkill(m) === skill));
     if (!fits) continue;
-    if (e.kit) kit ??= source;
+    if (e.kit) { const v = kitBonus(def, e); if (!kit || v > kit.value) kit = { source, value: v }; }
     else out.push({ source, value: e.value });
   }
-  if (kit) out.push({ source: kit, value: CONFIG.KIT_BONUS });
+  if (kit) out.push(kit);
   return out;
 }
 

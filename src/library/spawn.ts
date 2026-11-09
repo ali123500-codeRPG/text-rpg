@@ -8,6 +8,7 @@ import { EQUIP_LEVELS } from '../scales';
 import { createRng } from '../rng';
 import { SK } from './skillIds';
 import { skillName } from './skillNames';
+import { CL } from './classIds';
 
 /** a fixed seed per template id, so every copy of a template spends its level points the same way */
 const templateSeed = (id: string) => [...id].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1;
@@ -120,7 +121,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
 }
 
 // ---------- player creation (Part 4 §4) ----------
-const PLAYER_CLASS = 'swordsman'; // the default starting class
+const PLAYER_CLASS: string = CL.swordsman; // the default starting class
 /** a starting class's creation points and starting level (ClassDef.creation, else CONFIG) */
 export const creationPoints = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.points ?? CONFIG.CREATION_POINTS;
 export const startLevel = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.level ?? CONFIG.START_LEVEL;
@@ -163,7 +164,7 @@ export function starterKit(a: Actor): ItemInstance[] {
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
 export function recommendedBuild(classId = PLAYER_CLASS): CreationBuild {
-  if (classId === 'late_bloomer') return { // 50 points; the same kit, so its gear is short at the start
+  if (classId === CL.late_bloomer || classId === CL.a_nobody) return { // 50 points; the same kit, so its gear is short at the start
     name: 'Aldric', classId,
     skills: { [SK.melee_medium]: 15, [SK.block]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.block, SK.endurance],

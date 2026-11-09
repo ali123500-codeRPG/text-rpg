@@ -73,7 +73,7 @@ describe('118 40/80/120 perks', () => {
     expect(d.modifiers.some((m) => m.type === 'roll_perk')).toBe(false);
   });
   it('Heavy Hand: heavy melee damage ×1.2', () => {
-    const plain = hit('greataxe', 'patron_1').r, boosted = hit('greataxe', 'patron_1', 'heavy_hand').r;
+    const plain = hit('greataxe', 'patron_1', undefined, undefined, undefined, 85).r, boosted = hit('greataxe', 'patron_1', 'heavy_hand', undefined, undefined, 85).r;
     expect(plain.damage).toBeGreaterThan(0);
     expect(boosted.damage).toBeCloseTo(plain.damage * 1.2, 5);
     expect(hit('dagger', 'patron_1', 'heavy_hand').r.damage).toBe(hit('dagger', 'patron_1').r.damage);
@@ -83,7 +83,7 @@ describe('118 40/80/120 perks', () => {
     const pierced = hit('crossbow', 'patron_1', 'armor_piercer', 'left_leg', 'plate_harness').r;
     expect(pierced.location).toBe('left_leg');
     expect(pierced.damage).toBeGreaterThan(plain.damage);
-    expect(hit('crossbow', 'patron_1', 'armor_piercer').r.damage).toBe(hit('crossbow', 'patron_1').r.damage); // no armor: no change
+    expect(hit('crossbow', 'patron_1', 'armor_piercer', undefined, undefined, 85).r.damage).toBe(hit('crossbow', 'patron_1', undefined, undefined, undefined, 85).r.damage); // no armor: no change
   });
   it('Quick Mend doubles natural recovery', () => {
     const healed = (perk: boolean) => {
