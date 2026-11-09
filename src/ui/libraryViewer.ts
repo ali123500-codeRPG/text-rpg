@@ -47,6 +47,7 @@ function card(sec: string, id: string, entry: unknown, title: string, chips: (HT
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
 function val(v: unknown, depth = 0): Node | string {
   if (v === null || v === undefined) return none('—');
+  if (v instanceof Node) return v;
   if (Array.isArray(v)) {
     if (!v.length) return none('empty');
     if (v.every((x) => typeof x !== 'object')) return h('span', { class: 'lv-chips' }, v.map((x) => chip(String(x))));
@@ -59,9 +60,11 @@ function val(v: unknown, depth = 0): Node | string {
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
-  const perkName = (id: string) => lib.perks[id]?.name ?? id;
-  if (k === 'unlockPerk' && typeof v === 'string') return perkName(v); // class fields name perks by id
-  if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, (ids as string[]).map(perkName)]));
+  // fields that hold perk ids show each perk as a link that opens its details
+  const perkLinks = (ids: string[]) => links('perks', ids.map((id) => [id, lib.perks[id]?.name ?? id]));
+  if (k === 'unlockPerk' && typeof v === 'string') return perkLinks([v]);
+  if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, perkLinks(ids as string[])]));
+  if (/perks?$|quirks?$/i.test(k) && Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && lib.perks[x])) return perkLinks(v as string[]);
   if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => [a, named(a, b)])) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
   if (SKILL_KEYED.has(k) && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([a, b]) => [skillName(a), b]));
   return v;
