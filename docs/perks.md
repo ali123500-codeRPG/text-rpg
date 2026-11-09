@@ -821,3 +821,13 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Open:** Only the player starts speech contests today, so this helps NPC owners. When NPCs speak to the player with a roll (OQ-29), it covers the player too.
 - **Built:** yes
+
+### Silver Words (Speech) · T7e
+
+*Story:* You know which words land. +5 to Persuasion, Intimidation and Barter.
+
+- **Kind:** Always on
+- **Trigger:** Always.
+- **Effect:** +5 true skill in Persuasion, Intimidation and Barter (Ali, 09/11/2026, Round 4 option a; the twin of Hunter's Eye).
+- **Lasts:** Always.
+- **Built:** yes
