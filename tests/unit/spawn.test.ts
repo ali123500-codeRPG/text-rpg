@@ -16,7 +16,7 @@ describe('player creation', () => {
     const b = recommendedBuild();
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.earshot]: 20 } })).toEqual(['Spend exactly 250 points (240 spent)']);
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.melee_medium]: 61, [SK.earshot]: 19 } })).toEqual(['Medium weapons is above 60']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.block]: 10, [SK.earshot]: 60 } })).toEqual(['Block must be at least 15 (class floor)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.block]: 35, [SK.earshot]: 35 } })).toEqual(['Block must be at least 40 (class floor)']); // Ali, 09/11/2026: floors 40/40
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.tremor]: 10, [SK.earshot]: 20 } })).toEqual(['Tremor is not open to the point-buy']);
     expect(validateBuild({ ...b, tagged: [SK.block, SK.dodge] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
     expect(validateBuild({ ...b, name: ' ' })).toEqual(['Name the character']);

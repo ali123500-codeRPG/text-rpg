@@ -37,7 +37,17 @@ export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk';
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
 export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess };
-export type ClassDef = { id: string; name: string; floors: Record<string, number> };
+export type ClassDef = {
+  id: string; name: string; floors: Record<string, number>;
+  /** the public stranger label a player starting in this class has */
+  label?: string;
+  /** a creation option (Ali, 09/11/2026): points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
+  creation?: { points?: number; level?: number };
+  /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
+  levelPerks?: Record<number, string[]>;
+  /** true skill each skill needs before a character without this class unlocks it */
+  unlock?: Record<string, number>;
+};
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
 export type NaturalArmor = { covers: string[]; reduction: number; multiplier: number; pools?: Record<string, number> };
@@ -102,6 +112,10 @@ export type PerkDef = {
   allStep?: { treeId: string; step: 50 | 100 | 150 };
   /** true skill added to every skill with this function (Hunter's Eye: +10 to the sight function) */
   fnSkill?: { fn: SkillFunction; add: number };
+  /** a class-level perk (ClassDef.levelPerks): the class and level that grant it */
+  classLevel?: { classId: string; level: number };
+  /** improvement rolls a marked skill gets while its raw value is below `below` (Quick Study: 2 below 15) */
+  improveRolls?: { below: number; rolls: number };
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
