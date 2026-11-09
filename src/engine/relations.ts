@@ -36,9 +36,15 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
   // an achievement's first-sight reward: a hunted kind meets b wary until b attacks it (the attack sets a hostile override)
   return s === 'hostile' && firstSightOf(b, a) ? 'opposed' : s;
 }
-/** hostile: a attacks b on sight. */
+/** friendly or warmer (friendly, friend, loyal) */
+export const warm = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) >= STANCES.pos('friendly');
+/** hostile: a attacks b on sight. RS3 loyal: a takes the side of anyone it is loyal to, so whoever is hostile to them
+ * is hostile to a too, unless a is friendly or warmer toward that one. */
 export function hostile(state: GameState, a: Actor, b: Actor): boolean {
-  return stance(state, a, b) === 'hostile';
+  const s = stance(state, a, b);
+  if (s === 'hostile') return true;
+  if (s === 'yielded' || warm(s)) return false;
+  return allActors(state).some((c) => c !== a && c !== b && isActive(c) && stance(state, a, c) === 'loyal' && stance(state, b, c) === 'hostile');
 }
 /** wary: opposed or colder. a's alert fires when it notices b, but only hostile attacks. */
 export function wary(state: GameState, a: Actor, b: Actor): boolean {
