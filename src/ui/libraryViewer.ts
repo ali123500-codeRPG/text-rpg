@@ -22,6 +22,7 @@ import { fmtDate, h } from './kit';
 import { skillName } from './creation';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
+import { classMaxLevel } from '../library/spawn';
 
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
@@ -250,7 +251,7 @@ function perks(): HTMLElement[] {
   const unused = [...all.filter((d) => !d.built), ...loose];
   // class perks: what each class grants by level (ClassDef.levelPerks), the same source the game reads
   const classes = byTier(); // every class gets a row, so one with no level perks shows as empty
-  const classPerkIds = new Set(classes.flatMap((c) => [...Object.values(c.levelPerks ?? {}).flat(), ...(c.capstones ?? []).map((x) => x.perk)]));
+  const classPerkIds = new Set(classes.flatMap((c) => [...Object.values(c.levelPerks ?? {}).flat(), ...(c.capstone ?? []), ...(c.capstones ?? []).map((x) => x.perk)]));
   const classPerks = all.filter((d) => classPerkIds.has(d.id) || d.classLevel);
   const other = all.filter((d) => d.built && !d.ladder && !d.allStep && !classPerks.includes(d));
   const quirks = all.filter((d) => d.quirk).length;
@@ -263,9 +264,9 @@ function perks(): HTMLElement[] {
     .map((t): [string, (c: string) => PerkDef[]] => [t.name, (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
   const classLevels = [...new Set(classes.flatMap((c) => Object.keys(c.levelPerks ?? {}).map(Number)))].sort((x, y) => x - y).map(String);
   // capstones (ClassDef.capstones) get their own column: picked at the level cap, each with its own access rule
-  const classCols = [...classLevels.map((l) => `Level ${l}`), ...(classes.some((c) => c.capstones?.length) ? ['Capstones'] : [])];
+  const classCols = [...classLevels.map((l) => `Level ${l}`), ...(classes.some((c) => c.capstone?.length || c.capstones?.length) ? ['Capstones'] : [])];
   const classRows = classes.map((c): [string, (col: string) => PerkDef[]] => [`${c.name} · ${CLASS_TIERS.name(c.tier)}`,
-    (col) => (col === 'Capstones' ? (c.capstones ?? []).map((x) => x.perk) : c.levelPerks?.[+col.replace('Level ', '')] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
+    (col) => (col === 'Capstones' ? [...(c.capstone ?? []), ...(c.capstones ?? []).map((x) => x.perk)] : c.levelPerks?.[+col.replace('Level ', '')] ?? []).map((id) => lib.perks[id]).filter(Boolean)]);
   return [
     h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a red edge is a quirk.`),
     h('p', { class: 'hs-note lv-chips' }, Object.entries(EFFECT_TONE).map(([e, t]) => chip(e, t))),
@@ -282,7 +283,7 @@ function perks(): HTMLElement[] {
         cardsOf('In the library, not built', all.filter((d) => !d.built), 'None.'),
         ...banked(loose)] },
       { key: 'class', title: 'Class perks', n: classPerks.length, content: [
-        h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts). Capstones are picked at the level cap; the Classes tab shows what each one needs.'),
+        h('p', { class: 'hs-note' }, 'Granted by a class for reaching a class level (levelPerks on the class in src/library/data.ts). Capstones come at the class\'s top level (set by its tier): the default one, or an alternate whose conditions hold; the Classes tab shows what each alternate needs.'),
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By class and level'), grid('Class', classCols, classRows)),
         cardsOf('Class perks', classPerks, 'No class grants a perk yet.')] },
       { key: 'other', title: 'Other', n: other.length, content: [
@@ -371,8 +372,11 @@ function classes(): HTMLElement[] {
     h('p', { class: 'hs-note' }, `Lowest tier first. Tiers (CLASS_TIERS in src/scales.ts): ${CLASS_TIERS.keys.map((k) => CLASS_TIERS.name(k)).join(', ')}.`),
     h('div', { class: 'lv-grid' }, byTier().map((c) => card('classes', c.id, c, c.name,
       [chip(CLASS_TIERS.name(c.tier), toneOf('Tier', CLASS_TIERS.name(c.tier))), c.fallback ? chip('default class', '--c3') : null, c.creation ? chip('starting class', '--c1') : null],
-      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'capstones']),
-      c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' }, c.capstones.map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', ...access(x.needs))))) : null))),
+      row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
+      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'capstone', 'capstones']),
+      c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
+        ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default', '--c3'))),
+        ...(c.capstones ?? []).map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', chip('alternate', '--c1'), ' ', ...access(x.needs))))) : null))),
   ];
 }
 
