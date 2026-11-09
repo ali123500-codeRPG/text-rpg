@@ -2698,6 +2698,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-140 | Multi-step quests | 2 | Deferred | Banked by Ali (09/11/2026, QT18): a quest chain with several goals in one quest. Today a quest has one goal, and a longer job is a linked follow-up quest (QT24). |
 | D-141 | Your own goals | 2 | Deferred | Banked by Ali (09/11/2026, QT20): the player writes a goal on the Quests page ("Become a knight"), tracked only: no giver, no check, no XP. |
 | D-142 | Quests held by NPCs | 2, 4 | Deferred | Banked by Ali (09/11/2026, QT26) under D-61: a recurring NPC (a rival, a companion) holds a quest code follows across scenes, using the same quest record with a holder field. |
+| D-143 | Quest achievements | 1, 2 | Built | Decided by Ali (09/11/2026, QT19 in the quests thread): finished quests earn Job Done (1, level 0), Reliable Hand (5, I), Hand for Hire (10, II), Sought After (25, III), The One They Send For (50, IV), tallied in endQuest. Giving up five quests (abandonQuest) earns the scar Word Not Kept. Scars pay no XP. |
 
 ## Check on release
 

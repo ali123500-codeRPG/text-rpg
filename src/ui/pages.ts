@@ -274,13 +274,13 @@ export function achievementsPage(api: GameApi) {
           ...(a.replacedBy ? { tones: { state: 'muted' as const } } : {}) }));
         const title = `Level ${REWARD_LEVELS.name(lv)}`;
         return { id: lv, title, rows, value: String(rows.length), unit: unitOf(rows.length, scars ? 'scar' : 'achievement'),
-          sub: `${CONFIG.REWARD_XP[lv] ?? 0} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
+          sub: scars ? 'no XP' : `${CONFIG.REWARD_XP[lv] ?? 0} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
       }).filter((g) => g.rows.length);
     },
     line: (s) => {
       const lib = getLibrary().achievements ?? {};
       const xp = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + (CONFIG.REWARD_XP[lib[a.key!].level] ?? 0), 0);
-      return `${xp} XP earned this way`;
+      return scars ? `${plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')}, no XP` : `${xp} XP earned this way`;
     },
   });
 }

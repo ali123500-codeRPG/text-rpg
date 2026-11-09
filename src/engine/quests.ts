@@ -13,7 +13,7 @@ import { buildLeakContext, leakScan } from '../agents/narration';
 import { actorById, allActors, zoneById } from './relations';
 import { applyMemoryOps } from './memory';
 import { logCode, stepStance } from './effects';
-import { awardXp } from './xp';
+import { awardXp, tally } from './xp';
 import { coinWords } from './trade';
 
 export const isOpen = (q: Quest) => q.state === 'active' || q.state === 'ready';
@@ -107,7 +107,7 @@ function endQuest(state: GameState, q: Quest, to: QuestState, why: string, colde
   state.hidden.agreements = (state.hidden.agreements ?? []).filter((g) => g.id !== q.dealId);
   logCode(state, 'quest_ended', { id: q.id, state: to, why });
   const giver = actorById(state, q.giver);
-  if (to === 'done') awardXp(state, CONFIG.QUEST_REWARD_XP[q.level] ?? 0, `quest:${q.id}`);
+  if (to === 'done') { awardXp(state, CONFIG.QUEST_REWARD_XP[q.level] ?? 0, `quest:${q.id}`); tally(state, 'quests_done'); }
   if (giver && (to === 'done' || colder)) stepStance(state, giver, state.player, to === 'done' ? 'friendlier' : 'colder');
 }
 
@@ -116,6 +116,7 @@ export function abandonQuest(state: GameState, id: string): boolean {
   const q = state.quests.find((x) => x.id === id && isOpen(x));
   if (!q) return false;
   endQuest(state, q, 'abandoned', 'player', true);
+  tally(state, 'quests_abandoned'); // a scar chain counts quests the player gave up
   const giver = actorById(state, q.giver);
   if (giver) applyMemoryOps(state, giver, { add: [`The player gave up the job: ${q.text}`], drop: [] });
   return true;
