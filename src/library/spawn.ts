@@ -4,7 +4,7 @@ import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { EQUIP_LEVELS } from '../scales';
+import { CLASS_TIERS, EQUIP_LEVELS } from '../scales';
 import { createRng } from '../rng';
 import { SK } from './skillIds';
 import { skillName } from './skillNames';
@@ -125,9 +125,16 @@ const PLAYER_CLASS: string = CL.swordsman; // the default starting class
 /** a starting class's creation points and starting level (ClassDef.creation, else CONFIG) */
 export const creationPoints = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.points ?? CONFIG.CREATION_POINTS;
 export const startLevel = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.level ?? CONFIG.START_LEVEL;
-/** class-level perks: the perks a class grants for reaching levels above `from` up to `to` */
+/** a class's top level: set by its tier (CLASS_TIER0_MAX_LEVEL + CLASS_LEVELS_PER_TIER × tier), at most CLASS_MAX_LEVEL */
+export function classMaxLevel(classId: string): number {
+  const c = getLibrary().classes[classId];
+  return Math.min(CONFIG.CLASS_MAX_LEVEL, CONFIG.CLASS_TIER0_MAX_LEVEL + CONFIG.CLASS_LEVELS_PER_TIER * (c ? CLASS_TIERS.pos(c.tier) : 0));
+}
+/** class-level perks: the perks a class grants for reaching levels above `from` up to `to`; its capstone comes at its top level */
 export function classPerks(classId: string, from: number, to: number, turn = 0): OwnedPerk[] {
-  const lv = getLibrary().classes[classId]?.levelPerks ?? {};
+  const c = getLibrary().classes[classId], top = classMaxLevel(classId);
+  const lv: Record<number, string[]> = { ...c?.levelPerks };
+  if (c?.capstone) lv[top] = [...(lv[top] ?? []), ...c.capstone];
   return Object.entries(lv).filter(([n]) => +n > from && +n <= to).flatMap(([, ids]) => ids.map((perkId) => ({ perkId, source: 'class' as const, gainedTurn: turn })));
 }
 /** who a new player is: body type, race, class and its perks. Tree access (TA1) reads these before the sheet exists. */

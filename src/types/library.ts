@@ -51,16 +51,18 @@ export type ClassDef = {
   creation?: { points?: number; level?: number };
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
   levelPerks?: Record<number, string[]>;
+  /** the default capstone: perk ids granted when the class reaches its top level (classMaxLevel, set by its tier) */
+  capstone?: string[];
   /** true skill each skill needs before a character without this class unlocks it */
   unlock?: Record<string, number>;
   /** either-of unlock: at least one of these skills must also reach its true skill */
   unlockAny?: Record<string, number>;
-  /** the default class: unlocked for a player whose current class reaches CLASS_MAX_LEVEL, so banked XP has somewhere to go */
+  /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
   fallback?: true;
   /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
   unlockPerk?: string;
-  /** alternate capstones: each can replace the default capstone (levelPerks at CLASS_MAX_LEVEL) when its conditions
-   * hold as the class reaches CLASS_MAX_LEVEL (Must / Either of / Blocked by, as in tree access) */
+  /** alternate capstones: each can replace the default capstone when its conditions hold as the class reaches its
+   * top level (Must / Either of / Blocked by, as in tree access) */
   capstones?: { perk: string; needs: TreeAccess }[];
 };
 

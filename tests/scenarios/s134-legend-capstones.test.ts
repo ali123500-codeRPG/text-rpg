@@ -1,4 +1,4 @@
-// 134 Unwritten Legend capstones: As Far as the Road Goes is the default at class level 20 (no ladder gating);
+// 134 Unwritten Legend capstones: As Far as the Road Goes is the default at class level 20, its top level (tier 5; no ladder gating);
 // Write Your Own Ending (needs 7 classes) and No Road Closed (needs an All-50 and 10 skills above 15) are alternates.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
@@ -31,6 +31,8 @@ describe('134 Unwritten Legend capstones', () => {
       for (const id of [CL.swordsman, CL.sword_dancer, CL.commoner, CL.a_nobody, CL.trader, 'x1']) p.core.classes.push({ classId: id, state: 'unlocked', level: 0 });
     }).p;
     expect(seven.progression!.capstoneOptions).toEqual({ [CL.late_bloomer]: ['write_your_own_ending'] });
+    expect(seven.core.perks.find((x) => x.perkId === 'as_far_as_the_road_goes')?.dormant).toBe(true); // inactive until the player picks
+    expect(plain.core.perks[0].dormant).toBeUndefined(); // nothing on offer: active at once
 
     const ten = (p: Actor) => { for (const id of Object.keys(getLibrary().skills).slice(0, 10)) p.core.skills[id] = { raw: 16, state: 'normal' }; };
     expect(legendAt19(ten).p.progression!.capstoneOptions).toBeUndefined(); // no All-50 yet
