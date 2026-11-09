@@ -93,6 +93,9 @@ export type Progression = {
   /** achievement tallies: '<rule>' or '<rule>:<by>:<of>' (a count, or the best reached for days, zones and beyond_crit) */
   tally?: Record<string, number>;
   zonesSeen?: string[]; // zones the player has entered
+  /** alternate capstones the player may swap in for a class's default, by class id; set when the class reaches
+   * CLASS_MAX_LEVEL with those alternates' conditions met, and cleared by a swap */
+  capstoneOptions?: Record<LibraryRef, LibraryRef[]>;
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
   quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
 };

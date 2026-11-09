@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { achievementName, charLevel, levelTarget, spendXp, xpToNext } from '../engine/xp';
+import { achievementName, charLevel, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
@@ -85,6 +85,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       steps(boxes, level, 1),
       bodyFigure(s, p)),
     xpTrack(s, p),
+    capstoneChoice(s, p),
     h('div', { class: 'cs-figs' },
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
       h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
@@ -118,6 +119,22 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
           open.map((c) => h('option', { value: c.classId, ...(capped(c.level) ? { disabled: true } : {}), ...(target && (pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) },
             capped(c.level) ? `${name(c.classId)} (level ${c.level}, the most)` : name(c.classId)))))
       : null);
+  return el;
+}
+
+/** alternate capstones on offer: the default is kept until the player swaps one in (once per class) */
+function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
+  const offers = Object.entries(p.progression?.capstoneOptions ?? {}).filter(([, ids]) => ids.length);
+  if (!offers.length) return null;
+  const lib = getLibrary();
+  const perk = (id: string) => lib.perks[id];
+  const el: HTMLElement = h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Capstone choice'),
+    offers.map(([classId, ids]) => {
+      const base = (lib.classes[classId]?.levelPerks?.[CONFIG.CLASS_MAX_LEVEL] ?? []).map((id) => perk(id)?.name ?? id).join(', ');
+      return h('div', {}, h('span', {}, `${lib.classes[classId]?.name ?? classId}: you have ${base || 'no capstone'}. You may swap it, once, for:`),
+        h('div', { class: 'actions' }, ids.map((id) => h('button', { type: 'button', title: perk(id)?.story ?? '',
+          onclick: () => { swapCapstone(p, classId, id, s.turn); el.replaceWith(capstoneChoice(s, p) ?? ''); } }, perk(id)?.name ?? id))));
+    }));
   return el;
 }
 

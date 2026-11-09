@@ -3,6 +3,8 @@
 // raised; its points are kept and come back with access (TA4 a). The same rules hold for the player and NPCs (TA9).
 import type { AccessCond, Actor, TreeAccess } from '../types';
 import { getLibrary } from '../library';
+import { trueSkill } from './perks';
+import { skillName } from '../library/skillNames';
 
 function holds(a: Actor, c: AccessCond): boolean {
   switch (c.kind) {
@@ -11,12 +13,14 @@ function holds(a: Actor, c: AccessCond): boolean {
     case 'body': return a.core.bodyTypeId === c.id;
     case 'class': return a.core.classes.some((x) => x.classId === c.id && !x.dormant && x.state !== 'unlocked' && x.level >= (c.level ?? 1));
     case 'perk': return a.core.perks.some((p) => p.perkId === c.id && !p.dormant); // perks and quirks
+    case 'skill': return trueSkill(a, c.id) >= (c.level ?? 0); // true skill at least level
   }
 }
 
 /** a condition as the player reads it: "Slime", "Swordsman 10", a race, class or perk name */
 export function condName(c: AccessCond): string {
   const lib = getLibrary();
+  if (c.kind === 'skill') return `${skillName(c.id)} ${c.level ?? 0}`;
   const name = c.kind === 'race' ? lib.races?.[c.id]?.name : c.kind === 'class' ? lib.classes[c.id]?.name : c.kind === 'perk' ? lib.perks[c.id]?.name : undefined;
   const n = name ?? c.id.charAt(0).toUpperCase() + c.id.slice(1).replace(/_/g, ' ');
   return c.kind === 'class' && (c.level ?? 1) > 1 ? `${n} ${c.level}` : n;
@@ -32,6 +36,9 @@ function ruleBlock(a: Actor, r?: TreeAccess): string {
   if (r.either?.length && !r.either.some((c) => holds(a, c))) return `Needs one of: ${r.either.map(condName).join(', ')}`;
   return '';
 }
+
+/** whether the actor meets a rule (no rule: yes) */
+export const ruleMet = (a: Actor, r?: TreeAccess): boolean => !ruleBlock(a, r);
 
 /** why the actor can't use the tree, or '' when it can */
 export const treeBlock = (a: Actor, treeId: string): string => ruleBlock(a, getLibrary().trees[treeId]?.access);
