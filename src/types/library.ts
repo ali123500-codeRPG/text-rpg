@@ -14,7 +14,7 @@ export type SkillGroup = (typeof GR)[keyof typeof GR];
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
-export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike' | 'speech';
+export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
 
@@ -88,7 +88,7 @@ export type Library = {
   skills: Record<string, SkillDef>;
   trees: Record<string, TreeDef>;
   classes: Record<string, ClassDef>;
-  roles: Record<RoleId, { shared: boolean }>;
+  roles: Record<RoleId, { name: string; shared: boolean }>;
   bodyTypes: Record<string, BodyType>;
   items: Record<string, ItemDef>;
   templates: Record<string, NpcTemplate>;

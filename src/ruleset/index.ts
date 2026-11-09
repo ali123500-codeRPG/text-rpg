@@ -1,5 +1,6 @@
 // W2 — Ruleset and gear maths. Part 1 §3–4, Part 3, Part 5 §2–6.
 // Contract: the eight Ruleset methods plus the helpers below. Every number comes from CONFIG.
+import { RL } from '../library/tableIds';
 import type {
   Actor, AttackRequest, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
   PartState, Rng, RollRequest, RollResult, Ruleset, SituationResult, Tier, TierRoll, TierShift,
@@ -308,7 +309,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const damage = location === 'shield' ? Math.max(0, raw) : (afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare) * hide;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
   const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, PK.leg_bolt)
-    && !!ct.parts.find((p) => p.id === location)?.roles.includes('move');
+    && !!ct.parts.find((p) => p.id === location)?.roles.includes(RL.move);
   return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(openArm ? { generalShare } : {}), ...(legBolt ? { legBolt } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, PK.shield_breaker) ? { shieldMult: 2 } : {}) } : {}) };
 }
 
@@ -359,7 +360,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     changed(part.id, from, to);
     if (to === 'Destroyed' && from !== 'Destroyed') {
       destroyedEssential = part.impact === 'essential';
-      if (part.roles.includes('grip')) {
+      if (part.roles.includes(RL.grip)) {
         const zone = zoneById(state, T.zone);
         for (const inst of T.core.inventory.filter((i) => handsOf(i).includes(part.id))) {
           T.core.inventory = T.core.inventory.filter((i) => i !== inst);

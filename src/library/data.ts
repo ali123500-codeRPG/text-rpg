@@ -1,5 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
+import { RL } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -28,42 +29,42 @@ const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles:
   ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[FUNCTION_GROUP[functions[0]]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
-  sk(SK.melee_light, TR.melee, [FN.arms], ['grip']),
-  sk(SK.melee_medium, TR.melee, [FN.arms], ['grip']),
-  sk(SK.melee_heavy, TR.melee, [FN.arms], ['grip']),
-  sk(SK.ranged_light, TR.ranged, [FN.ranged], ['grip']),
-  sk(SK.ranged_medium, TR.ranged, [FN.ranged], ['grip']),
-  sk(SK.ranged_heavy, TR.ranged, [FN.ranged], ['grip']),
-  sk(SK.unarmed_strike, TR.unarmed, [FN.unarmed], ['grip']),
-  sk(SK.unarmed_grapple, TR.unarmed, [FN.unarmed], ['grip']),
-  sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], ['grip']), // fighting with whatever is at hand
-  sk(SK.unarmed_natural, TR.natural, [FN.unarmed], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
-  sk(SK.dodge, TR.defense, [FN.defense], ['move']),
-  sk(SK.block, TR.defense, [FN.defense], ['grip']),
+  sk(SK.melee_light, TR.melee, [FN.arms], [RL.grip]),
+  sk(SK.melee_medium, TR.melee, [FN.arms], [RL.grip]),
+  sk(SK.melee_heavy, TR.melee, [FN.arms], [RL.grip]),
+  sk(SK.ranged_light, TR.ranged, [FN.ranged], [RL.grip]),
+  sk(SK.ranged_medium, TR.ranged, [FN.ranged], [RL.grip]),
+  sk(SK.ranged_heavy, TR.ranged, [FN.ranged], [RL.grip]),
+  sk(SK.unarmed_strike, TR.unarmed, [FN.unarmed], [RL.grip]),
+  sk(SK.unarmed_grapple, TR.unarmed, [FN.unarmed], [RL.grip]),
+  sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], [RL.grip]), // fighting with whatever is at hand
+  sk(SK.unarmed_natural, TR.natural, [FN.unarmed], [RL.strike]), // its own tree, open to slime and dragon bodies (TA5)
+  sk(SK.dodge, TR.defense, [FN.defense], [RL.move]),
+  sk(SK.block, TR.defense, [FN.defense], [RL.grip]),
   sk(SK.endurance, TR.defense, [FN.health], []), // endurance sets total HP
   // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.
   // What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it.
   sk(SK.light_armor, TR.armor, [FN.armor], []),
   sk(SK.medium_armor, TR.armor, [FN.armor], []),
   sk(SK.heavy_armor, TR.armor, [FN.armor], []),
-  sk(SK.eyesight, TR.perception, [FN.sight], ['sense'], 'sight'),
-  sk(SK.earshot, TR.perception, [FN.hearing], ['sense'], 'sound'),
+  sk(SK.eyesight, TR.perception, [FN.sight], [RL.sense], 'sight'),
+  sk(SK.earshot, TR.perception, [FN.hearing], [RL.sense], 'sound'),
   // Stealth (ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
-  sk(SK.sneaking, TR.stealth, [FN.stealth], ['move'], undefined, 'notice'),
-  sk(SK.combat_stealth, TR.stealth, [FN.stealth], ['move'], undefined, 'offensive'),
-  sk(SK.vanishing, TR.stealth, [FN.stealth], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
+  sk(SK.sneaking, TR.stealth, [FN.stealth], [RL.move], undefined, 'notice'),
+  sk(SK.combat_stealth, TR.stealth, [FN.stealth], [RL.move], undefined, 'offensive'),
+  sk(SK.vanishing, TR.stealth, [FN.stealth], [RL.move], undefined, 'offensive'), // ST11/ST18: breaks established sight
   // speech role: head wounds reduce speech rolls
-  sk(SK.persuasion, TR.speech, [FN.influence], ['speech']),
-  sk(SK.intimidation, TR.speech, [FN.influence], ['speech']),
-  sk(SK.barter, TR.speech, [FN.influence], ['speech']),
-  sk(SK.feint, TR.swordsman, [], ['grip'], undefined, 'offensive'),
-  sk(SK.riposte, TR.swordsman, [], ['grip'], undefined, 'offensive'),
-  sk(SK.disarm, TR.swordsman, [], ['grip'], undefined, 'offensive'),
+  sk(SK.persuasion, TR.speech, [FN.influence], [RL.speech]),
+  sk(SK.intimidation, TR.speech, [FN.influence], [RL.speech]),
+  sk(SK.barter, TR.speech, [FN.influence], [RL.speech]),
+  sk(SK.feint, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
+  sk(SK.riposte, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
+  sk(SK.disarm, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
-  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], ['sense'], 'sound', undefined, 'tier_0'),
+  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', undefined, 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
-  sk(SK.lockpicking, TR.tools, [], ['grip']),
+  sk(SK.lockpicking, TR.tools, [], [RL.grip]),
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -181,11 +182,11 @@ export const BODY_TYPES: Record<string, BodyType> = {
     naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' },
       { id: 'grapple', tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reach: 0, hands: 0, name: 'grapple' }],
     parts: [
-      { id: 'head', size: 'small', impact: 'essential', roles: ['sense', 'speech'], adjacent: ['general', 'neck'] },
-      { id: 'left_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
-      { id: 'right_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
-      { id: 'left_leg', size: 'normal', impact: 'normal', roles: ['move'] },
-      { id: 'right_leg', size: 'normal', impact: 'normal', roles: ['move'] },
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
+      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
+      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
+      { id: 'left_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
+      { id: 'right_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
     ],
     fallback: { attackSkill: SK.unarmed_strike },
@@ -215,12 +216,12 @@ export const BODY_TYPES: Record<string, BodyType> = {
     id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
     naturalAttacks: [],
     parts: [
-      { id: 'head', size: 'normal', impact: 'essential', roles: ['sense', 'strike', 'speech'] },
-      { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: ['fly'] },
-      { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: ['fly'] },
-      { id: 'forelegs', size: 'normal', impact: 'normal', roles: ['move'] },
-      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: ['move'] },
-      { id: 'tail', size: 'small', impact: 'non_essential', roles: ['strike'] },
+      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech] },
+      { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
+      { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
+      { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move] },
+      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move] },
+      { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
     ],
     fallback: { attackSkill: SK.unarmed_natural },
   },
@@ -373,7 +374,7 @@ export function prototypeLibrary(): Library {
       [SV.bath]: { id: SV.bath, name: 'bath', price: 2 },
       [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: 'clinic' },
     },
-    roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
+    roles: { [RL.sense]: { name: 'sense', shared: true }, [RL.grip]: { name: 'grip', shared: false }, [RL.move]: { name: 'move', shared: true }, [RL.fly]: { name: 'fly', shared: true }, [RL.strike]: { name: 'strike', shared: false }, [RL.speech]: { name: 'speech', shared: true } },
     bodyTypes: BODY_TYPES,
     // Healing sources (H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
