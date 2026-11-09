@@ -878,7 +878,7 @@ Rules for simultaneous orders, because the Parser and the Planner worked without
 
 **First-build ruleset.** Build TIERS, situation(), roll() and attack() as Parts 1 and 3 define them, and check() and contested() as Part 1 §4 sets out. The rest works like this:
 
-- initiative(): d100, with no skill (perks may change it later). Higher acts first. An unaware actor takes INIT\_UNAWARE (placeholder). Ties go to the seeded RNG.
+- initiative(): d100, with no skill (perks may change it later). Higher acts first. An actor unaware of anyone attacking it this turn takes INIT\_UNAWARE (placeholder), so it acts last. Ties go to the seeded RNG.
 - applyEffects(): attacks as Part 3 sets out. A check or a contest only changes beliefs (through updateBeliefs) and reveals secrets; it never changes an object or a place (OQ-22).
 - recordUse(): writes the use to the agent log and changes nothing, so no skill changes in the first build.
 - The morale check (Part 3, Morale) is roll() with Mind.morale; its outcome is saved in Mind.moraleState until the scene ends. No new interface method.
