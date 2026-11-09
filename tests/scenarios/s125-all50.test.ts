@@ -86,7 +86,7 @@ describe('125 All-50 parts', () => {
     expect(before).toEqual([5, -5]);
     expect([mod('sneaking'), mod('sight')]).toEqual([10, -5]); // dim read as dark for sneaking; sight unchanged
   });
-  it('Curiouser and Curiouser: an Eyesight or Earshot roll at Success or better counts one tier higher', () => {
+  it('Curiouser and Curiouser: a sight or hearing roll at Success or better counts one tier higher', () => {
     const s = makeVillage();
     set(s.player, ['sight', 'persuasion'], 50);
     give(s.player, 'curiouser');
