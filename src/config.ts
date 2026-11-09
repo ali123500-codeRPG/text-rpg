@@ -92,6 +92,7 @@ const DEFAULTS = {
   // ---- Part 4 ----
   POINTS_PER_LEVEL: 10, // Ali (08/11/2026): 10 × level (was 3)
   CREATION_POINTS: 250,
+  START_LEVEL: 4, // EQ13 (Ali, 08/11/2026): the player starts at level 4
   CREATION_MAX_SKILL: 60,
   CREATION_TAGS: 3,
   STARTING_COIN: 20,
@@ -104,6 +105,10 @@ const DEFAULTS = {
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
   ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
+  /** EQ9 (Ali, 08/11/2026): true skill each equipment level needs, Masterwork ending at 100 (even steps, placeholders) */
+  EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100 } as Record<string, number>,
+  /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
+  EQUIP_SHORT_STEP: 10,
   ARMOR_DODGE: { light: -5, medium: -10, heavy: -20 } as Record<string, number>,
   // GAP (placeholders, AN1–AN4 Ali 08/11/2026): worn armor makes body-moving events this many NOISE steps louder, per
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).

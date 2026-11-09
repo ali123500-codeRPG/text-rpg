@@ -1,7 +1,7 @@
 // 118 40/80/120 perks (Ali, 08/11/2026, "40 milestone perks: options"): +5 true skill in the skill, +1 in every other skill
 // sharing a function, plus one number. Darkness never helps a sneaker against a listener (P14).
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRng, forcedRng, makeVillage, place } from '../harness';
+import { createRng, forcedRng, makeVillage, place, fit } from '../harness';
 import { ruleset, trueSkill } from '../../src/ruleset';
 import { passiveHealing } from '../../src/engine/heal';
 import { resolveTurn } from '../../src/engine';
@@ -12,17 +12,18 @@ const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: '
 const wield = (s: GameState, itemId: string) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
   s.player.core.inventory.push({ id: 'w', itemId, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  fit(s.player, itemId);
 };
-const hit = (itemId: string, target: string, perk?: string, part?: string, armor?: string) => {
+const hit = (itemId: string, target: string, perk?: string, part?: string, armor?: string, d100 = 95) => {
   const s = makeVillage();
   wield(s, itemId);
   place(s, target, s.player.zone);
-  if (armor) s.actors.find((a) => a.id === target)!.core.inventory.push({ id: 'arm', itemId: armor, equippedIn: ['armor'] });
+  if (armor) fit(s.actors.find((a) => a.id === target)!, armor).core.inventory.push({ id: 'arm', itemId: armor, equippedIn: ['armor'] });
   if (perk) give(s.player, perk);
   const rolls: RollRequest[] = [];
   const real = ruleset.roll;
   const spy = vi.spyOn(ruleset, 'roll').mockImplementation((req, st, rng) => { rolls.push(req); return real(req, st, rng); });
-  const r = ruleset.attack({ attackerId: 'player', targetId: target, weaponId: 'w', targetPart: part ?? null, aimed: !!part }, s, forcedRng([95, 5, 50, 50]));
+  const r = ruleset.attack({ attackerId: 'player', targetId: target, weaponId: 'w', targetPart: part ?? null, aimed: !!part }, s, forcedRng([d100, 5, 50, 50]));
   spy.mockRestore();
   return { r, aim: rolls[0].modifiers.find((m) => m.source.startsWith('aim'))?.value, perkMods: r.attack.modifiers.filter((m) => m.type === 'roll_perk') };
 };
@@ -58,9 +59,9 @@ describe('118 40/80/120 perks', () => {
     expect(hit('greataxe', 'patron_1', 'keen_edge').perkMods).toEqual([]);
     expect(hit('dagger', 'patron_1').perkMods).toEqual([]);
     expect(hit('longbow', 'patron_1', 'steady_draw').perkMods).toEqual([{ source: 'Steady Draw', type: 'roll_perk', value: 5 }]);
-    const plain = hit('longbow', 'patron_1').r.damage;
+    const plain = hit('longbow', 'patron_1', undefined, undefined, undefined, 85).r.damage; // both rolls in the same tier
     expect(plain).toBeGreaterThan(0);
-    expect(hit('longbow', 'patron_1', 'steady_draw').r.damage).toBeCloseTo(plain * 1.1, 5);
+    expect(hit('longbow', 'patron_1', 'steady_draw', undefined, undefined, 85).r.damage).toBeCloseTo(plain * 1.1, 5);
   });
   it('Iron Grip: +10 on every grapple roll, attack or not', () => {
     const s = makeVillage();
