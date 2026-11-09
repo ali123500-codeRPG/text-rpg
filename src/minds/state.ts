@@ -98,7 +98,7 @@ export function raiseAlarm(state: GameState, a: Actor): void {
 export function updateAlarms(state: GameState, events: GameEvent[]): void {
   for (const a of state.actors) {
     if (!a.mind || !isActive(a)) continue;
-    const perceivedAlarm = events.some((e) => e.actorId !== a.id && ALARM_KINDS.has(e.kind) && !!e.perception[a.id]);
+    const perceivedAlarm = events.some((e) => e.actorId !== a.id && ALARM_KINDS.has(e.kind) && !e.spar && !!e.perception[a.id]); // SP11: a spar raises no alarm
     const waryKnown = Object.entries(a.mind.knowledge).filter(([id]) => {
       const o = actorById(state, id);
       return !!o && wary(state, a, o);

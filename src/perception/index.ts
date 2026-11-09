@@ -207,7 +207,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     });
     if (e.kind === 'attack' && e.target) {
       const target = actorById(state, e.target);
-      if (target && (target.id === o.id || target.bandId === o.bandId)) (o.mind.overrides ??= {})[e.actorId] = 'hostile';
+      if (target && !e.spar && (target.id === o.id || target.bandId === o.bandId)) (o.mind.overrides ??= {})[e.actorId] = 'hostile'; // SP1: not a sparring blow
       const inst = e.attack?.weaponId ?? e.itemId;
       const item = inst ? sender.core.inventory.find((i) => i.id === inst) : undefined;
       if (p.level === 'full' && item && itemDef(state, item.itemId).concealed) write(o, e.actorId, { revealed: [`item:${item.id}`] });

@@ -16,7 +16,7 @@ export type StageInfo = {
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
-  breakCause?: 'rest' | 'story_beat' | 'time_skip'; // P7: set by the engine; the director starts a new scene after this turn
+  breakCause?: 'rest' | 'story_beat' | 'time_skip' | 'knocked_out'; // P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere safe)
   /** OQ-27 (c): the NPC the player last spoke with this scene (sticky dialogue partner) */
   partner?: string;
 };
@@ -47,6 +47,10 @@ export type Quest = {
   pinned?: true; // shown on the Play screen's quest line
 };
 
+/** SP1/SP3: a spar between sides (one actor each for one against one; every actor on its own side for a free-for-all).
+ * out: who has yielded or reached the limit (SP4, SP5), with the turn; last: the turn of the latest blow between sides (or the start). */
+export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
+
 // In-memory working state, built from Part 4's pages on load. Never saved as one document.
 export type GameState = {
   storyId: StoryId;
@@ -71,6 +75,7 @@ export type GameState = {
   clocks: Record<string, number>;
   flags: Record<string, string | number | boolean>;
   quests: Quest[];
+  spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   settings: Settings;
   libraryVersion: number;
   blueprints: BlueprintPage[]; // story blueprints (story first, then library)
@@ -121,6 +126,7 @@ export type EnginePage = {
   flags: Record<string, string | number | boolean>;
   bands: Band[];
   quests: Quest[];
+  spars?: Spar[];
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */

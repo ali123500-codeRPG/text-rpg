@@ -1,11 +1,11 @@
 // Engagement (Part 2, Encounter modes, E1). An engagement is one encounter from an actor's point of
-// view: a fight, a negotiation, or both. It starts when another actor is engaged with it in a fight (one of the two is
+// view: a fight, a spar, a negotiation, or any of them. It starts when another actor is engaged with it in a fight (one of the two is
 // hostile to the other and believes in it at suspicious or higher) or in talk (one speaks to the other). It ends once
 // nothing has engaged it, either way, for ENGAGEMENT_END_TURNS turns in a row. Talk turning into a fight (or back)
 // stays one engagement, so once-per-engagement effects and the end-of-engagement improvement rolls happen once.
 import type { Actor, EngagementKind, GameEvent, GameState } from '../types';
 import { CONFIG } from '../config';
-import { actorById, allActors, atLeast, countsInFight, hostile, isActive } from './relations';
+import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring } from './relations';
 import { logCode } from './effects';
 
 /** a is engaged with b in a fight: a counts in a fight, is hostile to b and believes in b at suspicious or higher */
@@ -27,6 +27,8 @@ export function engagedThisTurn(state: GameState, events: GameEvent[]): Map<stri
   const add = (id: string, k: EngagementKind) => { const s = out.get(id) ?? new Set(); s.add(k); out.set(id, s); };
   const all = allActors(state);
   for (const a of all) for (const b of all) if (a !== b && fightingWith(state, a, b)) { add(a.id, 'fight'); add(b.id, 'fight'); }
+  // SP1: a spar is an engagement of its own kind
+  for (const a of all) for (const b of all) if (a !== b && countsInFight(a) && countsInFight(b) && sparring(state, a, b)) { add(a.id, 'spar'); add(b.id, 'spar'); }
   for (const e of events) {
     if (e.kind !== 'speak' || e.bark) continue;
     const speaker = actorById(state, e.actorId);
