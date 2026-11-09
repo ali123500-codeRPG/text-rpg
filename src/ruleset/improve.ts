@@ -5,7 +5,7 @@
 import type { Actor, AttackResult, CheckResult, ContestResult, GameState, Rng } from '../types';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
-import { MILESTONES, trueSkill } from './perks';
+import { MILESTONES, hasPerk, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
@@ -49,25 +49,29 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
   // each against its own window. Without this a skill below the stand-in share of another one could never rise.
   // a contest or defended attack whose tier gap is exactly 0 marks both sides' skills, inside the window or not
   const tied = 'gap' in result && result.gap === 0;
-  const both = (who: Actor | undefined, r: { skill: string; asked?: string }, opp: number | undefined) => {
-    markIfClose(state, who, r.skill, opp, tied);
-    if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp, tied);
+  // Every Fall a Lesson: losing by exactly one tier step marks too. The gap is B − A in a contest and defense − attack in
+  // an attack, so side A (the attacker) loses by one at gap +1 and side B (the defender) at gap −1.
+  const near = (who: Actor | undefined, side: 1 | -1) => 'gap' in result && result.gap === side && hasPerk(who, 'every_fall_a_lesson');
+  const both = (who: Actor | undefined, r: { skill: string; asked?: string }, opp: number | undefined, side: 1 | -1) => {
+    const force = tied || near(who, side);
+    markIfClose(state, who, r.skill, opp, force);
+    if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp, force);
   };
   if ('target' in result) {
     for (const sk of new Set([skill, result.skill, ...(result.asked ? [result.asked] : [])])) markIfClose(state, actor, sk, result.target);
     return;
   }
   if ('a' in result) {
-    const [me, them] = result.a.actorId === actor.id ? [result.a, result.b] : [result.b, result.a];
+    const [me, them, side] = result.a.actorId === actor.id ? [result.a, result.b, 1 as const] : [result.b, result.a, -1 as const];
     const other = actorById(state, them.actorId);
-    return both(actor, me, other ? trueSkill(other, them.skill) : undefined);
+    return both(actor, me, other ? trueSkill(other, them.skill) : undefined, side);
   }
   markArmor(state, result);
   const atk = result.attack, def = result.defense;
   const attacker = actorById(state, atk.actorId), defender = def ? actorById(state, def.actorId) : undefined;
   if (def && defender) {
-    both(attacker, atk, trueSkill(defender, def.skill));
-    if (attacker) both(defender, def, trueSkill(attacker, atk.skill));
+    both(attacker, atk, trueSkill(defender, def.skill), 1);
+    if (attacker) both(defender, def, trueSkill(attacker, atk.skill), -1);
   }
 }
 

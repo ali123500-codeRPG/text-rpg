@@ -26,7 +26,7 @@ describe('98 Minted reward cap', () => {
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
     const def = s.blueprints.find((b) => b.kind === 'item')!.data as { base: { quality: number; boosts: string }; weapon: { modes: { hitAdj?: number }[] } };
     expect(def.base).toMatchObject({ quality: 2, boosts: 'hitAdj' });
-    expect(def.weapon.modes[0].hitAdj).toBe(CONFIG.QUALITY_TABLE.hitAdj[1]);
+    expect(def.weapon.modes[0].hitAdj).toBe(4); // QUALITY_HIT_FACTOR 0.04 × need 50 (fine) × quality 2
     expect(s.log.some((l) => l.code === 'reward_repaired')).toBe(true);
   });
   it('run 2: a plan whose only faults are rewards applies at once, with no repair call', async () => {

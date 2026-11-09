@@ -5,11 +5,12 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { achievementName, charLevel, xpToNext } from '../engine/xp';
+import { achievementName, charLevel, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
+import { CLASS_TIERS } from '../scales';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -84,7 +85,8 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: l, 'aria-label': l }))),
       steps(boxes, level, 1),
       bodyFigure(s, p)),
-    xpTrack(p),
+    xpTrack(s, p),
+    capstoneChoice(s, p),
     h('div', { class: 'cs-figs' },
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
       h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
@@ -95,23 +97,46 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
         : h('span', {}, 'None yet')));
 }
 
-/** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. */
-function xpTrack(p: Actor): HTMLElement | null {
+/** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. A class at
+ * CLASS_MAX_LEVEL can't be picked; while no class can take a level, XP banks and the picker asks for one. */
+function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const pr = p.progression;
   if (!pr) return null;
   const lib = getLibrary();
   const need = xpToNext(p);
   const open = p.core.classes.filter((c) => c.state === 'current' || c.state === 'unlocked');
   const cur = open.find((c) => c.state === 'current');
-  const name = (id: string) => lib.classes[id]?.name ?? id;
-  return h('div', { class: 'cs-track' },
+  const target = levelTarget(p);
+  const name = (id: string) => lib.classes[id] ? `${lib.classes[id].name} (${CLASS_TIERS.name(lib.classes[id].tier)})` : id;
+  const capped = (lv: number) => lv >= CONFIG.CLASS_MAX_LEVEL;
+  const el: HTMLElement = h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (pr.xp / need) * 100)}%` })),
-    open.length > 1
+    !target ? h('small', {}, `Your class is at level ${CONFIG.CLASS_MAX_LEVEL}. XP is banked until you pick a class for the next level.`) : null,
+    open.length > 1 || !target
       ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),
-        h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; } },
-          open.map((c) => h('option', { value: c.classId, ...((pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) }, name(c.classId)))))
+        h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; spendXp(s); el.replaceWith(xpTrack(s, p) ?? ''); } },
+          !target ? h('option', { value: '', selected: true, disabled: true }, 'Choose a class') : null,
+          open.map((c) => h('option', { value: c.classId, ...(capped(c.level) ? { disabled: true } : {}), ...(target && (pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) },
+            capped(c.level) ? `${name(c.classId)} (level ${c.level}, the most)` : name(c.classId)))))
       : null);
+  return el;
+}
+
+/** alternate capstones on offer: the default is kept until the player swaps one in (once per class) */
+function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
+  const offers = Object.entries(p.progression?.capstoneOptions ?? {}).filter(([, ids]) => ids.length);
+  if (!offers.length) return null;
+  const lib = getLibrary();
+  const perk = (id: string) => lib.perks[id];
+  const el: HTMLElement = h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Capstone choice'),
+    offers.map(([classId, ids]) => {
+      const base = (lib.classes[classId]?.levelPerks?.[CONFIG.CLASS_MAX_LEVEL] ?? []).map((id) => perk(id)?.name ?? id).join(', ');
+      return h('div', {}, h('span', {}, `${lib.classes[classId]?.name ?? classId}: you have ${base || 'no capstone'}. You may swap it, once, for:`),
+        h('div', { class: 'actions' }, ids.map((id) => h('button', { type: 'button', title: perk(id)?.story ?? '',
+          onclick: () => { swapCapstone(p, classId, id, s.turn); el.replaceWith(capstoneChoice(s, p) ?? ''); } }, perk(id)?.name ?? id))));
+    }));
+  return el;
 }
 
 export function treeBars(s: GameState, p: Actor): HTMLElement {

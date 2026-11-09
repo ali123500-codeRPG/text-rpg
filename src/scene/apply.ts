@@ -11,6 +11,7 @@ import { buildActorView } from '../views';
 import { actorById, isActive, zoneById } from '../engine/relations';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyRewards } from './validate';
+import { requirement } from '../ruleset/requirements';
 
 function freshId(key: string, taken: Set<string>): string {
   let id = key;
@@ -87,7 +88,7 @@ function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'],
   if (def.weapon) {
     for (const mode of def.weapon.modes) {
       if (m.boosts === 'damageAdj') mode.damageAdj = (mode.damageAdj ?? 0) + T.damageAdj[q - 1];
-      else mode.hitAdj = (mode.hitAdj ?? 0) + T.hitAdj[q - 1];
+      else mode.hitAdj = (mode.hitAdj ?? 0) + Math.round(CONFIG.QUALITY_HIT_FACTOR * (requirement(def)?.need ?? 0) * q); // gear stats scale with need
     }
   }
   if (def.armor) def.armor.reduction += T.reduction[q - 1];

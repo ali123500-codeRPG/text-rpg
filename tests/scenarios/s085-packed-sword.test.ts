@@ -9,10 +9,10 @@ describe('85 Packed sword does nothing', () => {
     const sword = s.player.core.inventory.find((i) => i.itemId === 'arming_sword')!;
     const req = { actorId: 'player', skill: SK.melee_medium, modifiers: [], tierShifts: [], itemId: sword.id, rollKind: 'hit' as const };
     const drawn = ruleset.roll(req, s, forcedRng([50]));
-    expect(effectiveSkill(s, s.player, SK.melee_medium, { itemId: sword.id }).value).toBe(75);
+    expect(effectiveSkill(s, s.player, SK.melee_medium, { itemId: sword.id }).value).toBe(70); // fine sword: 0.4 × need 50 = +20 kit
     delete sword.equippedIn;
     const packed = ruleset.roll(req, s, forcedRng([50]));
     expect(effectiveSkill(s, s.player, SK.melee_medium, { itemId: sword.id }).value).toBe(50);
-    expect(drawn.margin - packed.margin).toBe(12.5); // +25 kit at the 0.5 skill weight
+    expect(drawn.margin - packed.margin).toBe(10); // +20 kit at the 0.5 skill weight
   });
 });

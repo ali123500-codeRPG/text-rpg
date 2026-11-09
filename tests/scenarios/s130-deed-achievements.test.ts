@@ -14,6 +14,7 @@ import type { GameEvent, GameState } from '../../src/types';
 import { isBane } from '../../src/ruleset/bane';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import { getLibrary } from '../../src/library';
+import { CL } from '../../src/library/classIds';
 
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.id);
 
@@ -59,7 +60,7 @@ describe('130 deed achievements', () => {
   });
   it('unlocking a class earns it once, named for the class', () => {
     const s = makeVillage();
-    s.player.core.classes = s.player.core.classes.filter((c) => c.classId !== 'swordsman');
+    s.player.core.classes = s.player.core.classes.filter((c) => c.classId !== CL.swordsman);
     s.player.core.skills[SK.melee_medium] = { raw: 40, state: 'normal' };
     s.player.core.skills[SK.block] = { raw: 40, state: 'normal' };
     unlockClasses(s);

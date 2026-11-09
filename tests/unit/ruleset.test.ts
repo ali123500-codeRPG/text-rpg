@@ -7,6 +7,9 @@ import {
 } from '../../src/ruleset';
 import type { Actor } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { kitBonus } from '../../src/ruleset/gear';
+import { CONFIG } from '../../src/config';
+import { getLibrary } from '../../src/library';
 
 const sword = 'player_arming_sword_1';
 
@@ -39,7 +42,15 @@ describe('ruleset maths', () => {
     expect(effectiveSkill(s, s.player, SK.unarmed_grapple)).toMatchObject({ skill: SK.unarmed_strike, value: 24 });
     expect(effectiveSkill(s, s.player, SK.unarmed_improvised)).toMatchObject({ skill: SK.unarmed_strike, value: 18 }); // flat 0.3 elsewhere (F4)
   });
-  it('kit pieces share one +25', () => {
+  it('a kit piece gives EQUIP_FACTOR × its need', () => {
+    const lib = getLibrary();
+    const bonus = (id: string) => kitBonus(lib.items[id], lib.items[id].effects!.find((e) => e.kit)!);
+    expect(CONFIG.EQUIP_FACTOR).toBe(0.4);
+    expect(['cudgel', 'dagger', 'round_shield', 'arming_sword', 'greataxe'].map(bonus)).toEqual([0, 10, 10, 20, 30]);
+    const minted = { ...lib.items.arming_sword, base: { itemId: 'arming_sword', quality: 3 as const, boosts: 'hitAdj' } };
+    expect(kitBonus(minted, minted.effects![0])).toBe(30); // quality 3: one level up (superior, need 75)
+  });
+  it('kit pieces share one bonus, the best of them', () => {
     const s = makeVillage();
     s.blueprints.push({ storyId: 'test', id: 'kit_belt', kind: 'item', data: {
       id: 'kit_belt', kind: 'accessory', name: 'kit belt', look: 'a belt', bulk: 0, value: 1, slot: 'accessory',

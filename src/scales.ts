@@ -79,3 +79,6 @@ export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy
 /** Skill tiers: a skill's tier sets its final efficiency multiplier (CONFIG.SKILL_TIER_MULT). */
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
 export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];
+/** Class tiers: how strong a class is, to compare classes and to place NPC templates */
+export const CLASS_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2'], ['tier_3', 'Tier 3'], ['tier_4', 'Tier 4'], ['tier_5', 'Tier 5']]);
+export type ClassTierKey = (typeof CLASS_TIERS.keys)[number];

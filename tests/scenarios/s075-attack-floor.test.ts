@@ -18,8 +18,8 @@ describe('75 Attack floor', () => {
   it('a Near Miss shifted to Failure by a natural 02–05 also misses', () => {
     const s = makeVillage();
     place(s, 'player', 'field_mid');
-    // player: 3 + 0.5×(50 + 25 kit) − 63.5 = −23 → Near Miss, natural −1 → Failure
-    const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false }, s, forcedRng([3]));
+    // player: 5 + 0.5×(50 + 20 kit) − 63.5 = −23.5 → Near Miss, natural −1 → Failure
+    const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false }, s, forcedRng([5]));
     expect(r.attack.tier).toBe('failure');
     expect(r.outcome).toBe('missed');
     expect(r.deciding.attack).toContain('fumble');
