@@ -56,7 +56,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Effective skill', at: 'effectiveSkill · src/ruleset/gear.ts',
         formula: 'effective skill = best of ( true skill × share + gear ) × tier multiplier, over the skill and its stand-ins',
         terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab). A function roll counts every skill with the function at 1.`],
-          ['gear', `skill effects of worn, held or carried items, also × share; a standard kit gives ${sg(CONFIG.KIT_BONUS)}`],
+          ['gear', `skill effects of worn, held or carried items, also × share; a standard kit gives EQUIP_FACTOR (${n(CONFIG.EQUIP_FACTOR)}) × its need, shared once per roll (the best piece)`],
           ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')]] },
       { name: 'Skill roll', at: 'roll · src/ruleset/index.ts',
         formula: `margin = d100 + ${n(W())} × effective skill + modifiers − ${n(NEED())}`,
