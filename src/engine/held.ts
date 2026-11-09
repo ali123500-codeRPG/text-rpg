@@ -24,7 +24,8 @@ export function breakFree(state: GameState, a: Actor, rng: Rng): { free: boolean
     return null;
   }
   const req = (id: string) => ({ actorId: id, skill: GRAPPLE, modifiers: [], tierShifts: [] });
-  const mine = ruleset.roll(req(a.id), state, rng);
+  // All-50 Hard to Hold: the owner's break-free roll gets tier shift +1
+  const mine = ruleset.roll({ ...req(a.id), tierShifts: hasPerk(a, 'hard_to_hold') ? [{ source: 'Hard to Hold', value: 1 }] : [] }, state, rng);
   const theirs = ruleset.roll(req(h.id), state, rng);
   const free = tierLevel(mine) - tierLevel(theirs) >= 0;
   if (free) delete a.heldBy;

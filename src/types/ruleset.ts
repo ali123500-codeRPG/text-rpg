@@ -84,6 +84,8 @@ export type AttackRequest = {
     defensesThisTurn?: number; // defenses the target already made this turn (outnumbered)
     attackerMods?: Mod[];
     defenderMods?: Mod[];
+    attackerShifts?: TierShift[]; // engine-side shifts on the attack roll (All-50 Opening Strike)
+    defenderShifts?: TierShift[]; // engine-side shifts on the defense roll (All-50 Unerring)
   };
 };
 export type AttackOutcome = 'missed' | 'dodged' | 'grazed' | 'blocked' | 'full_hit' | 'heavy_hit' | 'crushing_hit';
