@@ -49,6 +49,8 @@ export type ClassDef = {
   unlock?: Record<string, number>;
   /** either-of unlock: at least one of these skills must also reach its true skill */
   unlockAny?: Record<string, number>;
+  /** the default class: unlocked for a player whose current class reaches CLASS_MAX_LEVEL, so banked XP has somewhere to go */
+  fallback?: true;
 };
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };

@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { achievementName, charLevel, xpToNext } from '../engine/xp';
+import { achievementName, charLevel, levelTarget, spendXp, xpToNext } from '../engine/xp';
 import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
@@ -84,7 +84,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: l, 'aria-label': l }))),
       steps(boxes, level, 1),
       bodyFigure(s, p)),
-    xpTrack(p),
+    xpTrack(s, p),
     h('div', { class: 'cs-figs' },
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
       h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
@@ -95,23 +95,30 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
         : h('span', {}, 'None yet')));
 }
 
-/** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. */
-function xpTrack(p: Actor): HTMLElement | null {
+/** X9/X15: one XP bar, and a picker for the class the next level goes to when there is a choice. A class at
+ * CLASS_MAX_LEVEL can't be picked; while no class can take a level, XP banks and the picker asks for one. */
+function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const pr = p.progression;
   if (!pr) return null;
   const lib = getLibrary();
   const need = xpToNext(p);
   const open = p.core.classes.filter((c) => c.state === 'current' || c.state === 'unlocked');
   const cur = open.find((c) => c.state === 'current');
+  const target = levelTarget(p);
   const name = (id: string) => lib.classes[id]?.name ?? id;
-  return h('div', { class: 'cs-track' },
+  const capped = (lv: number) => lv >= CONFIG.CLASS_MAX_LEVEL;
+  const el: HTMLElement = h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (pr.xp / need) * 100)}%` })),
-    open.length > 1
+    !target ? h('small', {}, `Your class is at level ${CONFIG.CLASS_MAX_LEVEL}. XP is banked until you pick a class for the next level.`) : null,
+    open.length > 1 || !target
       ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),
-        h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; } },
-          open.map((c) => h('option', { value: c.classId, ...((pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) }, name(c.classId)))))
+        h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; spendXp(s); el.replaceWith(xpTrack(s, p) ?? ''); } },
+          !target ? h('option', { value: '', selected: true, disabled: true }, 'Choose a class') : null,
+          open.map((c) => h('option', { value: c.classId, ...(capped(c.level) ? { disabled: true } : {}), ...(target && (pr.nextClass ?? cur?.classId) === c.classId ? { selected: true } : {}) },
+            capped(c.level) ? `${name(c.classId)} (level ${c.level}, the most)` : name(c.classId)))))
       : null);
+  return el;
 }
 
 export function treeBars(s: GameState, p: Actor): HTMLElement {

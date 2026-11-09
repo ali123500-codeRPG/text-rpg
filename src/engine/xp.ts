@@ -17,24 +17,47 @@ export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a)
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
-/** Award XP to the player with a trail entry; level up as often as the XP allows (X9: into the chosen class). */
+/** Award XP to the player with a trail entry, then level up as often as the XP allows (X9: into the chosen class). */
 export function awardXp(state: GameState, amount: number, source: string): void {
   const p = state.player, pr = p.progression;
   if (!pr || !(amount > 0)) return;
   pr.xp += amount;
   (pr.xpLog ??= []).push({ source, amount, turn: state.turn });
-  while (pr.xp >= xpToNext(p)) {
+  spendXp(state);
+}
+
+const capped = (c: { level: number }) => c.level >= CONFIG.CLASS_MAX_LEVEL;
+
+/** the class the next level goes to: the picked one, else the current one; none when that class is at the cap */
+export function levelTarget(p: Actor) {
+  const cur = p.core.classes.find((c) => c.state === 'current');
+  const pick = p.core.classes.find((c) => c.classId === p.progression?.nextClass && c.state !== 'previous') ?? cur;
+  return pick && !capped(pick) ? pick : undefined;
+}
+
+/** Level up as often as the XP allows. With no class to level (the target is at CLASS_MAX_LEVEL) the XP stays
+ * banked; picking a class with room (the sheet's picker) calls this again and every banked level is taken. */
+export function spendXp(state: GameState): void {
+  const p = state.player, pr = p.progression;
+  if (!pr) return;
+  while (pr.xp >= xpToNext(p) && levelTarget(p)) {
     pr.xp -= xpToNext(p);
     const up = levelUp(p, state.turn);
-    pr.xpLog.push({ source: 'level', amount: 0, turn: state.turn, levelUp: up });
+    (pr.xpLog ??= []).push({ source: 'level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
+  }
+  const cur = p.core.classes.find((c) => c.state === 'current');
+  if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the cap
+    if (!c.fallback || p.core.classes.some((x) => x.classId === c.id)) continue;
+    p.core.classes.push({ classId: c.id, state: 'unlocked', level: 0 });
+    logCode(state, 'class_unlocked', { classId: c.id });
   }
 }
 
 function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
   const pr = p.progression!;
   const cur = p.core.classes.find((c) => c.state === 'current');
-  const pick = p.core.classes.find((c) => c.classId === pr.nextClass && c.state !== 'previous') ?? cur;
+  const pick = levelTarget(p);
   if (!pick) return { classId: '', level: charLevel(p) };
   if (pick !== cur) { // Part 4: putting a level into an unlocked class makes it current
     if (cur) cur.state = 'previous';
