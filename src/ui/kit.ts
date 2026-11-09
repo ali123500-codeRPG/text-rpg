@@ -69,8 +69,9 @@ export function visPass(group: string, picks: Record<string, VisState>): boolean
 
 // ---------- Grouped table ----------
 export type Col = { key: string; title: string; right?: boolean };
-export type TRow = { id: string; cells: Record<string, string>; sortKey?: number };
-export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string> };
+/** tones: a per-cell colour (bad = red, muted = grey), e.g. the inventory's Needs column (EQ7) */
+export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted'> };
+export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string>; combinedTones?: Record<string, 'bad' | 'muted'> };
 
 /** natural-number title order: "Slime 2" before "Slime 10" */
 export const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
@@ -103,7 +104,7 @@ export function groupedTable(opts: {
       cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
         i === 0 ? [h('span', { class: 'hs-chev' }, isOpen ? '⌄' : '›'), g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null, g.title,
           h('button', { class: 'hs-chip', type: 'button', title: isOpen ? 'Fold the rows' : `Open the ${rows.length} rows`, onclick: (e: Event) => { e.stopPropagation(); toggle(); } }, `↻${rows.length}`)]
-          : g.combined[c.key] ?? ''))));
+          : g.combinedTones?.[c.key] ? h('span', { class: 'tone-' + g.combinedTones[c.key] }, g.combined[c.key] ?? '') : g.combined[c.key] ?? ''))));
     if (isOpen) rows.forEach((r, i) => body.append(dataRow(r, cols, opts.onField, i + 1, g)));
   }
   return h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, th)), body);
@@ -113,7 +114,7 @@ function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void
   return h('tr', {}, cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
     i === 0 && n !== null ? h('span', { class: 'sn' }, `${n}.`) : null,
     i === 0 && n === null && g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null,
-    h('span', { class: 'fld', onclick: () => onField(r, c.key) }, r.cells[c.key] ?? '–'))));
+    h('span', { class: 'fld' + (r.tones?.[c.key] ? ' tone-' + r.tones[c.key] : ''), onclick: () => onField(r, c.key) }, r.cells[c.key] ?? '–'))));
 }
 
 // ---------- Side panel ----------
