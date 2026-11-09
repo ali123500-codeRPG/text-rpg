@@ -8,6 +8,7 @@ import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
+import { placeName } from '../agents/game';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -20,6 +21,8 @@ export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(
 export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
   let state: GameState | null = null;
   let lines: LogLine[] = [];
+  const KETTLE = { id: 'tavern', name: 'The Crooked Kettle' };
+  const placeOf = (st: GameState) => ({ id: st.player.placeId, name: placeName(st) });
   let busy = false, fell = !!opts.fell, n = 0;
   const notices: Notice[] = opts.notices ?? [];
   const subs = new Set<() => void>();
@@ -46,11 +49,11 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
-      { turn: 1, kind: 'narration', text: NARRATION[0] },
+      { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scene: 1 },
       { turn: 2, kind: 'player', text: 'I head out through the gate to the field' },
-      { turn: 2, kind: 'narration', text: NARRATION[1] },
-      { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it' },
-      { turn: 3, kind: 'narration', text: NARRATION[2],
+      { turn: 2, kind: 'narration', text: NARRATION[1], place: KETTLE, scene: 2, gear: ['Now held: right hand · Arming sword', 'Now held: left hand · Round shield'] },
+      { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it', aimed: true },
+      { turn: 3, kind: 'narration', text: NARRATION[2], place: KETTLE, scene: 2,
         check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
         heals: [{ source: 'bandage', from: 'Hurt', to: 'Bruised', parts: [{ id: 'left_leg', from: 'Damaged', to: 'Healthy' }] }],
@@ -77,12 +80,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one
       const t = state.turn;
       if (text === '/undo') { fell = false; state.turn = Math.max(1, t - 1); lines = [...lines, { turn: state.turn, kind: 'command', text: 'Turn undone.' }]; emit(); return; }
-      lines = [...lines, { turn: t, kind: text.startsWith('/') ? 'command' : 'player', text }];
+      lines = [...lines, { turn: t, kind: text.startsWith('/') ? 'command' : 'player', text, ...(o?.aimed ? { aimed: true } : {}) }];
       busy = true; emit();
       await new Promise((r) => setTimeout(r, 600));
       state.turn = t + 1;
       if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
-      lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`] }];
+      lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
+        place: placeOf(state), scene: state.stage.sceneNumber }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
