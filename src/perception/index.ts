@@ -37,6 +37,19 @@ function reach([full, partial]: [number, number], d: number | null): Perception 
   return d === null ? null : d <= full ? 'full' : d <= partial ? 'partial' : null;
 }
 
+/** how well a sound of this noise made in that zone reaches the observer (null: not heard).
+ * A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed. */
+function soundReach(state: GameState, observer: Actor, zone: string, noise: GameEvent['noise']): Perception | null {
+  const up = hasPerk(observer, PK.keen_ear) ? 1 : 0;
+  const [full, heard] = CONFIG.NOISE_REACH[noise];
+  return reach([full + up, heard + up], dist(state, observer.zone, zone, false));
+}
+
+/** C1 Never Surprised: the owner can hear a sound of this noise made in that zone (fully or partly), stealth aside */
+export function hears(state: GameState, observer: Actor, zone: string, noise: GameEvent['noise']): boolean {
+  return isActive(observer) && soundReach(state, observer, zone, noise) !== null;
+}
+
 /** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
 export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
   if (!isActive(observer)) return null;
@@ -50,10 +63,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     const d = dist(state, observer.zone, event.zone, true);
     if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
   }
-  // A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed.
-  const up = hasPerk(observer, PK.keen_ear) ? 1 : 0;
-  const [full, heard] = CONFIG.NOISE_REACH[event.noise];
-  const nl = reach([full + up, heard + up], dist(state, observer.zone, event.zone, false));
+  const nl = soundReach(state, observer, event.zone, event.noise);
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.
