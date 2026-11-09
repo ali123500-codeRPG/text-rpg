@@ -6,6 +6,7 @@ import { CONFIG } from '../config';
 import { TIERS } from '../scales';
 import { MARGIN_BANDS, SITUATION_BANDS, band, ladder, naturalEdge, stackType } from './index';
 import { MILESTONES } from './perks';
+import { learningWindow } from './improve';
 import { skillName } from '../library/skillNames';
 import { SK } from '../library/skillIds';
 
@@ -117,10 +118,13 @@ export function equations(lib: Library): EquationGroup[] {
         notes: [`Crossing a milestone (${MILESTONES.join(', ')}) on true skill is logged with the gain.`] },
     ] },
     { key: 'marking', title: 'Marking', about: 'What marks a skill so it can improve.', equations: [
-      { name: 'Mark window', at: 'markIfClose · src/ruleset/improve.ts',
-        formula: `a use marks the skill when |opposition − raw| ≤ ${CONFIG.MARK_WINDOW} or |opposition − true skill| ≤ ${CONFIG.MARK_WINDOW}`,
-        terms: [[String(CONFIG.MARK_WINDOW), 'CONFIG.MARK_WINDOW']],
+      { name: 'Learning window', at: 'markIfClose · src/ruleset/improve.ts',
+        formula: `a use marks the skill when raw − ${CONFIG.MARK_WINDOW} ≤ opposition ≤ max(raw, true skill) + ${CONFIG.MARK_WINDOW}`,
+        terms: [[String(CONFIG.MARK_WINDOW), 'CONFIG.MARK_WINDOW'], ['raw', 'a skill not on the sheet counts as raw 0, and joins the sheet with its first gain']],
+        table: { head: ['Raw', 'True skill', 'Opposition that teaches'], rows: [[0, 0], [20, 20], [30, 45], [50, 60]].map(([r, t]) => [String(r), String(t), learningWindow(r, t).join(' to ')]) },
         notes: ['Only the player marks. A skill in a tree the player can\'t use is never marked. A skill holds one mark at most until it rolls.'] },
+      { name: 'Close calls', at: 'markUse · src/ruleset/improve.ts',
+        formula: 'a contest or a defended attack whose tier gap is exactly 0 marks both sides\' skills, inside the window or not' },
       { name: 'Opposition', at: 'markUse · src/ruleset/improve.ts',
         formula: 'check → its difficulty · contest → the other side\'s true skill in the skill it rolled · attack → each side against the other\'s true skill',
         terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k} ${v}`).join(' · ')]],
@@ -129,7 +133,7 @@ export function equations(lib: Library): EquationGroup[] {
         formula: `a single hit that costs ${CONFIG.ENDURANCE_MARK_PCT}% health or more marks ${skillName(SK.endurance)}`,
         terms: [[`${CONFIG.ENDURANCE_MARK_PCT}%`, 'CONFIG.ENDURANCE_MARK_PCT']] },
       { name: 'Armor skill', at: 'markArmor · src/ruleset/improve.ts',
-        formula: 'a hit on a part your worn armor covers marks the armor\'s skill when the attacker\'s true skill, or the armor\'s requirement, is within the window of your raw or true armor skill',
+        formula: 'a hit on a part your worn armor covers marks the armor\'s skill when the attacker\'s true skill, or the armor\'s requirement, is inside your armor skill\'s learning window',
         notes: ['A hit on a shield doesn\'t count.'] },
     ] },
   ];
