@@ -288,7 +288,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
             ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and a new swordsman is made.'),
                h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirmReset = false; await api.reset(); } }, 'Reset the story'),
                h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirmReset = false; update(); } }, 'Keep it')]
-            : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset…')));
+            : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset')));
     }
   }
   aimBtn.onclick = () => { aimed = !aimed; update(); };

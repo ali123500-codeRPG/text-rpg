@@ -31,7 +31,7 @@ export function gmPage(api: GameApi) {
         h('div', { class: 'actions' },
           confirm?.kind === 'download'
             ? confirmRow('Download the whole story as a file?', 'Download backup', download)
-            : h('button', { class: 'hs-btn-text', type: 'button', title: 'Owner only. Asks to confirm each time', onclick: () => { confirm = { kind: 'download' }; update(); } }, 'Download backup…'),
+            : h('button', { class: 'hs-btn-text', type: 'button', title: 'Owner only. Asks to confirm each time', onclick: () => { confirm = { kind: 'download' }; update(); } }, 'Download backup'),
           // Ali: the GM can start a new save, with warnings. The old story is archived, not deleted (D-73).
           s ? (confirm?.kind === 'newSave'
             ? h('div', { class: 'confirm', role: 'alert' },
@@ -39,7 +39,7 @@ export function gmPage(api: GameApi) {
                 h('button', { class: 'hs-btn-text', type: 'button', onclick: download }, 'Download backup'),
                 h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirm = null; await api.reset(); } }, 'Start a new save'),
                 h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = null; update(); } }, 'Keep playing'))
-            : h('button', { class: 'hs-btn-text danger', type: 'button', title: 'Ends this story and starts a new one. Asks to confirm', onclick: () => { confirm = { kind: 'newSave' }; update(); } }, 'Start a new save…')) : '')),
+            : h('button', { class: 'hs-btn-text danger', type: 'button', title: 'Ends this story and starts a new one. Asks to confirm', onclick: () => { confirm = { kind: 'newSave' }; update(); } }, 'Start a new save')) : '')),
       g.fallbackBanner ? h('div', { class: 'gm-banner', role: 'alert' }, s?.stage.fallback?.reason ?? 'the stage is the flagged placeholder area') : '',
       h('div', { class: 'sec' }, readouts([
         { label: 'Turn', value: String(s?.turn ?? '–'), unit: s?.mode ?? '', sub: s ? `scene ${s.stage.sceneNumber} · since turn ${s.stage.sceneStartTurn}` : 'No story', how: 'The committed turn and the encounter mode.' },
@@ -90,7 +90,7 @@ export function gmPage(api: GameApi) {
           h('tbody', {}, [...g.backups].sort((a, b) => b.turn - a.turn).map((b) => h('tr', {}, h('td', { class: 'hs-num' }, `Turn ${b.turn}`), h('td', {}, b.path),
             h('td', { class: 'r' }, confirm?.kind === 'restore' && confirm.turn === b.turn
               ? confirmRow(`Restore turn ${b.turn}? The current head is kept as the safety bookmark.`, 'Restore', () => void api.restoreBackup(b.turn))
-              : h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = { kind: 'restore', turn: b.turn }; update(); } }, 'Restore…'))))))
+              : h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirm = { kind: 'restore', turn: b.turn }; update(); } }, 'Restore'))))))
           : h('p', { class: 'empty' }, 'No backups yet. One is written every few turns.')),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Full state'),
