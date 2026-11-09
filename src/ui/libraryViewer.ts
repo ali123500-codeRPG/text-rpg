@@ -315,8 +315,8 @@ function achievements(): HTMLElement[] {
       const c = card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, '--c15'), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`, '--c2'),
         bane ? chip(`+${bane} skill vs that ${kind}`, '--c10') : null, total ? chip(`+${total} combat rolls`, '--c10') : null],
         row('Name', name(d.name)),
-        row('Roll bonus', bane ? `+${bane} skill on every roll against that ${kind} (Bane bonus: +${CONFIG.BANE_SKILL_PER_LEVEL} for each level of the chain up to this one)`
-          : total ? `+${total} on every attack and defense roll (+${CONFIG.DEFEATS_ROLL_PER_TIER} for each level of the chain up to this one)` : none('none, XP only')),
+        row('Roll bonus', bane ? `+${bane} skill on every roll against that ${kind}`
+          : total ? `+${total} on every attack and defense roll` : none('none, XP only')),
         d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
         row('Earned at', d.rule === 'mastery' ? `all three skills of a tree at ${d.count}` : `${d.count} defeat${d.count === 1 ? '' : 's'}${d.by ? `, once per ${d.by === 'body_type' ? 'body type' : 'race'}` : ''}`),
         row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.id));
