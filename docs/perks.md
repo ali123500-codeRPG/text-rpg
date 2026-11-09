@@ -579,7 +579,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The attacker's approach or attack is within the owner's hearing range.
 - **Effect:** The owner counts as aware: no unaware initiative or defense penalty.
 - **Lasts:** Always.
-- **Banked as:** an All-X candidate for the Perception tree, suggested for All-100
 
 ### Battle Cry (Intimidation) · C2
 
