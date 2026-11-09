@@ -20,6 +20,7 @@
   --accent: #93c5ff; --accent-soft: #1b3160; --ok: #5cc97a; --warn: #f2b552; --warn-soft: #2e2a22; --danger: #ff6b6b; --danger-soft: #3a1c26;
   --on-btn: #ffffff; --on-pill: #0b1020; --scene-mark: #ffd36e; --deco-1: #203963; --deco-2: #2e6496; --deco-3: #52acd8;
   --c1: #689ce2; --c2: #72ae75; --c3: #8d99a5; --c4: #e97aac; --c5: #af80dc; --c7: #e29568; --c10: #df7369; --c12: #6cadae; --c14: #b27567; --c15: #caad69;
+  --c6: #c7a5e4; --c8: #f19e94; --c9: #72bed3; --c11: #6474b0; --c13: #a2ad67; --c16: #628c71; --c17: #bf6895; --c18: #9865b7; --c19: #7c7bde; --c20: #92adff; --c21: #c18a9a; --c22: #8e6f8a;
   --btn-fill: linear-gradient(120deg in oklch, oklch(.50 .135 252) 8%, oklch(.53 .14 148) 92%);
   --grad-deco: linear-gradient(90deg, var(--deco-1), var(--deco-2), var(--deco-3));
   --tg-k: 36%; --veil0: 50%; --veil1: 86%;
