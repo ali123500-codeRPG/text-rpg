@@ -27,6 +27,7 @@ export const ACH = {
   class_tiers_2: 'AC55', class_tiers_4: 'AC56', class_tiers_all: 'AC57',
   char_level_10: 'AC58',
   brink_3: 'AC59', unaware_50: 'AC60',
+  held_line_1: 'AC61', held_line_10: 'AC62',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -40,6 +41,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   zones: 'different zones entered', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',
   flawless: 'fights won without losing HP, after at least one defense roll', outnumbered: `fights won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
   brink: 'fights survived after reaching Critical health (once per fight)',
+  held_line: 'fights won beside at least one ally, while the foes outnumbered your side',
   class_max: 'classes at their top level', class_max_tiers: 'class tiers with a class at its top level',
   char_level: 'character levels, again at every multiple',
 };

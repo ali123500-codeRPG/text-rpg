@@ -8,6 +8,7 @@ import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
+import { wornTitle } from '../engine/xp';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, stance, wary, zoneById } from '../engine/relations';
 import { activity, actorBody, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
@@ -273,6 +274,8 @@ function baseView(state: GameState, actorId: string): BaseView {
       source: b.source, revealed: [...b.revealed],
       stance: stance(state, a, other), hostile: hostile(state, a, other),
       active: isActive(other), label: callName(state, a.id, about),
+      // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
+      ...(about === state.player.id && b.source === 'seen' && atLeast(b.status, 'aware') && wornTitle(state) ? { title: wornTitle(state) } : {}),
     });
   }
   const band = bandById(state, a.bandId);
@@ -425,7 +428,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}),
+    player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone),
