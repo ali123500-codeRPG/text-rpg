@@ -726,14 +726,18 @@ popOpen.addEventListener('click', () => { pop.hidden = true; });
 // Folding: clicking a section header, or the title of a foldable card (Skills trees), folds what is under it
 const HEAD = '.lv-group > h2.hs-section, .lv-foldcard > header > h3';
 const box = (head: Element): Element => head.closest('.lv-group, .lv-foldcard')!;
-function fold(head: Element, open?: boolean): void {
+/** save: false opens a section for this view only (a jump to an entry inside it) and keeps the remembered fold */
+function fold(head: Element, open?: boolean, save = true): void {
   const folded = box(head).classList.toggle('lv-folded', open === undefined ? undefined : !open);
-  const k = foldKey(head);
-  if (folded) foldedSet.add(k); else foldedSet.delete(k);
-  keep('lv-folded', [...foldedSet]);
+  if (save) {
+    const k = foldKey(head);
+    if (folded) foldedSet.add(k); else foldedSet.delete(k);
+    keep('lv-folded', [...foldedSet]);
+  }
   head.setAttribute('aria-expanded', String(!folded));
 }
-const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${head.textContent}`;
+// keyed by the title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new build
+const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
 function foldable(): void {
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) box(h2).classList.add('lv-folded'); });
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', String(!box(h2).classList.contains('lv-folded'))); h2.title = 'Click to fold or unfold'; });
@@ -769,7 +773,7 @@ function route(): void {
     if (holder) showPane(holder.dataset.pane!);
     const shutBox = el?.closest('.lv-folded');
     const shut = shutBox?.querySelector(':scope > h2.hs-section, :scope > header > h3');
-    if (shut) fold(shut, true);
+    if (shut) fold(shut, true, false);
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
     el?.scrollIntoView({ block: 'center' });
