@@ -26,7 +26,7 @@ const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
-  ['/quests', 'your quests'], ['/aim ', 'this turn’s attack is aimed'], ['/undo', 'rewind one turn (dice are not rolled back)'],
+  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/aim ', 'this turn’s attack is aimed'], ['/undo', 'rewind one turn (dice are not rolled back)'],
   ['/difficulty ', 'show or change the difficulty'],
 ];
 
@@ -97,8 +97,8 @@ function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
 
 export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void };
 
-/** /stats, /inv and /quests open their rail page; everything else goes to the game. */
-export const NAV_COMMANDS: Record<string, string> = { '/stats': 'stats', '/inv': 'inv', '/quests': 'quests' };
+/** /stats, /inv, /quests and /achievements open their rail page; everything else goes to the game. */
+export const NAV_COMMANDS: Record<string, string> = { '/stats': 'stats', '/inv': 'inv', '/quests': 'quests', '/achievements': 'achievements' };
 
 export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let aimed = false;
