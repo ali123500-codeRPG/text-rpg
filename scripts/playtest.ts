@@ -24,7 +24,7 @@ import type { SceneDirector } from '../src/agents';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
 const TURNS = Number(arg('turns', '50'));
-/** --max N: after --turns, keep going 10 turns at a time until a level-up and a perk have happened, or N turns (Ali, 07/11/2026) */
+/** --max N: after --turns, keep going 10 turns at a time until a level-up and a perk have happened, or N turns */
 const MAX = Number(arg('max', String(TURNS)));
 const OUT = arg('out', 'playtest-out');
 // GAP: the artifact's `sample` picks the model per tier on claude.ai; this mapping is ours.

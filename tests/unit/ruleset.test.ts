@@ -14,7 +14,7 @@ describe('ruleset maths', () => {
     expect(stackType([6, 4, 2])).toBe(8.5);
     expect(stackType([-8, -3])).toBe(-9.5);
     expect(stackType([6, 4, 2, -8, -3])).toBe(-1);
-    expect(stackType([8, 8, 8, 8, 8])).toBe(15.5); // 8 + 4 + 2 + 1 + 0.5: the x-th counts at 0.5^(x−1) (Ali, 08/11/2026)
+    expect(stackType([8, 8, 8, 8, 8])).toBe(15.5); // 8 + 4 + 2 + 1 + 0.5: the x-th counts at 0.5^(x−1)
   });
   it('bands margins exactly, .5 included', () => {
     expect([-75.5, -75, -26, -25.5, -25, -0.5, 0, 24.5, 25, 74.5, 75].map((m) => TIERS.at(band(m)))).toEqual(
@@ -28,7 +28,7 @@ describe('ruleset maths', () => {
     const c = ruleset.check({ actorId: 'player', skill: 'intimidation', modifiers: [{ source: 'x', value: 20 }] }, s, createRng(1));
     expect(c).toMatchObject({ skill: 'persuasion', target: 50, passed: true });
   });
-  it('grapple substitutes: other unarmed 0.4×, melee 0.2× (Ali, 07/11/2026)', () => {
+  it('grapple substitutes: other unarmed 0.4×, melee 0.2×', () => {
     const s = makeVillage();
     const sk = s.player.core.skills;
     for (const id of Object.keys(sk)) delete sk[id];

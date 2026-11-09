@@ -1,4 +1,4 @@
-// All-50 perks (Ali, 08/11/2026, All-50 doc https://claude.ai/artifact/R5CirgnTX2vwoG4tPp8oxR). A tree's All-50 is a
+// All-50 perks (All-50 doc https://claude.ai/artifact/R5CirgnTX2vwoG4tPp8oxR). A tree's All-50 is a
 // bundle of parts, granted for free when every skill of the tree reaches 50 true skill (G1–G8). Each part is its own perk
 // (so code checks hasPerk on the part) with a Story and an exact Rules view, like the ladder perks. A part is granted
 // only once it is built (BUILT_PERKS). Names: "<tree> All-50: <name>" (G5); All-50 and 100+ names may be dramatic.
@@ -12,9 +12,9 @@ export const ALL_BUNDLES: AllBundle[] = [
   { treeId: 'ranged', step: 50, name: 'Death from Afar', parts: ['unerring', 'volley', 'past_the_cover', 'hunters_eye'] },
   { treeId: 'unarmed', step: 50, name: 'Open Hand', parts: ['hard_to_hold', 'iron_knuckles', 'bare_handed_guard'] },
   { treeId: 'defense', step: 50, name: 'The Unbroken', parts: ['second_wind', 'dodgy', 'thick_hide'] },
-  { treeId: 'perception', step: 50, name: 'Nothing Escapes', parts: ['spotter', 'curiouser', 'night_eyes'] }, // Light Sleeper parked (Ali, 09/11/2026)
+  { treeId: 'perception', step: 50, name: 'Nothing Escapes', parts: ['spotter', 'curiouser', 'night_eyes'] }, // Light Sleeper parked
   { treeId: 'stealth', step: 50, name: 'One with the Dark', parts: ['strike_and_fade', 'child_of_night', 'hushed_steps'] },
-  { treeId: 'speech', step: 50, name: 'Silver Voice', parts: ['soft_landing', 'easy_speaker', 'silver_words'] }, // Read Them parked; Silver Words picked in Round 4 (Ali, 09/11/2026)
+  { treeId: 'speech', step: 50, name: 'Silver Voice', parts: ['soft_landing', 'easy_speaker', 'silver_words'] }, // Read Them parked; Silver Words picked in Round 4
 ];
 
 const part = (treeId: string, p: Omit<PerkWriteup, 'skill' | 'place' | 'allStep'>): PerkWriteup =>

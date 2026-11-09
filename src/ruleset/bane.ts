@@ -1,4 +1,4 @@
-// D-111 Bane bonuses (Ali, 08/11/2026, AGG comparison A3): an achievement earned against a race or body type ("Bane of
+// D-111 Bane bonuses (AGG comparison A3): an achievement earned against a race or body type ("Bane of
 // {race}kind", "{body_type}bane" …) gives skill on rolls against that race or type. Its bonus is the bonus of the lower
 // level it builds on (AchievementDef.after) plus CONFIG.BANE_SKILL_PER_LEVEL, so I = +5, II = +10, III = +15. Lower levels switched off by a higher one are skipped. The best
 // race one and the best body type one both count, as one modifier type, so the weaker is halved by type stacking.

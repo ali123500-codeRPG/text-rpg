@@ -1,4 +1,4 @@
-// Skill groups and functions (Ali, 08/11/2026, F1–F8; docs/skill-tags.md). A skill lists one or more narrow functions:
+// Skill groups and functions (F1–F8; docs/skill-tags.md). A skill lists one or more narrow functions:
 // a missing skill borrows one sharing a function (stand-ins). Each function belongs to one broad group: a 40 perk's +1
 // reaches every skill sharing a group with its ladder skill, and the XP category comes from the group. Code compares
 // keys; text shows these names only. Adding a function or group is one row here.

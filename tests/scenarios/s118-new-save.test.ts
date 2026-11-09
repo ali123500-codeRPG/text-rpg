@@ -1,4 +1,4 @@
-// 118 The GM starts a new save (Ali, 08/11/2026, "with warnings"): a confirmed reset archives the story (D-73).
+// 118 The GM starts a new save ("with warnings"): a confirmed reset archives the story (D-73).
 // Its pages stay under its id, but play no longer finds it, so a reload goes to Create instead of the old story.
 import { describe, expect, it } from 'vitest';
 import { archiveStory, listStories, loadPendingStart, memoryStore, savePendingStart } from '../../src/save';

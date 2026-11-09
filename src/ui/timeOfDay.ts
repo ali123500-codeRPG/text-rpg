@@ -1,4 +1,4 @@
-// Time of day display (Ali, 07/11/2026, "Time of day display"): T1 a coloured icon beside the story title (the day and
+// Time of day display ("Time of day display"): T1 a coloured icon beside the story title (the day and
 // time of day are in its tip), T2 b a divider in the story when a wait or sleep moves the clock, T3 b natural recovery as
 // a quiet green line (src/ui/healing.ts). Icons and colours are keyed by TIME_OF_DAY key; names come from that table.
 import { TIME_OF_DAY } from '../scales';

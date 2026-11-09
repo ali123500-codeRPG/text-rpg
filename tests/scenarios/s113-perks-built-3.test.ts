@@ -1,4 +1,4 @@
-// 113 Coded 20-milestone perks, batch 3 (Ali, 07/11/2026): Open-Hand Guard (block with empty hands; a hit through is
+// 113 Coded 20-milestone perks, batch 3: Open-Hand Guard (block with empty hands; a hit through is
 // split between the blocking arm and the general area) and Threaten for Answers (intimidation counts at full value
 // against an opposed or hostile listener, and can win information).
 import { describe, expect, it } from 'vitest';

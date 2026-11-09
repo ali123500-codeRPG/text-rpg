@@ -1,4 +1,4 @@
-// 120 Dead (Ali, 08/11/2026): health lost keeps counting past 100% (Incapacitated) up to 150%, which is Dead.
+// 120 Dead: health lost keeps counting past 100% (Incapacitated) up to 150%, which is Dead.
 // Dead is never shown in the UI: the shown track stops at Incapacitated, and nothing heals the dead.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, actor } from '../harness';

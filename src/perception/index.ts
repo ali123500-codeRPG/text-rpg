@@ -49,7 +49,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     const d = dist(state, observer.zone, event.zone, true);
     if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
   }
-  // A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other (Ali, 08/11/2026): Silent becomes Hushed.
+  // A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed.
   const up = hasPerk(observer, 'keen_ear') ? 1 : 0;
   const [full, heard] = CONFIG.NOISE_REACH[event.noise];
   const nl = reach([full + up, heard + up], dist(state, observer.zone, event.zone, false));
@@ -72,7 +72,7 @@ export function noteSightings(event: GameEvent, state: GameState): void {
   if (!per && (event.kind === 'move' || event.kind === 'flee') && actorById(state, event.actorId)?.posture === 'stealthy') updateBeliefs(state, { kind: 'lost', observerId: p.id, aboutId: event.actorId });
 }
 
-/** NS2–NS4 (Ali, 08/11/2026): what `o` believes about `about`. NPCs read their knowledge; the player simply sees open actors and
+/** NS2–NS4: what `o` believes about `about`. NPCs read their knowledge; the player simply sees open actors and
  * keeps a belief (journal.stealthSeen) only about stealthy ones. */
 export function beliefStatus(state: GameState, o: Actor, about: Actor): BeliefStatus {
   if (o.kind !== 'player') return o.mind?.knowledge[about.id]?.status ?? 'unaware';

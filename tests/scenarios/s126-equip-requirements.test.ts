@@ -1,4 +1,4 @@
-// 126 Equip requirements (Ali, 08/11/2026, EQ1–EQ13): each item has an equipment level that asks for true skill in the
+// 126 Equip requirements (EQ1–EQ13): each item has an equipment level that asks for true skill in the
 // skill that uses it (stand-ins count at their share); every roll with gear you fall short on is one outcome step worse
 // per 10 points short; worn armor reaches Dodge and stealth rolls; templates carry what their loadout asks. AR5: a hit
 // your armor covers marks the armor skill when the attacker or the armor is near your level.

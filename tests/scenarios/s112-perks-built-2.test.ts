@@ -1,4 +1,4 @@
-// 112 Coded 20-milestone perks, batch 2 (Ali, 07/11/2026): Turn the Blade, Hunter's Mark, Make Them Stumble (marks
+// 112 Coded 20-milestone perks, batch 2: Turn the Blade, Hunter's Mark, Make Them Stumble (marks
 // that outlast the attack) and Cover Ally (a friend takes a ranged attack in the target's place; switchable).
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';

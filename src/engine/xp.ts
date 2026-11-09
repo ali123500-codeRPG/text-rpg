@@ -1,4 +1,4 @@
-// XP and levels (Ali, 07/11/2026, XP proposal X1–X10). Code only: no agent sees or sends XP.
+// XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
 import type { Actor, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, getLibrary } from '../library';
@@ -71,7 +71,7 @@ export function rating(a: Actor): number {
   const by: Record<string, number[]> = {};
   for (const [id, e] of Object.entries(a.core.skills)) {
     const cat = lib.skills[id]?.xpCategory ?? 'misc';
-    (by[cat] ??= []).push(effort(skillOpen(a, id) ? e.raw * tierMult(id) : 0)); // the tier counts in the rating (Ali, 08/11/2026)
+    (by[cat] ??= []).push(effort(skillOpen(a, id) ? e.raw * tierMult(id) : 0)); // the tier counts in the rating
   }
   return Object.entries(by).reduce((n, [cat, es]) =>
     n + (CONFIG.XP_CATEGORY_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
@@ -109,7 +109,7 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   if (!pr || !d) return;
   const id = of ? `${d.id}:${of}` : d.id;
   if (pr.achievements?.some((x) => x.id === id)) return;
-  // a higher level switches off every lower level of its chain (Ali, 08/11/2026), so only the highest one is checked
+  // a higher level switches off every lower level of its chain, so only the highest one is checked
   const lib = getLibrary().achievements ?? {};
   for (let k = d.after, i = 0; k && i < 20; k = lib[k]?.after, i++)
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;

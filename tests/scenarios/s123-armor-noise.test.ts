@@ -3,7 +3,7 @@ import { makeVillage, place, createRng } from '../harness';
 import { installRoutines } from '../../src/minds';
 import { resolveTurn } from '../../src/engine';
 
-// AN1–AN4 (Ali, 08/11/2026): worn armor makes body-moving events louder by noise steps (light +0, medium +1, heavy +2)
+// AN1–AN4: worn armor makes body-moving events louder by noise steps (light +0, medium +1, heavy +2)
 function patrolNoise(armor: string | null) {
   const s = makeVillage({ playerZone: 'tav_common' });
   const g = place(s, 'guard_1', 'street_square');

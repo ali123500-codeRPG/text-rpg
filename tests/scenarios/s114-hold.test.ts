@@ -1,4 +1,4 @@
-// 114 Hold (A8, Ali 07/11/2026; rules in src/library/perks.ts). Anyone can grapple (a humanoid natural attack on
+// 114 Hold (A8; rules in src/library/perks.ts). Anyone can grapple (a humanoid natural attack on
 // unarmed_grapple). With Hold, a grapple that lands with a Great Success or better holds the target: it can't leave the
 // zone or use a two-handed mode, and trying to leave is a break-free contest it wins on a tie or better.
 import { describe, expect, it } from 'vitest';

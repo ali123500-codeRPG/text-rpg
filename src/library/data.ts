@@ -25,37 +25,37 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('ranged_heavy', 'ranged', ['ranged'], ['grip']),
   sk('unarmed_strike', 'unarmed', ['unarmed'], ['grip']),
   sk('unarmed_grapple', 'unarmed', ['unarmed'], ['grip']),
-  sk('unarmed_improvised', 'unarmed', ['unarmed'], ['grip']), // fighting with whatever is at hand (Ali, 07/11/2026)
+  sk('unarmed_improvised', 'unarmed', ['unarmed'], ['grip']), // fighting with whatever is at hand
   sk('unarmed_natural', 'natural', ['unarmed'], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
   sk('dodge', 'defense', ['defense'], ['move']),
   sk('block', 'defense', ['defense'], ['grip']),
   sk('endurance', 'defense', ['health'], []), // endurance sets total HP
-  // Armor – Conventional (Ali, 08/11/2026, AR1–AR3): one skill per armor weight, function armor in the Defense group.
+  // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.
   // What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it.
   sk('light_armor', 'armor', ['armor'], []),
   sk('medium_armor', 'armor', ['armor'], []),
   sk('heavy_armor', 'armor', ['armor'], []),
   sk('sight', 'perception', ['sight'], ['sense'], 'sight'),
   sk('hearing', 'perception', ['hearing'], ['sense'], 'sound'),
-  // Stealth (Ali, 08/11/2026, ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
+  // Stealth (ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
   sk('sneaking', 'stealth', ['stealth'], ['move'], undefined, 'notice'),
   sk('combat_stealth', 'stealth', ['stealth'], ['move'], undefined, 'offensive'),
   sk('vanishing', 'stealth', ['stealth'], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
-  // speech role (Ali, 08/11/2026): head wounds reduce speech rolls
+  // speech role: head wounds reduce speech rolls
   sk('persuasion', 'speech', ['influence'], ['speech']),
   sk('intimidation', 'speech', ['influence'], ['speech']),
   sk('barter', 'speech', ['influence'], ['speech']),
   sk('feint', 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk('riposte', 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk('disarm', 'swordsman', [], ['grip'], undefined, 'offensive'),
-  // slime class skills are tier 0 (Ali, 08/11/2026); F1: tremor is both a sight and a hearing function
+  // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
   sk('tremor', 'slime_senses', ['sight', 'hearing'], ['sense'], 'sound', undefined, 'tier_0'),
-  // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
+  // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk('lockpicking', 'tools', [], ['grip']),
 ].map((s) => [s.id, s]));
 
-/** ST21 (Ali, 08/11/2026): situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
+/** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
 const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   melee_light: ['sight'], melee_medium: ['sight'], melee_heavy: ['sight'],
   ranged_light: ['sight', 'ranged'], ranged_medium: ['sight', 'ranged'], ranged_heavy: ['sight', 'ranged'],
@@ -64,13 +64,13 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   sneaking: ['stealth'], combat_stealth: ['stealth'], vanishing: ['stealth', 'hide'],
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
-// SR1 (Ali, 08/11/2026): intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
+// SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
 for (const id of ['persuasion', 'barter']) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
 /** armor numbers come from CONFIG (one source, Part 5 armor table) */
-/** Improvised weapons (Ali, 09/11/2026): a melee strike and a throw (like throwing a vase), both rolled with
+/** Improvised weapons: a melee strike and a throw (like throwing a vase), both rolled with
  * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
  * Ranged skills for the throw. */
 const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
@@ -136,7 +136,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
     ],
     fallback: { attackSkill: 'unarmed_strike' },
-    // Side-sheet figure (Ali, 07/11/2026): one SVG path per part id, 'general' is the torso. Facing the viewer, so the
+    // Side-sheet figure: one SVG path per part id, 'general' is the torso. Facing the viewer, so the
     // character's right side is drawn on the left.
     figure: {
       viewBox: '0 0 200 258',
@@ -151,7 +151,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
       },
     },
   },
-  // BR4 (Ali, 08/11/2026): shape names, so later races can reuse them; Slime and Dragon are races
+  // BR4: shape names, so later races can reuse them; Slime and Dragon are races
   amorphous: {
     id: 'amorphous', general: { name: 'body', size: 'normal' },
     naturalAttacks: [{ id: 'slam', tree: 'unarmed', class: 'slam', skill: 'unarmed_natural', reach: 0, hands: 0, name: 'slam' }],
@@ -182,18 +182,18 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   guard: {
     id: 'guard', raceId: 'human', generation: 'copy',
     minimums: { melee_medium: 50, medium_armor: 50, block: 30, dodge: 20, sight: 30, hearing: 30, intimidation: 30, persuasion: 20 }, // AR9/EQ5: meets its loadout's requirements
-    // Ali (08/11/2026): anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
+    // Ali: anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: ['keen_ear'],
     focus: [{ treeId: 'melee', skill: 'melee_medium' }, { treeId: 'defense', skill: 'block' }, { treeId: 'perception', skill: 'sight' }],
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
     id: 'trader', raceId: 'human', generation: 'copy',
-    minimums: { sight: 25, hearing: 25, barter: 40, persuasion: 30 }, level: 2, bonusPoints: 0, // Ali (08/11/2026): villagers are at least level 2
+    minimums: { sight: 25, hearing: 25, barter: 40, persuasion: 30 }, level: 2, bonusPoints: 0, // Ali: villagers are at least level 2
     focus: [{ treeId: 'perception', skill: 'hearing' }, { treeId: 'melee', skill: 'melee_light' }, { treeId: 'defense', skill: 'dodge' }],
     personality: 'timid', control: 'code', label: 'the barkeep',
   },
-  // NS7 (Ali, 08/11/2026): a village thief, the first stealthy NPC
+  // NS7: a village thief, the first stealthy NPC
   thief: {
     id: 'thief', raceId: 'human', generation: 'copy',
     minimums: { sneaking: 40, combat_stealth: 30, vanishing: 30, melee_light: 35, light_armor: 25, dodge: 30, sight: 30, hearing: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
@@ -268,7 +268,7 @@ export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
   set('slime_wander', 'A slime roaming the field outside the gate', ['field'], ['creature'], ['any'], { route: r('across the field, in order'), post: z('where it settles') }, ['roam_field', 'roam_field_alert']),
 ].map((s) => [s.id, s]));
 
-// BR9 (Ali, 08/11/2026): a rule names a body type or a race; a block the shape already gives is not repeated on the race
+// BR9: a rule names a body type or a race; a block the shape already gives is not repeated on the race
 const AMORPHOUS: AccessCond = { kind: 'body', id: 'amorphous' }; // no hands, eyes, ears or voice
 
 export function prototypeLibrary(): Library {
@@ -276,7 +276,7 @@ export function prototypeLibrary(): Library {
     version: 1,
     status: {},
     skills: SKILLS,
-    // Skill tree access (Ali, 08/11/2026, TA1–TA11): each tree's own rule; no rule = open to everyone.
+    // Skill tree access (TA1–TA11): each tree's own rule; no rule = open to everyone.
     // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.
     trees: {
       melee: { id: 'melee', name: 'Combat – Arms', skills: ['melee_light', 'melee_medium', 'melee_heavy'], access: { blockedBy: [AMORPHOUS] } },
@@ -289,7 +289,7 @@ export function prototypeLibrary(): Library {
       stealth: { id: 'stealth', name: 'Stealth – Conventional', skills: ['sneaking', 'combat_stealth', 'vanishing'] },
       speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'], access: { blockedBy: [AMORPHOUS] } },
       swordsman: { id: 'swordsman', name: 'Swordsman', skills: ['feint', 'riposte', 'disarm'], access: { must: [{ kind: 'class', id: 'swordsman' }] } },
-      // BR7 (Ali, 08/11/2026): from being a slime, not from a class
+      // BR7: from being a slime, not from a class
       slime_senses: { id: 'slime_senses', name: 'Slime senses', skills: ['tremor'], access: { must: [{ kind: 'race', id: 'slime' }] } },
       tools: { id: 'tools', name: 'Tools (placeholder, OQ-20)', skills: ['lockpicking'], access: { blockedBy: [AMORPHOUS] } },
     },
@@ -298,7 +298,7 @@ export function prototypeLibrary(): Library {
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
-    // Healing sources (Ali, 07/11/2026, H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
+    // Healing sources (H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
       rest: { id: 'rest', name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, reach: 'damaged', revivesDead: false, inFight: false },
       clinic: { id: 'clinic', name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
@@ -306,7 +306,7 @@ export function prototypeLibrary(): Library {
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
       passive: { id: 'passive', name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: 'endurance', pctPerPoint: 0.01 } },
     },
-    // Game clock (Ali, 07/11/2026, T1): minutes per action; placeholders
+    // Game clock (T1): minutes per action; placeholders
     durations: {
       fight_turn: { id: 'fight_turn', name: 'Fight turn', minutes: 0.1 },
       action: { id: 'action', name: 'Move, talk or other action', minutes: 1 },
@@ -314,16 +314,16 @@ export function prototypeLibrary(): Library {
       rest: { id: 'rest', name: 'Rest', minutes: 60, orders: ['rest'] },
       sleep: { id: 'sleep', name: 'Sleep', minutes: 480 },
     },
-    // Ali (07/11/2026): humans and elves for now, identical
-    // innate perks and quirks per race (Ali, 08/11/2026): lists, empty until chosen
+    // Ali: humans and elves for now, identical
+    // innate perks and quirks per race: lists, empty until chosen
     races: {
       human: { id: 'human', name: 'Human', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
       elf: { id: 'elf', name: 'Elf', bodyTypeId: 'humanoid', hpMultiplier: 1, innatePerks: [], innateQuirks: [], tags: ['speaks'] },
-      // BR1–BR7 (Ali, 08/11/2026): slime and dragon were body types only; HP multipliers moved here unchanged
+      // BR1–BR7: slime and dragon were body types only; HP multipliers moved here unchanged
       slime: { id: 'slime', name: 'Slime', bodyTypeId: 'amorphous', hpMultiplier: 0.6, innatePerks: [], innateQuirks: [], tags: [] },
       dragon: { id: 'dragon', name: 'Dragon', bodyTypeId: 'winged_quadruped', hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [] },
     },
-    // Z3 (Ali, 08/11/2026). Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
+    // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
     zoneKinds: Object.fromEntries(([
       ['room', 'Room', false, 'some', 'dim'], ['corridor', 'Corridor', false, 'none', 'dim'], ['stairs', 'Stairs', false, 'none', 'dim'],
       ['cellar', 'Cellar or cave', false, 'some', 'dark'], ['street', 'Street', true, 'none', 'dark'], ['square', 'Square', true, 'none', 'dark'],
@@ -338,8 +338,8 @@ export function prototypeLibrary(): Library {
     // the 20 milestone picks; higher and banked perks stay in PERK_WRITEUPS until they get a milestone; All-50 parts (allStep) too
     perks: Object.fromEntries([...PERK_WRITEUPS, ...BOOST_PERKS, ...ALL_PARTS].filter((d) => d.ladder || d.allStep).map(({ ref: _r, skill: _s, place: _p, ...d }) => [d.id, { ...d, built: BUILT_PERKS.has(d.id) }])),
     achievements: {
-      // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level (Ali, 07/11/2026). Names grow grander with the feat (Ali, 07/11/2026).
-      // after = the lower level it builds on; earning it switches the lower one off (Ali, 08/11/2026).
+      // XP by reward level (REWARD_LEVELS, CONFIG.REWARD_XP); per-kind 10/100 and mastery all-100/150 moved up a level. Names grow grander with the feat.
+      // after = the lower level it builds on; earning it switches the lower one off.
       first_defeat: { id: 'first_defeat', name: 'First {body_type} Felled', level: 'i', rule: 'defeats', count: 1, by: 'body_type' },
       defeats_10_body_type: { id: 'defeats_10', name: '{body_type}bane', level: 'ii', rule: 'defeats', count: 10, by: 'body_type', after: 'first_defeat' },
       defeats_100_body_type: { id: 'defeats_100', name: 'Scourge of the {body_type} Hordes', level: 'iii', rule: 'defeats', count: 100, by: 'body_type', after: 'defeats_10_body_type' },
@@ -355,7 +355,7 @@ export function prototypeLibrary(): Library {
       mastery_150: { id: 'mastery_150', name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', count: 150, after: 'mastery_100' },
     },
   });
-  // ST1 (Ali, 08/11/2026): a skill's tree is wherever the trees table lists it, so moving a skill is one edit there
+  // ST1: a skill's tree is wherever the trees table lists it, so moving a skill is one edit there
   for (const t of Object.values(lib.trees)) for (const id of t.skills) if (lib.skills[id]) lib.skills[id].treeId = t.id;
   return lib;
 }

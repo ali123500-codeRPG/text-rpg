@@ -1,4 +1,4 @@
-// 115 Leg Bolt (A6) and Dirt in the Eyes (A9) (Ali, 07/11/2026; rules in src/library/perks.ts; action economy AE2, AE5, AE8).
+// 115 Leg Bolt (A6) and Dirt in the Eyes (A9) (rules in src/library/perks.ts; action economy AE2, AE5, AE8).
 // Leg Bolt: a medium or heavy ranged hit that wounds a leg costs the leg 1.5× and slows the target (no dash) until the
 // end of its next turn. Dirt in the Eyes: a free perk move, once per engagement, needing a free hand; unless the foe's
 // dodge wins, its next attack or defense roll gets tier shift −2.

@@ -1,4 +1,4 @@
-// Perks whose rules are coded (Ali, 07/11/2026: perks are coded, so each is built against its Rules write-up in perks.ts).
+// Perks whose rules are coded (perks are coded, so each is built against its Rules write-up in perks.ts).
 // A perk listed here can be taken; the rest show on the Perks screen but can't be taken yet.
 export const BUILT_PERKS = new Set<string>([
   'hidden_strike', // A1: src/ruleset/index.ts attack()

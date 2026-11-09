@@ -30,7 +30,7 @@ const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
 };
-/** AN2 (Ali, 08/11/2026): event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
+/** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'attack', 'perk_move', 'break_free', 'pick_up']);
 const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const; // NV5: a whisper isn't heard next door
 /** first build: checks only change beliefs (OQ-22). */
@@ -144,7 +144,7 @@ function morale(ctx: Ctx, a: Actor, reason: 'level' | 'bandmate_down'): void {
   logCode(state, 'morale_check', { actorId: a.id, reason, result: r });
   if (r === 'steady') return;
   a.mind!.moraleState = r;
-  // Q1/Q4 (Ali, 08/11/2026): a surrender, or a break, replaces hostile with yielded toward everyone it was fighting
+  // Q1/Q4: a surrender, or a break, replaces hostile with yielded toward everyone it was fighting
   // (broken shares the yielded stance so both tune together until further notice)
   for (const x of allActors(state)) if (x !== a && hostile(state, a, x)) a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [x.id]: 'yielded' };
   if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) ctx.orders.set(a.id, brokenOrder(buildActorView(state, a.id)));
@@ -304,7 +304,7 @@ function onceThisEngagement(state: GameState, a: Actor, id: string): boolean {
   return true;
 }
 
-/** All-50 first-attack parts (Ali, 09/11/2026). T1a Opening Strike: the owner's first melee attack on each foe in an
+/** All-50 first-attack parts. T1a Opening Strike: the owner's first melee attack on each foe in an
  * engagement gets tier shift +1. T2a Unerring: the owner's first ranged attack in an engagement, at a foe that hasn't acted
  * yet in its engagement, gives the foe's defense roll tier shift −1. Each is used up when it applies. */
 function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerShifts?: TierShift[]; defenderShifts?: TierShift[] } {
@@ -319,7 +319,7 @@ function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerSh
   return {};
 }
 
-/** All-50 parts that act after an attack (src/library/allPerks.ts, Ali 08/11/2026) */
+/** All-50 parts that act after an attack (src/library/allPerks.ts) */
 function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, itemId: string | null, res: AttackResult, fromHiding: boolean, followUp: boolean): void {
   const { state, rng } = ctx;
   // T4b Second Wind: once per engagement, at Wounded or worse (not down), the health track moves one level better
@@ -398,7 +398,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
   } else {
     const t = now(state);
     const named = TIME_OF_DAY.keyOf(o.target);
-    // Q2 (Ali, 08/11/2026): waiting until the time of day it already is does nothing, rather than skipping a day
+    // Q2: waiting until the time of day it already is does nothing, rather than skipping a day
     if (o.type === 'wait' && named && named === timeOfDay(t)) {
       logCode(state, 'wait_blocked', { actorId: a.id, reason: 'already', timeOfDay: named });
       return emit(ctx, ev);
@@ -408,7 +408,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     passTime(state, minutes);
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     if (o.type === 'sleep') {
-      // Ali (07/11/2026): sleep gives the rest heal once per REST_COOLDOWN_MIN of sleep, and counts as the last rest
+      // Ali: sleep gives the rest heal once per REST_COOLDOWN_MIN of sleep, and counts as the last rest
       for (let i = 0; i < Math.floor(minutes / CONFIG.REST_COOLDOWN_MIN); i++) applyHealing(state, a, restRow(state, a));
       state.clocks[`rest:${a.id}`] = now(state);
     }
@@ -461,7 +461,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   let result: CheckResult | undefined;
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
-    // Q17 (Ali, 07/11/2026): looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
+    // Q17: looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
     const modifiers = [
       ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),

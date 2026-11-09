@@ -3,7 +3,7 @@ import { makeVillage } from '../harness';
 import { canTake, canUndo, effectiveSkill, milestoneState, takePerk, trueSkill, undoPerk } from '../../src/ruleset';
 import { getLibrary } from '../../src/library';
 
-// Perk page S1–S9 (Ali, 07/11/2026): true skill and skill ladders.
+// Perk page S1–S9: true skill and skill ladders.
 function setup() {
   const s = makeVillage();
   const L = getLibrary().perks;
@@ -60,7 +60,7 @@ describe('skill ladders and true skill', () => {
     expect(milestoneState(p, 'melee_medium', 20)).toBe('own');
   });
 
-  it('60 and 80 need one perk in the skill, 100 and 120 need two, 140 needs three (Ali, 07/11/2026)', () => {
+  it('60 and 80 need one perk in the skill, 100 and 120 need two, 140 needs three', () => {
     const { s, p } = setup();
     p.core.skills.melee_medium.raw = 145;
     p.progression!.unspentPerkPoints = 5;

@@ -1,4 +1,4 @@
-// 107 Opposed standoff (Ali, 07/11/2026): opposed means at odds but never striking first. An opposed guard who
+// 107 Opposed standoff: opposed means at odds but never striking first. An opposed guard who
 // notices the player is alarmed but not engaged, so the turn stays Explore; only hostile attacks on sight.
 import { expect, it } from 'vitest';
 import { actor, makeVillage } from '../harness';

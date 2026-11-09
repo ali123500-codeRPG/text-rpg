@@ -1,4 +1,4 @@
-// Character page perks (Part 2 Play screen, Perks; Ali, 07/11/2026, K1–K4, S1, S7). Two views: By tree (a ladder per
+// Character page perks (Part 2 Play screen, Perks, K1–K4, S1, S7). Two views: By tree (a ladder per
 // skill, tracks on narrow screens) and By effect (tracks grouped by what the perks do, each group folds). Sealed milestones
 // show only their number and nothing hints at what comes next (K4). A small card beside the tapped milestone takes or undoes.
 import type { Actor, GameApi, GameState, PerkDef, PerkEffect } from '../types';
@@ -9,7 +9,7 @@ import { skillName, TREE_VIEW } from './creation';
 
 const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
 const TOP = 150;
-// Story or Rules (Ali, 07/11/2026): the player picks which write-up the perk card shows; kept per browser
+// Story or Rules: the player picks which write-up the perk card shows; kept per browser
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };
 const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel: null as null | { skill: string; milestone: number }, folded: new Set<string>() };
 type Show = MilestoneState | 'other';
@@ -82,7 +82,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
     st === 'open' && d?.built === false ? h('p', { class: 'tiny' }, 'Not in the game yet.') : null,
     st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? 'No perk point' : 'Take · 1 point') : null,
-    // A11 (Ali, 07/11/2026): a perk the owner can switch off, on by default
+    // A11: a perk the owner can switch off, on by default
     st === 'own' && d && SWITCHABLE.has(d.id) ? h('button', { type: 'button', class: 'hs-btn-text', 'aria-pressed': String(!p.core.perksOff?.includes(d.id)),
       onclick: () => { const off = new Set(p.core.perksOff ?? []); if (off.has(d.id)) off.delete(d.id); else off.add(d.id); p.core.perksOff = [...off]; redraw(); } },
       p.core.perksOff?.includes(d.id) ? 'Off · switch on' : 'On · switch off') : null,
@@ -100,7 +100,7 @@ function writeup(d: PerkDef) {
   return t ? [h('p', {}, t)] : [];
 }
 
-// innate perks and quirks (Ali, 08/11/2026): what the race gives; nothing shows while the race gives none
+// innate perks and quirks: what the race gives; nothing shows while the race gives none
 function innate(p: Actor) {
   const lib = getLibrary();
   const list = p.core.perks.filter((o) => o.source === 'race').map((o) => lib.perks[o.perkId]).filter((d): d is PerkDef => !!d);
