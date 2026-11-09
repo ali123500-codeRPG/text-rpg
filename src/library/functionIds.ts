@@ -7,5 +7,5 @@ export const FN = {
   sight: 'FN7', hearing: 'FN8', stealth: 'FN9', influence: 'FN10', initiative: 'FN11',
 } as const;
 export const GR = {
-  melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7', initiative: 'GR8',
+  melee: 'GR1', ranged: 'GR2', defense: 'GR3', health: 'GR4', notice: 'GR5', stealth: 'GR6', influence: 'GR7', speed: 'GR8',
 } as const;

@@ -7,7 +7,7 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 |---|---|---|
 | Tree | melee, ranged, unarmed, natural, defense, armor, perception, stealth, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
 | Functions (narrow, one or more) | arms, unarmed, ranged, defense, armor, health, sight, hearing, stealth, influence, initiative | Stand-ins: a skill sharing a function stands in for a missing one |
-| Group (broad, from the functions) | melee, ranged, defense, health, notice, stealth, influence, initiative | The 40 perk's +1 (every skill sharing a group with the ladder skill), XP category |
+| Group (broad, from the functions) | melee, ranged, defense, health, notice, stealth, influence, speed | The 40 perk's +1 (every skill sharing a group with the ladder skill), XP category |
 | Situation tags | sight, hearing, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. No table reads hearing yet. An action can add a tag (a Hide adds hide, ST22) |
 | Roles | grip, strike, move, sense, fly, speech | Which wounded body parts lower the roll |
 | Cue | sight, sound (notice skills only) | Which cue a notice roll reads |
@@ -31,7 +31,7 @@ function in its group; adding a function or group is one row there.
 | Notice | hearing | hearing, tremor |
 | Stealth | stealth | sneaking, combat_stealth, vanishing |
 | Influence | influence | persuasion, intimidation, barter |
-| Initiative | initiative | none yet (the best one adds to the initiative d100) |
+| Speed | initiative | dodge (the best one adds to the initiative d100) |
 | none | none | feint, riposte, disarm (placeholders), lockpicking |
 
 | Skill | Tree | Roles | Cue | Situation tags |

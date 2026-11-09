@@ -91,7 +91,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Initiative', at: 'initiative · initiativeBonus · src/ruleset/index.ts; initiativeOrder · src/engine/resolve.ts',
         formula: `initiative = d100 + ${n(CONFIG.SKILL_WEIGHT)} × best Initiative-function skill + initiative roll modifiers; ${CONFIG.INIT_UNAWARE} (INIT_UNAWARE) instead for an actor unaware of anyone attacking it this turn; higher acts first`,
         terms: [['Initiative-function skill', 'the best effective skill with the Initiative function, at full value (0 when none)'], ['initiative roll modifiers', "gear and other effects with rollMod roll 'initiative'"]],
-        notes: ['No skill has the Initiative function yet, so today it is a plain d100. Ties go to the seeded random roll.'] },
+        notes: ['Dodge has the Initiative function (Speed group), so it is the skill that counts today. Ties go to the seeded random roll.'] },
       { name: 'Attack and defense', at: 'attack · src/ruleset/index.ts',
         formula: 'attack roll (skill roll); below Near Miss it misses. Otherwise the defender makes a dodge or block roll',
         terms: [['attack modifiers', 'weapon class hit + mode hitAdj, range, aim, light, perks'], ['defense modifiers', 'outnumbered, unaware, dodge vs missile, light, perks']] },

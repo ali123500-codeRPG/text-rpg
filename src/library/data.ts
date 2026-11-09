@@ -38,7 +38,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.unarmed_grapple, TR.unarmed, [FN.unarmed], ['grip']),
   sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], ['grip']), // fighting with whatever is at hand
   sk(SK.unarmed_natural, TR.natural, [FN.unarmed], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
-  sk(SK.dodge, TR.defense, [FN.defense], ['move']),
+  sk(SK.dodge, TR.defense, [FN.defense, FN.initiative], ['move']), // Defense and Speed groups: dodge adds to initiative
   sk(SK.block, TR.defense, [FN.defense], ['grip']),
   sk(SK.endurance, TR.defense, [FN.health], []), // endurance sets total HP
   // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.

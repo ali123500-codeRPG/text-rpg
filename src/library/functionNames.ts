@@ -8,14 +8,14 @@ import { FN, GR } from './functionIds';
 export const FUNCTION_GROUP: Record<SkillFunction, SkillGroup> = {
   [FN.arms]: GR.melee, [FN.unarmed]: GR.melee, [FN.ranged]: GR.ranged, [FN.defense]: GR.defense, [FN.armor]: GR.defense, [FN.health]: GR.health,
   [FN.sight]: GR.notice, [FN.hearing]: GR.notice, [FN.stealth]: GR.stealth, [FN.influence]: GR.influence,
-  [FN.initiative]: GR.initiative,
+  [FN.initiative]: GR.speed,
 };
 export const FUNCTION_NAMES: Record<SkillFunction, string> = {
   [FN.arms]: 'Arms', [FN.unarmed]: 'Unarmed', [FN.ranged]: 'Ranged', [FN.defense]: 'Defense', [FN.armor]: 'Armor', [FN.health]: 'Health',
   [FN.sight]: 'Sight', [FN.hearing]: 'Hearing', [FN.stealth]: 'Stealth', [FN.influence]: 'Influence', [FN.initiative]: 'Initiative',
 };
 export const GROUP_NAMES: Record<SkillGroup, string> = {
-  [GR.melee]: 'Melee', [GR.ranged]: 'Ranged', [GR.defense]: 'Defense', [GR.health]: 'Health', [GR.notice]: 'Notice', [GR.stealth]: 'Stealth', [GR.influence]: 'Influence', [GR.initiative]: 'Initiative',
+  [GR.melee]: 'Melee', [GR.ranged]: 'Ranged', [GR.defense]: 'Defense', [GR.health]: 'Health', [GR.notice]: 'Notice', [GR.stealth]: 'Stealth', [GR.influence]: 'Influence', [GR.speed]: 'Speed',
 };
 export const functionName = (id: string): string => (FUNCTION_NAMES as Record<string, string>)[id] ?? id;
 export const groupName = (id: string): string => (GROUP_NAMES as Record<string, string>)[id] ?? id;
