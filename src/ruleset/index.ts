@@ -200,6 +200,10 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
   dm.push(...situational(state, type, { light: zoneA }).modifiers); // ST21: light by tag (sight)
+  // All-50 Steady Guard: Block rolls made with a melee weapon (not a shield)
+  if (type === 'block' && blocker && !itemDef(state, blocker.itemId).shield && hasPerk(D, 'steady_guard')) {
+    dm.push({ source: 'Steady Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.STEADY_GUARD });
+  }
   // All-50 Bare-Handed Guard: Dodge rolls while the owner holds no weapon
   if (type === 'dodge' && hasPerk(D, 'bare_handed_guard') && !D.core.inventory.some((i) => isHeld(i) && !!itemDef(state, i.itemId).weapon)) {
     dm.push({ source: 'Bare-Handed Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
@@ -279,7 +283,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, 'iron_knuckles') ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
   const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * frame * knuckles; // 40/80/120 perk: Heavy Hand
   const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
-  const damage = location === 'shield' ? Math.max(0, raw) : afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare;
+  const hide = hasPerk(D, 'thick_hide') ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on health lost (after armor)
+  const damage = location === 'shield' ? Math.max(0, raw) : (afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare) * hide;
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
   const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, 'leg_bolt')
     && !!ct.parts.find((p) => p.id === location)?.roles.includes('move');

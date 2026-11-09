@@ -595,18 +595,6 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Cooldown:** Once per foe per engagement.
 - **Built:** yes
 
-### Weapon Drill (Combat – Arms) · T1b
-
-*Story:* Steel finds your hand on its own. Drawing, switching or picking up a melee weapon costs you no time.
-
-- **Kind:** Always on
-- **Trigger:** The owner draws, switches to or picks up a melee weapon.
-- **Conditions:** The weapon has a melee mode.
-- **Effect:** That draw, switch or pick-up does not use the owner's action.
-- **Lasts:** Always.
-- **Open:** Does nothing today: draw, switch and pick-up are already free for everyone (AE1, test 91). Sure Grip was turned down (Round 2, 09/11/2026); a replacement is asked in Round 3.
-- **Built:** not yet
-
 ### Counter (Combat – Arms) · T1c
 
 *Story:* A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.
@@ -626,6 +614,17 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Trigger:** A melee or unarmed attack hits the owner.
 - **Conditions:** The attack mode is not ranged.
 - **Effect:** The hit's damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
+### Steady Guard (Combat – Arms) · T1e
+
+*Story:* Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.
+
+- **Kind:** Always on
+- **Trigger:** Always; and the owner makes a Block roll.
+- **Conditions:** The extra +5 needs the block to be made with a melee weapon, not a shield.
+- **Effect:** +5 true skill in Block (Ali, 09/11/2026). Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 
@@ -726,6 +725,16 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Built:** yes
 
+### Thick Hide (Combat – Defense) · T4e
+
+*Story:* Blows that would cut others only bruise you. Every hit costs you a little less health.
+
+- **Kind:** Always on
+- **Trigger:** A hit damages the owner's body (not a shield).
+- **Effect:** The health lost from that hit, after armor, is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
 ### Spotter (Perception) · T5b
 
 *Story:* What you see, your people sense. Your band-mates beside you know something is there whenever you do.
@@ -745,6 +754,16 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Trigger:** The owner makes an Eyesight or Earshot roll.
 - **Conditions:** The roll ends in Success or better.
 - **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Night Eyes (Perception) · T5e
+
+*Story:* The dark hides little from you. Light counts one step brighter when you look.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes an Eyesight roll.
+- **Effect:** The light there is read one step brighter (dark as dim, dim as bright). The mirror of Child of Night.
 - **Lasts:** That roll.
 - **Built:** yes
 

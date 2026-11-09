@@ -8,11 +8,11 @@ import type { PerkWriteup } from '../types';
 export type AllBundle = { treeId: string; step: 50; name: string; parts: string[] };
 
 export const ALL_BUNDLES: AllBundle[] = [
-  { treeId: 'melee', step: 50, name: 'Warborn', parts: ['opening_strike', 'weapon_drill', 'counter', 'fighters_frame'] },
+  { treeId: 'melee', step: 50, name: 'Warborn', parts: ['opening_strike', 'counter', 'fighters_frame', 'steady_guard'] }, // Weapon Drill dropped (Round 3)
   { treeId: 'ranged', step: 50, name: 'Death from Afar', parts: ['unerring', 'volley', 'past_the_cover', 'hunters_eye'] },
   { treeId: 'unarmed', step: 50, name: 'Open Hand', parts: ['hard_to_hold', 'iron_knuckles', 'bare_handed_guard'] },
-  { treeId: 'defense', step: 50, name: 'The Unbroken', parts: ['second_wind', 'dodgy'] }, // a second passive: Round 3
-  { treeId: 'perception', step: 50, name: 'Nothing Escapes', parts: ['spotter', 'curiouser'] }, // a second passive: Round 3
+  { treeId: 'defense', step: 50, name: 'The Unbroken', parts: ['second_wind', 'dodgy', 'thick_hide'] },
+  { treeId: 'perception', step: 50, name: 'Nothing Escapes', parts: ['spotter', 'curiouser', 'night_eyes'] }, // Light Sleeper parked (Ali, 09/11/2026)
   { treeId: 'stealth', step: 50, name: 'One with the Dark', parts: ['strike_and_fade', 'child_of_night', 'hushed_steps'] },
   { treeId: 'speech', step: 50, name: 'Silver Voice', parts: ['soft_landing', 'easy_speaker'] }, // Read Them parked (Ali, 09/11/2026)
 ];
@@ -26,11 +26,6 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'You always make the first blow count. Your first melee attack on each foe in a fight lands one outcome better.',
     rules: { kind: 'Always on', trigger: 'The owner makes a melee attack.', conditions: ['It is the owner\'s first melee attack on that foe in this engagement (Ali, 09/11/2026: per foe per engagement).'],
       effect: 'Tier shift +1 on the attack roll. The defense roll still happens.', lasts: 'That attack.', cooldown: 'Once per foe per engagement.' } }),
-  part('melee', { id: 'weapon_drill', ref: 'T1b', name: 'Weapon Drill', effect: 'attack',
-    story: 'Steel finds your hand on its own. Drawing, switching or picking up a melee weapon costs you no time.',
-    rules: { kind: 'Always on', trigger: 'The owner draws, switches to or picks up a melee weapon.', conditions: ['The weapon has a melee mode.'],
-      effect: 'That draw, switch or pick-up does not use the owner\'s action.', lasts: 'Always.',
-      open: 'Does nothing today: draw, switch and pick-up are already free for everyone (AE1, test 91). Sure Grip was turned down (Round 2, 09/11/2026); a replacement is asked in Round 3.' } }),
   part('melee', { id: 'counter', ref: 'T1c', name: 'Counter', effect: 'defense',
     story: 'A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.',
     rules: { kind: 'Always on', trigger: 'A melee attack on the owner is resolved.',
@@ -40,6 +35,11 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'A body hardened by a thousand bouts. Melee blows on you land a tenth lighter.',
     rules: { kind: 'Always on', trigger: 'A melee or unarmed attack hits the owner.', conditions: ['The attack mode is not ranged.'],
       effect: 'The hit\'s damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).', lasts: 'Always.' } }),
+  part('melee', { id: 'steady_guard', ref: 'T1e', name: 'Steady Guard', effect: 'defense',
+    story: 'Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.',
+    rules: { kind: 'Always on', trigger: 'Always; and the owner makes a Block roll.', conditions: ['The extra +5 needs the block to be made with a melee weapon, not a shield.'],
+      effect: '+5 true skill in Block (Ali, 09/11/2026). Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).', lasts: 'Always.' },
+    trueSkillTo: { block: 5 } }),
   // ---- Combat – Ranged ----
   part('ranged', { id: 'unerring', ref: 'T2a', name: 'Unerring', effect: 'attack',
     story: 'Your first shot comes before they are ready. The first time you shoot in a fight, at a foe who hasn\'t moved yet, it is harder to avoid.',
@@ -83,6 +83,10 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'You are never quite where they aim. Attacks on you lose 5 skill.',
     rules: { kind: 'Always on', trigger: 'An attack roll is made against the owner.', conditions: [],
       effect: 'That attack roll gets −5 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).', lasts: 'That roll.' } }),
+  part('defense', { id: 'thick_hide', ref: 'T4e', name: 'Thick Hide', effect: 'health',
+    story: 'Blows that would cut others only bruise you. Every hit costs you a little less health.',
+    rules: { kind: 'Always on', trigger: 'A hit damages the owner\'s body (not a shield).', conditions: [],
+      effect: 'The health lost from that hit, after armor, is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).', lasts: 'Always.' } }),
   // ---- Perception ----
   part('perception', { id: 'spotter', ref: 'T5b', name: 'Spotter', effect: 'senses',
     story: 'What you see, your people sense. Your band-mates beside you know something is there whenever you do.',
@@ -92,6 +96,10 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'Once you notice something, you notice everything. A good Eyesight or Earshot roll counts one outcome better.',
     rules: { kind: 'Always on', trigger: 'The owner makes an Eyesight or Earshot roll.', conditions: ['The roll ends in Success or better.'],
       effect: 'Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.', lasts: 'That roll.' } }),
+  part('perception', { id: 'night_eyes', ref: 'T5e', name: 'Night Eyes', effect: 'senses',
+    story: 'The dark hides little from you. Light counts one step brighter when you look.',
+    rules: { kind: 'Always on', trigger: 'The owner makes an Eyesight roll.', conditions: [],
+      effect: 'The light there is read one step brighter (dark as dim, dim as bright). The mirror of Child of Night.', lasts: 'That roll.' } }),
   // ---- Stealth – Conventional ----
   part('stealth', { id: 'strike_and_fade', ref: 'T6a', name: 'Strike and Fade', effect: 'stealth',
     story: 'They see the blow, never the hand. Right after you strike from hiding, you try to vanish again.',
