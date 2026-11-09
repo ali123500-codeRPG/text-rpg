@@ -426,6 +426,28 @@ describe('gear and combat', () => {
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     expect(actor(s, 'guard_1').mind!.overrides?.player).toBe('hostile');
   });
+  const atLeastAware = (a: Actor) => ['aware', 'tracking'].includes(a.mind!.knowledge.player?.status ?? '');
+  it('RS6: a target turns hostile only toward an attacker it knows of', () => {
+    // a dagger thrown from hiding (a ranged blow keeps you hidden, ST5/ST7)
+    s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
+    s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
+    place(s, 'patron_1', 'tav_counter');
+    const p = actor(s, 'patron_1');
+    s.player.posture = 'stealthy';
+    p.mind!.knowledge = {};
+    F.rollTier.player = 'critical_success'; // the player stays unseen
+    F.rollTier.patron_1 = 'critical_failure';
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: 'throw' } }) }), createRng(1));
+    expect(atLeastAware(p)).toBe(false);
+    expect(p.mind!.overrides?.player).toBeUndefined();
+    // seen: now it knows who it is, and a blow makes it hostile
+    s.player.posture = 'open';
+    p.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
+    place(s, 'patron_1', 'tav_common');
+    s.turn++;
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1' } }) }), createRng(1));
+    expect(p.mind!.overrides?.player).toBe('hostile');
+  });
   it('rest heals once per cooldown, never beside an opposed actor', () => {
     s.player.core.condition.hpLostPct = 50;
     resolveTurn(s, input({ intent: intent({ action: { type: 'rest' } }) }), createRng(1));
