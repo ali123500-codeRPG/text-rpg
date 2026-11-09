@@ -339,7 +339,7 @@ function skills(): HTMLElement[] {
   const groupChips = (ids: string[]) => [...new Set(ids.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`${GROUP_NAMES[g]} group`, toneOf('Group', GROUP_NAMES[g])));
   const treeCard = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => {
     const c = tree(id, title, ids, entry, [...groupChips(ids), ...chips]);
-    c.querySelector('.lv-id')?.remove(); // Ali: the tree id under the title is noise; the group chips say where it belongs
+    c.querySelector('.lv-id')?.remove(); // The tree id under the title is noise; the group chips say where it belongs
     return c;
   };
   return [h('p', { class: 'hs-note' }, 'A tree is where a skill is learned. The group comes from the skill\'s functions (FUNCTION_GROUP in functionNames.ts) and decides the 40 perk +1 and the XP category, so a tree and its group can differ.'),

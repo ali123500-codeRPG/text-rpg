@@ -415,7 +415,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     passTime(state, minutes);
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     if (o.type === 'sleep') {
-      // Ali: sleep gives the rest heal once per REST_COOLDOWN_MIN of sleep, and counts as the last rest
+      // Sleep gives the rest heal once per REST_COOLDOWN_MIN of sleep, and counts as the last rest
       for (let i = 0; i < Math.floor(minutes / CONFIG.REST_COOLDOWN_MIN); i++) applyHealing(state, a, restRow(state, a));
       state.clocks[`rest:${a.id}`] = now(state);
     }

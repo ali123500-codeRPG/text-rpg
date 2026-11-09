@@ -44,7 +44,7 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
   return { classId: pick.classId, level: charLevel(p) };
 }
 
-/** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill (Ali, 09/11/2026:
+/** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill (for example
  * Swordsman at Medium Weapons 40 and Block 40). An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;

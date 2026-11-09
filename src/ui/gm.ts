@@ -32,7 +32,7 @@ export function gmPage(api: GameApi) {
           confirm?.kind === 'download'
             ? confirmRow('Download the whole story as a file?', 'Download backup', download)
             : h('button', { class: 'hs-btn-text', type: 'button', title: 'Owner only. Asks to confirm each time', onclick: () => { confirm = { kind: 'download' }; update(); } }, 'Download backup'),
-          // Ali: the GM can start a new save, with warnings. The old story is archived, not deleted (D-73).
+          // The GM can start a new save, with warnings. The old story is archived, not deleted (D-73).
           s ? (confirm?.kind === 'newSave'
             ? h('div', { class: 'confirm', role: 'alert' },
                 h('span', { class: 'hs-note' }, `Warning: "${s.meta.title}" (turn ${s.turn}) ends now and you make a new character. Play can't return to it: it is archived, not deleted. Download a backup first if you want a copy.`),

@@ -1,4 +1,4 @@
-// Ali: a sight roll rolls the sight function, not one skill. Eyesight and Tremor are both sight skills,
+// A sight roll rolls the sight function, not one skill. Eyesight and Tremor are both sight skills,
 // so the higher effective skill applies at full value (its tier multiplier still counts). The same goes for hearing.
 import { FN } from '../../src/library/functionIds';
 import { describe, expect, it } from 'vitest';

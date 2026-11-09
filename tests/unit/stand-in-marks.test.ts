@@ -1,4 +1,4 @@
-// Ali (decision "Both skills"): when a stand-in makes the roll, the stand-in and the skill the action
+// When a stand-in makes the roll (decision "Both skills"), the stand-in and the skill the action
 // asked for each get a mark, each against its own learning window (SP2), so a weak skill can still rise.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, actor, createRng } from '../harness';
