@@ -18,7 +18,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { CLASS_TIERS, EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS } from '../scales';
+import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS } from '../scales';
 import { requirement } from '../ruleset/requirements';
 import { fmtDate, h } from './kit';
 import { skillName } from './creation';
@@ -302,16 +302,17 @@ const perkList = (ids: string[] | undefined) => links('perks', (ids ?? []).map((
 function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
     const ct = lib.bodyTypes[r.bodyTypeId];
-    return card('races', r.id, r, r.name, [],
+    return card('races', r.id, r, r.name, [chip(INTELLIGENCE.name(r.intelligence), toneOf('Intelligence', INTELLIGENCE.name(r.intelligence)))],
       h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)]), h('div', {},
         row('Body', link('bodyTypes', r.bodyTypeId, label(r.bodyTypeId))),
         row('HP multiplier', `×${r.hpMultiplier}`),
+        row('Intelligence', INTELLIGENCE.name(r.intelligence)),
         r.naturalAttacks?.length ? row('Own natural attacks', val(r.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`))) : null,
         r.naturalArmor ? row('Natural armor', val(r.naturalArmor)) : null,
         r.fallback ? row('Fallback attack', skillName(r.fallback.attackSkill)) : null,
         row('Innate perks', perkList(r.innatePerks)), row('Innate quirks', perkList(r.innateQuirks)),
         row('NPC templates', usedBy((t) => t.raceId === r.id)))),
-      ...fields(r as unknown as Entry, ['id', 'name', 'bodyTypeId', 'hpMultiplier', 'naturalAttacks', 'naturalArmor', 'fallback', 'innatePerks', 'innateQuirks']));
+      ...fields(r as unknown as Entry, ['id', 'name', 'bodyTypeId', 'hpMultiplier', 'naturalAttacks', 'naturalArmor', 'fallback', 'innatePerks', 'innateQuirks', 'intelligence']));
   }))];
 }
 function bodyTypes(): HTMLElement[] {
@@ -571,6 +572,7 @@ const CUSTOM: Section[] = [
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
+  races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
   stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],
     ['Fed by', e.type ? (e.feeds ? 'library entries' : 'a fixed number') : undefined]],
