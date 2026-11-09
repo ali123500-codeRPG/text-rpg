@@ -161,3 +161,29 @@ main .lv-card > header > h3 { margin-right: auto; }
 #lv-content:focus { outline: none; }
 .lv-foldbtn { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-2); }
 .lv-foldbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+/* table view: rows mirror the hidden cards */
+.lv-grid.lv-tabled { display: none; }
+.lv-seg { display: inline-flex; border: 1px solid var(--rule); border-radius: var(--r-md); overflow: hidden; }
+.lv-seg button { all: unset; cursor: pointer; padding: 0 var(--space-3); min-height: var(--control-h); display: inline-flex; align-items: center; font-weight: 700; color: var(--muted); }
+.lv-seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); }
+.lv-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.lv-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); font-size: 14px; }
+.lv-table th, .lv-table td { padding: var(--space-2) var(--space-3); text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.lv-table tbody tr:last-child > * { border-bottom: 0; }
+.lv-table thead th { font-size: 12px; font-weight: 500; color: var(--faint); white-space: nowrap; }
+.lv-table tbody th { font-weight: 700; }
+.lv-table tbody th .lv-link { color: var(--text); }
+.lv-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.lv-table tr.lv-toned > th { box-shadow: inset 3px 0 0 var(--tone); }
+.lv-table td { font-variant-numeric: tabular-nums; color: var(--text); }
+.lv-sort { all: unset; cursor: pointer; }
+.lv-sort:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lv-table th[aria-sort="ascending"] .lv-sort::after { content: " ▴"; }
+.lv-table th[aria-sort="descending"] .lv-sort::after { content: " ▾"; }
+/* all-tables search */
+.lv-all { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--muted); font-size: 12px; white-space: nowrap; cursor: pointer; }
+body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.lv-allmode .lv-ckey { display: none !important; }
+.lv-allres { display: grid; gap: var(--space-4); }
+.lv-hits { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.lv-allgroup { display: grid; gap: var(--space-2); }
+.lv-allgroup h2 { margin: 0; font-size: 16px; font-weight: 700; }

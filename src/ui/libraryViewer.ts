@@ -746,6 +746,7 @@ function paint(): void {
     const same = [c.closest('.lv-group')?.querySelector(':scope > h2')?.textContent ?? '', f?.split('\t')[1] ?? ''].map((x) => x.trim().toLowerCase()).filter(Boolean);
     c.querySelectorAll<HTMLElement>(':scope > header > .hs-tg').forEach((t) => { t.hidden = same.includes((t.textContent ?? '').trim().toLowerCase()); });
   }
+  syncRows();
 }
 /** does a card pass the search and the filters (leaving out one group's own picks, for that group's counts) */
 function passes(c: HTMLElement, q: string, skip?: string): boolean {
@@ -770,6 +771,15 @@ function pickWords(): string {
 }
 function filter(): void {
   const q = search.value.trim().toLowerCase();
+  const allOn = allBox.checked && !!q;
+  document.body.classList.toggle('lv-allmode', allOn);
+  if (allOn) {
+    const n = searchAll(q);
+    if (allRes.parentNode !== body) body.prepend(allRes);
+    results.replaceChildren(`${n} match${n === 1 ? '' : 'es'} across all tables`, ' ', h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { search.value = ''; filter(); } }, 'Clear'));
+    return;
+  }
+  allRes.remove();
   const all = cards();
   for (const c of all) c.hidden = !passes(c, q);
   body.querySelectorAll<HTMLElement>('.lv-group').forEach((g) => { g.hidden = !!g.querySelector('.lv-card') && !g.querySelector('.lv-card:not([hidden])'); });
@@ -787,6 +797,7 @@ function filter(): void {
   }
   if (empty.parentNode !== body) body.prepend(empty);
   drawBar();
+  syncRows();
 }
 const facetsFor = (sec: Section): Facets => FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
 const viewOf = (sec: Section) => (sec.view ? sec.view() : [h('div', { class: 'lv-grid' }, generic(sec.key, lib[sec.table] as Record<string, Entry>))]).filter(Boolean) as HTMLElement[];
@@ -979,6 +990,82 @@ function foldable(): void {
 }
 body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
 
+// Table view (VR1, VR2): flat tables read as one row per entry. The cards stay in the page (hidden), so search,
+// filters, colour and pins keep working on them; each row mirrors its card.
+const TABLE_FIRST = new Set(['gear', 'status', 'services', 'roles', 'durations', 'zoneKinds', 'activities', 'routines', 'healing', 'classes', 'stacking']);
+const viewOfTable: Record<string, 'cards' | 'table'> = remember<Record<string, 'cards' | 'table'>>('lv-view', {});
+const modeOf = (key: string) => viewOfTable[key] ?? (TABLE_FIRST.has(key) ? 'table' : 'cards');
+const viewSwitch = h('div', { class: 'lv-seg', role: 'group', 'aria-label': 'Show entries as' });
+compareBtn.before(viewSwitch);
+// All tables (VR7): the search lists matches from every table, grouped by table; it stays on across tables
+const allBox = h('input', { type: 'checkbox', onchange: () => filter() }) as HTMLInputElement;
+search.after(h('label', { class: 'lv-all' }, allBox, 'All tables'));
+const allRes = h('div', { class: 'lv-allres' });
+function searchAll(q: string): number {
+  const seen = new Set<string>();
+  let n = 0;
+  const groups = SECTIONS.flatMap((sec) => {
+    if (seen.has(sec.table)) return [];
+    seen.add(sec.table);
+    const hits = Object.entries(lib[sec.table] as Record<string, Entry>).filter(([id, e]) => `${typedId(id)?.textContent ?? ''} ${JSON.stringify(e)}`.toLowerCase().includes(q));
+    n += hits.length;
+    return hits.length ? [h('section', { class: 'lv-allgroup' }, h('h2', {}, sec.title, h('span', { class: 'lv-size' }, ` · ${hits.length}`)),
+      h('ul', { class: 'lv-hits' }, hits.map(([id]) => h('li', {}, typedId(id) ?? link(sec.key, id, id)))))] : [];
+  });
+  allRes.replaceChildren(...(groups.length ? groups : [h('p', { class: 'lv-empty' }, `Nothing in any table matches “${search.value.trim()}”.`)]));
+  return n;
+}
+function drawSwitch(): void {
+  const can = !!body.querySelector('.lv-grid > .lv-card:not(.lv-fixed)');
+  viewSwitch.hidden = !can;
+  viewSwitch.replaceChildren(...(['cards', 'table'] as const).map((m) => h('button', { type: 'button', 'aria-pressed': String(modeOf(shown) === m),
+    onclick: () => { viewOfTable[shown] = m; keep('lv-view', viewOfTable); tablify(); drawSwitch(); } }, m === 'cards' ? 'Cards' : 'Table')));
+}
+const cellText = (n: Element | null | undefined) => (n?.textContent ?? '').replace(/\s+/g, ' ').trim();
+function tablify(): void {
+  body.querySelectorAll('.lv-table').forEach((t) => t.remove());
+  body.querySelectorAll('.lv-tabled').forEach((g) => g.classList.remove('lv-tabled'));
+  if (modeOf(shown) !== 'table') return;
+  body.querySelectorAll<HTMLElement>('.lv-grid').forEach((grid) => {
+    const list = Array.from(grid.querySelectorAll<HTMLElement>(':scope > .lv-card:not(.lv-fixed)'));
+    if (!list.length) return;
+    const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
+    const maps = list.map(rowsOf);
+    // columns: fields every entry has, short enough for a cell; long ones stay in the pop-up
+    const cols = [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60).slice(0, 6);
+    const sort = { col: -1, dir: 1 };
+    const tbody = h('tbody', {});
+    const rows = list.map((c, i) => {
+      const t = c.querySelector(':scope > header > h3');
+      const tr = h('tr', { 'data-ref': c.id }, h('th', { scope: 'row' }, h('a', { class: 'lv-link', href: `#${c.id}` }, cellText(t))),
+        ...cols.map((k) => h('td', {}, ...Array.from(maps[i].get(k)!.cloneNode(true).childNodes))));
+      return { tr, card: c, keys: [cellText(t), ...cols.map((k) => cellText(maps[i].get(k)))] };
+    });
+    const heads = ['Name', ...cols].map((k, ci) => h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'lv-sort', onclick: () => {
+      sort.dir = sort.col === ci ? -sort.dir : 1; sort.col = ci;
+      const num = (x: string) => (/^-?\d+(\.\d+)?/.test(x) ? parseFloat(x) : NaN);
+      rows.sort((a, b) => { const x = a.keys[ci], y = b.keys[ci]; const nx = num(x), ny = num(y); return sort.dir * (!isNaN(nx) && !isNaN(ny) ? nx - ny : x.localeCompare(y, undefined, { numeric: true })); });
+      tbody.replaceChildren(...rows.map((r) => r.tr));
+      table.querySelectorAll('thead th').forEach((th, j) => th.setAttribute('aria-sort', j === ci ? (sort.dir > 0 ? 'ascending' : 'descending') : 'none'));
+    } }, k)));
+    tbody.append(...rows.map((r) => r.tr));
+    const table = h('table', { class: 'lv-table' }, h('thead', {}, h('tr', {}, ...heads)), tbody);
+    grid.classList.add('lv-tabled');
+    grid.after(table);
+  });
+  syncRows();
+}
+/** rows follow their cards: hidden with them, toned with them */
+function syncRows(): void {
+  body.querySelectorAll<HTMLElement>('.lv-table tr[data-ref]').forEach((tr) => {
+    const c = document.getElementById(tr.dataset.ref!);
+    if (!c) return;
+    tr.hidden = c.hidden;
+    tr.classList.toggle('lv-toned', c.classList.contains('lv-toned'));
+    tr.style.setProperty('--tone', c.style.getPropertyValue('--tone'));
+  });
+}
+
 let shown = '';
 let notice = ''; // one-line message for the next draw (an unknown deep link)
 function route(): void {
@@ -990,7 +1077,7 @@ function route(): void {
     shown = sec.key;
     titleEl.replaceChildren(sec.title, h('span', { class: 'lv-size' }, ` · ${sizeOf(sec)}`));
     picks.clear();
-    search.value = ''; // a new table starts unfiltered
+    if (!allBox.checked) search.value = ''; // a new table starts unfiltered, unless the search covers all tables
     pane = paneOf[sec.key] ?? '';
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = facetsFor(sec);
@@ -1000,6 +1087,8 @@ function route(): void {
     subRail.replaceChildren(...(tabs ? [tabs] : []));
     document.body.classList.toggle('lv-has-sub', !!tabs);
     foldable();
+    tablify();
+    drawSwitch();
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
     drawBar();
     paint();
