@@ -46,7 +46,10 @@ export function gmPage(api: GameApi) {
         { label: 'Actors', value: String(s?.actors.length ?? 0), unit: unitOf(s?.actors.length ?? 0, 'NPC'), sub: s ? plural(s.bands.length, 'band') : '–', how: 'NPCs and enemies in the story (the player not counted).' },
         { label: 'Agent calls', value: String(g.agentLog.length), unit: unitOf(g.agentLog.length, 'call'), sub: `${g.agentLog.filter((a) => a.errors.length).length} with errors`, how: 'Claude calls made for the last turn.' },
         { label: 'Rolls', value: String(rolls.length), unit: unitOf(rolls.length, 'roll'), sub: plural(g.log.length, 'log code'), how: 'Attacks, contests and checks among this turn’s events.' },
-      ], how), how),
+      ], how), how,
+        // moved here from the play header: the count and the running agents change with the encounter mode (hidden)
+        h('p', { class: 'hs-note' }, `${api.calls()} Claude call${api.calls() === 1 ? '' : 's'} this session`,
+          api.working().length ? ` · running now: ${api.working().map((w) => w.agent).join(', ')}${api.busy() ? '' : ' (in the background)'}` : '')),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Agent calls · exact input and output'),
         g.agentLog.length ? h('table', { class: 'hs-tbl' },
