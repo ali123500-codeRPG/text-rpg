@@ -2680,6 +2680,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-136 | Parked reward types | 1, 2 | Parked | Ali (09/11/2026): T12 initiative (park until an achievement fits); T14 tier floor (powerful, nothing fits yet; a balance lever that turns gap X into gap X−1 instead of a flat +1); T20 XP focus (a perk idea, not an achievement reward). |
 | D-137 | More reward types | 1, 2 | Deferred | Ali (09/11/2026): come back with more reward types once there are more achievements. |
 | D-138 | Worn titles | 1, 2 | Built | Decided by Ali (09/11/2026, reward variations page T18): a general option for every achievement, not a reward of one. `/title` lists the current, non-scar achievements; `/title <number or name>` wears one; `/title off` removes it (Progression.title). The title moves up its chain when a higher level replaces it. Stealth-safe: an NPC's belief about the player carries the title only when it has seen the player (source seen, status Aware or higher), never from sound, a glimpse (Suspicious) or hearsay. The narrator gets player.title and may use it now and then. |
+| D-139 | Old Blood situation bonus | 1 | Built | Decided by Ali (09/11/2026): Old Blood (100 game days survived) gives +10 on situation rolls (AchievementDef.situation, an achievement modifier in situationMods). |
 
 ## Check on release
 

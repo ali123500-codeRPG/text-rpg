@@ -476,7 +476,7 @@ export function prototypeLibrary(): Library {
       [ACH.deals_100]: { id: ACH.deals_100, name: 'Silver Tongue', level: 'iii', rule: 'deals', tags: ['social'], count: 100, after: ACH.deals_10, pricePct: 5 },
       [ACH.days_7]: { id: ACH.days_7, name: 'Still Breathing', level: 'i', rule: 'days', tags: ['survival'], count: 7 },
       [ACH.days_30]: { id: ACH.days_30, name: 'Seasoned', level: 'ii', rule: 'days', tags: ['survival'], count: 30, after: ACH.days_7, restPct: 10 },
-      [ACH.days_100]: { id: ACH.days_100, name: 'Old Blood', level: 'iii', rule: 'days', tags: ['survival'], count: 100, after: ACH.days_30 },
+      [ACH.days_100]: { id: ACH.days_100, name: 'Old Blood', level: 'iii', rule: 'days', tags: ['survival'], count: 100, after: ACH.days_30, situation: 10 },
       [ACH.class_unlock]: { id: ACH.class_unlock, name: '{class} Awakened', level: 'i', rule: 'class_unlock', tags: ['progression'], count: 1, by: 'class' },
       // classes at their top level: in all, per class tier (one, then several in the same tier), and across tiers
       [ACH.class_max_1]: { id: ACH.class_max_1, name: 'Path Walked to Its End', level: 'i', rule: 'class_max', tags: ['progression'], count: 1 },

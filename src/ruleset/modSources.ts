@@ -94,11 +94,13 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Scene difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scene\'s difficulty.',
     value: list(Object.fromEntries(Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => [k, CONFIG.DIFFICULTY.moderate - v]))) },
   // aim
-  { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at. Contests drop it.',
+  { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at.',
     value: list(CONFIG.AIM_PENALTY) },
   // the situation roll (no skill)
   { type: 'perk', roll: 'situation', source: 'Perk situation bonus', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for each perk with a situation value.',
     value: 'the perk\'s situation value', feeds: (lib) => Object.values(lib.perks).filter((d) => d.situation).map((d) => ({ table: 'perks', id: d.id, name: d.name, value: sg(d.situation!) })) },
   { type: 'gear', roll: 'situation', source: 'Item situation effects', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for each item effect that names the situation roll.',
     value: 'the effect\'s value', feeds: (lib) => itemRollMods(lib, true) },
+  { type: 'achievement', roll: 'situation', source: 'Achievement situation bonus', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for the best current achievement with a situation value.',
+    value: 'the achievement\'s situation value', feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.situation).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(a.situation!) })) },
 ];
