@@ -151,6 +151,7 @@ export type Order = {
   aimed?: boolean;
   defense?: 'dodge' | 'block' | null;
   item?: string | null;
+  qty?: number | null; // give: how many of a stack (null: all of it)
   mode?: string | null;
   gear?: GearOp[] | null;
   line?: { text: string; volume: 'whisper' | 'normal' | 'shout'; introduces?: string[] } | null; // talk: speech; else a bark

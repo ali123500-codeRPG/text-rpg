@@ -24,6 +24,7 @@ export type Intent = {
     target: string | null;
     targetPart: string | null;
     item: string | null;
+    qty?: number | null; // give: how many of a stack (null: all of it)
     mode: string | null;
     approach: string;
     stance: 'careful' | 'normal' | 'reckless';
@@ -51,6 +52,7 @@ export type NpcAction = {
   aimed: boolean;
   defense: 'dodge' | 'block' | null;
   item: string | null;
+  qty?: number | null; // give: how many of a stack (null: all of it)
   mode: string | null;
   intent: string;
 };

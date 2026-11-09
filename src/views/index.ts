@@ -376,7 +376,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const hears = !!e.line && (full || per.cue === 'sound');
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;
-    const item = full && e.itemId && e.kind !== 'attack' ? itemName(state, e.itemId) : undefined;
+    const name = full && e.itemId && e.kind !== 'attack' ? itemName(state, e.itemId) : undefined;
+    const item = name && e.qty ? `${e.qty} ${name}` : name;
     // a fully seen attack shows both sides; any other target only if the player sees it (run 15)
     const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds) : undefined;
     out.push({

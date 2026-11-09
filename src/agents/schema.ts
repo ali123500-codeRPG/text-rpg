@@ -63,12 +63,13 @@ const intent = obj<Intent>({
     target: nul(str),
     targetPart: nul(str),
     item: nul(str),
+    qty: num,
     mode: nul(str),
     approach: (v, p, e) => (v === null || v === undefined ? '' : str(v, p, e)),
     stance: (v, p, e) => (v === null || v === undefined ? 'normal' : oneOf(['careful', 'normal', 'reckless'] as const)(v, p, e)),
     improvised: (v, p, e) => (v === null || v === undefined ? null
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
-  })),
+  }, ['qty'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
   gear: GEAR,
   spoken: nul(str),
@@ -85,9 +86,10 @@ const npcAction = obj<PlannerOutput['action']>({
   aimed: (v, p, e) => (v === undefined || v === null ? false : bool(v, p, e)),
   defense: nul(oneOf(['dodge', 'block'] as const)),
   item: nul(str),
+  qty: num,
   mode: nul(str),
   intent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
-});
+}, ['qty']);
 
 const trigger = obj<{ id: string; ownerId: string; when: unknown; then: unknown; once: boolean }>(
   { id: str, ownerId: str, when: any, then: any, once: (v, p, e) => (v === undefined ? true : bool(v, p, e)) },

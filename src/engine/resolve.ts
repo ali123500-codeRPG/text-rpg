@@ -511,8 +511,9 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'sleep':
       return doWait(ctx, a, o);
     case 'give': {
-      if (!giveItem(state, a, o.item, o.target)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
-      return emit(ctx, bark(mk(ctx, a, 'give', { target: o.target ?? undefined, itemId: o.item ?? undefined }), o));
+      const got = giveItem(state, a, o.item, o.target, o.qty);
+      if (!got) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
+      return emit(ctx, bark(mk(ctx, a, 'give', { target: o.target ?? undefined, itemId: got.id, ...(got.qty > 1 ? { qty: got.qty } : {}) }), o));
     }
     case 'equip': {
       if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted'), o));

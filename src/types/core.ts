@@ -86,6 +86,7 @@ export type GameEvent = {
   vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
   activity?: string; // idle / presence: ActivityDef id
   itemId?: string; // item instance involved (gear, give, thrown, dropped)
+  qty?: number; // give: how many of a stack changed hands
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;
   check?: import('./ruleset').CheckResult;
