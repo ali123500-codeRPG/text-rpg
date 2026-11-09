@@ -88,6 +88,9 @@ export function equations(lib: Library): EquationGroup[] {
         notes: [`Example: three +10 of one type → ${n(stackType([10, 10, 10]))}.`] },
     ] },
     { key: 'attacks', title: 'Attacks', about: 'From the attack roll to the damage a hit does.', equations: [
+      { name: 'Initiative', at: 'initiativeOrder · src/engine/resolve.ts',
+        formula: `initiative = d100, or ${CONFIG.INIT_UNAWARE} (INIT_UNAWARE) for an actor unaware of anyone attacking it this turn; higher acts first`,
+        notes: ['No skill counts. Ties go to the seeded random roll.'] },
       { name: 'Attack and defense', at: 'attack · src/ruleset/index.ts',
         formula: 'attack roll (skill roll); below Near Miss it misses. Otherwise the defender makes a dodge or block roll',
         terms: [['attack modifiers', 'weapon class hit + mode hitAdj, range, aim, light, perks'], ['defense modifiers', 'outnumbered, unaware, dodge vs missile, light, perks']] },

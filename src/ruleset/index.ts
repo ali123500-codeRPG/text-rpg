@@ -384,7 +384,7 @@ function recordUse(actor: Actor, skill: string, result: CheckResult | ContestRes
 }
 
 export const ruleset: Ruleset = {
-  initiative: (_actor, _state, rng) => rng.d100(), // INIT_UNAWARE for unaware actors is the engine's call
+  initiative: (_actor, _state, rng) => rng.d100(), // the engine gives INIT_UNAWARE to an actor unaware of its attacker (initiativeOrder)
   check,
   contested,
   roll,

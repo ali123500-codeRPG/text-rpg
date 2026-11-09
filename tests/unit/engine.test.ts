@@ -191,6 +191,17 @@ describe('order priority', () => {
     const ev = resolveTurn(s, input(), createRng(1));
     expect(ev.map((e) => e.actorId)).toEqual(['guard_1', 'trader', 'patron_1', 'slime_1', 'slime_2', 'player']);
   });
+  it('an actor unaware of someone attacking it this turn acts last (INIT_UNAWARE)', () => {
+    F.init = { player: 10, guard_1: 90, trader: 70, patron_1: 60, slime_1: 40, slime_2: 30 };
+    const order = (aware: boolean) => {
+      const t = makeVillage();
+      if (aware) actor(t, 'guard_1').mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
+      const ev = resolveTurn(t, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
+      return [...new Set(ev.map((e) => e.actorId))];
+    };
+    expect(order(false).at(-1)).toBe('guard_1');
+    expect(order(true)[0]).toBe('guard_1');
+  });
 });
 
 describe('mid-turn triggers', () => {

@@ -86,10 +86,14 @@ function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined)
   }
 }
 
-function initiativeOrder(state: GameState, ids: string[], rng: Rng): string[] {
+/** initiative: the ruleset's roll, but an actor unaware of anyone attacking it this turn takes INIT_UNAWARE (acts last); ties go to the seeded rng */
+function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Order>, rng: Rng): string[] {
+  const attackers = (id: string) => [...orders].filter(([, o]) => o.type === 'attack' && o.target === id).map(([by]) => actorById(state, by)!);
   const rows = ids.map((id) => {
-    // the ruleset applies INIT_UNAWARE to unaware actors (First-build ruleset); ties go to the seeded rng
-    return { id, init: ruleset.initiative(actorById(state, id)!, state, rng), tie: rng.next() };
+    const a = actorById(state, id)!;
+    const roll = ruleset.initiative(a, state, rng);
+    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware');
+    return { id, init: caught ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() };
   });
   rows.sort((x, y) => y.init - x.init || y.tie - x.tie);
   return rows.map((r) => r.id);
@@ -652,7 +656,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const ctx: Ctx = {
     state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(),
   };
-  const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), rng);
+  const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), orders, rng);
 
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order
   const ex = input.exchange;
