@@ -1,5 +1,6 @@
 // 130 D-120 deed achievements: tallies per rule (counts, or the best reached), per group and per class; Critical
 // Success and beyond on combat rolls; unaware and crippled defeats; and the fight achievements judged when a fight ends.
+import { HL } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
@@ -96,14 +97,14 @@ describe('130 deed achievements', () => {
     const s = makeVillage();
     const parts = s.player.core.condition.parts;
     parts.left_arm = -10; // Crippled
-    expect(wouldHeal(s, s.player, 'rest')).toBe(false);
-    expect(applyHealing(s, s.player, 'rest')).toBe(false);
+    expect(wouldHeal(s, s.player, HL.rest)).toBe(false);
+    expect(applyHealing(s, s.player, HL.rest)).toBe(false);
     grantAchievement(s, ACH.crippled_10);
-    expect(wouldHeal(s, s.player, 'rest')).toBe(true);
-    applyHealing(s, s.player, 'rest');
+    expect(wouldHeal(s, s.player, HL.rest)).toBe(true);
+    applyHealing(s, s.player, HL.rest);
     expect(parts.left_arm).toBeGreaterThan(0);
     parts.right_arm = -100; // Destroyed
-    applyHealing(s, s.player, 'rest');
+    applyHealing(s, s.player, HL.rest);
     expect(parts.right_arm).toBe(-100);
   });
 });

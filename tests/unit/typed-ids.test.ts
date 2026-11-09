@@ -12,6 +12,8 @@ import { IT } from '../../src/library/itemIds';
 import { TR } from '../../src/library/treeIds';
 import { BT, RC } from '../../src/library/raceIds';
 import { TP } from '../../src/library/templateIds';
+import { AM, DU, HL, RL, ZK } from '../../src/library/tableIds';
+import { modeIdOf } from '../../src/ruleset/gear';
 import { BUILT_PERKS } from '../../src/library/builtPerks';
 import { ALL_BUNDLES } from '../../src/library/allPerks';
 import { MARK_SOURCE } from '../../src/engine/perkMarks';
@@ -23,6 +25,7 @@ const lib = () => getLibrary() as unknown as Record<string, Record<string, { id?
 const TABLES: [string, string, Record<string, string>][] = [
   ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['perks', 'PK', PK], ['items', 'IT', IT], ['trees', 'TR', TR],
   ['races', 'RC', RC], ['bodyTypes', 'BT', BT], ['templates', 'TP', TP],
+  ['roles', 'RL', RL], ['healing', 'HL', HL], ['durations', 'DU', DU], ['zoneKinds', 'ZK', ZK], ['attackModes', 'AM', AM],
 ];
 
 describe('typed IDs', () => {
@@ -62,6 +65,16 @@ describe('typed IDs', () => {
   it('every item reference names a library item', () => {
     const L = getLibrary();
     for (const t of Object.values(L.templates)) for (const id of t.loadout ?? []) expect(L.items[id], `template ${t.id}: ${id}`).toBeDefined();
+  });
+
+  it('healing sources, attack modes and agent-written mode names resolve to real rows', () => {
+    const L = getLibrary();
+    for (const i of Object.values(L.items)) if (i.heal) expect(L.healing?.[i.heal], `item ${i.id} heal`).toBeDefined();
+    for (const v of Object.values(L.services ?? {})) if (v.heals) expect(L.healing?.[v.heals], `service ${v.id} heals`).toBeDefined();
+    const modes = [...Object.values(L.items).flatMap((i) => i.weapon?.modes ?? []), ...Object.values(L.bodyTypes).flatMap((b) => b.naturalAttacks)];
+    for (const m of modes) expect(L.attackModes?.[m.id], `mode ${m.id}`).toBeDefined();
+    expect(modeIdOf('Thrust')).toBe(AM.thrust);
+    expect(modeIdOf(AM.thrust)).toBe(AM.thrust);
   });
 
   it('templates name real races, races real body types, and skills real trees', () => {

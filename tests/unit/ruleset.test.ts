@@ -1,3 +1,4 @@
+import { AM } from '../../src/library/tableIds';
 import { BT } from '../../src/library/raceIds';
 import { TIERS } from '../../src/scales';
 import { describe, expect, it } from 'vitest';
@@ -110,7 +111,7 @@ describe('ruleset methods', () => {
     // player 50 → Success; patron dodge 30 → Failure: gap −2; location 20 → left arm
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: sword, targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
     expect(JSON.stringify(s)).toBe(before);
-    expect(r).toMatchObject({ location: 'left_arm', damage: 25, outcome: 'full_hit', modeId: 'cut' });
+    expect(r).toMatchObject({ location: 'left_arm', damage: 25, outcome: 'full_hit', modeId: AM.cut });
     const fx = ruleset.applyEffects(r, s);
     const p = actor(s, 'patron_1'); // 50 HP, arm pool 15
     expect(p.core.condition.parts.left_arm).toBeCloseTo(100 - (25 / 15) * 100);
@@ -125,7 +126,7 @@ describe('ruleset methods', () => {
     const g = place(s, 'guard_1', 'tav_common');
     g.core.condition.parts.right_arm = -90;
     const hit = { attack: null as never, defense: null, defenseType: null, gap: -3, gapShifts: [], outcome: 'full_hit' as const, locationHow: 'aimed' as const,
-      multiplier: 1, deciding: { attack: [], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: sword, modeId: 'cut' };
+      multiplier: 1, deciding: { attack: [], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: sword, modeId: AM.cut };
     const fx = ruleset.applyEffects({ ...hit, location: 'right_arm', damage: 5 }, s);
     expect(fx.map((e) => e.kind)).toContain('item_dropped');
     expect(g.core.inventory.some((i) => i.itemId === IT.arming_sword)).toBe(false);
@@ -171,10 +172,10 @@ describe('ruleset methods', () => {
   });
   it('modes: held first, natural after; default by reach', () => {
     const s = makeVillage();
-    expect(usableModes(s, s.player).map((m) => `${m.itemId}/${m.mode.id}`)).toEqual([`${sword}/cut`, 'natural:punch/punch', 'natural:grapple/grapple']);
-    expect(defaultMode(s, s.player, 0)!.mode.id).toBe('cut');
+    expect(usableModes(s, s.player).map((m) => `${m.itemId}/${m.mode.id}`)).toEqual([`${sword}/${AM.cut}`, `natural:${AM.punch}/${AM.punch}`, `natural:${AM.grapple}/${AM.grapple}`]);
+    expect(defaultMode(s, s.player, 0)!.mode.id).toBe(AM.cut);
     expect(defaultMode(s, s.player, 1)).toBeNull();
     s.player.core.condition.parts.right_arm = -10; // Crippled sword arm: no sword attack
-    expect(usableModes(s, s.player).map((m) => m.mode.id)).toEqual(['punch', 'grapple']);
+    expect(usableModes(s, s.player).map((m) => m.mode.id)).toEqual([AM.punch, AM.grapple]);
   });
 });

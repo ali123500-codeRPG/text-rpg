@@ -1,5 +1,6 @@
 // W6 unit tests: validator (every Validation bullet), grades table, apply, fallback, trim, director.
 // Other workstreams' functions are replaced with small local fakes.
+import { ZK } from '../../src/library/tableIds';
 import { TP } from '../../src/library/templateIds';
 import type { Tier } from '../../src/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -95,7 +96,7 @@ describe('validateStagePlan', () => {
     // a stage zone and an existing frontier are fine
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }] };
+      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }, { to: 'woods', label: 'deeper', sight: false }] }] };
     expect(validateStagePlan(s, ext, { ...ctx, kind: 'extension', frontierKey: 'woods', placeId: 'field' })).toEqual([]);
   });
   it('Z2: every zone names a known kind', () => {
@@ -208,7 +209,7 @@ describe('validateStagePlan', () => {
   });
   it('bound zones must reach each other', () => {
     const p = villageStagePlan();
-    p.zones.push({ key: 'island', place: 'field', kind: 'field', name: 'an island', look: 'reeds', cover: 'none', light: 'bright', links: [] });
+    p.zones.push({ key: 'island', place: 'field', kind: ZK.field, name: 'an island', look: 'reeds', cover: 'none', light: 'bright', links: [] });
     p.cast[3].slots = { route: ['field_mid', 'field_far'], post: 'island' };
     expect(validateStagePlan(fresh(), p, ctx)).toEqual([expect.objectContaining({ code: 'unreachable_zone', castKey: 'slime_1', routineOnly: true })]);
   });
@@ -291,7 +292,7 @@ describe('applyStagePlan', () => {
     const s = makeVillage();
     const ext: StagePlan = { ...villageStagePlan(), places: [], rewards: [], frontiers: [],
       bands: [{ key: 'slimes', name: 'woods slimes', goals: '', temperament: '', tactics: 'simple', lethal: undefined as never, relations: { player_band: 'hostile' } }],
-      zones: [{ key: 'field_mid', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }],
+      zones: [{ key: 'field_mid', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }],
       cast: [{ template: TP.slime, key: 'slime_1', label: 'a slime', name: 'slime', appearance: 'green', band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: '' }] };
     applyStagePlan(s, ext, { tier: 'success', kind: 'extension', frontierKey: 'woods', placeId: 'field' }, { entry: 'open' }, createRng(1));
     expect(s.stage.zoneIds).toContain('field_mid_2');
@@ -407,7 +408,7 @@ describe('SceneDirector', () => {
     const clock = new VirtualClock();
     const s = makeVillage({ playerZone: 'field_far' });
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
-      zones: [{ key: 'grove', place: 'field', kind: 'woods', name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }] };
+      zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }] };
     const weave = vi.fn(() => clock.sleep(5000).then(() => ext));
     const spy = vi.spyOn(ruleset, 'situation');
     const d = new SceneDirector({ weave, clock });

@@ -11,6 +11,7 @@ import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
 import { requirement } from './requirements';
 import { PK } from '../library/perkIds';
+import { AM } from '../library/tableIds';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
@@ -171,7 +172,16 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
 }
 
 /** fallback unarmed mode for a body type with no natural attacks (UNARMED_PROFILE = class punch) */
-export const UNARMED_MODE: AttackMode = { id: 'unarmed', tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' };
+/** an attack mode's display name: its own (natural attacks) or its attackModes row's */
+export const modeName = (m: AttackMode) => m.name ?? getLibrary().attackModes?.[m.id]?.name ?? m.id;
+
+/** the attack mode ID an agent wrote: an AM id as is, or a mode name (any case) mapped to its id */
+export function modeIdOf(word: string): string {
+  const w = word.trim().toLowerCase();
+  return Object.values(getLibrary().attackModes ?? {}).find((m) => m.id.toLowerCase() === w || m.name.toLowerCase() === w)?.id ?? word;
+}
+
+export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {
@@ -202,7 +212,7 @@ export function resolveMode(state: GameState, actor: Actor, weaponId: string, mo
     const id = weaponId === 'unarmed' ? modeId : weaponId.slice(8);
     const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !m.partId) ?? UNARMED_MODE : undefined);
     if (!mode) throw new Error(`no natural attack ${weaponId}`);
-    return { mode, name: mode.name ?? mode.id };
+    return { mode, name: modeName(mode) };
   }
   const inst = actor.core.inventory.find((i) => i.id === weaponId);
   if (!inst) throw new Error(`${actor.id} has no item ${weaponId}`);

@@ -16,6 +16,7 @@ import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, wareList } from '../engine/trade';
 import { PK } from '../library/perkIds';
 import { IT } from '../library/itemIds';
+import { modeName } from '../ruleset/gear';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -68,7 +69,7 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
     const classes = [...new Set((d.weapon?.modes ?? []).map((m) => m.class))];
     return {
       id: i.id, itemId: i.itemId, name: d.name, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
-      modes: (d.weapon?.modes ?? []).map((m) => m.id),
+      modes: (d.weapon?.modes ?? []).map((m) => ({ id: m.id, name: modeName(m) })),
       ...(classes.length ? { classLabel: classes.join('/') } : {}),
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
       ...(d.stackable ? { qty: i.qty ?? 1 } : {}),

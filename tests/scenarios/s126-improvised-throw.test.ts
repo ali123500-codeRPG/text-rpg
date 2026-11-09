@@ -1,5 +1,6 @@
 // 126 Improvised weapons strike or throw: both modes roll Improvisation; Unarmed skills stand in
 // for both, Arms skills also for the strike, Ranged skills also for the throw.
+import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';
 import { ruleset } from '../../src/ruleset';
@@ -22,7 +23,7 @@ describe('126 improvised strike and throw', () => {
     const s = makeVillage();
     for (const id of [IT.improvised_light, IT.improvised_medium, IT.improvised_heavy]) {
       const modes = itemDef(s, id).weapon!.modes;
-      expect(modes.map((m) => [m.id, m.tree, m.skill])).toEqual([['strike', 'melee', SK.unarmed_improvised], ['throw', 'ranged', SK.unarmed_improvised]]);
+      expect(modes.map((m) => [m.id, m.tree, m.skill])).toEqual([[AM.strike, 'melee', SK.unarmed_improvised], [AM.throw, 'ranged', SK.unarmed_improvised]]);
       expect(modes[1].thrown).toBe(true);
     }
   });
@@ -33,7 +34,7 @@ describe('126 improvised strike and throw', () => {
     place(s, 'patron_1', 'tav_counter');
     setSkills(s, { [SK.ranged_light]: 80, [SK.melee_medium]: 90 });
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
-    expect(r.modeId).toBe('throw');
+    expect(r.modeId).toBe(AM.throw);
     expect(r.attack.skill).toBe(SK.ranged_light);
     expect(r.attack.asked).toBe(SK.unarmed_improvised);
   });
@@ -44,10 +45,10 @@ describe('126 improvised strike and throw', () => {
     place(s, 'patron_1', 'tav_common');
     setSkills(s, { [SK.ranged_light]: 90, [SK.melee_medium]: 80 });
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
-    expect(r.modeId).toBe('strike');
+    expect(r.modeId).toBe(AM.strike);
     expect(r.attack.skill).toBe(SK.melee_medium);
     setSkills(s, { [SK.unarmed_strike]: 70, [SK.ranged_light]: 60 });
-    const t = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', modeId: 'throw', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
+    const t = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', modeId: AM.throw, targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
     expect(t.attack.skill).toBe(SK.unarmed_strike);
   });
 });

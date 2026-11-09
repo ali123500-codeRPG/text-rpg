@@ -1,5 +1,6 @@
 // Creation-screen preview: builds a throwaway sheet and a one-zone duel state, then asks the ruleset (W2) for the numbers.
 // Every figure is null until the ruleset helper behind it exists (stubs throw), and the screen shows "—".
+import { AM } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { Actor, CreationBuild, GameState } from '../types';
 import { CONFIG } from '../config';
@@ -62,7 +63,7 @@ export function preview(build: CreationBuild, swings: number): Preview {
   const dodge = safe(() => effectiveSkill(state, p, SK.dodge).value);
   const defense = block === null || dodge === null ? null : block >= dodge ? { kind: 'block' as const, value: block } : { kind: 'dodge' as const, value: dodge };
   const mine = atk ? safe(() => avgDamage(state, 'player', 'slime', atk.itemId, swings, atk.mode.id)) : null;
-  const theirs = safe(() => avgDamage(state, 'slime', 'player', 'natural:slam', swings));
+  const theirs = safe(() => avgDamage(state, 'slime', 'player', `natural:${AM.slam}`, swings));
   return {
     hp, attack, weapon, shield: shieldInst ? itemDef(state, shieldInst.itemId).name : null, defense, slimeHp,
     swingsToKill: mine && slimeHp ? slimeHp / mine : null,

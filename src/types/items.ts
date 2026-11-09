@@ -46,7 +46,7 @@ export type ItemEffect = {
 };
 
 export type AttackMode = {
-  id: string;
+  id: string; // an attack mode ID (AM in src/library/tableIds.ts)
   tree: 'melee' | 'ranged' | 'unarmed';
   class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam' | 'grapple';
   skill?: LibraryRef; // unarmed only
@@ -59,7 +59,7 @@ export type AttackMode = {
    * an improvised melee strike takes Arms stand-ins, an improvised throw takes Ranged ones) */
   standInFns?: SkillFunction[];
   partId?: string; // natural attacks: the Strike part used
-  name?: string; // public name for natural modes (packet)
+  name?: string; // public name for natural modes (packet); else the attackModes row's name
 };
 
 export type ItemInstance = {

@@ -1,3 +1,4 @@
+import { AM } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
@@ -9,7 +10,7 @@ describe('75 Attack floor', () => {
     place(s, 'player', 'field_mid');
     // slime: 10 + 0.5×30 + 10 (slam hit) − 63.5 = −28.5 → Failure
     const rng = forcedRng([10, 99]);
-    const r = ruleset.attack({ attackerId: 'slime_1', targetId: 'player', weaponId: 'natural:slam', targetPart: null, aimed: false }, s, rng);
+    const r = ruleset.attack({ attackerId: 'slime_1', targetId: 'player', weaponId: `natural:${AM.slam}`, targetPart: null, aimed: false }, s, rng);
     expect(r.attack.tier).toBe('failure');
     expect(r.outcome).toBe('missed');
     expect(r.defense).toBeNull();

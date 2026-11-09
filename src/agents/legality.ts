@@ -5,6 +5,7 @@ import { SPEECH_ACTIONS } from '../types';
 import { TIME_OF_DAY } from '../scales';
 import { meltAwayHere } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
+import { modeIdOf } from '../ruleset/gear';
 
 // ---------------- Parser ----------------
 
@@ -40,6 +41,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   if (out.move?.toZone === view.zone.id) out.move = null;
   if (out.move && !view.zone.links.some((l) => l.to === out.move!.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
   const a = out.action;
+  if (a?.mode) a.mode = modeIdOf(a.mode); // a mode named by its name maps to its AM id
   if (a) {
     // T6 (run 18): a wait's target is a time of day, not an actor; "Who do you mean?" stopped every timed wait
     if (a.type === 'wait' || a.type === 'sleep') {
@@ -60,7 +62,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     const wares = a.type === 'buy' || a.type === 'barter' ? new Set(view.actors.find((x) => x.id === a.target)?.wares?.map((w) => w.id) ?? []) : null;
     if (a.item !== null && !(wares ? wares.has(a.item) : items.has(a.item))) illegal.push(`action.item ${a.item}`);
     if (a.mode !== null) {
-      const modes = a.item ? own.find((i) => i.id === a.item)?.modes ?? [] : own.flatMap((i) => (i.equippedIn.length ? i.modes : []));
+      const modes = a.item ? own.find((i) => i.id === a.item)?.modes.map((m) => m.id) ?? [] : own.flatMap((i) => (i.equippedIn.length ? i.modes.map((m) => m.id) : []));
       // unarmed / natural modes are not listed on gear; only a mode named against a listed item can be wrong
       if (a.item && own.some((i) => i.id === a.item) && !modes.includes(a.mode)) {
         gearErrors.push(`mode ${a.mode} not on ${a.item}`);
@@ -130,6 +132,7 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   for (const id of alsoKnown) k.actors.add(id);
   const errors: string[] = [];
   const a = out.action;
+  if (a.mode) a.mode = modeIdOf(a.mode);
   let orderError: NpcLegality['orderError'] = null;
   const knows = (id: string) => k.actors.has(id) || k.zones.has(id) || k.own.has(id) || k.ground.has(id) || k.seenGear.has(id);
   if (a.target !== null && !knows(a.target)) orderError = world.has(a.target) ? 'view_leak' : 'invalid_target';
@@ -141,7 +144,7 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   }
   if (a.mode !== null && a.item !== null) {
     const g = view.self.gear.find((x) => x.id === a.item);
-    if (g && !g.modes.includes(a.mode)) {
+    if (g && !g.modes.some((m) => m.id === a.mode)) {
       errors.push('invalid_gear');
       a.mode = null;
     }

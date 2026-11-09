@@ -2,6 +2,7 @@
 // Leg Bolt: a medium or heavy ranged hit that wounds a leg costs the leg 1.5× and slows the target (no dash) until the
 // end of its next turn. Dirt in the Eyes: a free perk move, once per engagement, needing a free hand; unless the foe's
 // dodge wins, its next attack or defense roll gets tier shift −2.
+import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place, fit } from '../harness';
 import { ruleset } from '../../src/ruleset';
@@ -23,7 +24,7 @@ const crossbow = (s: GameState) => {
   s.player.core.inventory.push({ id: 'xb', itemId: IT.crossbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
   fit(s.player, IT.crossbow);
 };
-const bolt = { attackerId: 'player', targetId: 'patron_1', weaponId: 'xb', modeId: 'shoot', targetPart: 'left_leg', aimed: true };
+const bolt = { attackerId: 'player', targetId: 'patron_1', weaponId: 'xb', modeId: AM.shoot, targetPart: 'left_leg', aimed: true };
 const legLoss = (perk: boolean) => {
   const s = makeVillage();
   crossbow(s);
@@ -81,7 +82,7 @@ describe('115 Dirt in the Eyes', () => {
     expect(hit.effects[0].kind).toBe('dirt_in_eyes');
     expect(markShifts(s, wim, s.player, false).attack).toEqual([{ source: 'Dirt in the Eyes', value: -2 }]);
     expect(markShifts(s, s.player, wim, false).defense).toEqual([{ source: 'Dirt in the Eyes', value: -2 }]);
-    const r = ruleset.attack({ attackerId: 'player', targetId: wim.id, weaponId: 'natural:punch', modeId: 'punch', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
+    const r = ruleset.attack({ attackerId: 'player', targetId: wim.id, weaponId: `natural:${AM.punch}`, modeId: AM.punch, targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
     expect(r.defense?.tierShifts).toContainEqual({ source: 'Dirt in the Eyes', value: -2 });
     afterAttack(s, s.player, wim, r, false);
     expect(wim.perkMarks?.some((m) => m.perk === PK.dirt_in_the_eyes)).toBeFalsy();

@@ -1,3 +1,4 @@
+import { AM } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
@@ -8,7 +9,7 @@ describe('82 Shield routing', () => {
     const s = makeVillage();
     place(s, 'player', 'field_mid');
     // slime 80 + 15 + 10 − 63.5 = 41.5 → Great Success; player block (40 + 25 kit): 95 + 32.5 − 63.5 = 64 → Great Success
-    const r = ruleset.attack({ attackerId: 'slime_1', targetId: 'player', weaponId: 'natural:slam', targetPart: null, aimed: false }, s, forcedRng([80, 95]));
+    const r = ruleset.attack({ attackerId: 'slime_1', targetId: 'player', weaponId: `natural:${AM.slam}`, targetPart: null, aimed: false }, s, forcedRng([80, 95]));
     expect(r.defenseType).toBe('block');
     expect(r.gap).toBe(0);
     expect(r.outcome).toBe('blocked');
