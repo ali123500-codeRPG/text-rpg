@@ -26,7 +26,9 @@ describe('player creation', () => {
     expect(p.progression!.startingTotal).toBe(250 - 50 - 40 - 50);
     expect(p.core.skills[SK.block]).toEqual({ raw: 40, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
-      ['arming_sword', 'hand:right_arm', undefined], ['round_shield', 'hand:left_arm', undefined], ['gambeson', 'armor', undefined], ['coin', undefined, CONFIG.STARTING_COIN], ['bandage', undefined, CONFIG.STARTING_BANDAGES],
+      // the starter kit (Ali, 09/11/2026): every 'starter' item the build meets; the spear is met too and is carried
+      ['arming_sword', 'hand:right_arm', undefined], ['spear', undefined, undefined], ['gambeson', 'armor', undefined], ['round_shield', 'hand:left_arm', undefined],
+      ['coin', undefined, CONFIG.STARTING_COIN], ['bandage', undefined, CONFIG.STARTING_BANDAGES],
     ]);
     expect(p.core.classes).toEqual([{ classId: 'swordsman', state: 'current', level: 4 }]); // EQ13: the player starts at level 4
     expect(p.progression!.unspentPerkPoints).toBe(2); // the perk points of levels 2 and 4
