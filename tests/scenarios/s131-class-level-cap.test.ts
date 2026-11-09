@@ -1,11 +1,16 @@
 // 131 Class level cap: a class levels no higher than CLASS_MAX_LEVEL (20). XP past the cap banks until a class with
-// room is picked, then every banked level is taken at once. The default class (Commoner) opens at the cap.
+// room is picked, then every banked level is taken at once. The default class (Commoner) opens at the cap; its level 5
+// perk unlocks A Nobody, a starting class with Quick Study at level 1 and Every Fall a Lesson at 20.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { awardXp, charLevel, levelTarget, spendXp, xpToNext } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
+import { createPlayer, recommendedBuild } from '../../src/library/spawn';
 import { CONFIG } from '../../src/config';
 import { CL } from '../../src/library/classIds';
+import { SK } from '../../src/library/skillIds';
+import { markUse } from '../../src/ruleset/improve';
+import type { ContestResult } from '../../src/types';
 
 describe('131 Class level cap', () => {
   it('XP banks at the cap, the default class opens, and picking it takes every banked level', () => {
@@ -14,6 +19,7 @@ describe('131 Class level cap', () => {
     expect(CONFIG.CLASS_MAX_LEVEL).toBe(20);
     expect(getLibrary().classes[CL.commoner].name).toBe('Commoner');
     p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 19 }];
+    p.core.perks = [];
     awardXp(s, xpToNext(p), 'test'); // 19 → 20
     expect(p.core.classes[0].level).toBe(20);
     expect(levelTarget(p)).toBeUndefined();
@@ -26,5 +32,33 @@ describe('131 Class level cap', () => {
     spendXp(s);
     expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 20], [CL.commoner, 'current', 3]]);
     expect(pr.xp).toBe(5);
+    expect(p.core.perks.filter((x) => x.source === 'class')).toEqual([]);
+    p.core.classes[1].level = 4;
+    awardXp(s, xpToNext(p), 'test'); // Commoner 4 → 5: Nobody Special unlocks A Nobody
+    expect(p.core.perks.map((x) => x.perkId)).toContain('nobody_special');
+    expect(p.core.classes).toContainEqual({ classId: CL.a_nobody, state: 'unlocked', level: 0 });
+  });
+
+  it('A Nobody: a starting class with Quick Study at level 1', () => {
+    const p = createPlayer(recommendedBuild(CL.a_nobody), 's1');
+    expect(getLibrary().classes[CL.a_nobody].name).toBe('A Nobody');
+    expect(p.core.classes).toEqual([{ classId: CL.a_nobody, state: 'current', level: 1 }]);
+    expect(p.core.perks.map((x) => x.perkId)).toEqual(['quick_study']);
+    expect(getLibrary().classes[CL.a_nobody].levelPerks![20]).toEqual(['every_fall_a_lesson']);
+  });
+
+  it('Every Fall a Lesson: losing by exactly one tier step marks, even outside the window', () => {
+    const s = makeVillage();
+    const p = s.player;
+    p.core.skills[SK.dodge] = { raw: 0, state: 'normal' };
+    const lost = (gap: number) => {
+      p.progression!.marks = [];
+      const r = { a: { actorId: 'guard_1', skill: SK.melee_medium }, b: { actorId: 'player', skill: SK.dodge }, gap, winner: gap < 0 ? 'a' : 'b' };
+      markUse(s, p, SK.dodge, r as unknown as ContestResult);
+      return p.progression!.marks!.includes(SK.dodge);
+    };
+    expect(lost(-1)).toBe(false); // the guard is far outside Dodge 0's window
+    p.core.perks.push({ perkId: 'every_fall_a_lesson', source: 'class', gainedTurn: 0 });
+    expect([lost(-1), lost(-2), lost(1)]).toEqual([true, false, false]); // one step short marks; two short or a win don't
   });
 });

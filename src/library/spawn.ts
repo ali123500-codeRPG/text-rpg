@@ -164,7 +164,7 @@ export function starterKit(a: Actor): ItemInstance[] {
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
 export function recommendedBuild(classId = PLAYER_CLASS): CreationBuild {
-  if (classId === CL.late_bloomer) return { // 50 points; the same kit, so its gear is short at the start
+  if (classId === CL.late_bloomer || classId === CL.a_nobody) return { // 50 points; the same kit, so its gear is short at the start
     name: 'Aldric', classId,
     skills: { [SK.melee_medium]: 15, [SK.block]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.block, SK.endurance],

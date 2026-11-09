@@ -51,6 +51,8 @@ export type ClassDef = {
   unlockAny?: Record<string, number>;
   /** the default class: unlocked for a player whose current class reaches CLASS_MAX_LEVEL, so banked XP has somewhere to go */
   fallback?: true;
+  /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
+  unlockPerk?: string;
 };
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
