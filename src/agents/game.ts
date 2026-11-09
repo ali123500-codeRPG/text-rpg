@@ -758,15 +758,15 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     if (e.attack) {
       const a = e.attack;
       const def = a.defense ? `; ${a.defenseType} d100 ${a.defense.d100} → ${tierName(a.defense)}${mods(a.defense.modifiers)}` : '';
-      out.push(`${label(a.attackerId)} → ${label(a.targetId)}: ${a.attack.skill} d100 ${a.attack.d100} → ${tierName(a.attack)}${mods(a.attack.modifiers)}${def}` +
+      out.push(`${label(a.attackerId)} → ${label(a.targetId)}: ${skillName(a.attack.skill)} d100 ${a.attack.d100} → ${tierName(a.attack)}${mods(a.attack.modifiers)}${def}` +
         `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${a.outcome.replace(/_/g, ' ')}${a.location ? ` (${a.location})` : ''}${a.damage ? `, damage ${a.damage}` : ''}`);
     } else if (e.contest) {
       const c = e.contest;
-      out.push(`${label(c.a.actorId)} ${c.a.skill} d100 ${c.a.d100} → ${tierName(c.a)} vs ${label(c.b.actorId)} d100 ${c.b.d100} → ${tierName(c.b)}: ${c.winner}`);
+      out.push(`${label(c.a.actorId)} ${skillName(c.a.skill)} d100 ${c.a.d100} → ${tierName(c.a)} vs ${label(c.b.actorId)} d100 ${c.b.d100} → ${tierName(c.b)}: ${c.winner}`);
     } else if (e.roll) {
-      out.push(`${label(e.roll.actorId)} ${e.roll.skill} d100 ${e.roll.d100} → ${tierName(e.roll)}${mods(e.roll.modifiers)}`);
+      out.push(`${label(e.roll.actorId)} ${skillName(e.roll.skill)} d100 ${e.roll.d100} → ${tierName(e.roll)}${mods(e.roll.modifiers)}`);
     } else if (e.check) {
-      out.push(`${label(e.check.actorId)} ${e.check.skill} vs ${e.check.target}: ${e.check.passed ? 'passed' : 'failed'}${mods(e.check.modifiers)}`);
+      out.push(`${label(e.check.actorId)} ${skillName(e.check.skill)} vs ${e.check.target}: ${e.check.passed ? 'passed' : 'failed'}${mods(e.check.modifiers)}`);
     }
   }
   // X9: XP awards and level-ups this turn
