@@ -1,6 +1,7 @@
 // Paying with coin (D-93, PY1–PY10): sellers' wares, prices, haggling and the buy action.
 // A seller is an actor with the Trader class and wares. Goods are its own stock (inventory items whose library id is
-// listed); services are catalog ids. Price = base × TRADE_MARKUP × haggle × Hard Bargain, rounded up, at least 1.
+// listed); services are catalog ids. Price = base × TRADE_MARKUP × haggle × Hard Bargain × (1 − achievement pricePct %), rounded up, at least 1.
+import { bestReward } from '../ruleset/achRewards';
 import type { Actor, ContestResult, GameState, ItemInstance } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary, itemDef } from '../library';
@@ -45,7 +46,8 @@ export function warePrice(state: GameState, buyer: Actor, seller: Actor, wareId:
     if (seller.wares!.services.includes(id)) base = getLibrary().services?.[id]?.price;
   }
   if (base === undefined) return null;
-  const mult = CONFIG.TRADE_MARKUP * (buyer.haggle?.[seller.id] ?? 1) * (hasPerk(buyer, PK.haggler) ? CONFIG.HARD_BARGAIN_BUY : 1);
+  const mult = CONFIG.TRADE_MARKUP * (buyer.haggle?.[seller.id] ?? 1) * (hasPerk(buyer, PK.haggler) ? CONFIG.HARD_BARGAIN_BUY : 1)
+    * (1 - (bestReward(buyer, 'pricePct')?.value ?? 0) / 100);
   return Math.max(1, Math.ceil(base * mult - 1e-9));
 }
 

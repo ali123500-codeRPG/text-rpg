@@ -1,17 +1,19 @@
 // Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group),
 // figures that can't be filtered in a text line under them, then the grouped table.
 import { PART_STATES } from '../scales';
-import type { Actor, GameApi, GameState } from '../types';
+import type { Actor, GameApi, GameState, Quest } from '../types';
+import { QUEST_STATES } from '../types';
+import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
-import { REWARD_LEVELS } from '../scales';
+import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
 import { achievementName } from '../engine/xp';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
 import { kitBonus } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { isDownLevel } from '../ruleset';
-import { buildPlayerView, factText } from '../views';
-import { groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
+import { buildPlayerView, callName, factText, questGoalText } from '../views';
+import { closePanel, groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
@@ -23,6 +25,10 @@ type Spec = {
   line: (s: GameState) => string;
   panelTitle: string;
   detail?: (s: GameState, rowId: string) => PanelRow[]; // extra read-only rows for the side panel
+  panelHead?: (s: GameState, rowId: string) => Node; // a control in the side panel's header
+  /** tiles other than one per table group: each row passes the filter by its tile */
+  tiles?: (s: GameState) => VisTile[];
+  tileOf?: (s: GameState, row: TRow) => string;
   focus?: () => string | null; // a row to open on arrival (consumed once)
   top?: (redraw: () => void) => HTMLElement; // above the title: the page's sub-tabs
 };
@@ -38,9 +44,10 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     const s = api.state();
     if (!s) { el.replaceChildren(h('h1', {}, spec.title), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
     const all = spec.groups(s);
-    const shown = all.filter((g) => visPass(g.id, picks));
+    const tileOf = spec.tileOf;
+    const shown = tileOf ? all.map((g) => ({ ...g, rows: g.rows.filter((r) => visPass(tileOf(s, r), picks)) })).filter((g) => g.rows.length) : all.filter((g) => visPass(g.id, picks));
     const onOpen = (id: string) => {
-      open.add(id);
+      for (const g of all) if (tileOf ? g.rows.some((r) => tileOf(s, r) === id) : g.id === id) open.add(g.id);
       for (const k of Object.keys(picks)) if (k !== id && picks[k] === 'shown') picks[k] = 'off';
       if (picks[id] === 'out') picks[id] = 'off';
       update();
@@ -48,7 +55,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     };
     const onField = (row: TRow, key: string) => openPanel(spec.panelTitle,
       [...spec.cols.map((c) => ({ k: c.title, v: row.cells[c.key] ?? '–', edit: c.key === key })), ...(spec.detail?.(s, row.id) ?? [])],
-      'The game changes these through play, so the field is shown read-only here.');
+      'The game changes these through play, so the field is shown read-only here.', spec.panelHead?.(s, row.id));
     const want = spec.focus?.();
     if (want) {
       const g = all.find((x) => x.rows.some((r) => r.id === want));
@@ -63,7 +70,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
       ...(spec.top ? [spec.top(update)] : []),
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title), h('p', {}, spec.intro))),
       h('div', { class: 'sec' },
-        all.length ? visTiles(all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
+        all.length ? visTiles(spec.tiles?.(s) ?? all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
         h('p', { class: 'subline' }, spec.line(s)), how),
       h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, spec.title), all.length ? h('p', { class: 'hs-note' }, hint) : null),
         groupedTable({ cols: spec.cols, groups: shown, open, sort, onField, redraw: update, emptyText: picked.length ? `No ${spec.noun[1]} match these boxes. Pick other boxes or Clear.` : spec.empty })));
@@ -172,19 +179,75 @@ export function inventoryPage(api: GameApi) {
   });
 }
 
+/** a quest to open on arrival (the Play screen's quest line) */
+export const questFocus: { id: string | null } = { id: null };
+const titleCase = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/** QT12: "Abandon quest", confirmed in place */
+function abandonButton(api: GameApi, id: string): HTMLElement {
+  const box = h('div', { style: 'display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2)' });
+  const ask = () => box.replaceChildren(h('span', {}, 'Abandon this quest? This can’t be undone.'),
+    h('button', { type: 'button', class: 'hs-btn-text danger', onclick: () => { api.abandonQuest(id); closePanel(); } }, 'Abandon'),
+    h('button', { type: 'button', class: 'hs-btn-text', onclick: draw }, 'Keep'));
+  const draw = () => box.replaceChildren(h('button', { type: 'button', class: 'hs-btn-text danger', onclick: ask }, 'Abandon quest'));
+  draw();
+  return box;
+}
+
+/** QT14/QT24: one row per quest; linked quests fold under one head row, numbered by start; tiles by state */
 export function questsPage(api: GameApi) {
+  const quest = (s: GameState, id: string) => s.quests.find((q) => q.id === id);
   return listPage(api, {
-    title: 'Quests', intro: 'What you have taken on. Same as /quests.', noun: ['quest', 'quests'], panelTitle: 'Quest', empty: 'No quests yet. Talk to people in the village.',
-    cols: [{ key: 'text', title: 'Quest' }, { key: 'state', title: 'State' }],
+    title: 'Quests', intro: 'Jobs people gave you. Same as /quests.', noun: ['quest', 'quests'], panelTitle: 'Quest', empty: 'No quests yet. Talk to people in the village.',
+    focus: () => { const id = questFocus.id; questFocus.id = null; return id; },
+    cols: [{ key: 'text', title: 'Quest' }, { key: 'giver', title: 'Giver' }, { key: 'goal', title: 'Goal' }, { key: 'reward', title: 'Reward' },
+      { key: 'pay', title: 'Payment' }, { key: 'due', title: 'Due' }, { key: 'state', title: 'State' }],
     groups: (s) => {
-      const by = new Map<string, TRow[]>();
-      s.quests.forEach((q, i) => { const r = by.get(q.state) ?? []; r.push({ id: q.id, sortKey: i, cells: { text: q.text, state: q.state[0].toUpperCase() + q.state.slice(1) } }); by.set(q.state, r); });
-      return [...by.entries()].map(([st, rows]) => ({
-        id: st, title: st[0].toUpperCase() + st.slice(1), rows, value: String(rows.length), unit: unitOf(rows.length, 'quest'),
-        sub: `latest: ${rows[rows.length - 1].cells.text}`, how: `Quests whose state is ${st}.`, combined: { state: st[0].toUpperCase() + st.slice(1) },
-      }));
+      const chains = new Map<string, Quest[]>();
+      for (const q of s.quests) { const root = questChain(s, q)[0].id; chains.set(root, [...(chains.get(root) ?? []), q]); }
+      const row = (q: Quest): TRow => ({ id: q.id, sortKey: q.startTurn, cells: {
+        text: q.text, giver: titleCase(callName(s, s.player.id, q.giver)), goal: questGoalText(s, q),
+        reward: `Level ${QUEST_REWARD_LEVELS.name(q.level)} · ${CONFIG.QUEST_REWARD_XP[q.level] ?? 0} XP`, pay: payText(s, q),
+        due: isOpen(q) && q.state !== 'ready' ? dueText(q).replace(/^Due /, '') : '', state: QUEST_STATE_NAME[q.state] },
+        ...(q.unpaid || !isOpen(q) ? { tones: { ...(q.unpaid ? { pay: 'bad' as const } : {}), ...(!isOpen(q) && q.state !== 'done' ? { state: 'muted' as const } : {}) } } : {}) });
+      return [...chains.values()].map((qs) => {
+        const rows = qs.map(row).sort((a, b) => (a.sortKey ?? 0) - (b.sortKey ?? 0) || natural(a.cells.text, b.cells.text));
+        const last = rows[rows.length - 1];
+        const givers = [...new Set(rows.map((r) => r.cells.giver))];
+        return { id: `chain-${rows[0].id}`, title: rows[0].cells.text, rows, value: String(rows.length), unit: unitOf(rows.length, 'quest'), sub: '', how: '',
+          combined: { giver: givers.length === 1 ? givers[0] : 'Mixed', goal: last.cells.goal, pay: last.cells.pay, due: last.cells.due, state: last.cells.state } };
+      }).sort((a, b) => (a.rows[0].sortKey ?? 0) - (b.rows[0].sortKey ?? 0));
     },
-    line: (s) => `Turn ${s.turn}`,
+    tiles: (s) => QUEST_STATES.filter((st) => s.quests.some((q) => q.state === st)).map((st) => {
+      const qs = s.quests.filter((q) => q.state === st);
+      return { id: st, label: QUEST_STATE_NAME[st], value: String(qs.length), unit: unitOf(qs.length, 'quest'), sub: `latest: ${qs[qs.length - 1].text}`, how: `Quests whose state is ${QUEST_STATE_NAME[st].toLowerCase()}.` };
+    }),
+    tileOf: (s, row) => quest(s, row.id)?.state ?? '',
+    panelHead: (s, id) => {
+      const q = quest(s, id);
+      if (!q || !isOpen(q)) return h('span');
+      const b = h('button', { type: 'button', class: 'hs-btn-text', style: 'margin-left:auto' });
+      const draw = () => { const on = !!quest(s, id)?.pinned; b.textContent = on ? '✓ Pinned' : 'Pin to quest line'; b.setAttribute('aria-pressed', String(on)); };
+      b.onclick = () => { api.pinQuest(id); draw(); };
+      draw();
+      return b;
+    },
+    detail: (s, id) => {
+      const q = quest(s, id);
+      if (!q) return [];
+      const chain = questChain(s, q);
+      const before = q.after ? quest(s, q.after) : undefined;
+      return [
+        ...(chain.length > 1 ? [{ k: 'Step', v: `${chain.indexOf(q) + 1} of ${chain.length}` }] : []),
+        ...(before ? [{ k: 'Follows', v: before.text }] : []),
+        ...(q.goal.kind === 'other' ? [{ k: 'How it ends', v: 'The giver judges it when you report back.' }] : []),
+        ...(isOpen(q) ? [{ k: '', v: abandonButton(api, id) }] : []),
+      ];
+    },
+    line: (s) => {
+      const done = s.quests.filter((q) => q.state === 'done');
+      return `${plural(done.length, 'quest')} done · ${done.reduce((n, q) => n + (CONFIG.QUEST_REWARD_XP[q.level] ?? 0), 0)} XP from quests`;
+    },
   });
 }
 
@@ -211,13 +274,13 @@ export function achievementsPage(api: GameApi) {
           ...(a.replacedBy ? { tones: { state: 'muted' as const } } : {}) }));
         const title = `Level ${REWARD_LEVELS.name(lv)}`;
         return { id: lv, title, rows, value: String(rows.length), unit: unitOf(rows.length, scars ? 'scar' : 'achievement'),
-          sub: `${CONFIG.REWARD_XP[lv] ?? 0} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
+          sub: scars ? 'no XP' : `${CONFIG.REWARD_XP[lv] ?? 0} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
       }).filter((g) => g.rows.length);
     },
     line: (s) => {
       const lib = getLibrary().achievements ?? {};
       const xp = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + (CONFIG.REWARD_XP[lib[a.key!].level] ?? 0), 0);
-      return `${xp} XP earned this way`;
+      return scars ? `${plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')}, no XP` : `${xp} XP earned this way`;
     },
   });
 }

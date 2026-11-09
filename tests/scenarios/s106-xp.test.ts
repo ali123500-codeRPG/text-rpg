@@ -37,7 +37,7 @@ describe('106 XP and levels', () => {
     for (let i = 0; i < 11; i++) {
       const a = structuredClone(actor(s, 'slime_1'));
       a.id = `slime_x${i}`;
-      a.mind!.moraleState = 'surrendered';
+      a.mind!.moraleState = 'surrendered'; a.mind!.overrides = { player: 'yielded' }; // a surrender yields to its foes (Q1)
       s.actors.push(a);
       payDefeats(s, []);
     }
@@ -66,7 +66,7 @@ describe('106 XP and levels', () => {
     expect(s.actors.filter((x) => x.core.templateId === TP.guard).every((x) => x.core.raceId === RC.human)).toBe(true);
     const a = actor(s, 'slime_1');
     a.core.raceId = RC.elf;
-    a.mind!.moraleState = 'surrendered';
+    a.mind!.moraleState = 'surrendered'; a.mind!.overrides = { player: 'yielded' };
     payDefeats(s, []);
     const got = s.player.progression!.achievements!;
     expect(got.map((x) => [x.id, achievementName(s, x)])).toEqual([[`${ACH.first_defeat_body_type}:${BT.amorphous}`, 'First Amorphous Felled'], [`${ACH.first_defeat_race}:${RC.elf}`, 'First of Elfkind Felled']]);
@@ -90,9 +90,18 @@ describe('106 XP and levels', () => {
     payDefeats(s, []);
     expect(pr.xpLog).toHaveLength(4);
   });
+  it('RS7: a downed NPC the player hit pays whatever its stance; a surrender to someone else does not', () => {
+    const s = makeVillage();
+    const p = actor(s, 'patron_1');
+    Object.assign(p.mind!, { overrides: { player: 'friendly' }, hitByPlayer: true });
+    p.core.condition.hpLostPct = 100;
+    Object.assign(actor(s, 'trader').mind!, { moraleState: 'surrendered', overrides: { guard_1: 'yielded' } });
+    payDefeats(s, []);
+    expect(s.player.progression!.xpLog!.filter((x) => x.source.startsWith('defeat')).map((x) => x.source)).toEqual(['defeat:patron_1']);
+  });
   it('a surrender pays; a fleeing (broken) foe does not', () => {
     const s = makeVillage();
-    actor(s, 'slime_1').mind!.moraleState = 'surrendered';
+    Object.assign(actor(s, 'slime_1').mind!, { moraleState: 'surrendered', overrides: { player: 'yielded' } });
     actor(s, 'slime_2').mind!.moraleState = 'broken';
     payDefeats(s, []);
     expect(s.player.progression!.xpLog!.filter((x) => x.source.startsWith('defeat')).map((x) => x.source)).toEqual(['defeat:slime_1']);

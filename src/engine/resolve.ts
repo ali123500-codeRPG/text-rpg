@@ -7,7 +7,7 @@ import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
 import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, tierAtLeast, usableModes } from '../ruleset';
-import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
+import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -24,6 +24,7 @@ import { applyHaggle, buy } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
+import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
 import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
@@ -89,13 +90,17 @@ function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined)
   }
 }
 
-/** initiative: the ruleset's roll, but an actor unaware of anyone attacking it this turn takes INIT_UNAWARE (acts last); ties go to the seeded rng */
+/** C1 Never Surprised: the owner hears the attack coming, so being unaware of the attacker costs it nothing */
+const hearsItComing = (state: GameState, owner: Actor, zone: string, noise: GameEvent['noise']) => hasPerk(owner, PK.never_surprised) && hears(state, owner, zone, noise);
+
+/** initiative: the ruleset's roll, but an actor unaware of anyone attacking it this turn takes INIT_UNAWARE (acts last),
+ * unless it has Never Surprised and the attack's noise reaches it; ties go to the seeded rng */
 function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Order>, rng: Rng): string[] {
   const attackers = (id: string) => [...orders].filter(([, o]) => o.type === 'attack' && o.target === id).map(([by]) => actorById(state, by)!);
   const rows = ids.map((id) => {
     const a = actorById(state, id)!;
     const roll = ruleset.initiative(a, state, rng);
-    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware');
+    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x.zone, armorNoise(state, x, 'attack', SENSE.attack[0])));
     return { id, init: caught ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() };
   });
   rows.sort((x, y) => y.init - x.init || y.tie - x.tie);
@@ -119,7 +124,8 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   afterEvent(ctx, ev);
 }
 
-/** a perceives an attack on itself or a bandmate: override toward the attacker becomes hostile. */
+/** a perceives an attack on itself or a bandmate: override toward the attacker becomes hostile. RS6: only if a knows who
+ * did it: a bandmate must see the attack fully; the target must see it fully or be aware of the attacker after it. */
 function setAttackOverrides(state: GameState, ev: GameEvent): void {
   const target = actorById(state, ev.target!);
   if (!target) return;
@@ -127,7 +133,8 @@ function setAttackOverrides(state: GameState, ev: GameEvent): void {
     if (p.id === ev.actorId || !p.mind || !isActive(p)) continue;
     const self = p.id === target.id;
     // GAP: a bandmate must perceive the attack fully (a partial event names no attacker).
-    if (!self && (p.bandId !== target.bandId || ev.perception[p.id]?.level !== 'full')) continue;
+    const saw = ev.perception[p.id]?.level === 'full';
+    if (self ? !saw && !atLeast(p.mind.knowledge[ev.actorId]?.status, 'aware') : p.bandId !== target.bandId || !saw) continue;
     p.mind.overrides = { ...(p.mind.overrides ?? {}), [ev.actorId]: 'hostile' };
   }
 }
@@ -256,7 +263,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   let surprised = false;
   // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
   if (!atLeast(beliefStatus(state, t, a), 'suspicious')) {
-    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised;
+    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, ev.zone, ev.noise);
     if (surprised) ctx.surprised.add(t.id);
   }
   if (shows) stealthEnd(state, a);
@@ -698,6 +705,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
   updateAlarms(state, ctx.events);
+  // QT8: talking to a giver hands in its finished job, before its agent's output (so it may offer the next one)
+  handInQuests(state, (id) => input.spokespeople.includes(id) && ctx.exchangeEvents.some((e) => e.actorId === state.player.id && !!e.perception[id]));
   applyAgentEffects(state, input, {
     // GAP: "since its last call" read as the previous turn and this turn's exchange.
     heardSpeech: (id, toward) =>
@@ -707,12 +716,14 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     heardNow: (listener, speaker) => ctx.events.some((e) => e.actorId === speaker && !!e.line && !!e.perception[listener]),
   });
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
-  payDefeats(state, ctx.events);
+  const defeated = payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
+  updateQuests(state, ctx.events, defeated);
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
+  if (ended) unpaidQuests(state); // QT23
   if (ended && fight) fightEnded(state, fight);
   turnFeats(state, ctx.events);
   if (ended || state.stage.breakCause) { improveMarked(state, rng); unlockClasses(state); }

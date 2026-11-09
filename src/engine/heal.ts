@@ -6,6 +6,7 @@ import { PART_STATES } from '../scales';
 import { boostMult, healthLevel, partStates, trueSkill } from '../ruleset';
 import { isActive } from './relations';
 import { logCode } from './effects';
+import { bestReward } from '../ruleset/achRewards';
 
 export const healingName = (id: string) => getLibrary().healing?.[id]?.name ?? id;
 
@@ -21,14 +22,15 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   if (level === 'Dead' && !src.revivesDead) return false; // no row heals the dead for now
   const before = partStates(state, a);
   const lost = c.hpLostPct;
-  c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct));
+  const extra = sourceId === 'rest' ? bestReward(a, 'restPct')?.value ?? 0 : 0; // an achievement reward: + % on each rest
+  c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct + extra));
   const reach = PART_STATES.pos(src.reach);
   const changed: { id: string; from: string; to: string }[] = [];
   let healed = false;
   for (const p of before) {
     if (!(p.id in c.parts) || PART_STATES.pos(PART_STATES.keyOf(p.state)!) > reach) continue;
     const pct = c.parts[p.id];
-    c.parts[p.id] = Math.min(100, Math.max(0, pct) + (opts.pct ?? src.partPct));
+    c.parts[p.id] = Math.min(100, Math.max(0, pct) + (opts.pct ?? src.partPct + extra));
     healed ||= c.parts[p.id] !== pct;
   }
   for (const p of partStates(state, a)) {

@@ -6,6 +6,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, standInAdd, trueSkill } from './perks';
+import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
@@ -86,11 +87,11 @@ export const tierMult = (skill: string): number => CONFIG.SKILL_TIER_MULT[getLib
 
 /** Stand-ins: the functions that can stand in for a skill and the share each counts at. The skill's own table
  * (CONFIG.SUBSTITUTES) or its functions at the flat CONFIG.SUBSTITUTE_EFFICIENCY; the owner's perks move each share
- * (F4, PerkDef.standIn), kept within 0–1. No actor: the shares before perks (the library viewer shows these). */
+ * (F4, PerkDef.standIn) and achievements (standIn) move each share, kept within 0–1. No actor: the shares before perks (the library viewer shows these). */
 export function standInTable(skill: string, actor?: Actor, extraFns: string[] = []): { fn: string; k: number }[] {
   const base = CONFIG.SUBSTITUTES[skill] ?? (getLibrary().skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }));
   return [...base, ...extraFns.filter((fn) => !base.some((t) => t.fn === fn)).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }))]
-    .map((t) => ({ fn: t.fn, k: Math.min(1, Math.max(0, t.k + (actor ? standInAdd(actor, t.fn) : 0))) }));
+    .map((t) => ({ fn: t.fn, k: Math.min(1, Math.max(0, t.k + (actor ? standInAdd(actor, t.fn) + achievementStandIn(actor, skill) : 0))) }));
 }
 /** the share skill `id` counts at when a roll needs `skill`: 1 for the skill itself (or a full-value skill), else the best
  * share among the table's functions that `id` has, 0 when it can't stand in */
@@ -134,14 +135,16 @@ export function rollMods(state: GameState, actor: Actor, kind: RollKind, itemId?
 }
 
 /** situation-roll modifiers from perks, gear and statuses naming the situation roll (one copy counts). */
-export function situationMods(state: GameState, actor: Actor): { source: string; type: 'perk' | 'gear' | 'status'; value: number }[] {
+export function situationMods(state: GameState, actor: Actor): { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] {
   const perks = getLibrary().perks;
-  const out: { source: string; type: 'perk' | 'gear' | 'status'; value: number }[] = [];
+  const out: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] = [];
   for (const p of actor.core.perks) {
     const def = perks[p.perkId];
     if (!p.dormant && def?.situation) out.push({ source: def.name, type: 'perk', value: def.situation });
   }
   for (const m of rollMods(state, actor, 'situation')) out.push({ ...m, type: 'gear' });
+  const ach = bestReward(actor, 'situation'); // an achievement reward (Old Blood)
+  if (ach) out.push({ source: ach.name, type: 'achievement', value: ach.value });
   // GAP: statuses have no library entries yet, so none can name the situation roll
   return out;
 }

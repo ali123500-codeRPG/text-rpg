@@ -4,7 +4,7 @@ import { CONFIG } from '../config';
 import { bodyType, getLibrary } from '../library';
 import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
-import { isActive, stance, wary } from './relations';
+import { isActive, stance } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
 import { ruleMet, skillOpen } from '../ruleset/access';
@@ -151,8 +151,10 @@ export function unlockClasses(state: GameState): void {
   }
 }
 
-/** X4/X5: an opposed or hostile NPC that is down or surrendered pays once, if the player hit it or it surrendered. */
-export function payDefeats(state: GameState, events: GameEvent[]): void {
+/** X4/X5, RS7: an NPC pays once, whatever its stance, when it is down and the player hit it, or when it surrendered to the player.
+ * Returns the actors the player defeated this turn. */
+export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
+  const defeated: Actor[] = [];
   for (const e of events) {
     const a = e.attack;
     if (a && a.attackerId === state.player.id && a.damage > 0) {
@@ -166,13 +168,15 @@ export function payDefeats(state: GameState, events: GameEvent[]): void {
   }
   for (const t of state.actors) {
     const m = t.mind;
-    // a surrendered foe has yielded (Q1): it still pays
-    if (!m || m.xpPaid || !(wary(state, t, state.player) || stance(state, t, state.player) === 'yielded')) continue;
-    if (isActive(t) ? m.moraleState !== 'surrendered' : !m.hitByPlayer) continue; // fled or untouched: nothing
+    if (!m || m.xpPaid) continue;
+    // a foe that surrendered to the player has yielded to it (Q1); fled or untouched: nothing
+    if (isActive(t) ? m.moraleState !== 'surrendered' || stance(state, t, state.player) !== 'yielded' : !m.hitByPlayer) continue;
     m.xpPaid = true;
     awardXp(state, killXp(state, t), `defeat:${t.id}`);
     defeatAchievements(state, t);
+    defeated.push(t);
   }
+  return defeated;
 }
 
 /** Training effort to raise a skill from 0 to s (Part 1 §6: a point at s costs about 100 ÷ (3 × (100 − s)) trainings;
@@ -249,12 +253,27 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
   (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), turn: state.turn });
   if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
-  const xp = CONFIG.REWARD_XP[d.level] ?? 0;
+  const xp = d.scar ? 0 : CONFIG.REWARD_XP[d.level] ?? 0; // a scar pays no XP
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
 }
 
 /** Display name of an earned achievement, read from the library table now. */
+/** T18: the title the player wears, by its name: the worn achievement, or the level that replaced it (a title moves up
+ * its chain); never a scar */
+export function wornTitle(state: GameState): string | undefined {
+  const pr = state.player.progression, lib = getLibrary().achievements ?? {};
+  const find = (id?: string) => (id ? pr?.achievements?.find((x) => x.id === id) : undefined);
+  let a = find(pr?.title);
+  for (let n = 0; a?.replacedBy && n < 20; n++) a = find(a.replacedBy);
+  return a && !lib[a.key ?? '']?.scar ? achievementName(state, a) : undefined;
+}
+/** the achievements the player can wear as a title: current ones that are not scars */
+export const wearable = (state: GameState) => {
+  const lib = getLibrary().achievements ?? {};
+  return (state.player.progression?.achievements ?? []).filter((x) => !x.replacedBy && x.key && lib[x.key] && !lib[x.key].scar);
+};
+
 export function achievementName(state: GameState, a: { id: string; key?: string; of?: string; name?: string }): string {
   const lib = getLibrary();
   const d = a.key ? lib.achievements?.[a.key] : undefined;

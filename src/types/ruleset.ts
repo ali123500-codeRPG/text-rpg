@@ -74,7 +74,7 @@ export type SituationResult = {
   actorId: string;
   roll: number;
   tier: Tier;
-  modifiers: { source: string; type: 'perk' | 'gear' | 'status'; value: number }[];
+  modifiers: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[];
 };
 
 export type AttackRequest = {

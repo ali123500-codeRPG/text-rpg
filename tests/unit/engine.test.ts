@@ -5,6 +5,7 @@ import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, 
 import { makeVillage, actor, place, createRng } from '../harness';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
+import { PK } from '../../src/library/perkIds';
 
 const F = vi.hoisted(() => ({
   init: {} as Record<string, number>,
@@ -84,6 +85,7 @@ vi.mock('../../src/perception', () => ({
     }
   },
   applyBeliefDecay: () => {},
+  hears: (state: GameState, o: Actor, zone: string, noise: string) => o.zone === zone && noise !== 'silent',
   noteSightings: () => {},
   // the old rule: NPCs read their knowledge; the player sees everyone
   beliefStatus: (_s: GameState, o: Actor, about: Actor) => (o.kind === 'player' ? 'aware' : o.mind?.knowledge[about.id]?.status ?? 'unaware'),
@@ -204,6 +206,18 @@ describe('order priority', () => {
     expect(order(false).at(-1)).toBe('guard_1');
     expect(order(true)[0]).toBe('guard_1');
   });
+  it('C1 Never Surprised: an unaware owner that hears the attack keeps its initiative and takes no unaware defense penalty', () => {
+    F.init = { player: 10, guard_1: 90, trader: 70, patron_1: 60, slime_1: 40, slime_2: 30 };
+    F.attacks = [];
+    const t = makeVillage();
+    place(t, 'guard_1', t.player.zone);
+    actor(t, 'guard_1').core.perks.push({ perkId: PK.never_surprised, source: 'level', gainedTurn: 0 });
+    const ev = resolveTurn(t, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
+    expect([...new Set(ev.map((e) => e.actorId))][0]).toBe('guard_1');
+    const blow = F.attacks.find((r) => r.targetId === 'guard_1');
+    expect(blow?.context?.defenderUnaware).toBe(false);
+  });
+
 });
 
 describe('mid-turn triggers', () => {
@@ -425,6 +439,28 @@ describe('gear and combat', () => {
     actor(s, 'guard_1').mind!.overrides = { player: 'yielded' };
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     expect(actor(s, 'guard_1').mind!.overrides?.player).toBe('hostile');
+  });
+  const atLeastAware = (a: Actor) => ['aware', 'tracking'].includes(a.mind!.knowledge.player?.status ?? '');
+  it('RS6: a target turns hostile only toward an attacker it knows of', () => {
+    // a dagger thrown from hiding (a ranged blow keeps you hidden, ST5/ST7)
+    s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
+    s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
+    place(s, 'patron_1', 'tav_counter');
+    const p = actor(s, 'patron_1');
+    s.player.posture = 'stealthy';
+    p.mind!.knowledge = {};
+    F.rollTier.player = 'critical_success'; // the player stays unseen
+    F.rollTier.patron_1 = 'critical_failure';
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: 'throw' } }) }), createRng(1));
+    expect(atLeastAware(p)).toBe(false);
+    expect(p.mind!.overrides?.player).toBeUndefined();
+    // seen: now it knows who it is, and a blow makes it hostile
+    s.player.posture = 'open';
+    p.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
+    place(s, 'patron_1', 'tav_common');
+    s.turn++;
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1' } }) }), createRng(1));
+    expect(p.mind!.overrides?.player).toBe('hostile');
   });
   it('rest heals once per cooldown, never beside an opposed actor', () => {
     s.player.core.condition.hpLostPct = 50;

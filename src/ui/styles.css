@@ -531,3 +531,14 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
 .ps-damaged { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
 .rolls-sw[aria-pressed="true"] { color: var(--text); }
+
+/* QT15: the quest line under the place line on the Play screen; only the quest text shrinks */
+.quest-line { display: flex; align-items: center; gap: var(--space-2); width: fit-content; max-width: 100%; min-height: 24px; padding: 0; margin-top: var(--space-1);
+  border: 0; background: none; font: 14px/1.4 var(--font-round); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; cursor: pointer; text-align: left; }
+.quest-line > * { flex: none; }
+.quest-line svg { width: 16px; height: 16px; display: block; color: var(--scene-mark); }
+.quest-line .qt { flex: 0 1 auto; min-width: 0; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 600; }
+.quest-line:hover .qt { text-decoration: underline; }
+.quest-line .ok { color: var(--ok); font-weight: 600; }
+.quest-line .warn { color: var(--warn); }
+.quest-line .more { color: var(--faint); }

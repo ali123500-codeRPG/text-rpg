@@ -23,6 +23,7 @@ export type BeliefView = {
   hostile: boolean; // hostile(self, about): attacks on sight
   active: boolean;
   label: string; // public label or known name
+  title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
 };
 
 export type EventView = {
@@ -73,8 +74,11 @@ export type PlayerView = {
   agreements?: AgreementView[]; // PM5: the player's deals with NPCs
 };
 
-/** PM3: one deal as a party sees it; with = what the viewer calls the other party */
-export type AgreementView = { id: string; with: string; withId: string; text: string; madeTurn: number };
+/** PM3: one deal as a party sees it; with = what the viewer calls the other party; quest: the job it holds (locked, QT22) */
+export type AgreementView = { id: string; with: string; withId: string; text: string; madeTurn: number; quest?: string };
+/** QT5/QT8: a job the viewer gave the player, or one that sends the player to it (giver: who gave it, when not the
+ * viewer). A finished job shows as active until the player hands it in: the giver only knows what it sees. */
+export type JobView = { id: string; text: string; state: string; giver?: string; owed?: string; due?: string; after?: string };
 
 // ---------- ActorView: code minds ----------
 /** T4/T5: the day number and time of day; never minutes */
@@ -116,6 +120,7 @@ export type ActorView = {
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives
+  jobs?: JobView[]; // QT5: the player's jobs from it or sending the player to it
 };
 
 // ---------- OppositionView: Agent Planner and Responder ----------
@@ -164,7 +169,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[] }; // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string }; // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it

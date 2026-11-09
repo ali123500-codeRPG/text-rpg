@@ -4,6 +4,7 @@ import type { Actor, NameHistory } from './actor';
 import type { HiddenStore } from './hidden';
 import type { SituationResult } from './ruleset';
 import type { AgentTurnLog } from './agents';
+import type { QuestRewardLevel, TimeOfDay } from '../scales';
 
 export type Pending = { turn: number; mode: Mode; engaged: string[]; fired: string[] };
 
@@ -21,7 +22,30 @@ export type StageInfo = {
 };
 
 export type Settings = { difficulty: string; showMechanics: boolean; tone: string };
-export type Quest = { id: string; state: string; text: string };
+/** QT11/QT21: quest states and goal kinds are unordered categories, so their names are their IDs */
+export const QUEST_STATES = ['active', 'ready', 'done', 'failed', 'abandoned', 'called_off'] as const;
+export type QuestState = (typeof QUEST_STATES)[number];
+export const GOAL_KINDS = ['defeat', 'deliver', 'reach', 'find', 'other'] as const;
+/** QT7: what code checks from events; "other" is judged by the giver's agent at report-back (QT6) */
+export type QuestGoal =
+  | { kind: 'defeat'; by: 'body_type' | 'race' | 'actor'; of: string; count: number; noun?: string } // noun: the giver's word for them
+  | { kind: 'deliver'; item: string; inst?: true; qty: number; to: string } // inst: item is one item instance, not a library item
+  | { kind: 'reach'; place: string } // a zone or place id
+  | { kind: 'find'; actor: string }
+  | { kind: 'other' };
+/** QT1: a job an NPC gave the player, held in a deal (dealId) that only code ends */
+export type Quest = {
+  id: string; state: QuestState; text: string;
+  giver: string; dealId: string; goal: QuestGoal; progress: number;
+  level: QuestRewardLevel; // QT9/QT28: from the scene's gain grade when accepted
+  startTurn: number; endTurn?: number;
+  after?: string; // QT24: the quest it follows
+  pay?: { coin?: number; item?: string; qty?: number }; // QT10/QT23: promised payment (coin in copper, a library item)
+  paid?: { coin: number; qty: number }; // what the giver has handed over since
+  unpaid?: true; // the promise was broken
+  due?: number; dueBy?: TimeOfDay; // QT25: game clock minutes the goal must be met by; dueBy: the time of day named
+  pinned?: true; // shown on the Play screen's quest line
+};
 
 // In-memory working state, built from Part 4's pages on load. Never saved as one document.
 export type GameState = {

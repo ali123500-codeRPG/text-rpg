@@ -4,6 +4,7 @@ import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice } f
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
+import { abandonQuest, pinQuest } from '../engine/quests';
 import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
@@ -42,7 +43,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
       places: [{ id: 'tavern', storyId: 'fake', kind: 'tavern', parentId: null, names: { current: 'the Crooked Kettle', past: [] }, zones: [{ id: 'tav_common', placeId: 'tavern', name: 'common room', look: 'A low room with a hearth.', links: [], cover: 'some', light: 'dim', groundItems: [] }], state: {}, headlines: [] }], facts: [], stage: { zoneIds: [], tier: 'success', sceneNumber: 2, sceneStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scene planning failed: placeholder area', turn: 2 } } : {}) },
       sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
-      quests: [{ id: 'q1', state: 'active', text: 'Clear the slimes from the field' }, { id: 'q2', state: 'active', text: 'Ask the barkeep about the woods' }, { id: 'q0', state: 'done', text: 'Find a bed for the night' }],
+      quests: [
+        { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },
+        { id: 'q1', state: 'active', text: 'Clear the slimes from the field', giver: 'guard_1', dealId: 'ag_1', goal: { kind: 'defeat', by: 'race', of: slime.core.raceId!, count: 3, noun: 'slimes' }, progress: 1, level: 'i', startTurn: 2, after: 'q0', pay: { coin: 10 }, paid: { coin: 0, qty: 0 }, due: 3 * 1440 + 1080, dueBy: 'dusk' },
+      ],
       settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
@@ -96,5 +100,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     async restoreBackup() { emit(); },
     takePerk(id) { if (state) { takePerk(state, state.player, id); emit(); } },
     undoPerk(id) { if (state) { undoPerk(state, state.player, id); emit(); } },
+    abandonQuest(id) { if (state && abandonQuest(state, id)) emit(); },
+    pinQuest(id) { if (state) { pinQuest(state, id); emit(); } },
   };
 }
