@@ -625,15 +625,32 @@ claudeRt?.use('comments').then(async (api) => {
     }
   };
 }).catch(() => undefined);
-const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl, results,
-  h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)), search), bar, body);
+const main = h('main', {}, h('div', { class: 'head' }, h('div', { class: 'lv-head-main' },
+  h('div', { class: 'lv-titlerow' }, titleEl, h('p', { class: 'lv-build', title: 'Library as the code builds it (prototypeLibrary)' }, `Built from code · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)),
+  h('div', { class: 'lv-meta' }, results)), search), bar, body);
 // sub-tabs live in a rail on the right, mirroring the table rail on the left; hidden when the tab has none
 const subRail = h('nav', { class: 'hs-rail lv-subrail', 'aria-label': 'Sub-tabs' });
 document.body.append(rail, main, subRail);
 
 const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card:not(.lv-fixed)'))].filter((c) => !c.closest('.lv-pane[hidden]'));
 const facetsOf = (c: HTMLElement) => (c.dataset.f ? c.dataset.f.split('\n') : []);
-/** buttons cycle off → Shown → Left out (several Shown in a group = either), as on the game's tiles */
+// Filter bar: one chip-button per group ("Kind ▾", or "Kind: 2 shown, 1 left out") opens a popover with the
+// value buttons, which cycle off → Shown → Left out (several Shown in a group = either), as on the game's tiles.
+// One "Colour by" control picks the group the cards are tinted by; its key also shows beside the results line.
+let openGroup = ''; // the group whose popover is open, kept across redraws
+const keyEl = h('span', { class: 'lv-ckey', 'aria-label': 'Colour key' });
+results.after(keyEl);
+function popover(id: string, label: string, active: boolean, content: (Node | null)[]): HTMLElement[] {
+  const pid = `lv-pop-${id.replace(/\W+/g, '-')}`;
+  const btn = h('button', { type: 'button', class: `lv-fbtn${active ? ' on' : ''}`, popovertarget: pid, 'aria-haspopup': 'true' }, label, h('span', { class: 'lv-caret', 'aria-hidden': 'true' }, '▾'));
+  const panel = h('div', { class: 'lv-fpop', id: pid, popover: 'auto', 'aria-label': label }, ...content);
+  panel.addEventListener('toggle', (e) => {
+    const open = (e as ToggleEvent).newState === 'open';
+    if (open) { openGroup = id; const r = btn.getBoundingClientRect(); panel.style.left = `${Math.min(r.left, innerWidth - 16 - panel.offsetWidth)}px`; panel.style.top = `${r.bottom + 4}px`; }
+    else if (openGroup === id && panel.isConnected) openGroup = '';
+  });
+  return [btn, panel];
+}
 function drawBar(): void {
   const groups = new Map<string, Map<string, number>>();
   const q = search.value.trim().toLowerCase();
@@ -647,10 +664,13 @@ function drawBar(): void {
   const shownGroups = [...groups].filter(([, v]) => v.size > 1);
   const colourable = (g: string) => TONES?.has(g) ?? false;
   if (!shownGroups.some(([g]) => g === colourBy && colourable(g))) colourBy = shownGroups.find(([g]) => colourable(g))?.[0] ?? '';
-  bar.replaceChildren(...shownGroups.map(([g, vals]) => h('div', { class: 'lv-fg' }, h('span', { class: 'hs-label' }, g),
-    !colourable(g) ? null : h('button', { type: 'button', class: 'lv-cb', 'aria-pressed': String(g === colourBy), title: g === colourBy ? 'Cards are coloured by this group' : `Colour the cards by ${g}`,
-      onclick: () => { colourBy = g; drawBar(); paint(); } }, g === colourBy ? 'Colour key' : 'Colour by this'),
-    [...vals].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true })).map(([f, n]) => {
+  const sortVals = (vals: Map<string, number>) => [...vals].sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+  const swatches = (g: string) => sortVals(groups.get(g) ?? new Map()).map(([f]) => { const v = f.split('\t')[1]; return h('span', { class: 'lv-kv', style: `--tone: var(${toneFor(g, v) ?? '--c3'})` }, h('i', { class: 'lv-sw' }), v); });
+  const groupEls = shownGroups.flatMap(([g, vals]) => {
+    const sh = [...vals.keys()].filter((f) => picks.get(f) === 'shown').length;
+    const out = [...vals.keys()].filter((f) => picks.get(f) === 'out').length;
+    const label = sh || out ? `${g}: ${[sh ? `${sh} shown` : '', out ? `${out} left out` : ''].filter(Boolean).join(', ')}` : g;
+    return popover(g, label, !!(sh || out), [h('div', { class: 'lv-fvals' }, sortVals(vals).map(([f, n]) => {
       const st = picks.get(f) ?? 'off';
       const v = f.split('\t')[1];
       return h('button', { type: 'button', class: `lv-fb${n ? '' : ' lv-zero'}`, 'data-st': st, 'aria-pressed': st === 'shown' ? 'true' : st === 'out' ? 'mixed' : 'false',
@@ -658,9 +678,21 @@ function drawBar(): void {
         title: st === 'off' ? 'Click for Shown (several Shown = either)' : st === 'shown' ? 'Click for Left out' : 'Click to clear',
         onclick: () => { const to = next[st]; if (to === 'off') picks.delete(f); else picks.set(f, to); filter(); } },
       g === colourBy ? h('i', { class: 'lv-sw' }) : null, v, h('small', {}, String(n)), st === 'off' ? null : h('b', {}, st === 'shown' ? 'Shown' : 'Left out'));
-    }))),
-  ...(picks.size ? [h('button', { type: 'button', class: 'hs-btn-text', onclick: clearFilters }, 'Clear filters')] : []));
-  bar.hidden = !bar.childElementCount;
+    }))]);
+  });
+  const cgroups = shownGroups.map(([g]) => g).filter(colourable);
+  const colourEls = cgroups.length ? popover('Colour by', `Colour by: ${colourBy}`, false, [
+    h('div', { class: 'lv-fvals', role: 'group', 'aria-label': 'Colour the cards by' }, cgroups.map((g) => h('button', { type: 'button', class: 'lv-fb', 'aria-pressed': String(g === colourBy),
+      'data-st': g === colourBy ? 'shown' : 'off', onclick: () => { colourBy = g; drawBar(); paint(); } }, g))),
+    colourBy ? h('div', { class: 'lv-ckey' }, swatches(colourBy)) : null]) : [];
+  bar.replaceChildren(...groupEls, ...(colourEls.length ? [h('span', { class: 'lv-fsep', 'aria-hidden': 'true' }), ...colourEls] : []),
+    ...(picks.size ? [h('button', { type: 'button', class: 'hs-btn-text', onclick: clearFilters }, 'Clear filters')] : []));
+  bar.hidden = !shownGroups.length;
+  keyEl.replaceChildren(...(colourBy ? swatches(colourBy) : []));
+  if (openGroup) {
+    const panel = bar.querySelector<HTMLElement>(`#lv-pop-${openGroup.replace(/\W+/g, '-')}`);
+    if (panel) { const was = openGroup; panel.showPopover(); openGroup = was; } else openGroup = '';
+  }
 }
 /** tint each card by its value in the colour group */
 function paint(): void {
