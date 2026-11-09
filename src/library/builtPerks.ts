@@ -38,6 +38,8 @@ export const BUILT_PERKS = new Set<string>([
   'leg_bolt', // A6: attack(), applyEffects(), src/engine/perkMarks.ts slowed()
   'soft_tread', 'quiet_mail', // A18, A21: src/engine/resolve.ts armorNoise()
   'melt_away', // A19: src/engine/resolve.ts setPosture(), src/agents/legality.ts
+  'in_and_out', // A23: src/engine/resolve.ts doAttack()
+  'blade_wall', // B19: attack() in src/ruleset/index.ts
   'slip_the_blow', 'turn_aside', // A20, A22: attack() in src/ruleset/index.ts
   'dirt_in_the_eyes', // A9: src/engine/perkMoves.ts, the Parser's perkMove
   'set_them_up', // B15 (strike 60): src/engine/perkMarks.ts markShifts() and afterAttack()

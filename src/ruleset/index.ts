@@ -200,7 +200,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const openArm = type === 'block' && !blocker ? openHandArm(state, D) : null; // A7 Open-Hand Guard
   if (!blocker && !openArm) type = 'dodge'; // GAP: no working arm holding a shield or melee weapon, so the free reaction falls back to dodge
   const dm: Mod[] = [];
-  if ((req.context?.defensesThisTurn ?? 0) >= 1) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
+  // B19 Blade Wall: Block rolls with a medium melee weapon never take the outnumbered penalty
+  const bladeWall = type === 'block' && !!blocker && hasPerk(D, 'blade_wall') && !!itemDef(state, blocker.itemId).weapon?.modes.some((x) => x.tree === 'melee' && x.class === 'medium');
+  if ((req.context?.defensesThisTurn ?? 0) >= 1 && !bladeWall) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
   dm.push(...situational(state, DEFENSE_SKILL[type], { light: zoneA }).modifiers); // ST21: light by tag (sight)

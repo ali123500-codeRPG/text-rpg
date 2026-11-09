@@ -238,7 +238,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   // target moved first: resolves only within the mode's reach (links with sight); else a wasted action
   if (!m || dist > m.mode.reach) return wasted();
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
-  const shows = fromHiding && m.mode.tree !== 'ranged';
+  const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, 'in_and_out'); // A23 In and Out: only the target sees you
+  const shows = fromHiding && m.mode.tree !== 'ranged' && !inAndOut;
   if (shows) a.posture = 'open'; // ST5: a melee blow shows you
   const ev = bark(mk(ctx, a, 'attack', { target: t.id, itemId: m.itemId }), o);
   ev.perception = computePerception(ev, state, rng);
@@ -249,6 +250,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     if (surprised) ctx.surprised.add(t.id);
   }
   if (shows) stealthEnd(state, a);
+  if (inAndOut) updateBeliefs(state, { kind: 'detection', observerId: t.id, aboutId: a.id, status: 'aware', event: ev });
   // A11 Cover Ally: a friend in the zone steps into the path of a ranged attack and defends in the target's place
   const cover = m.mode.tree === 'ranged' ? coverFor(state, t) : undefined;
   if (cover) {
