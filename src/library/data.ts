@@ -30,6 +30,11 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk('dodge', 'defense', ['defense'], ['move']),
   sk('block', 'defense', ['defense'], ['grip']),
   sk('endurance', 'defense', ['health'], []), // endurance sets total HP
+  // Armor – Conventional (Ali, 08/11/2026, AR1–AR3): one skill per armor weight, function armor in the Defense group.
+  // What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it.
+  sk('light_armor', 'armor', ['armor'], []),
+  sk('medium_armor', 'armor', ['armor'], []),
+  sk('heavy_armor', 'armor', ['armor'], []),
   sk('sight', 'perception', ['sight'], ['sense'], 'sight'),
   sk('hearing', 'perception', ['hearing'], ['sense'], 'sound'),
   // Stealth (Ali, 08/11/2026, ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
@@ -272,6 +277,7 @@ export function prototypeLibrary(): Library {
       unarmed: { id: 'unarmed', name: 'Combat – Unarmed', skills: ['unarmed_strike', 'unarmed_grapple', 'unarmed_improvised'], access: { blockedBy: [AMORPHOUS] } },
       natural: { id: 'natural', name: 'Natural weapons', skills: ['unarmed_natural'], access: { either: [AMORPHOUS, { kind: 'race', id: 'dragon' }] } /* the shape's slam; the dragon's own attacks */ },
       defense: { id: 'defense', name: 'Combat – Defense', skills: ['dodge', 'block', 'endurance'] },
+      armor: { id: 'armor', name: 'Armor – Conventional', skills: ['light_armor', 'medium_armor', 'heavy_armor'], access: { blockedBy: [AMORPHOUS] } }, // AR6
       perception: { id: 'perception', name: 'Perception', skills: ['sight', 'hearing'], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
       stealth: { id: 'stealth', name: 'Stealth – Conventional', skills: ['sneaking', 'combat_stealth', 'vanishing'] },
       speech: { id: 'speech', name: 'Speech', skills: ['persuasion', 'intimidation', 'barter'], access: { blockedBy: [AMORPHOUS] } },

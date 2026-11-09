@@ -6,6 +6,7 @@ export const SKILL_NAMES: Record<string, string> = {
   unarmed_strike: 'Strike', unarmed_grapple: 'Grapple', unarmed_improvised: 'Improvisation', unarmed_natural: 'Natural weapons',
   dodge: 'Dodge', block: 'Block', endurance: 'Endurance', sight: 'Eyesight', hearing: 'Earshot', sneaking: 'Sneaking', combat_stealth: 'Combat Stealth', vanishing: 'Vanishing',
   persuasion: 'Persuasion', intimidation: 'Intimidation', barter: 'Barter', feint: 'Feint', riposte: 'Riposte', disarm: 'Disarm',
+  light_armor: 'Light Armor', medium_armor: 'Medium Armor', heavy_armor: 'Heavy Armor',
   tremor: 'Tremor', lockpicking: 'Lockpicking',
 };
 export const skillName = (id: string) => SKILL_NAMES[id] ?? id;

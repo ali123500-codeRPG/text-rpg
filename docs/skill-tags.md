@@ -5,8 +5,8 @@ perk or a wound touches. Ali asked for this list on 07/11/2026 (perk A8).
 
 | Tag | Values | Used for |
 |---|---|---|
-| Tree | melee, ranged, unarmed, natural, defense, perception, stealth, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
-| Functions (narrow, one or more) | arms, unarmed, ranged, defense, health, sight, hearing, stealth, influence | Stand-ins: a skill sharing a function stands in for a missing one |
+| Tree | melee, ranged, unarmed, natural, defense, armor, perception, stealth, speech, swordsman, slime_senses, tools | Tree-wide perks (the tree rule), the Perks screen |
+| Functions (narrow, one or more) | arms, unarmed, ranged, defense, armor, health, sight, hearing, stealth, influence | Stand-ins: a skill sharing a function stands in for a missing one |
 | Group (broad, from the functions) | melee, ranged, defense, health, notice, stealth, influence | The 40 perk's +1 (every skill sharing a group with the ladder skill), XP category |
 | Situation tags | sight, hearing, stealth, hide, ranged | Which situational tables reach the skill's rolls (CONFIG.SITUATION_TAGS, Ali 08/11/2026, ST21): light hurts sight and helps stealth; cover helps hide and hurts ranged. No table reads hearing yet. An action can add a tag (a Hide adds hide, ST22) |
 | Roles | grip, strike, move, sense, fly, speech | Which wounded body parts lower the roll |
@@ -25,6 +25,7 @@ function in its group; adding a function or group is one row there.
 | Melee | unarmed | unarmed_strike, unarmed_grapple, unarmed_improvised, unarmed_natural |
 | Ranged | ranged | ranged_light, ranged_medium, ranged_heavy |
 | Defense | defense | dodge, block |
+| Defense | armor | light_armor, medium_armor, heavy_armor (tree "Armor – Conventional", AR1–AR3) |
 | Health | health | endurance |
 | Notice | sight | sight, tremor |
 | Notice | hearing | hearing, tremor |
@@ -41,6 +42,7 @@ function in its group; adding a function or group is one row there.
 | dodge | defense | move | | sight |
 | block | defense | grip | | sight |
 | endurance | defense | | | |
+| light_armor, medium_armor, heavy_armor | armor | | | |
 | sight | perception | sense | sight | sight |
 | hearing | perception | sense | sound | hearing |
 | sneaking, combat_stealth | stealth | move | | stealth |
