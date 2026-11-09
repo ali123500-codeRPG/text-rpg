@@ -396,6 +396,7 @@ function skills(): HTMLElement[] {
   const treeCard = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => {
     const c = tree(id, title, ids, entry, [...groupChips(ids), ...chips]);
     c.querySelector('.lv-id')?.remove(); // The tree id under the title is noise; the group chips say where it belongs
+    c.classList.add('lv-foldcard'); // a tree's skill table folds under its title
     return c;
   };
   return [h('p', { class: 'hs-note' }, 'A tree is where a skill is learned. The group comes from the skill\'s functions (FUNCTION_GROUP in functionNames.ts) and decides the 40 perk +1 and the XP category, so a tree and its group can differ.'),
@@ -718,10 +719,11 @@ document.addEventListener('click', (e) => {
 });
 popOpen.addEventListener('click', () => { pop.hidden = true; });
 
-// Folding: clicking a section header (or Enter/Space on it) folds what is under it
-const HEAD = '.lv-group > h2.hs-section';
+// Folding: clicking a section header, or the title of a foldable card (Skills trees), folds what is under it
+const HEAD = '.lv-group > h2.hs-section, .lv-foldcard > header > h3';
+const box = (head: Element): Element => head.closest('.lv-group, .lv-foldcard')!;
 function fold(head: Element, open?: boolean): void {
-  const folded = head.parentElement!.classList.toggle('lv-folded', open === undefined ? undefined : !open);
+  const folded = box(head).classList.toggle('lv-folded', open === undefined ? undefined : !open);
   const k = foldKey(head);
   if (folded) foldedSet.add(k); else foldedSet.delete(k);
   keep('lv-folded', [...foldedSet]);
@@ -729,8 +731,8 @@ function fold(head: Element, open?: boolean): void {
 }
 const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${head.textContent}`;
 function foldable(): void {
-  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) h2.parentElement!.classList.add('lv-folded'); });
-  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', String(!h2.parentElement!.classList.contains('lv-folded'))); h2.title = 'Click to fold or unfold'; });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) box(h2).classList.add('lv-folded'); });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', String(!box(h2).classList.contains('lv-folded'))); h2.title = 'Click to fold or unfold'; });
 }
 body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
 body.addEventListener('keydown', (e) => {
@@ -761,7 +763,8 @@ function route(): void {
     const el = document.getElementById(`${sec.key}/${rest.join('/')}`);
     const holder = el?.closest<HTMLElement>('.lv-pane[hidden]');
     if (holder) showPane(holder.dataset.pane!);
-    const shut = el?.closest('.lv-folded')?.querySelector(':scope > h2.hs-section');
+    const shutBox = el?.closest('.lv-folded');
+    const shut = shutBox?.querySelector(':scope > h2.hs-section, :scope > header > h3');
     if (shut) fold(shut, true);
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
