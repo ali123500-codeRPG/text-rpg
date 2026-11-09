@@ -592,8 +592,29 @@ const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
 const titleEl = h('h1', {});
 const body = h('div', { class: 'lv-body' });
+// Refresh: posts a comment sent to Claude (the comments capability), which wakes the viewer's thread to rebuild
+// from main and republish. Hidden when the page runs outside claude.ai or the viewer can't send to Claude.
+const refreshNote = h('span', { class: 'lv-refresh-note' });
+const refresh = h('button', { type: 'button', class: 'hs-btn-main lv-refresh', hidden: true }, 'Refresh from code');
+type CommentsApi = { anchorFor(el: Element): Promise<unknown>; canSendToClaude(): Promise<string>; sendToClaude(t: { anchor: unknown; text: string }): Promise<unknown> };
+const claudeRt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
+claudeRt?.use('comments').then(async (api) => {
+  if (!api || (await api.canSendToClaude().catch(() => 'off')) !== 'available') return;
+  refresh.hidden = false;
+  refresh.onclick = async () => {
+    (refresh as HTMLButtonElement).disabled = true;
+    refreshNote.textContent = 'Asking Claude to rebuild…';
+    try {
+      await api.sendToClaude({ anchor: await api.anchorFor(refresh), text: `Refresh the library viewer: rebuild from main and republish (this page is commit ${__BUILD__.sha}).` });
+      refreshNote.textContent = 'Sent. Reload the page in a few minutes to see the new build.';
+    } catch {
+      refreshNote.textContent = 'Could not reach Claude from here. Leave a comment and send it to Claude instead.';
+      (refresh as HTMLButtonElement).disabled = false;
+    }
+  };
+}).catch(() => undefined);
 const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl,
-  h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`)), search), bar, body);
+  h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)), search), bar, body);
 document.body.append(rail, main);
 
 const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card:not(.lv-fixed)'))].filter((c) => !c.closest('.lv-pane[hidden]'));
