@@ -1,7 +1,7 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState,
-  AgreementView, HealthLevel, Intent, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, HealthLevel, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -10,11 +10,12 @@ import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, stance, wary, zoneById } from '../engine/relations';
-import { activity, actorBody, getLibrary, itemDef, npcTemplate, routine } from '../library';
+import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, wareList } from '../engine/trade';
+import { dueText, payText } from '../engine/quests';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
@@ -279,6 +280,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     });
   }
   const band = bandById(state, a.bandId);
+  const jobs = jobViews(state, a.id);
   return {
     turn: state.turn,
     time: timeView(state),
@@ -306,7 +308,36 @@ function baseView(state: GameState, actorId: string): BaseView {
     map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })) })),
     zones: perceivedZones(state, a.zone),
     seen: seenActors(state, a),
+    ...(jobs.length ? { jobs } : {}),
   };
+}
+
+/** QT5/QT8: the player's jobs the viewer gave, or that send the player to it */
+function jobViews(state: GameState, viewerId: string): JobView[] {
+  return state.quests.filter((q) => q.giver === viewerId || (q.goal.kind === 'deliver' && q.goal.to === viewerId) || (q.goal.kind === 'find' && q.goal.actor === viewerId))
+    .map((q) => ({
+      id: q.id, text: q.text, state: q.state === 'ready' ? 'active' : q.state,
+      ...(q.giver !== viewerId ? { giver: callName(state, viewerId, q.giver) } : {}),
+      ...(q.giver === viewerId && payText(state, q) ? { owed: payText(state, q) } : {}),
+      ...(dueText(q) ? { due: dueText(q) } : {}),
+      ...(q.after ? { after: q.after } : {}),
+    }));
+}
+
+/** QT14: a quest's goal and progress as the player knows it ("Slimes 3 / 10"); empty for an "other" goal */
+export function questGoalText(state: GameState, q: Quest): string {
+  const g = q.goal, lib = getLibrary();
+  const who = (id: string) => callName(state, state.player.id, id);
+  const name = (f: () => string, or: string) => { try { return f(); } catch { return or; } };
+  const many = (n: string, k: number) => (k > 1 && !/s$/i.test(n) ? `${n}s` : n);
+  const count = (n: string, k: number) => `${n[0].toUpperCase()}${many(n, k).slice(1)} ${q.progress} / ${k}`;
+  switch (g.kind) {
+    case 'defeat': return g.by === 'actor' ? `Defeat ${who(g.of)}` : count(g.noun ?? (g.by === 'race' ? lib.races?.[g.of]?.name ?? g.of : name(() => bodyType(state, g.of).name, g.of)), g.count);
+    case 'deliver': return `${count(g.inst ? itemName(state, g.item) ?? 'the item' : name(() => itemDef(state, g.item).name, g.item), g.qty)} to ${who(g.to)}`;
+    case 'reach': return `Reach ${zoneById(state, g.place)?.name ?? state.places.find((p) => p.id === g.place)?.names.current ?? g.place}`;
+    case 'find': return `Find ${who(g.actor)}`;
+    default: return '';
+  }
 }
 
 export function buildActorView(state: GameState, actorId: string): ActorView {
@@ -326,7 +357,8 @@ export function buildActorView(state: GameState, actorId: string): ActorView {
 function agreementViews(state: GameState, viewerId: string): AgreementView[] {
   return (state.hidden.agreements ?? []).filter((g) => g.parties.includes(viewerId)).map((g) => {
     const other = g.parties[0] === viewerId ? g.parties[1] : g.parties[0];
-    return { id: g.id, with: callName(state, viewerId, other), withId: other, text: g.text, madeTurn: g.madeTurn };
+    const q = state.quests.find((x) => x.dealId === g.id);
+    return { id: g.id, with: callName(state, viewerId, other), withId: other, text: g.text, madeTurn: g.madeTurn, ...(q ? { quest: q.id } : {}) };
   });
 }
 

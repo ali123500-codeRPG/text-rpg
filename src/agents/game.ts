@@ -28,6 +28,7 @@ import { buildLeakContext } from './narration';
 import { isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
+import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 
 /**
  * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
@@ -331,6 +332,9 @@ export function createGame(deps: GameDeps): Game {
       if (!err.committed) notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` });
     }
     reportFallbacks(s, turnLog);
+    // QT27: an "other" quest goal is filed for the build threads, so code can learn to track it
+    for (const l of s.log.filter((x) => x.code === 'quest_goal_gap'))
+      store.set(`bugs/${s.storyId}_t${s.turn}_quest_goal_gap`, { code: 'quest_goal_gap', storyId: s.storyId, turn: s.turn, at: clock.now(), ...l.detail }).catch(() => {});
     const nv = views.buildNarrationView(s, events, rec.intent);
     const leak = buildLeakContext(s);
     const mechanics = mechanicsLines(s, events);
@@ -380,8 +384,8 @@ export function createGame(deps: GameDeps): Game {
       case 'inv':
         return say(s.player.core.inventory.map((i) => `${nameOf(s, i.itemId)}${i.qty ? ` ×${i.qty}` : ''}${i.equippedIn?.length ? ` (${i.equippedIn.join(', ')})` : ''}`).join('; ') || 'You carry nothing.');
       case 'quests': {
-        const active = s.quests.filter((q) => q.state === 'active');
-        return say(active.length ? active.map((q) => q.text).join('\n') : 'No active quests.');
+        const open = s.quests.filter(isOpen);
+        return say(open.length ? open.map((q) => [q.text, views.questGoalText(s, q), q.state === 'ready' ? QUEST_STATE_NAME.ready : '', dueText(q), payText(s, q)].filter(Boolean).join(' · ')).join('\n') : 'No active quests.');
       }
       case 'help': {
         const recap = lines.filter((l) => l.kind === 'narration').slice(-3).map((l) => l.text);
@@ -567,6 +571,9 @@ export function createGame(deps: GameDeps): Game {
     // GAP: a pick lives in memory until the next turn is played and saved; a reload before then drops it (K3 keeps it undoable till then)
     takePerk(id) { if (state && !busy) { takePerk(state, state.player, id); emit(); } },
     undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); emit(); } },
+    // GAP: like a perk pick, these live in memory until the next turn is played and saved
+    abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) emit(); },
+    pinQuest(id) { if (state && !busy) { pinQuest(state, id); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;
