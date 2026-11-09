@@ -19,6 +19,7 @@ import { blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, mode
 
 export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
+export { meltAwayHere } from './perks';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills } from './gear';
@@ -222,16 +223,22 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const coverKey = zoneD && ranged && hasPerk(A, 'past_the_cover') ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
+  // A20 Slip the Blow: in light armor, a Dodge that ties counts as a graze
+  const wornArmor = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const armor = wornArmor ? itemDef(state, wornArmor.itemId).armor : undefined;
+  if (type === 'dodge' && armor?.weight === 'light' && hasPerk(D, 'slip_the_blow') && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
+    gapShifts.push({ source: 'Slip the Blow', value: 1 });
+  }
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
   const g = Math.max(-5, Math.min(5, gap));
-  const multiplier = ladder(type, g);
+  let multiplier = ladder(type, g);
   const shield = !!(blocker && itemDef(state, blocker.itemId).shield);
   const deciding = {
     attack: atkDeciding,
     defense: defDeciding,
     gap: gapShifts.filter((s) => rowKey(type, gap - s.value, shield) !== rowKey(type, gap, shield)).map((s) => s.source),
   };
-  const outcome: AttackResult['outcome'] =
+  let outcome: AttackResult['outcome'] =
     multiplier === 0 ? 'dodged' : type === 'dodge' && g === 1 ? 'grazed' : type === 'block' && (g >= 1 || (g === 0 && shield)) ? 'blocked'
       : g <= -5 ? 'crushing_hit' : g === -4 ? 'heavy_hit' : 'full_hit';
   if (multiplier === 0) return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, deciding };
@@ -272,9 +279,13 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     locationHow = 'open_hand';
   }
 
+  // A22 Turn Aside: heavy armor turns a heavy or crushing hit on a part it covers into a full hit
+  if ((outcome === 'heavy_hit' || outcome === 'crushing_hit') && armor?.weight === 'heavy' && armor.covers.includes(location) && hasPerk(D, 'turn_aside')) {
+    outcome = 'full_hit';
+    multiplier = 1;
+  }
+
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
-  const worn = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
-  const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
   const pierce = boostAdd(A, skill, 'armorPierce'); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;

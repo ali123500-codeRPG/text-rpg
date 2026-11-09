@@ -3,6 +3,7 @@
 import type { ActorView, GearOp, Intent, NpcAction, PlayerView, StanceStep } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { TIME_OF_DAY } from '../scales';
+import { meltAwayHere } from '../ruleset/perks';
 
 // ---------------- Parser ----------------
 
@@ -66,7 +67,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   }
   // AE8: a perk move the player doesn't own, or aimed at no one in view, is dropped (the rest of the turn stands)
   // ST13/ST20: a Vanish moves you; with no move it asks where to
-  if (a?.type === 'vanish' && !out.move) illegal.push('action.vanish');
+  if (a?.type === 'vanish' && !out.move && !(view.player.perks.includes('melt_away') && meltAwayHere(view.zone.cover, view.zone.light))) illegal.push('action.vanish'); // A19 Melt Away
   if (out.perkMove && (!view.player.perkMoves?.includes(out.perkMove.perk) || (out.perkMove.target !== null && !actors.has(out.perkMove.target)))) {
     gearErrors.push(`perkMove ${out.perkMove.perk}`);
     out.perkMove = null;
