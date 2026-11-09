@@ -21,7 +21,7 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(p.core.perks).toContainEqual({ perkId: 'quick_study', source: 'class', gainedTurn: 0 });
     expect(p.progression!.unspentPerkPoints).toBe(0);
     expect(p.label).toBe('a young stranger');
-    expect(p.core.inventory.map((i) => i.itemId)).toEqual(['coin', 'bandage']); // 50 points meet no starter item yet
+    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([['crude_clothes', ['armor']], ['coin', null], ['bandage', null]]); // 50 points: crude clothes, no weapon yet (Ali)
   });
 
   it('Quick Study: a marked skill below 15 gets two improvement rolls, each with its own gain', () => {
@@ -47,7 +47,7 @@ describe('128 Late bloomer and class-level perks', () => {
     const b = recommendedBuild();
     const p = createPlayer({ ...b, skills: { ...b.skills, [SK.melee_medium]: 40, [SK.earshot]: 40 } }, 's1');
     const kit = p.core.inventory.filter((i) => getLibrary().items[i.itemId].tags?.includes('starter'));
-    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([['gambeson', ['armor']], ['round_shield', ['hand:left_arm']]]); // no weapon met at 40
+    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([['crude_clothes', null], ['gambeson', ['armor']], ['round_shield', ['hand:left_arm']]]); // no weapon met at 40
     const q = createPlayer(b, 's1');
     expect(q.core.inventory.find((i) => i.equippedIn?.includes('hand:right_arm'))?.itemId).toBe('arming_sword');
   });
