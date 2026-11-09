@@ -3,10 +3,11 @@
 // get the generic cards, so a new table shows up with no edit here.
 import './styles.css';
 import './libraryViewer.css';
-import type { ClassDef, AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { ClassDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
-import { ACH_RULE_TEXT } from '../library/achievementIds';
+import { rewardLines } from '../ruleset/achRewards';
+import { ACH_RULE_TEXT, ACH_TAGS } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
@@ -328,9 +329,9 @@ function bodyTypes(): HTMLElement[] {
 }
 
 // ---------- Achievements ----------
-/** achievement tags (TG1): read from the row; display names come from the tag names table once it lands */
-const achTags = (d: AchievementDef): string[] => (d as AchievementDef & { tags?: string[] }).tags ?? [];
-const achTagName = (t: string): string => label(t);
+/** achievement tags (TG1): read from the row; display names from the ACH_TAGS names table */
+const achTags = (d: AchievementDef): string[] => d.tags ?? [];
+const achTagName = (t: string): string => ACH_TAGS[t as AchievementTag] ?? label(t);
 function achievements(): HTMLElement[] {
   // show each rule's rows by count, rules in the order they first appear
   const rows = Object.entries(lib.achievements ?? {});
@@ -347,12 +348,12 @@ function achievements(): HTMLElement[] {
     const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
     return card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, '--c15'), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`, '--c2'),
       bane ? chip(`+${bane} skill vs that ${kind}`, '--c10') : null, total ? chip(`+${total} combat rolls`, '--c10') : null,
-      d.healReach ? chip(`healing +${d.healReach} state${d.healReach === 1 ? '' : 's'}`, '--c4') : null,
+      rewardLines(d).length ? chip('reward', '--c4') : null,
       d.scar ? chip('scar', '--c10') : null, ...tags.map((t) => chip(achTagName(t), toneOf('Tag', achTagName(t))))],
       row('Name', name(d.name)),
-      row('Reward', bane ? `+${bane} skill on every roll against that ${kind}`
-        : total ? `+${total} on every attack and defense roll`
-        : d.healReach ? `Healing reaches ${d.healReach} part state${d.healReach === 1 ? '' : 's'} deeper (never Destroyed)` : none('none, XP only')),
+      row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
+        ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
+        return all.length ? all.join('; ') : none('none, XP only'); })()),
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
       row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
@@ -365,7 +366,8 @@ function achievements(): HTMLElement[] {
   const lineTitle = (k: string) => { const [rule, by] = k.split('|'); const t = ACH_RULE_TEXT[rule as AchievementDef['rule']] ?? rule; return `${t[0].toUpperCase()}${t.slice(1)}${by ? ` (per ${by.replace('_', ' ')})` : ''}`; };
   const counted = all.filter(([, d]) => !isDeed(d));
   // tags (TG1–TG9): one section per tag in names-table order, scars alongside achievements; a row with several tags shows in each
-  const tagKeys = [...new Set(all.flatMap(([, d]) => achTags(d)))];
+  const used = new Set(all.flatMap(([, d]) => achTags(d)));
+  const tagKeys = [...Object.keys(ACH_TAGS).filter((t) => used.has(t)), ...[...used].filter((t) => !(t in ACH_TAGS))];
   const untagged = all.filter(([, d]) => !achTags(d).length);
   return panes([
     { key: 'defeats', title: 'Defeats and mastery', n: counted.length, content: groups.map(([title, f]) => section(title, all.filter(([, d]) => f(d)))) },

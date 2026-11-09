@@ -41,3 +41,15 @@ export function deathsDoor(state: GameState, a: Actor, before: number, lost: num
   state.log.push({ turn: state.turn, code: 'deaths_door', detail: { actorId: a.id, achievement: r.key } });
   return top;
 }
+
+/** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display */
+export function rewardLines(d: AchievementDef): string[] {
+  const out: string[] = [];
+  const steps = (n: number, what: string) => `${n} ${what}${n === 1 ? '' : 's'}`;
+  if (d.unawareShift) out.push(`+${steps(d.unawareShift, 'tier')} on attacks against a target unaware of you`);
+  if (d.quieter) out.push(`your moves are ${steps(d.quieter, 'step')} quieter`);
+  if (d.deathsDoor) out.push(`once every ${d.deathsDoor === 1 ? 'game day' : steps(d.deathsDoor, 'game day')}, a hit that would take you Down leaves you at Critical`);
+  if (d.readsHealth) out.push(`you see the health level of every member of that ${(d.by ?? 'kind').replace('_', ' ')}`);
+  if (d.perk) out.push(`grants the perk ${getLibrary().perks?.[d.perk]?.name ?? d.perk}`);
+  return out;
+}
