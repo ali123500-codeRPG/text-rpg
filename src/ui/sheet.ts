@@ -4,7 +4,9 @@ import type { Actor, CreationBuild, GameState } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { createPlayer, spawnNpc } from '../library/spawn';
-import { effectiveSkill, ruleset, totalHp } from '../ruleset';
+import { defaultMode, effectiveSkill, modeSkill, ruleset, totalHp } from '../ruleset';
+import { itemDef } from '../library';
+import { skillName } from '../library/skillNames';
 import { createRng } from '../rng';
 import { SK } from '../library/skillIds';
 
@@ -31,34 +33,37 @@ function duelState(build: CreationBuild): GameState {
 const safe = <T>(f: () => T): T | null => { try { const v = f(); return v ?? null; } catch { return null; } };
 
 export type Preview = {
-  hp: number | null; attack: number | null; defense: { kind: 'block' | 'dodge'; value: number } | null;
+  hp: number | null; attack: number | null; weapon: { name: string; skill: string } | null; shield: string | null; defense: { kind: 'block' | 'dodge'; value: number } | null;
   swingsToKill: number | null; slamsToDown: number | null; slimeHp: number | null;
 };
 
 /** Average damage per swing over `swings` seeded attacks (ruleset.attack is pure apart from the rng). */
-function avgDamage(state: GameState, attackerId: string, targetId: string, weaponId: string, swings: number): number {
+function avgDamage(state: GameState, attackerId: string, targetId: string, weaponId: string, swings: number, modeId?: string): number {
   const rng = createRng(7);
   let sum = 0;
-  for (let i = 0; i < swings; i++) sum += ruleset.attack({ attackerId, targetId, weaponId, targetPart: null, aimed: false }, state, rng).damage;
+  for (let i = 0; i < swings; i++) sum += ruleset.attack({ attackerId, targetId, weaponId, modeId, targetPart: null, aimed: false }, state, rng).damage;
   return sum / swings;
 }
 
 export function preview(build: CreationBuild, swings: number): Preview {
   const state = safe(() => duelState(build));
-  if (!state) return { hp: null, attack: null, defense: null, swingsToKill: null, slamsToDown: null, slimeHp: null };
+  if (!state) return { hp: null, attack: null, weapon: null, shield: null, defense: null, swingsToKill: null, slamsToDown: null, slimeHp: null };
   const p = state.player, slime = state.actors[0];
-  const sword = p.core.inventory.find((i) => i.itemId === 'arming_sword')!.id;
-  const shield = p.core.inventory.find((i) => i.itemId === 'round_shield')!.id;
+  // the kit this build actually gets: its first weapon, or bare hands when it has none (the late bloomer starts unarmed)
+  const atk = safe(() => defaultMode(state, p, 0));
+  const held = atk && p.core.inventory.find((i) => i.id === atk.itemId);
+  const weapon = atk ? { name: held ? itemDef(state, held.itemId).name : (atk.mode.name ?? 'bare hands'), skill: skillName(modeSkill(atk.mode)) } : null;
+  const shieldInst = p.core.inventory.find((i) => i.equippedIn?.length && safe(() => itemDef(state, i.itemId).kind) === 'shield');
   const hp = safe(() => totalHp(state, p));
   const slimeHp = safe(() => totalHp(state, slime));
-  const attack = safe(() => effectiveSkill(state, p, SK.melee_medium, { itemId: sword }).value);
-  const block = safe(() => effectiveSkill(state, p, SK.block, { itemId: shield }).value);
+  const attack = atk ? safe(() => effectiveSkill(state, p, modeSkill(atk.mode), { itemId: held?.id }).value) : null;
+  const block = safe(() => effectiveSkill(state, p, SK.block, { itemId: shieldInst?.id }).value);
   const dodge = safe(() => effectiveSkill(state, p, SK.dodge).value);
   const defense = block === null || dodge === null ? null : block >= dodge ? { kind: 'block' as const, value: block } : { kind: 'dodge' as const, value: dodge };
-  const mine = safe(() => avgDamage(state, 'player', 'slime', sword, swings));
+  const mine = atk ? safe(() => avgDamage(state, 'player', 'slime', atk.itemId, swings, atk.mode.id)) : null;
   const theirs = safe(() => avgDamage(state, 'slime', 'player', 'natural:slam', swings));
   return {
-    hp, attack, defense, slimeHp,
+    hp, attack, weapon, shield: shieldInst ? itemDef(state, shieldInst.itemId).name : null, defense, slimeHp,
     swingsToKill: mine && slimeHp ? slimeHp / mine : null,
     slamsToDown: theirs && hp ? hp / theirs : null,
   };
