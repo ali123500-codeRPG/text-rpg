@@ -18,5 +18,8 @@ export const GROUP_NAMES: Record<SkillGroup, string> = {
 };
 export const functionName = (id: string): string => (FUNCTION_NAMES as Record<string, string>)[id] ?? id;
 export const groupName = (id: string): string => (GROUP_NAMES as Record<string, string>)[id] ?? id;
+/** functions that are rolled as a function: the roll counts every skill with it at full value and the best one
+ * rolls (fnRoller, RollRequest.fn), so a sight or hearing roll never uses the stand-in share */
+export const FUNCTION_ROLLS: SkillFunction[] = [FN.sight, FN.hearing];
 /** the broad groups a skill belongs to, from its functions */
 export const groupsOf = (s?: SkillDef): SkillGroup[] => [...new Set((s?.functions ?? []).map((f) => FUNCTION_GROUP[f]))];
