@@ -27,6 +27,12 @@ export type Actor = {
   engagement?: Engagement; // E1: the actor's current engagement; absent when it is in none
   perkMarks?: PerkMark[]; // short-lived perk effects this actor carries (src/engine/perkMarks.ts)
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
+  /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
+  wares?: { items: string[]; services: string[] };
+  /** PY6: price multipliers this actor won or lost haggling, by seller; cleared when its engagement ends */
+  haggle?: Record<ActorId, number>;
+  /** PY8: healing rows (the clinic's) this actor has paid for and not used yet */
+  paid?: string[];
 };
 
 /** a perk's lasting effect: target is the actor it names (an opening on that foe); until is the last turn it holds */

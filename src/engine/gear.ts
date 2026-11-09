@@ -91,15 +91,30 @@ export function dropToGround(state: GameState, actor: Actor, instId: string, zon
   return true;
 }
 
-/** give (main action): to another active actor in the same zone. */
-export function giveItem(state: GameState, actor: Actor, instId: string | null | undefined, targetId: string | null): boolean {
+/**
+ * give (main action): to another active actor in the same zone. qty gives part of a stack (null: all of it);
+ * a stackable joins the receiver's own stack. Returns the receiver's instance id and the amount given, or null.
+ */
+export function giveItem(state: GameState, actor: Actor, instId: string | null | undefined, targetId: string | null, qty?: number | null): { id: string; qty: number } | null {
   const to = targetId ? actorById(state, targetId) : undefined;
   const i = actor.core.inventory.findIndex((x) => x.id === instId);
-  if (!to || to === actor || !isActive(to) || to.zone !== actor.zone || i < 0) return false;
-  const [it] = actor.core.inventory.splice(i, 1);
-  delete it.equippedIn;
-  to.core.inventory.push(it);
-  return true;
+  if (!to || to === actor || !isActive(to) || to.zone !== actor.zone || i < 0) return null;
+  const it = actor.core.inventory[i];
+  const have = it.qty ?? 1;
+  const stackable = itemDef(state, it.itemId).stackable;
+  const n = qty == null || !stackable ? have : Math.floor(qty);
+  if (n < 1 || n > have) return null;
+  const stack = stackable ? to.core.inventory.find((x) => x.itemId === it.itemId) : undefined;
+  if (n < have) it.qty = have - n;
+  else actor.core.inventory.splice(i, 1);
+  if (stack) {
+    stack.qty = (stack.qty ?? 1) + n;
+    return { id: stack.id, qty: n };
+  }
+  const moved: ItemInstance = n < have ? { id: `${it.id}_${to.id}_${state.turn}`, itemId: it.itemId, qty: n } : it;
+  delete moved.equippedIn;
+  to.core.inventory.push(moved);
+  return { id: moved.id, qty: n };
 }
 
 /** equip (main action): put armor on (taking off any worn armor), or take it off when worn. */
