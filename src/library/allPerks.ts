@@ -120,7 +120,8 @@ export const ALL_PARTS: PerkWriteup[] = [
     rules: { kind: 'Always on', trigger: 'The owner makes a Persuasion, Intimidation or Barter roll.', conditions: ['The roll ends in a Near Miss or worse (Ali, 09/11/2026).'],
       effect: 'Tier shift +1 on that roll.', lasts: 'That roll.' } }),
   part('speech', { id: 'easy_speaker', ref: 'T7d', name: 'Easy Speaker', effect: 'speech',
-    story: 'Words slide off you. Threats and coaxing aimed at you land one outcome worse.',
-    rules: { kind: 'Always on', trigger: 'An NPC makes a Persuasion or Intimidation roll at the owner.', conditions: [],
-      effect: 'Tier shift −1 on that roll.', lasts: 'That roll.', needs: 'NPC speech aimed at the player: today only the player rolls speech, and NPCs answer with a contest roll.' } }),
+    story: 'Words slide off you. When someone tries to talk you round, your answer lands one outcome better.',
+    rules: { kind: 'Always on', trigger: 'The owner answers a speech contest: someone speaks to it with Persuasion, Intimidation or Barter.', conditions: [],
+      effect: 'Tier shift +1 on the owner\'s answering roll (Ali, 09/11/2026, option a).', lasts: 'That roll.',
+      open: 'Only the player starts speech contests today, so this helps NPC owners. When NPCs speak to the player with a roll (OQ-29), it covers the player too.' } }),
 ];

@@ -10,6 +10,7 @@ export const BUILT_PERKS = new Set<string>([
   'spotter', // T5b: src/ruleset/allSteps.ts shareSpotted()
   'steady_guard', 'thick_hide', // T1e, T4e: attack() in src/ruleset/index.ts; trueSkillTo
   'night_eyes', // T5e: src/ruleset/gear.ts situational()
+  'easy_speaker', // T7d: src/engine/speech.ts resolveSpeech(), the listener's answering roll
   'soft_landing', // T7a: src/ruleset/allSteps.ts afterRollShifts()
   'fighters_frame', // T1d: attack()
   'past_the_cover', // T2c: attack()
