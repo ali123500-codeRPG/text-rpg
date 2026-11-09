@@ -16,7 +16,7 @@ export const PK = {
   thick_hide: 'PK56', spotter: 'PK57', curiouser: 'PK58', night_eyes: 'PK59', strike_and_fade: 'PK60',
   child_of_night: 'PK61', hushed_steps: 'PK62', soft_landing: 'PK63', easy_speaker: 'PK64', silver_words: 'PK65',
   nobody_special: 'PK66', every_fall_a_lesson: 'PK67', as_far_as_the_road_goes: 'PK68', write_your_own_ending: 'PK69', no_road_closed: 'PK70',
-  quick_study: 'PK71', past_the_pain: 'PK72',
+  quick_study: 'PK71', past_the_pain: 'PK72', never_surprised: 'PK73',
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;

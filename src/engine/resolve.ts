@@ -7,7 +7,7 @@ import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
 import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, tierAtLeast, usableModes } from '../ruleset';
-import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
+import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -89,13 +89,17 @@ function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined)
   }
 }
 
-/** initiative: the ruleset's roll, but an actor unaware of anyone attacking it this turn takes INIT_UNAWARE (acts last); ties go to the seeded rng */
+/** C1 Never Surprised: the owner hears the attack coming, so being unaware of the attacker costs it nothing */
+const hearsItComing = (state: GameState, owner: Actor, zone: string, noise: GameEvent['noise']) => hasPerk(owner, PK.never_surprised) && hears(state, owner, zone, noise);
+
+/** initiative: the ruleset's roll, but an actor unaware of anyone attacking it this turn takes INIT_UNAWARE (acts last),
+ * unless it has Never Surprised and the attack's noise reaches it; ties go to the seeded rng */
 function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Order>, rng: Rng): string[] {
   const attackers = (id: string) => [...orders].filter(([, o]) => o.type === 'attack' && o.target === id).map(([by]) => actorById(state, by)!);
   const rows = ids.map((id) => {
     const a = actorById(state, id)!;
     const roll = ruleset.initiative(a, state, rng);
-    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware');
+    const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x.zone, armorNoise(state, x, 'attack', SENSE.attack[0])));
     return { id, init: caught ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() };
   });
   rows.sort((x, y) => y.init - x.init || y.tie - x.tie);
@@ -256,7 +260,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   let surprised = false;
   // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
   if (!atLeast(beliefStatus(state, t, a), 'suspicious')) {
-    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised;
+    surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, ev.zone, ev.noise);
     if (surprised) ctx.surprised.add(t.id);
   }
   if (shows) stealthEnd(state, a);
