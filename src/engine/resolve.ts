@@ -467,7 +467,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
       ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
       ...situational(state, o.skill, { light: zoneById(state, a.zone) }).modifiers, // ST21: light by tag (sight)
     ];
-    const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [] }, state, rng);
+    const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn: noticeCue(o.skill) === 'sound' ? 'hearing' : 'sight' }, state, rng); // function roll
     ev.roll = r;
     ev.tier = r.tier;
     if (tierAtLeast(r.tier, 'success')) lookAround(state);
