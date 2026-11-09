@@ -3,7 +3,7 @@
 // perk unlocks A Nobody, a starting class with Quick Study at level 1 and Every Fall a Lesson at 20.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { awardXp, charLevel, levelTarget, spendXp, xpToNext } from '../../src/engine/xp';
+import { awardXp, charLevel, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { createPlayer, recommendedBuild } from '../../src/library/spawn';
 import { CONFIG } from '../../src/config';
@@ -60,5 +60,29 @@ describe('131 Class level cap', () => {
     expect(lost(-1)).toBe(false); // the guard is far outside Dodge 0's window
     p.core.perks.push({ perkId: 'every_fall_a_lesson', source: 'class', gainedTurn: 0 });
     expect([lost(-1), lost(-2), lost(1)]).toEqual([true, false, false]); // one step short marks; two short or a win don't
+  });
+
+  it('alternate capstones: offered at level 20 when their conditions hold, swapped in once for the default', () => {
+    const reach20 = (dodge: number) => {
+      const s = makeVillage(), p = s.player; // makeVillage resets the library, so the test capstones go in after it
+      const cls = getLibrary().classes[CL.swordsman];
+      cls.levelPerks = { 20: ['quick_study'] }; // stand-in perks: the real capstones are still being designed
+      cls.capstones = [{ perk: 'every_fall_a_lesson', needs: { must: [{ kind: 'skill', id: SK.dodge, level: 40 }] } },
+        { perk: 'nobody_special', needs: { must: [{ kind: 'race', id: 'dragon' }] } }];
+      p.core.skills[SK.dodge] = { raw: dodge, state: 'normal' };
+      p.core.perks = [];
+      p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 19 }];
+      awardXp(s, xpToNext(p), 'test');
+      return { s, p };
+    };
+    expect(reach20(10).p.progression!.capstoneOptions).toBeUndefined(); // Dodge 10: nothing on offer
+    const { s, p } = reach20(40);
+    expect(p.progression!.capstoneOptions).toEqual({ [CL.swordsman]: ['every_fall_a_lesson'] }); // the dragon one isn't met
+    expect(p.core.perks.map((x) => x.perkId)).toEqual(['quick_study']); // the default until a swap
+    expect(swapCapstone(p, CL.swordsman, 'nobody_special', s.turn)).toBe(false);
+    expect(swapCapstone(p, CL.swordsman, 'every_fall_a_lesson', s.turn)).toBe(true);
+    expect(p.core.perks.map((x) => x.perkId)).toEqual(['every_fall_a_lesson']);
+    expect(swapCapstone(p, CL.swordsman, 'every_fall_a_lesson', s.turn)).toBe(false); // once
+    makeVillage(); // restore the library
   });
 });

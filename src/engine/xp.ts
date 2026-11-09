@@ -7,7 +7,7 @@ import { trueSkill } from '../ruleset/perks';
 import { isActive, stance, wary } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
-import { skillOpen } from '../ruleset/access';
+import { ruleMet, skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { groupName, groupsOf } from '../library/functionNames';
 import { TIERS } from '../scales';
@@ -66,9 +66,28 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
     delete pr.nextClass;
   }
   pick.level += 1;
+  if (pick.level === CONFIG.CLASS_MAX_LEVEL) offerCapstones(p, pick.classId);
   p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn).filter((x) => !p.core.perks.some((o) => o.perkId === x.perkId))); // class-level perks, once each
   if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
   return { classId: pick.classId, level: charLevel(p) };
+}
+
+/** Alternate capstones: when a class reaches CLASS_MAX_LEVEL, every alternate whose conditions hold right then is
+ * offered in place of the default capstone (the class's levelPerks at that level). The offer stays until a swap. */
+function offerCapstones(p: Actor, classId: string): void {
+  const ok = (getLibrary().classes[classId]?.capstones ?? []).filter((c) => ruleMet(p, c.needs)).map((c) => c.perk);
+  if (ok.length) (p.progression!.capstoneOptions ??= {})[classId] = ok;
+}
+
+/** swap a class's default capstone for an offered alternate; once per class. False when it isn't on offer. */
+export function swapCapstone(p: Actor, classId: string, perkId: string, turn: number): boolean {
+  const pr = p.progression, opts = pr?.capstoneOptions?.[classId];
+  if (!pr || !opts?.includes(perkId)) return false;
+  const base = getLibrary().classes[classId]?.levelPerks?.[CONFIG.CLASS_MAX_LEVEL] ?? [];
+  p.core.perks = p.core.perks.filter((x) => !(x.source === 'class' && base.includes(x.perkId)));
+  p.core.perks.push({ perkId, source: 'class', gainedTurn: turn });
+  delete pr.capstoneOptions![classId];
+  return true;
 }
 
 /** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when

@@ -32,7 +32,7 @@ export type SkillDef = {
 /** A source that opens or blocks a skill tree (TA1–TA11). 'class': the actor has that class, Current or
  * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
 /** raceTag: the actor's race carries that tag (RaceDef.tags), e.g. 'speaks' */
-export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk'; id: string; level?: number };
+export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' | 'skill'; id: string; level?: number };
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
@@ -53,6 +53,9 @@ export type ClassDef = {
   fallback?: true;
   /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
   unlockPerk?: string;
+  /** alternate capstones: each can replace the default capstone (levelPerks at CLASS_MAX_LEVEL) when its conditions
+   * hold as the class reaches CLASS_MAX_LEVEL (Must / Either of / Blocked by, as in tree access) */
+  capstones?: { perk: string; needs: TreeAccess }[];
 };
 
 export type PartDef = { id: string; size: SizeId; impact: ImpactId; roles: RoleId[]; adjacent?: string[] };
