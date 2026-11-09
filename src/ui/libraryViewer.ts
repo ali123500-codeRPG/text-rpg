@@ -210,7 +210,8 @@ let pane = '';
 // Remembered per viewer (this browser only): which sections are folded and which sub-tab each tab had open
 const remember = <T>(key: string, fallback: T): T => { try { return JSON.parse(localStorage.getItem(key) ?? '') as T; } catch { return fallback; } };
 const keep = (key: string, value: unknown): void => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked: keep it for this visit only */ } };
-const foldedSet = new Set<string>(remember<string[]>('lv-folded', []));
+// older keys carried the sub-tab (tab|pane|title); a fold now covers every sub-tab, so keep tab|title
+const foldedSet = new Set<string>(remember<string[]>('lv-folded', []).map((k) => { const p = k.split('|'); return p.length > 2 ? `${p[0]}|${p.slice(2).join('|')}` : k; }));
 const paneOf: Record<string, string> = remember<Record<string, string>>('lv-pane', {});
 function panes(list: Pane[]): HTMLElement[] {
   if (!list.some((p) => p.key === pane)) pane = list[0].key;
@@ -751,7 +752,8 @@ function paint(): void {
 /** does a card pass the search and the filters (leaving out one group's own picks, for that group's counts) */
 function passes(c: HTMLElement, q: string, skip?: string): boolean {
   const fs = new Set(facetsOf(c));
-  if (q && !c.dataset.q!.includes(q)) return false;
+  // the search also reads the section a card sits in (an achievement chain's title, a gear kind …)
+  if (q && !c.dataset.q!.includes(q) && !(c.closest('.lv-group')?.querySelector(':scope > h2')?.textContent ?? '').toLowerCase().includes(q)) return false;
   const shownBy = new Map<string, boolean>();
   for (const [f, st] of picks) {
     const g = f.split('\t')[0];
@@ -974,11 +976,18 @@ function fold(head: Element, open?: boolean, save = true): void {
     const k = foldKey(head);
     if (folded) foldedSet.add(k); else foldedSet.delete(k);
     keep('lv-folded', [...foldedSet]);
+    // the same section in the other sub-tabs follows
+    body.querySelectorAll<HTMLElement>(HEAD).forEach((o) => {
+      if (o === head || foldKey(o) !== k) return;
+      box(o).classList.toggle('lv-folded', folded);
+      o.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
+    });
   }
   head.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
 }
-// keyed by the title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new build
-const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
+// keyed by tab and title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new
+// build, and a section folded in one sub-tab is folded in every sub-tab that shows it
+const foldKey = (head: Element): string => `${shown}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
 function foldable(): void {
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) box(h2).classList.add('lv-folded'); });
   // the heading stays a heading; a button inside it does the folding
