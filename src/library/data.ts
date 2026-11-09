@@ -108,6 +108,14 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
   { id: 'hidden_blade', level: 'fine', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
     weapon: { modes: [mode({ id: 'stab', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
+  // Crude gear (Ali, 09/11/2026): level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
+  // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
+  { id: 'crude_clothes', level: 'crude', tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
+    armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
+  { id: 'cudgel', level: 'crude', kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: 'club', tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
+  { id: 'rusty_knife', level: 'crude', kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
+    weapon: { modes: [mode({ id: 'slash', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
   { id: 'gambeson', level: 'common', tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light') } },
   { id: 'mail_hauberk', level: 'fine', tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
