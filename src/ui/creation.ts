@@ -25,7 +25,16 @@ const STEP = 5;
 /** the starting options (Ali, 09/11/2026): the swordsman, and the late bloomer's unique class */
 const STARTS = ['swordsman', 'late_bloomer'];
 
+/** The creation screen. Switching the starting class swaps the screen inside one wrapper, so the app's
+ * reference to this element stays valid and a later redraw never brings back the old class's screen. */
 export function creationScreen(api: GameApi, onStarted: () => void, classId = 'swordsman'): HTMLElement {
+  const host = h('div', { class: 'creation-host' });
+  const show = (id: string) => host.replaceChildren(classScreen(api, onStarted, id, show));
+  show(classId);
+  return host;
+}
+
+function classScreen(api: GameApi, onStarted: () => void, classId: string, switchTo: (id: string) => void): HTMLElement {
   const lib = getLibrary();
   const cls = lib.classes[classId];
   const floors = cls?.floors ?? {};
@@ -81,7 +90,7 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId = 's
       onchange: (e: Event) => { st.swings = Math.max(50, Math.min(5000, +(e.target as HTMLInputElement).value || 400)); render(); } });
     openPanel('Estimate', [
       { k: 'Figure', v: 'Vs one slime' },
-      { k: 'Source', v: 'The game’s attack rules, run as seeded practice swings: you with the arming sword against one slime, and its slam against you with your standing defense.' },
+      { k: 'Source', v: 'The game’s attack rules, run as seeded practice swings: you with your starting weapon (or bare hands) against one slime, and its slam against you with your standing defense.' },
       { k: 'Swings', v: inp, edit: true },
     ], 'More swings give a steadier estimate. Only this screen changes.');
     inp.focus();
@@ -94,10 +103,11 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId = 's
       { label: 'Points left', value: String(L), unit: `of ${total()}`, sub: L ? 'Spend them all to begin' : 'All spent', tone: L ? 'warn' : 'ok',
         how: `You have ${total()} points for the open skills. No skill goes above ${cap()} at creation, and the class floors are the minimums.` },
       { label: 'HP', value: dash(p.hp), unit: 'HP', sub: `${CONFIG.HP_BASE} + endurance`, how: 'Total HP from the ruleset: the base plus endurance, times the body’s HP multiplier.' },
-      { label: 'Sword attack', value: dash(p.attack), unit: 'skill', sub: `medium weapons + sword ${CONFIG.KIT_BONUS}`, how: 'Effective medium weapons skill with the arming sword in hand (raw skill plus gear).' },
+      { label: 'Attack', value: dash(p.attack), unit: 'skill', sub: p.weapon ? `${p.weapon.skill} · ${p.weapon.name}` : '—',
+        how: 'Effective skill of your starting attack: the first weapon in your starting kit, or bare hands when the kit has none (raw skill plus gear).' },
       { label: 'Standing defense', value: dash(p.defense?.value ?? null), unit: p.defense?.kind ?? 'skill',
-        sub: p.defense ? (p.defense.kind === 'block' ? `block + shield ${CONFIG.KIT_BONUS}` : 'dodge (higher than block)') : 'block or dodge, the higher',
-        how: 'The higher of effective block (with the round shield) and effective dodge.' },
+        sub: p.defense ? (p.defense.kind === 'block' ? (p.shield ? `block + ${p.shield}` : 'block, no shield') : 'dodge (higher than block)') : 'block or dodge, the higher',
+        how: 'The higher of effective block (with your starting shield, if any) and effective dodge.' },
       { label: 'Vs one slime', value: p.swingsToKill === null ? '—' : '≈ ' + dash(p.swingsToKill, 1), unit: 'swings to kill',
         sub: p.slamsToDown === null ? 'Its slams to down you: —' : `It downs you in about ${Math.round(p.slamsToDown)} slams`,
         how: `Estimated: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, from ${st.swings} practice swings with the game’s attack rules.` },
@@ -146,7 +156,7 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId = 's
   const starts = h('div', { class: 'actions', role: 'group', 'aria-label': 'Starting class' }, STARTS.filter((id) => lib.classes[id]).map((id) =>
     h('button', { class: id === classId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(id === classId),
       title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),
-      onclick: () => { if (id !== classId) root.replaceWith(creationScreen(api, onStarted, id)); } },
+      onclick: () => { if (id !== classId) switchTo(id); } },
     `${lib.classes[id].name} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
@@ -169,6 +179,6 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId = 's
       h('span', {}, h('i', { class: 'hs-sq', style: 'background:var(--c5)' }), 'Class tree')),
     h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
       `${total()} points, cap ${cap()}, floors medium weapons ${floors[SK.melee_medium] ?? 0} and block ${floors[SK.block] ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
-      + `Kit assumed: sword +${CONFIG.KIT_BONUS}, shield +${CONFIG.KIT_BONUS}, gambeson. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)));
+      + `Figures use the starting kit this build gets. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)));
   return root;
 }
