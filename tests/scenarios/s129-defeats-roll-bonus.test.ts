@@ -24,8 +24,8 @@ const fight = (s: GameState) => {
 };
 
 describe('129 total-defeats roll bonus', () => {
-  it('tiers add up: I = +1, II = +2, III = +3', () => {
-    expect([defeatsRoll(ACH.defeats_10), defeatsRoll(ACH.defeats_100), defeatsRoll(ACH.defeats_1000)]).toEqual([1, 2, 3]);
+  it('tiers add up: I = +1, II = +2, III = +3, IV = +4', () => {
+    expect([defeatsRoll(ACH.defeats_10), defeatsRoll(ACH.defeats_100), defeatsRoll(ACH.defeats_250), defeatsRoll(ACH.defeats_1000)]).toEqual([1, 2, 3, 4]);
   });
   it('no achievement, no bonus', () => {
     expect(fight(makeVillage())).toEqual({ atk: [], def: [] });

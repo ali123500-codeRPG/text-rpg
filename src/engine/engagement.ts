@@ -9,7 +9,7 @@ import { actorById, allActors, atLeast, countsInFight, hostile, isActive } from 
 import { logCode } from './effects';
 
 /** a is engaged with b in a fight: a counts in a fight, is hostile to b and believes in b at suspicious or higher */
-function fightingWith(state: GameState, a: Actor, b: Actor): boolean {
+export function fightingWith(state: GameState, a: Actor, b: Actor): boolean {
   return countsInFight(a) && countsInFight(b) && hostile(state, a, b) && atLeast(a.mind?.knowledge?.[b.id]?.status, 'suspicious');
 }
 

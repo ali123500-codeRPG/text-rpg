@@ -1,5 +1,5 @@
 // XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
-import type { Actor, GameEvent, GameState, XpAward } from '../types';
+import type { Actor, AchievementBy, AchievementRule, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, getLibrary } from '../library';
 import { classPerks } from '../library/spawn';
@@ -8,6 +8,9 @@ import { isActive, stance, wary } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
 import { skillOpen } from '../ruleset/access';
+import { partStates, working } from '../ruleset/body';
+import { groupName, groupsOf } from '../library/functionNames';
+import { TIERS } from '../scales';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
 export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
@@ -52,6 +55,7 @@ export function unlockClasses(state: GameState): void {
     if (!c.unlock || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (!Object.entries(c.unlock).every(([sk, need]) => trueSkill(p, sk) >= need)) continue;
     p.core.classes.push({ classId: c.id, state: 'unlocked', level: 0 });
+    tally(state, 'class_unlock', { by: 'class', of: c.id });
     logCode(state, 'class_unlocked', { classId: c.id });
   }
 }
@@ -62,7 +66,11 @@ export function payDefeats(state: GameState, events: GameEvent[]): void {
     const a = e.attack;
     if (a && a.attackerId === state.player.id && a.damage > 0) {
       const t = state.actors.find((x) => x.id === a.targetId);
-      if (t?.mind) t.mind.hitByPlayer = true;
+      if (t?.mind) {
+        t.mind.hitByPlayer = true;
+        if (a.unaware) t.mind.hitUnaware = true;
+        else delete t.mind.hitUnaware;
+      }
     }
   }
   for (const t of state.actors) {
@@ -102,18 +110,35 @@ export function killXp(state: GameState, t: Actor): number {
 const title = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 function defeatAchievements(state: GameState, t: Actor): void {
+  tally(state, 'defeats', { by: 'body_type', of: t.core.bodyTypeId });
+  if (t.core.raceId) tally(state, 'defeats', { by: 'race', of: t.core.raceId });
+  tally(state, 'defeats');
+  if (t.mind?.hitUnaware) tally(state, 'unaware_defeats');
+  if (partStates(state, state.player).some((p) => !working(p.state))) tally(state, 'crippled_defeats');
+}
+
+/** every roll the player makes: Critical Success or better counts for each group of the rolled skill, and each step
+ * past Critical Success counts once in general and per group */
+export function rollFeats(state: GameState, r: { skill: string; tier: string; beyond?: number }): void {
+  const beyond = TIERS.pos(r.tier as 'success') + (r.beyond ?? 0) - TIERS.pos('critical_success');
+  if (beyond < 0) return;
+  const groups = groupsOf(getLibrary().skills[r.skill]);
+  for (const g of groups) tally(state, 'crits', { by: 'group', of: g });
+  if (beyond === 0) return;
+  tally(state, 'beyond_crit', { to: beyond });
+  for (const g of groups) tally(state, 'beyond_crit', { by: 'group', of: g, to: beyond });
+}
+
+/** Adds 1 to the player's tally for an achievement rule (with `to`: raises it to `to`), then grants every achievement
+ * of that rule the tally reaches. With `by`, the tally and the achievement are per body type, race, group or class `of`. */
+export function tally(state: GameState, rule: AchievementRule, o: { by?: AchievementBy; of?: string; to?: number } = {}): void {
   const pr = state.player.progression;
-  if (!pr) return;
-  const type = t.core.bodyTypeId, race = t.core.raceId;
-  const n = (pr.defeats ??= {});
-  const keys = ['all', `body_type:${type}`, ...(race ? [`race:${race}`] : [])];
-  for (const k of keys) n[k] = (n[k] ?? 0) + 1;
-  for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
-    if (d.rule !== 'defeats' || d.count === undefined) continue;
-    if (d.by === 'race' && !race) continue;
-    const of = d.by === 'race' ? race! : type;
-    if ((n[d.by ? `${d.by}:${of}` : 'all'] ?? 0) >= d.count) grantAchievement(state, key, d.by ? of : undefined);
-  }
+  if (!pr || (o.by && !o.of)) return;
+  const t = (pr.tally ??= {});
+  const k = o.by ? `${rule}:${o.by}:${o.of}` : rule;
+  t[k] = o.to === undefined ? (t[k] ?? 0) + 1 : Math.max(t[k] ?? 0, o.to);
+  for (const [key, d] of Object.entries(getLibrary().achievements ?? {}))
+    if (d.rule === rule && d.by === o.by && d.count !== undefined && t[k] >= d.count) grantAchievement(state, key, o.of);
 }
 
 /** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names.
@@ -143,5 +168,7 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   if (d.by === 'body_type' && a.of) try { what = (bodyType(state, a.of) as { name?: string }).name ?? a.of; } catch { /* keep the id */ }
   if (d.by === 'race' && a.of) what = lib.races?.[a.of]?.name ?? a.of;
   if (d.rule === 'mastery' && a.of) what = lib.trees?.[a.of]?.name ?? a.of;
-  return d.name.replace(/\{(body_type|race|tree)\}/g, title(what));
+  if (d.by === 'group' && a.of) what = groupName(a.of);
+  if (d.by === 'class' && a.of) what = lib.classes?.[a.of]?.name ?? a.of;
+  return d.name.replace(/\{(body_type|race|tree|group|class)\}/g, title(what));
 }

@@ -6,6 +6,7 @@ import './libraryViewer.css';
 import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll } from '../ruleset/bane';
+import { ACH_RULE_TEXT } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
@@ -316,9 +317,12 @@ function bodyTypes(): HTMLElement[] {
 
 // ---------- Achievements ----------
 function achievements(): HTMLElement[] {
-  const all = Object.entries(lib.achievements ?? {});
+  // numeric keys list in number order, so show each rule's rows by count, rules in the order they first appear
+  const rows = Object.entries(lib.achievements ?? {});
+  const first = (r: string) => rows.findIndex(([, d]) => d.rule === r);
+  const all = rows.sort(([, a], [, b]) => first(a.rule) - first(b.rule) || (a.count ?? 0) - (b.count ?? 0));
   const groups: [string, (d: AchievementDef) => boolean][] = [['Per body type', (d) => d.by === 'body_type'], ['Per race', (d) => d.by === 'race'],
-    ['Total defeats', (d) => d.rule === 'defeats' && !d.by], ['Tree mastery', (d) => d.rule === 'mastery']];
+    ['Total defeats', (d) => d.rule === 'defeats' && !d.by], ['Tree mastery', (d) => d.rule === 'mastery'], ['Deeds', (d) => d.rule !== 'defeats' && d.rule !== 'mastery']];
   const name = (n: string) => h('span', {}, ...n.split(/(\{\w+\})/).map((p) => (p.startsWith('{') ? h('em', { class: 'lv-slot' }, p) : p)));
   return groups.map(([title, f]) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' },
     all.filter(([, d]) => f(d)).map(([key, d]) => {
@@ -331,7 +335,7 @@ function achievements(): HTMLElement[] {
         row('Roll bonus', bane ? `+${bane} skill on every roll against that ${kind}`
           : total ? `+${total} on every attack and defense roll` : none('none, XP only')),
         d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
-        row('Earned at', d.rule === 'mastery' ? `all three skills of a tree at ${d.count}` : `${d.count} defeat${d.count === 1 ? '' : 's'}${d.by ? `, once per ${d.by === 'body_type' ? 'body type' : 'race'}` : ''}`),
+        row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
         row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.id));
       return c;
     }))));
