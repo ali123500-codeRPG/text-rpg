@@ -23,6 +23,7 @@ export type BeliefView = {
   hostile: boolean; // hostile(self, about): attacks on sight
   active: boolean;
   label: string; // public label or known name
+  title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
 };
 
 export type EventView = {
@@ -164,7 +165,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[] }; // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string }; // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it

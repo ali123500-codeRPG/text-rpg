@@ -20,6 +20,7 @@ import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
+import { achievementName, wearable, wornTitle } from '../engine/xp';
 import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
@@ -62,7 +63,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed). The story saves every turn.';
+  '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed), /title [number or off] (wear an achievement as your title). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -390,6 +391,18 @@ export function createGame(deps: GameDeps): Game {
         // GAP: the spec names no difficulty settings; the word is stored as given and saved with the next turn
         if (arg) s.settings.difficulty = arg;
         return say(`Difficulty: ${s.settings.difficulty}.`);
+      case 'title': {
+        // T18: wear one current achievement as a title; it reaches only people who see you (src/views/index.ts)
+        const pr = s.player.progression, list = wearable(s);
+        if (!pr) return say('You have no achievements to wear.');
+        if (arg.toLowerCase() === 'off') { delete pr.title; return say('You wear no title now.'); }
+        const n = Number(arg);
+        const pick = arg ? (Number.isInteger(n) ? list[n - 1] : list.find((x) => achievementName(s, x).toLowerCase() === arg.toLowerCase())) : undefined;
+        if (pick) { pr.title = pick.id; return say(`You now go by ${achievementName(s, pick)}. Only people who see you will know it.`); }
+        if (!list.length) return say('You have no achievements to wear yet.');
+        return say([`Title: ${wornTitle(s) ?? 'none'}. Type /title and a number to wear one, or /title off.`,
+          ...list.map((x, i) => `${i + 1}. ${achievementName(s, x)}`)].join('\n'));
+      }
       case 'aim':
         aimNext = true;
         if (arg) return submit(arg, opts);

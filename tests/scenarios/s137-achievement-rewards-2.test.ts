@@ -1,10 +1,12 @@
 // 137 achievement rewards, round 2 (reward variations page T13, T15, T16, T17, T19): Master of the Moment widens
 // stand-ins in its group, Adept of {tree} lowers that tree's equip requirements (only the check), Silver Tongue takes
-// 5% off buying, Hold the Line steadies allies fighting beside you (a new chain), Seasoned adds 10% to each rest.
+// 5% off buying, Hold the Line steadies allies fighting beside you (a new chain), Seasoned adds 10% to each rest;
+// T18 a worn title reaches only people who have seen you.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { grantAchievement } from '../../src/engine/xp';
+import { grantAchievement, wearable, wornTitle } from '../../src/engine/xp';
+import { buildActorView, buildNarrationView } from '../../src/views';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
 import { SK } from '../../src/library/skillIds';
@@ -98,5 +100,25 @@ describe('137 achievement rewards, round 2', () => {
     expect(has(s, ACH.held_line_1)).toBe(false);
     fightEnded(s, { hp: 0, foes: [], most: 3, helped: true, heldLine: true });
     expect(has(s, ACH.held_line_1)).toBe(true);
+  });
+
+  it('T18 a worn title: current non-scar achievements only, and only people who have seen you know it', () => {
+    const s = makeVillage();
+    const wim = actor(s, 'patron_1');
+    grantAchievement(s, ACH.yielded_1);
+    grantAchievement(s, ACH.yielded_10);
+    expect(wearable(s).map((x) => x.key)).toEqual([ACH.yielded_10]); // Yield or Fall was replaced
+    s.player.progression!.title = wearable(s)[0].id;
+    expect(wornTitle(s)).toBe('Breaker of Wills');
+    expect(buildNarrationView(s, []).player.title).toBe('Breaker of Wills');
+    const about = () => buildActorView(s, wim.id).beliefs.find((b) => b.about === s.player.id);
+    wim.mind!.knowledge[s.player.id] = { status: 'aware', source: 'heard', revealed: [] };
+    expect(about()?.title).toBeUndefined(); // heard, not seen
+    wim.mind!.knowledge[s.player.id] = { status: 'suspicious', source: 'seen', revealed: [] };
+    expect(about()?.title).toBeUndefined(); // a glimpse is not enough
+    wim.mind!.knowledge[s.player.id] = { status: 'aware', source: 'seen', revealed: [] };
+    expect(about()?.title).toBe('Breaker of Wills');
+    grantAchievement(s, ACH.yielded_50); // the worn level is replaced: the title moves up its chain
+    expect(wornTitle(s)).toBe('The Name That Ends Fights');
   });
 });
