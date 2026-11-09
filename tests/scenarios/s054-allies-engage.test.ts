@@ -5,6 +5,7 @@ import { actor, makeVillage } from '../harness';
 import { spawnNpc } from '../../src/library/spawn';
 import { computePending } from '../../src/engine';
 import { act, play, plannerOut } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 it('54 Allies engage', () => {
   const s = makeVillage({ playerZone: 'tav_cellar' });
@@ -17,6 +18,6 @@ it('54 Allies engage', () => {
   expect(p.mode).toBe('tactical');
   expect(p.engaged).toContain('guard_1');
   expect(actor(s, 'guard_1').mind!.control).toBe('agent');
-  const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('attack', 'bandit_1', { skill: 'melee_medium' }))] });
+  const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('attack', 'bandit_1', { skill: SK.melee_medium }))] });
   expect(ev.find((e) => e.actorId === 'guard_1')).toMatchObject({ kind: 'attack', target: 'bandit_1' });
 });

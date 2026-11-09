@@ -7,6 +7,7 @@ import { passiveHealing } from '../../src/engine/heal';
 import { resolveTurn } from '../../src/engine';
 import { getLibrary } from '../../src/library';
 import type { Actor, ContestResult, GameState, Intent, RollRequest } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const wield = (s: GameState, itemId: string) => {
@@ -44,15 +45,15 @@ describe('118 40/80/120 perks', () => {
   it('true skill: +5 in the skill, +1 in it and in skills sharing its function, and the synergic pick', () => {
     const s = makeVillage();
     const p = s.player;
-    for (const k of ['melee_light', 'melee_medium', 'melee_heavy', 'block', 'dodge', 'sight']) p.core.skills[k] = { ...p.core.skills[k], raw: 30, state: p.core.skills[k]?.state ?? 'normal' };
-    const before = Object.fromEntries(['melee_light', 'melee_medium', 'melee_heavy', 'block', 'dodge', 'sight'].map((k) => [k, trueSkill(p, k)]));
+    for (const k of [SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.block, SK.dodge, SK.eyesight]) p.core.skills[k] = { ...p.core.skills[k], raw: 30, state: p.core.skills[k]?.state ?? 'normal' };
+    const before = Object.fromEntries([SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.block, SK.dodge, SK.eyesight].map((k) => [k, trueSkill(p, k)]));
     give(p, 'guard_drill');
-    expect(trueSkill(p, 'melee_medium')).toBe(before.melee_medium + 6); // +5, and +1 for its function (Ali: including itself)
-    expect(trueSkill(p, 'melee_light')).toBe(before.melee_light + 1);
-    expect(trueSkill(p, 'melee_heavy')).toBe(before.melee_heavy + 1);
-    expect(trueSkill(p, 'block')).toBe(before.block + 10);
-    expect(trueSkill(p, 'dodge')).toBe(before.dodge);
-    expect(trueSkill(p, 'sight')).toBe(before.sight);
+    expect(trueSkill(p, SK.melee_medium)).toBe(before[SK.melee_medium] + 6); // +5, and +1 for its function (Ali: including itself)
+    expect(trueSkill(p, SK.melee_light)).toBe(before[SK.melee_light] + 1);
+    expect(trueSkill(p, SK.melee_heavy)).toBe(before[SK.melee_heavy] + 1);
+    expect(trueSkill(p, SK.block)).toBe(before[SK.block] + 10);
+    expect(trueSkill(p, SK.dodge)).toBe(before[SK.dodge]);
+    expect(trueSkill(p, SK.eyesight)).toBe(before[SK.eyesight]);
   });
   it('Keen Edge: +10 to hit with light weapons only; Steady Draw: +5 to hit and ×1.1 damage with medium ranged', () => {
     expect(hit('dagger', 'patron_1', 'keen_edge').perkMods).toEqual([{ source: 'Keen Edge', type: 'roll_perk', value: 10 }]);
@@ -66,9 +67,9 @@ describe('118 40/80/120 perks', () => {
   it('Iron Grip: +10 on every grapple roll, attack or not', () => {
     const s = makeVillage();
     give(s.player, 'iron_grip');
-    const r = ruleset.roll({ actorId: 'player', skill: 'unarmed_grapple', modifiers: [], tierShifts: [] }, s, forcedRng([50]));
+    const r = ruleset.roll({ actorId: 'player', skill: SK.unarmed_grapple, modifiers: [], tierShifts: [] }, s, forcedRng([50]));
     expect(r.modifiers).toContainEqual({ source: 'Iron Grip', type: 'roll_perk', value: 10 });
-    const d = ruleset.roll({ actorId: 'player', skill: 'dodge', modifiers: [], tierShifts: [] }, s, forcedRng([50]));
+    const d = ruleset.roll({ actorId: 'player', skill: SK.dodge, modifiers: [], tierShifts: [] }, s, forcedRng([50]));
     expect(d.modifiers.some((m) => m.type === 'roll_perk')).toBe(false);
   });
   it('Heavy Hand: heavy melee damage ×1.2', () => {
@@ -90,7 +91,7 @@ describe('118 40/80/120 perks', () => {
       s.player.core.condition.hpLostPct = 30;
       if (perk) give(s.player, 'quick_mend');
       passiveHealing(s, 120);
-      return (30 - s.player.core.condition.hpLostPct) / trueSkill(s.player, 'endurance'); // per point: the +5 true skill counts too
+      return (30 - s.player.core.condition.hpLostPct) / trueSkill(s.player, SK.endurance); // per point: the +5 true skill counts too
     };
     expect(healed(false)).toBeGreaterThan(0);
     expect(healed(true)).toBeCloseTo(healed(false) * 2, 5);
@@ -110,6 +111,6 @@ describe('118 darkness and hearing (P14)', () => {
     s.turn += 1;
     resolveTurn(s, { intent: i, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(1));
     const [mine, theirs] = calls.find(([, b]) => b.actorId === 'trader')!;
-    expect(mine.modifiers).toEqual(theirs.skill === 'sight' ? [{ source: 'light', type: 'situational', value: 10 }] : []);
+    expect(mine.modifiers).toEqual(theirs.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 10 }] : []);
   });
 });

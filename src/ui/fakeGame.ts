@@ -5,6 +5,7 @@ import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
 import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
+import { SK } from '../library/skillIds';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -33,13 +34,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       hidden: { plans: { slime_1: { goal: 'drive the stranger off the field', steps: ['slam', 'retreat to the trees'], triggers: [], createdTurn: 2 } }, memory: {}, secrets: [], firedLog: [], agreements: [{ id: 'ag_1', parties: ['player', 'guard_1'], text: 'He lets you back in after dark; you tell him if you see the thief.', madeTurn: 2, madeBy: 'guard_1' }], weaverNote: 'the slimes are fleeing something in the woods', stage: { eventSummary: 'slimes trouble the village', challenge: 'moderate', gain: 'minor', hiddenTerms: ['woods_beast'] } },
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
-      log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: 'block', from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
+      log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
       places: [{ id: 'tavern', storyId: 'fake', kind: 'tavern', parentId: null, names: { current: 'the Crooked Kettle', past: [] }, zones: [{ id: 'tav_common', placeId: 'tavern', name: 'common room', look: 'A low room with a hearth.', links: [], cover: 'some', light: 'dim', groundItems: [] }], state: {}, headlines: [] }], facts: [], stage: { zoneIds: [], tier: 'success', sceneNumber: 2, sceneStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scene planning failed: placeholder area', turn: 2 } } : {}) },
       sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
       quests: [{ id: 'q1', state: 'active', text: 'Clear the slimes from the field' }, { id: 'q2', state: 'active', text: 'Ask the barkeep about the woods' }, { id: 'q0', state: 'done', text: 'Find a bed for the night' }],
       settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
     };
-    if (player.progression) { player.progression.marks = ['dodge', 'sight']; player.progression.unspentPerkPoints = 1; }
+    if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     player.core.inventory.push({ id: 'player_draught', itemId: 'healing_draught', qty: 2 }, { id: 'player_draught_2', itemId: 'healing_draught', qty: 1 }, { id: 'player_bandage', itemId: 'bandage', qty: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
@@ -48,15 +49,15 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { turn: 2, kind: 'narration', text: NARRATION[1] },
       { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it' },
       { turn: 3, kind: 'narration', text: NARRATION[2],
-        check: { kind: 'attack', skill: 'melee_medium', tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
+        check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
         heals: [{ source: 'bandage', from: 'Hurt', to: 'Bruised', parts: [{ id: 'left_leg', from: 'Damaged', to: 'Healthy' }] }],
-        unlocks: [{ skill: 'block', milestone: 40 }], gains: { block: 3 },
+        unlocks: [{ skill: SK.block, milestone: 40 }], gains: { [SK.block]: 3 },
         changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],
         mechanics: ['Slime slam: d100 71 + 30×0.5 + 10 → Great Success', 'Your block: d100 64 + 65×0.5 → Success · gap −1 · blocked (shield 30 → 18)', 'Your cut: d100 82 + 75×0.5 → Great Success · dodge 0 · full hit · 25 damage to body'] },
     ];
   }
-  if (opts.autoStart) start({ name: 'Aldric', skills: { melee_medium: 50, block: 40, dodge: 30, endurance: 50, sight: 30, hearing: 30, feint: 10, riposte: 10 }, tagged: ['melee_medium', 'block', 'endurance'] });
+  if (opts.autoStart) start({ name: 'Aldric', skills: { [SK.melee_medium]: 50, [SK.block]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.feint]: 10, [SK.riposte]: 10 }, tagged: [SK.melee_medium, SK.block, SK.endurance] });
 
   return {
     state: () => state,

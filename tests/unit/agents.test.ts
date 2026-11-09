@@ -9,6 +9,7 @@ import { resetConfig } from '../../src/config';
 import type { AgentTurnLog, ClaudeErrorCode } from '../../src/types';
 import { ScriptedClaude, sentText } from '../harness';
 import { actorView, dialogueView, intentOf, narrationView, plannerOut, playerView, voiceOut } from './agent-views';
+import { SK } from '../../src/library/skillIds';
 
 function setup() {
   resetConfig();
@@ -30,17 +31,17 @@ describe('prompts', () => {
 
 describe('schemas', () => {
   it('intent: unknown keys (aimed) are stripped, nullable fields default', () => {
-    const r = checkIntent({ action: { type: 'attack', skill: 'melee_medium', target: 'slime_1', aimed: true }, aimed: true });
+    const r = checkIntent({ action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', aimed: true }, aimed: true });
     expect(r.errors).toEqual([]);
     expect(JSON.stringify(r.value)).not.toContain('aimed');
     expect(r.value.move).toBeNull();
     expect(r.value.deferred).toEqual([]);
   });
   it('intent: improvised takes only an improvised base (loot L3)', () => {
-    const ok = checkIntent({ action: { type: 'attack', skill: 'melee_light', target: 'slime_1', improvised: { base: 'improvised_light', name: 'a bottle' } } });
+    const ok = checkIntent({ action: { type: 'attack', skill: SK.melee_light, target: 'slime_1', improvised: { base: 'improvised_light', name: 'a bottle' } } });
     expect(ok.errors).toEqual([]);
     expect(ok.value.action!.improvised).toEqual({ base: 'improvised_light', name: 'a bottle' });
-    expect(checkIntent({ action: { type: 'attack', skill: 'melee_light', target: 'slime_1', improvised: { base: 'greataxe', name: 'x' } } }).errors.join()).toContain('improvised.base');
+    expect(checkIntent({ action: { type: 'attack', skill: SK.melee_light, target: 'slime_1', improvised: { base: 'greataxe', name: 'x' } } }).errors.join()).toContain('improvised.base');
   });
   it('planner: wrong enum and missing action are errors', () => {
     expect(checkPlanner({ action: { type: 'dance' } }).errors.join()).toContain('$.action.type');
@@ -133,7 +134,7 @@ describe('runAgent', () => {
 describe('Parser legality', () => {
   it('a target outside PlayerView stops the turn with a question about who is meant (P2)', async () => {
     const { claude, ctx } = setup();
-    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'attack', skill: 'melee_medium', target: 'guard_1' } }));
+    claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'attack', skill: SK.melee_medium, target: 'guard_1' } }));
     const r = await callParser('attack the guard', playerView(), ctx);
     expect(r.intent).toBeNull();
     expect(r.clarify).toMatch(/^Who do you mean\?/);
@@ -203,7 +204,7 @@ describe('Parser legality', () => {
   it('an illegal gear op or mode is dropped (invalid_gear); the action stands', async () => {
     const { claude, ctx, logs } = setup();
     claude.push('parser', intentOf({
-      action: { ...intentOf().action!, type: 'attack', skill: 'melee_medium', target: 'patron_1', item: 'sword_1', mode: 'smash' },
+      action: { ...intentOf().action!, type: 'attack', skill: SK.melee_medium, target: 'patron_1', item: 'sword_1', mode: 'smash' },
       gear: [{ op: 'draw', item: 'axe_9' }, { op: 'pick_up', item: 'mug_1' }],
     }));
     const r = await callParser('hit him', playerView(), ctx);

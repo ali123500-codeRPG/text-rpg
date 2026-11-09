@@ -24,6 +24,7 @@ import { payDefeats } from './xp';
 import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
+import { SK } from '../library/skillIds';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
@@ -206,7 +207,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const line = o.line ?? { text: '', volume: 'normal' as const };
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, line, noise: VOLUME_NOISE[line.volume] });
-  if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? 'persuasion', addressees: o.addressees ?? [] };
+  if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? SK.persuasion, addressees: o.addressees ?? [] };
   // Voice shares: only facts from its knows list
   const voice = o.source === 'agent' ? usableAgentOutputs(ctx.input).find((x) => x.actorId === a.id && x.agent === 'voice') : undefined;
   if (voice?.agent === 'voice') {
@@ -282,10 +283,10 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     for (const p of state.actors) if (p !== t && p.bandId === t.bandId && ev.perception[p.id]) morale(ctx, p, 'bandmate_down');
   }
   // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
-  if (!followUp && modeSkill(m.mode) === 'unarmed_improvised' && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'one_two')
+  if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'one_two')
     && isActive(t) && t.zone === a.zone && freeHand(state, a)) {
-    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === 'unarmed_strike' && x.mode.reach >= 0);
-    if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: 'unarmed_strike', targetPart: null, aimed: false, line: null }, true);
+    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
+    if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
   }
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
 }

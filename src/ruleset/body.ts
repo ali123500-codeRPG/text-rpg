@@ -4,10 +4,11 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { hasPerk } from './perks';
 import { skillOpen } from './access';
+import { SK } from '../library/skillIds';
 
 export function totalHp(state: GameState, actor: Actor): number {
-  const end = actor.core.skills.endurance;
-  const raw = end && !end.dormant && skillOpen(actor, 'endurance') ? end.raw : 0;
+  const end = actor.core.skills[SK.endurance];
+  const raw = end && !end.dormant && skillOpen(actor, SK.endurance) ? end.raw : 0;
   return (CONFIG.HP_BASE + CONFIG.HP_PER_END * raw) * actorBody(state, actor).hpMultiplier;
 }
 
@@ -92,7 +93,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
     if (v) out.push({ source: `${role} wounds`, type: 'wounds', value: v });
   }
   // a Damaged shield: −10 to block (wounds type)
-  if (inst && skill === 'block' && itemDef(state, inst.itemId).shield && poolState(inst.pools?.shield ?? 100) === 'Damaged') {
+  if (inst && skill === SK.block && itemDef(state, inst.itemId).shield && poolState(inst.pools?.shield ?? 100) === 'Damaged') {
     out.push({ source: 'shield damaged', type: 'wounds', value: CONFIG.ROLE_PENALTY.damaged });
   }
   return out;

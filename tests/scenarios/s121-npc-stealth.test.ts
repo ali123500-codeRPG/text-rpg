@@ -9,6 +9,7 @@ import { spawnNpc } from '../../src/library/spawn';
 import { installRoutines } from '../../src/minds';
 import { buildPlayerView } from '../../src/views';
 import type { Actor, ContestResult, GameState, Intent, NpcAction, RollRequest } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const hold: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 const act = (type: NpcAction['type'], target: string | null = null, extra: Partial<NpcAction> = {}): NpcAction =>
@@ -50,7 +51,7 @@ describe('121 NPC stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'gate_inner');
     const t = thief(s, 'street_square', 'thief');
-    expect(t.core.skills.sneaking?.raw).toBeGreaterThanOrEqual(40);
+    expect(t.core.skills[SK.sneaking]?.raw).toBeGreaterThanOrEqual(40);
     expect(t.mind?.routine?.id).toBe('prowl');
     rig({ player: -1 });
     turn(s);
@@ -82,7 +83,7 @@ describe('121 NPC stealth', () => {
     const calls = rig({ player: -1 });
     const ev = turn(s, { thief_1: act('move', 'street_square') });
     expect(t.zone).toBe('street_square');
-    expect(calls.some(([a, b]) => a.actorId === 'thief_1' && a.skill === 'sneaking' && b.actorId === 'player')).toBe(true);
+    expect(calls.some(([a, b]) => a.actorId === 'thief_1' && a.skill === SK.sneaking && b.actorId === 'player')).toBe(true);
     expect(seen(s)).toBe('unaware');
     expect(inView(s)).toBeUndefined();
     expect(ev.find((e) => e.actorId === 'thief_1')?.perception.player).toBeUndefined();
@@ -120,7 +121,7 @@ describe('121 NPC stealth', () => {
     s2.player.core.perks.push({ perkId: 'unblinking', source: 'level', gainedTurn: 0 });
     const calls = rig({ player: [-1, 1] });
     turn(s2, { thief_1: act('vanish', 'street_door') });
-    expect(calls.filter(([, b]) => b.actorId === 'player').map(([a]) => a.skill)).toEqual(['vanishing', 'sneaking']);
+    expect(calls.filter(([, b]) => b.actorId === 'player').map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]);
     expect(seen(s2)).toBe('aware');
   });
 

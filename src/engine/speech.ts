@@ -6,9 +6,10 @@ import { hasPerk, markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { getLibrary } from '../library';
 import { isActive, shortestPath, wary } from './relations';
 import type { ExchangeSpeech } from './types';
+import { SK } from '../library/skillIds';
 
 export const SPEECH_SKILL: Record<string, string> = {
-  talk: 'persuasion', persuade: 'persuasion', deceive: 'persuasion', intimidate: 'intimidation', barter: 'barter',
+  talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.persuasion, intimidate: SK.intimidation, barter: SK.barter,
 };
 
 // Dialogue input table (wording is a placeholder), keyed by tier; a roll past either end uses the end's words.
@@ -107,7 +108,7 @@ export function slipsFor(state: GameState, sp: string, skills: string[], contest
 /** Exchange slot part 1: one player roll, contested separately against each spokesperson's roll with the same skill. */
 export function resolveSpeech(state: GameState, intent: Intent, spokespeople: string[], rng: Rng): ExchangeSpeech {
   const type = isSpeech(intent.action?.type) ? intent.action!.type : 'talk'; // A15 Quick Word: the line is talk
-  const named = SPEECH_SKILL[type] ?? 'persuasion';
+  const named = SPEECH_SKILL[type] ?? SK.persuasion;
   const req = (actorId: string) => ({ actorId, skill: named, modifiers: [], tierShifts: [] });
   const p = state.player;
   // A16 Threaten for Answers: against an opposed or hostile listener, intimidation counts as the named skill
@@ -118,7 +119,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   const d = rng.d100();
   const die: Rng = { get state() { return rng.state; }, next: () => rng.next(), int: (lo, hi) => rng.int(lo, hi), d100: () => d };
   const a: RollResult = ruleset.roll(req(p.id), state, die);
-  const aT: RollResult | null = spokespeople.some(threat) ? ruleset.roll({ ...req(p.id), fullValue: ['intimidation'] }, state, die) : null;
+  const aT: RollResult | null = spokespeople.some(threat) ? ruleset.roll({ ...req(p.id), fullValue: [SK.intimidation] }, state, die) : null;
   const perSpokesperson: ExchangeSpeech['perSpokesperson'] = {};
   let shown = a;
   for (const sp of spokespeople) {
@@ -130,7 +131,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     const b = ruleset.roll({ ...req(sp), tierShifts: hasPerk(listener, 'easy_speaker') ? [{ source: 'Easy Speaker', value: 1 }] : [] }, state, rng);
     const gap = tierLevel(b) - tierLevel(mine);
     const contest: ContestResult = { a: mine, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
-    const skills = [named, mine.skill, ...(t && mine.skill === 'intimidation' ? INFLUENCE() : [])];
+    const skills = [named, mine.skill, ...(t && mine.skill === SK.intimidation ? INFLUENCE() : [])];
     perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, skills, contest) };
     markUse(state, p, mine.skill, contest); // SP2: talking to someone near your level marks the skill
   }

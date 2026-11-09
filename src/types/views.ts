@@ -50,7 +50,7 @@ export type PlayerView = {
   turn: number;
   player: {
     id: 'player'; name: string; classes: string[];
-    skills: string[]; // ids only; no numbers
+    skills: { id: string; name: string }[]; // skill ID (a number, Ali 09/11/2026) and its name; no skill values
     perks: string[];
     perkMoves?: string[]; // AE8: owned perk moves by perk id (the Parser's perkMove.perk)
     health: HealthLevel; parts: { id: string; state: PartState }[];
@@ -183,7 +183,7 @@ export type WeaverView = {
     bodyTypes: string[];
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
-    skills: string[];
+    skills: { id: string; name: string }[];
     zoneKinds: import('./library').ZoneKind[]; // Z2
   };
   grades: Grade[];

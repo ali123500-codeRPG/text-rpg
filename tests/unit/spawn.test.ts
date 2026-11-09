@@ -4,6 +4,7 @@ import { createPlayer, recommendedBuild, refreshCopies, rollUniqueSkills, spawnN
 import { getLibrary, itemDef, npcTemplate, resetLibrary, setLibrary } from '../../src/library';
 import { shortBy } from '../../src/ruleset/requirements';
 import { CONFIG, resetConfig } from '../../src/config';
+import { SK } from '../../src/library/skillIds';
 
 afterEach(() => { resetConfig(); resetLibrary(); });
 
@@ -13,17 +14,17 @@ describe('player creation', () => {
   });
   it('rejects builds that break the rules', () => {
     const b = recommendedBuild();
-    expect(validateBuild({ ...b, skills: { ...b.skills, hearing: 20 } })).toEqual(['Spend exactly 250 points (240 spent)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, melee_medium: 61, hearing: 19 } })).toEqual(['melee_medium is above 60']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, block: 10, hearing: 60 } })).toEqual(['block must be at least 15 (class floor)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, tremor: 10, hearing: 20 } })).toEqual(['tremor is not open to the point-buy']);
-    expect(validateBuild({ ...b, tagged: ['block', 'dodge'] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.earshot]: 20 } })).toEqual(['Spend exactly 250 points (240 spent)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.melee_medium]: 61, [SK.earshot]: 19 } })).toEqual(['Medium weapons is above 60']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.block]: 10, [SK.earshot]: 60 } })).toEqual(['Block must be at least 15 (class floor)']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.tremor]: 10, [SK.earshot]: 20 } })).toEqual(['Tremor is not open to the point-buy']);
+    expect(validateBuild({ ...b, tagged: [SK.block, SK.dodge] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
     expect(validateBuild({ ...b, name: ' ' })).toEqual(['Name the character']);
   });
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
     expect(p.progression!.startingTotal).toBe(250 - 50 - 40 - 50);
-    expect(p.core.skills.block).toEqual({ raw: 40, state: 'tagged' });
+    expect(p.core.skills[SK.block]).toEqual({ raw: 40, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
       ['arming_sword', 'hand:right_arm', undefined], ['round_shield', 'hand:left_arm', undefined], ['gambeson', 'armor', undefined], ['coin', undefined, CONFIG.STARTING_COIN], ['bandage', undefined, CONFIG.STARTING_BANDAGES],
     ]);
@@ -42,14 +43,14 @@ describe('unique generation', () => {
     const a = rollUniqueSkills(bandit, createRng(5));
     expect(rollUniqueSkills(bandit, createRng(5))).toEqual(a);
     expect(sum(a)).toBe(sum(Object.fromEntries(Object.entries(bandit.minimums).map(([k, v]) => [k, { raw: v }]))) + bandit.level * CONFIG.POINTS_PER_LEVEL + bandit.bonusPoints);
-    expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual(['block', 'melee_medium', 'sight']);
+    expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium, SK.eyesight].sort());
     const seeds = new Set([1, 2, 3, 4, 5, 6].map((n) => JSON.stringify(rollUniqueSkills(bandit, createRng(n)))));
     expect(seeds.size).toBeGreaterThan(1); // spending is uneven across seeds
   });
   it('never goes above 100: the rest spills into the tree', () => {
-    const t = { ...bandit, minimums: { melee_medium: 98 }, level: 0, bonusPoints: 30, focus: [{ treeId: 'melee', skill: 'melee_medium' }] };
+    const t = { ...bandit, minimums: { [SK.melee_medium]: 98 }, level: 0, bonusPoints: 30, focus: [{ treeId: 'melee', skill: SK.melee_medium }] };
     const s = rollUniqueSkills(t, createRng(1));
-    expect(s.melee_medium.raw).toBe(100);
+    expect(s[SK.melee_medium].raw).toBe(100);
     expect(sum(s)).toBe(128);
   });
   it('spawnNpc rolls a unique once (needs the rng) and saves its perk points; copies get fixed level points', () => {

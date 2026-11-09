@@ -16,6 +16,7 @@ import { REWARD_LEVELS, SKILL_TIERS } from '../scales';
 import { fmtDate, h } from './kit';
 import { skillName } from './creation';
 import { partName } from './healing';
+import { SK } from '../library/skillIds';
 
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
@@ -49,7 +50,15 @@ function val(v: unknown, depth = 0): Node | string {
   if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(k, val(x, depth + 1))));
   return String(v);
 }
-const fields = (e: Entry, skip: string[]) => Object.entries(e).filter(([k]) => !skip.includes(k)).map(([k, v]) => row(k, val(v)));
+/** skill IDs are numbers (Ali, 09/11/2026): show a skill field, or a table keyed by skill, by the skill's name */
+const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains']);
+const named = (k: string, v: unknown): unknown => {
+  if (k === 'skill' && typeof v === 'string') return skillName(v);
+  if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => [a, named(a, b)])) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
+  if (SKILL_KEYED.has(k) && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([a, b]) => [skillName(a), b]));
+  return v;
+};
+const fields = (e: Entry, skip: string[]) => Object.entries(e).filter(([k]) => !skip.includes(k)).map(([k, v]) => row(k, val(named(k, v))));
 
 function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
   return Object.entries(table).map(([id, e]) => {
@@ -107,7 +116,7 @@ const FIXED: Record<string, Record<string, string>> = {
   State: { built: '--ok', 'not built': '--warn', 'written only': '--c3', quirk: '--danger' },
   Level: { 'Level I': '--c12', 'Level II': '--c1', 'Level III': '--c5', 'Level IV': '--c15' },
   Class: { light: '--c12', medium: '--c1', heavy: '--c10' },
-  XP: { offensive: '--c10', defensive: '--c1', endurance: '--c2', notice: '--c5', influence: '--c4', misc: '--c3' },
+  XP: { offensive: '--c10', defensive: '--c1', [SK.endurance]: '--c2', notice: '--c5', influence: '--c4', misc: '--c3' },
 };
 const TIER_TONE: Record<string, string> = { tier_0: '--warn', tier_1: '--c15', tier_2: '--c3' };
 const seen = new Map<string, string[]>();

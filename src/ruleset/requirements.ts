@@ -7,6 +7,7 @@ import { EQUIP_LEVELS, type EquipLevelKey } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { trueSkill } from './perks';
 import { modeSkill, standInShare, standInTable } from './gear';
+import { SK, ARMOR_SKILL } from '../library/skillIds';
 
 /** EQ11: a minted item of quality 3 or 4 is one level above its base, up to the top */
 export function itemLevel(def: ItemDef): EquipLevelKey | undefined {
@@ -17,8 +18,8 @@ export function itemLevel(def: ItemDef): EquipLevelKey | undefined {
 /** the skill an item asks for: a weapon's first mode, armor's weight (Light/Medium/Heavy Armor), a shield's Block */
 export function requiredSkill(def: ItemDef): string | undefined {
   if (def.weapon?.modes[0]) return modeSkill(def.weapon.modes[0]);
-  if (def.armor) return `${def.armor.weight}_armor`;
-  if (def.shield) return 'block';
+  if (def.armor) return ARMOR_SKILL[def.armor.weight];
+  if (def.shield) return SK.block;
   return undefined;
 }
 

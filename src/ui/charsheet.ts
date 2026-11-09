@@ -9,6 +9,7 @@ import { achievementName, charLevel, xpToNext } from '../engine/xp';
 import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
+import { SK, DEFENSE_SKILL } from '../library/skillIds';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -24,7 +25,7 @@ export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: numb
 function standing(s: GameState, p: Actor): { kind: string; value: number | null } {
   const kind = p.core.standingDefense;
   const shield = p.core.inventory.find((i) => safe(() => itemDef(s, i.itemId).kind) === 'shield' && i.equippedIn?.length);
-  const value = safe(() => effectiveSkill(s, p, kind, kind === 'block' && shield ? { itemId: shield.id } : {}).value);
+  const value = safe(() => effectiveSkill(s, p, DEFENSE_SKILL[kind], kind === 'block' && shield ? { itemId: shield.id } : {}).value);
   return { kind, value };
 }
 

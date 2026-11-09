@@ -6,10 +6,11 @@ import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from '../../src/engine';
 import type { GameEvent, GameState } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const speak = (s: GameState, from: string, to: string): GameEvent => ({
   id: `e${s.turn}`, turn: s.turn, actorId: from, kind: 'speak', zone: 'tav_common', effects: [], noise: 'quiet', visibility: 'low', perception: {},
-  speech: { skill: 'persuasion', addressees: [to] },
+  speech: { skill: SK.persuasion, addressees: [to] },
 });
 const next = (s: GameState, events: GameEvent[] = []) => { s.turn += 1; return updateEngagements(s, events); };
 

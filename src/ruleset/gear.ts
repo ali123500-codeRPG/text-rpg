@@ -8,6 +8,7 @@ import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, standInAdd, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
+import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
@@ -36,7 +37,7 @@ function activeEffects(state: GameState, actor: Actor, itemId?: string): Active[
 
 /** skill (tree + class; unarmed: mode.skill) */
 export function modeSkill(mode: AttackMode): string {
-  return mode.skill ?? (mode.tree === 'unarmed' ? 'unarmed_strike' : `${mode.tree}_${mode.class}`);
+  return mode.skill ?? (mode.tree === 'unarmed' ? SK.unarmed_strike : CLASS_SKILL[mode.tree]?.[mode.class]);
 }
 
 /** gear skill bonuses for one skill; all kit effects share one KIT_BONUS */
@@ -66,7 +67,7 @@ export function situational(state: GameState, skill: string, at: { light?: Zone;
   const tags = rollTags(skill, at.add);
   // All-50 Child of Night: light reads one step darker for the owner's stealth rolls
   // All-50 Night Eyes: light reads one step brighter for the owner's Eyesight rolls
-  const darker = (tags.includes('stealth') && hasPerk(at.actor, 'child_of_night') ? 1 : 0) - (skill === 'sight' && hasPerk(at.actor, 'night_eyes') ? 1 : 0);
+  const darker = (tags.includes('stealth') && hasPerk(at.actor, 'child_of_night') ? 1 : 0) - (skill === SK.eyesight && hasPerk(at.actor, 'night_eyes') ? 1 : 0);
   const light = at.light ? tagSign('light', tags) * (CONFIG.LIGHT_MODS[LIGHT.at(Math.max(0, LIGHT.pos(zoneLight(state, at.light)) + darker))] ?? 0) : 0;
   const cover = at.cover ? tagSign('cover', tags.filter((t) => t !== 'ranged')) * (CONFIG.COVER_GAP[at.cover.cover] ?? 0) : 0;
   return { modifiers: light ? [{ source: 'light', type: 'situational', value: light }] : [], tierShifts: cover ? [{ source: 'cover', value: cover }] : [] };
@@ -95,7 +96,7 @@ export function standInShare(skill: string, id: string, table = standInTable(ski
 export const fnSkills = (fn: string): string[] => Object.values(getLibrary().skills).filter((s) => ((s.functions ?? []) as string[]).includes(fn)).map((s) => s.id);
 /** the skill a function roll will use: the best effective skill with `fn`. Callers read situational modifiers from it,
  * so light and Night Eyes follow the skill that rolls (Q3, Ali 09/11/2026): Tremor ignores light. */
-export const fnRoller = (state: GameState, actor: Actor, fn: string): string => effectiveSkill(state, actor, fn, { fullValue: fnSkills(fn) }).skill;
+export const fnRoller = (state: GameState, actor: Actor, fn: string): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: fnSkills(fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[] } = {}) {
@@ -162,7 +163,7 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
 }
 
 /** fallback unarmed mode for a body type with no natural attacks (UNARMED_PROFILE = class punch) */
-export const UNARMED_MODE: AttackMode = { id: 'unarmed', tree: 'unarmed', class: 'punch', skill: 'unarmed_strike', reach: 0, hands: 0, name: 'fists' };
+export const UNARMED_MODE: AttackMode = { id: 'unarmed', tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {
@@ -231,6 +232,6 @@ export const canBlock = (state: GameState, actor: Actor) => !!blockItem(state, a
 export function defaultStandingDefense(state: GameState, actor: Actor): 'block' | 'dodge' {
   const shield = blockItem(state, actor);
   if (!shield && !openHandArm(state, actor)) return 'dodge';
-  const block = effectiveSkill(state, actor, 'block', { itemId: shield?.id }).value;
-  return block >= effectiveSkill(state, actor, 'dodge').value ? 'block' : 'dodge';
+  const block = effectiveSkill(state, actor, SK.block, { itemId: shield?.id }).value;
+  return block >= effectiveSkill(state, actor, SK.dodge).value ? 'block' : 'dodge';
 }

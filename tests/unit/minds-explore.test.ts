@@ -2,6 +2,7 @@
 import type { Tier } from '../../src/types';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { Actor, GameEvent, GameState, RollRequest } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const tiers: Record<string, Tier> = {};
 vi.mock('../../src/perception', () => ({
@@ -19,7 +20,7 @@ vi.mock('../../src/ruleset', async (orig) => {
     ...real,
     usableModes: () => [],
     defaultMode: () => ({ itemId: 'player_arming_sword_1', mode: { id: 'cut', tree: 'melee', class: 'medium', reach: 0, hands: 1 } }),
-    modeSkill: () => 'melee_medium',
+    modeSkill: () => SK.melee_medium,
     ruleset: { ...real.ruleset, roll: vi.fn((req: RollRequest) => ({ actorId: req.actorId, skill: req.skill, tier: tiers[req.actorId] ?? 'near_miss' })) },
   };
 });
@@ -65,7 +66,7 @@ describe('resolveAmbush', () => {
     const s = makeVillage();
     tiers.player = 'great_success'; tiers.guard_1 = 'near_miss';
     expect(resolveAmbush(s, 'player', 'guard_1', ev({ guard_1: { level: 'full', cue: 'sight' } }, 'guard_1'), createRng(1))).toEqual({ surprised: true });
-    expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual(['melee_medium', 'sight']);
+    expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual([SK.melee_medium, SK.eyesight]);
     expect(actor(s, 'guard_1').mind!.knowledge.player).toBeUndefined();
   });
   it('target wins: aware and onAlert due; a witness wins too', () => {
@@ -73,7 +74,7 @@ describe('resolveAmbush', () => {
     tiers.player = 'near_miss'; tiers.guard_1 = 'success'; tiers.trader = 'great_success';
     const r = resolveAmbush(s, 'player', 'guard_1', ev({ guard_1: { level: 'full', cue: 'sight' }, trader: { level: 'partial', cue: 'sound' } }, 'guard_1'), createRng(1));
     expect(r.surprised).toBe(false);
-    expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual(['melee_medium', 'sight', 'hearing']);
+    expect(vi.mocked(ruleset.roll).mock.calls.map((c) => c[0].skill)).toEqual([SK.melee_medium, SK.eyesight, SK.earshot]);
     expect(actor(s, 'guard_1').mind!.knowledge.player.status).toBe('aware');
     expect(actor(s, 'trader').mind!.knowledge.player.status).toBe('aware');
     expect(alertOrders(s, [fakeView(s, 'guard_1')])).toEqual([expect.objectContaining({ type: 'call_help', source: 'onAlert' })]);
