@@ -38,6 +38,9 @@ export const ACH = {
   back_from_down_1: 'AC105', holds_10: 'AC106', holds_100: 'AC107', aimed_10: 'AC108', aimed_100: 'AC109', aimed_1000: 'AC110',
   aimed_size_10: 'AC111', aimed_size_100: 'AC112', quests_giver_5: 'AC113', quest_givers_10: 'AC114', quest_chain_1: 'AC115', quests_early_1: 'AC116',
   quests_unpaid_1: 'AC117',
+  spar_1: 'AC118', spar_10: 'AC119', spar_25: 'AC120', spar_50: 'AC121', spar_200: 'AC122',
+  cruel_spar_1: 'AC123', cruel_spar_10: 'AC124', cruel_spar_25: 'AC125', spar_losses_10: 'AC126',
+  total_10: 'AC127', total_25: 'AC128', total_50: 'AC129', total_100: 'AC130', total_250: 'AC131',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -65,7 +68,8 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   quests_unpaid: 'quests finished for someone who promised no pay',
   class_max: 'classes at their top level', class_max_tiers: 'class tiers with a class at its top level',
   char_level: 'character levels, again at every multiple',
-  spar_wins: 'spars won',
+  spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost',
+  achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
 /** the tree mastery achievement for an All-XXX step */
 export const MASTERY_ACH: Record<number, string> = { 50: ACH.mastery_50, 100: ACH.mastery_100, 150: ACH.mastery_150 };
