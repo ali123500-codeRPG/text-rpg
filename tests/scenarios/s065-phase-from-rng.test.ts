@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { spawnNpc } from '../../src/library/spawn';
@@ -8,7 +9,7 @@ function install(seed: number) {
   s.turn = 50;
   const rng = createRng(seed);
   return ['g_a', 'g_b'].map((id) => {
-    const g = spawnNpc(null, 'guard', { id, zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch' });
+    const g = spawnNpc(null, TP.guard, { id, zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch' });
     installRoutines(g, 'gate_guard', { post: 'gate_inner' }, undefined, s.turn, rng);
     return g.mind!.routine!.anchorTurn;
   });

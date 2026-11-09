@@ -1,3 +1,4 @@
+import { BT } from '../../src/library/raceIds';
 import { TIERS } from '../../src/scales';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, actor, forcedRng, createRng } from '../harness';
@@ -78,7 +79,7 @@ describe('body', () => {
     const s = makeVillage();
     const ranges = (a: Actor) => hitTable(s, a).map((r) => `${r.part}:${r.from}-${r.to}`);
     expect(ranges(s.player)).toEqual(['head:1-7', 'left_arm:8-22', 'right_arm:23-37', 'left_leg:38-52', 'right_leg:53-67', 'neck:68-70', 'general:71-100']);
-    const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: 'winged_quadruped', condition: { hpLostPct: 0, parts: {}, status: [] } } };
+    const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: BT.winged_quadruped, condition: { hpLostPct: 0, parts: {}, status: [] } } };
     expect(ranges(dragon)).toEqual(['head:1-9', 'left_wing:10-18', 'right_wing:19-27', 'forelegs:28-36', 'hind_legs:37-46', 'tail:47-51', 'general:52-100']);
     s.player.core.condition.parts.left_arm = -100;
     expect(hitTable(s, s.player).map((r) => r.part)).not.toContain('left_arm');
@@ -92,7 +93,7 @@ describe('body', () => {
     expect(woundsMods(s, s.player, SK.melee_medium, { itemId: sword }).map((m) => m.value)).toEqual([-5, -10]);
     expect(woundsMods(s, s.player, SK.melee_medium).map((m) => m.value)).toEqual([-5]); // best arm without an item
     expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5]);
-    const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: 'winged_quadruped', condition: { hpLostPct: 0, parts: { forelegs: 40 }, status: [] } } };
+    const dragon = { ...s.player, core: { ...s.player.core, bodyTypeId: BT.winged_quadruped, condition: { hpLostPct: 0, parts: { forelegs: 40 }, status: [] } } };
     expect(woundsMods(s, dragon, SK.dodge)).toEqual([{ source: 'move wounds', type: 'wounds', value: -5 }]);
     s.player.core.condition.parts.head = 40; // Damaged head: speech rolls only
     expect(woundsMods(s, s.player, SK.persuasion)).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -10 });

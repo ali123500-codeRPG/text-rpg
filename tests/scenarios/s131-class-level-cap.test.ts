@@ -2,6 +2,7 @@
 // XP past it banks until a class with room is picked, then every banked level is taken at once. The default class
 // (Commoner, tier 0) opens at the top level; its capstone at 5 unlocks A Nobody, a starting class with Quick Study at
 // level 1 and the capstone Every Fall a Lesson at its top level (15, tier 2). Capstones come at the top level.
+import { RC } from '../../src/library/raceIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { awardXp, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../../src/engine/xp';
@@ -79,7 +80,7 @@ describe('131 Class level cap', () => {
       const cls = getLibrary().classes[CL.swordsman];
       cls.capstone = [PK.quick_study]; // stand-in perks: the real capstones are still being designed
       cls.capstones = [{ perk: PK.every_fall_a_lesson, needs: { must: [{ kind: 'skill', id: SK.dodge, level: 40 }] } },
-        { perk: PK.nobody_special, needs: { must: [{ kind: 'race', id: 'dragon' }] } }];
+        { perk: PK.nobody_special, needs: { must: [{ kind: 'race', id: RC.dragon }] } }];
       p.core.skills[SK.dodge] = { raw: dodge, state: 'normal' };
       p.core.perks = [];
       p.core.classes = [{ classId: CL.swordsman, state: 'current', level: 9 }];

@@ -1,5 +1,6 @@
 // Creation-screen preview: builds a throwaway sheet and a one-zone duel state, then asks the ruleset (W2) for the numbers.
 // Every figure is null until the ruleset helper behind it exists (stubs throw), and the screen shows "—".
+import { TP } from '../library/templateIds';
 import type { Actor, CreationBuild, GameState } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
@@ -20,7 +21,7 @@ function duelState(build: CreationBuild): GameState {
   const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_MECHANICS, tone: CONFIG.STYLE.tone };
   return {
     storyId: 'preview', turn: 0, mode: 'tactical', zones: [zone], player: playerFromBuild(build),
-    actors: [spawnNpc(null, 'slime', { id: 'slime', zone: 'duel', placeId: 'duel', bandId: 'slimes', storyId: 'preview' })],
+    actors: [spawnNpc(null, TP.slime, { id: 'slime', zone: 'duel', placeId: 'duel', bandId: 'slimes', storyId: 'preview' })],
     bands: [], hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: 1, rngState: 1, pending: { turn: 0, mode: 'tactical', engaged: [], fired: [] },
     places: [{ id: 'duel', storyId: 'preview', kind: 'place', parentId: null, names: { current: 'field', past: [] }, zones: [zone], state: {}, headlines: [] }],

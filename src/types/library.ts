@@ -72,6 +72,8 @@ export type NaturalArmor = { covers: string[]; reduction: number; multiplier: nu
  * always has (BR3). Toughness, natural armor and a being's own attacks are on its race. */
 export type BodyType = {
   id: string;
+  /** the shape's display name (its id is BT + a number) */
+  name: string;
   general: { name: string; size: SizeId };
   naturalAttacks: AttackMode[];
   parts: PartDef[];

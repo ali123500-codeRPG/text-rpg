@@ -1,5 +1,8 @@
 // Scenario-test fixture: the prototype village built directly (no Weaver call), deterministic.
 // Gate, street, tavern and a slime field outside the gate. Tests mutate the returned state freely.
+import { TP } from '../../src/library/templateIds';
+import { BT } from '../../src/library/raceIds';
+import { RC } from '../../src/library/raceIds';
 import type { Actor, Band, Cover, Light, GameState, Place, Zone, ZoneLink } from '../../src/types';
 import { spawnNpc, equipLoadout, fullParts } from '../../src/library/spawn';
 import { resetLibrary } from '../../src/library';
@@ -58,11 +61,11 @@ export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId
     id: 'player', storyId, kind: 'player', names: { current: 'Aldric', past: [] }, label: 'a swordsman',
     placeId, zone, posture: 'open', bandId: 'player_band',
     core: {
-      bodyTypeId: 'humanoid', raceId: 'human',
+      bodyTypeId: BT.humanoid, raceId: RC.human,
       skills: Object.fromEntries(Object.entries(skills).map(([k, v]) => [k, { raw: v, state: tagged.includes(k) ? 'tagged' as const : 'normal' as const }])),
       classes: [{ classId: CL.swordsman, state: 'current', level: 1 }],
       perks: [],
-      condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
+      condition: { hpLostPct: 0, parts: fullParts(null, BT.humanoid), status: [] },
       inventory: [
         ...equipLoadout(null, [IT.arming_sword, IT.round_shield, IT.gambeson], 'player'),
         { id: 'player_coin', itemId: IT.coin, qty: 20 },
@@ -95,11 +98,11 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
   const npc = (tpl: string, id: string, zone: string, bandId: string, name: string) =>
     spawnNpc(null, tpl, { id, zone, placeId: zoneOf(zone).placeId, bandId, name, storyId });
   let actors: Actor[] = [
-    withRoutine(npc('guard', 'guard_1', 'gate_inner', 'village_watch', 'Bertram'), 'gate_guard', { post: 'gate_inner' }),
-    withRoutine(npc('trader', 'trader', 'tav_counter', 'tavern_folk', 'Mags'), 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }),
-    withRoutine(npc('patron', 'patron_1', 'tav_common', 'tavern_folk', 'Old Wim'), 'patron', { seat: 'tav_common', refuge: 'tav_cellar', exit: 'street_door' }),
-    withRoutine(npc('slime', 'slime_1', 'field_mid', 'slimes', 'slime'), 'slime_wander', { route: ['field_mid', 'field_far'], post: 'field_far' }),
-    withRoutine(npc('slime', 'slime_2', 'field_far', 'slimes', 'slime'), 'slime_wander', { route: ['field_far', 'field_mid'], post: 'field_mid' }),
+    withRoutine(npc(TP.guard, 'guard_1', 'gate_inner', 'village_watch', 'Bertram'), 'gate_guard', { post: 'gate_inner' }),
+    withRoutine(npc(TP.trader, 'trader', 'tav_counter', 'tavern_folk', 'Mags'), 'barkeep', { counter: 'tav_counter', refuge: 'tav_cellar' }),
+    withRoutine(npc(TP.patron, 'patron_1', 'tav_common', 'tavern_folk', 'Old Wim'), 'patron', { seat: 'tav_common', refuge: 'tav_cellar', exit: 'street_door' }),
+    withRoutine(npc(TP.slime, 'slime_1', 'field_mid', 'slimes', 'slime'), 'slime_wander', { route: ['field_mid', 'field_far'], post: 'field_far' }),
+    withRoutine(npc(TP.slime, 'slime_2', 'field_far', 'slimes', 'slime'), 'slime_wander', { route: ['field_far', 'field_mid'], post: 'field_mid' }),
   ];
   actors = actors.filter((a) => !opts.without?.includes(a.id));
   const zoneIds = places.flatMap((p) => p.zones.map((z) => z.id));

@@ -1,3 +1,5 @@
+import { TP } from '../../src/library/templateIds';
+import { RC } from '../../src/library/raceIds';
 import { TR } from '../../src/library/treeIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
@@ -42,7 +44,7 @@ describe('player creation', () => {
 });
 
 describe('unique generation', () => {
-  const bandit = { ...npcTemplate(null, 'guard'), id: 'bandit', generation: 'unique' as const };
+  const bandit = { ...npcTemplate(null, TP.guard), id: 'bandit', generation: 'unique' as const };
   const sum = (s: Record<string, { raw: number }>) => Object.values(s).reduce((n, e) => n + e.raw, 0);
 
   it('is seeded: minimums plus level x POINTS_PER_LEVEL + bonus, preferred skills tagged', () => {
@@ -70,21 +72,21 @@ describe('unique generation', () => {
     expect(b.core.skills).toEqual(rollUniqueSkills(bandit, createRng(5)));
     expect(b.progression!.unspentPerkPoints).toBe(Math.floor(bandit.level / 2));
     // Q3: copies get level points too, with a fixed per-template seed, so every guard is alike
-    const g1 = spawnNpc(null, 'guard', opts), g2 = spawnNpc(null, 'guard', { ...opts, id: 'b2' });
+    const g1 = spawnNpc(null, TP.guard, opts), g2 = spawnNpc(null, TP.guard, { ...opts, id: 'b2' });
     expect(g1.core.skills).toEqual(g2.core.skills);
-    const guard = npcTemplate(null, 'guard');
+    const guard = npcTemplate(null, TP.guard);
     expect(sum(g1.core.skills)).toBe(sum(Object.fromEntries(Object.entries(guard.minimums).map(([k, v]) => [k, { raw: v }]))) + guard.level * CONFIG.POINTS_PER_LEVEL + guard.bonusPoints);
   });
   it('the level lever reaches existing copies: refreshCopies rebuilds them from the current CONFIG', () => {
     const s = makeVillage();
-    const g = s.actors.find((a) => a.core.templateId === 'guard')!;
+    const g = s.actors.find((a) => a.core.templateId === TP.guard)!;
     const before = sum(g.core.skills);
     const keep = CONFIG.POINTS_PER_LEVEL;
     try {
       (CONFIG as { POINTS_PER_LEVEL: number }).POINTS_PER_LEVEL = keep + 5;
       g.core.perks = [];
       refreshCopies(s);
-      expect(sum(g.core.skills)).toBe(before + 5 * npcTemplate(null, 'guard').level);
+      expect(sum(g.core.skills)).toBe(before + 5 * npcTemplate(null, TP.guard).level);
       expect(g.core.perks.map((p) => p.perkId)).toContain(PK.keen_ear);
     } finally { (CONFIG as { POINTS_PER_LEVEL: number }).POINTS_PER_LEVEL = keep; }
   });
@@ -103,9 +105,9 @@ describe('race innate perks and quirks', () => {
     const lib = getLibrary();
     const perk = { id: 'keen_nose', name: 'Keen Nose', quirk: false }, perk2 = { id: 'tall', name: 'Tall' }, quirk = { id: 'sun_shy', name: 'Sun Shy', quirk: true };
     setLibrary({ ...lib, perks: { ...lib.perks, keen_nose: perk, tall: perk2, sun_shy: quirk } as typeof lib.perks,
-      races: { ...lib.races, human: { ...lib.races!.human, innatePerks: ['keen_nose', 'tall'], innateQuirks: ['sun_shy'] } } });
+      races: { ...lib.races, [RC.human]: { ...lib.races![RC.human], innatePerks: ['keen_nose', 'tall'], innateQuirks: ['sun_shy'] } } });
     const want = ['keen_nose', 'tall', 'sun_shy'].map((perkId) => ({ perkId, source: 'race', gainedTurn: 0 }));
     expect(createPlayer(recommendedBuild(), 's1').core.perks).toEqual(want);
-    expect(spawnNpc(null, 'patron', { id: 'p1', zone: 'tav_common', placeId: 'tavern', bandId: 'tavern_folk' }).core.perks).toEqual(want);
+    expect(spawnNpc(null, TP.patron, { id: 'p1', zone: 'tav_common', placeId: 'tavern', bandId: 'tavern_folk' }).core.perks).toEqual(want);
   });
 });

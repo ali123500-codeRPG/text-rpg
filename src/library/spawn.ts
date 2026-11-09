@@ -1,4 +1,5 @@
 // NPC generation from templates (Part 4 §4) and player creation.
+import { BT, RC } from './raceIds';
 import type { Actor, CreationBuild, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
@@ -140,10 +141,10 @@ export function classPerks(classId: string, from: number, to: number, turn = 0):
 }
 /** who a new player is: body type, race, class and its perks. Tree access (TA1) reads these before the sheet exists. */
 export const newPlayer = (classId = PLAYER_CLASS): Pick<Actor['core'], 'bodyTypeId' | 'raceId' | 'classes' | 'perks'> => ({
-  bodyTypeId: 'humanoid',
-  raceId: 'human', // GAP: no race choice at creation yet
+  bodyTypeId: BT.humanoid,
+  raceId: RC.human, // GAP: no race choice at creation yet
   classes: [{ classId, state: 'current', level: startLevel(classId) }],
-  perks: [...racePerks('human'), ...classPerks(classId, 0, startLevel(classId))],
+  perks: [...racePerks(RC.human), ...classPerks(classId, 0, startLevel(classId))],
 });
 
 /** The starter kit: after creation the player gets every item tagged 'starter' whose equip requirement
@@ -227,7 +228,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     core: {
       ...newPlayer(build.classId ?? PLAYER_CLASS),
       skills,
-      condition: { hpLostPct: 0, parts: fullParts(null, 'humanoid'), status: [] },
+      condition: { hpLostPct: 0, parts: fullParts(null, BT.humanoid), status: [] },
       inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here
       standingDefense: (build.skills[SK.block] ?? 0) >= (build.skills[SK.dodge] ?? 0) ? 'block' : 'dodge',

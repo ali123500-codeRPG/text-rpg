@@ -1,6 +1,7 @@
 // 61 Bands from the plan: a plan creates a smugglers band opposed to the guards' band and sets the guards suspicious
 // of it; each guard gets a suspicious belief about every smuggler on the stage (written through updateBeliefs), and
 // one guard's personal stance overrides its band's relation.
+import { TP } from '../../src/library/templateIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng, actor } from '../harness';
 import type { StagePlan } from '../../src/types';
@@ -15,12 +16,12 @@ export function smugglerPlan(): StagePlan {
   p.bands = p.bands.filter((b) => b.key !== 'slimes').map((b) => ({ ...b, relations: {} }));
   p.bands.push({ key: 'smugglers', name: 'cellar folk', goals: 'move the crates unseen', temperament: 'cagey', tactics: 'competent', lethal: true, relations: { village_watch: 'hostile' } });
   const smuggler = (key: string, name: string) => ({
-    template: 'patron', key, label: 'a hooded drinker', name, appearance: 'a hood pulled low',
+    template: TP.patron, key, label: 'a hooded drinker', name, appearance: 'a hood pulled low',
     band: 'smugglers', routineSetId: 'patron', slots: { seat: 'tav_cellar', refuge: 'tav_cellar', exit: 'street_door' },
     awarenessOfPlayer: 'unaware' as const, motive: 'shift the goods tonight',
   });
   p.cast.push(smuggler('smuggler_1', 'Rook'), smuggler('smuggler_2', 'Finch'));
-  p.cast.push({ template: 'guard', key: 'guard_2', label: 'a young guard', name: 'Hal', appearance: 'a gangly youth with a spear',
+  p.cast.push({ template: TP.guard, key: 'guard_2', label: 'a young guard', name: 'Hal', appearance: 'a gangly youth with a spear',
     band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'street_door' }, awarenessOfPlayer: 'unaware', motive: 'eager',
     overrides: [{ actor: 'smuggler_1', stance: 'hostile' }] });
   for (const c of p.cast) if (c.band === 'village_watch') c.awarenessOfBands = [{ band: 'smugglers', awareness: 'suspicious' }];

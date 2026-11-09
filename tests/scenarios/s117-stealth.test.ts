@@ -1,5 +1,6 @@
 // 117 Stealth tree (ST1–ST10; spec tests 3, 18 and 42): hide and sneak are stealth contests per observer.
 // Sneaking is used outside an engagement and Combat Stealth inside one or for a shot; melee reveals, a shot does not.
+import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
@@ -40,7 +41,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('117 stealth', () => {
   it('3 vanish, per observer: the guard who loses it drops to suspicious where it last saw you, the one who wins stays aware (ST15)', () => {
     const s = makeVillage();
-    s.actors.push(spawnNpc(null, 'guard', { id: 'guard_2', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch', name: 'Hal', storyId: 'test' }));
+    s.actors.push(spawnNpc(null, TP.guard, { id: 'guard_2', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch', name: 'Hal', storyId: 'test' }));
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
     aware(s, 'guard_2', 'gate_inner');

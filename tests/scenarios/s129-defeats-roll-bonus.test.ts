@@ -1,4 +1,5 @@
 // 129 D-119: total-defeats achievements add +1 per tier (I = +1, II = +2, III = +3) to every attack and
+import { RC } from '../../src/library/raceIds';
 import { SK } from '../../src/library/skillIds';
 // defense roll. Only the highest earned level counts; it stacks with Bane bonuses as one modifier type.
 import { ACH } from '../../src/library/achievementIds';
@@ -44,7 +45,7 @@ describe('129 total-defeats roll bonus', () => {
   it('stacks with a Bane bonus as one modifier type: the weaker counts at half', () => {
     const s = makeVillage();
     grantAchievement(s, ACH.defeats_10); // +1
-    grantAchievement(s, ACH.first_defeat_race, 'human'); // +5 skill = +2.5 on the roll
+    grantAchievement(s, ACH.first_defeat_race, RC.human); // +5 skill = +2.5 on the roll
     expect(modTotal(fight(s).atk)).toBe(2.5 + 1 * 0.5);
   });
 });

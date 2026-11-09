@@ -1,3 +1,4 @@
+import { BT } from '../../src/library/raceIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage, actor } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -316,7 +317,7 @@ describe('migration and reconcile', () => {
     delete l.skills[SK.melee_medium];
     delete l.skills[SK.barter];
     l.status = { [SK.melee_medium]: { state: 'renamed', to: 'blades' }, [SK.barter]: { state: 'deleted' } };
-    l.bodyTypes.humanoid.parts.push({ id: 'tail', size: 'small', impact: 'non_essential', roles: [] });
+    l.bodyTypes[BT.humanoid].parts.push({ id: 'tail', size: 'small', impact: 'non_essential', roles: [] });
     const { state, report } = await loadStory(st, 'test', l);
     expect(state.player.core.skills.blades).toEqual({ raw: 50, state: 'tagged' });
     expect(state.player.core.skills[SK.melee_medium]).toBeUndefined();

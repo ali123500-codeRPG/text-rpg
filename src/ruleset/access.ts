@@ -28,7 +28,7 @@ export function condName(c: AccessCond): string {
   if (c.kind === 'classes') return `${c.level ?? 0} classes`;
   if (c.kind === 'allStep') return `${c.level ?? 1} All-${c.id}`;
   if (c.kind === 'skillsAbove') return `${c.level ?? 1} skills above ${c.id}`;
-  const name = c.kind === 'race' ? lib.races?.[c.id]?.name : c.kind === 'class' ? lib.classes[c.id]?.name : c.kind === 'perk' ? lib.perks[c.id]?.name : undefined;
+  const name = c.kind === 'race' ? lib.races?.[c.id]?.name : c.kind === 'class' ? lib.classes[c.id]?.name : c.kind === 'perk' ? lib.perks[c.id]?.name : c.kind === 'body' ? lib.bodyTypes[c.id]?.name : undefined;
   const n = name ?? c.id.charAt(0).toUpperCase() + c.id.slice(1).replace(/_/g, ' ');
   return c.kind === 'class' && (c.level ?? 1) > 1 ? `${n} ${c.level}` : n;
 }

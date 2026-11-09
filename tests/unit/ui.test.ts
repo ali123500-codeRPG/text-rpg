@@ -1,3 +1,4 @@
+import { BT } from '../../src/library/raceIds';
 import { describe, expect, it } from 'vitest';
 import { fmtDate, visPass } from '../../src/ui/kit';
 import { validateBuildLocal } from '../../src/ui/fakeGame';
@@ -96,6 +97,6 @@ describe('body figure data', () => {
       if (!ct.figure) continue;
       expect(Object.keys(ct.figure.parts).sort()).toEqual([...ct.parts.map((p) => p.id), 'general'].sort());
     }
-    expect(BODY_TYPES.humanoid.figure).toBeTruthy();
+    expect(BODY_TYPES[BT.humanoid].figure).toBeTruthy();
   });
 });

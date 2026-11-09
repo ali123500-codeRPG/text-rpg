@@ -1,5 +1,8 @@
 // Skill tree access (TA1–TA11): per-tree Must / Either of / Blocked by rules, a block always wins, a
 // closed tree's skills count as 0 and can't be raised, and NPCs follow the same rules.
+import { TP } from '../../src/library/templateIds';
+import { BT } from '../../src/library/raceIds';
+import { RC } from '../../src/library/raceIds';
 import { TR } from '../../src/library/treeIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
@@ -35,7 +38,7 @@ describe('skill tree access', () => {
     const p = createPlayer(recommendedBuild(), 's1');
     expect(open(p)).toEqual([TR.armor, TR.defense, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.unarmed].sort());
     expect(treeBlock(p, TR.natural)).toBe('Needs one of: Amorphous, Dragon');
-    const slime = spawnNpc(null, 'slime', opts);
+    const slime = spawnNpc(null, TP.slime, opts);
     expect(open(slime)).toEqual([TR.defense, TR.natural, TR.slime_senses, TR.stealth].sort());
     expect(treeBlock(slime, TR.perception)).toBe('Blocked by: Amorphous');
     expect(treeBlock(slime, TR.armor)).toBe('Blocked by: Amorphous'); // AR6
@@ -44,14 +47,14 @@ describe('skill tree access', () => {
   it('SR1: intimidation is open to any race with Speech; persuasion and barter need a speaking race', () => {
     const p = createPlayer(recommendedBuild(), 's1');
     expect([SK.persuasion, SK.intimidation, SK.barter].filter((k) => skillOpen(p, k))).toEqual([SK.persuasion, SK.intimidation, SK.barter]);
-    const dragon = { ...p, core: { ...p.core, raceId: 'dragon', bodyTypeId: 'winged_quadruped' } };
+    const dragon = { ...p, core: { ...p.core, raceId: RC.dragon, bodyTypeId: BT.winged_quadruped } };
     expect([SK.persuasion, SK.intimidation, SK.barter].filter((k) => skillOpen(dragon, k))).toEqual([SK.intimidation]);
     expect(skillBlock(dragon, SK.barter)).toBe('Needs: Speaks');
   });
 
   it('a block beats an opening (TA2), and a class counts only while Current or Previous at its level (TA3)', () => {
     const lib = prototypeLibrary();
-    lib.trees[TR.swordsman].access = { must: [{ kind: 'class', id: CL.swordsman }], either: [{ kind: 'race', id: 'human' }, { kind: 'race', id: 'elf' }], blockedBy: [{ kind: 'perk', id: PK.leg_bolt }] };
+    lib.trees[TR.swordsman].access = { must: [{ kind: 'class', id: CL.swordsman }], either: [{ kind: 'race', id: RC.human }, { kind: 'race', id: RC.elf }], blockedBy: [{ kind: 'perk', id: PK.leg_bolt }] };
     setLibrary(lib);
     const p = createPlayer(recommendedBuild(), 's1');
     expect(treeOpen(p, TR.swordsman)).toBe(true);
