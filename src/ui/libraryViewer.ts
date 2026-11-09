@@ -8,6 +8,7 @@ import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll } from '../ruleset/bane';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
+import { equations } from '../ruleset/equations';
 import { fnSkills, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
@@ -467,6 +468,28 @@ function stacking(): HTMLElement[] {
   ];
 }
 
+// ---------- Equations ----------
+const EQUATIONS = equations(lib);
+function equationsView(): HTMLElement[] {
+  return [
+    h('p', { class: 'hs-note' }, 'The general equations the rules use. Numbers come from CONFIG, and the examples and chances are worked out by the same functions the game calls.'),
+    ...panes(EQUATIONS.map((g) => ({ key: g.key, title: g.title, n: g.equations.length, content: [
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, g.title), h('p', { class: 'hs-note' }, g.about),
+        h('div', { class: 'lv-grid wide' }, g.equations.map((e, i) => {
+          const c = card('equations', `${g.key}-${i}`, e, e.name, [chip(e.at, '--c3')],
+            h('p', { class: 'lv-formula' }, e.formula),
+            ...(e.terms ?? []).map(([k, v]) => row(k, v)),
+            e.table ? h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, e.table.head.map((x) => h('th', {}, x)))),
+              h('tbody', {}, e.table.rows.map((r) => h('tr', {}, r.map((x) => h('td', {}, x)))))) : null,
+            ...(e.notes ?? []).map((x) => h('p', { class: 'hs-note' }, x)));
+          c.querySelector('.lv-id')?.remove(); // the card id is only a link target
+          c.querySelector('.lv-raw')?.remove(); // the equation is text, not a library entry
+          return c;
+        }))),
+    ] }))),
+  ];
+}
+
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
@@ -477,6 +500,7 @@ const CUSTOM: Section[] = [
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
+  { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
