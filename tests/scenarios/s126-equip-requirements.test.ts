@@ -1,13 +1,14 @@
 // 126 Equip requirements (Ali, 08/11/2026, EQ1–EQ13): each item has an equipment level that asks for true skill in the
 // skill that uses it (stand-ins count at their share); every roll with gear you fall short on is one outcome step worse
-// per 10 points short; worn armor reaches Dodge and stealth rolls; templates carry what their loadout asks.
+// per 10 points short; worn armor reaches Dodge and stealth rolls; templates carry what their loadout asks. AR5: a hit
+// your armor covers marks the armor skill when the attacker and the armor are both near your level.
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { itemLevel, requirement, shortBy, shortShifts } from '../../src/ruleset/requirements';
 import { getLibrary, itemDef } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
-import type { ItemDef } from '../../src/types';
+import type { AttackResult, ItemDef } from '../../src/types';
 
 const sk = (raw: number) => ({ raw, state: 'normal' as const });
 
@@ -49,6 +50,28 @@ describe('126 Equip requirements', () => {
     p.core.skills.melee_medium = sk(50);
     p.core.skills.light_armor = sk(25);
     expect(ruleset.roll({ actorId: 'player', skill: 'dodge', modifiers: [], tierShifts: [], rollKind: 'dodge' }, s, forcedRng([50])).tierShifts).toEqual([]);
+  });
+
+  it('AR5: a hit on a part your armor covers marks its skill when the attacker and the armor are both near your level', () => {
+    const s = makeVillage();
+    const p = s.player, wim = s.actors.find((a) => a.id === 'patron_1')!;
+    p.core.skills.light_armor = sk(25); // gambeson: Common, needs 25
+    wim.core.skills.unarmed_strike = sk(30);
+    const hit = (location: string) => ({
+      attack: { actorId: 'patron_1', skill: 'unarmed_strike' }, defense: null, location, targetId: 'player',
+    }) as unknown as AttackResult;
+    ruleset.recordUse(wim, 'unarmed_strike', hit('head'), s); // the gambeson doesn't cover the head
+    expect(p.progression!.marks).not.toContain('light_armor');
+    ruleset.recordUse(wim, 'unarmed_strike', hit('general'), s);
+    expect(p.progression!.marks).toContain('light_armor');
+    p.progression!.marks = [];
+    wim.core.skills.unarmed_strike = sk(50); // attacker too far above
+    ruleset.recordUse(wim, 'unarmed_strike', hit('general'), s);
+    expect(p.progression!.marks).not.toContain('light_armor');
+    wim.core.skills.unarmed_strike = sk(40);
+    p.core.skills.light_armor = sk(40); // attacker close, but the gambeson (25) is too far below
+    ruleset.recordUse(wim, 'unarmed_strike', hit('general'), s);
+    expect(p.progression!.marks).not.toContain('light_armor');
   });
 
   it('EQ5/AR9: every template meets the requirements of its loadout', () => {

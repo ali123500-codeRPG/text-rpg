@@ -45,6 +45,12 @@ describe('125 All-50 parts', () => {
     expect(trueSkill(s.player, 'sight')).toBe(40);
     expect(trueSkill(s.player, 'hearing')).toBe(30);
   });
+  it('Silver Words: +5 true skill in Persuasion, Intimidation and Barter', () => {
+    const s = makeVillage();
+    set(s.player, ['persuasion', 'intimidation', 'barter', 'sight'], 30);
+    give(s.player, 'silver_words');
+    expect(['persuasion', 'intimidation', 'barter', 'sight'].map((k) => trueSkill(s.player, k))).toEqual([35, 35, 35, 30]);
+  });
   it("Fighter's Frame: melee hits on the owner deal ×0.9 damage before armor", () => {
     const dmg = (perk: boolean) => {
       const s = makeVillage();
