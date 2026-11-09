@@ -1,25 +1,43 @@
 // Part 1 §6 skill improvement (Ali, 07/11/2026, "Skill progression: options" SP1–SP11).
 // A use marks a skill when the opposition is within MARK_WINDOW of the user's raw or true skill (SP2, SP6); a hit that
-// costs ENDURANCE_MARK_PCT health or more marks endurance (SP5). Marked skills roll at the end of each engagement or
+// costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of each engagement or
 // when the scene breaks (SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
 import type { Actor, AttackResult, CheckResult, ContestResult, GameState, Rng } from '../types';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
 import { MILESTONES, trueSkill } from './perks';
 import { skillOpen } from './access';
+import { itemDef } from '../library';
+import { requirement } from './requirements';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
   if (pr && actor.core.skills[skill] && skillOpen(actor, skill) && !pr.marks.includes(skill)) pr.marks.push(skill); // a closed tree can't be raised (TA4)
 }
 
+/** is `opposition` within MARK_WINDOW of the actor's raw or true skill (SP2) */
+function close(actor: Actor, skill: string, opposition: number): boolean {
+  const raw = actor.core.skills[skill]?.raw;
+  if (raw === undefined) return false;
+  const w = CONFIG.MARK_WINDOW;
+  return Math.abs(opposition - raw) <= w || Math.abs(opposition - trueSkill(actor, skill)) <= w;
+}
+
 /** mark `skill` if the opposition is within MARK_WINDOW of the actor's raw or true skill (SP2) */
 export function markIfClose(state: GameState, actor: Actor | undefined, skill: string, opposition: number | undefined): void {
   if (!actor || actor.id !== state.player.id || opposition === undefined) return;
-  const raw = actor.core.skills[skill]?.raw;
-  if (raw === undefined) return;
-  const w = CONFIG.MARK_WINDOW;
-  if (Math.abs(opposition - raw) <= w || Math.abs(opposition - trueSkill(actor, skill)) <= w) mark(actor, skill);
+  if (close(actor, skill, opposition)) mark(actor, skill);
+}
+
+/** AR5 (Ali, 09/11/2026): a hit on a part your worn armor covers marks the armor skill for its weight, when both the
+ * attacker's skill and the armor's requirement are within MARK_WINDOW of your raw or true armor skill */
+function markArmor(state: GameState, result: AttackResult): void {
+  const t = actorById(state, result.targetId), a = actorById(state, result.attack.actorId);
+  if (!t || !a || t.id !== state.player.id || !result.location || result.location === 'shield') return;
+  const worn = t.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const def = worn && itemDef(state, worn.itemId), req = def && requirement(def);
+  if (!def?.armor?.covers.includes(result.location) || !req) return;
+  if (close(t, req.skill, trueSkill(a, result.attack.skill)) && close(t, req.skill, req.need)) mark(t, req.skill);
 }
 
 /** the opposition for each side of a roll: a check's target; the other side's true skill in a contest or attack */
@@ -39,6 +57,7 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
     const other = actorById(state, them.actorId);
     return both(actor, me, other ? trueSkill(other, them.skill) : undefined);
   }
+  markArmor(state, result);
   const atk = result.attack, def = result.defense;
   const attacker = actorById(state, atk.actorId), defender = def ? actorById(state, def.actorId) : undefined;
   if (def && defender) {
