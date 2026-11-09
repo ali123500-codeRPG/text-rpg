@@ -2,7 +2,9 @@
 // figures that can't be filtered in a text line under them, then the grouped table.
 import { PART_STATES } from '../scales';
 import type { Actor, GameApi, GameState } from '../types';
-import { itemDef } from '../library';
+import { getLibrary, itemDef } from '../library';
+import { REWARD_LEVELS } from '../scales';
+import { achievementName } from '../engine/xp';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
 import { skillName } from '../library/skillNames';
@@ -20,6 +22,7 @@ type Spec = {
   panelTitle: string;
   detail?: (s: GameState, rowId: string) => PanelRow[]; // extra read-only rows for the side panel
   focus?: () => string | null; // a row to open on arrival (consumed once)
+  top?: (redraw: () => void) => HTMLElement; // above the title: the page's sub-tabs
 };
 
 export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: () => void } {
@@ -55,11 +58,12 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
       ? [h('span', {}, `${plural(count, spec.noun[0], spec.noun[1])} shown · `), h('button', { class: 'hs-btn-text', type: 'button', style: 'min-height:0', onclick: () => { for (const k of Object.keys(picks)) delete picks[k]; update(); } }, 'Clear')]
       : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
     el.replaceChildren(
+      ...(spec.top ? [spec.top(update)] : []),
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title), h('p', {}, spec.intro))),
       h('div', { class: 'sec' },
         all.length ? visTiles(all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
         h('p', { class: 'subline' }, spec.line(s)), how),
-      h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, spec.title), h('p', { class: 'hs-note' }, hint)),
+      h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, spec.title), all.length ? h('p', { class: 'hs-note' }, hint) : null),
         groupedTable({ cols: spec.cols, groups: shown, open, sort, onField, redraw: update, emptyText: picked.length ? `No ${spec.noun[1]} match these boxes. Pick other boxes or Clear.` : spec.empty })));
   }
   return { el, update };
@@ -179,6 +183,40 @@ export function questsPage(api: GameApi) {
       }));
     },
     line: (s) => `Turn ${s.turn}`,
+  });
+}
+
+// ---------- Achievements and Scars ----------
+/** two sub-tabs: Achievements and Scars (negative achievements, AchievementDef.scar). Earned ones only, grouped by reward level. */
+export function achievementsPage(api: GameApi) {
+  let scars = false;
+  const tab = (on: boolean, label: string, redraw: () => void) =>
+    h('button', { type: 'button', role: 'tab', 'aria-selected': String(scars === on), onclick: () => { scars = on; redraw(); } }, label);
+  return listPage(api, {
+    get title() { return scars ? 'Scars' : 'Achievements'; },
+    get intro() { return scars ? 'What went wrong and left its mark on you. Same as /achievements.' : 'Deeds that earned you a name, and the XP they paid. Same as /achievements.'; },
+    get noun(): [string, string] { return scars ? ['scar', 'scars'] : ['achievement', 'achievements']; },
+    get empty() { return scars ? 'No scars yet.' : 'No achievements yet. Defeat foes, win fights, strike deals and explore.'; },
+    get panelTitle() { return scars ? 'Scar' : 'Achievement'; },
+    top: (redraw) => h('div', { class: 'pk-tabs', role: 'tablist' }, tab(false, 'Achievements', redraw), tab(true, 'Scars', redraw)),
+    cols: [{ key: 'name', title: 'Name' }, { key: 'state', title: 'State' }, { key: 'turn', title: 'Earned' }],
+    groups: (s) => {
+      const lib = getLibrary().achievements ?? {};
+      const mine = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars);
+      return REWARD_LEVELS.keys.map((lv) => {
+        const rows: TRow[] = mine.filter((a) => lib[a.key!].level === lv).map((a) => ({ id: a.id, sortKey: a.turn,
+          cells: { name: achievementName(s, a), state: a.replacedBy ? 'Replaced by the next level' : 'Current', turn: `turn ${a.turn}` },
+          ...(a.replacedBy ? { tones: { state: 'muted' as const } } : {}) }));
+        const title = `Level ${REWARD_LEVELS.name(lv)}`;
+        return { id: lv, title, rows, value: String(rows.length), unit: unitOf(rows.length, scars ? 'scar' : 'achievement'),
+          sub: `${CONFIG.REWARD_XP[lv] ?? 0} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
+      }).filter((g) => g.rows.length);
+    },
+    line: (s) => {
+      const lib = getLibrary().achievements ?? {};
+      const xp = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + (CONFIG.REWARD_XP[lib[a.key!].level] ?? 0), 0);
+      return `${xp} XP earned this way`;
+    },
   });
 }
 

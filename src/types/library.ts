@@ -164,4 +164,5 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class';
-export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string };
+/** scar: a negative achievement, listed under Scars instead of Achievements */
+export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string; scar?: true };
