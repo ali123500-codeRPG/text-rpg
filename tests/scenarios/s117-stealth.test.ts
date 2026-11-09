@@ -1,4 +1,4 @@
-// 117 Stealth tree (Ali, 08/11/2026, ST1–ST10; spec tests 3, 18 and 42): hide and sneak are stealth contests per observer.
+// 117 Stealth tree (ST1–ST10; spec tests 3, 18 and 42): hide and sneak are stealth contests per observer.
 // Sneaking is used outside an engagement and Combat Stealth inside one or for a shot; melee reveals, a shot does not.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
@@ -7,6 +7,7 @@ import { ruleset } from '../../src/ruleset';
 import { stealthyArrival } from '../../src/scene/apply';
 import { spawnNpc } from '../../src/library/spawn';
 import type { ContestResult, GameState, Intent, RollRequest } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
@@ -45,7 +46,7 @@ describe('117 stealth', () => {
     turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
     expect(s.player.zone).toBe('street_square');
     expect(s.player.posture).toBe('stealthy');
-    expect(calls.every(([a]) => a.skill === 'vanishing')).toBe(true);
+    expect(calls.every(([a]) => a.skill === SK.vanishing)).toBe(true);
     const b1 = s.actors.find((a) => a.id === 'guard_1')!.mind!.knowledge.player!;
     expect(b1.status).toBe('suspicious');
     expect(b1.lastKnownZone).toBe('gate_inner');
@@ -120,7 +121,7 @@ describe('117 stealth', () => {
     const calls = rig();
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
     expect(s.player.posture).toBe('stealthy');
-    expect(calls.some(([a, b]) => a.skill === 'combat_stealth' && b.actorId === 'slime_1')).toBe(true);
+    expect(calls.some(([a, b]) => a.skill === SK.combat_stealth && b.actorId === 'slime_1')).toBe(true);
   });
   it('darkness helps both rolls and cover helps a hide; a hide ignores leg wounds (ST6, ST10)', () => {
     const s = makeVillage();
@@ -130,13 +131,13 @@ describe('117 stealth', () => {
     const calls = rig();
     turn(s, intent(null, { type: 'hide' }));
     const [a, o] = calls.find(([, b]) => b.actorId === 'trader')!;
-    expect(a.skill).toBe('sneaking');
-    // P14 (Ali, 08/11/2026): darkness gives no help against a listener
-    expect(a.modifiers).toEqual(o.skill === 'sight' ? [{ source: 'light', type: 'situational', value: 10 }] : []);
+    expect(a.skill).toBe(SK.sneaking);
+    // P14: darkness gives no help against a listener
+    expect(a.modifiers).toEqual(o.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: 10 }] : []);
     expect(a.tierShifts).toEqual([{ source: 'cover', value: 1 }]);
     expect(a.roles).toEqual([]);
     const [, b] = calls.find(([, o]) => o.actorId === 'trader')!;
-    expect(b.modifiers).toEqual(b.skill === 'sight' ? [{ source: 'light', type: 'situational', value: -10 }] : []); // ST21: sight is hurt
+    expect(b.modifiers).toEqual(b.skill === SK.eyesight ? [{ source: 'light', type: 'situational', value: -10 }] : []); // ST21: sight is hurt
   });
   it('tags decide the tables (ST21): a sneak gets no cover, a vanish does (Vanishing has the hide tag)', () => {
     const s = makeVillage();
@@ -151,7 +152,7 @@ describe('117 stealth', () => {
     place(v, 'trader', 'tav_cellar');
     const vc = rig();
     turn(v, intent({ toZone: 'tav_cellar' }, { type: 'vanish' }));
-    expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: 'vanishing', tierShifts: [{ source: 'cover', value: 1 }] });
+    expect(vc.find(([, b]) => b.actorId === 'trader')![0]).toMatchObject({ skill: SK.vanishing, tierShifts: [{ source: 'cover', value: 1 }] });
   });
   it('an observer with Unblinking who loses a Vanish must also lose a stealth contest (ST23)', () => {
     const s = makeVillage();
@@ -160,7 +161,7 @@ describe('117 stealth', () => {
     s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: 'unblinking' } as never);
     const calls = rig({ guard_1: [-1, 0] });
     turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
-    expect(calls.map(([a]) => a.skill)).toEqual(['vanishing', 'sneaking']);
+    expect(calls.map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]);
     expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
   });
 });

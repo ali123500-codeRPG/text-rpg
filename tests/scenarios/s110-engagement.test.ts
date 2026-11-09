@@ -1,4 +1,4 @@
-// 110 Engagement (E1, Ali 07/11/2026): one encounter per actor covering talk and fights. It starts on a fight or a
+// 110 Engagement (E1): one encounter per actor covering talk and fights. It starts on a fight or a
 // spoken exchange, a talk that turns into a fight stays one engagement, it ends after ENGAGEMENT_END_TURNS turns with
 // nothing engaging the actor, and the player's marked skills roll when it ends.
 import { describe, expect, it } from 'vitest';
@@ -6,10 +6,11 @@ import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from '../../src/engine';
 import type { GameEvent, GameState } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const speak = (s: GameState, from: string, to: string): GameEvent => ({
   id: `e${s.turn}`, turn: s.turn, actorId: from, kind: 'speak', zone: 'tav_common', effects: [], noise: 'quiet', visibility: 'low', perception: {},
-  speech: { skill: 'persuasion', addressees: [to] },
+  speech: { skill: SK.persuasion, addressees: [to] },
 });
 const next = (s: GameState, events: GameEvent[] = []) => { s.turn += 1; return updateEngagements(s, events); };
 

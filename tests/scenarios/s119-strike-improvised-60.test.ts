@@ -1,10 +1,11 @@
-// 119 Set Them Up (B15, Strike 60) and One-Two (B16, Improvisation 60) (Ali, 08/11/2026, R6 in "40 milestone perks: options").
+// 119 Set Them Up (B15, Strike 60) and One-Two (B16, Improvisation 60) (R6 in "40 milestone perks: options").
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { forcedRng, makeVillage, place } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { afterAttack, expireMarks, markShifts } from '../../src/engine/perkMarks';
 import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -20,26 +21,26 @@ describe('119 Set Them Up', () => {
     const s = makeVillage();
     const p = s.player, foe = npc(s, 'patron_1');
     give(p, 'set_them_up');
-    afterAttack(s, p, foe, miss, false, 'unarmed_strike');
-    expect(markShifts(s, p, foe, false, 'unarmed_improvised').attack).toEqual([{ source: 'Set Them Up', value: 1 }]);
-    expect(markShifts(s, p, foe, false, 'unarmed_strike').attack).toEqual([]);
-    expect(markShifts(s, p, npc(s, 'trader'), false, 'unarmed_improvised').attack).toEqual([]);
+    afterAttack(s, p, foe, miss, false, SK.unarmed_strike);
+    expect(markShifts(s, p, foe, false, SK.unarmed_improvised).attack).toEqual([{ source: 'Set Them Up', value: 1 }]);
+    expect(markShifts(s, p, foe, false, SK.unarmed_strike).attack).toEqual([]);
+    expect(markShifts(s, p, npc(s, 'trader'), false, SK.unarmed_improvised).attack).toEqual([]);
     // the improvised attack uses it, and in turn sets up the next Strike
     const used = { ...miss, attack: { tierShifts: [{ source: 'Set Them Up', value: 1 }] } } as unknown as AttackResult;
-    afterAttack(s, p, foe, used, false, 'unarmed_improvised');
-    expect(markShifts(s, p, foe, false, 'unarmed_improvised').attack).toEqual([]);
-    expect(markShifts(s, p, foe, false, 'unarmed_strike').attack).toEqual([{ source: 'Set Them Up', value: 1 }]);
+    afterAttack(s, p, foe, used, false, SK.unarmed_improvised);
+    expect(markShifts(s, p, foe, false, SK.unarmed_improvised).attack).toEqual([]);
+    expect(markShifts(s, p, foe, false, SK.unarmed_strike).attack).toEqual([{ source: 'Set Them Up', value: 1 }]);
   });
   it('needs the perk, and the marks end with the engagement', () => {
     const s = makeVillage();
     const p = s.player, foe = npc(s, 'patron_1');
-    afterAttack(s, p, foe, miss, false, 'unarmed_strike');
-    expect(markShifts(s, p, foe, false, 'unarmed_improvised').attack).toEqual([]);
+    afterAttack(s, p, foe, miss, false, SK.unarmed_strike);
+    expect(markShifts(s, p, foe, false, SK.unarmed_improvised).attack).toEqual([]);
     give(p, 'set_them_up');
-    afterAttack(s, p, foe, miss, false, 'unarmed_strike');
+    afterAttack(s, p, foe, miss, false, SK.unarmed_strike);
     delete p.engagement;
     expireMarks(s, p);
-    expect(markShifts(s, p, foe, false, 'unarmed_improvised').attack).toEqual([]);
+    expect(markShifts(s, p, foe, false, SK.unarmed_improvised).attack).toEqual([]);
   });
 });
 
@@ -57,7 +58,7 @@ describe('119 One-Two', () => {
       const r = real(req, st, forcedRng([50, 50, 50, 50]));
       return req.weaponId === 'bottle' ? { ...r, outcome, damage: 0 } : r;
     });
-    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'bottle', skill: 'unarmed_improvised' } }) });
+    play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'bottle', skill: SK.unarmed_improvised } }) });
     return calls;
   };
   it('an improvised hit with the other hand empty is followed by a free punch at the same foe', () => {

@@ -160,7 +160,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         h('p', {}, h('q', { class: sp.volume }, sp.text)))),
       l.timePassed ? timePassedRow(l.timePassed) : null, // T2 b
       ...(l.heals ?? []).map(healCard),
-      // V2a (Ali, 07/11/2026): milestones a skill crossed on this turn; the card never names the perk
+      // V2a: milestones a skill crossed on this turn; the card never names the perk
       ...(l.unlocks ?? []).map((u) => h('div', { class: 'perk-new', role: 'status' }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
         h('div', {}, 'New perk unlocked', h('small', {}, `${skillName(u.skill)} reached ${u.milestone}`)),
         h('button', { type: 'button', class: 'hs-btn-text', onclick: seePerks }, 'See perks'))),
@@ -193,7 +193,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const pv = s ? safe(() => buildPlayerView(s)) : null;
     const stealthy = s?.player.posture === 'stealthy';
     bar.classList.toggle('stealthy', stealthy);
-    // PM5/K1 c (Ali, 08/11/2026): the player's deals with NPCs, as an "N deals" chip beside the scene title that opens
+    // PM5/K1 c: the player's deals with NPCs, as an "N deals" chip beside the scene title that opens
     // the list (gold-edged and tinted like the K1 b card). No chip while there are none. A deal leaves when a party ends
     // it as done or broken.
     const deals = pv?.agreements ?? [];

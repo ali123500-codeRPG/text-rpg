@@ -6,6 +6,7 @@ import { getLibrary } from '../library';
 import { createPlayer, spawnNpc } from '../library/spawn';
 import { effectiveSkill, ruleset, totalHp } from '../ruleset';
 import { createRng } from '../rng';
+import { SK } from '../library/skillIds';
 
 /** The preview's sheet: the game's own builder (library createPlayer), placed in the duel zone. */
 export function playerFromBuild(build: CreationBuild, storyId = 'preview', zone = 'duel', placeId = 'duel'): Actor {
@@ -50,9 +51,9 @@ export function preview(build: CreationBuild, swings: number): Preview {
   const shield = p.core.inventory.find((i) => i.itemId === 'round_shield')!.id;
   const hp = safe(() => totalHp(state, p));
   const slimeHp = safe(() => totalHp(state, slime));
-  const attack = safe(() => effectiveSkill(state, p, 'melee_medium', { itemId: sword }).value);
-  const block = safe(() => effectiveSkill(state, p, 'block', { itemId: shield }).value);
-  const dodge = safe(() => effectiveSkill(state, p, 'dodge').value);
+  const attack = safe(() => effectiveSkill(state, p, SK.melee_medium, { itemId: sword }).value);
+  const block = safe(() => effectiveSkill(state, p, SK.block, { itemId: shield }).value);
+  const dodge = safe(() => effectiveSkill(state, p, SK.dodge).value);
   const defense = block === null || dodge === null ? null : block >= dodge ? { kind: 'block' as const, value: block } : { kind: 'dodge' as const, value: dodge };
   const mine = safe(() => avgDamage(state, 'player', 'slime', sword, swings));
   const theirs = safe(() => avgDamage(state, 'slime', 'player', 'natural:slam', swings));

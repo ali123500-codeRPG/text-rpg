@@ -1,12 +1,13 @@
-// A8 Hold (Ali, 07/11/2026; rules in src/library/perks.ts): a grapple that lands with a Great Success or better holds
+// A8 Hold (rules in src/library/perks.ts): a grapple that lands with a Great Success or better holds
 // the target. A held actor can't leave the holder's zone or use a two-handed mode; trying to leave is its break-free
 // move, a grapple contest it wins on a tie or better. The hold ends when the target breaks free, the holder is downed or
 // the holder leaves the zone (relations.ts heldBy() checks the last two each time it is read).
 import type { Actor, AttackResult, Effect, GameState, Rng } from '../types';
 import { hasPerk, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { heldBy, isActive } from './relations';
+import { SK } from '../library/skillIds';
 
-const GRAPPLE = 'unarmed_grapple';
+const GRAPPLE = SK.unarmed_grapple;
 const MISSES = new Set(['missed', 'dodged']);
 
 /** after a grapple attack: lock on if the attacker has Hold and the roll was a Great Success or better that hit */

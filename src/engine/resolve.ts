@@ -1,10 +1,11 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
-import { defaultMode, hasPerk, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
@@ -21,16 +22,17 @@ import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './g
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats } from './xp';
-import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay } from '../time';
+import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
+import { SK } from '../library/skillIds';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
 };
-/** AN2 (Ali, 08/11/2026): event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
+/** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'attack', 'perk_move', 'break_free', 'pick_up']);
 const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const; // NV5: a whisper isn't heard next door
 /** first build: checks only change beliefs (OQ-22). */
@@ -61,12 +63,15 @@ function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): G
   return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, effects: [], noise: armorNoise(ctx.state, a, kind, noise), visibility, perception: {}, ...extra };
 }
 
-/** AN1–AN4: a body-moving event is louder by the worn armor's weight steps */
+/** AN1–AN4: a body-moving event is louder by the worn armor's weight steps (Quiet Mail: one step less); Soft Tread:
+ * a Stealthy move is one step quieter */
 function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): NoiseKey {
   if (!BODY_MOVING.has(kind)) return noise;
   const worn = a.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const w = worn && itemDef(state, worn.itemId).armor?.weight;
-  return w ? NOISE.at(NOISE.pos(noise) + (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0)) : noise;
+  const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, 'quiet_mail') ? 1 : 0)) : 0;
+  const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, 'soft_tread') ? 1 : 0;
+  return NOISE.at(NOISE.pos(noise) + steps - soft);
 }
 
 function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined): GameEvent {
@@ -144,7 +149,7 @@ function morale(ctx: Ctx, a: Actor, reason: 'level' | 'bandmate_down'): void {
   logCode(state, 'morale_check', { actorId: a.id, reason, result: r });
   if (r === 'steady') return;
   a.mind!.moraleState = r;
-  // Q1/Q4 (Ali, 08/11/2026): a surrender, or a break, replaces hostile with yielded toward everyone it was fighting
+  // Q1/Q4: a surrender, or a break, replaces hostile with yielded toward everyone it was fighting
   // (broken shares the yielded stance so both tune together until further notice)
   for (const x of allActors(state)) if (x !== a && hostile(state, a, x)) a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [x.id]: 'yielded' };
   if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) ctx.orders.set(a.id, brokenOrder(buildActorView(state, a.id)));
@@ -206,7 +211,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const line = o.line ?? { text: '', volume: 'normal' as const };
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, line, noise: VOLUME_NOISE[line.volume] });
-  if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? 'persuasion', addressees: o.addressees ?? [] };
+  if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? SK.persuasion, addressees: o.addressees ?? [] };
   // Voice shares: only facts from its knows list
   const voice = o.source === 'agent' ? usableAgentOutputs(ctx.input).find((x) => x.actorId === a.id && x.agent === 'voice') : undefined;
   if (voice?.agent === 'voice') {
@@ -282,10 +287,10 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     for (const p of state.actors) if (p !== t && p.bandId === t.bandId && ev.perception[p.id]) morale(ctx, p, 'bandmate_down');
   }
   // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
-  if (!followUp && modeSkill(m.mode) === 'unarmed_improvised' && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'one_two')
+  if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, 'one_two')
     && isActive(t) && t.zone === a.zone && freeHand(state, a)) {
-    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === 'unarmed_strike' && x.mode.reach >= 0);
-    if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: 'unarmed_strike', targetPart: null, aimed: false, line: null }, true);
+    const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
+    if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
   }
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
 }
@@ -304,7 +309,7 @@ function onceThisEngagement(state: GameState, a: Actor, id: string): boolean {
   return true;
 }
 
-/** All-50 first-attack parts (Ali, 09/11/2026). T1a Opening Strike: the owner's first melee attack on each foe in an
+/** All-50 first-attack parts. T1a Opening Strike: the owner's first melee attack on each foe in an
  * engagement gets tier shift +1. T2a Unerring: the owner's first ranged attack in an engagement, at a foe that hasn't acted
  * yet in its engagement, gives the foe's defense roll tier shift −1. Each is used up when it applies. */
 function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerShifts?: TierShift[]; defenderShifts?: TierShift[] } {
@@ -319,7 +324,7 @@ function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerSh
   return {};
 }
 
-/** All-50 parts that act after an attack (src/library/allPerks.ts, Ali 08/11/2026) */
+/** All-50 parts that act after an attack (src/library/allPerks.ts) */
 function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, itemId: string | null, res: AttackResult, fromHiding: boolean, followUp: boolean): void {
   const { state, rng } = ctx;
   // T4b Second Wind: once per engagement, at Wounded or worse (not down), the health track moves one level better
@@ -398,7 +403,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
   } else {
     const t = now(state);
     const named = TIME_OF_DAY.keyOf(o.target);
-    // Q2 (Ali, 08/11/2026): waiting until the time of day it already is does nothing, rather than skipping a day
+    // Q2: waiting until the time of day it already is does nothing, rather than skipping a day
     if (o.type === 'wait' && named && named === timeOfDay(t)) {
       logCode(state, 'wait_blocked', { actorId: a.id, reason: 'already', timeOfDay: named });
       return emit(ctx, ev);
@@ -408,7 +413,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
     passTime(state, minutes);
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     if (o.type === 'sleep') {
-      // Ali (07/11/2026): sleep gives the rest heal once per REST_COOLDOWN_MIN of sleep, and counts as the last rest
+      // Ali: sleep gives the rest heal once per REST_COOLDOWN_MIN of sleep, and counts as the last rest
       for (let i = 0; i < Math.floor(minutes / CONFIG.REST_COOLDOWN_MIN); i++) applyHealing(state, a, restRow(state, a));
       state.clocks[`rest:${a.id}`] = now(state);
     }
@@ -461,13 +466,13 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   let result: CheckResult | undefined;
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
-    // Q17 (Ali, 07/11/2026): looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
+    // Q17: looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
     const modifiers = [
       ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
-      ...situational(state, fnRoller(state, a, noticeCue(o.skill) === 'sound' ? 'hearing' : 'sight'), { light: zoneById(state, a.zone), actor: a }).modifiers, // ST21: light by the rolling skill's tags (Q3)
+      ...situational(state, fnRoller(state, a, noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight), { light: zoneById(state, a.zone), actor: a }).modifiers, // ST21: light by the rolling skill's tags (Q3)
     ];
-    const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn: noticeCue(o.skill) === 'sound' ? 'hearing' : 'sight' }, state, rng); // function roll
+    const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn: noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight }, state, rng); // function roll
     ev.roll = r;
     ev.tier = r.tier;
     if (tierAtLeast(r.tier, 'success')) lookAround(state);
@@ -497,7 +502,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doRest(ctx, a, o);
     case 'hide':
       // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
-      return emit(ctx, bark(mk(ctx, a, 'hide'), o));
+      return emit(ctx, bark(mk(ctx, a, 'hide', o.vanish ? { vanish: true } : {}), o));
     case 'wait':
     case 'sleep':
       return doWait(ctx, a, o);
@@ -590,7 +595,11 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
   if (o.type === 'sneak' || o.type === 'vanish') {
     a.posture = 'stealthy';
     if (o.type === 'vanish' && (npc ? goTo : o.move)) o.vanish = true;
-    o.type = goTo ? 'move' : 'hold';
+    // A19 Melt Away: a Vanish with nowhere to go vanishes in place, as the main action, where cover or shade allows
+    const zone = zoneById(state, a.zone);
+    const inPlace = o.type === 'vanish' && !o.vanish && hasPerk(a, 'melt_away') && !!zone && meltAwayHere(zone.cover, zoneLight(state, zone));
+    if (inPlace) o.vanish = true;
+    o.type = inPlace ? 'hide' : goTo ? 'move' : 'hold';
   }
   if (o.type === 'hide') a.posture = 'stealthy';
   const r = npc && a.mind?.routine ? routine(a.mind.routine.id) : undefined;

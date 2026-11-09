@@ -1,15 +1,16 @@
-// Part 1 §3/§5 (Ali, 07/11/2026, perk page S1–S9): true skill and skill ladders. True skill = raw + flat, always-on
+// Part 1 §3/§5 (perk page S1–S9): true skill and skill ladders. True skill = raw + flat, always-on
 // skill perks; ladder milestones and all-XXX perks read it. A milestone unlocks at 20, 40 … 140 true skill; taking its perk costs one
 // perk point and can be undone until the next turn is played (K3).
 import type { Actor, GameState, PerkDef } from '../types';
 import { getLibrary } from '../library';
 import { skillOpen } from './access';
 import { groupsOf } from '../library/functionNames';
+import { COVER, LIGHT } from '../scales';
 
 export const MILESTONES = [20, 40, 60, 80, 100, 120, 140] as const;
 /** all-XXX perks (formerly mastery perks; save key 'mastery'): granted when all three skills of a tree reach 50/100/150 */
 export const ALL_STEPS = [50, 100, 150] as const;
-/** ladder perks already taken in the same skill before a milestone shows (Ali, 07/11/2026); all-XXX perks don't count */
+/** ladder perks already taken in the same skill before a milestone shows; all-XXX perks don't count */
 export const PERKS_NEEDED: Record<number, number> = { 20: 0, 40: 0, 60: 1, 80: 1, 100: 2, 120: 2, 140: 3 };
 
 const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
@@ -36,7 +37,7 @@ export function trueSkill(a: Actor, skill: string): number {
     v += d.trueSkillTo?.[skill] ?? 0; // 40/80/120 perks: true skill spent on skills that work well with the ladder skill
     if (d.fnSkill && (skills[skill]?.functions as string[] | undefined)?.includes(d.fnSkill.fn)) v += d.fnSkill.add; // Hunter's Eye
     // 40/80/120 perks: +functionBoost to the ladder skill itself and every other skill sharing a group with it
-    // (docs/skill-tags.md; Ali, 08/11/2026: "+1 function (including itself)"; F1: the broad group)
+    // (docs/skill-tags.md: "+1 function (including itself)"; F1: the broad group)
     if (d.functionBoost && own && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g)))) v += d.functionBoost;
     return n + v;
   }, 0);
@@ -111,3 +112,7 @@ export function undoPerk(s: GameState, a: Actor, perkId: string): void {
   a.core.perks = a.core.perks.filter((p) => p.perkId !== perkId);
   a.progression!.unspentPerkPoints += 1;
 }
+
+/** A19 Melt Away: a zone with some cover or more, or light dim or darker, lets the owner vanish in place */
+export const meltAwayHere = (cover: string | undefined, light: string | undefined): boolean =>
+  COVER.pos(COVER.keyOf(cover) ?? 'none') >= 1 || LIGHT.pos(LIGHT.keyOf(light) ?? 'bright') >= 1;

@@ -1,4 +1,4 @@
-// Part 1 §6 skill improvement (Ali, 07/11/2026, "Skill progression: options" SP1–SP11).
+// Part 1 §6 skill improvement ("Skill progression: options" SP1–SP11).
 // A use marks a skill when the opposition is within MARK_WINDOW of the user's raw or true skill (SP2, SP6); a hit that
 // costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of each engagement or
 // when the scene breaks (SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
@@ -9,6 +9,7 @@ import { MILESTONES, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { itemDef } from '../library';
 import { requirement } from './requirements';
+import { SK } from '../library/skillIds';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
@@ -29,7 +30,7 @@ export function markIfClose(state: GameState, actor: Actor | undefined, skill: s
   if (close(actor, skill, opposition)) mark(actor, skill);
 }
 
-/** AR5 (Ali, 09/11/2026): a hit on a part your worn armor covers marks the armor skill for its weight, when the
+/** AR5: a hit on a part your worn armor covers marks the armor skill for its weight, when the
  * attacker's skill or the armor's requirement is within MARK_WINDOW of your raw or true armor skill (either one) */
 function markArmor(state: GameState, result: AttackResult): void {
   const t = actorById(state, result.targetId), a = actorById(state, result.attack.actorId);
@@ -42,7 +43,7 @@ function markArmor(state: GameState, result: AttackResult): void {
 
 /** the opposition for each side of a roll: a check's target; the other side's true skill in a contest or attack */
 export function markUse(state: GameState, actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult): void {
-  // Ali (09/11/2026): when a stand-in makes the roll, the stand-in AND the skill the action asked for each learn,
+  // Ali: when a stand-in makes the roll, the stand-in AND the skill the action asked for each learn,
   // each against its own window. Without this a skill below the stand-in share of another one could never rise.
   const both = (who: Actor | undefined, r: { skill: string; asked?: string }, opp: number | undefined) => {
     markIfClose(state, who, r.skill, opp);
@@ -68,7 +69,7 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
 
 /** SP5: a single hit that costs ENDURANCE_MARK_PCT health or more marks endurance */
 export function markEndurance(state: GameState, actor: Actor, lostPct: number): void {
-  if (actor.id === state.player.id && lostPct >= CONFIG.ENDURANCE_MARK_PCT) mark(actor, 'endurance');
+  if (actor.id === state.player.id && lostPct >= CONFIG.ENDURANCE_MARK_PCT) mark(actor, SK.endurance);
 }
 
 /** Part 1 §6, unchanged: Burden snapshot, then one improvement roll per marked skill; marks clear. Returns the gains. */

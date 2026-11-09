@@ -1,4 +1,4 @@
-// Engagement (Part 2, Encounter modes, E1; Ali, 07/11/2026). An engagement is one encounter from an actor's point of
+// Engagement (Part 2, Encounter modes, E1). An engagement is one encounter from an actor's point of
 // view: a fight, a negotiation, or both. It starts when another actor is engaged with it in a fight (one of the two is
 // hostile to the other and believes in it at suspicious or higher) or in talk (one speaks to the other). It ends once
 // nothing has engaged it, either way, for ENGAGEMENT_END_TURNS turns in a row. Talk turning into a fight (or back)

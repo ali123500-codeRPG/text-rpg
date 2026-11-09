@@ -1,4 +1,4 @@
-// Game clock (Ali, 07/11/2026, T1–T8). Code owns one clock: game minutes since midnight before day 1, kept in
+// Game clock (T1–T8). Code owns one clock: game minutes since midnight before day 1, kept in
 // state.clocks.time. Claude never sets it; the Weaver picks the starting time of day once, at story start.
 import { CONFIG } from './config';
 import { LIGHT, TIME_OF_DAY, type TimeOfDay } from './scales';

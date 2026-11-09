@@ -1,4 +1,4 @@
-// Template rules (Ali, 08/11/2026): anyone with fighting experience is at least level 4, villagers at least level 2,
+// Template rules: anyone with fighting experience is at least level 4, villagers at least level 2,
 // and any patrolling template, now and later, has Keen Ear.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, actor } from '../harness';

@@ -16,9 +16,11 @@ import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { shortShifts } from './requirements';
 import { blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
+import { SK, DEFENSE_SKILL } from '../library/skillIds';
 
 export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
+export { meltAwayHere } from './perks';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
 export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills } from './gear';
@@ -38,7 +40,7 @@ export function tierAt(level: number): Tiered {
 }
 /** is tier `t` at or above tier `k` */
 export const tierAtLeast = (t: Tier | Tiered, k: Tier): boolean => tierLevel(t) >= TIERS.pos(k);
-/** display name; a tier past either end shows the end name with one + or − per step past it (Ali, 07/11/2026) */
+/** display name; a tier past either end shows the end name with one + or − per step past it */
 export function tierName(t: Tier | Tiered): string {
   const tier = typeof t === 'string' ? t : t.tier;
   const past = typeof t === 'string' ? 0 : t.beyond ?? 0;
@@ -83,7 +85,7 @@ export function ladder(type: 'dodge' | 'block', gap: number): number {
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
 function locRule(type: 'dodge' | 'block', g: number): LocRule {
-  if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: never essential, like the tie (OQ-17 settled 07/11/2026)
+  if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: never essential, like the tie (OQ-17 settled)
   return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block +1..+5 off-shield keep the gap-0 limit
 }
 function rowKey(type: 'dodge' | 'block', gap: number, shield: boolean): string {
@@ -201,7 +203,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if ((req.context?.defensesThisTurn ?? 0) >= 1) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
-  dm.push(...situational(state, type, { light: zoneA }).modifiers); // ST21: light by tag (sight)
+  dm.push(...situational(state, DEFENSE_SKILL[type], { light: zoneA }).modifiers); // ST21: light by tag (sight)
   // All-50 Steady Guard: Block rolls made with a melee weapon (not a shield)
   if (type === 'block' && blocker && !itemDef(state, blocker.itemId).shield && hasPerk(D, 'steady_guard')) {
     dm.push({ source: 'Steady Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.STEADY_GUARD });
@@ -211,8 +213,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     dm.push({ source: 'Bare-Handed Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.BARE_HANDED_GUARD });
   }
   dm.push(...(req.context?.defenderMods ?? []));
-  const def = ruleset.roll({ actorId: D.id, skill: type, modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
-  const defEff = effectiveSkill(state, D, type, { itemId: blocker?.id });
+  const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
+  const defEff = effectiveSkill(state, D, DEFENSE_SKILL[type], { itemId: blocker?.id });
   const defDeciding = decidingOf(def, defEff.value, defEff.gear);
 
   // 4. gap
@@ -222,16 +224,22 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const coverKey = zoneD && ranged && hasPerk(A, 'past_the_cover') ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
   if (coverGap) gapShifts.push({ source: 'cover', value: coverGap });
+  // A20 Slip the Blow: in light armor, a Dodge that ties counts as a graze
+  const wornArmor = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
+  const armor = wornArmor ? itemDef(state, wornArmor.itemId).armor : undefined;
+  if (type === 'dodge' && armor?.weight === 'light' && hasPerk(D, 'slip_the_blow') && tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts) === 0) {
+    gapShifts.push({ source: 'Slip the Blow', value: 1 });
+  }
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
   const g = Math.max(-5, Math.min(5, gap));
-  const multiplier = ladder(type, g);
+  let multiplier = ladder(type, g);
   const shield = !!(blocker && itemDef(state, blocker.itemId).shield);
   const deciding = {
     attack: atkDeciding,
     defense: defDeciding,
     gap: gapShifts.filter((s) => rowKey(type, gap - s.value, shield) !== rowKey(type, gap, shield)).map((s) => s.source),
   };
-  const outcome: AttackResult['outcome'] =
+  let outcome: AttackResult['outcome'] =
     multiplier === 0 ? 'dodged' : type === 'dodge' && g === 1 ? 'grazed' : type === 'block' && (g >= 1 || (g === 0 && shield)) ? 'blocked'
       : g <= -5 ? 'crushing_hit' : g === -4 ? 'heavy_hit' : 'full_hit';
   if (multiplier === 0) return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, deciding };
@@ -272,14 +280,18 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     locationHow = 'open_hand';
   }
 
+  // A22 Turn Aside: heavy armor turns a heavy or crushing hit on a part it covers into a full hit
+  if ((outcome === 'heavy_hit' || outcome === 'crushing_hit') && armor?.weight === 'heavy' && armor.covers.includes(location) && hasPerk(D, 'turn_aside')) {
+    outcome = 'full_hit';
+    multiplier = 1;
+  }
+
   // 6. damage step (Part 5 §6); armor pools drain in applyEffects
-  const worn = D.core.inventory.find((i) => i.equippedIn?.includes('armor'));
-  const armor = worn ? itemDef(state, worn.itemId).armor : undefined;
   const pierce = boostAdd(A, skill, 'armorPierce'); // 40/80/120 perk: Armor Piercer
   const afterArmor = (raw: number, at: string) => {
     let d = raw;
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
-    return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided by Ali 07/11/2026)
+    return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
   const frame = !ranged && hasPerk(D, 'fighters_frame') ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, 'iron_knuckles') ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
@@ -353,7 +365,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   }
   const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
   const add = T.core.condition.hpLostPct + (counted / hp) * 100;
-  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : add; // a destroyed essential part kills (Ali, 08/11/2026)
+  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : add; // a destroyed essential part kills
   T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
   const levelAfter = healthLevel(T);
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });

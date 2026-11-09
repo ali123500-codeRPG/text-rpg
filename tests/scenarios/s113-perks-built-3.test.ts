@@ -1,4 +1,4 @@
-// 113 Coded 20-milestone perks, batch 3 (Ali, 07/11/2026): Open-Hand Guard (block with empty hands; a hit through is
+// 113 Coded 20-milestone perks, batch 3: Open-Hand Guard (block with empty hands; a hit through is
 // split between the blocking arm and the general area) and Threaten for Answers (intimidation counts at full value
 // against an opposed or hostile listener, and can win information).
 import { describe, expect, it } from 'vitest';
@@ -8,6 +8,7 @@ import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import { CONFIG } from '../../src/config';
 import type { Actor, GameState } from '../../src/types';
 import { intent } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -40,25 +41,25 @@ describe('113 coded perks, batch 3', () => {
   });
   const setup = (stance: 'opposed' | 'hostile' | 'neutral') => {
     const s = makeVillage({ playerZone: 'tav_counter' });
-    s.player.core.skills.persuasion = { ...s.player.core.skills.persuasion, raw: 10 };
-    s.player.core.skills.intimidation = { ...s.player.core.skills.intimidation, raw: 60 };
+    s.player.core.skills[SK.persuasion] = { ...s.player.core.skills[SK.persuasion], raw: 10 };
+    s.player.core.skills[SK.intimidation] = { ...s.player.core.skills[SK.intimidation], raw: 60 };
     const t = npc(s, 'trader');
     t.mind = { ...t.mind, overrides: { ...t.mind?.overrides, player: stance } } as never;
     s.hidden.secrets.push({ id: 'informant', holderId: 'trader', fact: 'the captain is the informant', leakTerms: ['informant'],
-      revealWhen: { type: 'check_passed', skill: 'persuasion', minTier: 'success', againstActorId: 'trader' } });
+      revealWhen: { type: 'check_passed', skill: SK.persuasion, minTier: 'success', againstActorId: 'trader' } });
     return s;
   };
   const talk = (s: GameState, type: 'persuade' | 'intimidate', dice: number[]) => {
-    const i = intent({ action: { type, skill: type === 'intimidate' ? 'intimidation' : 'persuasion' }, spoken: 'Who sold us out?', addressees: ['trader'] });
+    const i = intent({ action: { type, skill: type === 'intimidate' ? SK.intimidation : SK.persuasion }, spoken: 'Who sold us out?', addressees: ['trader'] });
     return resolveSpeech(s, i, selectSpokespeople(s, i), forcedRng(dice)).perSpokesperson.trader;
   };
   it('Threaten for Answers: intimidation counts at full value against an opposed listener', () => {
     const s = setup('opposed');
     const plain = talk(s, 'persuade', [50, 50]).contest.a;
-    expect(plain.skill).toBe('intimidation'); // stand-in at 0.3 (18) beats persuasion 10
+    expect(plain.skill).toBe(SK.intimidation); // stand-in at 0.3 (18) beats persuasion 10
     give(s.player, 'threaten_for_answers');
     const full = talk(s, 'persuade', [50, 50]).contest.a;
-    expect(full.skill).toBe('intimidation');
+    expect(full.skill).toBe(SK.intimidation);
     expect(full.margin - plain.margin).toBeCloseTo(CONFIG.SKILL_WEIGHT * 60 * (1 - CONFIG.SUBSTITUTE_EFFICIENCY));
   });
   it('Threaten for Answers: a winning threat gets information a persuasion check guards', () => {

@@ -1,4 +1,5 @@
 // Part 4 §9 (ItemDef, ItemInstance) and Part 5.
+import type { SkillFunction } from './library';
 import type { LibraryRef } from './core';
 import type { ArmorWeightKey, EquipLevelKey } from '../scales';
 
@@ -54,9 +55,9 @@ export type AttackMode = {
   thrown?: true;
   damageAdj?: number;
   hitAdj?: number;
-  /** extra skill functions whose skills may stand in for this mode's skill, at the usual share (Ali, 09/11/2026:
+  /** extra skill functions whose skills may stand in for this mode's skill, at the usual share (
    * an improvised melee strike takes Arms stand-ins, an improvised throw takes Ranged ones) */
-  standInFns?: string[];
+  standInFns?: SkillFunction[];
   partId?: string; // natural attacks: the Strike part used
   name?: string; // public name for natural modes (packet)
 };

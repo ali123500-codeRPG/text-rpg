@@ -1,4 +1,4 @@
-// 110 Healing (Ali, 07/11/2026, H1–H11): one table of healing sources applied by one rule. Rest heals Healthy and
+// 110 Healing (H1–H11): one table of healing sources applied by one rule. Rest heals Healthy and
 // Damaged parts but not Crippled ones; a clinic lifts Crippled parts; a bandage works in a fight and is used up.
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
@@ -39,7 +39,7 @@ describe('110 healing', () => {
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(false);
     expect(mechanicsLines(s, ev)).toContain('Bandage: Hurt → Bruised');
   });
-  it('a healing item is not used up when there is nothing to heal (Q3, Ali 08/11/2026)', () => {
+  it('a healing item is not used up when there is nothing to heal (Q3)', () => {
     const s = makeVillage();
     s.player.core.inventory.push({ id: 'b1', itemId: 'bandage', qty: 1 });
     s.player.core.condition.hpLostPct = 0;

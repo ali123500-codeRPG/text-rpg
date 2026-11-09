@@ -7,6 +7,7 @@ import {
   loadHistory, readTurnRecord, releaseTurnLock, restoreBackup, saveHistory, saveTurn, undoTurn, useBookmark, type DB,
 } from '../../src/save';
 import type { GameState, Head, LogLine, StoryFact, TurnRecord } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const rec = (s: GameState, turn: number, extra: Partial<TurnRecord> = {}): TurnRecord =>
   ({ storyId: s.storyId, turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [], ...extra });
@@ -107,14 +108,14 @@ describe('save and load', () => {
     const s = makeVillage();
     s.player.journal!.factsWitnessed.push('f_missing');
     actor(s, 'guard_1').mind!.knowledge.ghost = { status: 'aware', source: 'seen', revealed: [] };
-    s.player.core.skills.melee_medium.raw = 104;
+    s.player.core.skills[SK.melee_medium].raw = 104;
     const st = memoryStore();
     await saveTurn(st, s, rec(s, 0));
     const { state, report } = await loadStory(st, 'test', lib());
     expect(state.player.journal!.factsWitnessed).toEqual([]);
     expect(actor(state, 'guard_1').mind!.knowledge.ghost).toBeUndefined();
-    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/), 'warning: player raw melee_medium 104 above 100']));
-    expect((await loadStory(st, 'test', lib())).report).toEqual(['warning: player raw melee_medium 104 above 100']); // repair was saved
+    expect(report).toEqual(expect.arrayContaining([expect.stringMatching(/witnessed facts f_missing/), expect.stringMatching(/belief about ghost/), `warning: player raw ${SK.melee_medium} 104 above 100`]));
+    expect((await loadStory(st, 'test', lib())).report).toEqual([`warning: player raw ${SK.melee_medium} 104 above 100`]); // repair was saved
   });
 
   it('drops ground items the library no longer has, so zone views cannot throw', async () => {
@@ -310,18 +311,18 @@ describe('migration and reconcile', () => {
     await saveTurn(st, s, rec(s, 0));
     const l = structuredClone(lib());
     l.version = 2;
-    l.skills.blades = { ...l.skills.melee_medium, id: 'blades' };
-    delete l.skills.melee_medium;
-    delete l.skills.barter;
-    l.status = { melee_medium: { state: 'renamed', to: 'blades' }, barter: { state: 'deleted' } };
+    l.skills.blades = { ...l.skills[SK.melee_medium], id: 'blades' };
+    delete l.skills[SK.melee_medium];
+    delete l.skills[SK.barter];
+    l.status = { [SK.melee_medium]: { state: 'renamed', to: 'blades' }, [SK.barter]: { state: 'deleted' } };
     l.bodyTypes.humanoid.parts.push({ id: 'tail', size: 'small', impact: 'non_essential', roles: [] });
     const { state, report } = await loadStory(st, 'test', l);
     expect(state.player.core.skills.blades).toEqual({ raw: 50, state: 'tagged' });
-    expect(state.player.core.skills.melee_medium).toBeUndefined();
-    expect(state.player.core.skills.barter.dormant).toBe(true);
+    expect(state.player.core.skills[SK.melee_medium]).toBeUndefined();
+    expect(state.player.core.skills[SK.barter].dormant).toBe(true);
     expect(state.player.core.condition.parts.tail).toBe(100);
     expect(state.libraryVersion).toBe(2);
-    expect(report).toEqual(expect.arrayContaining(['reconcile: player skill melee_medium -> blades', 'reconcile: player skill barter dormant']));
+    expect(report).toEqual(expect.arrayContaining([`reconcile: player skill ${SK.melee_medium} -> blades`, `reconcile: player skill ${SK.barter} dormant`]));
     expect((await head(st)).libraryVersion).toBe(2);
   });
 });

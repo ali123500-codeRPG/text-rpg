@@ -1,4 +1,4 @@
-// Library viewer (Ali, 08/11/2026): every library table drawn from the same modules the game runs, so it shows the
+// Library viewer: every library table drawn from the same modules the game runs, so it shows the
 // library exactly as code sees it. Bundled into dist/library.html by scripts/build.mjs. Tables without a custom view
 // get the generic cards, so a new table shows up with no edit here.
 import './styles.css';
@@ -6,16 +6,17 @@ import './libraryViewer.css';
 import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill } from '../ruleset/bane';
-import { standInShare, standInTable } from '../ruleset/gear';
+import { fnSkills, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
-import { FUNCTION_GROUP, GROUP_NAMES, groupsOf } from '../library/functionNames';
+import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { REWARD_LEVELS, SKILL_TIERS } from '../scales';
 import { fmtDate, h } from './kit';
 import { skillName } from './creation';
 import { partName } from './healing';
+import { SENSE_SKILL, SK } from '../library/skillIds';
 
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
@@ -29,7 +30,7 @@ const none = (text = 'none yet') => h('span', { class: 'lv-none' }, text);
 const row = (k: string, ...v: (Node | string | null)[]) => h('div', { class: 'lv-row' }, h('span', { class: 'lv-k' }, k), h('span', { class: 'lv-v' }, ...v));
 const raw = (e: unknown) => h('details', { class: 'lv-raw' }, h('summary', {}, 'Code'), h('pre', {}, JSON.stringify(e, null, 2)));
 
-/** filter buttons (Ali, 08/11/2026): each section names [group, value] pairs per entry; generic tables get them from their short fields */
+/** filter buttons: each section names [group, value] pairs per entry; generic tables get them from their short fields */
 type Facets = (e: any) => [string, string | number | boolean | undefined][];
 let facetOf: Facets = () => [];
 function card(sec: string, id: string, entry: unknown, title: string, chips: (HTMLElement | null)[], ...body: (Node | null)[]): HTMLElement {
@@ -49,7 +50,15 @@ function val(v: unknown, depth = 0): Node | string {
   if (typeof v === 'object') return depth > 3 ? JSON.stringify(v) : h('div', { class: 'lv-sub' }, Object.entries(v).map(([k, x]) => row(k, val(x, depth + 1))));
   return String(v);
 }
-const fields = (e: Entry, skip: string[]) => Object.entries(e).filter(([k]) => !skip.includes(k)).map(([k, v]) => row(k, val(v)));
+/** skill IDs are numbers: show a skill field, or a table keyed by skill, by the skill's name */
+const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains']);
+const named = (k: string, v: unknown): unknown => {
+  if (k === 'skill' && typeof v === 'string') return skillName(v);
+  if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => [a, named(a, b)])) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
+  if (SKILL_KEYED.has(k) && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([a, b]) => [skillName(a), b]));
+  return v;
+};
+const fields = (e: Entry, skip: string[]) => Object.entries(e).filter(([k]) => !skip.includes(k)).map(([k, v]) => row(k, val(named(k, v))));
 
 function generic(sec: string, table: Record<string, Entry>): HTMLElement[] {
   return Object.entries(table).map(([id, e]) => {
@@ -100,14 +109,14 @@ function gear(): HTMLElement[] {
 
 // ---------- Perks: the ladder grid (skill × milestone), then every perk ----------
 const EFFECT_TONE: Record<string, string> = { attack: '--c10', defense: '--c1', health: '--c2', speed: '--c15', senses: '--c5', speech: '--c4' };
-/** colour coding (Ali, 08/11/2026): fixed colours where a value has a meaning, else the palette in value order */
+/** colour coding: fixed colours where a value has a meaning, else the palette in value order */
 const PALETTE = ['--c1', '--c2', '--c7', '--c5', '--c12', '--c4', '--c15', '--c10', '--c14', '--c3'];
 const FIXED: Record<string, Record<string, string>> = {
   Effect: EFFECT_TONE,
   State: { built: '--ok', 'not built': '--warn', 'written only': '--c3', quirk: '--danger' },
   Level: { 'Level I': '--c12', 'Level II': '--c1', 'Level III': '--c5', 'Level IV': '--c15' },
   Class: { light: '--c12', medium: '--c1', heavy: '--c10' },
-  XP: { offensive: '--c10', defensive: '--c1', endurance: '--c2', notice: '--c5', influence: '--c4', misc: '--c3' },
+  XP: { offensive: '--c10', defensive: '--c1', [SK.endurance]: '--c2', notice: '--c5', influence: '--c4', misc: '--c3' },
 };
 const TIER_TONE: Record<string, string> = { tier_0: '--warn', tier_1: '--c15', tier_2: '--c3' };
 const seen = new Map<string, string[]>();
@@ -138,7 +147,7 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   d.numbers ? row('Numbers', val(d.numbers)) : null,
   ...fields(d as Entry, ['id', 'name', 'story', 'rules', 'ladder', 'effect', 'built', 'quirk', 'trueSkill', 'functionBoost', 'trueSkillTo', 'numbers', 'ref', 'skill', 'place', 'allStep']));
 }
-/** sub-tabs inside one section (Ali, 09/11/2026: Perks split into milestone, All-XX, not in use, other). Every pane is
+/** sub-tabs inside one section (Perks split into milestone, All-XX, not in use, other). Every pane is
  * built, only the chosen one shows; filters and colours count the shown pane only. */
 type Pane = { key: string; title: string; n: number; content: (HTMLElement | null)[] };
 let pane = '';
@@ -265,7 +274,7 @@ function skills(): HTMLElement[] {
   const tree = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => card('skills', id, entry, title, chips,
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Group', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
-        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(f, toneOf('Function', f)))) : '—'),
+        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneOf('Function', functionName(f))))) : '—'),
         h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
         h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneOf('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP)
@@ -281,7 +290,7 @@ function skills(): HTMLElement[] {
       loose.length ? treeCard('no_tree', 'In no tree', loose, loose, []) : null)];
 }
 
-// ---------- Stand-ins (Ali, 08/11/2026: "show me how stand in is coded") ----------
+// ---------- Stand-ins ("show me how stand in is coded") ----------
 /** every number here comes from standInTable / standInShare in src/ruleset/gear.ts, the functions effectiveSkill uses */
 function standIns(): HTMLElement[] {
   const ids = Object.keys(lib.skills);
@@ -292,10 +301,11 @@ function standIns(): HTMLElement[] {
       h('li', {}, 'A roll asks for one skill. The code also tries every other skill that shares one of its functions.'),
       h('li', {}, `Each stand-in counts at a share of its true skill and gear: the flat share (CONFIG.SUBSTITUTE_EFFICIENCY = ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}), or the skill's own table if CONFIG.SUBSTITUTES lists it.`),
       h('li', {}, 'The owner\'s perks with standIn move a share up or down (kept between ×0 and ×1).'),
-      h('li', {}, 'Each candidate is then multiplied by its own tier multiplier, and the highest value is used.')),
+      h('li', {}, 'Each candidate is then multiplied by its own tier multiplier, and the highest value is used.'),
+      h('li', {}, `Function rolls (FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}) skip the share: every skill with that function counts at ×1, then its tier, and the best one rolls.`)),
     row('Own tables', Object.keys(CONFIG.SUBSTITUTES).length ? links('standIns', Object.keys(CONFIG.SUBSTITUTES).map((id): [string, string] => [id, skillName(id)])) : none('none')),
-    row('Perks that move a share', movers.length ? links('perks', movers.map((d): [string, string] => [d.id, `${d.name} (${d.standIn!.add > 0 ? '+' : ''}${d.standIn!.add}${d.standIn!.fn ? ` ${d.standIn!.fn}` : ''})`])) : none('none yet')));
-  const fnRow = ([f, g]: [string, keyof typeof GROUP_NAMES]) => h('tr', {}, h('td', {}, chip(f, toneOf('Function', f))), h('td', {}, chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g]))),
+    row('Perks that move a share', movers.length ? links('perks', movers.map((d): [string, string] => [d.id, `${d.name} (${d.standIn!.add > 0 ? '+' : ''}${d.standIn!.add}${d.standIn!.fn ? ` ${functionName(d.standIn!.fn)}` : ''})`])) : none('none yet')));
+  const fnRow = ([f, g]: [string, keyof typeof GROUP_NAMES]) => h('tr', {}, h('td', {}, chip(functionName(f), toneOf('Function', functionName(f)))), h('td', {}, chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g]))),
     h('td', {}, ids.filter((id) => (lib.skills[id].functions as string[]).includes(f)).map(skillName).join(', ') || '—'));
   const fns = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'Functions and groups'), chip('FUNCTION_GROUP · functionNames.ts', '--c3')),
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Function', 'Group', 'Skills with it'].map((x) => h('th', {}, x)))),
@@ -303,16 +313,49 @@ function standIns(): HTMLElement[] {
   const how = h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'How the code picks a stand-in'), h('div', { class: 'lv-grid wide' }, rule, fns));
   const cards = ids.map((id) => {
     const table = standInTable(id);
-    const subs = ids.filter((o) => o !== id).map((o) => ({ o, k: standInShare(id, o, table) })).filter((x) => x.k > 0).sort((a, b) => b.k - a.k);
+    // a function roll passes fullValue = fnSkills(fn), as fnRoller and ruleset.roll do
+    const rolledFn = FUNCTION_ROLLS.find((f) => (lib.skills[id].functions as string[]).includes(f));
+    const fullValue = rolledFn ? fnSkills(rolledFn) : undefined;
+    const subs = ids.filter((o) => o !== id).map((o) => ({ o, k: standInShare(id, o, table, fullValue) })).filter((x) => x.k > 0).sort((a, b) => b.k - a.k);
     const own = !!CONFIG.SUBSTITUTES[id];
-    return card('standIns', id, { id, functions: lib.skills[id].functions, table, own }, skillName(id), [chip(own ? 'own table' : `flat ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}`, own ? '--c5' : '--c3')],
-      row('Looks for', h('span', { class: 'lv-chips' }, table.map((t) => chip(`${t.fn} ${pct(t.k)}`, toneOf('Function', t.fn))))),
+    return card('standIns', id, { id, functions: lib.skills[id].functions, table, own, functionRoll: rolledFn ?? null }, skillName(id),
+      [rolledFn ? chip(`${functionName(rolledFn)} roll ×1`, '--c2') : chip(own ? 'own table' : `flat ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}`, own ? '--c5' : '--c3')],
+      rolledFn ? row('Rolled as', h('span', {}, `a ${functionName(rolledFn)} roll: every skill with ${functionName(rolledFn)} counts at ×1, then its tier, instead of the stand-in share. See `, link('standIns', `fn-${rolledFn}`, `${functionName(rolledFn)} check`))) : null,
+      row('Looks for', h('span', { class: 'lv-chips' }, table.map((t) => chip(`${functionName(t.fn)} ${pct(t.fn === rolledFn ? 1 : t.k)}`, toneOf('Function', functionName(t.fn)))))),
       subs.length ? h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Stand-in', 'Shared function', 'Share', 'Its tier'].map((x) => h('th', {}, x)))),
         h('tbody', {}, subs.map(({ o, k }) => h('tr', {}, h('td', {}, link('skills', o, skillName(o))),
-          h('td', {}, h('span', { class: 'lv-chips' }, table.filter((t) => (lib.skills[o].functions as string[]).includes(t.fn)).map((t) => chip(t.fn, toneOf('Function', t.fn))))),
+          h('td', {}, h('span', { class: 'lv-chips' }, table.filter((t) => (lib.skills[o].functions as string[]).includes(t.fn)).map((t) => chip(functionName(t.fn), toneOf('Function', functionName(t.fn)))))),
           h('td', {}, h('b', {}, pct(k))), h('td', {}, `×${CONFIG.SKILL_TIER_MULT[lib.skills[o].tier]}`))))) : row('Stand-ins', none('none: no other skill shares a function')));
   });
-  return [how, h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs …'), h('div', { class: 'lv-grid' }, cards))];
+  // ---- function checks: a roll that passes fn (RollRequest.fn) counts every skill with it at ×1; the best one rolls ----
+  const fnRule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How a function check works'), chip('fnRoller · fnSkills · src/ruleset/gear.ts', '--c3')),
+    h('ol', { class: 'lv-steps' },
+      h('li', {}, 'The roll names a function, not a skill (RollRequest.fn). It still asks for the function\'s default skill (SENSE_SKILL).'),
+      h('li', {}, 'Every skill with that function counts at ×1 (fnSkills). No stand-in share applies, and stand-in perks don\'t change it.'),
+      h('li', {}, 'Each one is multiplied by its own tier multiplier, plus true skill, gear and perks as usual. The highest value rolls.'),
+      h('li', {}, 'Light and other situation modifiers come from the skill that rolls (fnRoller), so Tremor ignores darkness.')),
+    row('Functions checked this way', `FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}`),
+    row('Rolls that use them', 'sneak and hide contests (stealthDetect) and noticing an ambush (resolveAmbush) in minds/state.ts; Look around in engine/resolve.ts'),
+    row('After the roll', link('perks', 'curiouser', 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
+  const fnCards = FUNCTION_ROLLS.map((f) => {
+    const rows = fnSkills(f).map((id) => ({ id, tier: CONFIG.SKILL_TIER_MULT[lib.skills[id].tier] })).sort((a, b) => b.tier - a.tier);
+    const asked = (SENSE_SKILL as Record<string, string>)[f];
+    const adds = Object.values(lib.perks).filter((d) => d.fnSkill?.fn === f);
+    const grp = GROUP_NAMES[FUNCTION_GROUP[f]];
+    return card('standIns', `fn-${f}`, { function: f, functions: [f], asks: asked ?? null, skills: rows.map((r) => r.id) }, `${functionName(f)} check`,
+      [chip(`${grp} group`, toneOf('Group', grp)), chip('every skill ×1', '--c2')],
+      row('Asks for', asked ? link('skills', asked, skillName(asked)) : none('no default skill')),
+      h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill that counts', 'Share', 'Its tier'].map((x) => h('th', {}, x)))),
+        h('tbody', {}, rows.map((r) => h('tr', {}, h('td', {}, link('skills', r.id, skillName(r.id))), h('td', {}, h('b', {}, '×1')),
+          h('td', {}, `×${r.tier}`))))),
+      row('Perks that add to it', adds.length ? links('perks', adds.map((d): [string, string] => [d.id, `${d.name} (+${d.fnSkill!.add} true skill to every ${functionName(f)} skill)`])) : none('none')));
+  });
+  return panes([
+    { key: 'skill', title: 'Skill checks', n: cards.length, content: [how, h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs …'), h('div', { class: 'lv-grid' }, cards))] },
+    { key: 'function', title: 'Function checks', n: fnCards.length, content: [
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Function checks'), h('div', { class: 'lv-grid wide' }, fnRule)),
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs the function …'), h('div', { class: 'lv-grid' }, fnCards))] },
+  ]);
 }
 
 // ---------- Page ----------
@@ -328,7 +371,7 @@ const CUSTOM: Section[] = [
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
   standIns: (e: { id?: string; functions?: string[]; own?: boolean }) => [['Rule', e.id ? (e.own ? 'own table' : 'flat share') : undefined], ['Tree', treeOf(e.id)],
-    ...(e.functions ?? []).map((f): [string, string] => ['Function', f])],
+    ...(e.functions ?? []).map((f): [string, string] => ['Function', functionName(f)])],
   gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
     ...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]).map((f): [string, string] => ['Flag', f]), ...(i.tags ?? []).map((t): [string, string] => ['Flag', t])],
   perks: (d: PerkDef & { place?: string; skill?: string }) => [['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
@@ -413,7 +456,7 @@ function filter(): void {
 }
 const viewOf = (sec: Section) => (sec.view ? sec.view() : [h('div', { class: 'lv-grid' }, generic(sec.key, lib[sec.table] as Record<string, Entry>))]).filter(Boolean) as HTMLElement[];
 
-// Details pop-up (Ali, 08/11/2026): clicking any entry link opens its full card in a floating panel that can be dragged
+// Details pop-up: clicking any entry link opens its full card in a floating panel that can be dragged
 // and closed, so the page underneath stays where it is.
 const popBody = h('div', { class: 'lv-pop-body' });
 const popTitle = h('span', { class: 'hs-label' });

@@ -1,4 +1,4 @@
-// Perk moves (AE5, AE8; Ali 07/11/2026; rules in src/library/perks.ts). The player names one by its perk id in the
+// Perk moves (AE5, AE8; rules in src/library/perks.ts). The player names one by its perk id in the
 // Parser's perkMove. A free move resolves beside the main action, before it; the others will be main actions of their
 // own type (Plead, Battle Cry, Buy Them Off, later milestones).
 //   Dirt in the Eyes (A9): free, once per engagement, needs a free hand; an unarmed_improvised roll against the foe's
@@ -10,6 +10,7 @@ import { handsOf, isHeld } from '../ruleset/gear';
 import { actorById, isActive } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markUntilNextTurn } from './perkMarks';
+import { SK } from '../library/skillIds';
 
 /** the actor has a working Grip arm with nothing held in it */
 export const freeHand = (state: GameState, a: Actor) => {
@@ -36,7 +37,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
   useThisEngagement(a, perk);
   if (perk === 'dirt_in_the_eyes') {
     const req = (id: string, skill: string) => ({ actorId: id, skill, modifiers: [], tierShifts: [] });
-    const c = ruleset.contested(req(a.id, 'unarmed_improvised'), req(t.id, 'dodge'), state, rng);
+    const c = ruleset.contested(req(a.id, SK.unarmed_improvised), req(t.id, SK.dodge), state, rng);
     markUse(state, a, c.a.skill, c);
     markUse(state, t, c.b.skill, c);
     const dodged = c.winner === 'b'; // the foe must win outright

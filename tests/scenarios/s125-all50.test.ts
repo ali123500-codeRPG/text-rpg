@@ -1,4 +1,4 @@
-// 125 All-50 parts (Ali, 08/11/2026, All-50 doc round 1): a tree's built parts are granted free when every skill of the
+// 125 All-50 parts (All-50 doc round 1): a tree's built parts are granted free when every skill of the
 // tree reaches 50 true skill, with the tree's mastery achievement; then the first six built parts.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fit, forcedRng, makeVillage, place } from '../harness';
@@ -11,6 +11,7 @@ import { achievementName } from '../../src/engine';
 import { zoneById } from '../../src/engine/relations';
 import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const set = (a: Actor, skills: string[], raw: number) => { for (const k of skills) a.core.skills[k] = { raw, state: 'normal' }; };
@@ -25,11 +26,11 @@ describe('125 All-50 parts', () => {
   it('every skill of the tree at 50 grants its built parts and the mastery achievement, once', () => {
     const s = makeVillage();
     const p = s.player;
-    set(p, ['melee_light', 'melee_medium'], 50);
-    set(p, ['melee_heavy'], 49);
+    set(p, [SK.melee_light, SK.melee_medium], 50);
+    set(p, [SK.melee_heavy], 49);
     grantAllSteps(s, p);
     expect(p.core.perks.some((x) => x.source === 'mastery')).toBe(false);
-    set(p, ['melee_heavy'], 50);
+    set(p, [SK.melee_heavy], 50);
     grantAllSteps(s, p);
     grantAllSteps(s, p);
     const got = p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId);
@@ -40,16 +41,16 @@ describe('125 All-50 parts', () => {
   });
   it("Hunter's Eye: +10 true skill in every skill with the sight function", () => {
     const s = makeVillage();
-    set(s.player, ['sight', 'hearing'], 30);
+    set(s.player, [SK.eyesight, SK.earshot], 30);
     give(s.player, 'hunters_eye');
-    expect(trueSkill(s.player, 'sight')).toBe(40);
-    expect(trueSkill(s.player, 'hearing')).toBe(30);
+    expect(trueSkill(s.player, SK.eyesight)).toBe(40);
+    expect(trueSkill(s.player, SK.earshot)).toBe(30);
   });
   it('Silver Words: +5 true skill in Persuasion, Intimidation and Barter', () => {
     const s = makeVillage();
-    set(s.player, ['persuasion', 'intimidation', 'barter', 'sight'], 30);
+    set(s.player, [SK.persuasion, SK.intimidation, SK.barter, SK.eyesight], 30);
     give(s.player, 'silver_words');
-    expect(['persuasion', 'intimidation', 'barter', 'sight'].map((k) => trueSkill(s.player, k))).toEqual([35, 35, 35, 30]);
+    expect([SK.persuasion, SK.intimidation, SK.barter, SK.eyesight].map((k) => trueSkill(s.player, k))).toEqual([35, 35, 35, 30]);
   });
   it("Fighter's Frame: melee hits on the owner deal ×0.9 damage before armor", () => {
     const dmg = (perk: boolean) => {
@@ -81,19 +82,19 @@ describe('125 All-50 parts', () => {
     zone.light = 'dim';
     delete (zone as { outdoor?: true }).outdoor;
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
-    const before = [mod('sneaking'), mod('sight')];
+    const before = [mod(SK.sneaking), mod(SK.eyesight)];
     give(s.player, 'child_of_night');
     expect(before).toEqual([5, -5]);
-    expect([mod('sneaking'), mod('sight')]).toEqual([10, -5]); // dim read as dark for sneaking; sight unchanged
+    expect([mod(SK.sneaking), mod(SK.eyesight)]).toEqual([10, -5]); // dim read as dark for sneaking; sight unchanged
   });
   it('Curiouser and Curiouser: a sight or hearing roll at Success or better counts one tier higher', () => {
     const s = makeVillage();
-    set(s.player, ['sight', 'persuasion'], 50);
+    set(s.player, [SK.eyesight, SK.persuasion], 50);
     give(s.player, 'curiouser');
     const r = (skill: string, d: number) => ruleset.roll({ actorId: 'player', skill, modifiers: [], tierShifts: [] }, s, forcedRng([d]));
-    expect(r('sight', 90).tierShifts).toEqual([{ source: 'Curiouser and Curiouser', value: 1 }]);
-    expect(r('sight', 10).tierShifts).toEqual([]); // not a Success
-    expect(r('persuasion', 90).tierShifts).toEqual([]); // not a sense roll
+    expect(r(SK.eyesight, 90).tierShifts).toEqual([{ source: 'Curiouser and Curiouser', value: 1 }]);
+    expect(r(SK.eyesight, 10).tierShifts).toEqual([]); // not a Success
+    expect(r(SK.persuasion, 90).tierShifts).toEqual([]); // not a sense roll
   });
   it('Iron Knuckles: unarmed hits deal ×1.1 damage before armor', () => {
     const dmg = (perk: boolean) => {
@@ -112,9 +113,9 @@ describe('125 All-50 parts', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     arm(s, 'patron_1');
-    set(s.player, ['dodge'], 30);
+    set(s.player, [SK.dodge], 30);
     give(s.player, 'bare_handed_guard');
-    expect(trueSkill(s.player, 'dodge')).toBe(35);
+    expect(trueSkill(s.player, SK.dodge)).toBe(35);
     s.player.core.standingDefense = 'dodge';
     for (const i of s.player.core.inventory) delete i.equippedIn;
     const guard = () => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]))
@@ -136,12 +137,12 @@ describe('125 All-50 parts', () => {
   });
   it('Soft Landing: a speech roll at Near Miss or worse counts one tier higher; Success is unchanged', () => {
     const s = makeVillage();
-    set(s.player, ['persuasion', 'sight'], 40);
+    set(s.player, [SK.persuasion, SK.eyesight], 40);
     give(s.player, 'soft_landing');
     const r = (skill: string, d: number) => ruleset.roll({ actorId: 'player', skill, modifiers: [], tierShifts: [] }, s, forcedRng([d]));
-    expect(r('persuasion', 2).tierShifts).toEqual([{ source: 'Soft Landing', value: 1 }]);
-    expect(r('persuasion', 95).tierShifts).toEqual([]);
-    expect(r('sight', 2).tierShifts).toEqual([]);
+    expect(r(SK.persuasion, 2).tierShifts).toEqual([{ source: 'Soft Landing', value: 1 }]);
+    expect(r(SK.persuasion, 95).tierShifts).toEqual([]);
+    expect(r(SK.eyesight, 2).tierShifts).toEqual([]);
   });
   it('Spotter: band-mates in the owner\'s zone become suspicious of what the owner is aware of', () => {
     const s = makeVillage();
@@ -163,9 +164,9 @@ describe('125 All-50 parts', () => {
     place(s, 'patron_1', s.player.zone);
     arm(s, 'patron_1');
     arm(s, 'player');
-    set(s.player, ['block'], 30);
+    set(s.player, [SK.block], 30);
     give(s.player, 'steady_guard');
-    expect(trueSkill(s.player, 'block')).toBe(35);
+    expect(trueSkill(s.player, SK.block)).toBe(35);
     s.player.core.standingDefense = 'block';
     const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]));
     expect(r.defense!.modifiers.filter((m) => m.source === 'Steady Guard')).toEqual([{ source: 'Steady Guard', type: 'roll_perk', value: 2.5 }]);
@@ -187,10 +188,10 @@ describe('125 All-50 parts', () => {
     zone.light = 'dark';
     delete (zone as { outdoor?: true }).outdoor;
     const mod = (skill: string) => situational(s, skill, { light: zone, actor: s.player }).modifiers[0]?.value ?? 0;
-    const before = [mod('sight'), mod('sneaking')];
+    const before = [mod(SK.eyesight), mod(SK.sneaking)];
     give(s.player, 'night_eyes');
-    expect([mod('sight'), mod('sneaking')]).toEqual([situational(s, 'sight', { light: { ...zone, light: 'dim' } }).modifiers[0]?.value ?? 0, before[1]]);
-    expect(mod('sight')).toBeGreaterThan(before[0]);
+    expect([mod(SK.eyesight), mod(SK.sneaking)]).toEqual([situational(s, SK.eyesight, { light: { ...zone, light: 'dim' } }).modifiers[0]?.value ?? 0, before[1]]);
+    expect(mod(SK.eyesight)).toBeGreaterThan(before[0]);
   });
   it('Dodgy: attack rolls against the owner get −5 effective skill', () => {
     const s = makeVillage();
@@ -258,7 +259,7 @@ describe('125 All-50 moves', () => {
     const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'w_player' } }) });
     const fade = ev.find((e) => e.actorId === 'player' && e.kind === 'hide' && e.vanish);
     expect(fade?.effects.map((f) => f.kind)).toContain('strike_and_fade');
-    expect(s.log.some((l) => l.code === 'stealth_contest' && (l.detail as { skill: string }).skill === 'vanishing')).toBe(true);
+    expect(s.log.some((l) => l.code === 'stealth_contest' && (l.detail as { skill: string }).skill === SK.vanishing)).toBe(true);
   });
   it('Volley: once per engagement, a ranged hit is followed by a free shot at a foe already hostile and known', () => {
     const run = (perk: boolean) => {
@@ -304,8 +305,8 @@ describe('125 All-50 moves', () => {
   });
   it('Hushed Steps: a Near Miss asked to count higher becomes a Success', () => {
     const s = makeVillage();
-    set(s.player, ['sneaking'], 40);
-    const r = (d: number, up?: string) => ruleset.roll({ actorId: 'player', skill: 'sneaking', modifiers: [], tierShifts: [], ...(up ? { nearMissUp: up } : {}) }, s, forcedRng([d]));
+    set(s.player, [SK.sneaking], 40);
+    const r = (d: number, up?: string) => ruleset.roll({ actorId: 'player', skill: SK.sneaking, modifiers: [], tierShifts: [], ...(up ? { nearMissUp: up } : {}) }, s, forcedRng([d]));
     const d = [...Array(100).keys()].map((i) => i + 1).find((x) => r(x).tier === 'near_miss')!;
     expect(r(d, 'Hushed Steps').tier).toBe('success');
     expect(r(d, 'Hushed Steps').tierShifts).toEqual([{ source: 'Hushed Steps', value: 1 }]);

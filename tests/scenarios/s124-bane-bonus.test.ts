@@ -1,4 +1,4 @@
-// 124 D-111 Bane bonuses (Ali, 08/11/2026): an achievement earned against a race or body type gives the lower level's bonus
+// 124 D-111 Bane bonuses: an achievement earned against a race or body type gives the lower level's bonus
 // plus +5 skill (I = +5, II = +10, III = +15) on rolls against that race or type. A higher level switches
 // the lower ones off. The best race one and the best body type one both count, the weaker at half (type stacking).
 import { describe, expect, it } from 'vitest';

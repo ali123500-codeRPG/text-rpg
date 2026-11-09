@@ -1,4 +1,5 @@
 // Part 2, Resolution engine: the Ruleset interface and its request/result types.
+import type { SkillFunction } from './library';
 import type { Effect, GameEvent, Tier } from './core';
 import type { Actor } from './actor';
 import type { GameState } from './state';
@@ -23,7 +24,7 @@ export type CheckRequest = { actorId: string; skill: string; target?: string; mo
 export type CheckResult = {
   actorId: string;
   skill: string; // the skill actually used (after substitution)
-  /** the skill the action asked for, when a stand-in made the roll (both learn, Ali 09/11/2026) */
+  /** the skill the action asked for, when a stand-in made the roll (both learn) */
   asked?: string;
   target: number;
   passed: boolean;
@@ -42,11 +43,11 @@ export type RollRequest = {
   rollKind?: import('./items').RollKind;
   /** skills that count at full value here instead of as substitutes (perks such as Threaten for Answers) */
   fullValue?: string[];
-  /** a function roll (Ali, 09/11/2026): every skill with this function counts at full value and the best one rolls,
+  /** a function roll: every skill with this function counts at full value and the best one rolls,
    * e.g. 'sight' = Eyesight or Tremor, 'hearing' = Earshot or Tremor. `skill` is then only the default. */
-  fn?: string;
+  fn?: SkillFunction;
   /** extra functions whose skills may stand in here (an attack mode's standInFns) */
-  standInFns?: string[];
+  standInFns?: SkillFunction[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
@@ -57,7 +58,7 @@ export type RollRequest = {
 export type RollResult = {
   actorId: string;
   skill: string;
-  /** the skill the action asked for, when a stand-in made the roll (both learn, Ali 09/11/2026) */
+  /** the skill the action asked for, when a stand-in made the roll (both learn) */
   asked?: string;
   d100: number;
   margin: number;

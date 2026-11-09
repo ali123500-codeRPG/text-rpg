@@ -212,7 +212,7 @@ export function createGame(deps: GameDeps): Game {
     await store.set(`bugs/${s.storyId}_t${s.turn}_${actorId}`, { code: 'unlisted_reveal', storyId: s.storyId, turn: s.turn, at: clock.now(), ...detail }).catch(() => {});
   }
 
-  /** Q9 (Ali, 07/11/2026): a late or failed NPC call keeps its fallback, and is filed for the build threads to review */
+  /** Q9: a late or failed NPC call keeps its fallback, and is filed for the build threads to review */
   function reportFallbacks(s: GameState, log: AgentTurnLog[]): void {
     for (const e of log) {
       if (!['planner', 'responder', 'voice'].includes(e.agent) || (e.status !== 'late' && e.status !== 'fallback')) continue;
@@ -368,7 +368,7 @@ export function createGame(deps: GameDeps): Game {
     switch (cmd.toLowerCase()) {
       case 'stats': {
         const p = s.player;
-        const skills = Object.entries(p.core.skills).map(([k, v]) => `${k} ${v.raw}${v.state === 'tagged' ? '+' : v.state === 'flawed' ? '−' : ''}`);
+        const skills = Object.entries(p.core.skills).map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? '+' : v.state === 'flawed' ? '−' : ''}`);
         return say(`${p.names.current}, ${p.core.classes.map((c) => `${c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`);
       }
       case 'inv':
@@ -487,7 +487,7 @@ export function createGame(deps: GameDeps): Game {
     try {
       const loaded = await save.loadStory(store, storyId, getLibrary());
       state = loaded.state;
-      refreshCopies(state); // copies follow their template and the level lever (Ali, 08/11/2026)
+      refreshCopies(state); // copies follow their template and the level lever
     } catch (e) {
       notice({ kind: 'load_refused', text: `The story could not be loaded: ${(e as Error).message}` });
       return false;
@@ -626,7 +626,7 @@ const eventOrd = (id: string) => {
   return m ? Number(m[1]) * 1e5 + Number(m[2] ?? 0) : -1;
 };
 const EARLIER = /^turn (\d+)(?:–(\d+))?: (.*?)(?: ×(\d+))?$/;
-/** PM6 (Ali, 08/11/2026): events an NPC perceived that fall out of its recent window become short code-made lines
+/** PM6: events an NPC perceived that fall out of its recent window become short code-made lines
  * (no Claude call). A line that repeats the one before it is counted instead (×n); only the last EARLIER_LINES stay. */
 function noteEarlier(s: GameState, a: Actor, dropping: GameEvent[]): void {
   const m = a.mind;
@@ -787,7 +787,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     const bits = [...(d.from !== d.to ? [`${d.from} → ${d.to}`] : []), ...d.parts.map((p) => `${p.id.replace(/_/g, ' ')} ${p.from} → ${p.to}`)];
     out.push(`${engine.healingName(d.source)}: ${bits.length ? bits.join(', ') : d.better ? 'a little better' : 'no change'}`);
   }
-  // a healing item the rules refuse says why, and stays in the pack (Q3, Ali 08/11/2026)
+  // a healing item the rules refuse says why, and stays in the pack (Q3)
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'heal_blocked') continue;
     const d = l.detail as { actorId: string; source: string; reason: string };

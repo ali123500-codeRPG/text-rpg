@@ -1,4 +1,4 @@
-// Equip requirements (Ali, 08/11/2026, EQ1–EQ13). An item's level asks for true skill (EQ1) in the skill that uses it, and
+// Equip requirements (EQ1–EQ13). An item's level asks for true skill (EQ1) in the skill that uses it, and
 // stand-ins count at their usual share (EQ3). Falling short makes every roll with the item one outcome step worse per
 // EQUIP_SHORT_STEP points short (EQ12 c); worn armor's shortfall reaches Dodge and stealth rolls.
 import type { Actor, GameState, ItemDef, ItemInstance, RollKind, TierShift } from '../types';
@@ -7,6 +7,7 @@ import { EQUIP_LEVELS, type EquipLevelKey } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { trueSkill } from './perks';
 import { modeSkill, standInShare, standInTable } from './gear';
+import { SK, ARMOR_SKILL } from '../library/skillIds';
 
 /** EQ11: a minted item of quality 3 or 4 is one level above its base, up to the top */
 export function itemLevel(def: ItemDef): EquipLevelKey | undefined {
@@ -17,8 +18,8 @@ export function itemLevel(def: ItemDef): EquipLevelKey | undefined {
 /** the skill an item asks for: a weapon's first mode, armor's weight (Light/Medium/Heavy Armor), a shield's Block */
 export function requiredSkill(def: ItemDef): string | undefined {
   if (def.weapon?.modes[0]) return modeSkill(def.weapon.modes[0]);
-  if (def.armor) return `${def.armor.weight}_armor`;
-  if (def.shield) return 'block';
+  if (def.armor) return ARMOR_SKILL[def.armor.weight];
+  if (def.shield) return SK.block;
   return undefined;
 }
 

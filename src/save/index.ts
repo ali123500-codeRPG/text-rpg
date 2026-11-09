@@ -259,7 +259,7 @@ export async function listStories(store: Store): Promise<StoryMeta[]> {
   return metas.filter((m): m is StoryMeta => !!m && !m.archivedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
 }
 
-/** A confirmed reset (D-73, Ali 08/11/2026: the GM can reset the save): the story is archived, not deleted. Its meta is
+/** A confirmed reset (D-73: the GM can reset the save): the story is archived, not deleted. Its meta is
  * marked, so listStories (and so resume) skips it, and a story still starting is dropped too. */
 export async function archiveStory(store: Store, storyId: string, at: string): Promise<void> {
   const meta = await guard(() => store.get<StoryMeta>(story(storyId)));
@@ -269,7 +269,7 @@ export async function archiveStory(store: Store, storyId: string, at: string): P
 }
 
 // ---------- a story still starting ----------
-/** Ali (08/11/2026): closing the game during turn 0 lost the new story, because nothing is saved until the opening
+/** Ali: closing the game during turn 0 lost the new story, because nothing is saved until the opening
  * scene is planned and narrated. The build is written first; resume finds it and starts the opening again. */
 export type PendingStart = { storyId: string; build: CreationBuild; at: string };
 const PENDING_START = 'pending/start';

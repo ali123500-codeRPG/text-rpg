@@ -5,9 +5,10 @@ import type { AttackResult, GameEvent, RollResult } from '../../src/types';
 import { makeVillage, place, createRng } from '../harness';
 import { computePerception } from '../../src/perception';
 import { buildNarrationView } from '../../src/views';
+import { SK } from '../../src/library/skillIds';
 
 const roll = (actorId: string, tier: Tier, d100: number, margin: number): RollResult =>
-  ({ actorId, skill: 'melee_medium', d100, margin, tier, natural: 0, modifiers: [{ source: 'wounds', type: 'wounds', value: -15 }], tierShifts: [{ source: 'perk', value: 1 }] });
+  ({ actorId, skill: SK.melee_medium, d100, margin, tier, natural: 0, modifiers: [{ source: 'wounds', type: 'wounds', value: -15 }], tierShifts: [{ source: 'perk', value: 1 }] });
 
 it('84 No numbers to the Narrator', () => {
   const s = makeVillage();

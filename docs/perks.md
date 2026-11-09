@@ -2,13 +2,13 @@
 
 <!-- Generated from src/library/perks.ts by `npm run perks-doc`. Edit that file, not this one. -->
 
-Ladder perks by skill and milestone (Part 1 §5, Skill ladders), as Ali picked them on the 20 milestone page (https://claude.ai/artifact/WkMeSULi8AjSWxeK4jAdwg), 07/11/2026. Review page: https://claude.ai/artifact/DE4FDK98f9uBy7s9Ce41qn. Perks are coded, so each one states exactly when it applies (Ali).
+Ladder perks by skill and milestone (Part 1 §5, Skill ladders), as Ali picked them on the 20 milestone page (https://claude.ai/artifact/WkMeSULi8AjSWxeK4jAdwg). Review page: https://claude.ai/artifact/DE4FDK98f9uBy7s9Ce41qn. Perks are coded, so each one states exactly when it applies.
 
-Each perk has two views that must say the same thing (Ali, 07/11/2026). **Story** is what a player reads when choosing. **Rules** is exactly what code applies, and is the basis for building it. The Perks screen in the game switches between them.
+Each perk has two views that must say the same thing. **Story** is what a player reads when choosing. **Rules** is exactly what code applies, and is the basis for building it. The Perks screen in the game switches between them.
 
 **Terms.** *Owner*: the actor who has the perk. *Hits*: an attack whose outcome is grazed, blocked, full hit, heavy hit or crushing hit (not missed or dodged). *Light/medium/heavy melee or ranged mode*: the attack mode's tree and class (Part 5 §5); thrown weapons are ranged. *Gap* and *tier shift*: Part 1 §4 and Part 3, Defense. *Next turn*: until the end of that actor's next turn. *Engagement*: Part 2, Encounter modes (E1). *Move*: an action the owner chooses on its turn.
 
-The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120 perks raise numbers only, with no conditions: +5 true skill in the skill, +1 to every skill of its function, itself included, and one more number (Ali, 08/11/2026). Swordsman, lockpicking and slime skills have no perks for now.
+The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120 perks raise numbers only, with no conditions: +5 true skill in the skill, +1 to every skill of its function, itself included, and one more number. Swordsman, lockpicking and slime skills have no perks for now.
 
 ## 20 milestone
 
@@ -18,7 +18,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an attack.
-- **Conditions:** Any attack (Ali, 07/11/2026). The target is unaware of the owner when the attack resolves (the same test that starts an ambush).
+- **Conditions:** Any attack. The target is unaware of the owner when the attack resolves (the same test that starts an ambush).
 - **Effect:** Tier shift +1 on the attack roll.
 - **Lasts:** That attack.
 
@@ -38,7 +38,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's melee attack is resolved.
-- **Conditions:** The attack uses a heavy melee mode (skill melee_heavy). The defender blocked with a shield, so the hit lands on the shield (location how = shield).
+- **Conditions:** The attack uses a heavy melee mode (skill Heavy weapons). The defender blocked with a shield, so the hit lands on the shield (location how = shield).
 - **Effect:** The shield's pool takes double the damage. Damage to the defender itself is unchanged.
 - **Lasts:** That attack.
 
@@ -68,7 +68,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits a part with the Move role (a leg) and deals damage.
-- **Conditions:** It is a ranged attack with a medium or heavy ranged mode (skill ranged_medium or ranged_heavy) (Ali, 07/11/2026). The location is a part with the Move role. Damage after armor is above 0.
+- **Conditions:** It is a ranged attack with a medium or heavy ranged mode (skill Medium ranged or Heavy ranged). The location is a part with the Move role. Damage after armor is above 0.
 - **Effect:** The leg's pool takes 1.5× the damage the hit puts on the health track. The target is slowed: it can't dash (AE2).
 - **Lasts:** The slow lasts until the end of the target's next turn.
 
@@ -79,7 +79,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** The owner defends with block.
 - **Conditions:** The owner holds no shield or weapon, and has at least one working Grip arm with an empty hand.
-- **Effect:** The owner may block (block normally needs a held shield or weapon). The block uses the block column of the gap ladder. A hit that gets through is split: 0.5× of its damage goes to the blocking arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test (Ali, 07/11/2026).
+- **Effect:** The owner may block (block normally needs a held shield or weapon). The block uses the block column of the gap ladder. A hit that gets through is split: 0.5× of its damage goes to the blocking arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test.
 - **Lasts:** Each defense.
 
 ### Don't Let Go (Grapple) · A8
@@ -88,8 +88,8 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's grapple attack is resolved.
-- **Conditions:** The attack uses skill unarmed_grapple. The attack roll is Great Success or better. The attack hits (not missed or dodged).
-- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses unarmed_grapple at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4× (Ali, 07/11/2026; docs/skill-tags.md).
+- **Conditions:** The attack uses skill Grapple. The attack roll is Great Success or better. The attack hits (not missed or dodged).
+- **Effect:** The target is held by the owner: it can't leave the owner's zone and can't use a two-handed attack mode. On its turn the held target can try to break free as its move: a grapple contest against the owner, which the target wins on a gap of 0 or better. A held target that tries to leave the zone makes this try instead, and stays in the zone either way. The grapple check uses Grapple at full value, any skill with function arms at 0.2×, or any other skill with function unarmed at 0.4×.
 - **Lasts:** Until the target breaks free, the owner is downed, or the owner leaves the zone.
 
 ### Dirt in the Eyes (Improvisation) · A9
@@ -97,9 +97,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* Honor is for those who can afford to lose. A fistful of dirt, a splash of ale, whatever is close. Once per fight, with a free hand and without giving up your action, you throw it in the face of a foe in your zone. It tries to dodge; if it fails, its next roll that needs sight is two outcomes worse.
 
 - **Kind:** Free move
-- **Trigger:** The owner uses the move on a foe in the owner's zone. It does not use the owner's action (Ali, 07/11/2026).
+- **Trigger:** The owner uses the move on a foe in the owner's zone. It does not use the owner's action.
 - **Conditions:** The owner has a free hand.
-- **Effect:** An unarmed_improvised attack roll against the foe's dodge. If the foe does not win, its next roll that needs sight gets tier shift −2.
+- **Effect:** An Improvisation attack roll against the foe's dodge. If the foe does not win, its next roll that needs sight gets tier shift −2.
 - **Lasts:** Until that roll is made, or the end of the foe's next turn.
 - **Cooldown:** Once per engagement.
 
@@ -140,7 +140,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** The owner perceives a foe by sight.
 - **Conditions:** The owner can see the foe.
-- **Effect:** The foe's Damaged body parts are shown to the owner (foes' part states are otherwise never shown). The foe's health level also shows one step earlier on the health track: the level where it starts to show moves one position milder in the health-track names table (from Wounded to Injured today) (Ali, 07/11/2026).
+- **Effect:** The foe's Damaged body parts are shown to the owner (foes' part states are otherwise never shown). The foe's health level also shows one step earlier on the health track: the level where it starts to show moves one position milder in the health-track names table (from Wounded to Injured today).
 - **Lasts:** While the owner sees it.
 
 ### Keen Ear (Earshot) · A14
@@ -149,7 +149,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** A perception check for the owner by sound.
-- **Effect:** Sound reaches the owner one zone link further: both the clear and the half reach of every noise level go up one link (CONFIG.NOISE_REACH). Nowhere is the step below the same zone, so a Silent sound is heard like a Hushed one, and a Quiet sound is heard clearly one link away (Ali, 08/11/2026).
+- **Effect:** Sound reaches the owner one zone link further: both the clear and the half reach of every noise level go up one link (CONFIG.NOISE_REACH). Nowhere is the step below the same zone, so a Silent sound is heard like a Hushed one, and a Quiet sound is heard clearly one link away.
 - **Lasts:** Always.
 
 ### Quick Word (Persuasion) · A15
@@ -159,7 +159,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner both speaks and acts.
 - **Conditions:** The line is short (one sentence).
-- **Effect:** The line resolves as talk without using the owner's action. An NPC's spoken reply to that line is also free: it doesn't use the NPC's action (Ali, 07/11/2026).
+- **Effect:** The line resolves as talk without using the owner's action. An NPC's spoken reply to that line is also free: it doesn't use the NPC's action.
 - **Lasts:** That line.
 - **Cooldown:** Once per turn.
 - **Open:** Trial perk: test in play how NPCs answer. Ali drops it if the free exchange doesn't work.
@@ -183,7 +183,55 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Buying prices ×0.9; selling prices ×1.1.
 - **Lasts:** Always.
 - **Needs first:** Buying and selling (D-93).
-- **Open:** Kept only if trade prices make a sale at 1.1× still pay less than buying the same item at 0.9× (Ali, 07/11/2026). That needs the price a merchant pays the player to be under 0.81× of the price it charges (1.1 × sell < 0.9 × buy).
+- **Open:** Kept only if trade prices make a sale at 1.1× still pay less than buying the same item at 0.9×. That needs the price a merchant pays the player to be under 0.81× of the price it charges (1.1 × sell < 0.9 × buy).
+
+### Soft Tread (Sneaking) · A18
+
+*Story:* You know where to put your feet. While you move unseen, your steps are one step quieter.
+
+- **Kind:** Always on
+- **Trigger:** The owner moves while Stealthy.
+- **Effect:** The move's noise is read one step quieter on the noise scale (Normal as Quiet), after worn armor's steps.
+- **Lasts:** That move.
+
+### Melt Away (Vanishing) · A19
+
+*Story:* Shadow and clutter are enough. With cover or shade around you, you can vanish right where you stand.
+
+- **Kind:** Always on
+- **Trigger:** The owner Vanishes without a zone to go to.
+- **Conditions:** The owner's zone has some or heavy cover, or its light is dim or dark.
+- **Effect:** The owner vanishes in place: it stays in its zone, and each observer makes a Vanishing contest against it, as a Vanish does. One who saw the owner and loses drops to suspicious at that zone. It uses the main action, as a Hide does.
+- **Lasts:** That Vanish.
+
+### Slip the Blow (Light Armor) · A20
+
+*Story:* Light armor lets you roll with a blow. When your dodge only ties, the hit becomes a graze.
+
+- **Kind:** Always on
+- **Trigger:** The owner dodges an attack.
+- **Conditions:** The owner wears light armor. The gap is 0.
+- **Effect:** The gap counts as +1: a graze for 0.8× damage.
+- **Lasts:** That attack.
+
+### Quiet Mail (Medium Armor) · A21
+
+*Story:* You know how to wear armor quietly. Whatever its weight, your armor makes one step less noise.
+
+- **Kind:** Always on
+- **Trigger:** The owner moves its body (move, attack, perk move, break free, pick up) while wearing armor.
+- **Effect:** Worn armor adds one noise step less, never below none: medium armor adds none, heavy armor adds one.
+- **Lasts:** Always.
+
+### Turn Aside (Heavy Armor) · A22
+
+*Story:* Plate takes the worst out of any blow. A heavy or crushing hit on a part your heavy armor covers lands as a plain full hit.
+
+- **Kind:** Always on
+- **Trigger:** An attack hits the owner.
+- **Conditions:** The hit is a heavy hit or a crushing hit (gap −4 or −5). The owner wears heavy armor that covers the struck part.
+- **Effect:** The hit counts as a full hit: damage multiplier 1× instead of 1.5× or 2×.
+- **Lasts:** That hit.
 
 ## 40 milestone
 
@@ -193,7 +241,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_light. +1 true skill in every skill of group melee. +10 on attack rolls with skill melee_light.
+- **Effect:** +5 true skill in Light weapons. +1 true skill in every skill of group Melee. +10 on attack rolls with skill Light weapons.
 - **Lasts:** Always.
 
 ### Guard Drill (Medium weapons) · P2
@@ -202,7 +250,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_medium. +1 true skill in every skill of group melee. +10 true skill in block.
+- **Effect:** +5 true skill in Medium weapons. +1 true skill in every skill of group Melee. +10 true skill in Block.
 - **Lasts:** Always.
 
 ### Heavy Hand (Heavy weapons) · P3
@@ -211,7 +259,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in melee_heavy. +1 true skill in every skill of group melee. Damage of an attack with skill melee_heavy is ×1.2, before armor.
+- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of an attack with skill Heavy weapons is ×1.2, before armor.
 - **Lasts:** Always.
 
 ### Sharp Eyes (Light ranged) · P4
@@ -220,7 +268,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_light. +1 true skill in every skill of group ranged. +10 true skill in sight.
+- **Effect:** +5 true skill in Light ranged. +1 true skill in every skill of group Ranged. +10 true skill in Eyesight.
 - **Lasts:** Always.
 
 ### Steady Draw (Medium ranged) · P5
@@ -229,7 +277,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_medium. +1 true skill in every skill of group ranged. +5 on attack rolls with skill ranged_medium, and its damage is ×1.1, before armor.
+- **Effect:** +5 true skill in Medium ranged. +1 true skill in every skill of group Ranged. +5 on attack rolls with skill Medium ranged, and its damage is ×1.1, before armor.
 - **Lasts:** Always.
 
 ### Armor Piercer (Heavy ranged) · P6
@@ -238,7 +286,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in ranged_heavy. +1 true skill in every skill of group ranged. On a hit with skill ranged_heavy, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
+- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with skill Heavy ranged, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
 - **Lasts:** Always.
 
 ### Street Fighter (Strike) · P7
@@ -247,7 +295,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_strike. +1 true skill in every skill of group melee. +10 true skill in unarmed_improvised.
+- **Effect:** +5 true skill in Strike. +1 true skill in every skill of group Melee. +10 true skill in Improvisation.
 - **Lasts:** Always.
 
 ### Iron Grip (Grapple) · P8
@@ -256,7 +304,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_grapple. +1 true skill in every skill of group melee. +10 on every roll with skill unarmed_grapple (grapple attacks, and both sides of a break-free contest).
+- **Effect:** +5 true skill in Grapple. +1 true skill in every skill of group Melee. +10 on every roll with skill Grapple (grapple attacks, and both sides of a break-free contest).
 - **Lasts:** Always.
 
 ### Brawler's Eye (Improvisation) · P9
@@ -265,7 +313,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in unarmed_improvised. +1 true skill in every skill of group melee. +5 true skill in unarmed_strike and +5 in sight.
+- **Effect:** +5 true skill in Improvisation. +1 true skill in every skill of group Melee. +5 true skill in Strike and +5 in Eyesight.
 - **Lasts:** Always.
 
 ### Light Feet (Dodge) · P10
@@ -274,7 +322,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in dodge. +1 true skill in every skill of group defense. +10 true skill in sneaking.
+- **Effect:** +5 true skill in Dodge. +1 true skill in every skill of group Defense. +10 true skill in Sneaking.
 - **Lasts:** Always.
 
 ### Take the Hit (Block) · P11
@@ -283,7 +331,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in block. +1 true skill in every skill of group defense. +10 true skill in endurance.
+- **Effect:** +5 true skill in Block. +1 true skill in every skill of group Defense. +10 true skill in Endurance.
 - **Lasts:** Always.
 
 ### Fast Healer (Endurance) · P12
@@ -292,7 +340,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in endurance. +1 true skill in every skill of group health. Natural recovery (the hourly healing row read from endurance) is ×2.
+- **Effect:** +5 true skill in Endurance. +1 true skill in every skill of group Health. Natural recovery (the hourly healing row read from Endurance) is ×2.
 - **Lasts:** Always.
 
 ### Marksman's Eye (Eyesight) · P13
@@ -301,7 +349,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in sight. +1 true skill in every skill of group notice. +5 true skill in ranged_light and +5 in ranged_medium.
+- **Effect:** +5 true skill in Eyesight. +1 true skill in every skill of group Notice. +5 true skill in Light ranged and +5 in Medium ranged.
 - **Lasts:** Always.
 
 ### Soft Step (Earshot) · P14
@@ -310,7 +358,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in hearing. +1 true skill in every skill of group notice. +10 true skill in sneaking.
+- **Effect:** +5 true skill in Earshot. +1 true skill in every skill of group Notice. +10 true skill in Sneaking.
 - **Lasts:** Always.
 
 ## Higher milestone
@@ -321,7 +369,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner makes an aimed attack.
-- **Conditions:** Any attack (Ali, 07/11/2026).
+- **Conditions:** Any attack.
 - **Effect:** The aim penalty for the part's size is halved.
 - **Lasts:** That attack.
 
@@ -331,7 +379,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's melee attack hits a part with the Grip role (an arm) and deals damage.
-- **Conditions:** The attack uses a medium or heavy melee mode (Ali, 07/11/2026). Damage to that part is above 0.
+- **Conditions:** The attack uses a medium or heavy melee mode. Damage to that part is above 0.
 - **Effect:** The target drops what that arm's hand holds, weapon or shield, into its zone.
 - **Lasts:** That attack.
 
@@ -351,7 +399,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* Loose, step, gone. They aim at where you were. On a turn you shoot a light or medium ranged weapon, you can also move one zone link.
 
 - **Kind:** Always on
-- **Trigger:** A tactical turn in which the owner's order is a light or medium ranged attack (Ali, 07/11/2026).
+- **Trigger:** A tactical turn in which the owner's order is a light or medium ranged attack.
 - **Effect:** The owner may also move one zone link, before or after the shot.
 - **Lasts:** Each turn.
 - **Needs first:** Action economy.
@@ -447,15 +495,15 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner saw the character before the Vanish.
 - **Effect:** The character must also win a Sneaking contest against the owner, or a Combat Stealth contest while engaged, using the owner's sight. If the character doesn't win it, the owner keeps seeing them.
 - **Lasts:** That Vanish.
-- **Open:** Eyesight 60 (Ali, 08/11/2026: "link it"). Works for the player too since NPC stealth (NS10).
+- **Open:** Eyesight 60. Works for the player too since NPC stealth (NS10).
 
 ### Set Them Up (Strike) · B15
 
 *Story:* Left, right, bottle, fist. Every blow opens the door for the next. Every punch you throw at a foe, landed or not, sets up your next improvised attack on it, and every improvised attack sets up your next punch: that attack lands one outcome better.
 
 - **Kind:** Always on
-- **Trigger:** The owner makes an attack with skill unarmed_strike or unarmed_improvised, hit or miss (Ali, 08/11/2026: it counts on the attempt).
-- **Effect:** A Strike attack marks the target for the owner's next unarmed_improvised attack on it; an improvised attack marks the target for the owner's next unarmed_strike attack on it. That attack gets tier shift +1, and the mark clears.
+- **Trigger:** The owner makes an attack with skill Strike or Improvisation, hit or miss (it counts on the attempt).
+- **Effect:** A Strike attack marks the target for the owner's next Improvisation attack on it; an improvised attack marks the target for the owner's next Strike attack on it. That attack gets tier shift +1, and the mark clears.
 - **Lasts:** Until it is used or the engagement ends.
 
 ### One-Two (Improvisation) · B16
@@ -463,9 +511,29 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* A bottle in one hand, a fist in the other, and no mercy in either. When you hit a foe with an improvised weapon and your other hand is empty, you follow up with a free punch at the same foe.
 
 - **Kind:** Always on
-- **Trigger:** The owner's attack with skill unarmed_improvised hits (outcome grazed, blocked, full, heavy or crushing hit).
+- **Trigger:** The owner's attack with skill Improvisation hits (outcome grazed, blocked, full, heavy or crushing hit).
 - **Conditions:** The owner has a working Grip arm with an empty hand. The target is still active and in the owner's zone.
-- **Effect:** The owner makes one extra attack with skill unarmed_strike (fists) at the same target at once. It doesn't use the owner's action, and can't trigger One-Two again.
+- **Effect:** The owner makes one extra attack with skill Strike (fists) at the same target at once. It doesn't use the owner's action, and can't trigger One-Two again.
+- **Lasts:** That attack.
+
+### Out of Nowhere (Combat Stealth) · B17
+
+*Story:* They feel the arrow, never the archer. When you shoot from hiding and the target misses you, it still doesn't know you are there.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a ranged attack while Stealthy.
+- **Conditions:** The target loses the notice contest (Combat Stealth).
+- **Effect:** The target stays unaware of the owner, instead of turning suspicious at the owner's zone. It still knows it was hit.
+- **Lasts:** That attack.
+
+### Answer the Blow (Riposte) · B18
+
+*Story:* A clean parry is half a cut. When you turn a blow aside cleanly with a medium weapon, you strike back at once.
+
+- **Kind:** Always on
+- **Trigger:** The owner blocks a melee attack with a medium melee weapon.
+- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack. Once per turn.
+- **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
 - **Lasts:** That attack.
 
 ## Very high milestone
@@ -513,12 +581,23 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## Banked, no milestone yet
 
+### Go to Ground (Sneaking) · D9
+
+*Story:* Lie still long enough and they decide they imagined you. When you hide, someone who was only suspicious of you can lose you entirely.
+
+- **Kind:** Always on
+- **Trigger:** The owner Hides outside an engagement.
+- **Conditions:** The observer is suspicious of the owner, not aware.
+- **Effect:** An observer who loses the contest drops to unaware, instead of staying suspicious.
+- **Lasts:** That contest.
+- **Open:** Parked for a hiding perk.
+
 ### Held Shot (Medium ranged) · D8
 
 *Story:* Patience is a blade too. You hold your shot and wait. Instead of acting, you ready a ranged weapon: the first hostile to enter your zone before the end of your next turn takes a shot before it can act.
 
 - **Kind:** Move
-- **Trigger:** The owner readies any ranged weapon instead of acting (Ali, 07/11/2026).
+- **Trigger:** The owner readies any ranged weapon instead of acting.
 - **Effect:** When a hostile actor enters the owner's zone, the owner shoots it at once, before it acts.
 - **Lasts:** Until the end of the owner's next turn, one shot.
 - **Needs first:** Moves; reactions.
@@ -557,7 +636,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Kind:** Always on
 - **Trigger:** A tactical turn in which the owner's order is an unarmed strike.
 - **Conditions:** Both Grip arms work and hold nothing.
-- **Effect:** The owner attacks twice. The second attack gets tier shift −1 (Ali, 07/11/2026).
+- **Effect:** The owner attacks twice. The second attack gets tier shift −1.
 - **Lasts:** Each turn.
 - **Needs first:** Action economy.
 
@@ -576,12 +655,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** A roll by the owner that needs sight.
-- **Effect:** Light is read two steps brighter on the light scale, by position in the names table (dark counts as bright, dim counts as bright). It is coded as +2 steps, not as 'no penalty', so light levels added later shift the same way (Ali, 07/11/2026).
+- **Effect:** Light is read two steps brighter on the light scale, by position in the names table (dark counts as bright, dim counts as bright). It is coded as +2 steps, not as 'no penalty', so light levels added later shift the same way.
 - **Lasts:** Always.
 
 ## All-50 parts
 
-Granted free when every skill of the tree reaches 50 true skill, each part once it is built (Ali, 08/11/2026). Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
+Granted free when every skill of the tree reaches 50 true skill, each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
 
 ### Opening Strike (Combat – Arms) · T1a
 
@@ -589,7 +668,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a melee attack.
-- **Conditions:** It is the owner's first melee attack on that foe in this engagement (Ali, 09/11/2026: per foe per engagement).
+- **Conditions:** It is the owner's first melee attack on that foe in this engagement.
 - **Effect:** Tier shift +1 on the attack roll. The defense roll still happens.
 - **Lasts:** That attack.
 - **Cooldown:** Once per foe per engagement.
@@ -601,7 +680,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Always on
 - **Trigger:** A melee attack on the owner is resolved.
-- **Conditions:** The attack roll ends in Critical Failure or worse (Ali, 08/11/2026). The attack was not itself a free attack. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed. Once per turn.
+- **Conditions:** The attack roll ends in Critical Failure or worse. The attack was not itself a free attack. The owner is active, in the attacker's zone, and its default mode at that range is melee or unarmed. Once per turn.
 - **Effect:** The owner makes one attack at the attacker at once, with that mode. It does not use the owner's action.
 - **Lasts:** That attack.
 - **Built:** yes
@@ -624,7 +703,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Kind:** Always on
 - **Trigger:** Always; and the owner makes a Block roll.
 - **Conditions:** The extra +5 needs the block to be made with a melee weapon, not a shield.
-- **Effect:** +5 true skill in Block (Ali, 09/11/2026). Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).
+- **Effect:** +5 true skill in Block. Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 
@@ -635,7 +714,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
 - **Conditions:** It is the owner's first ranged attack in this engagement. The target hasn't acted yet in its engagement (it has none, or it began this turn and the target hasn't had its action).
-- **Effect:** Tier shift −1 on the target's defense roll. No roll is skipped (Ali, 08/11/2026).
+- **Effect:** Tier shift −1 on the target's defense roll. No roll is skipped.
 - **Lasts:** That attack.
 - **Cooldown:** Once per engagement.
 - **Built:** yes
@@ -646,7 +725,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Automatic
 - **Trigger:** The owner's ranged attack hits.
-- **Conditions:** Once per engagement. Not after a free attack. Code picks at random among actors already hostile to the owner that the owner is aware of and the weapon reaches; none, no shot (Ali, 08/11/2026).
+- **Conditions:** Once per engagement. Not after a free attack. Code picks at random among actors already hostile to the owner that the owner is aware of and the weapon reaches; none, no shot.
 - **Effect:** The owner makes one more ranged attack at that target with the same weapon. It does not use the owner's action.
 - **Lasts:** That attack.
 - **Cooldown:** Once per engagement.
@@ -668,7 +747,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +10 true skill in every skill with the sight function (Ali, 08/11/2026: "+10 to sight, the function").
+- **Effect:** +10 true skill in every skill with the sight function.
 - **Lasts:** Always.
 - **Built:** yes
 
@@ -699,7 +778,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Kind:** Always on
 - **Trigger:** Always; and the owner makes a Dodge roll.
 - **Conditions:** The extra +5 needs the owner to hold no item with a weapon mode.
-- **Effect:** +5 true skill in Dodge (Ali, 09/11/2026). While holding no weapon, Dodge rolls also get +5 effective skill (CONFIG.BARE_HANDED_GUARD, placeholder).
+- **Effect:** +5 true skill in Dodge. While holding no weapon, Dodge rolls also get +5 effective skill (CONFIG.BARE_HANDED_GUARD, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 
@@ -806,7 +885,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a Persuasion, Intimidation or Barter roll.
-- **Conditions:** The roll ends in a Near Miss or worse (Ali, 09/11/2026).
+- **Conditions:** The roll ends in a Near Miss or worse.
 - **Effect:** Tier shift +1 on that roll.
 - **Lasts:** That roll.
 - **Built:** yes
@@ -817,7 +896,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Always on
 - **Trigger:** The owner answers a speech contest: someone speaks to it with Persuasion, Intimidation or Barter.
-- **Effect:** Tier shift +1 on the owner's answering roll (Ali, 09/11/2026, option a).
+- **Effect:** Tier shift +1 on the owner's answering roll.
 - **Lasts:** That roll.
 - **Open:** Only the player starts speech contests today, so this helps NPC owners. When NPCs speak to the player with a roll (OQ-29), it covers the player too.
 - **Built:** yes
@@ -828,6 +907,6 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Persuasion, Intimidation and Barter (Ali, 09/11/2026, Round 4 option a; the twin of Hunter's Eye).
+- **Effect:** +5 true skill in Persuasion, Intimidation and Barter.
 - **Lasts:** Always.
 - **Built:** yes

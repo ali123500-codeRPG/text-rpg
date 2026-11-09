@@ -12,6 +12,7 @@ import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, sho
 import { activity, actorBody, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
+import { skillName } from '../library/skillNames';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -208,7 +209,7 @@ export function buildPlayerView(state: GameState): PlayerView {
     player: {
       id: 'player', name: p.names.current,
       classes: p.core.classes.map((c) => c.classId),
-      skills: Object.keys(p.core.skills),
+      skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => x.perkId),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })),
@@ -456,7 +457,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
         slots: Object.fromEntries(Object.entries(s.slots).map(([k, v]) => [k, { kind: v.kind, hint: v.hint }])),
       })),
       items: [...items.values()],
-      skills: Object.keys(lib.skills),
+      skills: Object.keys(lib.skills).map((id) => ({ id, name: skillName(id) })),
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
     },
     grades: [...GRADES],

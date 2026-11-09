@@ -1,9 +1,10 @@
-// Healing displays (Ali, 07/11/2026, H1 d / H2 a / H3 b): the turn's notes survive the log reset, and the quick slot
+// Healing displays (H1 d / H2 a / H3 b): the turn's notes survive the log reset, and the quick slot
 // shows the player's pick, else the strongest healing item (ties: the one carried most).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { turnNotes } from '../../src/agents/game';
 import { healItems, quickHeal } from '../../src/ui/healing';
+import { SK } from '../../src/library/skillIds';
 
 describe('healing displays', () => {
   it('turn notes keep the player’s healing, skill gains and milestones', () => {
@@ -11,12 +12,12 @@ describe('healing displays', () => {
     s.log.push(
       { turn: s.turn, code: 'healed', detail: { actorId: s.player.id, source: 'bandage', from: 'Hurt', to: 'Bruised', parts: [] } },
       { turn: s.turn, code: 'healed', detail: { actorId: 'someone_else', source: 'bandage', from: 'Hurt', to: 'Bruised', parts: [] } },
-      { turn: s.turn, code: 'skill_improved', detail: { skill: 'block', from: 38, to: 40, milestone: 40 } },
-      { turn: s.turn - 1, code: 'skill_improved', detail: { skill: 'dodge', from: 10, to: 12 } },
+      { turn: s.turn, code: 'skill_improved', detail: { skill: SK.block, from: 38, to: 40, milestone: 40 } },
+      { turn: s.turn - 1, code: 'skill_improved', detail: { skill: SK.dodge, from: 10, to: 12 } },
     );
     expect(turnNotes(s)).toEqual({
       heals: [{ source: 'bandage', from: 'Hurt', to: 'Bruised', parts: [] }],
-      unlocks: [{ skill: 'block', milestone: 40 }], gains: { block: 2 },
+      unlocks: [{ skill: SK.block, milestone: 40 }], gains: { [SK.block]: 2 },
     });
   });
   it('quick slot: strongest first, ties to the most carried, the player’s pick wins', () => {

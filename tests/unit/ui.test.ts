@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fmtDate, visPass } from '../../src/ui/kit';
 import { validateBuildLocal } from '../../src/ui/fakeGame';
+import { SK } from '../../src/library/skillIds';
 
 describe('ui helpers', () => {
   it('visibility: several Shown = either, Left out never passes', () => {
@@ -14,13 +15,13 @@ describe('ui helpers', () => {
     expect(fmtDate('2026-11-07T12:00:00')).toBe('07/11/2026');
   });
   it('the recommended build is valid and a short build is not', () => {
-    const skills = { melee_medium: 50, block: 40, dodge: 30, endurance: 50, sight: 30, hearing: 30, feint: 10, riposte: 10 };
-    expect(validateBuildLocal({ name: 'A', skills, tagged: ['melee_medium', 'block', 'endurance'] })).toEqual([]);
-    expect(validateBuildLocal({ name: 'A', skills: { ...skills, feint: 0 }, tagged: ['block'] }).length).toBe(2);
+    const skills = { [SK.melee_medium]: 50, [SK.block]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.feint]: 10, [SK.riposte]: 10 };
+    expect(validateBuildLocal({ name: 'A', skills, tagged: [SK.melee_medium, SK.block, SK.endurance] })).toEqual([]);
+    expect(validateBuildLocal({ name: 'A', skills: { ...skills, [SK.feint]: 0 }, tagged: [SK.block] }).length).toBe(2);
   });
 });
 
-describe('play screen extras (Voyage UI check, 07/11/2026)', async () => {
+describe('play screen extras (Voyage UI check)', async () => {
   const { makeVillage } = await import('../harness');
   const { buildPlayerView } = await import('../../src/views');
   const { ideas } = await import('../../src/ui/play');

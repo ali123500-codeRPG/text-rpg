@@ -6,7 +6,7 @@ import { getLibrary } from '../../src/library';
 describe('95 Stacked armor', () => {
   it('worn armor, then natural armor, floor 0, not rounded', () => {
     const s = makeVillage();
-    // BR6 (Ali, 08/11/2026): natural armor is on the race
+    // BR6: natural armor is on the race
     const scaled = { id: 'scaled_man', name: 'Scaled man', bodyTypeId: 'humanoid', hpMultiplier: 1, naturalArmor: { covers: ['general'], reduction: 2, multiplier: 0.5 } };
     getLibrary().races!.scaled_man = scaled;
     const t = s.actors.find((a) => a.id === 'patron_1')!;

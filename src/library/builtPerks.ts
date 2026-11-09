@@ -1,4 +1,4 @@
-// Perks whose rules are coded (Ali, 07/11/2026: perks are coded, so each is built against its Rules write-up in perks.ts).
+// Perks whose rules are coded (perks are coded, so each is built against its Rules write-up in perks.ts).
 // A perk listed here can be taken; the rest show on the Perks screen but can't be taken yet.
 export const BUILT_PERKS = new Set<string>([
   'hidden_strike', // A1: src/ruleset/index.ts attack()
@@ -36,6 +36,9 @@ export const BUILT_PERKS = new Set<string>([
   'threaten_for_answers', // A16: src/engine/speech.ts resolveSpeech()
   'hold', // A8: src/engine/held.ts, the grapple mode in src/library/data.ts
   'leg_bolt', // A6: attack(), applyEffects(), src/engine/perkMarks.ts slowed()
+  'soft_tread', 'quiet_mail', // A18, A21: src/engine/resolve.ts armorNoise()
+  'melt_away', // A19: src/engine/resolve.ts setPosture(), src/agents/legality.ts
+  'slip_the_blow', 'turn_aside', // A20, A22: attack() in src/ruleset/index.ts
   'dirt_in_the_eyes', // A9: src/engine/perkMoves.ts, the Parser's perkMove
   'set_them_up', // B15 (strike 60): src/engine/perkMarks.ts markShifts() and afterAttack()
   'one_two', // B16 (improvisation 60): src/engine/resolve.ts doAttack()

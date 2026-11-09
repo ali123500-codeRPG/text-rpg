@@ -1,4 +1,4 @@
-// 115 Leg Bolt (A6) and Dirt in the Eyes (A9) (Ali, 07/11/2026; rules in src/library/perks.ts; action economy AE2, AE5, AE8).
+// 115 Leg Bolt (A6) and Dirt in the Eyes (A9) (rules in src/library/perks.ts; action economy AE2, AE5, AE8).
 // Leg Bolt: a medium or heavy ranged hit that wounds a leg costs the leg 1.5× and slows the target (no dash) until the
 // end of its next turn. Dirt in the Eyes: a free perk move, once per engagement, needing a free hand; unless the foe's
 // dodge wins, its next attack or defense roll gets tier shift −2.
@@ -12,6 +12,7 @@ import { buildPlayerView } from '../../src/views';
 import { ideas } from '../../src/ui/play';
 import type { Actor, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
@@ -95,7 +96,7 @@ describe('115 Dirt in the Eyes', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     wim.zone = s.player.zone;
-    const i = intent({ perkMove: { perk: 'dirt_in_the_eyes', target: wim.id }, action: { type: 'attack', skill: 'unarmed_strike', target: wim.id } });
+    const i = intent({ perkMove: { perk: 'dirt_in_the_eyes', target: wim.id }, action: { type: 'attack', skill: SK.unarmed_strike, target: wim.id } });
     expect(checkParserLegality(i, buildPlayerView(s)).intent.perkMove).toBeNull();
     give(s.player, 'dirt_in_the_eyes');
     for (const it of s.player.core.inventory) delete it.equippedIn; // a free hand

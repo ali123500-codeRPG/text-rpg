@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
+import { SK } from '../../src/library/skillIds';
 
 // guard wears a mail hauberk (general area and arms) and blocks with its sword: 40 + 15 − 63.5 → Near Miss (-1)
 describe('94 Uncovered part', () => {
@@ -8,7 +9,7 @@ describe('94 Uncovered part', () => {
     const s = makeVillage();
     place(s, 'guard_1', 'tav_common');
     const g = s.actors.find((a) => a.id === 'guard_1')!;
-    g.core.skills.block = { raw: 30, state: 'normal' }; // the numbers below assume the template minimum, before level points
+    g.core.skills[SK.block] = { raw: 30, state: 'normal' }; // the numbers below assume the template minimum, before level points
     // aimed head: 95 + 37.5 − 30 − 63.5 = 39 → Great Success (1); gap −2
     const head = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: 'player_arming_sword_1', targetPart: 'head', aimed: true }, s, forcedRng([95, 40]));
     expect(head.gap).toBe(-2);
