@@ -175,7 +175,7 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
     return `<path data-part="${esc(id)}" class="bf-${i.state.toLowerCase()}${hl ? ' bf-healed' : ''}" d="${esc(d)}"><title>${esc(i.name)} · ${i.state}${hl}</title></path>`;
   }).join('');
   const svg = h('div', { class: 'bf-svg' });
-  svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#5a6488"/><rect width="2.5" height="6" fill="#0b1330" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
+  svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--c3)"/><rect width="2.5" height="6" style="fill:var(--bg)" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
   const out = h('p', { class: 'bf-out', 'aria-live': 'polite' });
   svg.addEventListener('click', (e) => {
     const el = (e.target as Element).closest('[data-part]');
