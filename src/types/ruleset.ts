@@ -23,6 +23,8 @@ export type CheckRequest = { actorId: string; skill: string; target?: string; mo
 export type CheckResult = {
   actorId: string;
   skill: string; // the skill actually used (after substitution)
+  /** the skill the action asked for, when a stand-in made the roll (both learn, Ali 09/11/2026) */
+  asked?: string;
   target: number;
   passed: boolean;
   modifiers: CheckRequest['modifiers'];
@@ -50,6 +52,8 @@ export type RollRequest = {
 export type RollResult = {
   actorId: string;
   skill: string;
+  /** the skill the action asked for, when a stand-in made the roll (both learn, Ali 09/11/2026) */
+  asked?: string;
   d100: number;
   margin: number;
   tier: Tier; // clamped to the TIERS table

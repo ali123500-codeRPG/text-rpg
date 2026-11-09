@@ -120,7 +120,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const shifts = [...req.tierShifts];
   let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
-  return { actorId: actor.id, skill: eff.skill, d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
+  return { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill ? { asked: req.skill } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
 }
 
 function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
@@ -129,7 +129,7 @@ function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
   const eff = effectiveSkill(state, actor, req.skill, { itemId: tool });
   const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge];
   const passed = eff.value + req.modifiers.reduce((s, m) => s + m.value, 0) >= target;
-  return { actorId: actor.id, skill: eff.skill, target, passed, modifiers: req.modifiers };
+  return { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill ? { asked: req.skill } : {}), target, passed, modifiers: req.modifiers };
 }
 
 function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult {
