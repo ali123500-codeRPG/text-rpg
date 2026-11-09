@@ -55,7 +55,9 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish') a.skill = '';
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
-    if (a.item !== null && !items.has(a.item)) illegal.push(`action.item ${a.item}`);
+    // a buy names a ware of the seller it targets (goods:… / service:…), not an item the player can reach
+    const wares = a.type === 'buy' ? new Set(view.actors.find((x) => x.id === a.target)?.wares?.map((w) => w.id) ?? []) : null;
+    if (a.item !== null && !(wares ? wares.has(a.item) : items.has(a.item))) illegal.push(`action.item ${a.item}`);
     if (a.mode !== null) {
       const modes = a.item ? own.find((i) => i.id === a.item)?.modes ?? [] : own.flatMap((i) => (i.equippedIn.length ? i.modes : []));
       // unarmed / natural modes are not listed on gear; only a mode named against a listed item can be wrong

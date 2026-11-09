@@ -4,6 +4,7 @@ import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
+import { checkParserLegality } from '../../src/agents/legality';
 import { actorById } from '../../src/engine/relations';
 import { applyHaggle, buy, coinWords, coins, warePrice } from '../../src/engine/trade';
 import { SV } from '../../src/library/serviceIds';
@@ -88,4 +89,15 @@ it('133e clinic care is bought, then used by resting in the clinic', () => {
   play(s, { intent: intent({ action: { type: 'rest' } }) });
   expect(c.hpLostPct).toBe(0);
   expect(s.player.paid).toEqual([]);
+});
+
+// run 21: every buy came back "Which item do you mean?" because legality only knew items the player could reach
+it('133g a buy naming a ware of its seller passes legality; a ware the seller lacks does not', () => {
+  const s = shop();
+  const view = buildPlayerView(s);
+  const legal = (item: string, target = 'trader') => checkParserLegality(intent({ action: { type: 'buy', target, item } }), view).illegal;
+  expect(legal(`service:${SV.drink}`)).toEqual([]);
+  expect(legal('goods:healing_draught')).toEqual([]);
+  expect(legal(`service:${SV.bed}`)).toEqual([`action.item service:${SV.bed}`]);
+  expect(legal(`service:${SV.drink}`, 'patron_1')).toEqual([`action.item service:${SV.drink}`]);
 });
