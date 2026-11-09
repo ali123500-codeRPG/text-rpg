@@ -123,7 +123,8 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   afterEvent(ctx, ev);
 }
 
-/** a perceives an attack on itself or a bandmate: override toward the attacker becomes hostile. */
+/** a perceives an attack on itself or a bandmate: override toward the attacker becomes hostile. RS6: only if a knows who
+ * did it: a bandmate must see the attack fully; the target must see it fully or be aware of the attacker after it. */
 function setAttackOverrides(state: GameState, ev: GameEvent): void {
   const target = actorById(state, ev.target!);
   if (!target) return;
@@ -131,7 +132,8 @@ function setAttackOverrides(state: GameState, ev: GameEvent): void {
     if (p.id === ev.actorId || !p.mind || !isActive(p)) continue;
     const self = p.id === target.id;
     // GAP: a bandmate must perceive the attack fully (a partial event names no attacker).
-    if (!self && (p.bandId !== target.bandId || ev.perception[p.id]?.level !== 'full')) continue;
+    const saw = ev.perception[p.id]?.level === 'full';
+    if (self ? !saw && !atLeast(p.mind.knowledge[ev.actorId]?.status, 'aware') : p.bandId !== target.bandId || !saw) continue;
     p.mind.overrides = { ...(p.mind.overrides ?? {}), [ev.actorId]: 'hostile' };
   }
 }

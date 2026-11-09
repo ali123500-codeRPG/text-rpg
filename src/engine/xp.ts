@@ -4,7 +4,7 @@ import { CONFIG } from '../config';
 import { bodyType, getLibrary } from '../library';
 import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
-import { isActive, stance, wary } from './relations';
+import { isActive, stance } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
 import { ruleMet, skillOpen } from '../ruleset/access';
@@ -151,7 +151,7 @@ export function unlockClasses(state: GameState): void {
   }
 }
 
-/** X4/X5: an opposed or hostile NPC that is down or surrendered pays once, if the player hit it or it surrendered. */
+/** X4/X5, RS7: an NPC pays once, whatever its stance, when it is down and the player hit it, or when it surrendered to the player. */
 export function payDefeats(state: GameState, events: GameEvent[]): void {
   for (const e of events) {
     const a = e.attack;
@@ -166,9 +166,9 @@ export function payDefeats(state: GameState, events: GameEvent[]): void {
   }
   for (const t of state.actors) {
     const m = t.mind;
-    // a surrendered foe has yielded (Q1): it still pays
-    if (!m || m.xpPaid || !(wary(state, t, state.player) || stance(state, t, state.player) === 'yielded')) continue;
-    if (isActive(t) ? m.moraleState !== 'surrendered' : !m.hitByPlayer) continue; // fled or untouched: nothing
+    if (!m || m.xpPaid) continue;
+    // a foe that surrendered to the player has yielded to it (Q1); fled or untouched: nothing
+    if (isActive(t) ? m.moraleState !== 'surrendered' || stance(state, t, state.player) !== 'yielded' : !m.hitByPlayer) continue;
     m.xpPaid = true;
     awardXp(state, killXp(state, t), `defeat:${t.id}`);
     defeatAchievements(state, t);
