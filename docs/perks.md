@@ -381,6 +381,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** Any attack.
 - **Effect:** The aim penalty for the part's size is halved.
 - **Lasts:** That attack.
+- **Banked as:** a later Light weapons perk, suggested for the 60 perk
 
 ### Disarming Cut (Medium weapons) · B2
 
@@ -391,6 +392,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The attack uses a medium or heavy melee mode. Damage to that part is above 0.
 - **Effect:** The target drops what that arm's hand holds, weapon or shield, into its zone.
 - **Lasts:** That attack.
+- **Banked as:** a later Medium weapons perk, suggested for the 60 perk
 
 ### Cleave (Heavy weapons) · B3
 
@@ -402,6 +404,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner makes one extra attack at that actor at once, with the same weapon. Code picks the target at random (seeded) if there are several.
 - **Lasts:** That attack.
 - **Cooldown:** Once per turn.
+- **Banked as:** a later Heavy weapons perk, suggested for the 60 perk
 
 ### Shoot and Move (Light ranged) · B4
 
@@ -412,6 +415,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner may also move one zone link, before or after the shot.
 - **Lasts:** Each turn.
 - **Needs first:** Action economy.
+- **Banked as:** a later Light ranged perk, suggested for the 60 perk
 
 ### Human Shield (Grapple) · B6
 
@@ -423,6 +427,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** If the gap is 0 or better for the owner, the attack resolves against the held actor instead, with no defense from it.
 - **Lasts:** Each attack.
 - **Needs first:** Don't Let Go.
+- **Banked as:** a later Grapple perk, suggested for the 60 perk
 
 ### Anything Goes (Improvisation) · B7
 
@@ -432,6 +437,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner attacks with an improvised weapon.
 - **Effect:** The improvised hit penalty (−10) is not applied.
 - **Lasts:** Always.
+- **Banked as:** a later Improvisation perk, suggested for the 100 perk
 
 ### Slip the Crowd (Dodge) · B8
 
@@ -441,6 +447,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner dodges.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
+- **Banked as:** a later Dodge perk, suggested for the 60 perk
 
 ### Shield Wall (Block) · B9
 
@@ -451,6 +458,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner blocks with a shield.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
+- **Banked as:** a later Block perk, suggested for the 100 perk
 
 ### Refuse to Fall (Endurance) · B10
 
@@ -463,6 +471,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement.
 - **Needs first:** Engagement tracking.
+- **Banked as:** a later Endurance perk, suggested for the 60 perk
 
 ### Calm Words (Persuasion) · B11
 
@@ -473,6 +482,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The gap is −2 or lower (the owner wins by 2 tiers or more).
 - **Effect:** The NPC's stance toward the owner becomes opposed: it stops attacking on sight.
 - **Lasts:** Until something changes it again.
+- **Banked as:** a later Persuasion perk, suggested for the 60 perk
 
 ### Beg for Mercy (Persuasion) · B12
 
@@ -484,6 +494,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** Persuasion contest against the foe. If the owner wins, the foe stops attacking the owner.
 - **Lasts:** For the rest of the engagement.
 - **Needs first:** Moves.
+- **Banked as:** a later Persuasion perk, suggested for the 100 perk
 
 ### Make an Example (Intimidation) · B13
 
@@ -494,6 +505,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** Other foes hostile to the owner see or hear it happen.
 - **Effect:** Each of those foes makes a morale check at once.
 - **Lasts:** Each time.
+- **Banked as:** a later Intimidation perk, suggested for the 60 perk
 
 ### Unblinking (Eyesight) · B14
 
@@ -534,6 +546,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The target loses the notice contest (Combat Stealth).
 - **Effect:** The target stays unaware of the owner, instead of turning suspicious at the owner's zone. It still knows it was hit.
 - **Lasts:** That attack.
+- **Banked as:** a later Combat Stealth perk, suggested for the 60 perk
 
 ### Answer the Blow (Riposte) · B18
 
@@ -566,6 +579,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The attacker's approach or attack is within the owner's hearing range.
 - **Effect:** The owner counts as aware: no unaware initiative or defense penalty.
 - **Lasts:** Always.
+- **Banked as:** an All-X candidate for the Perception tree, suggested for All-100
 
 ### Battle Cry (Intimidation) · C2
 
@@ -577,6 +591,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement.
 - **Needs first:** Moves.
+- **Banked as:** a later Intimidation perk, suggested for the 100 perk
 
 ### Buy Them Off (Barter) · C3
 
@@ -588,6 +603,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner names the amount. Barter contest against the foe; a bigger offer adds a modifier to the owner's roll (scale set with trade prices). If the owner wins, the coin changes hands and the foe stops attacking the owner.
 - **Lasts:** For the rest of the engagement.
 - **Needs first:** Moves.
+- **Banked as:** a later Barter perk, suggested for the 100 perk
 
 ### Tough It Out (Endurance) · D6
 
@@ -597,6 +613,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** Any roll by the owner.
 - **Effect:** The owner's health-track penalty is taken from one level less hurt. Each body part's effective state is one step milder on the part-state scale, by position in the names table: Destroyed counts as Crippled, Crippled as Damaged, Damaged as Healthy. Only penalties change: a Destroyed part is still gone from the hit table.
 - **Lasts:** Always.
+- **Banked as:** an All-X candidate for the Combat – Defense tree, suggested for All-100
 
 ## Banked, no milestone yet
 
@@ -610,6 +627,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** An observer who loses the contest drops to unaware, instead of staying suspicious.
 - **Lasts:** That contest.
 - **Open:** Parked for a hiding perk.
+- **Banked as:** a later Sneaking perk, suggested for the 60 perk
 
 ### Held Shot (Medium ranged) · D8
 
@@ -620,6 +638,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** When a hostile actor enters the owner's zone, the owner shoots it at once, before it acts.
 - **Lasts:** Until the end of the owner's next turn, one shot.
 - **Needs first:** Moves; reactions.
+- **Banked as:** a later Medium ranged perk, suggested for the 60 perk
 
 ### Crushing Blow (Heavy weapons) · D1
 
@@ -629,6 +648,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner's heavy melee attack is blocked.
 - **Effect:** The heavy-weapon gap shift is −2 instead of −1.
 - **Lasts:** That attack.
+- **Banked as:** a later Heavy weapons perk, suggested for the 100 perk
 
 ### Punch Through (Heavy ranged) · D2
 
@@ -638,6 +658,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner's heavy ranged attack is blocked with a shield.
 - **Effect:** The arm holding the shield also takes half the damage the shield took, and it counts on the health track.
 - **Lasts:** That attack.
+- **Banked as:** a later Heavy ranged perk, suggested for the 60 perk
 
 ### Staggering Bolt (Heavy ranged) · D3
 
@@ -647,6 +668,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner's heavy ranged attack is a full hit or better.
 - **Effect:** The target acts last next turn.
 - **Lasts:** Its next turn.
+- **Banked as:** a later Heavy ranged perk, suggested for the 100 perk
 
 ### Flurry (Strike) · D4
 
@@ -658,6 +680,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner attacks twice. The second attack gets tier shift −1.
 - **Lasts:** Each turn.
 - **Needs first:** Action economy.
+- **Banked as:** a later Strike perk, suggested for the 100 perk
 
 ### Roll With It (Dodge) · D5
 
@@ -667,6 +690,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner dodges and the gap is +1 (a graze).
 - **Effect:** The multiplier is 0× instead of 0.8×.
 - **Lasts:** Always.
+- **Banked as:** a later Dodge perk, suggested for the 100 perk
 
 ### Night Eyes (Eyesight) · D7
 
@@ -676,6 +700,8 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** A roll by the owner that needs sight.
 - **Effect:** Light is read two steps brighter on the light scale, by position in the names table (dark counts as bright, dim counts as bright). It is coded as +2 steps, not as 'no penalty', so light levels added later shift the same way.
 - **Lasts:** Always.
+- **Open:** The perception All-50 Night Eyes (T5e) is the one-step version of this; this two-step one is kept for the All-100 after it.
+- **Banked as:** an All-X candidate for the Perception tree, suggested for All-100
 
 ## All-50 parts
 

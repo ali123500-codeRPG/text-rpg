@@ -10,6 +10,9 @@ import { skillName } from './creation';
 
 const PLACES: [PerkWriteup['place'], string][] = [['20', '20 milestone'], ['40', '40 milestone'], ['higher', 'Higher milestone'], ['very_high', 'Very high milestone'], ['banked', 'Banked, no milestone yet'], ['all50', 'All-50 parts']];
 
+const bankedLabel = (p: PerkWriteup) => p.bankedAs === 'milestone' ? `a later ${skillName(p.skill)} perk${p.aimAt ? `, suggested for the ${p.aimAt} perk` : ''}`
+  : p.bankedAs === 'allX' ? `an All-X candidate for the ${treeName(getLibrary().skills[p.skill]?.treeId ?? '')} tree${p.aimAt ? `, suggested for All-${p.aimAt}` : ''}` : 'other';
+
 const treeName = (id: string) => getLibrary().trees[id]?.name ?? id;
 
 export function perksMarkdown(): string {
@@ -32,6 +35,7 @@ export function perksMarkdown(): string {
       if (r.cooldown) out.push(`- **Cooldown:** ${r.cooldown}`);
       if (r.needs) out.push(`- **Needs first:** ${r.needs}`);
       if (r.open) out.push(`- **Open:** ${r.open}`);
+      if (p.bankedAs) out.push(`- **Banked as:** ${bankedLabel(p)}`);
       if (p.allStep) out.push(`- **Built:** ${BUILT_PERKS.has(p.id) ? 'yes' : 'not yet'}`);
       out.push('');
     }
