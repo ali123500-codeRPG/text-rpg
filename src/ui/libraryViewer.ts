@@ -208,7 +208,7 @@ function panes(list: Pane[]): HTMLElement[] {
 function showPane(key: string): void {
   pane = key;
   paneOf[shown] = key; keep('lv-pane', paneOf);
-  body.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
+  document.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
   body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
   drawBar(); paint(); filter();
 }
@@ -620,7 +620,9 @@ claudeRt?.use('comments').then(async (api) => {
 }).catch(() => undefined);
 const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl,
   h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)), search), bar, body);
-document.body.append(rail, main);
+// sub-tabs live in a rail on the right, mirroring the table rail on the left; hidden when the tab has none
+const subRail = h('nav', { class: 'hs-rail lv-subrail', 'aria-label': 'Sub-tabs' });
+document.body.append(rail, main, subRail);
 
 const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card:not(.lv-fixed)'))].filter((c) => !c.closest('.lv-pane[hidden]'));
 const facetsOf = (c: HTMLElement) => (c.dataset.f ? c.dataset.f.split('\n') : []);
@@ -726,14 +728,18 @@ popOpen.addEventListener('click', () => { pop.hidden = true; });
 // Folding: clicking a section header, or the title of a foldable card (Skills trees), folds what is under it
 const HEAD = '.lv-group > h2.hs-section, .lv-foldcard > header > h3';
 const box = (head: Element): Element => head.closest('.lv-group, .lv-foldcard')!;
-function fold(head: Element, open?: boolean): void {
+/** save: false opens a section for this view only (a jump to an entry inside it) and keeps the remembered fold */
+function fold(head: Element, open?: boolean, save = true): void {
   const folded = box(head).classList.toggle('lv-folded', open === undefined ? undefined : !open);
-  const k = foldKey(head);
-  if (folded) foldedSet.add(k); else foldedSet.delete(k);
-  keep('lv-folded', [...foldedSet]);
+  if (save) {
+    const k = foldKey(head);
+    if (folded) foldedSet.add(k); else foldedSet.delete(k);
+    keep('lv-folded', [...foldedSet]);
+  }
   head.setAttribute('aria-expanded', String(!folded));
 }
-const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${head.textContent}`;
+// keyed by the title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new build
+const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
 function foldable(): void {
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) box(h2).classList.add('lv-folded'); });
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', String(!box(h2).classList.contains('lv-folded'))); h2.title = 'Click to fold or unfold'; });
@@ -756,6 +762,9 @@ function route(): void {
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
     body.replaceChildren(...viewOf(sec));
+    const tabs = body.querySelector('.lv-tabs');
+    subRail.replaceChildren(...(tabs ? [tabs] : []));
+    document.body.classList.toggle('lv-has-sub', !!tabs);
     foldable();
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
     drawBar();
@@ -769,7 +778,7 @@ function route(): void {
     if (holder) showPane(holder.dataset.pane!);
     const shutBox = el?.closest('.lv-folded');
     const shut = shutBox?.querySelector(':scope > h2.hs-section, :scope > header > h3');
-    if (shut) fold(shut, true);
+    if (shut) fold(shut, true, false);
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
     el?.scrollIntoView({ block: 'center' });
