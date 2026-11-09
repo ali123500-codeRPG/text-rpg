@@ -351,6 +351,17 @@ describe('agent side effects', () => {
     g.mind!.overrides = { player: 'friend' };
     expect(hostile(s, g, p)).toBe(false);
   });
+  it('a friend turns on whoever is hostile to its friend only if it is already opposed or colder to them', () => {
+    const g = actor(s, 'guard_1'), p = actor(s, 'patron_1');
+    p.mind!.overrides = { player: 'hostile' };
+    for (const [toPatron, want] of [['opposed', true], ['unfriendly', false], ['neutral', false], ['friendly', false]] as const) {
+      g.mind!.overrides = { player: 'friend', patron_1: toPatron };
+      expect(hostile(s, g, p), toPatron).toBe(want);
+    }
+    p.mind!.overrides = { player: 'opposed' }; // the patron isn't hostile to the player: no side to take
+    g.mind!.overrides = { player: 'friend', patron_1: 'opposed' };
+    expect(hostile(s, g, p)).toBe(false);
+  });
 });
 
 describe('gear and combat', () => {
