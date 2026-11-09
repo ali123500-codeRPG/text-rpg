@@ -26,9 +26,9 @@ function close(actor: Actor, skill: string, opposition: number): boolean {
 }
 
 /** mark `skill` if the opposition is inside its learning window (SP2: raw − MARK_WINDOW to true + MARK_WINDOW) */
-export function markIfClose(state: GameState, actor: Actor | undefined, skill: string, opposition: number | undefined): void {
+export function markIfClose(state: GameState, actor: Actor | undefined, skill: string, opposition: number | undefined, tied = false): void {
   if (!actor || actor.id !== state.player.id || opposition === undefined) return;
-  if (close(actor, skill, opposition)) mark(actor, skill);
+  if (tied || close(actor, skill, opposition)) mark(actor, skill); // close calls teach: a tier gap of exactly 0 marks whatever the skills
 }
 
 /** AR5: a hit on a part your worn armor covers marks the armor skill for its weight, when the
@@ -46,9 +46,11 @@ function markArmor(state: GameState, result: AttackResult): void {
 export function markUse(state: GameState, actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult): void {
   // When a stand-in makes the roll, the stand-in AND the skill the action asked for each learn,
   // each against its own window. Without this a skill below the stand-in share of another one could never rise.
+  // a contest or defended attack whose tier gap is exactly 0 marks both sides' skills, inside the window or not
+  const tied = 'gap' in result && result.gap === 0;
   const both = (who: Actor | undefined, r: { skill: string; asked?: string }, opp: number | undefined) => {
-    markIfClose(state, who, r.skill, opp);
-    if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp);
+    markIfClose(state, who, r.skill, opp, tied);
+    if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp, tied);
   };
   if ('target' in result) {
     for (const sk of new Set([skill, result.skill, ...(result.asked ? [result.asked] : [])])) markIfClose(state, actor, sk, result.target);
