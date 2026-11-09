@@ -3,7 +3,7 @@
 // A player agent (also `claude -p`) picks each action from the story so far.
 // F8: prompts here differ from the artifact's: the CLI joins the fixed and per-turn user turns into one prompt, adds its
 // own system prompt and picks the model per tier, so read prompt-behaviour results from playtests with that in mind.
-//   npm run playtest -- --turns 50 --out playtest-out
+//   npm run playtest -- --turns 50 --out playtest-out [--class late_bloomer]
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,6 +17,7 @@ import { ensurePlace } from '../src/scene/apply';
 import type { GameState, StagePlan } from '../src/types';
 import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../src/ruleset/perks';
 import type { SceneDirector } from '../src/agents';
+import { recommendedBuild } from '../src/library/spawn';
 
 // Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scene-start wait is widened here.
 // The game's own WEAVER_TIMEOUT_MS is not changed.
@@ -100,8 +101,8 @@ async function main() {
     startStory: (st, rng, ctx) => { before = structuredClone(st); ensurePlace(before, st.player.placeId); return inner.startStory(st, rng, ctx); },
     afterResolve: (st, ev, rng, ctx) => inner.afterResolve(st, ev, rng, ctx), afterSave: (st, ctx) => inner.afterSave(st, ctx) };
   const game = createGame({ client: cliClient, clock: realClock, store: memoryStore(Date.now), director });
-  const skills = { melee_medium: 50, block: 40, dodge: 30, endurance: 50, sight: 30, hearing: 30, feint: 10, riposte: 10 };
-  await game.newStory({ name: 'Arden', skills, tagged: ['melee_medium', 'block', 'endurance'] });
+  // --class late_bloomer starts an Unwritten Legend; the default is the Swordsman. Both use the class's recommended build.
+  await game.newStory({ ...recommendedBuild(arg('class', 'swordsman')), name: 'Arden' });
   const storyId = game.state()?.storyId;
   const st0 = game.state()!;
   const planErrors = before ? game.gm().agentLog.filter((a) => a.agent === 'weaver' && a.output).map((a) =>
