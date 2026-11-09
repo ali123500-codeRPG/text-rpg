@@ -3,6 +3,9 @@
 import { PART_STATES } from '../scales';
 import type { Actor, GameApi, GameState } from '../types';
 import { itemDef } from '../library';
+import { CONFIG } from '../config';
+import { requirement, shortBy } from '../ruleset/requirements';
+import { skillName } from '../library/skillNames';
 import { isDownLevel } from '../ruleset';
 import { buildPlayerView, factText } from '../views';
 import { groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState } from './kit';
@@ -83,6 +86,9 @@ export function characterPage(api: GameApi) {
 const KIND_GROUP: Record<string, [string, string, string]> = {
   weapon: ['weapons', 'Weapons', 'c10'], shield: ['shields', 'Shields', 'c1'], armor: ['armor', 'Armor', 'c12'],
 };
+/** EQ7: "Medium Weapons 50" */
+const needText = (r: { skill: string; need: number }) => `${skillName(r.skill)} ${r.need}`;
+
 function where(a: Actor, slots: string[] | undefined): string {
   if (!slots?.length) return 'Carried';
   return slots.map((x) => x === 'armor' ? 'Worn' : x.startsWith('hand:') ? `Held · ${x.slice(5).replace('_arm', ' hand')}` : x.startsWith('acc:') ? 'Worn accessory' : x).join(', ');
@@ -118,10 +124,19 @@ export function inventoryPage(api: GameApi) {
         draw();
         rows.push({ k: 'Quick slot', v: btn });
       }
+      // EQ7 (Ali, 09/11/2026): the requirement, red while the player is short, grey once met
+      const need = requirement(d);
+      if (need) {
+        const short = shortBy(s.player, d), steps = Math.ceil(short / CONFIG.EQUIP_SHORT_STEP);
+        const rolls = d.armor ? 'Dodge and stealth rolls while worn' : 'rolls with it';
+        rows.push({ k: 'Needs', v: h('span', { class: short > 0 ? 'tone-bad' : 'tone-muted' }, short > 0
+          ? `${needText(need)} (you have ${Math.round((need.need - short) * 10) / 10}: ${plural(steps, 'outcome step')} worse on ${rolls})`
+          : `${needText(need)} (met)`) });
+      }
       rows.push({ k: 'Bulk', v: String(d.bulk) });
       return rows;
     },
-    cols: [{ key: 'name', title: 'Item' }, { key: 'where', title: 'Where' }, { key: 'qty', title: 'Qty', right: true }, { key: 'cond', title: 'Condition' }],
+    cols: [{ key: 'name', title: 'Item' }, { key: 'where', title: 'Where' }, { key: 'needs', title: 'Needs' }, { key: 'qty', title: 'Qty', right: true }, { key: 'cond', title: 'Condition' }],
     groups: (s) => {
       const p = s.player, groups = new Map<string, TGroup & { sub: string; value: string; unit: string; how: string }>();
       p.core.inventory.filter((i) => i.itemId !== 'coin').forEach((it, n) => {
@@ -129,14 +144,19 @@ export function inventoryPage(api: GameApi) {
         const [id, title, color] = KIND_GROUP[d?.kind ?? ''] ?? ['other', 'Other', 'c3'];
         const g = groups.get(id) ?? { id, title, color, rows: [], combined: {}, value: '', unit: 'items', sub: '', how: `Everything of this kind you carry.` };
         const pools = it.pools ? Object.entries(it.pools).map(([k, v]) => `${k} ${v}%`).join(', ') : 'Whole';
-        g.rows.push({ id: it.id, sortKey: n, cells: { name: d?.name ?? it.itemId, where: where(p, it.equippedIn), qty: String(it.qty ?? 1), cond: pools } });
+        const need = d ? requirement(d) : null;
+        const needs = need ? `Needs ${needText(need)}` : '';
+        g.rows.push({ id: it.id, sortKey: n, cells: { name: d?.name ?? it.itemId, where: where(p, it.equippedIn), needs, qty: String(it.qty ?? 1), cond: pools },
+          ...(need ? { tones: { needs: shortBy(p, d!) > 0 ? 'bad' as const : 'muted' as const } } : {}) });
         groups.set(id, g);
       });
       return [...groups.values()].map((g) => {
         const qty = g.rows.reduce((a, r) => a + +r.cells.qty, 0);
         const ws = [...new Set(g.rows.map((r) => r.cells.where))], cs = [...new Set(g.rows.map((r) => r.cells.cond))];
+        const ns = [...new Set(g.rows.map((r) => r.cells.needs))], ts = [...new Set(g.rows.map((r) => r.tones?.needs))];
         const equipped = g.rows.filter((r) => r.cells.where !== 'Carried').length;
-        return { ...g, value: String(qty), unit: unitOf(qty, 'item'), sub: `${equipped} in use`, combined: { qty: String(qty), where: ws.length === 1 ? ws[0] : 'Mixed', cond: cs.length === 1 ? cs[0] : 'Mixed' } };
+        return { ...g, value: String(qty), unit: unitOf(qty, 'item'), sub: `${equipped} in use`, combined: { qty: String(qty), where: ws.length === 1 ? ws[0] : 'Mixed', cond: cs.length === 1 ? cs[0] : 'Mixed', needs: ns.length === 1 ? ns[0] : '' },
+          ...(ns.length === 1 && ts.length === 1 && ts[0] ? { combinedTones: { needs: ts[0] } } : {}) };
       }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title));
     },
     line: (s) => {
