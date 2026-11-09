@@ -11,6 +11,9 @@ import { ACH } from '../../src/library/achievementIds';
 import { GR } from '../../src/library/functionIds';
 import { SK } from '../../src/library/skillIds';
 import type { GameEvent, GameState } from '../../src/types';
+import { isBane } from '../../src/ruleset/bane';
+import { MOD_SOURCES } from '../../src/ruleset/modSources';
+import { getLibrary } from '../../src/library';
 
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.id);
 
@@ -77,5 +80,13 @@ describe('130 deed achievements', () => {
     fightEnded(s, { hp: 0, foes, most: 3, defended: true, brink: true });
     expect(s.player.progression!.tally!.flawless).toBe(1);
     expect(s.player.progression!.tally!.brink).toBe(2); // surviving the brink counts win or not
+  });
+  it('only race and body type defeat chains are Banes: group and class chains give no skill bonus', () => {
+    const lib = getLibrary().achievements ?? {};
+    const banes = Object.keys(lib).filter((k) => isBane(lib[k]));
+    expect(banes.sort()).toEqual([ACH.first_defeat_body_type, ACH.defeats_10_body_type, ACH.defeats_100_body_type,
+      ACH.first_defeat_race, ACH.defeats_10_race, ACH.defeats_100_race].sort());
+    const fed = MOD_SOURCES.find((m) => m.source.startsWith('Bane'))!.feeds!(getLibrary()).map((f) => f.id);
+    expect(fed.sort()).toEqual(banes.sort());
   });
 });

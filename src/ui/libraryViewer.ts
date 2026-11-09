@@ -5,7 +5,7 @@ import './styles.css';
 import './libraryViewer.css';
 import type { AchievementDef, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
-import { baneSkill, defeatsRoll } from '../ruleset/bane';
+import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { ACH_RULE_TEXT } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
@@ -56,7 +56,7 @@ function val(v: unknown, depth = 0): Node | string {
   return String(v);
 }
 /** skill IDs are numbers: show a skill field, or a table keyed by skill, by the skill's name */
-const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains']);
+const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
   if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => [a, named(a, b)])) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
@@ -322,23 +322,35 @@ function achievements(): HTMLElement[] {
   const first = (r: string) => rows.findIndex(([, d]) => d.rule === r);
   const all = rows.sort(([, a], [, b]) => first(a.rule) - first(b.rule) || (a.count ?? 0) - (b.count ?? 0));
   const groups: [string, (d: AchievementDef) => boolean][] = [['Per body type', (d) => d.by === 'body_type'], ['Per race', (d) => d.by === 'race'],
-    ['Total defeats', (d) => d.rule === 'defeats' && !d.by], ['Tree mastery', (d) => d.rule === 'mastery'], ['Deeds', (d) => d.rule !== 'defeats' && d.rule !== 'mastery']];
+    ['Total defeats', (d) => d.rule === 'defeats' && !d.by], ['Tree mastery', (d) => d.rule === 'mastery']];
+  const isDeed = (d: AchievementDef) => d.rule !== 'defeats' && d.rule !== 'mastery';
   const name = (n: string) => h('span', {}, ...n.split(/(\{\w+\})/).map((p) => (p.startsWith('{') ? h('em', { class: 'lv-slot' }, p) : p)));
-  return groups.map(([title, f]) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' },
-    all.filter(([, d]) => f(d)).map(([key, d]) => {
-      const kind = d.by === 'body_type' ? 'body type' : 'race';
-      const bane = d.by ? baneSkill(key) : 0; // D-111: the same function the rolls use
-      const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
-      const c = card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, '--c15'), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`, '--c2'),
-        bane ? chip(`+${bane} skill vs that ${kind}`, '--c10') : null, total ? chip(`+${total} combat rolls`, '--c10') : null],
-        row('Name', name(d.name)),
-        row('Roll bonus', bane ? `+${bane} skill on every roll against that ${kind}`
-          : total ? `+${total} on every attack and defense roll` : none('none, XP only')),
-        d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
-        row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
-        row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.id));
-      return c;
-    }))));
+  const achCard = ([key, d]: [string, AchievementDef]) => {
+    const kind = d.by === 'body_type' ? 'body type' : 'race';
+    const bane = isBane(d) ? baneSkill(key) : 0; // D-111: the same function the rolls use
+    const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
+    return card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, '--c15'), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`, '--c2'),
+      bane ? chip(`+${bane} skill vs that ${kind}`, '--c10') : null, total ? chip(`+${total} combat rolls`, '--c10') : null],
+      row('Name', name(d.name)),
+      row('Roll bonus', bane ? `+${bane} skill on every roll against that ${kind}`
+        : total ? `+${total} on every attack and defense roll` : none('none, XP only')),
+      d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
+      row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
+      row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.id));
+  };
+  const section = (title: string, list: [string, AchievementDef][]) =>
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' }, list.map(achCard)));
+  // a deed line: one rule counted one way (rule + by), its levels in count order
+  const deeds = all.filter(([, d]) => isDeed(d));
+  const lines = [...new Set(deeds.map(([, d]) => `${d.rule}|${d.by ?? ''}`))];
+  const lineTitle = (k: string) => { const [rule, by] = k.split('|'); const t = ACH_RULE_TEXT[rule as AchievementDef['rule']] ?? rule; return `${t[0].toUpperCase()}${t.slice(1)}${by ? ` (per ${by.replace('_', ' ')})` : ''}`; };
+  const counted = all.filter(([, d]) => !isDeed(d));
+  return panes([
+    { key: 'defeats', title: 'Defeats and mastery', n: counted.length, content: groups.map(([title, f]) => section(title, all.filter(([, d]) => f(d)))) },
+    { key: 'deeds', title: 'Deeds', n: deeds.length, content: [
+      h('p', { class: 'hs-note' }, 'One section per deed line: what the player does, counted by tally in src/engine/xp.ts and turnFeats in src/engine/feats.ts.'),
+      ...lines.map((k) => section(lineTitle(k), deeds.filter(([, d]) => `${d.rule}|${d.by ?? ''}` === k)))] },
+  ]);
 }
 
 // ---------- Skills, by tree ----------
@@ -528,7 +540,7 @@ const FACETS: Record<string, Facets> = {
     ...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]).map((f): [string, string] => ['Flag', f]), ...(i.tags ?? []).map((t): [string, string] => ['Flag', t])],
   perks: (d: PerkDef & { place?: string; skill?: string; bankedAs?: string }) => [['Banked as', d.bankedAs && ({ milestone: 'milestone perk', allX: 'All-X candidate', other: 'other' } as Record<string, string>)[d.bankedAs]], ['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)]],
-  achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.by ? `per ${d.by.replace('_', ' ')}` : 'total defeats']],
+  achievements: (d: AchievementDef) => [['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`], ['Counts', d.rule === 'mastery' ? 'tree mastery' : d.rule !== 'defeats' ? 'deed' : d.by ? `per ${d.by.replace('_', ' ')}` : 'total defeats']],
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Tree', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
     ...(t.access?.blockedBy ?? []).map((c): [string, string] => ['Blocked by', condName(c)]),

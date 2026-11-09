@@ -3,7 +3,7 @@
 // level it builds on (AchievementDef.after) plus CONFIG.BANE_SKILL_PER_LEVEL, so I = +5, II = +10, III = +15. Lower levels switched off by a higher one are skipped. The best
 // race one and the best body type one both count, as one modifier type, so the weaker is halved by type stacking.
 // D-119 total-defeats achievements (Blooded Fighter …) add +1 per tier to every attack and defense roll, as the same modifier type.
-import type { Actor, GameState, Mod } from '../types';
+import type { AchievementDef, Actor, GameState, Mod } from '../types';
 import { getLibrary } from '../library';
 import { CONFIG } from '../config';
 
@@ -14,6 +14,8 @@ export function chainTier(key: string): number {
   for (let k: string | undefined = key; k && lib[k] && n < 20; k = lib[k].after) n++;
   return n;
 }
+/** a Bane: a defeats chain counted per race or per body type. Other per-group or per-class chains are not Banes. */
+export const isBane = (d: AchievementDef | undefined): boolean => d?.rule === 'defeats' && (d.by === 'race' || d.by === 'body_type');
 /** skill bonus of one achievement level: +BANE_SKILL_PER_LEVEL for it and for every lower level of its chain */
 export const baneSkill = (key: string): number => chainTier(key) * CONFIG.BANE_SKILL_PER_LEVEL;
 
@@ -38,10 +40,10 @@ export function baneMods(state: GameState, actor: Actor, againstId: string | und
   const best = new Map<string, { skill: number; id: string }>();
   for (const a of earned) {
     const d = a.key ? lib[a.key] : undefined;
-    if (!d?.by || !a.of || a.replacedBy) continue;
+    if (!d || !isBane(d) || !a.of || a.replacedBy) continue;
     if (a.of !== (d.by === 'race' ? foe.core.raceId : foe.core.bodyTypeId)) continue;
     const skill = baneSkill(a.key!);
-    if (skill > (best.get(d.by)?.skill ?? 0)) best.set(d.by, { skill, id: a.id });
+    if (skill > (best.get(d.by!)?.skill ?? 0)) best.set(d.by!, { skill, id: a.id });
   }
   return [...best.values()].map((b) => ({ source: `bane: ${b.id}`, type: 'achievement' as const, value: CONFIG.SKILL_WEIGHT * b.skill }));
 }
