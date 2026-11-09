@@ -16,7 +16,7 @@ import { REWARD_LEVELS, SKILL_TIERS } from '../scales';
 import { fmtDate, h } from './kit';
 import { skillName } from './creation';
 import { partName } from './healing';
-import { SK } from '../library/skillIds';
+import { SENSE_SKILL, SK } from '../library/skillIds';
 
 declare const __BUILD__: { sha: string; date: string };
 const lib: Library = prototypeLibrary();
@@ -320,14 +320,42 @@ function standIns(): HTMLElement[] {
     const own = !!CONFIG.SUBSTITUTES[id];
     return card('standIns', id, { id, functions: lib.skills[id].functions, table, own, functionRoll: rolledFn ?? null }, skillName(id),
       [rolledFn ? chip(`${functionName(rolledFn)} roll ×1`, '--c2') : chip(own ? 'own table' : `flat ${pct(CONFIG.SUBSTITUTE_EFFICIENCY)}`, own ? '--c5' : '--c3')],
-      rolledFn ? row('Rolled as', h('span', {}, `a ${functionName(rolledFn)} roll: every skill with ${functionName(rolledFn)} counts at ×1, then its tier, instead of the stand-in share`)) : null,
+      rolledFn ? row('Rolled as', h('span', {}, `a ${functionName(rolledFn)} roll: every skill with ${functionName(rolledFn)} counts at ×1, then its tier, instead of the stand-in share. See `, link('standIns', `fn-${rolledFn}`, `${functionName(rolledFn)} check`))) : null,
       row('Looks for', h('span', { class: 'lv-chips' }, table.map((t) => chip(`${functionName(t.fn)} ${pct(t.fn === rolledFn ? 1 : t.k)}`, toneOf('Function', functionName(t.fn)))))),
       subs.length ? h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Stand-in', 'Shared function', 'Share', 'Its tier'].map((x) => h('th', {}, x)))),
         h('tbody', {}, subs.map(({ o, k }) => h('tr', {}, h('td', {}, link('skills', o, skillName(o))),
           h('td', {}, h('span', { class: 'lv-chips' }, table.filter((t) => (lib.skills[o].functions as string[]).includes(t.fn)).map((t) => chip(functionName(t.fn), toneOf('Function', functionName(t.fn)))))),
           h('td', {}, h('b', {}, pct(k))), h('td', {}, `×${CONFIG.SKILL_TIER_MULT[lib.skills[o].tier]}`))))) : row('Stand-ins', none('none: no other skill shares a function')));
   });
-  return [how, h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs …'), h('div', { class: 'lv-grid' }, cards))];
+  // ---- function checks: a roll that passes fn (RollRequest.fn) counts every skill with it at ×1; the best one rolls ----
+  const fnRule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How a function check works'), chip('fnRoller · fnSkills · src/ruleset/gear.ts', '--c3')),
+    h('ol', { class: 'lv-steps' },
+      h('li', {}, 'The roll names a function, not a skill (RollRequest.fn). It still asks for the function\'s default skill (SENSE_SKILL).'),
+      h('li', {}, 'Every skill with that function counts at ×1 (fnSkills). No stand-in share applies, and stand-in perks don\'t change it.'),
+      h('li', {}, 'Each one is multiplied by its own tier multiplier, plus true skill, gear and perks as usual. The highest value rolls.'),
+      h('li', {}, 'Light and other situation modifiers come from the skill that rolls (fnRoller), so Tremor ignores darkness.')),
+    row('Functions checked this way', `FUNCTION_ROLLS: ${FUNCTION_ROLLS.map(functionName).join(', ')}`),
+    row('Rolls that use them', 'sneak and hide contests (stealthDetect) and noticing an ambush (resolveAmbush) in minds/state.ts; Look around in engine/resolve.ts'),
+    row('After the roll', link('perks', 'curiouser', 'Curiouser and Curiouser'), ': Success or better on any function check counts one tier higher (allSteps.ts)'));
+  const fnCards = FUNCTION_ROLLS.map((f) => {
+    const rows = fnSkills(f).map((id) => ({ id, tier: CONFIG.SKILL_TIER_MULT[lib.skills[id].tier] })).sort((a, b) => b.tier - a.tier);
+    const asked = (SENSE_SKILL as Record<string, string>)[f];
+    const adds = Object.values(lib.perks).filter((d) => d.fnSkill?.fn === f);
+    const grp = GROUP_NAMES[FUNCTION_GROUP[f]];
+    return card('standIns', `fn-${f}`, { function: f, functions: [f], asks: asked ?? null, skills: rows.map((r) => r.id) }, `${functionName(f)} check`,
+      [chip(`${grp} group`, toneOf('Group', grp)), chip('every skill ×1', '--c2')],
+      row('Asks for', asked ? link('skills', asked, skillName(asked)) : none('no default skill')),
+      h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill that counts', 'Share', 'Its tier'].map((x) => h('th', {}, x)))),
+        h('tbody', {}, rows.map((r) => h('tr', {}, h('td', {}, link('skills', r.id, skillName(r.id))), h('td', {}, h('b', {}, '×1')),
+          h('td', {}, `×${r.tier}`))))),
+      row('Perks that add to it', adds.length ? links('perks', adds.map((d): [string, string] => [d.id, `${d.name} (+${d.fnSkill!.add} true skill to every ${functionName(f)} skill)`])) : none('none')));
+  });
+  return panes([
+    { key: 'skill', title: 'Skill checks', n: cards.length, content: [how, h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs …'), h('div', { class: 'lv-grid' }, cards))] },
+    { key: 'function', title: 'Function checks', n: fnCards.length, content: [
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Function checks'), h('div', { class: 'lv-grid wide' }, fnRule)),
+      h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'When a roll needs the function …'), h('div', { class: 'lv-grid' }, fnCards))] },
+  ]);
 }
 
 // ---------- Page ----------
