@@ -24,17 +24,26 @@ export function markIfClose(state: GameState, actor: Actor | undefined, skill: s
 
 /** the opposition for each side of a roll: a check's target; the other side's true skill in a contest or attack */
 export function markUse(state: GameState, actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult): void {
-  if ('target' in result) return markIfClose(state, actor, skill, result.target);
+  // Ali (09/11/2026): when a stand-in makes the roll, the stand-in AND the skill the action asked for each learn,
+  // each against its own window. Without this a skill below the stand-in share of another one could never rise.
+  const both = (who: Actor | undefined, r: { skill: string; asked?: string }, opp: number | undefined) => {
+    markIfClose(state, who, r.skill, opp);
+    if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp);
+  };
+  if ('target' in result) {
+    for (const sk of new Set([skill, result.skill, ...(result.asked ? [result.asked] : [])])) markIfClose(state, actor, sk, result.target);
+    return;
+  }
   if ('a' in result) {
     const [me, them] = result.a.actorId === actor.id ? [result.a, result.b] : [result.b, result.a];
     const other = actorById(state, them.actorId);
-    return markIfClose(state, actor, me.skill, other ? trueSkill(other, them.skill) : undefined);
+    return both(actor, me, other ? trueSkill(other, them.skill) : undefined);
   }
   const atk = result.attack, def = result.defense;
   const attacker = actorById(state, atk.actorId), defender = def ? actorById(state, def.actorId) : undefined;
   if (def && defender) {
-    markIfClose(state, attacker, atk.skill, trueSkill(defender, def.skill));
-    if (attacker) markIfClose(state, defender, def.skill, trueSkill(attacker, atk.skill));
+    both(attacker, atk, trueSkill(defender, def.skill));
+    if (attacker) both(defender, def, trueSkill(attacker, atk.skill));
   }
 }
 
