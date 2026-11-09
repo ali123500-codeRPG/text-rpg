@@ -42,7 +42,7 @@ describe('124 Bane bonuses', () => {
     const earned = s.player.progression!.achievements!;
     expect(earned.find((a) => a.id === `${ACH.first_defeat_race}:${RC.human}`)?.replacedBy).toBe(`${ACH.defeats_10_race}:${RC.human}`);
     expect(earned.find((a) => a.id === `${ACH.defeats_10_race}:${RC.elf}`)?.replacedBy).toBeUndefined();
-    expect(bane(s, 'patron_1')).toEqual([{ source: `bane: ${ACH.defeats_10_race}:${RC.human}`, type: 'achievement', value: 5 }]);
+    expect(bane(s, 'patron_1')).toEqual([{ source: 'bane: Bane of Humankind', type: 'achievement', value: 5 }]);
   });
   it('the best race and best body type both count, the weaker at half; defenders get it too', () => {
     const s = makeVillage();

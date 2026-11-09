@@ -1,5 +1,6 @@
 // W6 unit tests: validator (every Validation bullet), grades table, apply, fallback, trim, director.
 // Other workstreams' functions are replaced with small local fakes.
+import { RC } from '../../src/library/raceIds';
 import { ZK } from '../../src/library/tableIds';
 import { TP } from '../../src/library/templateIds';
 import type { Tier } from '../../src/types';
@@ -71,7 +72,7 @@ describe('validateStagePlan', () => {
     p.cast[1].template = 'wyvern_rider';
     const e = validateStagePlan(s, p, ctx);
     expect(e.map((x) => x.code)).toEqual(expect.arrayContaining(['unknown_template', 'unknown_body_type']));
-    expect(e.find((x) => x.code === 'unknown_body_type')!.message).toContain('(Human), RC2 (Elf), RC3 (Slime), RC4 (Dragon)');
+    expect(e.find((x) => x.code === 'unknown_body_type')!.message).toContain(`(Human), ${RC.elf} (Elf), ${RC.slime} (Slime), ${RC.dragon} (Dragon)`);
     expect(e.every((x) => !x.routineOnly)).toBe(true);
   });
   it('caps on cast, zones and knows', () => {

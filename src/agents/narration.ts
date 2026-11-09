@@ -88,7 +88,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const SAYS = { whisper: 'whispers', normal: 'says', shout: 'shouts' } as const;
 const PARTIAL: Record<string, string> = {
   sound: 'You hear something',
-  [SK.eyesight]: 'You glimpse movement',
+  sight: 'You glimpse movement',
   smell: 'You catch a smell',
   touch: 'You feel something',
 };

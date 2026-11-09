@@ -17,6 +17,8 @@ export const PK = {
   child_of_night: 'PK61', hushed_steps: 'PK62', soft_landing: 'PK63', easy_speaker: 'PK64', silver_words: 'PK65',
   nobody_special: 'PK66', every_fall_a_lesson: 'PK67', as_far_as_the_road_goes: 'PK68', write_your_own_ending: 'PK69', no_road_closed: 'PK70',
   quick_study: 'PK71',
+  // banked write-ups (not yet milestone perks)
+  precise: 'PK72', disarming_cut: 'PK73', cleave: 'PK74', shoot_and_move: 'PK75', human_shield: 'PK76', anything_goes: 'PK77', slip_the_crowd: 'PK78', shield_wall: 'PK79', refuse_to_fall: 'PK80', calm_words: 'PK81', plead: 'PK82', menace: 'PK83', out_of_nowhere: 'PK84', go_to_ground: 'PK85', held_shot: 'PK86', never_surprised: 'PK87', battle_cry: 'PK88', buy_them_off: 'PK89', crushing_blow: 'PK90', punch_through: 'PK91', staggering_bolt: 'PK92', flurry: 'PK93', roll_with_it: 'PK94', tough_it_out: 'PK95', night_eyes_full: 'PK96',
 } as const;
 /** a perk ID: PK + a number */
 export type PerkId = `PK${number}`;

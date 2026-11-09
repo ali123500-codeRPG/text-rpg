@@ -48,7 +48,7 @@ export function usableGrips(state: GameState, actor: Actor): string[] {
 /** part states in order, mildest first (the part-state names table; code compares positions) */
 export const PART_STATES: PartState[] = ['Healthy', 'Damaged', 'Crippled', 'Destroyed'];
 /** a part's state for its penalties: Tough It Out counts each one step milder (D6) */
-export const effectiveState = (a: Actor, s: PartState): PartState => PART_STATES[Math.max(0, PART_STATES.indexOf(s) - (hasPerk(a, 'tough_it_out') ? 1 : 0))];
+export const effectiveState = (a: Actor, s: PartState): PartState => PART_STATES[Math.max(0, PART_STATES.indexOf(s) - (hasPerk(a, PK.tough_it_out) ? 1 : 0))];
 const rolePenaltyOf = (s: PartState) =>
   s === 'Healthy' ? 0 : s === 'Damaged' ? CONFIG.ROLE_PENALTY.damaged : CONFIG.ROLE_PENALTY.crippled; // GAP: Destroyed counts as Crippled
 /** Iron Frame (A12): an effective state at the Damaged position or milder gives no role penalty */

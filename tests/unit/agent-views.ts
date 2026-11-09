@@ -15,7 +15,7 @@ export function playerView(): PlayerView {
   return {
     turn: 1,
     player: {
-      id: 'player', name: 'Aldric', classes: [CL.swordsman], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
+      id: 'player', name: 'Aldric', classes: [{ id: CL.swordsman, name: 'Swordsman' }], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
       health: 'Unhurt', parts: [],
       inventory: [{ id: 'sword_1', itemId: IT.arming_sword, name: 'arming sword', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: [{ id: AM.cut, name: 'Cut' }, { id: AM.thrust, name: 'Thrust' }] }],
       posture: 'open', standingDefense: 'block',

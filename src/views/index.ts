@@ -224,7 +224,7 @@ export function buildPlayerView(state: GameState): PlayerView {
     turn: state.turn,
     player: {
       id: 'player', name: p.names.current,
-      classes: p.core.classes.map((c) => c.classId),
+      classes: p.core.classes.map((c) => ({ id: c.classId, name: getLibrary().classes[c.classId]?.name ?? c.classId })),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id })) } : {}),
@@ -477,12 +477,14 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations } })),
-    player: { level: state.player.core.classes.reduce((n, c) => n + c.level, 0), currentClass: cur?.classId ?? null, health: healthLevel(state.player) },
+    player: { level: state.player.core.classes.reduce((n, c) => n + c.level, 0), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player) },
     previousNote: state.hidden.weaverNote,
     catalogs: {
       templates: [...templates.values()],
       services: Object.values(lib.services ?? {}).map((s) => ({ id: s.id, name: s.name, price: s.price })),
       bodyTypes: [...Object.values(lib.bodyTypes).map((b) => ({ id: b.id, name: b.name })), ...bp('body_type').filter((b) => !lib.bodyTypes[b.id]).map((b) => ({ id: b.id, name: String(b.data.name ?? b.id) }))],
+      races: Object.values(lib.races ?? {}).map((r) => ({ id: r.id, name: r.name })),
+      classes: Object.values(lib.classes).map((c) => ({ id: c.id, name: c.name })),
       routineSets: Object.values(lib.routineSets).map((s) => ({
         id: s.id, brief: s.brief, tags: structuredClone(s.tags),
         slots: Object.fromEntries(Object.entries(s.slots).map(([k, v]) => [k, { kind: v.kind, hint: v.hint }])),

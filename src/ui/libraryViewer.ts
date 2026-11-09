@@ -150,7 +150,7 @@ const FIXED: Record<string, Record<string, string>> = {
   State: { built: '--ok', 'not built': '--warn', 'written only': '--c3', quirk: '--danger' },
   Level: { 'Level I': '--c12', 'Level II': '--c1', 'Level III': '--c5', 'Level IV': '--c15' },
   Class: { light: '--c12', medium: '--c1', heavy: '--c10' },
-  XP: { offensive: '--c10', defensive: '--c1', [SK.endurance]: '--c2', notice: '--c5', influence: '--c4', misc: '--c3' },
+  XP: { offensive: '--c10', defensive: '--c1', endurance: '--c2', notice: '--c5', influence: '--c4', misc: '--c3' },
 };
 const TIER_TONE: Record<string, string> = { tier_0: '--warn', tier_1: '--c15', tier_2: '--c3' };
 const seen = new Map<string, string[]>();
@@ -303,7 +303,7 @@ function races(): HTMLElement[] {
     const ct = lib.bodyTypes[r.bodyTypeId];
     return card('races', r.id, r, r.name, [],
       h('div', { class: 'lv-armor' }, figure(ct, (p) => IMPACT_TONE[impactOf(ct, p)]), h('div', {},
-        row('Body', link('bodyTypes', r.bodyTypeId, label(r.bodyTypeId))),
+        row('Body', link('bodyTypes', r.bodyTypeId, lib.bodyTypes[r.bodyTypeId]?.name ?? r.bodyTypeId)),
         row('HP multiplier', `×${r.hpMultiplier}`),
         r.naturalAttacks?.length ? row('Own natural attacks', val(r.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`))) : null,
         r.naturalArmor ? row('Natural armor', val(r.naturalArmor)) : null,
@@ -315,7 +315,7 @@ function races(): HTMLElement[] {
 }
 function bodyTypes(): HTMLElement[] {
   return [h('p', { class: 'hs-note' }, h('span', { class: 'lv-key lv-ess' }), 'essential ', h('span', { class: 'lv-key lv-norm' }), 'normal ', h('span', { class: 'lv-key lv-non' }), 'non-essential part'),
-    h('div', { class: 'lv-grid wide' }, Object.values(lib.bodyTypes).map((c) => card('bodyTypes', c.id, c, label(c.id), [chip(c.general.size, '--c3')],
+    h('div', { class: 'lv-grid wide' }, Object.values(lib.bodyTypes).map((c) => card('bodyTypes', c.id, c, c.name, [chip(c.general.size, '--c3')],
       h('div', { class: 'lv-armor' }, figure(c, (p) => IMPACT_TONE[impactOf(c, p)]), h('div', {},
         row('General area', `${c.general.name} · ${c.general.size}`),
         row('Natural attacks', c.naturalAttacks.length ? val(c.naturalAttacks.map((a) => `${a.name ?? a.id} (${skillName(a.skill ?? '')})`)) : none('none')),
@@ -324,7 +324,7 @@ function bodyTypes(): HTMLElement[] {
         row('NPC templates', usedBy((t) => lib.races?.[t.raceId as string]?.bodyTypeId === c.id)))),
       c.parts.length ? h('table', { class: 'hs-tbl lv-parts' }, h('thead', {}, h('tr', {}, ['Part', 'Size', 'Impact', 'Roles', 'Next to'].map((x) => h('th', {}, x)))),
         h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', {}, p.size),
-          h('td', {}, label(p.impact)), h('td', {}, p.roles.join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
+          h('td', {}, label(p.impact)), h('td', {}, p.roles.map((r) => lib.roles[r]?.name ?? r).join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
   ];
 }
 
@@ -409,7 +409,7 @@ function skills(): HTMLElement[] {
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Group', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneOf('Function', functionName(f))))) : '—'),
-        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
+        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneOf('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.map((r) => lib.roles[r as keyof typeof lib.roles]?.name ?? r).join(', ') || '—'),
         h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneOf('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP)
   const groupChips = (ids: string[]) => [...new Set(ids.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`${GROUP_NAMES[g]} group`, toneOf('Group', GROUP_NAMES[g])));

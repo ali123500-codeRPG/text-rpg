@@ -8,6 +8,7 @@ import { CL } from '../../src/library/classIds';
 import { ACH } from '../../src/library/achievementIds';
 import { SV } from '../../src/library/serviceIds';
 import { PK } from '../../src/library/perkIds';
+import { PERK_WRITEUPS } from '../../src/library/perks';
 import { IT } from '../../src/library/itemIds';
 import { TR } from '../../src/library/treeIds';
 import { BT, RC } from '../../src/library/raceIds';
@@ -19,6 +20,8 @@ import { ALL_BUNDLES } from '../../src/library/allPerks';
 import { MARK_SOURCE } from '../../src/engine/perkMarks';
 import { PERK_MOVES } from '../../src/ruleset/perks';
 
+/** banked perk write-ups have PK IDs but are not library perks until they get a milestone */
+const BANKED = new Set(PERK_WRITEUPS.filter((d) => !d.ladder && !d.allStep).map((d) => d.id));
 const lib = () => getLibrary() as unknown as Record<string, Record<string, { id?: string }>>;
 
 /** a table: its library key, its prefix and its constants */
@@ -37,7 +40,7 @@ describe('typed IDs', () => {
         if (d && typeof d === 'object' && 'id' in d) expect(d.id, k).toBe(k);
       }
       expect(new Set(Object.values(ids)).size, 'no ID listed twice').toBe(Object.values(ids).length);
-      expect(Object.keys(rows).sort()).toEqual([...Object.values(ids)].sort());
+      expect(Object.keys(rows).sort()).toEqual([...Object.values(ids)].filter((id) => !(table === 'perks' && BANKED.has(id))).sort());
     });
   }
 

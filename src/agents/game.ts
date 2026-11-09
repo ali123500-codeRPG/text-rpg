@@ -369,7 +369,7 @@ export function createGame(deps: GameDeps): Game {
       case 'stats': {
         const p = s.player;
         const skills = Object.entries(p.core.skills).map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? '+' : v.state === 'flawed' ? '−' : ''}`);
-        return say(`${p.names.current}, ${p.core.classes.map((c) => `${c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`);
+        return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`);
       }
       case 'inv':
         return say(s.player.core.inventory.map((i) => `${nameOf(s, i.itemId)}${i.qty ? ` ×${i.qty}` : ''}${i.equippedIn?.length ? ` (${i.equippedIn.join(', ')})` : ''}`).join('; ') || 'You carry nothing.');
@@ -774,7 +774,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   const ach = s.player.progression?.achievements ?? [];
   for (const x of s.player.progression?.xpLog ?? []) {
     if (x.turn !== turn) continue;
-    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${x.levelUp.classId})`); continue; }
+    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${getLibrary().classes[x.levelUp.classId]?.name ?? x.levelUp.classId})`); continue; }
     const [kind, id] = x.source.split(/:(.*)/);
     const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
     out.push(`+${x.amount} XP (${what})`);

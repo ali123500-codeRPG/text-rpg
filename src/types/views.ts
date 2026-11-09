@@ -53,7 +53,7 @@ export type SeenActor = {
 export type PlayerView = {
   turn: number;
   player: {
-    id: 'player'; name: string; classes: string[];
+    id: 'player'; name: string; classes: { id: string; name: string }[];
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
     perkMoves?: { id: string; name: string }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id)
@@ -186,12 +186,14 @@ export type WeaverView = {
   quests: { id: string; state: string; text: string }[];
   flags: Record<string, string | number | boolean>;
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance> }[];
-  player: { level: number; currentClass: string | null; health: HealthLevel };
+  player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel };
   previousNote: string;
   catalogs: {
     templates: { id: string; label: string; raceId: string; classId?: string }[];
     services: { id: string; name: string; price: number }[]; // PY3: base prices, before the markup
     bodyTypes: { id: string; name: string }[]; // BT… id and name, plus story body types
+    races: { id: string; name: string }[]; // RC… id and name: what a template's raceId names
+    classes: { id: string; name: string }[]; // CL… id and name: what a template's classId names
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: { id: string; name: string }[];

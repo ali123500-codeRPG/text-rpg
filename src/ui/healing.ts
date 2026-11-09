@@ -18,7 +18,7 @@ const lvTag = (l: string) => h('span', { class: `htag lv${Math.max(0, LEVELS().i
 const psTag = (st: string) => h('span', { class: `htag ps${Math.max(0, PART_STATES.indexOf(st))}` }, st);
 const arrow = () => h('span', { class: 'ar', 'aria-hidden': 'true' }, '→');
 
-const TITLE: Record<string, string> = { rest: 'Rested', clinic: 'Treated' };
+const TITLE: Record<string, string> = { [HL.rest]: 'Rested', [HL.clinic]: 'Treated' };
 
 /** health track: segments from Unhurt up to the level now, each in its level's colour; the healed one glows and the
  * levels healed away are dashed */
