@@ -9,6 +9,7 @@ import { markUse, ruleset, situational, fnRoller, tierLevel, usableModes, defaul
 import { hasPerk } from '../ruleset/perks';
 import { bindTemplate, expandSteps, slotsRead } from './routines';
 import { SK, SENSE_SKILL } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
@@ -156,7 +157,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
   // ST21/ST22: light and cover reach the rolls by situation tag; a Hide adds the hide tag and ignores leg wounds (ST10)
   // P14: darkness never hurts hearing, so it gives no help against an observer who only hears
   // All-50 Hushed Steps: the owner's Sneaking Near Miss counts as a Success against an observer who only hears
-  const hushed = (sk: string, sense: string) => (sk === SK.sneaking && sense === FN.hearing && hasPerk(s, 'hushed_steps') ? { nearMissUp: 'Hushed Steps' } : {});
+  const hushed = (sk: string, sense: string) => (sk === SK.sneaking && sense === FN.hearing && hasPerk(s, PK.hushed_steps) ? { nearMissUp: 'Hushed Steps' } : {});
   const mine = (sk: string, sense: string) => ({ actorId: s.id, skill: sk, ...situational(state, sk, { light: sense === FN.sight ? zone : undefined, cover: zone, add: hide ? ['hide'] : [], actor: s }), rollKind: 'stealth' as const, ...(hide ? { roles: [] } : {}), ...hushed(sk, sense) });
   const theirs = (a: Actor, sk: typeof FN.sight | typeof FN.hearing) => ({ actorId: a.id, skill: SENSE_SKILL[sk], ...situational(state, fnRoller(state, a, sk), { light: zone, actor: a }), rollKind: 'perception' as const, fn: sk }); // a function roll: the best sight (or hearing) skill at full value
   // one contest per observer per turn (ST4): a Vanish or a shot is not tested again by the turn's later events
@@ -181,12 +182,12 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     else if (sees) {
       if (r.gap >= 0) continue;
       // ST23: an observer with Unblinking who loses the Vanish still needs beating with Sneaking or Combat Stealth
-      if (hasPerk(a, 'unblinking')) {
+      if (hasPerk(a, PK.unblinking)) {
         const second = stealthSkill(s);
         const r2 = ruleset.contested(mine(second, sense), theirs(a, sense), state, rng);
         markUse(state, s, second, r2);
         markUse(state, a, r2.b.skill, r2);
-        log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill: second, kind: event.kind, gap: r2.gap, perk: 'unblinking' });
+        log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill: second, kind: event.kind, gap: r2.gap, perk: PK.unblinking });
         if (r2.gap >= 0) continue;
       }
       updateBeliefs(state, { kind: 'lost', observerId: a.id, aboutId: s.id, zone: event.fromZone });

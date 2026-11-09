@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import type { GameEvent } from '../../src/types';
 import { makeVillage, actor, createRng } from '../harness';
@@ -10,7 +11,7 @@ import { computePending } from '../../src/engine';
 it('20 Detection is individual: guard 2 stays unaware and on its routine until told', () => {
   const s = makeVillage({ playerZone: 'street_square' });
   s.bands.find((b) => b.id === 'village_watch')!.relations.player_band = 'hostile';
-  const g2 = spawnNpc(null, 'guard', { id: 'guard_2', zone: 'tav_cellar', placeId: 'tavern', bandId: 'village_watch' });
+  const g2 = spawnNpc(null, TP.guard, { id: 'guard_2', zone: 'tav_cellar', placeId: 'tavern', bandId: 'village_watch' });
   installRoutines(g2, 'gate_guard', { post: 'tav_cellar' }, undefined, s.turn, createRng(4));
   s.actors.push(g2);
   const seen: GameEvent = {

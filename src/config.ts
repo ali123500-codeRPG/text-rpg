@@ -147,8 +147,12 @@ const DEFAULTS = {
   BOON_BUDGET: { none: 0, minor: 2, moderate: 5, major: 10, extreme: 20 } as Record<string, number>, // per plan, by gain
   // XP and levels (X1–X10). Placeholders, kept small at first (X1).
   LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × n
-  /** a class levels no higher than this; XP past it banks until a class with room is picked */
+  /** no class levels higher than this; XP past a class's top level banks until a class with room is picked */
   CLASS_MAX_LEVEL: 20,
+  /** a class's top level by tier: CLASS_TIER0_MAX_LEVEL + CLASS_LEVELS_PER_TIER × tier, at most CLASS_MAX_LEVEL
+   * (tier 0 → 5, tier 1 → 10, tier 2 → 15, tier 3 and up → 20) */
+  CLASS_TIER0_MAX_LEVEL: 5,
+  CLASS_LEVELS_PER_TIER: 5,
   // Kill XP from stats (X18–X23): rating = per category, skills' training effort ranked high to low at 1, ½, ¼…,
   // × the category weight; kill XP = rating × taper × KILL_XP_MULT. Placeholders, tuned later (X19).
   XP_CATEGORY_WEIGHT: { offensive: 1, defensive: 1, endurance: 1, notice: 0.5, influence: 0.25, misc: 0 } as Record<string, number>,
@@ -169,7 +173,7 @@ const DEFAULTS = {
   STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests */
-  REWARD_XP: { i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
+  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)

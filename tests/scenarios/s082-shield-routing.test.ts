@@ -1,3 +1,4 @@
+import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
@@ -12,13 +13,13 @@ describe('82 Shield routing', () => {
     expect(r.gap).toBe(0);
     expect(r.outcome).toBe('blocked');
     expect(r.location).toBe('shield');
-    expect(r.shieldItemId).toBe('player_round_shield_2');
+    expect(r.shieldItemId).toBe(`player_${IT.round_shield}_2`);
     const parts = { ...s.player.core.condition.parts };
     const fx = ruleset.applyEffects(r, s);
-    const shield = s.player.core.inventory.find((i) => i.id === 'player_round_shield_2')!;
+    const shield = s.player.core.inventory.find((i) => i.id === `player_${IT.round_shield}_2`)!;
     expect(shield.pools!.shield).toBeCloseTo(100 - (20 / 30) * 100); // slam 20 of a 30-point pool
     expect(s.player.core.condition.hpLostPct).toBe(0);
     expect(s.player.core.condition.parts).toEqual(parts);
-    expect(fx).toEqual([{ kind: 'part_state_changed', actorId: 'player', data: { part: 'shield', from: 'Healthy', to: 'Damaged', itemId: 'player_round_shield_2' } }]);
+    expect(fx).toEqual([{ kind: 'part_state_changed', actorId: 'player', data: { part: 'shield', from: 'Healthy', to: 'Damaged', itemId: `player_${IT.round_shield}_2` } }]);
   });
 });

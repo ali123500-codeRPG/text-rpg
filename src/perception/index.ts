@@ -1,11 +1,12 @@
 // W3 — Perception per event, the single belief writer, communication events, belief decay.
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
-import { BELIEF_ORDER } from '../types';
 import { CONFIG } from '../config';
+import { AWARENESS } from '../scales';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk } from '../ruleset/perks';
+import { PK } from '../library/perkIds';
 
 export type BeliefUpdate =
   | { kind: 'event'; event: GameEvent; result?: CheckResult | ContestResult | AttackResult }
@@ -50,7 +51,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
   }
   // A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed.
-  const up = hasPerk(observer, 'keen_ear') ? 1 : 0;
+  const up = hasPerk(observer, PK.keen_ear) ? 1 : 0;
   const [full, heard] = CONFIG.NOISE_REACH[event.noise];
   const nl = reach([full + up, heard + up], dist(state, observer.zone, event.zone, false));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
@@ -130,7 +131,7 @@ export function computePerception(event: GameEvent, state: GameState, _rng: Rng)
 }
 
 const raise = (cur: BeliefStatus | undefined, to: BeliefStatus): BeliefStatus =>
-  BELIEF_ORDER.indexOf(to) > BELIEF_ORDER.indexOf(cur ?? 'unaware') ? to : (cur ?? 'unaware');
+  AWARENESS.pos(to) > AWARENESS.pos(cur ?? 'unaware') ? to : (cur ?? 'unaware');
 
 function write(observer: Actor, aboutId: string, b: Partial<Belief>): Belief | undefined {
   if (!observer.mind || aboutId === observer.id) return undefined;
@@ -223,7 +224,7 @@ export function applyBeliefDecay(state: GameState): void {
     for (const b of Object.values(a.mind?.knowledge ?? {})) {
       if (b.lastSeenTurn === undefined || b.status === 'unaware') continue;
       const age = state.turn - b.lastSeenTurn;
-      if (age > D && (age - 1) % D === 0) b.status = BELIEF_ORDER[BELIEF_ORDER.indexOf(b.status) - 1];
+      if (age > D && (age - 1) % D === 0) b.status = AWARENESS.at(AWARENESS.pos(b.status) - 1);
     }
   }
 }

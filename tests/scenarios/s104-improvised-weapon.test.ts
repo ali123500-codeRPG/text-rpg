@@ -8,6 +8,7 @@ import { itemDef } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import type { Intent } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 describe('104 Improvised weapon', () => {
   it('a chair leg becomes a held improvised_medium story item used for the attack', () => {
@@ -19,7 +20,7 @@ describe('104 Improvised weapon', () => {
         improvised: { base: 'improvised_medium', name: 'a broken chair leg' } },
     };
     const events = resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(7));
-    const inst = s.player.core.inventory.find((i) => i.itemId.startsWith('improvised_medium_i'))!;
+    const inst = s.player.core.inventory.find((i) => i.itemId.startsWith(`${IT.improvised_medium}_i`))!;
     expect(inst.equippedIn?.length).toBe(1);
     const def = itemDef(s, inst.itemId);
     expect(def.name).toBe('a broken chair leg');

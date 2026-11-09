@@ -2,15 +2,16 @@
 import type { Actor, AchievementBy, AchievementRule, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, getLibrary } from '../library';
-import { classPerks } from '../library/spawn';
-import { trueSkill } from '../ruleset/perks';
+import { classMaxLevel, classPerks } from '../library/spawn';
+import { hasPerk, trueSkill } from '../ruleset/perks';
 import { isActive, stance, wary } from './relations';
 import { logCode } from './effects';
 import { tierMult } from '../ruleset/gear';
 import { ruleMet, skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { groupName, groupsOf } from '../library/functionNames';
-import { TIERS } from '../scales';
+import { CLASS_TIERS, TIERS } from '../scales';
+import { PK } from '../library/perkIds';
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
 export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
@@ -26,16 +27,16 @@ export function awardXp(state: GameState, amount: number, source: string): void 
   spendXp(state);
 }
 
-const capped = (c: { level: number }) => c.level >= CONFIG.CLASS_MAX_LEVEL;
+const capped = (c: { classId: string; level: number }) => c.level >= classMaxLevel(c.classId);
 
-/** the class the next level goes to: the picked one, else the current one; none when that class is at the cap */
+/** the class the next level goes to: the picked one, else the current one; none when that class is at its top level */
 export function levelTarget(p: Actor) {
   const cur = p.core.classes.find((c) => c.state === 'current');
   const pick = p.core.classes.find((c) => c.classId === p.progression?.nextClass && c.state !== 'previous') ?? cur;
   return pick && !capped(pick) ? pick : undefined;
 }
 
-/** Level up as often as the XP allows. With no class to level (the target is at CLASS_MAX_LEVEL) the XP stays
+/** Level up as often as the XP allows. With no class to level (the target is at its top level, classMaxLevel) the XP stays
  * banked; picking a class with room (the sheet's picker) calls this again and every banked level is taken. */
 export function spendXp(state: GameState): void {
   const p = state.player, pr = p.progression;
@@ -46,13 +47,27 @@ export function spendXp(state: GameState): void {
     (pr.xpLog ??= []).push({ source: 'level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
+  classFeats(state);
   unlockClasses(state); // a class-level perk can unlock a class (Commoner 5 opens A Nobody)
   const cur = p.core.classes.find((c) => c.state === 'current');
-  if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the cap
+  if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the top level
     if (!c.fallback || p.core.classes.some((x) => x.classId === c.id)) continue;
     p.core.classes.push({ classId: c.id, state: 'unlocked', level: 0 });
     logCode(state, 'class_unlocked', { classId: c.id });
   }
+}
+
+/** class and level achievements: classes at their top level (in all, per class tier, tiers covered) and every 10 levels */
+function classFeats(state: GameState): void {
+  const p = state.player;
+  const top = p.core.classes.filter((c) => c.level > 0 && capped(c));
+  const tierOf = (id: string) => getLibrary().classes[id]?.tier;
+  const byTier = new Map<string, number>();
+  for (const c of top) { const t = tierOf(c.classId); if (t) byTier.set(t, (byTier.get(t) ?? 0) + 1); }
+  if (top.length) tally(state, 'class_max', { to: top.length });
+  for (const [t, n] of byTier) tally(state, 'class_max', { by: 'class_tier', of: t, to: n });
+  if (byTier.size) tally(state, 'class_max_tiers', { to: byTier.size });
+  tally(state, 'char_level', { to: charLevel(p) });
 }
 
 function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
@@ -66,28 +81,56 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
     delete pr.nextClass;
   }
   pick.level += 1;
-  if (pick.level === CONFIG.CLASS_MAX_LEVEL) offerCapstones(p, pick.classId);
+  if (pick.level === classMaxLevel(pick.classId)) offerCapstones(p, pick.classId);
   p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn).filter((x) => !p.core.perks.some((o) => o.perkId === x.perkId))); // class-level perks, once each
+  if (pr.capstoneOptions?.[pick.classId]) for (const x of capstonePerks(p, pick.classId)) x.dormant = true; // inactive until the player picks
   if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
   return { classId: pick.classId, level: charLevel(p) };
 }
 
-/** Alternate capstones: when a class reaches CLASS_MAX_LEVEL, every alternate whose conditions hold right then is
- * offered in place of the default capstone (the class's levelPerks at that level). The offer stays until a swap. */
+/** Alternate capstones: when a class reaches its top level, every alternate whose conditions hold right then is
+ * offered in place of the default capstone (ClassDef.capstone). While an offer stands the default
+ * is held dormant (it does nothing); the player either keeps it (keepCapstone) or swaps in an alternate (swapCapstone).
+ * Either choice is final. With nothing on offer the default is active at once. */
 function offerCapstones(p: Actor, classId: string): void {
   const ok = (getLibrary().classes[classId]?.capstones ?? []).filter((c) => ruleMet(p, c.needs)).map((c) => c.perk);
   if (ok.length) (p.progression!.capstoneOptions ??= {})[classId] = ok;
+}
+
+/** the owned default capstone perks of a class (ClassDef.capstone) */
+function capstonePerks(p: Actor, classId: string) {
+  const base = getLibrary().classes[classId]?.capstone ?? [];
+  return p.core.perks.filter((x) => x.source === 'class' && base.includes(x.perkId));
+}
+
+/** keep a class's default capstone: it becomes active and the offer closes. False when nothing is on offer. */
+export function keepCapstone(p: Actor, classId: string): boolean {
+  const pr = p.progression;
+  if (!pr?.capstoneOptions?.[classId]) return false;
+  for (const x of capstonePerks(p, classId)) delete x.dormant;
+  delete pr.capstoneOptions[classId];
+  return true;
 }
 
 /** swap a class's default capstone for an offered alternate; once per class. False when it isn't on offer. */
 export function swapCapstone(p: Actor, classId: string, perkId: string, turn: number): boolean {
   const pr = p.progression, opts = pr?.capstoneOptions?.[classId];
   if (!pr || !opts?.includes(perkId)) return false;
-  const base = getLibrary().classes[classId]?.levelPerks?.[CONFIG.CLASS_MAX_LEVEL] ?? [];
+  const base = getLibrary().classes[classId]?.capstone ?? [];
   p.core.perks = p.core.perks.filter((x) => !(x.source === 'class' && base.includes(x.perkId)));
   p.core.perks.push({ perkId, source: 'class', gainedTurn: turn });
   delete pr.capstoneOptions![classId];
+  openEveryClass(p);
   return true;
+}
+
+/** Write Your Own Ending: every class in the library the owner doesn't have unlocks at level 0, its conditions
+ * ignored. Returns the ids it unlocked. */
+function openEveryClass(p: Actor): string[] {
+  if (!hasPerk(p, PK.write_your_own_ending)) return [];
+  const ids = Object.keys(getLibrary().classes).filter((id) => !p.core.classes.some((x) => x.classId === id));
+  for (const id of ids) p.core.classes.push({ classId: id, state: 'unlocked', level: 0 });
+  return ids;
 }
 
 /** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when
@@ -95,6 +138,7 @@ export function swapCapstone(p: Actor, classId: string, perkId: string, turn: nu
  * Sword-dancer at Dodge 40 and Light or Medium Weapons 40). An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;
+  for (const id of openEveryClass(p)) logCode(state, 'class_unlocked', { classId: id });
   for (const c of Object.values(getLibrary().classes)) {
     if (!(c.unlock || c.unlockAny || c.unlockPerk) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
@@ -184,8 +228,11 @@ export function tally(state: GameState, rule: AchievementRule, o: { by?: Achieve
   const t = (pr.tally ??= {});
   const k = o.by ? `${rule}:${o.by}:${o.of}` : rule;
   t[k] = o.to === undefined ? (t[k] ?? 0) + 1 : Math.max(t[k] ?? 0, o.to);
-  for (const [key, d] of Object.entries(getLibrary().achievements ?? {}))
-    if (d.rule === rule && d.by === o.by && d.count !== undefined && t[k] >= d.count) grantAchievement(state, key, o.of);
+  for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
+    if (d.rule !== rule || d.by !== o.by || d.count === undefined || t[k] < d.count) continue;
+    if (d.every) for (let n = d.count; n <= t[k]; n += d.every) grantAchievement(state, key, String(n)); // earned at every multiple
+    else grantAchievement(state, key, o.of);
+  }
 }
 
 /** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names.
@@ -201,6 +248,7 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   for (let k = d.after, i = 0; k && i < 20; k = lib[k]?.after, i++)
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
   (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), turn: state.turn });
+  if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
   const xp = CONFIG.REWARD_XP[d.level] ?? 0;
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
@@ -217,5 +265,6 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   if (d.rule === 'mastery' && a.of) what = lib.trees?.[a.of]?.name ?? a.of;
   if (d.by === 'group' && a.of) what = groupName(a.of);
   if (d.by === 'class' && a.of) what = lib.classes?.[a.of]?.name ?? a.of;
-  return d.name.replace(/\{(body_type|race|tree|group|class)\}/g, title(what));
+  if (d.by === 'class_tier' && a.of && CLASS_TIERS.has(a.of)) what = CLASS_TIERS.name(a.of);
+  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level)\}/g, title(what));
 }

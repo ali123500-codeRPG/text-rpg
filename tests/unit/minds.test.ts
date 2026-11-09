@@ -1,3 +1,4 @@
+import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage, actor, place, createRng, forcedRng } from '../harness';
 import { CONFIG, resetConfig } from '../../src/config';
@@ -19,7 +20,7 @@ const ev = (state: GameState, kind: string, actorId: string, zone: string, perce
 });
 const belief = (zone: string, status: 'suspicious' | 'aware' = 'aware', turn = 1) => ({ status, lastKnownZone: zone, lastSeenTurn: turn, source: 'seen' as const, revealed: [] });
 function companion(s: GameState, zone = 'tav_common') {
-  const c = spawnNpc(null, 'patron', { id: 'comp', zone, placeId: 'tavern', bandId: 'player_band', name: 'Pip' });
+  const c = spawnNpc(null, TP.patron, { id: 'comp', zone, placeId: 'tavern', bandId: 'player_band', name: 'Pip' });
   installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
   s.actors.push(c);
   return c;
@@ -92,7 +93,7 @@ describe('fallback list', () => {
   it('rng pick among non-player targets', () => {
     const s = makeVillage();
     companion(s, 'field_mid');
-    const c2 = spawnNpc(null, 'patron', { id: 'comp2', zone: 'field_mid', placeId: 'field', bandId: 'player_band' });
+    const c2 = spawnNpc(null, TP.patron, { id: 'comp2', zone: 'field_mid', placeId: 'field', bandId: 'player_band' });
     s.actors.push(c2);
     const sl = actor(s, 'slime_1');
     sl.mind!.knowledge.comp = belief('field_mid');
@@ -177,7 +178,7 @@ describe('install and switch', () => {
   });
   it('calm bandmates who heard switch; others keep theirs; skip logs', () => {
     const s = makeVillage();
-    const p2 = spawnNpc(null, 'patron', { id: 'patron_2', zone: 'tav_common', placeId: 'tavern', bandId: 'tavern_folk' });
+    const p2 = spawnNpc(null, TP.patron, { id: 'patron_2', zone: 'tav_common', placeId: 'tavern', bandId: 'tavern_folk' });
     installRoutines(p2, 'patron', { seat: 'tav_common', refuge: 'tav_cellar', exit: 'street_door' }, undefined, 1, createRng(2));
     s.actors.push(p2);
     switchRoutine(s, actor(s, 'patron_1'), 'leave_by_exit', 'agent');

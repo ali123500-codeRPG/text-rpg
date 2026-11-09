@@ -1,5 +1,6 @@
 // 110 Healing (H1–H11): one table of healing sources applied by one rule. Rest heals Healthy and
 // Damaged parts but not Crippled ones; a clinic lifts Crippled parts; a bandage works in a fight and is used up.
+import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
@@ -32,26 +33,26 @@ describe('110 healing', () => {
   });
   it('a bandage heals its row, is used up, and shows a line', () => {
     const s = makeVillage();
-    s.player.core.inventory.push({ id: 'b1', itemId: 'bandage', qty: 1 });
+    s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
     s.player.core.condition.hpLostPct = 20; // Hurt
-    const ev = turn(s, use('bandage'));
+    const ev = turn(s, use(IT.bandage));
     expect(s.player.core.condition.hpLostPct).toBeCloseTo(20 - getLibrary().healing!.bandage.hpPct, 0);
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(false);
     expect(mechanicsLines(s, ev)).toContain('Bandage: Hurt → Bruised');
   });
   it('a healing item is not used up when there is nothing to heal (Q3)', () => {
     const s = makeVillage();
-    s.player.core.inventory.push({ id: 'b1', itemId: 'bandage', qty: 1 });
+    s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
     s.player.core.condition.hpLostPct = 0;
-    const ev = turn(s, use('bandage'));
+    const ev = turn(s, use(IT.bandage));
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(true);
     expect(mechanicsLines(s, ev)).toContain('Bandage: nothing to heal, so you keep it');
   });
   it('a bandage that heals without changing the level says "a little better", not "no change" (run 17)', () => {
     const s = makeVillage();
-    s.player.core.inventory.push({ id: 'b1', itemId: 'bandage', qty: 1 });
+    s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
     s.player.core.condition.hpLostPct = 75;
-    const ev = turn(s, use('bandage'));
+    const ev = turn(s, use(IT.bandage));
     expect(s.player.core.condition.hpLostPct).toBeLessThan(75);
     expect(mechanicsLines(s, ev).find((l) => l.startsWith('Bandage:'))).toBe('Bandage: a little better');
   });

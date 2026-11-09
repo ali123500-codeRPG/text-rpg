@@ -13,6 +13,7 @@ export type ParserActionType =
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
+/** the Parser's words for an improvised weapon's base; IMPROVISED_ITEM (engine/gear.ts) maps each to its library item */
 export const IMPROVISED_BASES = ['improvised_light', 'improvised_medium', 'improvised_heavy'] as const;
 export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
 

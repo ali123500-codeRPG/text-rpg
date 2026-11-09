@@ -1,6 +1,7 @@
 // 121 NPC stealth (NS1–NS10): NPCs sneak, hide and vanish by the player's rules. The player is an observer
 // like any other and keeps a belief about each stealthy NPC; a stealthy NPC can ambush the player; a companion following
 // the player copies the player's posture; the village thief prowls stealthily.
+import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
@@ -10,6 +11,7 @@ import { installRoutines } from '../../src/minds';
 import { buildPlayerView } from '../../src/views';
 import type { Actor, ContestResult, GameState, Intent, NpcAction, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 const hold: Intent = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 const act = (type: NpcAction['type'], target: string | null = null, extra: Partial<NpcAction> = {}): NpcAction =>
@@ -35,7 +37,7 @@ function rig(gaps: Record<string, number | number[]> = {}) {
   return calls;
 }
 function thief(s: GameState, zone: string, routineSet?: string): Actor {
-  const t = spawnNpc(null, 'thief', { id: 'thief_1', zone, placeId: 'street', bandId: 'thieves', name: 'Nell', storyId: 'test' });
+  const t = spawnNpc(null, TP.thief, { id: 'thief_1', zone, placeId: 'street', bandId: 'thieves', name: 'Nell', storyId: 'test' });
   s.bands.push({ ...s.bands[0], id: 'thieves', name: 'the light-fingered', relations: {} });
   if (routineSet) installRoutines(t, routineSet, { route: ['street_square', 'street_door'], refuge: 'street_door' }, undefined, s.turn, createRng(1));
   s.actors.push(t);
@@ -118,7 +120,7 @@ describe('121 NPC stealth', () => {
     const s2 = makeVillage();
     place(s2, 'player', 'street_square');
     thief(s2, 'street_square');
-    s2.player.core.perks.push({ perkId: 'unblinking', source: 'level', gainedTurn: 0 });
+    s2.player.core.perks.push({ perkId: PK.unblinking, source: 'level', gainedTurn: 0 });
     const calls = rig({ player: [-1, 1] });
     turn(s2, { thief_1: act('vanish', 'street_door') });
     expect(calls.filter(([, b]) => b.actorId === 'player').map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]);
@@ -166,7 +168,7 @@ describe('121 NPC stealth', () => {
   it('NS9: a companion following you goes stealthy with you', () => {
     const s = makeVillage();
     place(s, 'player', 'street_square');
-    const c = spawnNpc(null, 'guard', { id: 'friend', zone: 'street_square', placeId: 'street', bandId: s.player.bandId, name: 'Rook', storyId: 'test' });
+    const c = spawnNpc(null, TP.guard, { id: 'friend', zone: 'street_square', placeId: 'street', bandId: s.player.bandId, name: 'Rook', storyId: 'test' });
     installRoutines(c, 'companion', {}, undefined, s.turn, createRng(1));
     s.actors.push(c);
     rig();

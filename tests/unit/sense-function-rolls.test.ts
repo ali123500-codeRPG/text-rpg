@@ -7,6 +7,7 @@ import { ruleset, situational, fnRoller } from '../../src/ruleset';
 import { zoneById } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
 
 const sense = (actorId: string, f: 'sight' | 'hearing') => ({ actorId, skill: f === 'sight' ? SK.eyesight : SK.earshot, fn: FN[f], modifiers: [], tierShifts: [], auto: false as const });
 const value = (r: { d100: number; margin: number }) => (r.margin - r.d100 + CONFIG.ROLL_NEEDED) / CONFIG.SKILL_WEIGHT;
@@ -53,7 +54,7 @@ describe('Curiouser and Curiouser reads the function', () => {
     const { afterRollShifts } = await import('../../src/ruleset/allSteps');
     const { TIERS } = await import('../../src/scales');
     const s = makeVillage(), slime = actor(s, 'slime_1');
-    slime.core.perks.push({ perkId: 'curiouser', source: 'mastery', gainedTurn: 0 });
+    slime.core.perks.push({ perkId: PK.curiouser, source: 'mastery', gainedTurn: 0 });
     expect(afterRollShifts(slime, SK.tremor, TIERS.pos('success'))).toEqual([{ source: 'Curiouser and Curiouser', value: 1 }]);
     expect(afterRollShifts(slime, SK.unarmed_natural, TIERS.pos('success'))).toEqual([]);
   });

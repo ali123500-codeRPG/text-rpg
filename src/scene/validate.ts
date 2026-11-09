@@ -245,7 +245,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       try { tpl = npcTemplate(state, c.template); } catch { err('unknown_template', `cast ${k}: template ${c.template} unknown; known: ${Object.keys(lib.templates).join(', ')}`, k); }
       if (tpl) {
         try { bodyType(state, race(tpl.raceId).bodyTypeId); } catch {
-          err('unknown_body_type', `cast ${k}: race ${tpl.raceId} or its body type unknown; known races: ${Object.keys(lib.races ?? {}).join(', ')}`, k);
+          err('unknown_body_type', `cast ${k}: race ${tpl.raceId} or its body type unknown; known races: ${Object.values(lib.races ?? {}).map((r) => `${r.id} (${r.name})`).join(', ')}`, k);
         }
       }
     }

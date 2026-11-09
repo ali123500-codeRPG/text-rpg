@@ -1,3 +1,4 @@
+import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
@@ -19,7 +20,7 @@ describe('75 Attack floor', () => {
     const s = makeVillage();
     place(s, 'player', 'field_mid');
     // player: 5 + 0.5×(50 + 20 kit) − 63.5 = −23.5 → Near Miss, natural −1 → Failure
-    const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: 'player_arming_sword_1', targetPart: null, aimed: false }, s, forcedRng([5]));
+    const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([5]));
     expect(r.attack.tier).toBe('failure');
     expect(r.outcome).toBe('missed');
     expect(r.deciding.attack).toContain('fumble');

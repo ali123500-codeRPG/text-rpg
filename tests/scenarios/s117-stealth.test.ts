@@ -1,5 +1,6 @@
 // 117 Stealth tree (ST1–ST10; spec tests 3, 18 and 42): hide and sneak are stealth contests per observer.
 // Sneaking is used outside an engagement and Combat Stealth inside one or for a shot; melee reveals, a shot does not.
+import { TP } from '../../src/library/templateIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
@@ -8,6 +9,8 @@ import { stealthyArrival } from '../../src/scene/apply';
 import { spawnNpc } from '../../src/library/spawn';
 import type { ContestResult, GameState, Intent, RollRequest } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { PK } from '../../src/library/perkIds';
+import { IT } from '../../src/library/itemIds';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null, spoken: Intent['spoken'] = null): Intent => ({
   move, gear: null, spoken, addressees: null, deferred: [], clarify: null,
@@ -38,7 +41,7 @@ afterEach(() => vi.restoreAllMocks());
 describe('117 stealth', () => {
   it('3 vanish, per observer: the guard who loses it drops to suspicious where it last saw you, the one who wins stays aware (ST15)', () => {
     const s = makeVillage();
-    s.actors.push(spawnNpc(null, 'guard', { id: 'guard_2', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch', name: 'Hal', storyId: 'test' }));
+    s.actors.push(spawnNpc(null, TP.guard, { id: 'guard_2', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch', name: 'Hal', storyId: 'test' }));
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
     aware(s, 'guard_2', 'gate_inner');
@@ -65,7 +68,7 @@ describe('117 stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     s.player.posture = 'stealthy';
     rig({ slime_1: -1 });
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
@@ -116,7 +119,7 @@ describe('117 stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'bow', itemId: 'shortbow', equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     s.player.posture = 'stealthy';
     const calls = rig();
     turn(s, intent(null, { type: 'attack', target: 'slime_1' }));
@@ -158,7 +161,7 @@ describe('117 stealth', () => {
     const s = makeVillage();
     place(s, 'player', 'gate_inner');
     aware(s, 'guard_1', 'gate_inner');
-    s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: 'unblinking' } as never);
+    s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: PK.unblinking } as never);
     const calls = rig({ guard_1: [-1, 0] });
     turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
     expect(calls.map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]);

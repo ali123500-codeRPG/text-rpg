@@ -7,6 +7,7 @@ import { applyHealing, wouldHeal } from '../../src/engine/heal';
 import { isActive } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
+import { IT } from '../../src/library/itemIds';
 
 describe('120 dead', () => {
   it('damage past Incapacitated counts up to 150% and then the actor is Dead', () => {
@@ -14,7 +15,7 @@ describe('120 dead', () => {
     const g = actor(s, 'guard_1');
     g.core.condition.hpLostPct = 100;
     const hit = { attack: null as never, defense: null, defenseType: null, gap: -3, gapShifts: [], outcome: 'full_hit' as const, locationHow: 'aimed' as const,
-      multiplier: 1, deciding: { attack: [], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: 'arming_sword', modeId: 'cut' };
+      multiplier: 1, deciding: { attack: [], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: IT.arming_sword, modeId: 'cut' };
     ruleset.applyEffects({ ...hit, location: 'general', damage: 10 }, s);
     expect(g.core.condition.hpLostPct).toBeGreaterThan(100);
     expect(healthLevel(g)).toBe('Incapacitated');

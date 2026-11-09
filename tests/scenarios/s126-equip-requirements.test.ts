@@ -10,38 +10,39 @@ import { getLibrary, itemDef } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
 import type { AttackResult, ItemDef } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { IT } from '../../src/library/itemIds';
 
 const sk = (raw: number) => ({ raw, state: 'normal' as const });
 
 describe('126 Equip requirements', () => {
   it('EQ8–EQ11: levels and what they ask; quality 3 and 4 add a level', () => {
-    expect(requirement(itemDef(null, 'gambeson'))).toEqual({ skill: SK.light_armor, level: 'common', need: 25 });
-    expect(requirement(itemDef(null, 'arming_sword'))).toEqual({ skill: SK.melee_medium, level: 'fine', need: 50 });
-    expect(requirement(itemDef(null, 'plate_harness'))).toEqual({ skill: SK.heavy_armor, level: 'superior', need: 75 });
-    expect(requirement(itemDef(null, 'round_shield'))).toEqual({ skill: SK.block, level: 'common', need: 25 });
-    expect(requirement(itemDef(null, 'bandage'))).toBeNull();
-    const minted = (q: 1 | 2 | 3 | 4, base = 'crossbow'): ItemDef => ({ ...itemDef(null, base), base: { itemId: base, quality: q, boosts: '' } });
+    expect(requirement(itemDef(null, IT.gambeson))).toEqual({ skill: SK.light_armor, level: 'common', need: 25 });
+    expect(requirement(itemDef(null, IT.arming_sword))).toEqual({ skill: SK.melee_medium, level: 'fine', need: 50 });
+    expect(requirement(itemDef(null, IT.plate_harness))).toEqual({ skill: SK.heavy_armor, level: 'superior', need: 75 });
+    expect(requirement(itemDef(null, IT.round_shield))).toEqual({ skill: SK.block, level: 'common', need: 25 });
+    expect(requirement(itemDef(null, IT.bandage))).toBeNull();
+    const minted = (q: 1 | 2 | 3 | 4, base: string = IT.crossbow): ItemDef => ({ ...itemDef(null, base), base: { itemId: base, quality: q, boosts: '' } });
     expect(itemLevel(minted(2))).toBe('superior');
     expect(itemLevel(minted(3))).toBe('masterwork');
     expect(requirement(minted(4))?.need).toBe(100);
-    expect(itemLevel(minted(4, 'dagger'))).toBe('fine');
+    expect(itemLevel(minted(4, IT.dagger))).toBe('fine');
   });
 
   it('EQ1/EQ3: true skill counts, and a stand-in at its share', () => {
     const s = makeVillage();
     const p = s.player;
     p.core.skills[SK.light_armor] = sk(20);
-    expect(shortBy(p, itemDef(s, 'gambeson'))).toBe(5);
+    expect(shortBy(p, itemDef(s, IT.gambeson))).toBe(5);
     delete p.core.skills[SK.light_armor];
     p.core.skills[SK.medium_armor] = sk(50); // Medium Armor stands in for Light Armor at 0.3: 15
-    expect(shortBy(p, itemDef(s, 'gambeson'))).toBe(10);
+    expect(shortBy(p, itemDef(s, IT.gambeson))).toBe(10);
   });
 
   it('EQ12 c: one outcome step worse per 10 points short, on rolls with the item; armor reaches Dodge and stealth', () => {
     const s = makeVillage();
     const p = s.player; // the harness player wears a gambeson with no Light Armor: 25 short
     p.core.skills[SK.melee_medium] = sk(35); // the arming sword asks 50: 15 short
-    const sword = p.core.inventory.find((i) => i.itemId === 'arming_sword')!.id;
+    const sword = p.core.inventory.find((i) => i.itemId === IT.arming_sword)!.id;
     expect(shortShifts(s, p, 'hit', sword)).toEqual([{ source: "Short of arming sword's requirement", value: -2 }]);
     expect(shortShifts(s, p, 'dodge', undefined)).toEqual([{ source: "Short of gambeson's requirement", value: -3 }]);
     expect(shortShifts(s, p, 'stealth', undefined).map((x) => x.value)).toEqual([-3]);

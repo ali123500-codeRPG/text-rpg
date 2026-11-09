@@ -54,9 +54,9 @@ export type PlayerView = {
   turn: number;
   player: {
     id: 'player'; name: string; classes: string[];
-    skills: { id: string; name: string }[]; // skill ID (a number) and its name; no skill values
-    perks: string[];
-    perkMoves?: string[]; // AE8: owned perk moves by perk id (the Parser's perkMove.perk)
+    skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
+    perks: { id: string; name: string }[]; // perk ID (PK…) and its name
+    perkMoves?: { id: string; name: string }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id)
     health: HealthLevel; parts: { id: string; state: PartState }[];
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
@@ -191,7 +191,7 @@ export type WeaverView = {
   catalogs: {
     templates: { id: string; label: string; raceId: string; classId?: string }[];
     services: { id: string; name: string; price: number }[]; // PY3: base prices, before the markup
-    bodyTypes: string[];
+    bodyTypes: { id: string; name: string }[]; // BT… id and name, plus story body types
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: { id: string; name: string }[];

@@ -1,9 +1,10 @@
+import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 
 // player 50 → Success (0); patron dodge 0: 30 − 63.5 = −33.5 → Failure (-2): gap −2
-const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'player_arming_sword_1', targetPart: 'left_leg', aimed: false };
+const req = { attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: 'left_leg', aimed: false };
 describe('79 Named part', () => {
   it('at gap −2 a hit rolled on the general area moves to the named left leg', () => {
     const s = makeVillage();

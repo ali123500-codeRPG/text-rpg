@@ -1,7 +1,9 @@
 // Fixture stage plans: the scripted Weaver answer for story start (STORY_PREMISE: the village tavern).
 // Used by W6 tests, the pipeline (W7) and the integration owner. Expects the player's band id 'player_band'.
+import { TP } from '../library/templateIds';
 import { SV } from '../library/serviceIds';
 import type { Clock, GameState, Grade, StagePlan, Tier } from '../types';
+import { IT } from '../library/itemIds';
 
 /** a challenge/gain pair that fits each tier (Agent Weaver: grades table) */
 export const FITTING_GRADES: Record<Tier, { challenge: Grade; gain: Grade }> = {
@@ -48,21 +50,21 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
         relations: { player_band: 'hostile', village_watch: 'hostile', tavern_folk: 'hostile' } },
     ],
     cast: [
-      { template: 'guard', key: 'guard_1', label: 'a village guard', name: 'Bertram', pronouns: 'he', appearance: 'a stocky man in a dented mail shirt',
+      { template: TP.guard, key: 'guard_1', label: 'a village guard', name: 'Bertram', pronouns: 'he', appearance: 'a stocky man in a dented mail shirt',
         band: 'village_watch', routineSetId: 'gate_guard', slots: { post: 'gate_inner' }, awarenessOfPlayer: 'unaware', motive: 'wants the slimes gone before harvest' },
-      { template: 'trader', key: 'barkeep', label: 'the barkeep', name: 'Mags', pronouns: 'she', appearance: 'a broad woman with flour on her apron', knownOnSight: true,
+      { template: TP.trader, key: 'barkeep', label: 'the barkeep', name: 'Mags', pronouns: 'she', appearance: 'a broad woman with flour on her apron', knownOnSight: true,
         knows: [{ id: 'slimes_field', text: 'Slimes have been coming over the east field most nights.' }],
         band: 'tavern_folk', routineSetId: 'barkeep', slots: { counter: 'tav_counter', refuge: 'tav_cellar' }, awarenessOfPlayer: 'aware', motive: 'wants someone to deal with the slimes cheaply',
-        wares: { items: [{ item: 'bandage', qty: 4 }], services: [SV.drink, SV.meal, SV.bed] } },
-      { template: 'patron', key: 'patron_1', label: 'an old drinker', name: 'Old Wim', pronouns: 'he', appearance: 'a stooped old man nursing a mug',
+        wares: { items: [{ item: IT.bandage, qty: 4 }], services: [SV.drink, SV.meal, SV.bed] } },
+      { template: TP.patron, key: 'patron_1', label: 'an old drinker', name: 'Old Wim', pronouns: 'he', appearance: 'a stooped old man nursing a mug',
         band: 'tavern_folk', routineSetId: 'patron', slots: { seat: 'tav_common', refuge: 'tav_cellar', exit: 'street_door' }, awarenessOfPlayer: 'suspicious', motive: 'wants a free drink' },
-      { template: 'slime', key: 'slime_1', label: 'a slime', name: 'slime', pronouns: 'it', appearance: 'a quivering green mass',
+      { template: TP.slime, key: 'slime_1', label: 'a slime', name: 'slime', pronouns: 'it', appearance: 'a quivering green mass',
         band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_mid', 'field_far'], post: 'field_far' }, startAt: 'route', awarenessOfPlayer: 'unaware', motive: 'hunger' },
-      { template: 'slime', key: 'slime_2', label: 'a slime', name: 'slime', pronouns: 'it', appearance: 'a quivering green mass',
+      { template: TP.slime, key: 'slime_2', label: 'a slime', name: 'slime', pronouns: 'it', appearance: 'a quivering green mass',
         band: 'slimes', routineSetId: 'slime_wander', slots: { route: ['field_far', 'field_mid'], post: 'field_mid' }, awarenessOfPlayer: 'unaware', motive: 'hunger' },
     ],
     seeds: { plans: [], triggers: [], secrets: [] },
-    rewards: [{ item: 'coin', qty: 5, place: { carriedBy: 'barkeep' } }],
+    rewards: [{ item: IT.coin, qty: 5, place: { carriedBy: 'barkeep' } }],
     hiddenTerms: ['nest'],
     weaverNote: 'Opening: slimes raid the field from a nest in the woods. Mags will pay for help.',
   };
