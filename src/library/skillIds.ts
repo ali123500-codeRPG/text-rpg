@@ -1,6 +1,8 @@
 // Skill IDs (Ali, 09/11/2026): every skill's ID is a fixed number, never its name, so renaming a skill touches only the
 // names table (skillNames.ts). Code refers to skills through SK; data and saves store the number (as a string key).
 // Never reuse or renumber an ID; a new skill takes the next free number.
+import { FN } from './functionIds';
+
 export const SK = {
   melee_light: '1', melee_medium: '2', melee_heavy: '3',
   ranged_light: '4', ranged_medium: '5', ranged_heavy: '6',
@@ -14,7 +16,7 @@ export type SkillId = (typeof SK)[keyof typeof SK];
 /** a standing defense (dodge or block, a choice, not a skill) and the skill it rolls */
 export const DEFENSE_SKILL = { dodge: SK.dodge, block: SK.block } as const;
 /** a sense function's default skill: a function roll asks for it, and the best skill with the function rolls */
-export const SENSE_SKILL = { sight: SK.eyesight, hearing: SK.earshot } as const;
+export const SENSE_SKILL = { [FN.sight]: SK.eyesight, [FN.hearing]: SK.earshot } as const;
 /** an armor weight and the skill that wears it */
 export const ARMOR_SKILL: Record<string, SkillId> = { light: SK.light_armor, medium: SK.medium_armor, heavy: SK.heavy_armor };
 /** a weapon tree and size class and the skill that wields it */

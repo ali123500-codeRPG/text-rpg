@@ -1,4 +1,5 @@
 // Dialogue turns: spokespeople, the player's speech check, impressions (Dialogue input table), SLIPS.
+import { FN } from '../library/functionIds';
 import type { Actor, ContestResult, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
@@ -139,4 +140,4 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
 }
 
 /** skills tagged influence (persuasion, intimidation, barter) */
-const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes('influence')).map(([id]) => id);
+const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes(FN.influence)).map(([id]) => id);

@@ -1,3 +1,5 @@
+import type { SkillFunction } from './types';
+import { FN } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
@@ -15,8 +17,8 @@ const DEFAULTS = {
   /** Per-check substitutes (Ali, 07/11/2026): a skill listed here replaces the flat SUBSTITUTE_EFFICIENCY with its own
    * table of skill functions and the share each substitute counts at. Grapple: other unarmed skills 0.4×, melee 0.2×. */
   SUBSTITUTES: {
-    [SK.unarmed_grapple]: [{ fn: 'unarmed', k: 0.4 }, { fn: 'arms', k: 0.2 }],
-  } as Record<string, { fn: string; k: number }[]>,
+    [SK.unarmed_grapple]: [{ fn: FN.unarmed, k: 0.4 }, { fn: FN.arms, k: 0.2 }],
+  } as Record<string, { fn: SkillFunction; k: number }[]>,
   /** Pairs of skills that never stand in for each other, even when they share a function (Ali, 09/11/2026: dodge and block) */
   NO_STAND_IN: [[SK.dodge, SK.block]] as [string, string][],
   SITUATION_BASE: 50,

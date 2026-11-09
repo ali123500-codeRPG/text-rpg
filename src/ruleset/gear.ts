@@ -1,5 +1,5 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
-import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, TierShift, Zone } from '../types';
+import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
 import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
@@ -96,7 +96,7 @@ export function standInShare(skill: string, id: string, table = standInTable(ski
 export const fnSkills = (fn: string): string[] => Object.values(getLibrary().skills).filter((s) => ((s.functions ?? []) as string[]).includes(fn)).map((s) => s.id);
 /** the skill a function roll will use: the best effective skill with `fn`. Callers read situational modifiers from it,
  * so light and Night Eyes follow the skill that rolls (Q3, Ali 09/11/2026): Tremor ignores light. */
-export const fnRoller = (state: GameState, actor: Actor, fn: string): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: fnSkills(fn) }).skill;
+export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: fnSkills(fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[] } = {}) {

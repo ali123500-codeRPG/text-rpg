@@ -2,6 +2,7 @@
 // bundle of parts, granted for free when every skill of the tree reaches 50 true skill (G1–G8). Each part is its own perk
 // (so code checks hasPerk on the part) with a Story and an exact Rules view, like the ladder perks. A part is granted
 // only once it is built (BUILT_PERKS). Names: "<tree> All-50: <name>" (G5); All-50 and 100+ names may be dramatic.
+import { FN } from './functionIds';
 import type { PerkWriteup } from '../types';
 import { SK } from './skillIds';
 
@@ -60,7 +61,7 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'An archer lives by the eye: +10 to every skill you see with.',
     rules: { kind: 'Always on', trigger: 'Always.', conditions: [],
       effect: '+10 true skill in every skill with the sight function (Ali, 08/11/2026: "+10 to sight, the function").', lasts: 'Always.' },
-    fnSkill: { fn: 'sight', add: 10 } }),
+    fnSkill: { fn: FN.sight, add: 10 } }),
   // ---- Combat – Unarmed ----
   part('unarmed', { id: 'hard_to_hold', ref: 'T3a', name: 'Hard to Hold', effect: 'defense',
     story: 'Hands never stay on you for long. Your rolls to break a hold land one outcome better.',

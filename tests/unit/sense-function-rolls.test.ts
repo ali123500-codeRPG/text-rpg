@@ -1,5 +1,6 @@
 // Ali (09/11/2026): a sight roll rolls the sight function, not one skill. Eyesight and Tremor are both sight skills,
 // so the higher effective skill applies at full value (its tier multiplier still counts). The same goes for hearing.
+import { FN } from '../../src/library/functionIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, actor, createRng } from '../harness';
 import { ruleset, situational, fnRoller } from '../../src/ruleset';
@@ -7,7 +8,7 @@ import { zoneById } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 
-const sense = (actorId: string, fn: 'sight' | 'hearing') => ({ actorId, skill: fn === 'sight' ? SK.eyesight : SK.earshot, fn, modifiers: [], tierShifts: [], auto: false as const });
+const sense = (actorId: string, f: 'sight' | 'hearing') => ({ actorId, skill: f === 'sight' ? SK.eyesight : SK.earshot, fn: FN[f], modifiers: [], tierShifts: [], auto: false as const });
 const value = (r: { d100: number; margin: number }) => (r.margin - r.d100 + CONFIG.ROLL_NEEDED) / CONFIG.SKILL_WEIGHT;
 
 describe('sense rolls use the function', () => {
@@ -39,10 +40,10 @@ describe('sense rolls use the function', () => {
     const zone = zoneById(s, p.zone)!;
     zone.light = 'dark';
     delete (zone as { outdoor?: true }).outdoor;
-    const light = (a: typeof p) => situational(s, fnRoller(s, a, 'sight'), { light: zone, actor: a }).modifiers;
-    expect(fnRoller(s, slime, 'sight')).toBe(SK.tremor);
+    const light = (a: typeof p) => situational(s, fnRoller(s, a, FN.sight), { light: zone, actor: a }).modifiers;
+    expect(fnRoller(s, slime, FN.sight)).toBe(SK.tremor);
     expect(light(slime)).toEqual([]);
-    expect(fnRoller(s, p, 'sight')).toBe(SK.eyesight);
+    expect(fnRoller(s, p, FN.sight)).toBe(SK.eyesight);
     expect(light(p)[0].value).toBeLessThan(0);
   });
 });

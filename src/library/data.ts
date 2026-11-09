@@ -9,49 +9,50 @@ import { BOOST_PERKS } from './boostPerks';
 import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
 import { SK, OLD_SKILL_IDS } from './skillIds';
+import { FN, GR } from './functionIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
-  melee: 'offensive', ranged: 'offensive', defense: 'defensive', health: 'endurance', notice: 'notice', influence: 'influence',
+  [GR.melee]: 'offensive', [GR.ranged]: 'offensive', [GR.defense]: 'defensive', [GR.health]: 'endurance', [GR.notice]: 'notice', [GR.influence]: 'influence',
 };
 const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', xpCategory?: XpCategory, tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
   ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[FUNCTION_GROUP[functions[0]]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
-  sk(SK.melee_light, 'melee', ['arms'], ['grip']),
-  sk(SK.melee_medium, 'melee', ['arms'], ['grip']),
-  sk(SK.melee_heavy, 'melee', ['arms'], ['grip']),
-  sk(SK.ranged_light, 'ranged', ['ranged'], ['grip']),
-  sk(SK.ranged_medium, 'ranged', ['ranged'], ['grip']),
-  sk(SK.ranged_heavy, 'ranged', ['ranged'], ['grip']),
-  sk(SK.unarmed_strike, 'unarmed', ['unarmed'], ['grip']),
-  sk(SK.unarmed_grapple, 'unarmed', ['unarmed'], ['grip']),
-  sk(SK.unarmed_improvised, 'unarmed', ['unarmed'], ['grip']), // fighting with whatever is at hand (Ali, 07/11/2026)
-  sk(SK.unarmed_natural, 'natural', ['unarmed'], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
-  sk(SK.dodge, 'defense', ['defense'], ['move']),
-  sk(SK.block, 'defense', ['defense'], ['grip']),
-  sk(SK.endurance, 'defense', ['health'], []), // endurance sets total HP
+  sk(SK.melee_light, 'melee', [FN.arms], ['grip']),
+  sk(SK.melee_medium, 'melee', [FN.arms], ['grip']),
+  sk(SK.melee_heavy, 'melee', [FN.arms], ['grip']),
+  sk(SK.ranged_light, 'ranged', [FN.ranged], ['grip']),
+  sk(SK.ranged_medium, 'ranged', [FN.ranged], ['grip']),
+  sk(SK.ranged_heavy, 'ranged', [FN.ranged], ['grip']),
+  sk(SK.unarmed_strike, 'unarmed', [FN.unarmed], ['grip']),
+  sk(SK.unarmed_grapple, 'unarmed', [FN.unarmed], ['grip']),
+  sk(SK.unarmed_improvised, 'unarmed', [FN.unarmed], ['grip']), // fighting with whatever is at hand (Ali, 07/11/2026)
+  sk(SK.unarmed_natural, 'natural', [FN.unarmed], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
+  sk(SK.dodge, 'defense', [FN.defense], ['move']),
+  sk(SK.block, 'defense', [FN.defense], ['grip']),
+  sk(SK.endurance, 'defense', [FN.health], []), // endurance sets total HP
   // Armor – Conventional (Ali, 08/11/2026, AR1–AR3): one skill per armor weight, function armor in the Defense group.
   // What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it.
-  sk(SK.light_armor, 'armor', ['armor'], []),
-  sk(SK.medium_armor, 'armor', ['armor'], []),
-  sk(SK.heavy_armor, 'armor', ['armor'], []),
-  sk(SK.eyesight, 'perception', ['sight'], ['sense'], 'sight'),
-  sk(SK.earshot, 'perception', ['hearing'], ['sense'], 'sound'),
+  sk(SK.light_armor, 'armor', [FN.armor], []),
+  sk(SK.medium_armor, 'armor', [FN.armor], []),
+  sk(SK.heavy_armor, 'armor', [FN.armor], []),
+  sk(SK.eyesight, 'perception', [FN.sight], ['sense'], 'sight'),
+  sk(SK.earshot, 'perception', [FN.hearing], ['sense'], 'sound'),
   // Stealth (Ali, 08/11/2026, ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
-  sk(SK.sneaking, 'stealth', ['stealth'], ['move'], undefined, 'notice'),
-  sk(SK.combat_stealth, 'stealth', ['stealth'], ['move'], undefined, 'offensive'),
-  sk(SK.vanishing, 'stealth', ['stealth'], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
+  sk(SK.sneaking, 'stealth', [FN.stealth], ['move'], undefined, 'notice'),
+  sk(SK.combat_stealth, 'stealth', [FN.stealth], ['move'], undefined, 'offensive'),
+  sk(SK.vanishing, 'stealth', [FN.stealth], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
   // speech role (Ali, 08/11/2026): head wounds reduce speech rolls
-  sk(SK.persuasion, 'speech', ['influence'], ['speech']),
-  sk(SK.intimidation, 'speech', ['influence'], ['speech']),
-  sk(SK.barter, 'speech', ['influence'], ['speech']),
+  sk(SK.persuasion, 'speech', [FN.influence], ['speech']),
+  sk(SK.intimidation, 'speech', [FN.influence], ['speech']),
+  sk(SK.barter, 'speech', [FN.influence], ['speech']),
   sk(SK.feint, 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk(SK.riposte, 'swordsman', [], ['grip'], undefined, 'offensive'),
   sk(SK.disarm, 'swordsman', [], ['grip'], undefined, 'offensive'),
   // slime class skills are tier 0 (Ali, 08/11/2026); F1: tremor is both a sight and a hearing function
-  sk(SK.tremor, 'slime_senses', ['sight', 'hearing'], ['sense'], 'sound', undefined, 'tier_0'),
+  sk(SK.tremor, 'slime_senses', [FN.sight, FN.hearing], ['sense'], 'sound', undefined, 'tier_0'),
   // OQ-20 (settled 07/11/2026): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk(SK.lockpicking, 'tools', [], ['grip']),
 ].map((s) => [s.id, s]));
@@ -75,8 +76,8 @@ const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25,
  * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
  * Ranged skills for the throw. */
 const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
-  mode({ id: 'strike', tree: 'melee', class: cls, skill: SK.unarmed_improvised, reach: 0, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: ['arms'] }),
-  mode({ id: 'throw', tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reach: 1, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: ['ranged'] }),
+  mode({ id: 'strike', tree: 'melee', class: cls, skill: SK.unarmed_improvised, reach: 0, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
+  mode({ id: 'throw', tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reach: 1, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
 const ARMOR = (w: ArmorWeightKey) => ({ reduction: CONFIG.ARMOR_PROTECTION[w][0], multiplier: CONFIG.ARMOR_PROTECTION[w][1], weight: w });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any' });

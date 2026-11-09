@@ -1,5 +1,6 @@
 // 124 Skill groups and functions (Ali, 08/11/2026, F1–F8): a skill lists one or more narrow functions (stand-ins at
 // SUBSTITUTE_EFFICIENCY 0.3, which perks can move); each function sits in one broad group (40 perk +1, XP category).
+import { FN } from '../../src/library/functionIds';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { effectiveSkill, trueSkill } from '../../src/ruleset';
@@ -18,7 +19,7 @@ afterEach(() => { delete getLibrary().perks.test_stand_in; });
 describe('124 skill groups and functions', () => {
   it('F1/F6: tremor has both the sight and hearing functions; F8: XP categories unchanged', () => {
     const k = getLibrary().skills;
-    expect(k[SK.tremor].functions).toEqual(['sight', 'hearing']);
+    expect(k[SK.tremor].functions).toEqual([FN.sight, FN.hearing]);
     expect([k[SK.melee_light].xpCategory, k[SK.unarmed_strike].xpCategory, k[SK.ranged_heavy].xpCategory]).toEqual(['offensive', 'offensive', 'offensive']);
     expect([k[SK.dodge].xpCategory, k[SK.endurance].xpCategory, k[SK.eyesight].xpCategory, k[SK.tremor].xpCategory, k[SK.barter].xpCategory]).toEqual(['defensive', 'endurance', 'notice', 'notice', 'influence']);
     expect(getLibrary().trees.melee.name).toBe('Combat – Arms'); // F7
@@ -44,7 +45,7 @@ describe('124 skill groups and functions', () => {
     const s = makeVillage();
     only(s.player, { [SK.persuasion]: 100 });
     expect(effectiveSkill(s, s.player, SK.barter).value).toBeCloseTo(30);
-    getLibrary().perks.test_stand_in = { id: 'test_stand_in', name: 'test', standIn: { add: 0.2, fn: 'influence' } };
+    getLibrary().perks.test_stand_in = { id: 'test_stand_in', name: 'test', standIn: { add: 0.2, fn: FN.influence } };
     give(s.player, 'test_stand_in');
     expect(effectiveSkill(s, s.player, SK.barter).value).toBeCloseTo(50);
     expect(effectiveSkill(s, s.player, SK.eyesight).value).toBe(0); // another function: unchanged

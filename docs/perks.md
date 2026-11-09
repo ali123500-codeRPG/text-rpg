@@ -193,7 +193,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Light weapons. +1 true skill in every skill of group melee. +10 on attack rolls with skill Light weapons.
+- **Effect:** +5 true skill in Light weapons. +1 true skill in every skill of group Melee. +10 on attack rolls with skill Light weapons.
 - **Lasts:** Always.
 
 ### Guard Drill (Medium weapons) · P2
@@ -202,7 +202,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Medium weapons. +1 true skill in every skill of group melee. +10 true skill in Block.
+- **Effect:** +5 true skill in Medium weapons. +1 true skill in every skill of group Melee. +10 true skill in Block.
 - **Lasts:** Always.
 
 ### Heavy Hand (Heavy weapons) · P3
@@ -211,7 +211,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group melee. Damage of an attack with skill Heavy weapons is ×1.2, before armor.
+- **Effect:** +5 true skill in Heavy weapons. +1 true skill in every skill of group Melee. Damage of an attack with skill Heavy weapons is ×1.2, before armor.
 - **Lasts:** Always.
 
 ### Sharp Eyes (Light ranged) · P4
@@ -220,7 +220,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Light ranged. +1 true skill in every skill of group ranged. +10 true skill in Eyesight.
+- **Effect:** +5 true skill in Light ranged. +1 true skill in every skill of group Ranged. +10 true skill in Eyesight.
 - **Lasts:** Always.
 
 ### Steady Draw (Medium ranged) · P5
@@ -229,7 +229,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Medium ranged. +1 true skill in every skill of group ranged. +5 on attack rolls with skill Medium ranged, and its damage is ×1.1, before armor.
+- **Effect:** +5 true skill in Medium ranged. +1 true skill in every skill of group Ranged. +5 on attack rolls with skill Medium ranged, and its damage is ×1.1, before armor.
 - **Lasts:** Always.
 
 ### Armor Piercer (Heavy ranged) · P6
@@ -238,7 +238,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group ranged. On a hit with skill Heavy ranged, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
+- **Effect:** +5 true skill in Heavy ranged. +1 true skill in every skill of group Ranged. On a hit with skill Heavy ranged, each armor the hit passes (worn and natural) reduces the damage by 2 less (never below 0).
 - **Lasts:** Always.
 
 ### Street Fighter (Strike) · P7
@@ -247,7 +247,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Strike. +1 true skill in every skill of group melee. +10 true skill in Improvisation.
+- **Effect:** +5 true skill in Strike. +1 true skill in every skill of group Melee. +10 true skill in Improvisation.
 - **Lasts:** Always.
 
 ### Iron Grip (Grapple) · P8
@@ -256,7 +256,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Grapple. +1 true skill in every skill of group melee. +10 on every roll with skill Grapple (grapple attacks, and both sides of a break-free contest).
+- **Effect:** +5 true skill in Grapple. +1 true skill in every skill of group Melee. +10 on every roll with skill Grapple (grapple attacks, and both sides of a break-free contest).
 - **Lasts:** Always.
 
 ### Brawler's Eye (Improvisation) · P9
@@ -265,7 +265,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Improvisation. +1 true skill in every skill of group melee. +5 true skill in Strike and +5 in Eyesight.
+- **Effect:** +5 true skill in Improvisation. +1 true skill in every skill of group Melee. +5 true skill in Strike and +5 in Eyesight.
 - **Lasts:** Always.
 
 ### Light Feet (Dodge) · P10
@@ -274,7 +274,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Dodge. +1 true skill in every skill of group defense. +10 true skill in Sneaking.
+- **Effect:** +5 true skill in Dodge. +1 true skill in every skill of group Defense. +10 true skill in Sneaking.
 - **Lasts:** Always.
 
 ### Take the Hit (Block) · P11
@@ -283,7 +283,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Block. +1 true skill in every skill of group defense. +10 true skill in Endurance.
+- **Effect:** +5 true skill in Block. +1 true skill in every skill of group Defense. +10 true skill in Endurance.
 - **Lasts:** Always.
 
 ### Fast Healer (Endurance) · P12
@@ -292,7 +292,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Endurance. +1 true skill in every skill of group health. Natural recovery (the hourly healing row read from Endurance) is ×2.
+- **Effect:** +5 true skill in Endurance. +1 true skill in every skill of group Health. Natural recovery (the hourly healing row read from Endurance) is ×2.
 - **Lasts:** Always.
 
 ### Marksman's Eye (Eyesight) · P13
@@ -301,7 +301,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Eyesight. +1 true skill in every skill of group notice. +5 true skill in Light ranged and +5 in Medium ranged.
+- **Effect:** +5 true skill in Eyesight. +1 true skill in every skill of group Notice. +5 true skill in Light ranged and +5 in Medium ranged.
 - **Lasts:** Always.
 
 ### Soft Step (Earshot) · P14
@@ -310,7 +310,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Earshot. +1 true skill in every skill of group notice. +10 true skill in Sneaking.
+- **Effect:** +5 true skill in Earshot. +1 true skill in every skill of group Notice. +10 true skill in Sneaking.
 - **Lasts:** Always.
 
 ## Higher milestone
