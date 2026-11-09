@@ -99,7 +99,7 @@ const DEFAULTS = {
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
   // ---- Part 4 ----
-  POINTS_PER_LEVEL: 10, // Ali: 10 × level (was 3)
+  POINTS_PER_LEVEL: 10, // 10 × level (was 3)
   CREATION_POINTS: 250,
   START_LEVEL: 4, // EQ13: the player starts at level 4
   CREATION_MAX_SKILL: 60,

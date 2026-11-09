@@ -41,7 +41,7 @@ export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
   /** the public stranger label a player starting in this class has */
   label?: string;
-  /** a creation option (Ali, 09/11/2026): points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
+  /** a creation option: points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
   creation?: { points?: number; level?: number };
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
   levelPerks?: Record<number, string[]>;

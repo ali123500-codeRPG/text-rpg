@@ -22,7 +22,7 @@ export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] =
 
 const STEP = 5;
 
-/** the starting options (Ali, 09/11/2026): the swordsman, and the late bloomer's unique class */
+/** the starting options: the swordsman, and the late bloomer's unique class */
 const STARTS = ['swordsman', 'late_bloomer'];
 
 export function creationScreen(api: GameApi, onStarted: () => void, classId = 'swordsman'): HTMLElement {

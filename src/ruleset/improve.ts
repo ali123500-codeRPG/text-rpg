@@ -43,7 +43,7 @@ function markArmor(state: GameState, result: AttackResult): void {
 
 /** the opposition for each side of a roll: a check's target; the other side's true skill in a contest or attack */
 export function markUse(state: GameState, actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult): void {
-  // Ali: when a stand-in makes the roll, the stand-in AND the skill the action asked for each learn,
+  // When a stand-in makes the roll, the stand-in AND the skill the action asked for each learn,
   // each against its own window. Without this a skill below the stand-in share of another one could never rise.
   const both = (who: Actor | undefined, r: { skill: string; asked?: string }, opp: number | undefined) => {
     markIfClose(state, who, r.skill, opp);
