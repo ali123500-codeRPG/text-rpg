@@ -6,7 +6,7 @@ import { CONFIG } from '../config';
 import { healthLevel } from '../ruleset/body';
 import { dayOf, now } from '../time';
 import { actorById, allActors, hostile, isActive } from './relations';
-import { fightingWith } from './engagement';
+import { besidePlayer, fightingWith } from './engagement';
 import { tally } from './xp';
 
 const atLeastCritical = () => CONFIG.HEALTH_TRACK.findIndex(([l]) => l === 'Critical');
@@ -33,7 +33,9 @@ function logFight(state: GameState, events: GameEvent[]): void {
   if (lost > f.hp || events.some((v) => v.attack?.targetId === p.id && v.attack.damage > 0)) f.hurt = true;
   f.hp = lost;
   if (events.some((v) => v.attack?.targetId === p.id && v.attack.defense)) f.defended = true;
-  if (allActors(state).some((x) => x !== p && !hostile(state, x, p) && foes.some((o) => fightingWith(state, x, o) || fightingWith(state, o, x)))) f.helped = true;
+  const allies = allActors(state).filter((x) => besidePlayer(state, x));
+  if (allies.length) f.helped = true;
+  if (allies.length && foes.length > allies.length + 1) f.heldLine = true; // the foes outnumber your whole side
   if (CONFIG.HEALTH_TRACK.findIndex(([l]) => l === healthLevel(p)) >= atLeastCritical()) f.brink = true;
 }
 
@@ -45,4 +47,5 @@ export function fightEnded(state: GameState, f: FightLog): void {
   if (!won) return;
   if (!f.hurt && f.defended) tally(state, 'flawless');
   if (f.most >= CONFIG.OUTNUMBERED_FOES && !f.helped) tally(state, 'outnumbered');
+  if (f.heldLine) tally(state, 'held_line');
 }

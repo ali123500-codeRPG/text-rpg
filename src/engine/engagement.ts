@@ -13,6 +13,14 @@ export function fightingWith(state: GameState, a: Actor, b: Actor): boolean {
   return countsInFight(a) && countsInFight(b) && hostile(state, a, b) && atLeast(a.mind?.knowledge?.[b.id]?.status, 'suspicious');
 }
 
+/** an ally of the player: not the player, not hostile to them, and fighting (or fought by) someone who is fighting the player.
+ * The code keeps no ally list: a side is whoever is fighting your foes without being hostile to you. */
+export function besidePlayer(state: GameState, a: Actor): boolean {
+  const p = state.player;
+  if (a === p || !countsInFight(a) || !countsInFight(p) || hostile(state, a, p)) return false;
+  return allActors(state).some((o) => o !== a && fightingWith(state, o, p) && (fightingWith(state, a, o) || fightingWith(state, o, a)));
+}
+
 /** who engaged whom this turn, and how */
 export function engagedThisTurn(state: GameState, events: GameEvent[]): Map<string, Set<EngagementKind>> {
   const out = new Map<string, Set<EngagementKind>>();

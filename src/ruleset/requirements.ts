@@ -6,6 +6,7 @@ import { CONFIG } from '../config';
 import { EQUIP_LEVELS, type EquipLevelKey } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { trueSkill } from './perks';
+import { achievementReqLower } from './achRewards';
 import { modeSkill, standInShare, standInTable } from './gear';
 import { SK, ARMOR_SKILL } from '../library/skillIds';
 
@@ -37,7 +38,7 @@ export function skillToward(actor: Actor, skill: string): number {
 /** points short of an item's requirement (0 when met or when it has none) */
 export function shortBy(actor: Actor, def: ItemDef): number {
   const r = requirement(def);
-  return r ? Math.max(0, r.need - skillToward(actor, r.skill)) : 0;
+  return r ? Math.max(0, r.need - achievementReqLower(actor, r.skill) - skillToward(actor, r.skill)) : 0; // reqLower: only the check, never the item's numbers
 }
 
 /** EQ12 c: the tier shifts one roll takes for gear the roller falls short on */
