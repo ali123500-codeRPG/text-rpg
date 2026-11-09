@@ -342,13 +342,15 @@ function achievements(): HTMLElement[] {
     const bane = isBane(d) ? baneSkill(key) : 0; // D-111: the same function the rolls use
     const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
     return card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, '--c15'), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`, '--c2'),
-      bane ? chip(`+${bane} skill vs that ${kind}`, '--c10') : null, total ? chip(`+${total} combat rolls`, '--c10') : null],
+      bane ? chip(`+${bane} skill vs that ${kind}`, '--c10') : null, total ? chip(`+${total} combat rolls`, '--c10') : null,
+      d.healReach ? chip(`healing +${d.healReach} state${d.healReach === 1 ? '' : 's'}`, '--c4') : null],
       row('Name', name(d.name)),
-      row('Roll bonus', bane ? `+${bane} skill on every roll against that ${kind}`
-        : total ? `+${total} on every attack and defense roll` : none('none, XP only')),
+      row('Reward', bane ? `+${bane} skill on every roll against that ${kind}`
+        : total ? `+${total} on every attack and defense roll`
+        : d.healReach ? `Healing reaches ${d.healReach} part state${d.healReach === 1 ? '' : 's'} deeper (never Destroyed)` : none('none, XP only')),
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
       row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
-      row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.id));
+      row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
   };
   const section = (title: string, list: [string, AchievementDef][]) =>
     h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' }, list.map(achCard)));
