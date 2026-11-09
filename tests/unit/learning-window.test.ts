@@ -26,3 +26,18 @@ describe('learning window', () => {
     expect(p.core.skills[SK.unarmed_strike].raw).toBeGreaterThan(0);
   });
 });
+
+describe('close calls teach', () => {
+  it('a contest with a tier gap of exactly 0 marks the skill outside the window; any other gap does not', async () => {
+    const { markUse } = await import('../../src/ruleset/improve');
+    const s = makeVillage(), p = s.player;
+    p.core.skills[SK.block] = { raw: 10, state: 'normal' };
+    const roll = (actorId: string, skill: string) => ({ actorId, skill, d100: 50, margin: 0, tier: 'success' as const, natural: 0 as const, modifiers: [], tierShifts: [] });
+    const contest = (gap: number) => ({ a: roll(p.id, SK.block), b: roll('guard_1', SK.melee_medium), gap, winner: gap === 0 ? 'tie' as const : 'b' as const });
+    p.progression!.marks = [];
+    markUse(s, p, SK.block, contest(1));
+    expect(p.progression!.marks).toEqual([]); // the guard's ~55 is far above Block 10 + 10
+    markUse(s, p, SK.block, contest(0));
+    expect(p.progression!.marks).toEqual([SK.block]);
+  });
+});
