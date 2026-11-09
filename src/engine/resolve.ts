@@ -24,6 +24,7 @@ import { applyHaggle, buy } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
+import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
 import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
@@ -704,6 +705,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
   updateAlarms(state, ctx.events);
+  // QT8: talking to a giver hands in its finished job, before its agent's output (so it may offer the next one)
+  handInQuests(state, (id) => input.spokespeople.includes(id) && ctx.exchangeEvents.some((e) => e.actorId === state.player.id && !!e.perception[id]));
   applyAgentEffects(state, input, {
     // GAP: "since its last call" read as the previous turn and this turn's exchange.
     heardSpeech: (id, toward) =>
@@ -713,12 +716,14 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     heardNow: (listener, speaker) => ctx.events.some((e) => e.actorId === speaker && !!e.line && !!e.perception[listener]),
   });
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
-  payDefeats(state, ctx.events);
+  const defeated = payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
+  updateQuests(state, ctx.events, defeated);
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
+  if (ended) unpaidQuests(state); // QT23
   if (ended && fight) fightEnded(state, fight);
   turnFeats(state, ctx.events);
   if (ended || state.stage.breakCause) { improveMarked(state, rng); unlockClasses(state); }

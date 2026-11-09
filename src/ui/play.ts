@@ -5,7 +5,9 @@
 import { PK } from '../library/perkIds';
 import type { Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
-import { buildPlayerView } from '../views';
+import { buildPlayerView, questGoalText } from '../views';
+import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
+import { questFocus } from './pages';
 import { tierGap } from '../agents/game';
 import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
@@ -13,7 +15,7 @@ import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
-import { now, timeOfDay, timeView } from '../time';
+import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { sideSheet, statusStrip } from './charsheet';
 import { skillName } from './creation';
@@ -116,6 +118,34 @@ function partsOf(s: GameState, p: Actor): Record<string, string> {
   const parts: Record<string, string> = {};
   for (const d of safe(() => actorBody(s, p).parts) ?? []) parts[d.id] = poolState(p.core.condition.parts[d.id] ?? 100);
   return parts;
+}
+
+/** QT15: the pinned quest, else the newest open one, under the place line; opens it on the Quests page. Nothing without one. */
+function questLine(s: GameState, open: (id: string) => void): HTMLElement | null {
+  const live = s.quests.filter(isOpen);
+  const q = live.find((x) => x.pinned) ?? [...live].sort((a, b) => b.startTurn - a.startTurn)[0];
+  if (!q) return null;
+  const chain = questChain(s, q);
+  const step = chain.length > 1 ? `step ${chain.indexOf(q) + 1}` : '';
+  const ready = q.state === 'ready';
+  const goal = ready ? '' : questGoalText(s, q);
+  const due = ready ? '' : dueText(q);
+  const pay = owes(q) ? payText(s, q) : '';
+  const more = live.length - 1;
+  const flag = h('span', { 'aria-hidden': 'true' });
+  flag.innerHTML = `<svg viewBox="0 0 24 24" fill="${q.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v18M6 4h11l-2 4 2 4H6"/></svg>`;
+  const sep = () => h('span', { 'aria-hidden': 'true' }, '·');
+  const bits: (HTMLElement | null)[] = [
+    goal ? h('span', {}, goal) : null,
+    ready ? h('span', { class: 'ok' }, `✓ ${QUEST_STATE_NAME.ready}`) : null,
+    due ? h('span', { class: dueDay(q) === dayOf(now(s)) ? 'warn' : '' }, due) : null,
+    pay ? h('span', {}, pay) : null,
+    more > 0 ? h('span', { class: 'more' }, `+${more} more`) : null,
+  ];
+  const label = [`Quest: ${q.text}`, step, ready ? QUEST_STATE_NAME.ready : goal, due, pay].filter(Boolean).join(', ');
+  return h('button', { type: 'button', class: 'quest-line', title: q.text, 'aria-label': `${label}. Opens the Quests page.`, onclick: () => open(q.id) },
+    flag, h('span', { class: 'qt' }, q.text), step ? h('span', { class: 'step' }, step) : null,
+    ...bits.filter((b): b is HTMLElement => !!b).flatMap((b) => [sep(), b]));
 }
 
 export type PlayUi = { el: HTMLElement; update: () => void; focus: () => void };
@@ -335,7 +365,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the header names the last turn played, the one the last results row shows
     const lastTurn = [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
     title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet')), rollsBtn ?? '');
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), rollsBtn ?? '');
     story.classList.toggle('no-rolls', !show);
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down

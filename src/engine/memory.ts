@@ -26,12 +26,12 @@ export function applyMemoryOps(state: GameState, a: Actor, ops: MemoryOps | null
 export const agreementsOf = (state: GameState, id: string) => (state.hidden.agreements ?? []).filter((g) => g.parties.includes(id));
 
 /** PM3/PM4: a deal with the player or another NPC, recorded only when the other party heard the maker speak this turn */
-export function makeAgreement(state: GameState, a: Actor, made: AgreementMade, heardNow: (listener: string, speaker: string) => boolean): void {
+export function makeAgreement(state: GameState, a: Actor, made: AgreementMade, heardNow: (listener: string, speaker: string) => boolean): string | undefined {
   const other = actorById(state, made.with);
   const text = made.text.trim();
   if (!other || other.id === a.id || !isActive(other) || !text || !heardNow(other.id, a.id)) {
     logCode(state, 'invalid_agreement', { actorId: a.id, with: made.with });
-    return;
+    return undefined;
   }
   const list = (state.hidden.agreements ??= []);
   let id = `deal_${state.turn}_${a.id}`;
@@ -39,13 +39,16 @@ export function makeAgreement(state: GameState, a: Actor, made: AgreementMade, h
   list.push({ id, parties: [a.id, other.id], text, madeTurn: state.turn, madeBy: a.id });
   logCode(state, 'agreement_made', { id, parties: [a.id, other.id] });
   if (a === state.player || other === state.player) tally(state, 'deals');
+  return id;
 }
 
-/** a party ends its own deal as done or broken */
+/** a party ends its own deal as done or broken (not one that holds a quest) */
 export function endAgreements(state: GameState, a: Actor, ends: AgreementEnd[] | undefined): void {
   for (const e of ends ?? []) {
     const g = state.hidden.agreements?.find((x) => x.id === e.id && x.parties.includes(a.id));
     if (!g) { logCode(state, 'invalid_agreement_end', { actorId: a.id, id: e.id }); continue; }
+    // QT22: a deal that holds a quest is locked; only code ends it, with the quest
+    if (state.quests.some((q) => q.dealId === g.id)) { logCode(state, 'quest_deal_locked', { actorId: a.id, id: e.id }); continue; }
     state.hidden.agreements = state.hidden.agreements!.filter((x) => x !== g);
     logCode(state, 'agreement_ended', { id: g.id, outcome: e.outcome, by: a.id });
   }

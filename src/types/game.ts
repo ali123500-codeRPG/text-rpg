@@ -80,4 +80,8 @@ export interface GameApi {
   /** spend a perk point on a ladder perk, or undo it before the next turn (K3); in memory until the next turn saves */
   takePerk(perkId: string): void;
   undoPerk(perkId: string): void;
+  /** QT12: give up an open quest (the giver cools one step); in memory until the next turn saves */
+  abandonQuest(questId: string): void;
+  /** pin a quest to the Play screen's quest line, or unpin it */
+  pinQuest(questId: string): void;
 }

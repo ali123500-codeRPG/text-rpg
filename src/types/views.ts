@@ -73,8 +73,11 @@ export type PlayerView = {
   agreements?: AgreementView[]; // PM5: the player's deals with NPCs
 };
 
-/** PM3: one deal as a party sees it; with = what the viewer calls the other party */
-export type AgreementView = { id: string; with: string; withId: string; text: string; madeTurn: number };
+/** PM3: one deal as a party sees it; with = what the viewer calls the other party; quest: the job it holds (locked, QT22) */
+export type AgreementView = { id: string; with: string; withId: string; text: string; madeTurn: number; quest?: string };
+/** QT5/QT8: a job the viewer gave the player, or one that sends the player to it (giver: who gave it, when not the
+ * viewer). A finished job shows as active until the player hands it in: the giver only knows what it sees. */
+export type JobView = { id: string; text: string; state: string; giver?: string; owed?: string; due?: string; after?: string };
 
 // ---------- ActorView: code minds ----------
 /** T4/T5: the day number and time of day; never minutes */
@@ -116,6 +119,7 @@ export type ActorView = {
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives
+  jobs?: JobView[]; // QT5: the player's jobs from it or sending the player to it
 };
 
 // ---------- OppositionView: Agent Planner and Responder ----------

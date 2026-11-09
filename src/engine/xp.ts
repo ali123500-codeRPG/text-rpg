@@ -151,8 +151,10 @@ export function unlockClasses(state: GameState): void {
   }
 }
 
-/** X4/X5, RS7: an NPC pays once, whatever its stance, when it is down and the player hit it, or when it surrendered to the player. */
-export function payDefeats(state: GameState, events: GameEvent[]): void {
+/** X4/X5, RS7: an NPC pays once, whatever its stance, when it is down and the player hit it, or when it surrendered to the player.
+ * Returns the actors the player defeated this turn. */
+export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
+  const defeated: Actor[] = [];
   for (const e of events) {
     const a = e.attack;
     if (a && a.attackerId === state.player.id && a.damage > 0) {
@@ -172,7 +174,9 @@ export function payDefeats(state: GameState, events: GameEvent[]): void {
     m.xpPaid = true;
     awardXp(state, killXp(state, t), `defeat:${t.id}`);
     defeatAchievements(state, t);
+    defeated.push(t);
   }
+  return defeated;
 }
 
 /** Training effort to raise a skill from 0 to s (Part 1 §6: a point at s costs about 100 ÷ (3 × (100 − s)) trainings;
