@@ -51,7 +51,7 @@ export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark
 /** stance of one actor toward another, coldest first (hostile = attacks on sight; opposed = at odds, won't strike first) */
 export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['neutral', 'neutral'], ['friendly', 'friendly']]);
 /** XP reward levels for achievements and quests; XP per level is CONFIG.REWARD_XP */
-export const REWARD_LEVELS = scale([['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
+export const REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
 export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]);
