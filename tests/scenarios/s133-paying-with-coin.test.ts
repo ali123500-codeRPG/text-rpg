@@ -100,4 +100,6 @@ it('133g a buy naming a ware of its seller passes legality; a ware the seller la
   expect(legal('goods:healing_draught')).toEqual([]);
   expect(legal(`service:${SV.bed}`)).toEqual([`action.item service:${SV.bed}`]);
   expect(legal(`service:${SV.drink}`, 'patron_1')).toEqual([`action.item service:${SV.drink}`]);
+  // run 22: haggling over a named ware asked "Which item do you mean?" the same way
+  expect(checkParserLegality(intent({ action: { type: 'barter', target: 'trader', item: `service:${SV.drink}` } }), view).illegal).toEqual([]);
 });
