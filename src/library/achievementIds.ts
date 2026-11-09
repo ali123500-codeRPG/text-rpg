@@ -1,4 +1,4 @@
-import type { AchievementRule } from '../types';
+import type { AchievementRule, AchievementTag } from '../types';
 import { CONFIG } from '../config';
 
 // Achievement IDs: every achievement's ID is fixed (type prefix AC + a number), never its name, so renaming one touches
@@ -26,7 +26,12 @@ export const ACH = {
   class_max_tier_1: 'AC52', class_max_tier_2: 'AC53', class_max_tier_3: 'AC54',
   class_tiers_2: 'AC55', class_tiers_4: 'AC56', class_tiers_all: 'AC57',
   char_level_10: 'AC58',
+  brink_3: 'AC59', unaware_50: 'AC60',
 } as const;
+/** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
+export const ACH_TAGS: Record<AchievementTag, string> = {
+  combat: 'Combat', stealth: 'Stealth', social: 'Social', exploration: 'Exploration', survival: 'Survival', skill: 'Skill', progression: 'Progression',
+};
 /** what each achievement rule counts, for display; the count is AchievementDef.count */
 export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   defeats: 'defeats', mastery: 'true skill in all three skills of a tree', unaware_defeats: 'foes defeated while unaware of you',

@@ -1,4 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { bestReward } from '../ruleset/achRewards';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
@@ -74,7 +75,8 @@ function armorNoise(state: GameState, a: Actor, kind: string, noise: NoiseKey): 
   const w = worn && itemDef(state, worn.itemId).armor?.weight;
   const steps = w ? Math.max(0, (CONFIG.ARMOR_NOISE_STEPS[w] ?? 0) - (hasPerk(a, PK.quiet_mail) ? 1 : 0)) : 0;
   const soft = kind === 'move' && a.posture === 'stealthy' && hasPerk(a, PK.soft_tread) ? 1 : 0;
-  return NOISE.at(NOISE.pos(noise) + steps - soft);
+  const quiet = kind === 'move' ? bestReward(a, 'quieter')?.value ?? 0 : 0; // an achievement reward
+  return NOISE.at(NOISE.pos(noise) + steps - soft - quiet);
 }
 
 function withActivity(ctx: Ctx, a: Actor, ev: GameEvent, id: string | undefined): GameEvent {

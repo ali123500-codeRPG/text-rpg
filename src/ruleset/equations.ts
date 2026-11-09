@@ -50,8 +50,8 @@ export function equations(lib: Library): EquationGroup[] {
   return [
     { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill situation roll.', equations: [
       { name: 'True skill', at: 'trueSkill · src/ruleset/perks.ts',
-        formula: 'true skill = raw + perk true skill',
-        terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), and perks that add to every skill of a function (fnSkill)']],
+        formula: 'true skill = raw + perk true skill + achievement true skill',
+        terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), and perks that add to every skill of a function (fnSkill)'], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
         notes: ['A dormant skill, or one in a tree the actor can\'t use, counts as 0.'] },
       { name: 'Effective skill', at: 'effectiveSkill · src/ruleset/gear.ts',
         formula: 'effective skill = best of ( true skill × share + gear ) × tier multiplier, over the skill and its stand-ins',
@@ -65,7 +65,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Tier of a roll', at: 'band · naturalEdge · tierAt · src/ruleset/index.ts',
         formula: 'tier = band of the margin + natural edge + tier shifts',
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
-        terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, marks, falling short on gear, Curiouser and Curiouser']],
+        terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
         notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).'] },
       { name: 'Chance by effective skill', at: 'computed with band and naturalEdge',
         formula: '% of d100 results that reach each tier, no modifiers',

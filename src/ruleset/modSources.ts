@@ -48,6 +48,9 @@ export const MOD_SOURCES: ModSource[] = [
     when: 'Attack, dodge and block rolls. Only the highest earned one counts.',
     value: `+${CONFIG.DEFEATS_ROLL_PER_TIER} per tier`,
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.rule === 'defeats' && !a.by).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(defeatsRoll(k)) })) },
+  { type: 'achievement', roll: 'skill', source: 'Renown', at: 'src/ruleset/achRewards.ts',
+    when: 'A foe\'s first morale check while it fights a player holding a renown achievement.', value: 'minus the achievement\'s renown',
+    feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.renown).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(-a.renown!) })) },
   // roll_perk
   { type: 'roll_perk', roll: 'skill', source: '40/80/120 perk numbers', at: 'src/ruleset/perks.ts',
     when: 'Rolls of the perk\'s skill: rollAdd on every roll, hitAdd on attack rolls only.', value: 'the perk\'s rollAdd / hitAdd',
