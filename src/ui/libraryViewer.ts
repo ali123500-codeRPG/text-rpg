@@ -151,6 +151,11 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
  * built, only the chosen one shows; filters and colours count the shown pane only. */
 type Pane = { key: string; title: string; n: number; content: (HTMLElement | null)[] };
 let pane = '';
+// Remembered per viewer (this browser only): which sections are folded and which sub-tab each tab had open
+const remember = <T>(key: string, fallback: T): T => { try { return JSON.parse(localStorage.getItem(key) ?? '') as T; } catch { return fallback; } };
+const keep = (key: string, value: unknown): void => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked: keep it for this visit only */ } };
+const foldedSet = new Set<string>(remember<string[]>('lv-folded', []));
+const paneOf: Record<string, string> = remember<Record<string, string>>('lv-pane', {});
 function panes(list: Pane[]): HTMLElement[] {
   if (!list.some((p) => p.key === pane)) pane = list[0].key;
   const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, list.map((p) => h('button', {
@@ -160,6 +165,7 @@ function panes(list: Pane[]): HTMLElement[] {
 }
 function showPane(key: string): void {
   pane = key;
+  paneOf[shown] = key; keep('lv-pane', paneOf);
   body.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
   body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
   drawBar(); paint(); filter();
@@ -512,10 +518,15 @@ popOpen.addEventListener('click', () => { pop.hidden = true; });
 const HEAD = '.lv-group > h2.hs-section';
 function fold(head: Element, open?: boolean): void {
   const folded = head.parentElement!.classList.toggle('lv-folded', open === undefined ? undefined : !open);
+  const k = foldKey(head);
+  if (folded) foldedSet.add(k); else foldedSet.delete(k);
+  keep('lv-folded', [...foldedSet]);
   head.setAttribute('aria-expanded', String(!folded));
 }
+const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${head.textContent}`;
 function foldable(): void {
-  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', 'true'); h2.title = 'Click to fold or unfold'; });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) h2.parentElement!.classList.add('lv-folded'); });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { h2.tabIndex = 0; h2.setAttribute('role', 'button'); h2.setAttribute('aria-expanded', String(!h2.parentElement!.classList.contains('lv-folded'))); h2.title = 'Click to fold or unfold'; });
 }
 body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
 body.addEventListener('keydown', (e) => {
@@ -531,7 +542,7 @@ function route(): void {
     shown = sec.key;
     titleEl.textContent = sec.title;
     picks.clear();
-    pane = '';
+    pane = paneOf[sec.key] ?? '';
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
     body.replaceChildren(...viewOf(sec));
