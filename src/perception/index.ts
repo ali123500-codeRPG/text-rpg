@@ -1,7 +1,7 @@
 // W3 — Perception per event, the single belief writer, communication events, belief decay.
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
-import { BELIEF_ORDER } from '../types';
 import { CONFIG } from '../config';
+import { AWARENESS } from '../scales';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
@@ -131,7 +131,7 @@ export function computePerception(event: GameEvent, state: GameState, _rng: Rng)
 }
 
 const raise = (cur: BeliefStatus | undefined, to: BeliefStatus): BeliefStatus =>
-  BELIEF_ORDER.indexOf(to) > BELIEF_ORDER.indexOf(cur ?? 'unaware') ? to : (cur ?? 'unaware');
+  AWARENESS.pos(to) > AWARENESS.pos(cur ?? 'unaware') ? to : (cur ?? 'unaware');
 
 function write(observer: Actor, aboutId: string, b: Partial<Belief>): Belief | undefined {
   if (!observer.mind || aboutId === observer.id) return undefined;
@@ -224,7 +224,7 @@ export function applyBeliefDecay(state: GameState): void {
     for (const b of Object.values(a.mind?.knowledge ?? {})) {
       if (b.lastSeenTurn === undefined || b.status === 'unaware') continue;
       const age = state.turn - b.lastSeenTurn;
-      if (age > D && (age - 1) % D === 0) b.status = BELIEF_ORDER[BELIEF_ORDER.indexOf(b.status) - 1];
+      if (age > D && (age - 1) % D === 0) b.status = AWARENESS.at(AWARENESS.pos(b.status) - 1);
     }
   }
 }

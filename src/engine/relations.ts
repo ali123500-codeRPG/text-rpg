@@ -1,7 +1,6 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
 import type { Actor, BeliefStatus, GameState, Stance } from '../types';
-import { BELIEF_ORDER } from '../types';
-import { STANCES } from '../scales';
+import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
 
 export function allActors(state: GameState): Actor[] {
@@ -48,7 +47,7 @@ export function wary(state: GameState, a: Actor, b: Actor): boolean {
 }
 
 export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): boolean {
-  return BELIEF_ORDER.indexOf(status ?? 'unaware') >= BELIEF_ORDER.indexOf(min);
+  return AWARENESS.pos(status ?? 'unaware') >= AWARENESS.pos(min);
 }
 
 /** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to. */
