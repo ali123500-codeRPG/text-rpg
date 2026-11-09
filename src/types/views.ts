@@ -19,8 +19,8 @@ export type BeliefView = {
   lastSeenTurn?: number;
   source: 'seen' | 'heard' | 'told';
   revealed: string[];
+  stance: Stance; // RS5: self's stance toward this actor; yielded (Q1/Q4): self broke or surrendered before it, and still flees from it
   hostile: boolean; // hostile(self, about): attacks on sight
-  yielded?: true; // Q1/Q4: self yielded to (broke or surrendered before) this actor; a broken actor still flees from it
   active: boolean;
   label: string; // public label or known name
 };
