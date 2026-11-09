@@ -30,15 +30,15 @@ export function markIfClose(state: GameState, actor: Actor | undefined, skill: s
   if (close(actor, skill, opposition)) mark(actor, skill);
 }
 
-/** AR5 (Ali, 09/11/2026): a hit on a part your worn armor covers marks the armor skill for its weight, when both the
- * attacker's skill and the armor's requirement are within MARK_WINDOW of your raw or true armor skill */
+/** AR5 (Ali, 09/11/2026): a hit on a part your worn armor covers marks the armor skill for its weight, when the
+ * attacker's skill or the armor's requirement is within MARK_WINDOW of your raw or true armor skill (either one) */
 function markArmor(state: GameState, result: AttackResult): void {
   const t = actorById(state, result.targetId), a = actorById(state, result.attack.actorId);
   if (!t || !a || t.id !== state.player.id || !result.location || result.location === 'shield') return;
   const worn = t.core.inventory.find((i) => i.equippedIn?.includes('armor'));
   const def = worn && itemDef(state, worn.itemId), req = def && requirement(def);
   if (!def?.armor?.covers.includes(result.location) || !req) return;
-  if (close(t, req.skill, trueSkill(a, result.attack.skill)) && close(t, req.skill, req.need)) mark(t, req.skill);
+  if (close(t, req.skill, trueSkill(a, result.attack.skill)) || close(t, req.skill, req.need)) mark(t, req.skill);
 }
 
 /** the opposition for each side of a roll: a check's target; the other side's true skill in a contest or attack */

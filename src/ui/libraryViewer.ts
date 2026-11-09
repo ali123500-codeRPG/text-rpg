@@ -147,27 +147,64 @@ function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   d.numbers ? row('Numbers', val(d.numbers)) : null,
   ...fields(d as Entry, ['id', 'name', 'story', 'rules', 'ladder', 'effect', 'built', 'quirk', 'trueSkill', 'functionBoost', 'trueSkillTo', 'numbers', 'ref', 'skill', 'place', 'allStep']));
 }
+/** sub-tabs inside one section (Ali, 09/11/2026: Perks split into milestone, All-XX, not in use, other). Every pane is
+ * built, only the chosen one shows; filters and colours count the shown pane only. */
+type Pane = { key: string; title: string; n: number; content: (HTMLElement | null)[] };
+let pane = '';
+function panes(list: Pane[]): HTMLElement[] {
+  if (!list.some((p) => p.key === pane)) pane = list[0].key;
+  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, list.map((p) => h('button', {
+    type: 'button', role: 'tab', 'data-pane': p.key, 'aria-selected': String(p.key === pane), onclick: () => showPane(p.key),
+  }, p.title, h('small', {}, String(p.n)))));
+  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: p.key !== pane }, ...(p.content.filter(Boolean) as HTMLElement[])))];
+}
+function showPane(key: string): void {
+  pane = key;
+  body.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
+  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
+  drawBar(); paint(); filter();
+}
+
+const cell = (d: PerkDef) => h('a', { class: `lv-cell${d.built ? '' : ' unbuilt'}${d.quirk ? ' quirk' : ''}`, href: `#perks/${d.id}`, style: `--tg: var(${EFFECT_TONE[d.effect ?? ''] ?? '--c3'})` }, d.name);
+const grid = (corner: string, cols: string[], rows: [string, (col: string) => PerkDef[]][]) => h('div', { class: 'lv-ladder' }, h('table', { class: 'hs-tbl' },
+  h('thead', {}, h('tr', {}, h('th', {}, corner), cols.map((c) => h('th', {}, c)))),
+  h('tbody', {}, rows.map(([name, at]) => h('tr', {}, h('td', {}, h('b', {}, name)), cols.map((c) => h('td', {}, at(c).map(cell))))))));
+const cardsOf = (title: string, list: (PerkDef | PerkWriteup)[], empty: string) => h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title),
+  list.length ? h('div', { class: 'lv-grid' }, list.map((d) => perkCard('perks', d))) : h('p', { class: 'hs-note' }, empty));
 function perks(): HTMLElement[] {
   const all = Object.values(lib.perks);
-  const skills = Object.keys(lib.skills).filter((s) => all.some((d) => d.ladder?.skill === s));
-  // All-XX parts (allStep) have no ladder: they sit in their own section, not the milestone grid
-  const steps = [...new Set(all.flatMap((d) => (d.ladder ? [d.ladder.milestone] : [])))].sort((a, b) => a - b);
+  const ladder = all.filter((d) => d.ladder);
   const allParts = all.filter((d) => d.allStep);
-  const at = (s: string, m: number) => all.filter((d) => d.ladder?.skill === s && d.ladder.milestone === m);
   const loose = [...PERK_WRITEUPS, ...BOOST_PERKS].filter((d) => !lib.perks[d.id]);
+  const unused = [...all.filter((d) => !d.built), ...loose];
+  const other = all.filter((d) => d.built && !d.ladder && !d.allStep);
   const quirks = all.filter((d) => d.quirk).length;
+  // milestone grid: skills × 20/40/60 … ; All-XX grid: trees × 50/100/150 (dashed = not built yet, as in the game's tiles)
+  const steps = [...new Set(ladder.map((d) => d.ladder!.milestone))].sort((x, y) => x - y).map(String);
+  const ladderRows = Object.keys(lib.skills).filter((s) => ladder.some((d) => d.ladder!.skill === s))
+    .map((s): [string, (c: string) => PerkDef[]] => [skillName(s), (c) => ladder.filter((d) => d.ladder!.skill === s && String(d.ladder!.milestone) === c)]);
+  const allSteps = [...new Set(allParts.map((d) => d.allStep!.step))].sort((x, y) => x - y).map(String);
+  const allRows = Object.values(lib.trees).filter((t) => allParts.some((d) => d.allStep!.treeId === t.id))
+    .map((t): [string, (c: string) => PerkDef[]] => [t.name, (c) => allParts.filter((d) => d.allStep!.treeId === t.id && String(d.allStep!.step) === c)]);
   return [
-    h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written with no milestone yet. A dashed cell is not built yet; a red edge is a quirk.`),
+    h('p', { class: 'hs-note' }, `${all.length} perks in the library · ${all.filter((d) => d.built).length} built · ${quirks} quirk${quirks === 1 ? '' : 's'} · ${loose.length} written outside the library. A dashed cell is not built yet; a red edge is a quirk.`),
     h('p', { class: 'hs-note lv-chips' }, Object.entries(EFFECT_TONE).map(([e, t]) => chip(e, t))),
-    h('div', { class: 'lv-ladder' }, h('table', { class: 'hs-tbl' },
-      h('thead', {}, h('tr', {}, h('th', {}, 'Skill'), steps.map((m) => h('th', {}, `${m} perk`)))),
-      h('tbody', {}, skills.map((s) => h('tr', {}, h('td', {}, h('b', {}, skillName(s))), steps.map((m) => h('td', {}, at(s, m).map((d) =>
-        h('a', { class: `lv-cell${d.built ? '' : ' unbuilt'}${d.quirk ? ' quirk' : ''}`, href: `#perks/${d.id}`, style: `--tg: var(${EFFECT_TONE[d.effect ?? ''] ?? '--c3'})` }, d.name))))))))),
-    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'In the library'), h('div', { class: 'lv-grid' }, all.filter((d) => !d.allStep).map((d) => perkCard('perks', d)))),
-    allParts.length ? h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'All-XX perks (every skill of a tree at the step)'), h('div', { class: 'lv-grid' }, allParts.map((d) => perkCard('perks', d)))) : null,
-    loose.length ? h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Written, no milestone yet (not in the library)'),
-      h('div', { class: 'lv-grid' }, loose.map((d) => perkCard('perks', d)))) : null,
-  ].filter(Boolean) as HTMLElement[];
+    ...panes([
+      { key: 'milestone', title: 'Milestone perks (20, 40, 60 …)', n: ladder.length, content: [
+        grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))])),
+        cardsOf('Built', ladder.filter((d) => d.built), 'None built yet.')] },
+      { key: 'all', title: 'All-XX perks', n: allParts.length, content: [
+        h('p', { class: 'hs-note' }, 'Granted when every skill of a tree reaches the step (allStep in src/library/allPerks.ts).'),
+        grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))])),
+        cardsOf('Built', allParts.filter((d) => d.built), 'None built yet.')] },
+      { key: 'unused', title: 'Not in use', n: unused.length, content: [
+        h('p', { class: 'hs-note' }, 'Written down but the game can\'t give them yet: not built (built: false), or not in the library at all.'),
+        cardsOf('In the library, not built', all.filter((d) => !d.built), 'None.'),
+        cardsOf('Written, not in the library', loose, 'None.')] },
+      { key: 'other', title: 'Other', n: other.length, content: [
+        cardsOf('Built, with no milestone and no All-XX step', other, 'None right now: every built perk is a milestone or an All-XX perk.')] },
+    ]),
+  ];
 }
 
 // ---------- Races and body types ----------
@@ -336,7 +373,7 @@ const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl,
   h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`)), search), bar, body);
 document.body.append(rail, main);
 
-const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card:not(.lv-fixed)'))];
+const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card:not(.lv-fixed)'))].filter((c) => !c.closest('.lv-pane[hidden]'));
 const facetsOf = (c: HTMLElement) => (c.dataset.f ? c.dataset.f.split('\n') : []);
 /** buttons cycle off → Shown → Left out (several Shown in a group = either), as on the game's tiles */
 function drawBar(): void {
@@ -380,7 +417,7 @@ function filter(): void {
     const fs = new Set(facetsOf(c));
     c.hidden = (!!q && !c.dataset.q!.includes(q)) || [...picks].some(([f, st]) => st === 'out' && fs.has(f)) || [...shownBy.values()].some((fs2) => !fs2.some((f) => fs.has(f)));
   }
-  body.querySelectorAll<HTMLElement>('.lv-group').forEach((g) => { g.hidden = !g.querySelector('.lv-card:not([hidden])'); });
+  body.querySelectorAll<HTMLElement>('.lv-group').forEach((g) => { g.hidden = !!g.querySelector('.lv-card') && !g.querySelector('.lv-card:not([hidden])'); });
   body.querySelectorAll<HTMLAnchorElement>('.lv-cell').forEach((a) => a.classList.toggle('dim', !!document.getElementById(a.hash.slice(1))?.hidden));
 }
 const viewOf = (sec: Section) => (sec.view ? sec.view() : [h('div', { class: 'lv-grid' }, generic(sec.key, lib[sec.table] as Record<string, Entry>))]).filter(Boolean) as HTMLElement[];
@@ -445,6 +482,7 @@ function route(): void {
     shown = sec.key;
     titleEl.textContent = sec.title;
     picks.clear();
+    pane = '';
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
     body.replaceChildren(...viewOf(sec));
@@ -456,6 +494,8 @@ function route(): void {
   }
   if (rest.length) {
     const el = document.getElementById(`${sec.key}/${rest.join('/')}`);
+    const holder = el?.closest<HTMLElement>('.lv-pane[hidden]');
+    if (holder) showPane(holder.dataset.pane!);
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
     el?.scrollIntoView({ block: 'center' });
