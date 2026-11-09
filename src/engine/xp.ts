@@ -46,6 +46,7 @@ export function spendXp(state: GameState): void {
     (pr.xpLog ??= []).push({ source: 'level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
+  unlockClasses(state); // a class-level perk can unlock a class (Commoner 5 opens A Nobody)
   const cur = p.core.classes.find((c) => c.state === 'current');
   if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the cap
     if (!c.fallback || p.core.classes.some((x) => x.classId === c.id)) continue;
@@ -65,18 +66,19 @@ function levelUp(p: Actor, turn: number): XpAward['levelUp'] & {} {
     delete pr.nextClass;
   }
   pick.level += 1;
-  p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn)); // class-level perks
+  p.core.perks.push(...classPerks(pick.classId, pick.level - 1, pick.level, turn).filter((x) => !p.core.perks.some((o) => o.perkId === x.perkId))); // class-level perks, once each
   if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
   return { classId: pick.classId, level: charLevel(p) };
 }
 
 /** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when
- * ClassDef.unlockAny is listed, at least one of those does (for example Swordsman at Medium Weapons 40 and Block 40;
+ * ClassDef.unlockAny is listed, at least one of those does, and when ClassDef.unlockPerk is listed, the player has that perk (for example Swordsman at Medium Weapons 40 and Block 40;
  * Sword-dancer at Dodge 40 and Light or Medium Weapons 40). An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;
   for (const c of Object.values(getLibrary().classes)) {
-    if (!(c.unlock || c.unlockAny) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (!(c.unlock || c.unlockAny || c.unlockPerk) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     if (!Object.entries(c.unlock ?? {}).every(met)) continue;
     if (c.unlockAny && !Object.entries(c.unlockAny).some(met)) continue;

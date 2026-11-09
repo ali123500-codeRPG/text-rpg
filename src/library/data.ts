@@ -86,6 +86,16 @@ const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, val
 
 /** class-level perks (ClassDef.levelPerks), granted by a class at a level */
 const CLASS_PERKS: Record<string, PerkDef> = {
+  nobody_special: {
+    id: 'nobody_special', name: 'Nobody Special', built: true, classLevel: { classId: CL.commoner, level: 5 },
+    story: 'Five seasons of ordinary work, and nobody noticed you. That can be a start.',
+    rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: ['the owner does not have the A Nobody class'], effect: 'the A Nobody class unlocks at class level 0', lasts: 'always' },
+  },
+  every_fall_a_lesson: {
+    id: 'every_fall_a_lesson', name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 20 },
+    story: 'You learned more from losing than most learn from winning.',
+    rules: { kind: 'passive', trigger: 'the owner loses a contest or a defended attack by exactly one tier step', conditions: [], effect: 'the skill the owner rolled (and the skill asked for, when a stand-in rolled) is marked, even when the other side is outside the learning window', lasts: 'always' },
+  },
   quick_study: {
     id: 'quick_study', name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
@@ -322,8 +332,11 @@ export function prototypeLibrary(): Library {
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
-      // the default class: opens when the current class is at the level cap
-      [CL.commoner]: { id: CL.commoner, name: 'Commoner', floors: {}, fallback: true },
+      // the default class: opens when the current class is at the level cap; its level 5 perk unlocks A Nobody
+      [CL.commoner]: { id: CL.commoner, name: 'Commoner', floors: {}, fallback: true, levelPerks: { 5: ['nobody_special'] } },
+      // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
+      [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: 'nobody_special',
+        levelPerks: { 1: ['quick_study'], 20: ['every_fall_a_lesson'] } },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
