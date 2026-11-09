@@ -238,7 +238,8 @@ export function createGame(deps: GameDeps): Game {
   async function playTurn(text: string, aimed: boolean): Promise<void> {
     const s = state!;
     const submitAt = clock.now();
-    lines.push({ turn: s.turn, kind: 'player', text });
+    lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
+    const gearBefore = gearSnap(s, s.player);
     emit();
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
       notice({ kind: 'read_only', text: 'This story is open in another window; this one is read-only.' });
@@ -292,11 +293,11 @@ export function createGame(deps: GameDeps): Game {
       s.rngState = rng.state;
     }
     aimNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent }, spokespeople.length ? submitAt : null);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -335,11 +336,14 @@ export function createGame(deps: GameDeps): Game {
     const turn = s.turn;
     const narrLog = turnLog;
     const notes = turnNotes(s);
+    // shown again after a reload: what the turn changed in the gear, and where the player ended it
+    const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
+    const where = { ...(gear.length ? { gear } : {}), place: { id: s.player.placeId, name: placeName(s) }, scene: s.stage.sceneNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
-      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
+      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
     await storeHistory(s.storyId);
@@ -705,6 +709,43 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
   const achievements = (pr?.achievements ?? []).filter((a) => a.turn === s.turn).map((a) => ({ id: a.id, name: engine.achievementName(s, a) }));
   return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}),
     ...(levelUps.length ? { levelUps } : {}), ...(achievements.length ? { achievements } : {}) };
+}
+
+/** the player's gear as code saw it: item id → name, where it sits ("held:right hand", "worn", "pack") and how many */
+export type GearSnap = Map<string, { name: string; where: string; qty: number }>;
+const handWord = (slot: string) => slot.replace(/^hand:/, '').replace(/_arm$/, '').replace(/_/g, ' ') + ' hand';
+export function gearSnap(s: GameState, p: Actor): GearSnap {
+  const gear: GearSnap = new Map();
+  for (const i of p.core.inventory) {
+    const hands = (i.equippedIn ?? []).filter((x) => x.startsWith('hand:'));
+    let name = i.itemId;
+    try { name = itemDef(s, i.itemId).name; } catch { /* an unknown item keeps its id */ }
+    gear.set(i.id, { name, qty: i.qty ?? 1, where: hands.length ? `held:${hands.map(handWord).join(' and ')}` : i.equippedIn?.length ? 'worn' : 'pack' });
+  }
+  return gear;
+}
+/** ready-to-show rows for what a turn changed in the player's gear: "Picked up: …", "Now held: right hand · …" */
+export function gearRows(a: GearSnap, b: GearSnap): string[] {
+  const rows: string[] = [];
+  for (const [id, x] of b) {
+    const was = a.get(id);
+    if (!was || x.qty > was.qty) rows.push(`Picked up: ${x.name}`);
+    else if (x.qty < was.qty) rows.push(`Used: ${x.name}`);
+    if (was && was.where === x.where) continue;
+    if (x.where.startsWith('held:')) rows.push(`Now held: ${x.where.slice(5)} · ${x.name}`);
+    else if (x.where === 'worn') rows.push(`Now worn: ${x.name}`);
+    else if (was) rows.push(`Put away: ${x.name}`);
+  }
+  for (const [id, x] of a) if (!b.has(id)) rows.push(`Gone: ${x.name}`);
+  return rows;
+}
+
+/** where the player is: "River path · the Riverside" (the place and the place around it) */
+export function placeName(s: GameState): string {
+  const place = s.places.find((x) => x.id === s.player.placeId);
+  const parent = place?.parentId ? s.places.find((x) => x.id === place.parentId) : undefined;
+  const t = [place?.names.current, parent?.names.current].filter(Boolean).join(' · ');
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> {
