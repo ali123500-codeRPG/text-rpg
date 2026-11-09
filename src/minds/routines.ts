@@ -94,7 +94,7 @@ function hostileBeliefs(view: ActorView) {
   return view.beliefs.filter((b) => b.hostile && b.active && b.status !== 'unaware');
 }
 /** whom a broken actor runs from: those it is hostile to, and those it yielded to (Q4) */
-const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b.yielded) && b.active && b.status !== 'unaware');
+const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b.stance === 'yielded') && b.active && b.status !== 'unaware');
 
 export function brokenOrder(view: ActorView): Order {
   return flee(view, 'broken');

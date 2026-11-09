@@ -123,6 +123,7 @@ vi.mock('../../src/minds', () => {
 
 import { computePending, firedOrders, fromIntent, resolveSpeech, resolveTurn, selectSpokespeople, unclearAddressee, impressionWords } from '../../src/engine';
 import type { TurnInput } from '../../src/engine';
+import { stance, wary } from '../../src/engine/relations';
 
 type IntentArg = Omit<Partial<Intent>, 'action'> & { action?: Partial<NonNullable<Intent['action']>> };
 const intent = ({ action, ...p }: IntentArg): Intent => ({
@@ -306,6 +307,25 @@ describe('agent side effects', () => {
     expect(s.player.journal!.secretsKnown).toEqual(['mine']);
     expect(s.player.journal!.namesKnown).toEqual(['trader']);
     expect(s.log.map((l) => l.code)).toEqual(expect.arrayContaining(['invalid_stance', 'invalid_reveal', 'invalid_introduce']));
+  });
+  it('RS4: one colder step from neutral is unfriendly (not on guard); the next is opposed (wary)', () => {
+    s.player.zone = 'tav_counter';
+    const colder = () => {
+      const ex = resolveSpeech(s, intent({ action: { type: 'talk' } }), ['trader'], createRng(1));
+      const resp = { agent: 'responder', actorId: 'trader', output: {
+        action: npcAction('talk', 'player'), dialogue: { line: 'watch it', volume: 'normal', introduces: [] }, gear: null,
+        stance: { toward: 'player', step: 'colder' }, reveals: [], planUpdate: null,
+      } } as never;
+      resolveTurn(s, input({ intent: intent({ action: { type: 'talk' }, spoken: 'you cheat' }), spokespeople: ['trader'], exchange: ex, agentOutputs: [resp] }), createRng(1));
+      s.turn++;
+    };
+    expect(stance(s, actor(s, 'trader'), s.player)).toBe('neutral');
+    colder();
+    expect(stance(s, actor(s, 'trader'), s.player)).toBe('unfriendly');
+    expect(wary(s, actor(s, 'trader'), s.player)).toBe(false);
+    colder();
+    expect(stance(s, actor(s, 'trader'), s.player)).toBe('opposed');
+    expect(wary(s, actor(s, 'trader'), s.player)).toBe(true);
   });
 });
 

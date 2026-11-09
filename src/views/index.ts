@@ -271,7 +271,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}),
       ...(b.lastSeenTurn !== undefined ? { lastSeenTurn: b.lastSeenTurn } : {}),
       source: b.source, revealed: [...b.revealed],
-      hostile: hostile(state, a, other), ...(stance(state, a, other) === 'yielded' ? { yielded: true as const } : {}),
+      stance: stance(state, a, other), hostile: hostile(state, a, other),
       active: isActive(other), label: callName(state, a.id, about),
     });
   }
