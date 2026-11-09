@@ -175,6 +175,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
     const r = ruleset.contested(mine(skill, sense), theirs(a, sense), state, rng);
     done.ids.push(key);
     markUse(state, s, skill, r); // ST8
+    markUse(state, a, r.b.skill, r); // the watcher's sense learns too (only the player keeps marks)
     log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill, kind: event.kind, gap: r.gap });
     if (r.gap > 0) updateBeliefs(state, { kind: 'detection', observerId: a.id, aboutId: s.id, status: 'aware', event });
     else if (sees) {
@@ -184,6 +185,7 @@ export function stealthDetect(state: GameState, event: GameEvent, rng: Rng): voi
         const second = stealthSkill(s);
         const r2 = ruleset.contested(mine(second, sense), theirs(a, sense), state, rng);
         markUse(state, s, second, r2);
+        markUse(state, a, r2.b.skill, r2);
         log(state, 'stealth_contest', { ...(s.kind === 'player' ? {} : { actorId: s.id }), observerId: a.id, skill: second, kind: event.kind, gap: r2.gap, perk: 'unblinking' });
         if (r2.gap >= 0) continue;
       }
@@ -239,6 +241,8 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
     const skill = perception[o.id]?.cue === 'sound' ? FN.hearing : FN.sight;
     const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill }, state, rng); // function roll
     const gap = tierLevel(p) - tierLevel(ambush); // Part 1 §4 Contests: acting side wins below 0
+    // the watcher's sense learns from the ambush contest (only the player keeps marks)
+    markUse(state, o, p.skill, { a: ambush, b: p, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' });
     if (o.id === targetId && gap < 0) surprised = true;
     // ST7: a shot from stealth leaves noticing to the stealth contest (stealthDetect); a melee blow has already revealed
     if (gap > 0 && attacker.posture !== 'stealthy') {
