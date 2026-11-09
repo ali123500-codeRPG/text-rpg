@@ -4,6 +4,13 @@ export const BUILT_PERKS = new Set<string>([
   'hidden_strike', // A1: src/ruleset/index.ts attack()
   // All-50 parts (src/library/allPerks.ts), granted by src/ruleset/allSteps.ts
   'hunters_eye', // T2d: src/ruleset/perks.ts trueSkill() fnSkill
+  'opening_strike', 'unerring', // T1a, T2a: src/engine/resolve.ts openingShifts()
+  'hard_to_hold', // T3a: src/engine/held.ts breakFree()
+  'iron_knuckles', 'bare_handed_guard', // T3d, T3d2: attack() in src/ruleset/index.ts; trueSkillTo
+  'spotter', // T5b: src/ruleset/allSteps.ts shareSpotted()
+  'steady_guard', 'thick_hide', // T1e, T4e: attack() in src/ruleset/index.ts; trueSkillTo
+  'night_eyes', // T5e: src/ruleset/gear.ts situational()
+  'soft_landing', // T7a: src/ruleset/allSteps.ts afterRollShifts()
   'fighters_frame', // T1d: attack()
   'past_the_cover', // T2c: attack()
   'child_of_night', // T6c: src/ruleset/gear.ts situational()

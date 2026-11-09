@@ -1,5 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
-import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng } from '../types';
+import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
@@ -10,7 +10,7 @@ import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
-import { grantAllSteps } from '../ruleset/allSteps';
+import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
@@ -253,9 +253,10 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     surprised = false;
   }
   const before = { level: healthLevel(t), parts: partStates(state, t), lost: t.core.condition.hpLostPct };
+  const opening = openingShifts(ctx, a, t, m.mode.tree);
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
-      context: { defenderUnaware: surprised, defensesThisTurn: ctx.defenses.get(t.id) ?? 0 } },
+      context: { defenderUnaware: surprised, defensesThisTurn: ctx.defenses.get(t.id) ?? 0, ...opening } },
     state, rng,
   );
   if (res.defense) ctx.defenses.set(t.id, (ctx.defenses.get(t.id) ?? 0) + 1);
@@ -301,6 +302,21 @@ function onceThisEngagement(state: GameState, a: Actor, id: string): boolean {
   if (!readyThisEngagement(state, a, id)) return false;
   useThisEngagement(a, id);
   return true;
+}
+
+/** All-50 first-attack parts (Ali, 09/11/2026). T1a Opening Strike: the owner's first melee attack on each foe in an
+ * engagement gets tier shift +1. T2a Unerring: the owner's first ranged attack in an engagement, at a foe that hasn't acted
+ * yet in its engagement, gives the foe's defense roll tier shift −1. Each is used up when it applies. */
+function openingShifts(ctx: Ctx, a: Actor, t: Actor, tree: string): { attackerShifts?: TierShift[]; defenderShifts?: TierShift[] } {
+  const { state } = ctx;
+  if (tree === 'melee' && hasPerk(a, 'opening_strike') && onceThisEngagement(state, a, `opening_strike:${t.id}`)) {
+    return { attackerShifts: [{ source: 'Opening Strike', value: 1 }] };
+  }
+  const fresh = !t.engagement || (t.engagement.start === state.turn && !ctx.acted.has(t.id));
+  if (tree === 'ranged' && fresh && hasPerk(a, 'unerring') && onceThisEngagement(state, a, 'unerring')) {
+    return { defenderShifts: [{ source: 'Unerring', value: -1 }] };
+  }
+  return {};
 }
 
 /** All-50 parts that act after an attack (src/library/allPerks.ts, Ali 08/11/2026) */
@@ -660,6 +676,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (updateEngagements(state, ctx.events) || state.stage.breakCause) improveMarked(state, rng);
   for (const x of allActors(state)) expireMarks(state, x);
   for (const x of allActors(state)) grantAllSteps(state, x); // All-50 parts and mastery achievements
+  for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
   state.events.push(...ctx.events);
   return ctx.events;

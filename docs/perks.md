@@ -583,17 +583,17 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 Granted free when every skill of the tree reaches 50 true skill, each part once it is built (Ali, 08/11/2026). Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
 
-### Weapon Drill (Combat – Arms) · T1b
+### Opening Strike (Combat – Arms) · T1a
 
-*Story:* Steel finds your hand on its own. Drawing, switching or picking up a melee weapon costs you no time.
+*Story:* You always make the first blow count. Your first melee attack on each foe in a fight lands one outcome better.
 
 - **Kind:** Always on
-- **Trigger:** The owner draws, switches to or picks up a melee weapon.
-- **Conditions:** The weapon has a melee mode.
-- **Effect:** That draw, switch or pick-up does not use the owner's action.
-- **Lasts:** Always.
-- **Open:** Does nothing today: draw, switch and pick-up are already free for everyone (AE1, test 91). A replacement is asked in the All-50 doc.
-- **Built:** not yet
+- **Trigger:** The owner makes a melee attack.
+- **Conditions:** It is the owner's first melee attack on that foe in this engagement (Ali, 09/11/2026: per foe per engagement).
+- **Effect:** Tier shift +1 on the attack roll. The defense roll still happens.
+- **Lasts:** That attack.
+- **Cooldown:** Once per foe per engagement.
+- **Built:** yes
 
 ### Counter (Combat – Arms) · T1c
 
@@ -615,6 +615,29 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Conditions:** The attack mode is not ranged.
 - **Effect:** The hit's damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).
 - **Lasts:** Always.
+- **Built:** yes
+
+### Steady Guard (Combat – Arms) · T1e
+
+*Story:* Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.
+
+- **Kind:** Always on
+- **Trigger:** Always; and the owner makes a Block roll.
+- **Conditions:** The extra +5 needs the block to be made with a melee weapon, not a shield.
+- **Effect:** +5 true skill in Block (Ali, 09/11/2026). Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
+### Unerring (Combat – Ranged) · T2a
+
+*Story:* Your first shot comes before they are ready. The first time you shoot in a fight, at a foe who hasn't moved yet, it is harder to avoid.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a ranged attack.
+- **Conditions:** It is the owner's first ranged attack in this engagement. The target hasn't acted yet in its engagement (it has none, or it began this turn and the target hasn't had its action).
+- **Effect:** Tier shift −1 on the target's defense roll. No roll is skipped (Ali, 08/11/2026).
+- **Lasts:** That attack.
+- **Cooldown:** Once per engagement.
 - **Built:** yes
 
 ### Volley (Combat – Ranged) · T2b
@@ -649,6 +672,37 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** Always.
 - **Built:** yes
 
+### Hard to Hold (Combat – Unarmed) · T3a
+
+*Story:* Hands never stay on you for long. Your rolls to break a hold land one outcome better.
+
+- **Kind:** Always on
+- **Trigger:** The owner, held, tries to break free (its grapple roll in the break-free contest).
+- **Effect:** Tier shift +1 on that roll.
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Iron Knuckles (Combat – Unarmed) · T3d
+
+*Story:* Your hands are weapons now. Your unarmed hits deal a tenth more damage.
+
+- **Kind:** Always on
+- **Trigger:** The owner hits with an unarmed mode (punch, grapple, slam and the rest).
+- **Effect:** The hit's damage before armor is ×1.1 (CONFIG.IRON_KNUCKLES_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
+### Bare-Handed Guard (Combat – Unarmed) · T3d2
+
+*Story:* With nothing in your hands, nothing slows you. Your Dodge is 5 higher, and 5 higher again while you hold no weapon.
+
+- **Kind:** Always on
+- **Trigger:** Always; and the owner makes a Dodge roll.
+- **Conditions:** The extra +5 needs the owner to hold no item with a weapon mode.
+- **Effect:** +5 true skill in Dodge (Ali, 09/11/2026). While holding no weapon, Dodge rolls also get +5 effective skill (CONFIG.BARE_HANDED_GUARD, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
 ### Second Wind (Combat – Defense) · T4b
 
 *Story:* When the blood starts to run, you find more in you. Once a fight, at your first serious wound, you shake one off.
@@ -671,6 +725,27 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Built:** yes
 
+### Thick Hide (Combat – Defense) · T4e
+
+*Story:* Blows that would cut others only bruise you. Every hit costs you a little less health.
+
+- **Kind:** Always on
+- **Trigger:** A hit damages the owner's body (not a shield).
+- **Effect:** The health lost from that hit, after armor, is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
+### Spotter (Perception) · T5b
+
+*Story:* What you see, your people sense. Your band-mates beside you know something is there whenever you do.
+
+- **Kind:** Always on
+- **Trigger:** The end of each turn.
+- **Conditions:** The owner is aware of an actor outside its band. A band-mate is in the owner's zone and is less than suspicious of that actor.
+- **Effect:** That band-mate becomes suspicious of the actor (told by the owner), with its zone as last known.
+- **Lasts:** Until the band-mate's belief changes on its own.
+- **Built:** yes
+
 ### Curiouser and Curiouser (Perception) · T5d
 
 *Story:* Once you notice something, you notice everything. A good Eyesight or Earshot roll counts one outcome better.
@@ -679,6 +754,16 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Trigger:** The owner makes an Eyesight or Earshot roll.
 - **Conditions:** The roll ends in Success or better.
 - **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
+- **Lasts:** That roll.
+- **Built:** yes
+
+### Night Eyes (Perception) · T5e
+
+*Story:* The dark hides little from you. Light counts one step brighter when you look.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes an Eyesight roll.
+- **Effect:** The light there is read one step brighter (dark as dim, dim as bright). The mirror of Child of Night.
 - **Lasts:** That roll.
 - **Built:** yes
 
@@ -713,6 +798,17 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Effect:** Tier shift +1 on that roll, so it counts as a Success. Only Failure or worse is heard.
 - **Lasts:** That roll.
 - **Open:** Renamed from the doc's "Light Feet", which is already a 40 perk.
+- **Built:** yes
+
+### Soft Landing (Speech) · T7a
+
+*Story:* Even your stumbles sound reasonable. A speech roll that goes wrong counts one outcome better.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a Persuasion, Intimidation or Barter roll.
+- **Conditions:** The roll ends in a Near Miss or worse (Ali, 09/11/2026).
+- **Effect:** Tier shift +1 on that roll.
+- **Lasts:** That roll.
 - **Built:** yes
 
 ### Easy Speaker (Speech) · T7d

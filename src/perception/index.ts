@@ -12,7 +12,8 @@ export type BeliefUpdate =
   | { kind: 'detection'; observerId: string; aboutId: string; status: BeliefStatus; event: GameEvent }
   | { kind: 'opening'; observerId: string; aboutId: string; status: BeliefStatus; zone?: string; source?: 'seen' | 'heard' | 'told' }
   | { kind: 'reveal'; observerId: string; aboutId: string; fact: string }
-  | { kind: 'lost'; observerId: string; aboutId: string; zone?: string };
+  | { kind: 'lost'; observerId: string; aboutId: string; zone?: string }
+  | { kind: 'told'; observerId: string; aboutId: string; status: BeliefStatus; zone?: string }; // an ally passes it on (All-50 Spotter); only raises
 
 /** communication events copy the sender's beliefs (Information model); barks never do */
 export const isComm = (e: GameEvent) =>
@@ -158,6 +159,14 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     const seen = ss(o); // NS2: the player loses a stealthy NPC the same way
     if (seen) { if (atLeast(seen[update.aboutId], 'aware')) seen[update.aboutId] = 'suspicious'; return; }
     if (o && atLeast(o.mind?.knowledge[update.aboutId]?.status, 'aware')) write(o, update.aboutId, { status: 'suspicious', ...(update.zone ? { lastKnownZone: update.zone } : {}) });
+    return;
+  }
+  if (update.kind === 'told') {
+    const o = actorById(state, update.observerId);
+    if (!o || update.status === 'unaware') return;
+    const seen = ss(o);
+    if (seen) { seen[update.aboutId] = raise(seen[update.aboutId], update.status); return; }
+    write(o, update.aboutId, { status: raise(o.mind?.knowledge[update.aboutId]?.status, update.status), ...(update.zone ? { lastKnownZone: update.zone } : {}), source: 'told' });
     return;
   }
   if (update.kind === 'detection') {
