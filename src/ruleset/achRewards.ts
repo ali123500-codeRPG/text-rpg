@@ -8,9 +8,10 @@ import { getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { skillName } from '../library/skillNames';
 import { INTELLIGENCE } from '../scales';
+import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -40,9 +41,9 @@ export function rewardOf(d: AchievementDef, f: Reward): number {
   return !vs.length ? 0 : f === 'deathsDoor' ? Math.min(...vs) : vs.reduce((n, v) => n + v, 0);
 }
 /** the current achievement with the best value of a reward, if any: the largest, but for deathsDoor the shortest refill */
-export function bestReward(a: Actor, f: Reward): { key: string; name: string; value: number } | undefined {
+export function bestReward(a: Actor, f: Reward, only: (x: { key: string; of?: string; d: AchievementDef }) => boolean = () => true): { key: string; name: string; value: number } | undefined {
   const dir = f === 'deathsDoor' ? 1 : -1;
-  const best = currentAchievements(a).map((x) => ({ ...x, v: rewardOf(x.d, f) })).filter((x) => x.v > 0).sort((x, y) => dir * (x.v - y.v))[0];
+  const best = currentAchievements(a).filter(only).map((x) => ({ ...x, v: rewardOf(x.d, f) })).filter((x) => x.v > 0).sort((x, y) => dir * (x.v - y.v))[0];
   return best ? { key: best.key, name: best.d.name, value: best.v } : undefined;
 }
 /** readsHealth: the viewer sees the other's health level when it holds a current achievement with readsHealth for the
@@ -81,6 +82,22 @@ export function deathsDoor(state: GameState, a: Actor, before: number, lost: num
 export const achievementSkill = (a: Actor, skill: string): number => currentAchievements(a).reduce((n, x) =>
   n + chainRewards(x.d).reduce((m, e) => m + (e.field === 'skillAdd' ? e.from.skillAdd?.[skill] ?? 0 : 0), 0), 0);
 
+/** standIn: the share stand-ins gain on rolls of `skill`, from achievements earned for a group the skill is in */
+export function achievementStandIn(a: Actor, skill: string): number {
+  const groups: string[] = groupsOf(getLibrary().skills[skill]);
+  return bestReward(a, 'standIn', (x) => x.d.by === 'group' && !!x.of && groups.includes(x.of))?.value ?? 0;
+}
+/** reqLower: how much less an equip requirement on `skill` asks of the actor, from achievements earned for a tree holding it */
+export function achievementReqLower(a: Actor, skill: string): number {
+  const trees = getLibrary().trees ?? {};
+  return bestReward(a, 'reqLower', (x) => !!x.of && !!trees[x.of]?.skills.includes(skill as never))?.value ?? 0;
+}
+/** rally: an ally of the player fighting beside them gets the player's best rally on its morale checks */
+export function rallyMods(state: GameState, ally: Actor, besidePlayer: boolean): Mod[] {
+  const r = besidePlayer ? bestReward(state.player, 'rally') : undefined;
+  return r ? [{ source: `rally: ${r.name}`, type: 'achievement', value: r.value }] : [];
+}
+
 /** renown: a foe fighting the player takes the player's best renown off its first morale check against them */
 export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean): Mod[] {
   const r = fightingPlayer && foe.mind && !foe.mind.renownFelt ? bestReward(state.player, 'renown') : undefined;
@@ -103,6 +120,11 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
       const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');
       return [`${who} members of that ${(d.by ?? 'kind').replace('_', ' ')} meet you wary (opposed), not hostile`];
     }
+    case 'standIn': return [`stand-ins on rolls of a ${d.by === 'group' ? 'skill of that group' : 'skill'} count +${d.standIn} share`];
+    case 'reqLower': return [`equip requirements on that tree's skills ask ${d.reqLower} less of you (the gear's own numbers stay)`];
+    case 'pricePct': return [`+${d.pricePct}% off what you pay traders`];
+    case 'rally': return [`allies fighting beside you get +${d.rally} on their morale checks`];
+    case 'restPct': return [`+${d.restPct}% healing on each rest`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
   }
 }

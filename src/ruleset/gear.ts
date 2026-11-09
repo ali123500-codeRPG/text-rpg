@@ -6,6 +6,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
 import { hasPerk, standInAdd, trueSkill } from './perks';
+import { achievementStandIn } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
@@ -86,11 +87,11 @@ export const tierMult = (skill: string): number => CONFIG.SKILL_TIER_MULT[getLib
 
 /** Stand-ins: the functions that can stand in for a skill and the share each counts at. The skill's own table
  * (CONFIG.SUBSTITUTES) or its functions at the flat CONFIG.SUBSTITUTE_EFFICIENCY; the owner's perks move each share
- * (F4, PerkDef.standIn), kept within 0–1. No actor: the shares before perks (the library viewer shows these). */
+ * (F4, PerkDef.standIn) and achievements (standIn) move each share, kept within 0–1. No actor: the shares before perks (the library viewer shows these). */
 export function standInTable(skill: string, actor?: Actor, extraFns: string[] = []): { fn: string; k: number }[] {
   const base = CONFIG.SUBSTITUTES[skill] ?? (getLibrary().skills[skill]?.functions ?? []).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }));
   return [...base, ...extraFns.filter((fn) => !base.some((t) => t.fn === fn)).map((fn) => ({ fn, k: CONFIG.SUBSTITUTE_EFFICIENCY }))]
-    .map((t) => ({ fn: t.fn, k: Math.min(1, Math.max(0, t.k + (actor ? standInAdd(actor, t.fn) : 0))) }));
+    .map((t) => ({ fn: t.fn, k: Math.min(1, Math.max(0, t.k + (actor ? standInAdd(actor, t.fn) + achievementStandIn(actor, skill) : 0))) }));
 }
 /** the share skill `id` counts at when a roll needs `skill`: 1 for the skill itself (or a full-value skill), else the best
  * share among the table's functions that `id` has, 0 when it can't stand in */

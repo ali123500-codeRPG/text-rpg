@@ -259,6 +259,21 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
 }
 
 /** Display name of an earned achievement, read from the library table now. */
+/** T18: the title the player wears, by its name: the worn achievement, or the level that replaced it (a title moves up
+ * its chain); never a scar */
+export function wornTitle(state: GameState): string | undefined {
+  const pr = state.player.progression, lib = getLibrary().achievements ?? {};
+  const find = (id?: string) => (id ? pr?.achievements?.find((x) => x.id === id) : undefined);
+  let a = find(pr?.title);
+  for (let n = 0; a?.replacedBy && n < 20; n++) a = find(a.replacedBy);
+  return a && !lib[a.key ?? '']?.scar ? achievementName(state, a) : undefined;
+}
+/** the achievements the player can wear as a title: current ones that are not scars */
+export const wearable = (state: GameState) => {
+  const lib = getLibrary().achievements ?? {};
+  return (state.player.progression?.achievements ?? []).filter((x) => !x.replacedBy && x.key && lib[x.key] && !lib[x.key].scar);
+};
+
 export function achievementName(state: GameState, a: { id: string; key?: string; of?: string; name?: string }): string {
   const lib = getLibrary();
   const d = a.key ? lib.achievements?.[a.key] : undefined;

@@ -51,6 +51,9 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'achievement', roll: 'skill', source: 'Renown', at: 'src/ruleset/achRewards.ts',
     when: 'A foe\'s first morale check while it fights a player holding a renown achievement.', value: 'minus the achievement\'s renown',
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.renown).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(-a.renown!) })) },
+  { type: 'achievement', roll: 'skill', source: 'Rally', at: 'src/ruleset/achRewards.ts',
+    when: 'An ally\'s morale check while it fights beside a player holding a rally achievement.', value: 'plus the achievement\'s rally',
+    feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.rally).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(a.rally!) })) },
   // roll_perk
   { type: 'roll_perk', roll: 'skill', source: '40/80/120 perk numbers', at: 'src/ruleset/perks.ts',
     when: 'Rolls of the perk\'s skill: rollAdd on every roll, hitAdd on attack rolls only.', value: 'the perk\'s rollAdd / hitAdd',
@@ -91,7 +94,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Scene difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scene\'s difficulty.',
     value: list(Object.fromEntries(Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => [k, CONFIG.DIFFICULTY.moderate - v]))) },
   // aim
-  { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at. Contests drop it.',
+  { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at.',
     value: list(CONFIG.AIM_PENALTY) },
   // the situation roll (no skill)
   { type: 'perk', roll: 'situation', source: 'Perk situation bonus', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for each perk with a situation value.',

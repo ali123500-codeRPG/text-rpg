@@ -12,7 +12,8 @@ import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMod
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { baneMods, defeatsMods } from './bane';
-import { bestReward, deathsDoor, renownMods } from './achRewards';
+import { bestReward, deathsDoor, rallyMods, renownMods } from './achRewards';
+import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats } from '../engine/xp';
@@ -414,6 +415,6 @@ export function moraleCheck(state: GameState, actor: Actor, rng: Rng, reason: 'l
   if (healthLevel(actor) === 'Critical') return 'broken';
   const d = rng.d100();
   const morale = actor.mind.morale ?? CONFIG.MORALE_DEFAULT;
-  const level = tierOf(d, morale, [...woundsMods(state, actor, 'morale'), ...renownMods(state, actor, hostile(state, actor, state.player))], []);
+  const level = tierOf(d, morale, [...woundsMods(state, actor, 'morale'), ...renownMods(state, actor, hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor))], []);
   return level < TIERS.pos('failure') ? 'surrendered' : level < TIERS.pos('near_miss') ? 'broken' : 'steady';
 }
