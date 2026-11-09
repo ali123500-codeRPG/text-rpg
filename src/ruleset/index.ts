@@ -20,6 +20,7 @@ import { shortShifts } from './requirements';
 import { blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { FN } from '../library/functionIds';
 
 export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
@@ -382,13 +383,21 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   return out;
 }
 
+/** what initiative adds to its d100: the best skill with the Initiative function (full value, like a function roll; 0 when
+ * none) × SKILL_WEIGHT, plus roll modifiers naming initiative (rollMod roll 'initiative') */
+export function initiativeBonus(state: GameState, actor: Actor): number {
+  const fns = fnSkills(FN.initiative);
+  const best = Math.max(0, ...fns.map((id) => effectiveSkill(state, actor, id, { fullValue: fns }).value));
+  return CONFIG.SKILL_WEIGHT * best + modTotal(rollMods(state, actor, 'initiative'));
+}
+
 function recordUse(actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult, state: GameState): void {
   state.log.push({ turn: state.turn, code: 'skill_use', detail: { actorId: actor.id, skill } });
   markUse(state, actor, skill, result);
 }
 
 export const ruleset: Ruleset = {
-  initiative: (_actor, _state, rng) => rng.d100(), // the engine gives INIT_UNAWARE to an actor unaware of its attacker (initiativeOrder)
+  initiative: (actor, state, rng) => rng.d100() + initiativeBonus(state, actor), // the engine gives INIT_UNAWARE to an actor unaware of its attacker (initiativeOrder)
   check,
   contested,
   roll,
