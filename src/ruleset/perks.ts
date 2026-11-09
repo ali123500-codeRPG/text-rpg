@@ -69,7 +69,7 @@ export function boostAdd(a: Actor, skill: string, key: 'armorPierce'): number {
 /** ladder perks this actor owns in one skill */
 export const ladderPerksIn = (a: Actor, skill: string) =>
   a.core.perks.filter((p) => p.source === 'level' && getLibrary().perks[p.perkId]?.ladder?.skill === skill).length;
-const gated = (a: Actor, skill: string, milestone: number) => ladderPerksIn(a, skill) < (PERKS_NEEDED[milestone] ?? 0);
+const gated = (a: Actor, skill: string, milestone: number) => !hasPerk(a, 'as_far_as_the_road_goes') && ladderPerksIn(a, skill) < (PERKS_NEEDED[milestone] ?? 0);
 
 /** the library perk on one milestone of a skill's ladder, if written */
 export function milestonePerk(skill: string, milestone: number): PerkDef | undefined {

@@ -32,7 +32,9 @@ export type SkillDef = {
 /** A source that opens or blocks a skill tree (TA1–TA11). 'class': the actor has that class, Current or
  * Previous, at `level` or more (default 1, TA3); 'perk': the actor owns that perk or quirk. */
 /** raceTag: the actor's race carries that tag (RaceDef.tags), e.g. 'speaks' */
-export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' | 'skill'; id: string; level?: number };
+/** One access condition. Count kinds read `level` as the count: 'classes' = classes on the sheet in any state (id unused);
+ * 'allStep' = trees whose All-XXX at step `id` (e.g. '50') the actor has; 'skillsAbove' = skills whose true skill is above `id`. */
+export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' | 'skill' | 'classes' | 'allStep' | 'skillsAbove'; id: string; level?: number };
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };

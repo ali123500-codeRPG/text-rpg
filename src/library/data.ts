@@ -97,6 +97,21 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'You learned more from losing than most learn from winning.',
     rules: { kind: 'passive', trigger: 'the owner loses a contest or a defended attack by exactly one tier step', conditions: [], effect: 'the skill the owner rolled (and the skill asked for, when a stand-in rolled) is marked, even when the other side is outside the learning window', lasts: 'always' },
   },
+  as_far_as_the_road_goes: {
+    id: 'as_far_as_the_road_goes', name: 'As Far as the Road Goes', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+    story: 'You were never meant for one path, so you follow each one as far as it goes.',
+    rules: { kind: 'passive', trigger: 'the owner reaches a 60, 80, 100, 120 or 140 milestone in any skill', conditions: [], effect: 'the perk there opens as soon as true skill reaches it, without the earlier ladder perks in that skill it normally needs', lasts: 'always' },
+  },
+  write_your_own_ending: {
+    id: 'write_your_own_ending', name: 'Write Your Own Ending', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+    story: 'You were never meant for one path, so every path is yours.',
+    rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: [], effect: 'every class in the library the owner does not have unlocks at class level 0, whether or not its unlock conditions are met', lasts: 'always' },
+  },
+  no_road_closed: {
+    id: 'no_road_closed', name: 'No Road Closed', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+    story: 'You were never meant for one path, so no road is closed to you.',
+    rules: { kind: 'passive', trigger: 'any check of whether the owner can use a skill tree or skill', conditions: [], effect: 'the access rules (Must, Either of, Blocked by) do not apply: every tree and skill is open, and its skills can be used, marked and raised', lasts: 'always' },
+  },
   quick_study: {
     id: 'quick_study', name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
@@ -329,7 +344,9 @@ export function prototypeLibrary(): Library {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
       [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
+      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'], 20: ['as_far_as_the_road_goes'] },
+        capstones: [{ perk: 'write_your_own_ending', needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
+          { perk: 'no_road_closed', needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
