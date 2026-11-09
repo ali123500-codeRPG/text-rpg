@@ -15,6 +15,7 @@ import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, wareList } from '../engine/trade';
 import { PK } from '../library/perkIds';
+import { readsHealthOf } from '../ruleset/achRewards';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -128,7 +129,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(look ? { activityLook: look } : {}),
-      ...(healthShows(h, reads(state, viewer, a)) ? { health: h } : {}),
+      ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
@@ -163,7 +164,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     const to = String(f.data.to ?? '');
     const who = callName(state, viewerId, f.actorId);
     const sharp = reads(state, actorById(state, viewerId), actorById(state, f.actorId));
-    if (f.kind === 'threshold_crossed' && (own || healthShows(to, sharp))) out.push(`${who} is ${to}`);
+    if (f.kind === 'threshold_crossed' && (own || healthShows(to, sharp) || readsHealthOf(actorById(state, viewerId), actorById(state, f.actorId)))) out.push(`${who} is ${to}`);
     const by = f.data.by ? callName(state, viewerId, String(f.data.by)) : '';
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);

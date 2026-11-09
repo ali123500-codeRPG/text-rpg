@@ -183,8 +183,14 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
-export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string; scar?: true;
-  /** reward: every healing source reaches this many part states further (Damaged to Crippled), never to Destroyed */
-  healReach?: number;
+/** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
+export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
+export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
+  /** rewards beyond XP (src/ruleset/achRewards.ts); a lower level's rewards stop when a higher level replaces it */
+  perk?: string; // granted when earned, kept for good
+  unawareShift?: number; // tier steps up on attacks against a target unaware of the owner
+  quieter?: number; // the owner's moves are this many steps quieter on the noise scale
+  readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
+  deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };

@@ -65,7 +65,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Tier of a roll', at: 'band · naturalEdge · tierAt · src/ruleset/index.ts',
         formula: 'tier = band of the margin + natural edge + tier shifts',
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
-        terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, marks, falling short on gear, Curiouser and Curiouser']],
+        terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
         notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).'] },
       { name: 'Chance by effective skill', at: 'computed with band and naturalEdge',
         formula: '% of d100 results that reach each tier, no modifiers',

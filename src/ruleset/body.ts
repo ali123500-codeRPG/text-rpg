@@ -70,6 +70,9 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
   const ct = actorBody(state, actor);
   const uses = ctx.roles ?? lib.skills[skill]?.roles ?? [];
   const st = (id: string) => poolState(partPct(actor, id));
+  // Past the Pain: the first Crippled part in body order gives no role penalty
+  const spared = hasPerk(actor, PK.past_the_pain) ? ct.parts.find((p) => st(p.id) === 'Crippled')?.id : undefined;
+  const pen = (id: string) => (id === spared ? 0 : rolePenalty(actor, st(id)));
   const inst = actor.core.inventory.find((i) => i.id === ctx.itemId);
   for (const role of Object.keys(lib.roles) as RoleId[]) {
     const parts = ct.parts.filter((p) => p.roles.includes(role));
@@ -79,16 +82,16 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
       for (const p of parts) {
         const s = st(p.id);
         // Sense Crippled applies to every check, not only Sense-tagged ones
-        if (uses.includes(role) || (role === 'sense' && !working(s))) v += rolePenalty(actor, s) / parts.length;
+        if (uses.includes(role) || (role === 'sense' && !working(s))) v += pen(p.id) / parts.length;
       }
     } else if (uses.includes(role)) {
       if (role === 'grip') {
         const hands = inst?.equippedIn?.filter((h) => h.startsWith('hand:')).map((h) => h.slice(5)) ?? [];
-        const pens = (hands.length ? hands : parts.map((p) => p.id)).map((id) => rolePenalty(actor, st(id)));
+        const pens = (hands.length ? hands : parts.map((p) => p.id)).map((id) => pen(id));
         v = hands.length ? Math.min(...pens) : Math.max(...pens);
       } else if (role === 'strike' && ctx.itemId?.startsWith('natural:')) {
         const partId = ct.naturalAttacks.find((m) => m.id === ctx.itemId!.slice(8))?.partId;
-        if (partId) v = rolePenalty(actor, st(partId));
+        if (partId) v = pen(partId);
       }
     }
     if (v) out.push({ source: `${role} wounds`, type: 'wounds', value: v });

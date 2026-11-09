@@ -248,6 +248,7 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   for (let k = d.after, i = 0; k && i < 20; k = lib[k]?.after, i++)
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
   (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), turn: state.turn });
+  if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
   const xp = CONFIG.REWARD_XP[d.level] ?? 0;
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);

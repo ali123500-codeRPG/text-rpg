@@ -72,7 +72,7 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race' | 'template' | 'class'; // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
+  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement'; // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
@@ -98,6 +98,8 @@ export type Progression = {
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string }[];
   /** achievement tallies: '<rule>' or '<rule>:<by>:<of>' (a count, or the best reached for days, zones and beyond_crit) */
   tally?: Record<string, number>;
+  /** achievement charges: the game day each was last spent, by achievement key */
+  charges?: Record<string, number>;
   zonesSeen?: string[]; // zones the player has entered
   /** alternate capstones the player may swap in for a class's default, by class id; set when the class reaches
    * its top level with those alternates' conditions met, and cleared by a swap */
