@@ -442,7 +442,7 @@ export function prototypeLibrary(): Library {
       [ACH.unaware_100]: { id: ACH.unaware_100, name: 'The Unseen Death', level: 'iii', rule: 'unaware_defeats', tags: ['combat', 'stealth'], count: 100, after: ACH.unaware_50, unawareShift: 1, quieter: 1 },
       [ACH.yielded_1]: { id: ACH.yielded_1, name: 'Yield or Fall', level: 'i', rule: 'yielded', tags: ['combat', 'social'], count: 1 },
       [ACH.yielded_10]: { id: ACH.yielded_10, name: 'Breaker of Wills', level: 'ii', rule: 'yielded', tags: ['combat', 'social'], count: 10, after: ACH.yielded_1 },
-      [ACH.yielded_50]: { id: ACH.yielded_50, name: 'The Name That Ends Fights', level: 'iii', rule: 'yielded', tags: ['combat', 'social'], count: 50, after: ACH.yielded_10 },
+      [ACH.yielded_50]: { id: ACH.yielded_50, name: 'The Name That Ends Fights', level: 'iii', rule: 'yielded', tags: ['combat', 'social'], count: 50, after: ACH.yielded_10, renown: 10 },
       [ACH.crits_10]: { id: ACH.crits_10, name: 'Sure Hand ({group})', level: 'i', rule: 'crits', tags: ['skill'], count: 10, by: 'group' },
       [ACH.crits_100]: { id: ACH.crits_100, name: 'Perfect Form ({group})', level: 'ii', rule: 'crits', tags: ['skill'], count: 100, by: 'group', after: ACH.crits_10 },
       [ACH.crits_1000]: { id: ACH.crits_1000, name: 'Master of the Moment ({group})', level: 'iii', rule: 'crits', tags: ['skill'], count: 1000, by: 'group', after: ACH.crits_100 },

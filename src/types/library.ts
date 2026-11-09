@@ -191,6 +191,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   unawareShift?: number; // tier steps up on attacks against a target unaware of the owner
   quieter?: number; // the owner's moves are this many steps quieter on the noise scale
   readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
+  renown?: number; // every foe fighting the owner takes this much off its first morale check against the owner
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };

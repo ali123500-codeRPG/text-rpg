@@ -117,6 +117,7 @@ export type Mind = {
   behavior: string;
   morale?: number;
   fearless?: boolean; // from the template's personality
+  renownFelt?: true; // this actor has made its first morale check against a player with renown
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware

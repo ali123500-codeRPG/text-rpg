@@ -1,11 +1,11 @@
 // Achievement rewards beyond XP and roll bonuses (AchievementDef reward fields). Only the owner's current achievements
 // count: a level replaced by a higher one of its chain stops giving its rewards.
-import type { AchievementDef, Actor, GameState } from '../types';
+import type { AchievementDef, Actor, GameState, Mod } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { dayOf, now } from '../time';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor';
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown';
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -42,6 +42,14 @@ export function deathsDoor(state: GameState, a: Actor, before: number, lost: num
   return top;
 }
 
+/** renown: a foe fighting the player takes the player's best renown off its first morale check against them */
+export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean): Mod[] {
+  const r = fightingPlayer && foe.mind && !foe.mind.renownFelt ? bestReward(state.player, 'renown') : undefined;
+  if (!r) return [];
+  foe.mind!.renownFelt = true;
+  return [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }];
+}
+
 /** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display */
 export function rewardLines(d: AchievementDef): string[] {
   const out: string[] = [];
@@ -50,6 +58,7 @@ export function rewardLines(d: AchievementDef): string[] {
   if (d.quieter) out.push(`your moves are ${steps(d.quieter, 'step')} quieter`);
   if (d.deathsDoor) out.push(`once every ${d.deathsDoor === 1 ? 'game day' : steps(d.deathsDoor, 'game day')}, a hit that would take you Down leaves you at Critical`);
   if (d.readsHealth) out.push(`you see the health level of every member of that ${(d.by ?? 'kind').replace('_', ' ')}`);
+  if (d.renown) out.push(`every foe fighting you takes ${-d.renown} on its first morale check against you`);
   if (d.perk) out.push(`grants the perk ${getLibrary().perks?.[d.perk]?.name ?? d.perk}`);
   return out;
 }

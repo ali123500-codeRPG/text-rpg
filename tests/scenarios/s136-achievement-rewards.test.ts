@@ -6,7 +6,7 @@ import { makeVillage, forcedRng } from '../harness';
 import { actor } from '../harness/village';
 import { ruleset } from '../../src/ruleset';
 import { woundsMods } from '../../src/ruleset/body';
-import { deathsDoor, readsHealthOf } from '../../src/ruleset/achRewards';
+import { deathsDoor, readsHealthOf, renownMods } from '../../src/ruleset/achRewards';
 import { grantAchievement } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { ACH, ACH_TAGS } from '../../src/library/achievementIds';
@@ -71,6 +71,15 @@ describe('136 achievement rewards', () => {
     grantAchievement(s, ACH.defeats_100_body_type, slime.core.bodyTypeId);
     expect(readsHealthOf(s.player, slime)).toBe(true);
     expect(readsHealthOf(s.player, actor(s, 'patron_1'))).toBe(slime.core.bodyTypeId === actor(s, 'patron_1').core.bodyTypeId);
+  });
+  it('The Name That Ends Fights: every foe fighting you takes 10 off its first morale check', () => {
+    const s = makeVillage();
+    const foe = actor(s, 'slime_1');
+    expect(renownMods(s, foe, true)).toEqual([]);
+    grantAchievement(s, ACH.yielded_50);
+    expect(renownMods(s, foe, false)).toEqual([]); // not fighting you
+    expect(renownMods(s, foe, true)).toEqual([{ source: 'renown: The Name That Ends Fights', type: 'achievement', value: -10 }]);
+    expect(renownMods(s, foe, true)).toEqual([]); // only the first check
   });
   it('every achievement carries at least one known tag', () => {
     for (const d of Object.values(getLibrary().achievements ?? {})) {
