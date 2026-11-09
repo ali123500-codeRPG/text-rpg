@@ -6,6 +6,7 @@ import { quickWord, resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
 import type { Actor } from '../../src/types';
 import { act, intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 
@@ -14,7 +15,7 @@ it('116 Quick Word: the line and the reply are free; both actions still happen',
   const wim = s.actors.find((a) => a.id === 'patron_1')!;
   wim.zone = s.player.zone;
   s.mode = 'tactical';
-  const i = intent({ action: { type: 'attack', skill: 'unarmed_strike', target: wim.id }, spoken: 'Drop it and live!', addressees: [wim.id] });
+  const i = intent({ action: { type: 'attack', skill: SK.unarmed_strike, target: wim.id }, spoken: 'Drop it and live!', addressees: [wim.id] });
   expect(quickWord(s, i)).toBe(false); // no perk: the line is a bark
   give(s.player, 'quick_word');
   expect(quickWord(s, i)).toBe(true);
@@ -27,7 +28,7 @@ it('116 Quick Word: the line and the reply are free; both actions still happen',
   const spokespeople = selectSpokespeople(s, i);
   expect(spokespeople).toEqual([wim.id]);
   const exchange = resolveSpeech(s, i, spokespeople, createRng(3));
-  expect(exchange.skill).toBe('persuasion');
+  expect(exchange.skill).toBe(SK.persuasion);
   const reply = { agent: 'voice', actorId: wim.id, output: { action: act('attack', 'player'), line: 'Never!', volume: 'shout', shares: [], gear: null, stance: null, routine: null } } as AcceptedAgentOutput;
   const ev = play(s, { intent: i, spokespeople, exchange, quickWord: true, agentOutputs: [reply] });
   const said = ev.filter((e) => e.kind === 'speak' && !e.bark).map((e) => [e.actorId, e.line?.text]);

@@ -3,6 +3,8 @@
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
 import type { Intent, NarratorOutput, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
+import { skillIdOf } from '../library/skillIds';
+import { SKILL_NAMES } from '../library/skillNames';
 import { COVER, LIGHT, STANCES, TACTICS, TIME_OF_DAY, type Scale } from '../scales';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
@@ -17,6 +19,8 @@ const any: V<unknown> = (v) => v;
 const oneOf = <T extends string | number>(vals: readonly T[]): V<T> => (v, p, e) =>
   vals.includes(v as T) ? (v as T) : (e.push(`${p}: expected one of ${vals.join(', ')}`), vals[0]);
 /** missing (undefined) or null both read as null */
+/** a skill an agent named: its ID, display name or code alias, read as the ID (skill IDs are numbers) */
+const skillStr: V<string> = (v, p, e) => { const s = str(v, p, e); return s ? skillIdOf(s, SKILL_NAMES) : s; };
 const nul = <T>(c: V<T>): V<T | null> => (v, p, e) => (v === undefined || v === null ? null : c(v, p, e));
 const arr = <T>(c: V<T>): V<T[]> => (v, p, e) => (Array.isArray(v) ? v.map((x, i) => c(x, `${p}[${i}]`, e)) : (e.push(`${p}: expected array`), []));
 /** optional array: absent stays absent */
@@ -55,7 +59,7 @@ const intent = obj<Intent>({
   move: nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after'])),
   action: nul(obj<NonNullable<Intent['action']>>({
     type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
-    skill: (v, p, e) => (v === null || v === undefined ? '' : str(v, p, e)),
+    skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
     target: nul(str),
     targetPart: nul(str),
     item: nul(str),
@@ -76,7 +80,7 @@ const intent = obj<Intent>({
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee', 'talk', 'use_item', 'equip', 'give', 'other'] as const),
   target: nul(str),
-  skill: nul(str),
+  skill: nul(skillStr),
   targetPart: nul(str),
   aimed: (v, p, e) => (v === undefined || v === null ? false : bool(v, p, e)),
   defense: nul(oneOf(['dodge', 'block'] as const)),

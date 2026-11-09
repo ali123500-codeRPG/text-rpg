@@ -4,6 +4,7 @@ import { expect, it } from 'vitest';
 import { actor, makeVillage, place } from '../harness';
 import { computePending, selectSpokespeople } from '../../src/engine';
 import { act, intent, play, plannerOut } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 it('57 Inert when down', () => {
   const s = makeVillage({ playerZone: 'gate_inner' });
@@ -12,7 +13,7 @@ it('57 Inert when down', () => {
   g.mind!.knowledge.slime_1 = { status: 'aware', lastKnownZone: 'gate_inner', lastSeenTurn: 1, source: 'seen', revealed: [] };
   g.core.condition.hpLostPct = 100;
   s.hidden.plans.guard_1 = { goal: 'ambush', steps: [], createdTurn: 0, triggers: [
-    { id: 'amb', ownerId: 'guard_1', when: { type: 'turn_reached', turn: 1 }, then: { type: 'attack', target: '$player', skill: 'melee_medium', intent: 'ambush' }, once: true },
+    { id: 'amb', ownerId: 'guard_1', when: { type: 'turn_reached', turn: 1 }, then: { type: 'attack', target: '$player', skill: SK.melee_medium, intent: 'ambush' }, once: true },
   ] };
   s.turn = 0;
   const p = computePending(s);

@@ -1,5 +1,7 @@
 // Small hand-built views for the W7 agent tests (no view builder needed).
 import type { ActorView, DialogueView, NarrationView, PlayerView, ZoneView, PlannerOutput, VoiceOutput, Intent } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
+import { skillName } from '../../src/library/skillNames';
 
 export const zone = (id: string, links: string[] = [], ground: string[] = []): ZoneView => ({
   id, name: id.replace(/_/g, ' '), look: `the ${id}`, cover: 'none', light: 'bright',
@@ -10,7 +12,7 @@ export function playerView(): PlayerView {
   return {
     turn: 1,
     player: {
-      id: 'player', name: 'Aldric', classes: ['swordsman'], skills: ['melee_medium', 'block', 'persuasion', 'sight'], perks: [],
+      id: 'player', name: 'Aldric', classes: ['swordsman'], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
       health: 'Unhurt', parts: [],
       inventory: [{ id: 'sword_1', itemId: 'arming_sword', name: 'arming sword', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['cut', 'thrust'] }],
       posture: 'open', standingDefense: 'block',
@@ -30,7 +32,7 @@ export function actorView(id = 'guard_1'): ActorView {
       id, label: 'a gate guard', name: 'Bertram', kind: 'npc', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch',
       health: 'Unhurt', parts: [], active: true, broken: false, surrendered: false, fearless: false, control: 'agent', standingDefense: 'block',
       gear: [{ id: 'spear_1', itemId: 'spear', name: 'spear', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['thrust'] }],
-      attackSkill: 'melee_medium', routines: [{ id: 'guard_post', brief: 'stand at the post' }, { id: 'guard_alert', brief: 'watch hard' }],
+      attackSkill: SK.melee_medium, routines: [{ id: 'guard_post', brief: 'stand at the post' }, { id: 'guard_alert', brief: 'watch hard' }],
       slots: { post: 'gate_inner' },
     },
     beliefs: [{ about: 'player', status: 'suspicious', lastKnownZone: 'street_square', source: 'heard', revealed: [], hostile: true, active: true, label: 'a swordsman' }],
@@ -68,7 +70,7 @@ export function narrationView(): NarrationView {
 
 export const intentOf = (over: Partial<Intent> = {}): Intent => ({
   move: null,
-  action: { type: 'observe', skill: 'sight', target: null, targetPart: null, item: null, mode: null, approach: 'carefully', stance: 'careful' },
+  action: { type: 'observe', skill: SK.eyesight, target: null, targetPart: null, item: null, mode: null, approach: 'carefully', stance: 'careful' },
   gear: null, spoken: null, addressees: null, deferred: [], clarify: null, ...over,
 });
 

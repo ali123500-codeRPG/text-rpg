@@ -12,6 +12,7 @@ import { clockSet, now, startClock, timeOfDay, timeView, zoneLight } from '../..
 import { passiveHealing } from '../../src/engine/heal';
 import { CONFIG } from '../../src/config';
 import type { GameState, Intent, ParserActionType } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const act = (type: ParserActionType, target: string | null = null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -122,7 +123,7 @@ describe('111 game clock', () => {
 describe('111 natural recovery', () => {
   it('heals endurance × 0.01 % an hour of HP and working parts, never a Crippled part', () => {
     const s = makeVillage();
-    s.player.core.skills.endurance.raw = 50;
+    s.player.core.skills[SK.endurance].raw = 50;
     const c = s.player.core.condition;
     c.hpLostPct = 30;
     c.parts.left_leg = -30; // Crippled

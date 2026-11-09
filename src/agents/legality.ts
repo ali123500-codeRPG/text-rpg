@@ -53,7 +53,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
     if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish') a.skill = '';
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
-    else if (a.skill && !view.player.skills.includes(a.skill)) illegal.push(`action.skill ${a.skill}`);
+    else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
     if (a.item !== null && !items.has(a.item)) illegal.push(`action.item ${a.item}`);
     if (a.mode !== null) {
       const modes = a.item ? own.find((i) => i.id === a.item)?.modes ?? [] : own.flatMap((i) => (i.equippedIn.length ? i.modes : []));

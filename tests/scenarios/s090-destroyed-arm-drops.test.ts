@@ -6,6 +6,7 @@ import { actor, makeVillage, place } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import type { AttackRequest, AttackResult, RollResult } from '../../src/types';
 import { intent, play } from './w4-kit';
+import { SK } from '../../src/library/skillIds';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -22,11 +23,11 @@ it('90 Destroyed arm drops', () => {
   expect(g.core.inventory.find((i) => i.id === sword)!.equippedIn).toEqual(['hand:right_arm']);
   // force the blow onto the sword arm; damage still goes through the real applyEffects
   vi.spyOn(ruleset, 'attack').mockImplementationOnce((req: AttackRequest): AttackResult => ({
-    attack: roll(req.attackerId, 'melee_medium', 'critical_success'), defense: roll(req.targetId, 'block', 'failure'), defenseType: 'block',
+    attack: roll(req.attackerId, SK.melee_medium, 'critical_success'), defense: roll(req.targetId, SK.block, 'failure'), defenseType: 'block',
     gap: -4, gapShifts: [], outcome: 'heavy_hit', location: 'right_arm', locationHow: 'aimed', multiplier: 1.5, damage: 30,
     deciding: { attack: [], defense: [], gap: [] }, attackerId: req.attackerId, targetId: req.targetId, weaponId: req.weaponId, modeId: req.modeId ?? 'cut',
   }));
-  const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'guard_1', skill: 'melee_medium', targetPart: 'right_arm' } }), aimed: true });
+  const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'guard_1', skill: SK.melee_medium, targetPart: 'right_arm' } }), aimed: true });
   const drop = ev.find((e) => e.kind === 'item_dropped');
   expect(drop).toMatchObject({ actorId: 'guard_1', itemId: sword, zone: 'tav_common' });
   expect(drop!.perception.patron_1 ?? drop!.perception.player).toBeTruthy();

@@ -5,8 +5,9 @@
 import type { Actor, AttackResult, Effect, GameState, Rng } from '../types';
 import { hasPerk, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { heldBy, isActive } from './relations';
+import { SK } from '../library/skillIds';
 
-const GRAPPLE = 'unarmed_grapple';
+const GRAPPLE = SK.unarmed_grapple;
 const MISSES = new Set(['missed', 'dodged']);
 
 /** after a grapple attack: lock on if the attacker has Hold and the roll was a Great Success or better that hit */

@@ -9,6 +9,7 @@ import { MILESTONES, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { itemDef } from '../library';
 import { requirement } from './requirements';
+import { SK } from '../library/skillIds';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
@@ -68,7 +69,7 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
 
 /** SP5: a single hit that costs ENDURANCE_MARK_PCT health or more marks endurance */
 export function markEndurance(state: GameState, actor: Actor, lostPct: number): void {
-  if (actor.id === state.player.id && lostPct >= CONFIG.ENDURANCE_MARK_PCT) mark(actor, 'endurance');
+  if (actor.id === state.player.id && lostPct >= CONFIG.ENDURANCE_MARK_PCT) mark(actor, SK.endurance);
 }
 
 /** Part 1 §6, unchanged: Burden snapshot, then one improvement roll per marked skill; marks clear. Returns the gains. */

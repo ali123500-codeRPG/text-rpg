@@ -7,6 +7,7 @@ import { resolveTurn } from '../../src/engine';
 import { itemDef } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import type { Intent } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 describe('104 Improvised weapon', () => {
   it('a chair leg becomes a held improvised_medium story item used for the attack', () => {
@@ -14,7 +15,7 @@ describe('104 Improvised weapon', () => {
     place(s, 'slime_1', 'field_mid');
     const intent: Intent = {
       move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
-      action: { type: 'attack', skill: 'melee_medium', target: 'slime_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal',
+      action: { type: 'attack', skill: SK.melee_medium, target: 'slime_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal',
         improvised: { base: 'improvised_medium', name: 'a broken chair leg' } },
     };
     const events = resolveTurn(s, { intent, aimed: false, agentOutputs: [], spokespeople: [] }, createRng(7));
@@ -23,7 +24,7 @@ describe('104 Improvised weapon', () => {
     const def = itemDef(s, inst.itemId);
     expect(def.name).toBe('a broken chair leg');
     expect(def.weapon!.modes[0].hitAdj).toBe(CONFIG.IMPROVISED_HIT_ADJ);
-    expect(def.weapon!.modes[0].skill).toBe('unarmed_improvised'); // rolls Improvisation
+    expect(def.weapon!.modes[0].skill).toBe(SK.unarmed_improvised); // rolls Improvisation
     expect(def.effects ?? []).toEqual([]);
     expect(events.find((e) => e.kind === 'attack' && e.actorId === s.player.id)?.attack?.weaponId).toBe(inst.id);
   });

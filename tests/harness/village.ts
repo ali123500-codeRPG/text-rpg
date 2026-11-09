@@ -6,6 +6,7 @@ import { resetLibrary } from '../../src/library';
 import { resetConfig } from '../../src/config';
 import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
+import { SK } from '../../src/library/skillIds';
 
 const L = (to: string, label: string, sight = true, frontier = false): ZoneLink => ({ to, label, sight, ...(frontier ? { frontier: true as const } : {}) });
 const Z = (id: string, placeId: string, name: string, look: string, links: ZoneLink[], cover: Cover = 'none', light: Light = 'bright'): Zone =>
@@ -49,8 +50,8 @@ export function villageBands(): Band[] {
 
 /** The recommended swordsman build (250 points, 3 tags, nothing above 60, class floors met). */
 export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId = 'tavern'): Actor {
-  const skills: Record<string, number> = { melee_medium: 50, block: 40, dodge: 25, endurance: 40, sight: 25, hearing: 20, persuasion: 25, intimidation: 15, barter: 10 };
-  const tagged = ['melee_medium', 'block', 'endurance'];
+  const skills: Record<string, number> = { [SK.melee_medium]: 50, [SK.block]: 40, [SK.dodge]: 25, [SK.endurance]: 40, [SK.eyesight]: 25, [SK.earshot]: 20, [SK.persuasion]: 25, [SK.intimidation]: 15, [SK.barter]: 10 };
+  const tagged: string[] = [SK.melee_medium, SK.block, SK.endurance];
   return {
     id: 'player', storyId, kind: 'player', names: { current: 'Aldric', past: [] }, label: 'a swordsman',
     placeId, zone, posture: 'open', bandId: 'player_band',

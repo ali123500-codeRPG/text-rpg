@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { sentText } from '../harness';
 import { intent, narrateAll, setupGame } from './_w7';
+import { SK } from '../../src/library/skillIds';
 
 const TERMS = ['ambush', 'lying in wait', 'trap at the gate'];
 
@@ -10,7 +11,7 @@ describe('1 Ambush stays hidden', () => {
     const { claude, game, state, start } = setupGame({ playerZone: 'street_square' });
     state.hidden.plans.guard_1 = {
       goal: 'take the stranger at the gate', steps: ['wait at the gate'], createdTurn: 0,
-      triggers: [{ id: 'tr_ambush', ownerId: 'guard_1', when: { type: 'player_seen_in_zone', zone: 'gate_inner' }, then: { type: 'attack', target: '$player', skill: 'melee_medium', intent: 'spring the ambush' }, once: true }],
+      triggers: [{ id: 'tr_ambush', ownerId: 'guard_1', when: { type: 'player_seen_in_zone', zone: 'gate_inner' }, then: { type: 'attack', target: '$player', skill: SK.melee_medium, intent: 'spring the ambush' }, once: true }],
     };
     state.hidden.secrets.push({ id: 'sec_ambush', holderId: 'guard_1', fact: 'the guard is lying in wait', leakTerms: ['ambush', 'lying in wait'], revealWhen: { type: 'event_in_zone', kind: 'attack', zone: 'gate_inner' } });
     state.hidden.stage.hiddenTerms = ['trap at the gate'];
