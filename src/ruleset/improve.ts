@@ -1,5 +1,5 @@
 // Part 1 §6 skill improvement ("Skill progression: options" SP1–SP11).
-// A use marks a skill when the opposition is within MARK_WINDOW of the user's raw or true skill (SP2, SP6); a hit that
+// A use marks a skill when the opposition is from MARK_WINDOW below its raw skill to MARK_WINDOW above its true skill (SP2, SP6); a hit that
 // costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of each engagement or
 // when the scene breaks (SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
 import type { Actor, AttackResult, CheckResult, ContestResult, GameState, Rng } from '../types';
@@ -13,25 +13,26 @@ import { SK } from '../library/skillIds';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
-  if (pr && actor.core.skills[skill] && skillOpen(actor, skill) && !pr.marks.includes(skill)) pr.marks.push(skill); // a closed tree can't be raised (TA4)
+  // a skill not on the sheet learns from use too: it counts as raw 0 and joins the sheet with its first gain
+  if (pr && getLibrary().skills[skill] && skillOpen(actor, skill) && !pr.marks.includes(skill)) pr.marks.push(skill); // a closed tree can't be raised (TA4)
 }
 
-/** is `opposition` within MARK_WINDOW of the actor's raw or true skill (SP2) */
+/** SP2: does `opposition` teach this skill? From MARK_WINDOW below raw skill up to MARK_WINDOW above true skill.
+ * A skill not on the sheet counts as raw 0. */
 function close(actor: Actor, skill: string, opposition: number): boolean {
-  const raw = actor.core.skills[skill]?.raw;
-  if (raw === undefined) return false;
+  const raw = actor.core.skills[skill]?.raw ?? 0;
   const w = CONFIG.MARK_WINDOW;
-  return Math.abs(opposition - raw) <= w || Math.abs(opposition - trueSkill(actor, skill)) <= w;
+  return opposition >= raw - w && opposition <= Math.max(raw, trueSkill(actor, skill)) + w;
 }
 
-/** mark `skill` if the opposition is within MARK_WINDOW of the actor's raw or true skill (SP2) */
+/** mark `skill` if the opposition is inside its learning window (SP2: raw − MARK_WINDOW to true + MARK_WINDOW) */
 export function markIfClose(state: GameState, actor: Actor | undefined, skill: string, opposition: number | undefined): void {
   if (!actor || actor.id !== state.player.id || opposition === undefined) return;
   if (close(actor, skill, opposition)) mark(actor, skill);
 }
 
 /** AR5: a hit on a part your worn armor covers marks the armor skill for its weight, when the
- * attacker's skill or the armor's requirement is within MARK_WINDOW of your raw or true armor skill (either one) */
+ * attacker's skill or the armor's requirement is inside your armor skill's learning window (SP2) */
 function markArmor(state: GameState, result: AttackResult): void {
   const t = actorById(state, result.targetId), a = actorById(state, result.attack.actorId);
   if (!t || !a || t.id !== state.player.id || !result.location || result.location === 'shield') return;
@@ -88,14 +89,15 @@ export function improveMarked(state: GameState, rng: Rng): { skill: string; from
   const burden = Math.max(0, Math.floor((total - potential) / CONFIG.K));
   const gains: { skill: string; from: number; to: number; milestone?: number }[] = [];
   for (const id of pr.marks) {
-    const s = a.core.skills[id];
-    if (!s || !skillOpen(a, id)) continue;
+    if (!getLibrary().skills[id] || !skillOpen(a, id)) continue;
+    const s = a.core.skills[id] ?? { raw: 0, state: 'normal' as const }; // not on the sheet yet: it joins with its first gain
     const target = s.state === 'tagged' ? s.raw : s.raw + burden;
     for (let n = improveRolls(a, s.raw); n > 0; n--) { // Quick Study: two rolls below 15, each with its own gain
       const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
       if (!(roll > target || roll >= 99)) continue;
       const from = s.raw, trueBefore = trueSkill(a, id);
       s.raw += rng.int(1, 5);
+      a.core.skills[id] = s;
       const crossed = MILESTONES.filter((m) => trueBefore < m && trueSkill(a, id) >= m).pop();
       gains.push({ skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) });
       state.log.push({ turn: state.turn, code: 'skill_improved', detail: { skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) } });
