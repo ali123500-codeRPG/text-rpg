@@ -208,7 +208,7 @@ function panes(list: Pane[]): HTMLElement[] {
 function showPane(key: string): void {
   pane = key;
   paneOf[shown] = key; keep('lv-pane', paneOf);
-  body.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
+  document.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
   body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
   drawBar(); paint(); filter();
 }
@@ -620,7 +620,9 @@ claudeRt?.use('comments').then(async (api) => {
 }).catch(() => undefined);
 const main = h('main', {}, h('div', { class: 'head' }, h('div', {}, titleEl,
   h('p', {}, `Library as the code builds it (prototypeLibrary) · commit ${__BUILD__.sha} · ${fmtDate(__BUILD__.date)}`, ' ', refresh, ' ', refreshNote)), search), bar, body);
-document.body.append(rail, main);
+// sub-tabs live in a rail on the right, mirroring the table rail on the left; hidden when the tab has none
+const subRail = h('nav', { class: 'hs-rail lv-subrail', 'aria-label': 'Sub-tabs' });
+document.body.append(rail, main, subRail);
 
 const cards = () => [...Array.from(body.querySelectorAll<HTMLElement>('.lv-card:not(.lv-fixed)'))].filter((c) => !c.closest('.lv-pane[hidden]'));
 const facetsOf = (c: HTMLElement) => (c.dataset.f ? c.dataset.f.split('\n') : []);
@@ -760,6 +762,9 @@ function route(): void {
     colourBy = COLOUR_BY[sec.key] ?? '';
     facetOf = FACETS[sec.key] ?? (sec.view ? () => [] : autoFacets(lib[sec.table] as Record<string, Entry>));
     body.replaceChildren(...viewOf(sec));
+    const tabs = body.querySelector('.lv-tabs');
+    subRail.replaceChildren(...(tabs ? [tabs] : []));
+    document.body.classList.toggle('lv-has-sub', !!tabs);
     foldable();
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
     drawBar();
