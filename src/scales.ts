@@ -50,6 +50,9 @@ export const TACTICS = scale([['simple', 'simple'], ['competent', 'competent'], 
 export const LIGHT = scale([['bright', 'bright'], ['dim', 'dim'], ['dark', 'dark']]);
 /** stance of one actor toward another, coldest first (hostile = attacks on sight; opposed = at odds, won't strike first) */
 export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['neutral', 'neutral'], ['friendly', 'friendly']]);
+/** how much a race thinks, least first: an achievement's first-sight reward covers races up to one of these */
+export const INTELLIGENCE = scale([['unintelligent', 'Unintelligent'], ['semi', 'Semi-intelligent'], ['intelligent', 'Intelligent']]);
+export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];
 /** XP reward levels for achievements and quests; XP per level is CONFIG.REWARD_XP */
 export const REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];

@@ -7,9 +7,10 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { skillName } from '../library/skillNames';
+import { INTELLIGENCE } from '../scales';
 
 type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor'];
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -51,6 +52,15 @@ export function readsHealthOf(viewer: Actor | undefined, other: Actor | undefine
   return currentAchievements(viewer).some((x) => chainRewards(x.d).some((e) => e.field === 'readsHealth')
     && ((x.d.by === 'body_type' && x.of === other.core.bodyTypeId) || (x.d.by === 'race' && x.of === other.core.raceId)));
 }
+/** the achievement of `holder` whose firstSight covers `foe` (its race or body type, and the foe's race intelligence at
+ * or below the reward's), if any: that foe meets the holder opposed instead of hostile */
+export function firstSightOf(holder: Actor | undefined, foe: Actor): string | undefined {
+  if (!holder?.progression?.achievements?.length) return undefined;
+  const mind = foe.core.raceId ? getLibrary().races?.[foe.core.raceId]?.intelligence : undefined;
+  if (!mind) return undefined;
+  return currentAchievements(holder).find((x) => ((x.d.by === 'body_type' && x.of === foe.core.bodyTypeId) || (x.d.by === 'race' && x.of === foe.core.raceId))
+    && chainRewards(x.d).some((e) => e.field === 'firstSight' && INTELLIGENCE.pos(mind) <= INTELLIGENCE.pos(e.from.firstSight!)))?.key;
+}
 const criticalMax = () => CONFIG.HEALTH_TRACK.find(([l]) => l === 'Critical')![1];
 /** deathsDoor: a hit that would take the actor from above Down to Down or worse leaves it at Critical, once per charge;
  * the charge refills after the reward's number of game days. Returns the HP lost to keep. */
@@ -89,6 +99,10 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'readsHealth': return [`you see the health level of every member of that ${(d.by ?? 'kind').replace('_', ' ')}`];
     case 'skillAdd': return Object.entries(d.skillAdd ?? {}).map(([sk, n]) => `+${n} true skill in ${skillName(sk)}`);
     case 'renown': return [`every foe fighting you takes ${-d.renown!} on its first morale check against you`];
+    case 'firstSight': {
+      const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');
+      return [`${who} members of that ${(d.by ?? 'kind').replace('_', ' ')} meet you wary (opposed), not hostile`];
+    }
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
   }
 }

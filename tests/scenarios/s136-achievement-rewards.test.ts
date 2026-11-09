@@ -6,7 +6,9 @@ import { makeVillage, forcedRng } from '../harness';
 import { actor } from '../harness/village';
 import { ruleset } from '../../src/ruleset';
 import { woundsMods } from '../../src/ruleset/body';
-import { deathsDoor, readsHealthOf, renownMods, rewardLines } from '../../src/ruleset/achRewards';
+import { deathsDoor, firstSightOf, readsHealthOf, renownMods, rewardLines } from '../../src/ruleset/achRewards';
+import { stance } from '../../src/engine/relations';
+import { RC } from '../../src/library/raceIds';
 import { trueSkill } from '../../src/ruleset/perks';
 import { grantAchievement } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
@@ -111,6 +113,29 @@ describe('136 achievement rewards', () => {
       delete ach[ACH.brink_5].excludes;
       expect(rewardLines(ach[ACH.brink_5])[0]).toMatch(/every 7 game days.*\(from Not Yet\)$/);
     } finally { ach[ACH.brink_5].excludes = was; }
+  });
+  it('first sight: a hunted unintelligent kind meets you wary until you attack it', () => {
+    const s = makeVillage();
+    const slime = actor(s, 'slime_1');
+    expect(stance(s, slime, s.player)).toBe('hostile');
+    grantAchievement(s, ACH.defeats_10_body_type, slime.core.bodyTypeId); // {body_type}bane
+    expect(stance(s, slime, s.player)).toBe('opposed');
+    slime.mind!.overrides = { [s.player.id]: 'hostile' }; // what an attack on it sets
+    expect(stance(s, slime, s.player)).toBe('hostile');
+  });
+  it('first sight: Scourge covers one intelligence step more, and drops the lower level\'s own first sight', () => {
+    const s = makeVillage();
+    const foe = actor(s, 'slime_1');
+    foe.core.raceId = RC.dragon; // semi-intelligent
+    grantAchievement(s, ACH.defeats_10_race, RC.dragon);
+    expect(firstSightOf(s.player, foe)).toBeUndefined();
+    grantAchievement(s, ACH.defeats_100_race, RC.dragon);
+    expect(firstSightOf(s.player, foe)).toBe(ACH.defeats_100_race);
+    foe.core.raceId = RC.human; // intelligent: never covered
+    grantAchievement(s, ACH.defeats_100_race, RC.human);
+    expect(firstSightOf(s.player, foe)).toBeUndefined();
+    const lines = rewardLines(getLibrary().achievements![ACH.defeats_100_race]);
+    expect(lines.filter((l) => l.includes('wary'))).toEqual(['unintelligent and semi-intelligent members of that race meet you wary (opposed), not hostile']);
   });
   it('every achievement carries at least one known tag', () => {
     for (const d of Object.values(getLibrary().achievements ?? {})) {
