@@ -36,6 +36,9 @@ export type EventView = {
   outcome?: string; // attacks: packet outcome label
 };
 
+/** PY2: one thing a seller offers: id goes in the buy's item; price in coin words, for the viewer; stock for goods */
+export type WareView = { id: string; name: string; price: string; stock?: number };
+
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
@@ -43,6 +46,7 @@ export type SeenActor = {
   crippled?: string[]; destroyed?: string[];
   damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
   gear: SeenGearView[];
+  wares?: WareView[]; // a seller the player sees, at the player's prices
 };
 
 // ---------- PlayerView: Agent Parser ----------
@@ -62,6 +66,8 @@ export type PlayerView = {
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
   actors: SeenActor[];
+  /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
+  lastSeen?: { id: string; name: string; zone: string }[];
   facts: string[];
   headlines: string[];
   agreements?: AgreementView[]; // PM5: the player's deals with NPCs
@@ -94,6 +100,7 @@ export type ActorView = {
     alarm?: { armed: boolean; lastAlarmTurn?: number; returnTo?: { id: string; anchorTurn: number } };
     lastHitBy?: ActorId; // from events it perceived
     stealthy?: true; // NS: moving unseen
+    wares?: WareView[]; // PY2: what it sells, at the prices the player pays
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
@@ -146,6 +153,9 @@ export type NarrationEvent = {
   activityLook?: string; // presence events
   packet?: CombatPacket; // attacks
   item?: string; // public item name
+  price?: string; // buy: coin paid, in coin words
+  for?: string; // buy: who got it
+  reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes
 };
 
@@ -154,7 +164,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true }; // ST3: moving or hiding unseen
+  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[] }; // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
@@ -179,7 +189,8 @@ export type WeaverView = {
   player: { level: number; currentClass: string | null; health: HealthLevel };
   previousNote: string;
   catalogs: {
-    templates: { id: string; label: string; raceId: string }[];
+    templates: { id: string; label: string; raceId: string; classId?: string }[];
+    services: { id: string; name: string; price: number }[]; // PY3: base prices, before the markup
     bodyTypes: string[];
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)

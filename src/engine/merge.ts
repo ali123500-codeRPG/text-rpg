@@ -20,6 +20,8 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     targetPart: a?.targetPart ?? null,
     aimed: !!aimed && a?.type === 'attack',
     item: a?.item ?? null,
+    ...(a?.qty ? { qty: a.qty } : {}),
+    ...(a?.for ? { for: a.for } : {}),
     mode: a?.mode ?? null,
     gear: intent?.gear ?? null,
     line: intent?.spoken ? { text: intent.spoken, volume: 'normal' } : null,
@@ -30,7 +32,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
 export function npcActionToOrder(actorId: string, action: NpcAction, extra: Partial<Order>): Order {
   return {
     actorId, type: action.type, target: action.target, skill: action.skill, intent: action.intent, source: 'agent',
-    targetPart: action.targetPart, aimed: !!action.aimed, defense: action.defense, item: action.item, mode: action.mode, ...extra,
+    targetPart: action.targetPart, aimed: !!action.aimed, defense: action.defense, item: action.item, ...(action.qty ? { qty: action.qty } : {}), mode: action.mode, ...extra,
   };
 }
 

@@ -251,7 +251,7 @@ export function createGame(deps: GameDeps): Game {
       lines.push({ turn: s.turn, kind: 'clarify', text: parsed.clarify ?? 'What do you do?' });
       return;
     }
-    const intent = parsed.intent;
+    const intent = engine.fillSpeech(s, parsed.intent, text);
     // OQ-27 (c): ask who is meant, from code: no Claude call, no turn spent
     const unclear = engine.unclearAddressee(s, intent, pv.actors.map((a) => a.id));
     if (unclear) {

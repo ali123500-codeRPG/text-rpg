@@ -14,6 +14,7 @@ import { memoryStore } from '../src/save/store';
 import { CONFIG } from '../src/config';
 import { validateStagePlan } from '../src/scene';
 import { ensurePlace } from '../src/scene/apply';
+import { isSeller } from '../src/engine/trade';
 import type { GameState, StagePlan } from '../src/types';
 import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../src/ruleset/perks';
 import type { SceneDirector } from '../src/agents';
@@ -68,7 +69,7 @@ const cliClient: ClaudeClient = {
   },
 };
 
-const PLAYER_BRIEF = `You are playtesting a text RPG as its player: a swordsman with a sword and shield. Play naturally and curiously:
+const PLAYER_BRIEF = `You are playtesting a text RPG as its player: ${arg('class', CL.swordsman) === CL.swordsman ? 'a swordsman with a sword and shield' : 'a nobody with little gear'}. Play naturally and curiously:
 talk to people, explore, take on any trouble you find, fight if it comes to that, and sometimes try unusual things to test
 the game. Reply with ONLY what you type next, one short line in plain words (no quotes). Now and then use a command:
 /stats, /inv, /quests, /help or /aim <text>.`;
@@ -88,8 +89,22 @@ Once nobody is threatening you: rest, use a bandage, wait until a later time of 
 through the night now and then. Try resting twice in a row, and try resting or waiting once while someone is still
 threatening you, then defend yourself. When your wounds have healed, pick another small scrap and repeat. Do not chase
 leads or start conversations yourself; answer briefly if spoken to, and see what the story does on its own.`,
+  shopper: `You are a thrifty traveller with a little coin (a test of buying, paying and haggling). Find whoever sells things
+and spend your money: ask what they have and what it costs, buy a drink, then a meal, and a bed for the night. Haggle at
+least twice ("that's too much, how about less?"), once politely and once rudely. Buy a drink for someone else. Pay someone
+an exact small amount for help or a tip ("I hand her two coppers"). Try to buy something they do not sell, try to buy
+more than you can afford, and try to buy from someone who is not a seller. Check /inv now and then to see your coin.`,
 };
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
+
+/** --near-seller: start the player one zone from the first seller on the stage (across its counter), else in its zone */
+function nearSeller(st: GameState) {
+  const seller = st.actors.find((a) => isSeller(a) && st.stage.zoneIds.includes(a.zone));
+  if (!seller) { console.log('no seller on the stage; the player starts where the story put them'); return; }
+  const next = st.zones.find((z) => z.id === seller.zone)?.links.find((l) => !l.frontier && st.stage.zoneIds.includes(l.to))?.to;
+  st.player.zone = next ?? seller.zone;
+  console.log(`player placed in ${st.player.zone}, next to ${seller.id} in ${seller.zone}`);
+}
 
 async function main() {
   mkdirSync(OUT, { recursive: true });
@@ -99,7 +114,12 @@ async function main() {
   const inner = createDirector(realClock) as SceneDirector;
   let before: GameState | null = null;
   const director: SceneDirector = { ...inner,
-    startStory: (st, rng, ctx) => { before = structuredClone(st); ensurePlace(before, st.player.placeId); return inner.startStory(st, rng, ctx); },
+    startStory: async (st, rng, ctx) => {
+      before = structuredClone(st); ensurePlace(before, st.player.placeId);
+      const ev = await inner.startStory(st, rng, ctx);
+      if (process.argv.includes('--near-seller')) nearSeller(st); // before the opening is narrated
+      return ev;
+    },
     afterResolve: (st, ev, rng, ctx) => inner.afterResolve(st, ev, rng, ctx), afterSave: (st, ctx) => inner.afterSave(st, ctx) };
   const game = createGame({ client: cliClient, clock: realClock, store: memoryStore(Date.now), director });
   // --class late_bloomer starts an Unwritten Legend; the default is the Swordsman. Both use the class's recommended build.

@@ -57,7 +57,7 @@ export function leakScan(text: string, allowedText: string, ctx: LeakContext): s
 }
 
 const POSITION = new Set(['move', 'arrival', 'flee', 'sneak']);
-const INVENTORY = new Set(['give', 'pick_up', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen']);
+const INVENTORY = new Set(['give', 'buy', 'buy_refused', 'pick_up', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen']);
 
 /** full events that must be narrated: presence, and anything changing the player's condition, inventory or position */
 export function mustNarrate(e: NarrationEvent, view: NarrationView): boolean {
@@ -95,12 +95,16 @@ const PARTIAL: Record<string, string> = {
 
 function eventLine(e: NarrationEvent): string {
   if (e.level === 'partial') return `${PARTIAL[e.cue] ?? 'Something stirs'}${e.where ? ` ${e.where}` : ''}.`;
-  if (e.line) return `${cap(who(e.line.speaker ?? e.actor))} ${SAYS[e.line.volume]}: "${e.line.text}"`;
+  if (e.line) {
+    const speaker = e.line.speaker ?? e.actor;
+    const verb = speaker === 'player' ? SAYS[e.line.volume].replace(/s$/, '') : SAYS[e.line.volume]; // "you say", not "you says"
+    return `${cap(who(speaker))} ${verb}: "${e.line.text}"`;
+  }
   if (e.packet) {
     const p = e.packet;
     const loc = p.location ? ` (${p.location.part})` : '';
     const ch = p.changes.length ? ` ${p.changes.join('; ')}.` : '';
-    return `${cap(who(p.actor))} ${p.action.replace(/_/g, ' ')}s ${who(p.target)}: ${p.outcome.replace(/_/g, ' ')}${loc}.${ch}`;
+    return `${cap(who(p.actor))} ${p.action.replace(/_/g, ' ')}${p.actor === 'player' ? '' : 's'} ${who(p.target)}: ${p.outcome.replace(/_/g, ' ')}${loc}.${ch}`;
   }
   switch (e.kind) {
     case 'presence':

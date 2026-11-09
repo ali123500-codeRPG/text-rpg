@@ -21,8 +21,9 @@ describe('skill tree access', () => {
     const lib = getLibrary();
     const raceTags = Object.fromEntries(Object.values(lib.races ?? {}).flatMap((r) => r.tags ?? []).map((t) => [t, true]));
     for (const t of [...Object.values(lib.trees), ...Object.values(lib.skills)]) for (const c of [...t.access?.must ?? [], ...t.access?.either ?? [], ...t.access?.blockedBy ?? []]) {
-      const table: Record<string, unknown> = { race: lib.races ?? {}, raceTag: raceTags, body: lib.bodyTypes, class: lib.classes, perk: lib.perks, skill: lib.skills }[c.kind];
-      expect(table[c.id], `${t.id}: ${c.kind} ${c.id}`).toBeDefined();
+      const tables: Record<string, Record<string, unknown>> = { race: lib.races ?? {}, raceTag: raceTags, body: lib.bodyTypes, class: lib.classes, perk: lib.perks, skill: lib.skills };
+      if (!tables[c.kind]) continue; // count conditions name no source
+      expect(tables[c.kind][c.id], `${t.id}: ${c.kind} ${c.id}`).toBeDefined();
     }
     const placed = Object.values(lib.trees).flatMap((t) => t.skills);
     expect(placed.sort()).toEqual(Object.keys(lib.skills).sort());

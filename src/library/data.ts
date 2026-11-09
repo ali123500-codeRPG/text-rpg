@@ -12,6 +12,7 @@ import { SK, OLD_SKILL_IDS } from './skillIds';
 import { ACH } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
+import { SV } from './serviceIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
@@ -95,6 +96,21 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     id: 'every_fall_a_lesson', name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 20 },
     story: 'You learned more from losing than most learn from winning.',
     rules: { kind: 'passive', trigger: 'the owner loses a contest or a defended attack by exactly one tier step', conditions: [], effect: 'the skill the owner rolled (and the skill asked for, when a stand-in rolled) is marked, even when the other side is outside the learning window', lasts: 'always' },
+  },
+  as_far_as_the_road_goes: {
+    id: 'as_far_as_the_road_goes', name: 'As Far as the Road Goes', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+    story: 'You were never meant for one path, so you follow each one as far as it goes.',
+    rules: { kind: 'passive', trigger: 'the owner reaches a 60, 80, 100, 120 or 140 milestone in any skill', conditions: [], effect: 'the perk there opens as soon as true skill reaches it, without the earlier ladder perks in that skill it normally needs', lasts: 'always' },
+  },
+  write_your_own_ending: {
+    id: 'write_your_own_ending', name: 'Write Your Own Ending', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+    story: 'You were never meant for one path, so every path is yours.',
+    rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: [], effect: 'every class in the library the owner does not have unlocks at class level 0, whether or not its unlock conditions are met', lasts: 'always' },
+  },
+  no_road_closed: {
+    id: 'no_road_closed', name: 'No Road Closed', built: true, classLevel: { classId: CL.late_bloomer, level: 20 },
+    story: 'You were never meant for one path, so no road is closed to you.',
+    rules: { kind: 'passive', trigger: 'any check of whether the owner can use a skill tree or skill', conditions: [], effect: 'the access rules (Must, Either of, Blocked by) do not apply: every tree and skill is open, and its skills can be used, marked and raised', lasts: 'always' },
   },
   quick_study: {
     id: 'quick_study', name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
@@ -219,7 +235,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     personality: 'steady', loadout: ['arming_sword', 'mail_hauberk'], control: 'agent', label: 'a village guard',
   },
   trader: {
-    id: 'trader', raceId: 'human', generation: 'copy',
+    id: 'trader', raceId: 'human', classId: CL.trader, generation: 'copy',
     minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
     focus: [{ treeId: 'perception', skill: SK.earshot }, { treeId: 'melee', skill: SK.melee_light }, { treeId: 'defense', skill: SK.dodge }],
     personality: 'timid', control: 'code', label: 'the barkeep',
@@ -328,7 +344,9 @@ export function prototypeLibrary(): Library {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
       [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'] } },
+      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: ['quick_study'], 20: ['as_far_as_the_road_goes'] },
+        capstones: [{ perk: 'write_your_own_ending', needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
+          { perk: 'no_road_closed', needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
@@ -337,6 +355,17 @@ export function prototypeLibrary(): Library {
       // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
       [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: 'nobody_special',
         levelPerks: { 1: ['quick_study'], 20: ['every_fall_a_lesson'] } },
+      // PY2: every NPC that sells has this class; Barter 20 unlocks it
+      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_1', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 } },
+    },
+    // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
+    // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)
+    services: {
+      [SV.drink]: { id: SV.drink, name: 'drink', price: 1 },
+      [SV.meal]: { id: SV.meal, name: 'meal', price: 2 },
+      [SV.bed]: { id: SV.bed, name: 'bed for the night', price: 5 },
+      [SV.bath]: { id: SV.bath, name: 'bath', price: 2 },
+      [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: 'clinic' },
     },
     roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
     bodyTypes: BODY_TYPES,
@@ -352,7 +381,7 @@ export function prototypeLibrary(): Library {
     durations: {
       fight_turn: { id: 'fight_turn', name: 'Fight turn', minutes: 0.1 },
       action: { id: 'action', name: 'Move, talk or other action', minutes: 1 },
-      trade: { id: 'trade', name: 'Trade', minutes: 10, orders: ['barter'] },
+      trade: { id: 'trade', name: 'Trade', minutes: 10, orders: ['barter', 'buy'] },
       rest: { id: 'rest', name: 'Rest', minutes: 60, orders: ['rest'] },
       sleep: { id: 'sleep', name: 'Sleep', minutes: 480 },
     },

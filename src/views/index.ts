@@ -13,6 +13,7 @@ import { activity, actorBody, getLibrary, itemDef, npcTemplate, routine } from '
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
+import { coinWords, isSeller, wareList } from '../engine/trade';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -130,6 +131,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
+      ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a) } : {}),
     });
   }
   return out;
@@ -201,6 +203,17 @@ function need(state: GameState, id: string): Actor {
 }
 
 // ---------- PlayerView ----------
+/** people the player saw clearly earlier who are out of sight now, with the zone they were last seen in, so the Parser
+ * never answers "they aren't here" about someone a few steps away (playtest run 20) */
+function lastSeen(state: GameState, seen: SeenActor[]): { id: string; name: string; zone: string }[] {
+  const p = state.player;
+  return Object.entries(p.journal?.clearSight ?? {}).flatMap(([id, zone]) => {
+    const a = actorById(state, id);
+    if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
+    return [{ id, name: nameKnown(state, a) ? a.names.current : a.label, zone: zoneById(state, zone)?.name ?? zone }];
+  });
+}
+
 export function buildPlayerView(state: GameState): PlayerView {
   const p = state.player;
   const actors = seenActors(state, p);
@@ -221,6 +234,7 @@ export function buildPlayerView(state: GameState): PlayerView {
     zone: zoneView(state, zoneById(state, p.zone)!),
     zones: perceivedZones(state, p.zone),
     actors,
+    ...(lastSeen(state, actors).length ? { lastSeen: lastSeen(state, actors) } : {}),
     facts: factsFor(state, p.placeId, actors.filter((a) => a.level === 'full').map((a) => a.id)),
     headlines: headlinesFor(state, p.placeId, false),
     ...(agreementViews(state, p.id).length ? { agreements: agreementViews(state, p.id) } : {}),
@@ -276,6 +290,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(m.alarm ? { alarm: { armed: m.alarm.armed, ...(m.alarm.lastAlarmTurn !== undefined ? { lastAlarmTurn: m.alarm.lastAlarmTurn } : {}), ...(m.alarm.returnTo ? { returnTo: { id: m.alarm.returnTo.id, anchorTurn: m.alarm.returnTo.anchorTurn } } : {}) } } : {}),
       ...(lastHitBy ? { lastHitBy } : {}),
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
+      ...(isSeller(a) ? { wares: wareList(state, state.player, a) } : {}),
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
@@ -376,7 +391,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const hears = !!e.line && (full || per.cue === 'sound');
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;
-    const item = full && e.itemId && e.kind !== 'attack' ? itemName(state, e.itemId) : undefined;
+    const name = full && e.kind !== 'attack' ? (e.service ? getLibrary().services?.[e.service]?.name : e.itemId ? itemName(state, e.itemId) : undefined) : undefined;
+    const item = name === 'coin' && e.qty ? coinWords(e.qty) : name && e.qty && e.qty > 1 ? `${e.qty} ${name}` : name; // PY9: coin in coin words
+    const forWhom = full && e.for ? eventTarget(state, me, e.for, new Set([...seenIds, e.for])) : undefined;
     // a fully seen attack shows both sides; any other target only if the player sees it (run 15)
     const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds) : undefined;
     out.push({
@@ -388,6 +405,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
       ...(item ? { item } : {}),
+      ...(full && e.price ? { price: coinWords(e.price) } : {}),
+      ...(forWhom ? { for: forWhom } : {}),
+      ...(full && e.reason ? { reason: e.reason.replace(/_/g, ' ') } : {}),
       ...(changes.length && e.kind !== 'attack' ? { changes } : {}),
     });
   }
@@ -397,7 +417,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}) },
+    player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}),
+      // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
+      gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone),
     heard,
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
@@ -423,7 +445,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   const bandIds = new Set([state.player.bandId, ...onStage.map((a) => a.bandId)]);
   const cur = state.player.core.classes.find((c) => c.state === 'current');
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);
-  const templates = new Map(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId }]));
+  const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string }>(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}) }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
   const worth = (i: { boon?: number; value: number }) => i.boon ?? i.value / CONFIG.BOON_COIN; // loot V8
   const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
@@ -451,6 +473,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     previousNote: state.hidden.weaverNote,
     catalogs: {
       templates: [...templates.values()],
+      services: Object.values(lib.services ?? {}).map((s) => ({ id: s.id, name: s.name, price: s.price })),
       bodyTypes: [...new Set([...Object.keys(lib.bodyTypes), ...bp('body_type').map((b) => b.id)])],
       routineSets: Object.values(lib.routineSets).map((s) => ({
         id: s.id, brief: s.brief, tags: structuredClone(s.tags),

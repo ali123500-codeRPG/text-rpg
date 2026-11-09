@@ -30,6 +30,18 @@ export function isSpeech(type: string | undefined | null): boolean {
   return !!type && (SPEECH_ACTIONS as readonly string[]).includes(type);
 }
 
+/** run 24: a speech action the Parser left without words or listeners ("can you do it for one copper?" as a barter with
+ * spoken and addressees null) never reached the listener. The player's own line stands in for the words, and the
+ * action's target, when it is a character, for the listener. */
+export function fillSpeech(state: GameState, intent: Intent, text: string): Intent {
+  const a = intent.action;
+  if (!a || !isSpeech(a.type)) return intent;
+  const out = { ...intent };
+  if (!out.spoken?.trim()) out.spoken = text.trim();
+  if (!out.addressees?.length && a.target && state.actors.some((x) => x.id === a.target)) out.addressees = [a.target];
+  return out;
+}
+
 /**
  * Dialogue turn step 2, with OQ-27 (c): for an addressed band, the sticky partner (state.stage.partner, the NPC the
  * player last spoke with this scene) answers if it is an active member in reach; else the nearest member.
