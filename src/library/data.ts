@@ -8,7 +8,7 @@ import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
 import { ALL_PARTS } from './allPerks';
 import { BUILT_PERKS } from './builtPerks';
-import { SK } from './skillIds';
+import { SK, OLD_SKILL_IDS } from './skillIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
@@ -275,7 +275,7 @@ const AMORPHOUS: AccessCond = { kind: 'body', id: 'amorphous' }; // no hands, ey
 export function prototypeLibrary(): Library {
   const lib: Library = structuredClone({
     version: 1,
-    status: {},
+    status: Object.fromEntries(Object.entries(OLD_SKILL_IDS).map(([old, to]) => [old, { state: 'renamed' as const, to }])), // old name IDs → numbers
     skills: SKILLS,
     // Skill tree access (Ali, 08/11/2026, TA1–TA11): each tree's own rule; no rule = open to everyone.
     // shortcut: slime and dragon are body types until the race split (BR answers) lands, then these name the races.

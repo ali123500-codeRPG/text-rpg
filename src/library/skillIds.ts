@@ -33,3 +33,7 @@ export function skillIdOf(x: string, names: Record<string, string>): string {
   const byName = Object.entries(names).find(([, n]) => n.toLowerCase() === x.trim().toLowerCase());
   return byName ? byName[0] : x;
 }
+
+/** the name-based skill IDs used before 09/11/2026, so an older save's skills load under their numbers (library status) */
+export const OLD_SKILL_IDS: Record<string, SkillId> = Object.fromEntries(
+  Object.entries(SK).map(([k, id]) => [({ eyesight: 'sight', earshot: 'hearing' } as Record<string, string>)[k] ?? k, id]));
