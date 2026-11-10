@@ -249,6 +249,8 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
   /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
   levelUp?: Partial<Record<string, number>>;
+  /** with `by`: counts only this kind (e.g. one healing row), instead of each kind on its own */
+  only?: string;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number;
   /** a name of its own for each earning, by what it is earned for (an every-N row: the level); others use `name` */
