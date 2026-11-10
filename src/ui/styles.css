@@ -69,6 +69,7 @@ main { padding: 20px var(--space-8) 48px; display: grid; gap: var(--space-6); al
 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-6); flex-wrap: wrap; }
 h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spacing: .02em; }
 .head p { margin: 4px 0 0; color: var(--muted); }
+.head p.story-line { font-family: var(--font-story); color: var(--text); }
 .actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 
 /* Readouts */

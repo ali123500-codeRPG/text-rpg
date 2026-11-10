@@ -53,6 +53,6 @@ describe('135 class and level achievements', () => {
     const want = Array.from({ length: Math.floor(lv / 10) }, (_, i) => `${ACH.char_level_10}:${(i + 1) * 10}`);
     expect(earned(s).filter((x) => x.startsWith(`${ACH.char_level_10}:`))).toEqual(want);
     expect(CONFIG.REWARD_XP[getLibrary().achievements![ACH.char_level_10].level]).toBe(50);
-    if (want.length) expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === want[0])!)).toBe('Risen to Level 10');
+    if (want.length) expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === want[0])!)).toBe('Knotted at 10');
   });
 });

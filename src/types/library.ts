@@ -50,6 +50,8 @@ export type ClassDef = {
   tier: import('../scales').ClassTierKey;
   /** the public stranger label a player starting in this class has */
   label?: string;
+  /** flavor text shown with the class; its grandeur grows with the class's tier */
+  story?: string;
   /** a creation option: points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
   creation?: { points?: number; level?: number };
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
