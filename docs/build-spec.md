@@ -25,7 +25,8 @@ Skills are grouped into trees of exactly three. Example only: Tactics = Preparat
 - Combat – Arms: light weapons, medium weapons, heavy weapons
 - Combat – Ranged: light ranged, medium ranged, heavy ranged
 - Combat – Unarmed: strike, grapple, improvisation; they behave the same for now (Part 5 §5). Improvisation is fighting with whatever is at hand: improvised weapons (Part 5 §7) roll it (Ali, 07/11/2026). Every improvised base has two modes (Ali, 09/11/2026): a melee **strike** and a ranged **throw** (the Throw action, like throwing a vase: reach 0 + the throw's +2, combined roll of Improvisation and the ranged skill of its class), the strike rolled with Improvisation. Unarmed skills stand in for both; Arms skills also stand in for the strike and Ranged skills for the throw (`AttackMode.standInFns`, at the usual stand-in share). Natural weapons is a creature-only skill outside every player tree (creatures' natural attacks roll it)
-- Combat – Defense: dodge, block, endurance
+- Combat – Defense: dodge, block
+- Fortitude (Ali, 10/11/2026, MB5, MB31, MB32): endurance, resolve; the third slot is open. Resolve has the Morale function (Will group, XP factor Full); it will set max morale and roll the morale roll as the morale bar is built.
 - Armor – Conventional (Ali, 08/11/2026, AR1–AR3): light_armor, medium_armor, heavy_armor; function armor in the Defense group; blocked for amorphous bodies. What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it (EQ1–EQ7, levels pending).
 
 Endurance sets total HP (Part 3, Total HP). An average fighter has 50 in a combat skill; this is the design reference point. All-XXX perks apply to these trees as to any other.
@@ -50,6 +51,7 @@ The trees' skills are designed with character and mob generation. A perception r
 - Ranged group: ranged (ranged\_light, ranged\_medium, ranged\_heavy)
 - Defense group: defense (dodge, block)
 - Health group: health (endurance)
+- Will group: morale (resolve)
 - Notice group: sight (sight, tremor), hearing (hearing, tremor)
 - Stealth group: stealth (sneaking, combat\_stealth, vanishing)
 - Influence group: influence (persuasion, intimidation, barter)
