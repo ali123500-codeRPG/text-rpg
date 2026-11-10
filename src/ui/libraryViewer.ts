@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { ClassDef, HealingDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { ClassDef, HealingDef, FearDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName } from '../ruleset/achRewards';
@@ -19,10 +19,11 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, type PartStateKey, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
+import { partFearCost } from '../ruleset/morale';
 import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
@@ -372,6 +373,34 @@ function healing(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.healing ?? {}).map((d) => card('healing', d.id, d, d.name,
     [d.countOnly ? chip('tally only') : null, d.hourly?.morale || d.moralePct ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
     row('Restores', restores(d)), ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'moralePct', 'hourly', 'countOnly']))))];
+}
+
+/** Fears: a part fear's cost comes from per-part impact costs (partCost, or another row's × mult), so its card shows
+ * those and what one part of each impact costs on each body type, worked out by the game's partFearCost */
+const impName = (imp: string) => imp.replace('_', '-');
+function fears(): HTMLElement[] {
+  const all = Object.values(lib.fears ?? {}) as FearDef[];
+  const cost = (f: FearDef): Node | string => {
+    const base = f.partCostOf ? lib.fears?.[f.partCostOf.fear] : f;
+    if (!base?.partCost) return `${f.cost < 0 ? 'restores ' : ''}${Math.abs(f.cost)} morale${f.perTier ? ' per tier of the gap' : ''}${f.rolled ? ', before the roll' : ''}`;
+    const mult = f.partCostOf?.mult ?? 1;
+    const per = Object.entries(base.partCost).map(([imp, n]) => `${impName(imp)} ${+(n * mult).toFixed(2)}`).join(', ');
+    return h('span', {}, `Per part hit, by impact: ${per}`,
+      f.partCostOf ? h('span', {}, ' (', link('fears', f.partCostOf.fear, base.name), ` × ${mult}, read from that row)`) : '',
+      `${f.rolled ? ', before the roll' : ''}. Set for a ${base.refParts ?? 'body'}-part body and scaled by ${base.refParts ?? 'its'} ÷ the body's part count; one roll per hit pays the sum.`);
+  };
+  const perBody = (f: FearDef) => (f.partCost || f.partCostOf) ? Object.values(lib.bodyTypes).map((b) => {
+    const imps = [...new Set(b.parts.map((p) => p.impact))];
+    if (!b.parts.length) return `${b.name}: no parts, so never`;
+    return `${b.name} (${b.parts.length} parts): ${imps.map((imp) => `${impName(imp)} ${+partFearCost(f, [b.parts.find((p) => p.impact === imp)!.id], b.parts).toFixed(2)}`).join(', ')}`;
+  }) : [];
+  return [h('div', { class: 'lv-grid' }, all.map((f) => card('fears', f.id, f, f.name,
+    [f.part ? chip(`part ${PART_STATES.name(f.part as PartStateKey)}`) : null],
+    row('Cost', cost(f)),
+    perBody(f).length ? row('One part, by body', h('ul', { class: 'lv-names' }, perBody(f).map((t) => h('li', {}, t)))) : null,
+    f.part ? row('When', `one of your parts reaches ${PART_STATES.name(f.part as PartStateKey)}`) : null,
+    row('Rolled', f.rolled ? 'yes: a morale roll sets how much of the cost you take' : 'no: the cost applies as it stands'),
+    ...fields(f as unknown as Entry, ['id', 'name', 'cost', 'perTier', 'part', 'partCost', 'refParts', 'partCostOf', 'rolled']))))];
 }
 
 function races(): HTMLElement[] {
@@ -735,6 +764,7 @@ const CUSTOM: Section[] = [
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
   { key: 'classes', title: 'Classes', table: 'classes', view: classes },
   { key: 'healing', title: 'Healing', table: 'healing', view: healing },
+  { key: 'fears', title: 'Fears', table: 'fears', view: fears },
   { key: 'quests', title: 'Quests', table: 'perks', view: questsView, count: 4 + QUEST_STATES.length + GOAL_KINDS.length },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
   { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
@@ -746,6 +776,7 @@ const perkSkills = (d: PerkDef & { skill?: string }): string[] => [...new Set([d
   ...Object.keys(d.trueSkillTo ?? {}), ...(d.fnSkill ? fnSkills(d.fnSkill.fn) : []), ...(d.augments ?? []).flatMap((a) => [a.from, a.skill])]
   .filter((x): x is string => !!x && !!lib.skills[x]))];
 const FACETS: Record<string, Facets> = {
+  fears: (f: FearDef) => [['Roll', f.rolled ? 'rolled' : 'flat'], ['Cost', f.partCost || f.partCostOf ? 'by part' : f.perTier ? 'per tier' : f.cost < 0 ? 'restores' : 'flat cost'], ['Part', f.part && PART_STATES.name(f.part as PartStateKey)]],
   gearClasses: (g: { use?: string }) => [['Use', g.use]],
   healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? (d.hourly.morale ? 'morale' : 'health') + ' hourly' : undefined],
     ...(['hpPct', 'partPct', 'moralePct'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', moralePct: 'morale' }[k]])],
