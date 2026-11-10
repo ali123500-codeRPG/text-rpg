@@ -7,6 +7,7 @@ import { ALL_STEPS, MILESTONES, canUndo, milestonePerk, milestoneState, trueSkil
 import { h } from './kit';
 import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
+import { allStepNeed } from '../ruleset/allSteps';
 
 const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
 const TOP = 150;
@@ -32,9 +33,11 @@ function node(skill: string, milestone: number, st: Show, label: boolean) {
   }, h('span', {}, String(milestone)), label && d ? h('em', {}, d.name) : null);
 }
 
-function ladders(p: Actor, skills: string[]) {
+function ladders(p: Actor, treeId: string, skills: string[]) {
+  const need = allStepNeed(treeId); // the tree's rating sets how many skills at a step earn its All-XXX
+  const done = (m: number) => skills.filter((k) => trueSkill(p, k) >= m).length;
   return h('div', { class: 'pk-lad' },
-    ALL_STEPS.map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / TOP} * var(--rh))` }, h('b', {}, `All-${m}`), h('small', {}, `${skills.filter((k) => trueSkill(p, k) >= m).length} of ${skills.length}`))),
+    ALL_STEPS.map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / TOP} * var(--rh))` }, h('b', {}, `All-${m}`), h('small', {}, need === null ? 'never' : `${Math.min(done(m), need)} of ${need}`))),
     skills.map((k) => {
       const v = trueSkill(p, k);
       return h('div', { class: 'pk-col' },
@@ -132,7 +135,7 @@ export function perksSection(api: GameApi): HTMLElement {
       innate(p),
       ...(ui.view === 'tree'
         ? [h('div', { class: 'pk-tabs', role: 'tablist' }, trees.map((t) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(t.id === ui.tree), onclick: () => { ui.tree = t.id; ui.sel = null; redraw(); } }, t.name))),
-          tree ? h('div', { class: 'pk-board' }, ladders(p, tree.skills), h('div', { class: 'pk-trk' }, tree.skills.map((k) => track(p, k, (_r, st) => st)))) : null]
+          tree ? h('div', { class: 'pk-board' }, ladders(p, tree.id, tree.skills), h('div', { class: 'pk-trk' }, tree.skills.map((k) => track(p, k, (_r, st) => st)))) : null]
         : [effectView(p)]),
       card(s, p, api)];
     el.replaceChildren(...kids.filter((x): x is HTMLElement => !!x));
