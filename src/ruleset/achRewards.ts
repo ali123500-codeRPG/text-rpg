@@ -7,7 +7,7 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { skillName } from '../library/skillNames';
-import { INTELLIGENCE } from '../scales';
+import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
 type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation';
@@ -133,4 +133,18 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
  * a lower level names that level */
 export function rewardLines(d: AchievementDef): string[] {
   return chainRewards(d).flatMap((e) => linesOf(e.from, e.field).map((l) => e.from === d ? l : `${l} (from ${e.from.name})`));
+}
+
+/** the reward level an achievement pays for `of`: its own level, raised by levelUp for that kind (capped at the top) */
+export function achLevel(d: { level: string; levelUp?: Partial<Record<string, number>> }, of?: string): string {
+  const up = (of && d.levelUp?.[of]) || 0;
+  return up && REWARD_LEVELS.has(d.level) ? REWARD_LEVELS.at(Math.min(REWARD_LEVELS.keys.length - 1, REWARD_LEVELS.pos(d.level as 'i') + up)) : d.level;
+}
+
+/** the XP an achievement pays: its reward level's XP; a scar pays the level one step below (below 0: SCAR_XP_BELOW_ZERO) */
+export function achXp(d: { level: string; levelUp?: Partial<Record<string, number>>; scar?: true }, of?: string): number {
+  const lv = achLevel(d, of);
+  if (!d.scar) return CONFIG.REWARD_XP[lv] ?? 0;
+  const i = REWARD_LEVELS.has(lv) ? REWARD_LEVELS.pos(lv) : -1;
+  return i > 0 ? CONFIG.REWARD_XP[REWARD_LEVELS.at(i - 1)] ?? 0 : CONFIG.SCAR_XP_BELOW_ZERO;
 }
