@@ -177,7 +177,7 @@ export function unlockClasses(state: GameState): void {
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     if (!Object.entries(c.unlock ?? {}).every(met)) continue;
     if (c.unlockAny && !Object.entries(c.unlockAny).some(met)) continue;
-    if (!Object.entries(c.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= lv)) continue;
+    if (!Object.entries(c.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= (lv === 'max' ? classMaxLevel(id) : lv))) continue;
     openClass(state, c.id);
   }
 }

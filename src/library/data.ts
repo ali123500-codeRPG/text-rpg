@@ -109,6 +109,11 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'Five seasons of ordinary work, and nobody noticed you. That can be a start.',
     rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: ['the owner does not have the A Nobody class'], effect: 'the A Nobody class unlocks at class level 0', lasts: 'always' },
   },
+  [PK.known_at_every_stall]: {
+    id: PK.known_at_every_stall, name: 'Known at Every Stall', built: true, classLevel: { classId: CL.trader, level: 5 },
+    story: 'Every stallholder knows your face and your prices. Time for a shop of your own.',
+    rules: { kind: 'passive', trigger: 'the owner gains this perk at Trader class level 5', conditions: ['the owner does not have the Merchant class'], effect: 'the Merchant class unlocks at class level 0', lasts: 'always' },
+  },
   [PK.every_fall_a_lesson]: {
     id: PK.every_fall_a_lesson, name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 15 },
     story: 'You learned more from losing than most learn from winning.',
@@ -407,8 +412,8 @@ export function prototypeLibrary(): Library {
       [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
-      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_1', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 } },
-      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_2', label: 'a merchant', floors: {}, unlockClass: { [CL.trader]: 10 } }, // Trader at its top level
+      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
+      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)

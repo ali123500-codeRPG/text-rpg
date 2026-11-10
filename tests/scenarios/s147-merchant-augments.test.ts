@@ -1,22 +1,27 @@
-// 147 Merchant (tier 2) unlocks when Trader reaches level 10. Its skill Shrewd Dealing augments Barter: its true skill
+// 147 Merchant (tier 1) unlocks through the Trader (tier 0) capstone Known at Every Stall, granted at Trader's top level. Its skill Shrewd Dealing augments Barter: its true skill
 // (× share × tier) is added to every roll that asks for Barter. Augments can be limited to roll kinds.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { augmentsOf, effectiveSkill } from '../../src/ruleset';
-import { unlockClasses } from '../../src/engine/xp';
+import { awardXp, unlockClasses, xpToNext } from '../../src/engine/xp';
+import { classMaxLevel } from '../../src/library/spawn';
+import { PK } from '../../src/library/perkIds';
 import { getLibrary } from '../../src/library';
 import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
 
 describe('147 Merchant and skill augments', () => {
-  it('Merchant is tier 2 and unlocks at Trader 10, not before', () => {
-    const s = makeVillage(), p = s.player;
-    expect(getLibrary().classes[CL.merchant].tier).toBe('tier_2');
-    p.core.classes.push({ classId: CL.trader, state: 'previous', level: 9 });
+  it('Trader is tier 0, Merchant tier 1; the Trader capstone unlocks Merchant', () => {
+    const s = makeVillage(), p = s.player, lib = getLibrary();
+    expect([lib.classes[CL.trader].tier, lib.classes[CL.merchant].tier]).toEqual(['tier_0', 'tier_1']);
+    expect([classMaxLevel(CL.trader), classMaxLevel(CL.merchant)]).toEqual([5, 10]);
+    expect(lib.classes[CL.trader].capstone).toEqual([PK.known_at_every_stall]);
+    p.core.classes = [{ classId: CL.trader, state: 'current', level: 4 }];
+    p.core.perks = [];
     unlockClasses(s);
     expect(p.core.classes.some((c) => c.classId === CL.merchant)).toBe(false);
-    p.core.classes.find((c) => c.classId === CL.trader)!.level = 10;
-    unlockClasses(s);
+    awardXp(s, xpToNext(p), 'test'); // Trader 4 → 5, its top level: the capstone comes and unlocks Merchant
+    expect(p.core.perks.map((x) => x.perkId)).toContain(PK.known_at_every_stall);
     expect(p.core.classes).toContainEqual({ classId: CL.merchant, state: 'unlocked', level: 0 });
   });
 

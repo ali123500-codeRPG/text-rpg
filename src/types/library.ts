@@ -60,8 +60,8 @@ export type ClassDef = {
   unlock?: Record<string, number>;
   /** either-of unlock: at least one of these skills must also reach its true skill */
   unlockAny?: Record<string, number>;
-  /** class levels other classes must reach before this class unlocks (Merchant: Trader 10) */
-  unlockClass?: Record<string, number>;
+  /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for D-159) */
+  unlockClass?: Record<string, number | 'max'>;
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
   fallback?: true;
   /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
