@@ -5,6 +5,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()
   PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
   PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()
+  PK.overheard, // LI5a (Insight 20): src/engine/speech.ts overhearLie(), from doSpeak() and the exchange slot in resolve.ts
   PK.plain_as_day, // LI2a (Insight 60): src/engine/speech.ts pressedWords() and src/agents/game.ts
   PK.read_their_face, // LI2b (Insight 100): src/views/index.ts seenActors()
   PK.dread_presence, // I1 (Intimidation 100): src/engine/auras.ts engagementAuras(), from resolveTurn

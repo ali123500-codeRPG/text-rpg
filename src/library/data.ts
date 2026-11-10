@@ -629,7 +629,7 @@ export function prototypeLibrary(): Library {
       [ACH.morale_breaks_1]: { id: ACH.morale_breaks_1, name: 'First Crack', level: 'zero', rule: 'morale_breaks', tags: ['combat'], count: 1, scar: true },
       [ACH.morale_breaks_5]: { id: ACH.morale_breaks_5, name: 'Glass Nerves', level: 'i', rule: 'morale_breaks', tags: ['combat'], count: 5, after: ACH.morale_breaks_1, scar: true },
       [ACH.morale_breaks_25]: { id: ACH.morale_breaks_25, name: 'Nothing Left to Break', level: 'ii', rule: 'morale_breaks', tags: ['combat'], count: 25, after: ACH.morale_breaks_5, scar: true },
-      // D-173: HP healed (a flat number) from one healing row each; counts are placeholders
+      // D-174: HP healed (a flat number) from one healing row each; counts are placeholders
       [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100 },
       [ACH.healed_rest_1000]: { id: ACH.healed_rest_1000, name: 'Sleeps Through Anything', level: 'i', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 1000, after: ACH.healed_rest_100 },
       [ACH.healed_rest_10000]: { id: ACH.healed_rest_10000, name: 'The Long Rest', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 10000, after: ACH.healed_rest_1000 },

@@ -28,7 +28,7 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { buy, sell } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
-import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, pushContest } from './speech';
+import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
@@ -267,6 +267,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
     }
   }
   emit(ctx, ev, undefined, push);
+  if (o.type === 'deceive') overhearLie(state, ev, ev.push ? [ev.push.listener] : [], ctx.rng, ev.contest?.a); // LI5a
 }
 
 /** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
@@ -744,6 +745,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       speech: { skill: ex.skill, impression: ex.impression ?? undefined, addressees: input.spokespeople },
     });
     emit(ctx, ev);
+    if (playerOrder.type === 'deceive') overhearLie(state, ev, Object.keys(ex.perSpokesperson), ctx.rng, Object.values(ex.perSpokesperson)[0]?.contest.a); // LI5a
     ctx.exchangeEvents.push(ev);
     // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
     if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s && applySpeech(state.player, s, playerOrder.type, r.contest).status === 'shaken') fear(ctx, s, FR.lost_intimidation, { gap: r.contest.gap }); }

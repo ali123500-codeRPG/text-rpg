@@ -1,6 +1,6 @@
 // 155 Healing by source: achievements count the HP the player gets back (a flat number), kept apart by where it came
 // from (a healing-table row). Rest, natural recovery and perks (Second Wind; Fast Healer counts as natural recovery) each have their own
-// count and their own achievement chain (D-172, D-173).
+// count and their own achievement chain (D-172, D-174).
 import { HL } from '../../src/library/tableIds';
 import { PK } from '../../src/library/perkIds';
 import { describe, expect, it } from 'vitest';

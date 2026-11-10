@@ -252,6 +252,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** The foe's next turn.
 - **Cooldown:** Once per foe per engagement.
 
+### Overheard (Insight) · LI5a
+
+*Story:* Not every lie is meant for you, and you catch those too. When someone within your earshot lies to someone else, you can see through it as if it were told to you.
+
+- **Kind:** Always on
+- **Trigger:** Someone lies (a deceive) to someone else, and the owner hears it: the words, or the sound of the voice.
+- **Conditions:** The owner is not the one lied to and did not already answer the lie.
+- **Effect:** The speaker's Lying against the owner's answer to a lie (Insight, or the better of Insight and Lying with Takes One to Know One). If the owner wins, the owner sees through it: the hint that something doesn't sit right, or plainly a lie with Plain as Day. Seeing through it changes nothing else.
+- **Lasts:** Each lie overheard.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1
