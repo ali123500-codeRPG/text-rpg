@@ -1,5 +1,5 @@
-// 125 All-50 parts (All-50 doc round 1): a tree's built parts are granted free when every skill of the
-// tree reaches 50 true skill, with the tree's mastery achievement; then the first six built parts.
+// 125 All-50 parts (All-50 doc round 1): once three skills of a tree reach 50 true skill, the tree's passive and those
+// skills' parts are granted free, with the tree's mastery achievement; a further skill at 50 adds its part. Then the built parts.
 import { AM } from '../../src/library/tableIds';
 import { TR } from '../../src/library/treeIds';
 import { ACH } from '../../src/library/achievementIds';
@@ -11,6 +11,7 @@ import { breakFree } from '../../src/engine/held';
 import { resolveSpeech } from '../../src/engine/speech';
 import { situational } from '../../src/ruleset/gear';
 import { achievementName } from '../../src/engine';
+import { getLibrary } from '../../src/library';
 import { zoneById } from '../../src/engine/relations';
 import type { Actor, AttackResult, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
@@ -28,7 +29,7 @@ const arm = (s: GameState, id: string, itemId: string = IT.dagger) => {
 };
 
 describe('125 All-50 parts', () => {
-  it('every skill of the tree at 50 grants its built parts and the mastery achievement, once', () => {
+  it('three skills of the tree at 50 grant the passive, their parts and the mastery achievement, once', () => {
     const s = makeVillage();
     const p = s.player;
     set(p, [SK.melee_light, SK.melee_medium], 50);
@@ -39,10 +40,52 @@ describe('125 All-50 parts', () => {
     grantAllSteps(s, p);
     grantAllSteps(s, p);
     const got = p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId);
-    expect(got).toEqual([PK.opening_strike, PK.counter, PK.fighters_frame, PK.steady_guard]);
+    expect(got).toEqual([PK.fighters_frame, PK.opening_strike, PK.steady_guard, PK.counter]);
     const ach = p.progression!.achievements!.filter((a) => a.key === ACH.mastery_50);
     expect(ach.map((a) => a.id)).toEqual([`${ACH.mastery_50}:${TR.melee}`]);
     expect(achievementName(s, ach[0])).toBe('Adept of Combat – Arms');
+  });
+  it('only the skills at 50 bring their parts; a fourth skill at 50 later adds its own; a two-skill tree never earns it', () => {
+    const s = makeVillage();
+    const p = s.player;
+    p.core.perks = [];
+    set(p, [SK.eyesight, SK.earshot], 50);
+    grantAllSteps(s, p);
+    expect(p.core.perks.some((x) => x.source === 'mastery')).toBe(false); // two of three
+    set(p, [SK.insight], 50); // Insight has no part yet: the passive and the other two parts come
+    grantAllSteps(s, p);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes, PK.spotter]);
+    const q = makeVillage().player;
+    q.core.perks = [];
+    set(q, [SK.melee_light, SK.melee_heavy, SK.melee_medium], 0);
+    set(q, [SK.melee_light, SK.melee_heavy], 50);
+    set(q, [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], 50);
+    const s2 = makeVillage(); s2.player = q;
+    grantAllSteps(s2, q);
+    expect(q.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.hunters_eye, PK.unerring, PK.volley, PK.past_the_cover]);
+    set(q, [SK.dodge, SK.block], 60); // Defense has two skills now
+    grantAllSteps(s2, q);
+    expect(q.core.perks.some((x) => x.perkId === PK.dodgy || x.perkId === PK.thick_hide)).toBe(false);
+    set(q, [SK.melee_medium], 50); // the third Arms skill: passive + all three parts
+    grantAllSteps(s2, q);
+    expect(q.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(4)).toEqual([PK.fighters_frame, PK.opening_strike, PK.steady_guard, PK.counter]);
+  });
+  it("a skill that moves to another tree takes its part along", () => {
+    const s = makeVillage(), p = s.player;
+    const lib = getLibrary(), arms = lib.trees[TR.melee], def = lib.trees[TR.defense];
+    const [armsSkills, defSkills] = [arms.skills, def.skills];
+    try {
+      arms.skills = [...armsSkills, SK.dodge];
+      def.skills = defSkills.filter((x) => x !== SK.dodge);
+      p.core.perks = [];
+      set(p, [SK.melee_light, SK.melee_medium, SK.melee_heavy], 0);
+      set(p, [SK.melee_light, SK.dodge, SK.melee_medium], 50);
+      grantAllSteps(s, p);
+      expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.fighters_frame, PK.opening_strike, PK.steady_guard, PK.dodgy]);
+    } finally {
+      arms.skills = armsSkills;
+      def.skills = defSkills;
+    }
   });
   it("Hunter's Eye: +10 true skill in every skill with the sight function", () => {
     const s = makeVillage();

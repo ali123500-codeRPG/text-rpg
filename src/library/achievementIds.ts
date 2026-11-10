@@ -51,7 +51,7 @@ export const ACH_TAGS: Record<AchievementTag, string> = {
 };
 /** what each achievement rule counts, for display; the count is AchievementDef.count */
 export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
-  defeats: 'defeats', mastery: 'true skill in all three skills of a tree', unaware_defeats: 'foes defeated while unaware of you',
+  defeats: 'defeats', mastery: 'true skill in three skills of a tree', unaware_defeats: 'foes defeated while unaware of you',
   yielded: 'foes who surrendered or broke while fighting you', crits: 'rolls at Critical Success or better with a skill of the group',
   beyond_crit: 'step(s) past Critical Success on a roll', crippled_defeats: 'foes defeated while one of your parts is Crippled',
   zones: 'different zones entered', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',

@@ -714,9 +714,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## All-50 parts
 
-Granted free when every skill of the tree reaches 50 true skill, each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
+Granted free once three skills of the tree reach 50 true skill: the tree's passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Fortitude All-50: Hard to Kill; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
 
-### Opening Strike (Combat – Arms) · T1a
+### Opening Strike (Combat – Arms, Light weapons) · T1a
 
 *Story:* You always make the first blow count. Your first melee attack on each foe in a fight lands one outcome better.
 
@@ -728,7 +728,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Cooldown:** Once per foe per engagement.
 - **Built:** yes
 
-### Counter (Combat – Arms) · T1c
+### Counter (Combat – Arms, Heavy weapons) · T1c
 
 *Story:* A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.
 
@@ -739,7 +739,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That attack.
 - **Built:** yes
 
-### Fighter's Frame (Combat – Arms) · T1d
+### Fighter's Frame (Combat – Arms, passive) · T1d
 
 *Story:* A body hardened by a thousand bouts. Melee blows on you land a tenth lighter.
 
@@ -750,7 +750,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** Always.
 - **Built:** yes
 
-### Steady Guard (Combat – Arms) · T1e
+### Steady Guard (Combat – Arms, Medium weapons) · T1e
 
 *Story:* Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.
 
@@ -761,7 +761,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** Always.
 - **Built:** yes
 
-### Unerring (Combat – Ranged) · T2a
+### Unerring (Combat – Ranged, Light ranged) · T2a
 
 *Story:* Your first shot comes before they are ready. The first time you shoot in a fight, at a foe who hasn't moved yet, it is harder to avoid.
 
@@ -773,7 +773,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Cooldown:** Once per engagement.
 - **Built:** yes
 
-### Volley (Combat – Ranged) · T2b
+### Volley (Combat – Ranged, Medium ranged) · T2b
 
 *Story:* One shot is never the last. Once a fight, after a ranged hit, your next shot is already on its way to another foe.
 
@@ -785,7 +785,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Cooldown:** Once per engagement.
 - **Built:** yes
 
-### Past the Cover (Combat – Ranged) · T2c
+### Past the Cover (Combat – Ranged, Heavy ranged) · T2c
 
 *Story:* Cover only hides most of a body. Cover counts one step lighter against your ranged attacks.
 
@@ -795,7 +795,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That attack.
 - **Built:** yes
 
-### Hunter's Eye (Combat – Ranged) · T2d
+### Hunter's Eye (Combat – Ranged, passive) · T2d
 
 *Story:* An archer lives by the eye: +10 to every skill you see with.
 
@@ -805,7 +805,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** Always.
 - **Built:** yes
 
-### Hard to Hold (Combat – Unarmed) · T3a
+### Hard to Hold (Combat – Unarmed, Grapple) · T3a
 
 *Story:* Hands never stay on you for long. Your rolls to break a hold land one outcome better.
 
@@ -815,7 +815,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Built:** yes
 
-### Iron Knuckles (Combat – Unarmed) · T3d
+### Iron Knuckles (Combat – Unarmed, Strike) · T3d
 
 *Story:* Your hands are weapons now. Your unarmed hits deal a tenth more damage.
 
@@ -825,7 +825,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** Always.
 - **Built:** yes
 
-### Bare-Handed Guard (Combat – Unarmed) · T3d2
+### Bare-Handed Guard (Combat – Unarmed, passive) · T3d2
 
 *Story:* With nothing in your hands, nothing slows you. Your Dodge is 5 higher, and 5 higher again while you hold no weapon.
 
@@ -836,7 +836,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** Always.
 - **Built:** yes
 
-### Second Wind (Combat – Defense) · T4b
+### Second Wind (Combat – Defense, Endurance) · T4b
 
 *Story:* When the blood starts to run, you find more in you. Once a fight, at your first serious wound, you shake one off.
 
@@ -848,7 +848,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Cooldown:** Once per engagement.
 - **Built:** yes
 
-### Dodgy (Combat – Defense) · T4d
+### Dodgy (Combat – Defense, Dodge) · T4d
 
 *Story:* You are never quite where they aim. Attacks on you lose 5 skill.
 
@@ -858,7 +858,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Built:** yes
 
-### Thick Hide (Combat – Defense) · T4e
+### Thick Hide (Combat – Defense, passive) · T4e
 
 *Story:* Blows that would cut others only bruise you. Every hit costs you a little less health.
 
@@ -868,7 +868,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** Always.
 - **Built:** yes
 
-### Spotter (Perception) · T5b
+### Spotter (Perception, Earshot) · T5b
 
 *Story:* What you see, your people sense. Your band-mates beside you know something is there whenever you do.
 
@@ -879,7 +879,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** Until the band-mate's belief changes on its own.
 - **Built:** yes
 
-### Curiouser and Curiouser (Perception) · T5d
+### Curiouser and Curiouser (Perception, passive) · T5d
 
 *Story:* Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.
 
@@ -890,7 +890,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Built:** yes
 
-### Night Eyes (Perception) · T5e
+### Night Eyes (Perception, Eyesight) · T5e
 
 *Story:* The dark hides little from you. Light counts one step brighter when you look.
 
@@ -900,7 +900,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Built:** yes
 
-### Strike and Fade (Stealth – Conventional) · T6a
+### Strike and Fade (Stealth – Conventional, Combat Stealth) · T6a
 
 *Story:* They see the blow, never the hand. Right after you strike from hiding, you try to vanish again.
 
@@ -911,7 +911,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That contest.
 - **Built:** yes
 
-### Child of Night (Stealth – Conventional) · T6c
+### Child of Night (Stealth – Conventional, passive) · T6c
 
 *Story:* The dark knows you. Light counts one step darker for all your stealth.
 
@@ -921,7 +921,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Built:** yes
 
-### Hushed Steps (Stealth – Conventional) · T6d
+### Hushed Steps (Stealth – Conventional, Sneaking) · T6d
 
 *Story:* Even your mistakes are quiet. Against someone who can only hear you, a Sneaking slip that only just fails still counts as a success.
 
@@ -933,7 +933,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Open:** Renamed from the doc's "Light Feet", which is already a 40 perk.
 - **Built:** yes
 
-### Soft Landing (Speech) · T7a
+### Soft Landing (Speech, Persuasion) · T7a
 
 *Story:* Even your stumbles sound reasonable. A speech roll that goes wrong counts one outcome better.
 
@@ -944,7 +944,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Lasts:** That roll.
 - **Built:** yes
 
-### Easy Speaker (Speech) · T7d
+### Easy Speaker (Speech, Barter) · T7d
 
 *Story:* Words slide off you. When someone tries to talk you round, your answer lands one outcome better.
 
@@ -955,7 +955,7 @@ Granted free when every skill of the tree reaches 50 true skill, each part once 
 - **Open:** Only the player starts speech contests today, so this helps NPC owners. When NPCs speak to the player with a roll (OQ-29), it covers the player too.
 - **Built:** yes
 
-### Silver Words (Speech) · T7e
+### Silver Words (Speech, passive) · T7e
 
 *Story:* You know which words land. +5 to Persuasion, Intimidation and Barter.
 

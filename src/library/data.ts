@@ -652,5 +652,10 @@ export function prototypeLibrary(): Library {
   });
   // ST1: a skill's tree is wherever the trees table lists it, so moving a skill is one edit there
   for (const t of Object.values(lib.trees)) for (const id of t.skills) if (lib.skills[id]) lib.skills[id].treeId = t.id;
+  // an All-50 skill part sits in its skill's current tree, so it moves with the skill
+  for (const p of Object.values(lib.perks)) if (p.allStep?.skill) {
+    const treeId = lib.skills[p.allStep.skill]?.treeId;
+    if (treeId) p.allStep = { ...p.allStep, treeId };
+  }
   return lib;
 }
