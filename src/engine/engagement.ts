@@ -50,6 +50,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
   const brk = !!state.stage.breakCause;
   let playerEnded = false;
   for (const a of allActors(state)) {
+    if (brk) delete a.auraChecks; // a scene break ends every engagement, and the auras check afresh
     const kinds = now.get(a.id);
     const e = a.engagement;
     if (kinds && !brk) {
@@ -65,6 +66,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
       delete a.haggle; // PY6: haggled prices last until the engagement ends
       delete a.pressure; // OQ-29: Shaken and Swayed last until the engagement ends
       delete a.speechTries; // NT3: repeat tries count within one engagement
+      delete a.auraChecks; // I4: each aura checks once per engagement
       restoreMorale(a, CONFIG.MORALE_ENGAGEMENT_END_PCT); // MB9: some nerve comes back when the danger has passed
       logCode(state, 'engagement_ended', { actorId: a.id, start: e.start, kinds: e.kinds });
       if (a === state.player) playerEnded = true;

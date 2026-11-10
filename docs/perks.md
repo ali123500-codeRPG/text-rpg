@@ -628,17 +628,27 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner sees that speaker's stance toward the owner.
 - **Lasts:** While the owner sees them, for the rest of the scene.
 
+### Dread Presence (Intimidation) · I1
+
+*Story:* You don't have to say a word. Anyone who means you harm feels it the moment they face you, and it stays with them for the rest of the fight.
+
+- **Kind:** Always on (engagement aura)
+- **Trigger:** An actor opposed or hostile to the owner is aware of the owner in the owner's zone or one zone away, for the first time this engagement.
+- **Conditions:** Once per target per engagement.
+- **Effect:** The owner's Intimidation against the target's Resolve (its morale roll, renown included). If the owner wins, the target is Shaken toward the owner by −5 × the tier gap until the engagement ends (the bigger Shaken stands), and loses 10 morale × the tier gap. Each aura's morale cost adds up on its own.
+- **Lasts:** Shaken until the engagement ends.
+
 ### Battle Cry (Intimidation) · C2
 
 *Story:* Your roar tells every foe close by exactly how this ends. Once per fight, every hostile in your zone that hears it makes a morale check.
 
-- **Kind:** Move
+- **Kind:** Move (offensive aura)
 - **Trigger:** The owner uses the move.
 - **Effect:** Every foe hostile to the owner in the owner's zone that hears it makes a morale check.
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement.
 - **Needs first:** Moves.
-- **Banked as:** a later Intimidation perk, suggested for the 100 perk
+- **Banked as:** a later Intimidation perk, suggested for the 140 perk
 
 ### Buy Them Off (Barter) · C3
 
