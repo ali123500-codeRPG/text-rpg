@@ -150,7 +150,7 @@ export type Order = {
   skill: string | null;
   intent: string;
   source: OrderSource;
-  move?: string | null; // player: the turn's one move (toZone), resolved before the main action
+  move?: string | null; // the turn's one move (toZone), resolved before the main action (player, or an NPC's Planner/Responder)
   moveAfter?: boolean; // AE3: the player's move comes after the main action
   vanish?: true; // ST13: the player's move is a Vanish
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
