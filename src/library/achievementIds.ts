@@ -42,6 +42,8 @@ export const ACH = {
   cruel_spar_1: 'AC123', cruel_spar_10: 'AC124', cruel_spar_25: 'AC125', spar_losses_10: 'AC126',
   total_10: 'AC127', total_25: 'AC128', total_50: 'AC129', total_100: 'AC130', total_250: 'AC131',
   spar_losses_1: 'AC132', defeated_5: 'AC133', defeated_25: 'AC134', defeated_100: 'AC135',
+  won_panicking_1: 'AC138', won_panicking_10: 'AC139', won_panicking_25: 'AC140',
+  morale_breaks_1: 'AC141', morale_breaks_5: 'AC142', morale_breaks_25: 'AC143',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {

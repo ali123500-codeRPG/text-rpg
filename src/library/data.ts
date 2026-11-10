@@ -612,6 +612,13 @@ export function prototypeLibrary(): Library {
       [ACH.defeated_5]: { id: ACH.defeated_5, name: 'Loser', level: 'i', rule: 'defeated', tags: ['combat'], count: 5, scar: true },
       [ACH.defeated_25]: { id: ACH.defeated_25, name: 'Sore Loser', level: 'ii', rule: 'defeated', tags: ['combat'], count: 25, after: ACH.defeated_5, scar: true },
       [ACH.defeated_100]: { id: ACH.defeated_100, name: 'Born Loser', level: 'iii', rule: 'defeated', tags: ['combat'], count: 100, after: ACH.defeated_25, scar: true },
+      // D-160 morale: fights won while Panicking, and the scar for breaking (a break also counts as defeated)
+      [ACH.won_panicking_1]: { id: ACH.won_panicking_1, name: 'Hands Still Shaking', level: 'i', rule: 'won_panicking', tags: ['combat'], count: 1 },
+      [ACH.won_panicking_10]: { id: ACH.won_panicking_10, name: 'Fear Rides With Me', level: 'ii', rule: 'won_panicking', tags: ['combat'], count: 10, after: ACH.won_panicking_1 },
+      [ACH.won_panicking_25]: { id: ACH.won_panicking_25, name: 'Panic Is Just Another Weapon', level: 'iii', rule: 'won_panicking', tags: ['combat'], count: 25, after: ACH.won_panicking_10 },
+      [ACH.morale_breaks_1]: { id: ACH.morale_breaks_1, name: 'First Crack', level: 'zero', rule: 'morale_breaks', tags: ['combat'], count: 1, scar: true },
+      [ACH.morale_breaks_5]: { id: ACH.morale_breaks_5, name: 'Glass Nerves', level: 'i', rule: 'morale_breaks', tags: ['combat'], count: 5, after: ACH.morale_breaks_1, scar: true },
+      [ACH.morale_breaks_25]: { id: ACH.morale_breaks_25, name: 'Nothing Left to Break', level: 'ii', rule: 'morale_breaks', tags: ['combat'], count: 25, after: ACH.morale_breaks_5, scar: true },
       [ACH.total_10]: { id: ACH.total_10, name: 'A Few Threads', level: 'i', rule: 'achievements', tags: ['progression'], count: 10 },
       [ACH.total_25]: { id: ACH.total_25, name: 'Woven In', level: 'ii', rule: 'achievements', tags: ['progression'], count: 25, after: ACH.total_10 },
       [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25 },
