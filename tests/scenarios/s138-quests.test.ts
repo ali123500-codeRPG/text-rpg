@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { actor, createRng, makeVillage } from '../harness';
 import { resolveSpeech, selectSpokespeople } from '../../src/engine';
 import type { AcceptedAgentOutput } from '../../src/engine';
-import { abandonQuest, pinQuest, unpaidQuests, updateQuests } from '../../src/engine/quests';
+import { abandonQuest, pinQuest, questXp, unpaidQuests, updateQuests } from '../../src/engine/quests';
+import { power, weakFoeTaper } from '../../src/engine/xp';
 import { stance } from '../../src/engine/relations';
 import { checkResponder } from '../../src/agents/schema';
 import { buildOppositionView, questGoalText } from '../../src/views';
@@ -76,13 +77,28 @@ describe('138 quests', () => {
     expect(buildOppositionView(s, 'trader').jobs).toEqual([{ id: q.id, text: q.text, state: 'active', owed: 'Owed 1 silver' }]); // she doesn't know yet
     const before = stance(s, actor(s, 'trader'), s.player);
     const xp = s.player.progression!.xp;
+    const want = questXp(s, q);
     talk(s, {}, 'The slimes are gone.');
     expect(q.state).toBe('done');
-    expect(s.player.progression!.xpLog?.some((x) => x.source === `quest:${q.id}` && x.amount === CONFIG.QUEST_REWARD_XP[q.level])).toBe(true);
+    expect(s.player.progression!.xpLog?.some((x) => x.source === `quest:${q.id}` && x.amount === want)).toBe(true);
     expect(s.player.progression!.xp).not.toBe(xp);
     expect(stance(s, actor(s, 'trader'), s.player)).not.toBe(before);
     expect(s.hidden.agreements).toEqual([]);
     expect(buildOppositionView(s, 'trader').jobs?.[0]).toMatchObject({ state: 'done', owed: 'Owed 1 silver' });
+  });
+
+  it('QX2/QX4: a defeat job is cut by the defeat-XP taper of its foes against the player at hand-in; other jobs are not', () => {
+    const s = shop();
+    talk(s, offer(SLIMES));
+    const q = s.quests[0];
+    const full = CONFIG.QUEST_REWARD_XP[q.level];
+    updateQuests(s, [], [actor(s, 'slime_1'), actor(s, 'slime_2')]);
+    const avg = (power(s, actor(s, 'slime_1')) + power(s, actor(s, 'slime_2'))) / 2;
+    expect(q.foePower).toBeCloseTo(avg * 2);
+    expect(questXp(s, q)).toBe(Math.round(full * weakFoeTaper(avg, power(s, s.player))));
+    s.player.core.classes[0].level = 12; // a much stronger player by hand-in: the slimes are worth little
+    expect(questXp(s, q)).toBeLessThan(full / 2);
+    expect(questXp(s, { ...q, goal: { kind: 'reach', place: 'x' } })).toBe(full);
   });
 
   it('QT10/QT23: gifts from the giver count toward the promise; still owed when the talk ends, it is unpaid', () => {
