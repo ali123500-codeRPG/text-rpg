@@ -70,6 +70,27 @@ describe('125 All-50 parts', () => {
     grantAllSteps(s2, q);
     expect(q.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(4)).toEqual([PK.fighters_frame, PK.opening_strike, PK.steady_guard, PK.counter]);
   });
+  it('a tree\'s rating sets how many skills at 50 earn it: inferior never, superior 2, legendary 1', () => {
+    const s = makeVillage(), p = s.player;
+    p.core.perks = [];
+    const lib = getLibrary();
+    expect(lib.trees[TR.slime_senses].rating).toBe('inferior');
+    expect(Object.values(lib.trees).filter((t) => t.id !== TR.slime_senses).every((t) => (t.rating ?? 'normal') === 'normal')).toBe(true);
+    set(p, [SK.eyesight, SK.earshot], 50);
+    lib.trees[TR.perception].rating = 'superior';
+    grantAllSteps(s, p);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes, PK.spotter]);
+    set(p, [SK.melee_medium, SK.melee_heavy], 0);
+    set(p, [SK.melee_light], 50);
+    lib.trees[TR.melee].rating = 'legendary';
+    grantAllSteps(s, p);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(3)).toEqual([PK.fighters_frame, PK.opening_strike]);
+    set(p, [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], 50);
+    lib.trees[TR.ranged].rating = 'inferior';
+    grantAllSteps(s, p);
+    expect(p.core.perks.some((x) => x.perkId === PK.hunters_eye)).toBe(false);
+    expect(p.progression?.achievements?.some((a) => a.id === `${ACH.mastery_50}:${TR.ranged}`) ?? false).toBe(false);
+  });
   it("a skill that moves to another tree takes its part along", () => {
     const s = makeVillage(), p = s.player;
     const lib = getLibrary(), arms = lib.trees[TR.melee], def = lib.trees[TR.defense];

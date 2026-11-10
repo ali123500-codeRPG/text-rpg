@@ -24,7 +24,7 @@ export function perksMarkdown(): string {
     '', 'The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120 perks raise numbers only, with no conditions: +5 true skill in the skill, +1 to every skill of its function, itself included, and one more number. Swordsman, lockpicking and slime skills have no perks for now.', ''];
   for (const [place, title] of PLACES) {
     out.push(`## ${title}`, '');
-    if (place === 'all50') out.push('Granted free once three skills of the tree reach 50 true skill: the tree\'s passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: ' +
+    if (place === 'all50') out.push('Granted free once enough skills of the tree reach 50 true skill, by the tree\'s rating (inferior never, normal 3, superior 2, legendary 1): the tree\'s passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: ' +
       ALL_BUNDLES.map((b) => `${treeName(b.treeId)} All-50: ${b.name}`).join('; ') + '.', '');
     for (const p of [...PERK_WRITEUPS, ...BOOST_PERKS, ...ALL_PARTS].filter((d) => d.place === place)) {
       const r = p.rules;
