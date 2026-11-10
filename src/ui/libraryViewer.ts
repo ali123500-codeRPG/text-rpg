@@ -1090,6 +1090,7 @@ function drawSwitch(): void {
     onclick: () => { viewOfTable[shown] = m; keep('lv-view', viewOfTable); tablify(); drawSwitch(); } }, m === 'cards' ? 'Cards' : 'Table')));
 }
 const cellText = (n: Element | null | undefined) => (n?.textContent ?? '').replace(/\s+/g, ' ').trim();
+const ALWAYS_COLS = new Set(['Reward', 'Effect']);
 function tablify(): void {
   body.querySelectorAll('.lv-table').forEach((t) => t.remove());
   body.querySelectorAll('.lv-tabled').forEach((g) => g.classList.remove('lv-tabled'));
@@ -1100,7 +1101,11 @@ function tablify(): void {
     const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row, :scope > .lv-cbody > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
     const maps = list.map(rowsOf);
     // columns: fields every entry has, short enough for a cell; long ones stay in the pop-up
-    const cols = [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60).slice(0, 6);
+    // a column that only repeats the entry's name or its raw id says nothing new; what an entry gives (Reward, Effect) always shows
+    const titles = list.map((c) => cellText(c.querySelector(':scope > header > h3'))), ids = list.map((c) => c.id.split('/').pop() ?? '');
+    const echoes = (k: string) => maps.every((m, i) => [titles[i], ids[i]].includes(cellText(m.get(k))));
+    const cols = [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && !echoes(k)
+      && (ALWAYS_COLS.has(k) || maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60)).slice(0, 6);
     const sort = { col: -1, dir: 1 };
     const tbody = h('tbody', {});
     const rows = list.map((c, i) => {
