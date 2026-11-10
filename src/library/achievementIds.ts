@@ -24,7 +24,7 @@ export const ACH = {
   class_unlock: 'AC46', defeats_250: 'AC47',
   class_max_1: 'AC48', class_max_3: 'AC49', class_max_5: 'AC50', class_max_10: 'AC51',
   class_max_tier_1: 'AC52', class_max_tier_2: 'AC53', class_max_tier_3: 'AC54',
-  class_tiers_2: 'AC55', class_tiers_4: 'AC56', class_tiers_all: 'AC57',
+  class_tiers_2: 'AC55', class_tiers_3: 'AC136', class_tiers_4: 'AC56', class_tiers_5: 'AC137', class_tiers_all: 'AC57',
   char_level_10: 'AC58',
   brink_3: 'AC59', unaware_50: 'AC60',
   held_line_1: 'AC61', held_line_10: 'AC62',
