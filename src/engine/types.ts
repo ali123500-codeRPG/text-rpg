@@ -10,7 +10,7 @@ export type ExchangeSpeech = {
   skill: string; // speech skill actually used (after substitution)
   playerTier: Tier;
   impression: string | null; // fixed words from the tier (Dialogue input table)
-  perSpokesperson: Record<string, { contest: ContestResult; slips: string[] }>;
+  perSpokesperson: Record<string, { contest: ContestResult; slips: string[]; tell?: true }>; // tell: the listener saw through a lie
 };
 
 export type TurnInput = {

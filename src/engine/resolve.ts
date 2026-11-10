@@ -22,9 +22,9 @@ import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
-import { applyHaggle, buy, sell } from './trade';
+import { buy, sell } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
-import { SPEECH_SKILL, isSpeech } from './speech';
+import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, pushContest } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
@@ -233,6 +233,19 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const line = o.line ?? { text: '', volume: 'normal' as const };
   const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, line, noise: VOLUME_NOISE[line.volume] });
   if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? SK.persuasion, addressees: o.addressees ?? [] };
+  // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers
+  const p = state.player;
+  const push = a.kind === 'npc' && PUSH_TYPES.includes(o.type) && o.target === p.id && isActive(p);
+  if (push) {
+    ev.perception = computePerception(ev, state, ctx.rng);
+    const heard = ev.perception[p.id];
+    if (heard && (heard.level === 'full' || heard.cue === 'sound')) {
+      const contest = pushContest(state, a, o.type, ctx.rng);
+      ev.contest = contest;
+      ev.push = { type: o.type, listener: p.id, landed: contest.winner === 'a', ...applySpeech(a, p, o.type, contest),
+        ...(atLeast(beliefStatus(state, a, p), 'aware') ? { seen: true as const } : {}) }; // NT10: the speaker sees how it was taken
+    }
+  }
   // Voice shares: only facts from its knows list
   const voice = o.source === 'agent' ? usableAgentOutputs(ctx.input).find((x) => x.actorId === a.id && x.agent === 'voice') : undefined;
   if (voice?.agent === 'voice') {
@@ -242,7 +255,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
       else logCode(state, 'invalid_share', { actorId: a.id, factId: id });
     }
   }
-  emit(ctx, ev);
+  emit(ctx, ev, undefined, push);
 }
 
 /** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
@@ -696,8 +709,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     });
     emit(ctx, ev);
     ctx.exchangeEvents.push(ev);
-    // PY6: haggling with a seller sets the player's prices there for this engagement
-    if (playerOrder.type === 'barter') for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s) applyHaggle(state.player, s, r.contest); }
+    // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
+    if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s) applySpeech(state.player, s, playerOrder.type, r.contest); }
     if (input.quickWord) playerOrder.line = null; // A15: the line was said; the action follows in turn order
     else ctx.mainDone.add(state.player.id);
     const spokes = new Set(input.spokespeople);

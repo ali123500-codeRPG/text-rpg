@@ -31,6 +31,8 @@ export type Actor = {
   wares?: { items: string[]; services: string[] };
   /** PY6: price multipliers this actor won or lost haggling, by seller; cleared when its engagement ends */
   haggle?: Record<ActorId, number>;
+  /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
+  pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
   /** PY8: healing rows (the clinic's) this actor has paid for and not used yet */
   paid?: string[];
 };

@@ -129,6 +129,10 @@ const DEFAULTS = {
   HAGGLE_WIN: 0.8, // a won barter contest against a seller, until the engagement ends
   HAGGLE_BAD_LOSS: 1.2, // lost by HAGGLE_BAD_GAP tiers or more
   HAGGLE_BAD_GAP: 2,
+  // OQ-29: losing a speech contest leaves the listener Shaken (intimidation) or Swayed (persuasion) toward the speaker until
+  // its engagement ends: a roll modifier of −(this × the tier gap) (placeholders)
+  SHAKEN_PER_TIER: 5,
+  SWAYED_PER_TIER: 5,
   HARD_BARGAIN_BUY: 0.9,
   HARD_BARGAIN_SELL: 1.1,
   SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
