@@ -75,6 +75,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   char_level: 'character levels, again at every multiple',
   spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
   won_panicking: 'fights won while your morale is Panicking', morale_breaks: 'times your morale broke',
+  healed: 'health % healed from one source (a healing-table row: Rest, Natural recovery, Perks…)',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
 /** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,

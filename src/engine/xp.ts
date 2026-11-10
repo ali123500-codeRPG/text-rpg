@@ -340,9 +340,10 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   if (d.by === 'class_tier' && a.of && CLASS_TIERS.has(a.of)) what = CLASS_TIERS.name(a.of);
   if (d.by === 'function' && a.of) what = functionName(a.of);
   if (d.by === 'skill' && a.of) what = skillName(a.of);
+  if (d.by === 'heal_source' && a.of) what = lib.healing?.[a.of]?.name ?? a.of;
   if (d.by === 'giver' && a.of) { // the giver's name once the player knows it, else how the player sees them
     const g = state.actors.find((x) => x.id === a.of);
     what = !g ? 'someone' : g.knownOnSight || state.player.journal?.namesKnown.includes(g.id) ? g.names.current : g.label;
   }
-  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver)\}/g, title(what));
+  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source)\}/g, title(what));
 }
