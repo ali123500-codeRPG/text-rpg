@@ -89,7 +89,7 @@ const DEFAULTS = {
   PARRY_STRIKE_GAP: 3, // PA3/PA4: a parry at this gap or better stops the blow fully and earns a free strike back
   ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
   GAP_LADDER: {
-    dodge: { [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
+    dodge: { [-5]: 2, [-4]: 1.5, [-3]: 1.25, [-2]: 1.175, [-1]: 1.1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
     block: { [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.75, 2: 0.5, 3: 0.25, 4: 0.2, 5: 0.15 },
     // PA3 (placeholders): cuts less than Block at small gaps, stops the blow fully from +3; a failed parry punishes harder
     parry: { [-5]: 2.5, [-4]: 2, [-3]: 1.5, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.85, 2: 0.65, 3: 0, 4: 0, 5: 0 },
