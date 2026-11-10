@@ -2,7 +2,7 @@
 import { noteLeft, noteZonesSeen } from './trail';
 import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
-import { healthFear, moraleLevel, partFears } from '../ruleset/morale';
+import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
 import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
@@ -171,7 +171,7 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
 
 /** pays a fear (engine/morale.ts) and applies a break. Rolled fears count only while the actor is engaged, as the
  * morale check did. `seen` = who perceived the event, for the bandmates a break frightens (MB23). */
-function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean } = {}, seen: Record<string, unknown> = {}): void {
+function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean; cost?: number } = {}, seen: Record<string, unknown> = {}): void {
   const { state } = ctx;
   if (getLibrary().fears?.[id]?.rolled && !isEngaged(state, a)) return; // the player too (MB11): isEngaged reads who is fighting them
   const r = payFear(state, ctx.rng, a, id, o);
@@ -344,7 +344,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const after = healthLevel(t);
   const hf = L.indexOf(after) > L.indexOf(before.level) ? healthFear(t, after) : undefined;
   if (hf) fear(ctx, t, hf.id, {}, ev.perception);
-  for (const f of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, {}, ev.perception); // a part Crippled (or worse) by this hit
+  for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, ev.perception); // parts Crippled (or worse) by this hit
   if (!isActive(t)) {
     fear(ctx, a, FR.foe_downed);
     for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
