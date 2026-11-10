@@ -15,6 +15,8 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
 };
 
 const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
+/** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
+const NARROW_W = 640, NARROW_MIN_K = 0.75;
 type Pt = { x: number; y: number };
 type Node2 = Pt & { id: string; w: number; h: number; vx: number; vy: number; pinned: boolean };
 const tileW = (z: MapZone) => Math.max(132, Math.min(260, z.name.length * 8.4 + 40));
@@ -155,6 +157,13 @@ export function mapPage(api: GameApi) {
     if (!b || !r.width) return;
     const top = 60, pad = 24; // the crumbs sit over the top edge
     const k = Math.max(0.2, Math.min(1.6, Math.min((r.width - 2 * pad) / (b.x1 - b.x0), (r.height - top - 70) / (b.y1 - b.y0))));
+    // a narrow screen keeps tiles readable: a floor on the scale, centred on you when you are in this place
+    const me = cur ? spots.get(world)?.get(cur.zoneId) : undefined;
+    if (k < NARROW_MIN_K && r.width < NARROW_W) {
+      const at = me && inside(cur!.placeId, placeId) ? me : { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
+      setView({ k: NARROW_MIN_K, x: r.width / 2 - at.x * NARROW_MIN_K, y: top + (r.height - top - 70) / 2 - at.y * NARROW_MIN_K });
+      return;
+    }
     setView({ k, x: r.width / 2 - (b.x0 + b.x1) / 2 * k, y: top + (r.height - top - 70) / 2 - (b.y0 + b.y1) / 2 * k });
   }
   function centre(zoneId: string) {

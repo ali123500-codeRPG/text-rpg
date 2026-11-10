@@ -713,8 +713,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who.last text { fill: var(--c4); }
 .map-pin circle { fill: var(--scene-mark); stroke: var(--bg); stroke-width: 2.5; }
 .map-pin circle.core { fill: var(--bg); stroke: none; }
-.map-crumbs { position: absolute; left: 12px; top: 12px; right: 140px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
-  pointer-events: none; }
+.map-crumbs { position: absolute; left: 12px; top: 12px; right: 64px; display: flex; flex-wrap: nowrap; align-items: center; gap: 4px;
+  white-space: nowrap; overflow-x: auto; scrollbar-width: none; pointer-events: none; }
+.map-crumbs .crumb, .map-crumbs .sep { flex: none; }
 .map-crumbs .crumb { pointer-events: auto; border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted);
   border-radius: var(--r-pill); padding: 4px 12px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
 .map-crumbs .crumb.on { color: var(--text); border-color: var(--accent); }
@@ -761,4 +762,4 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-area { width: 20px; height: 12px; border-radius: 4px; border: 1.5px dashed color-mix(in srgb, var(--c15) 60%, transparent); }
 .k-who { width: 12px; height: 12px; border-radius: 50%; background: var(--c4); }
 .k-who.last { background: none; border: 1.5px dashed var(--c4); }
-@media (max-width: 1000px) { main.map-page { height: auto; } .map-body { grid-template-columns: minmax(0, 1fr); } .map-stage { height: 70vh; } }
+@media (max-width: 1000px) { main.map-page { height: auto; } .map-body { grid-template-columns: minmax(0, 1fr); } .map-stage { height: 70vh; } .map-crumbs { pointer-events: auto; } }
