@@ -114,11 +114,12 @@ describe('ruleset methods', () => {
     // player 50 → Success; patron dodge 30 → Failure: gap −2; location 20 → left arm
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: sword, targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
     expect(JSON.stringify(s)).toBe(before);
-    expect(r).toMatchObject({ location: 'left_arm', damage: 25, outcome: 'full_hit', modeId: AM.cut });
+    const dmg = 25 * CONFIG.GAP_LADDER.dodge[-2]; // a dodge at gap −2 lets the blow through at its ladder multiplier
+    expect(r).toMatchObject({ location: 'left_arm', damage: dmg, outcome: 'full_hit', modeId: AM.cut });
     const fx = ruleset.applyEffects(r, s);
     const p = actor(s, 'patron_1'); // 50 HP, arm pool 15
-    expect(p.core.condition.parts.left_arm).toBeCloseTo(100 - (25 / 15) * 100);
-    expect(p.core.condition.hpLostPct).toBe(50);
+    expect(p.core.condition.parts.left_arm).toBeCloseTo(100 - (dmg / 15) * 100);
+    expect(p.core.condition.hpLostPct).toBeCloseTo((dmg / 50) * 100);
     expect(fx).toEqual([
       { kind: 'part_state_changed', actorId: 'patron_1', data: { part: 'left_arm', from: 'Healthy', to: 'Crippled' } },
       { kind: 'threshold_crossed', actorId: 'patron_1', data: { who: 'patron_1', from: 'Unhurt', to: 'Wounded' } },

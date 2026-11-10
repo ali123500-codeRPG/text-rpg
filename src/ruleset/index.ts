@@ -88,7 +88,7 @@ function mustActor(state: GameState, id: string): Actor {
 
 /** gap ladder (Part 3, Defense); a gap past ±5 uses the ±5 entry */
 export function ladder(type: DefenseKind, gap: number): number {
-  return CONFIG.GAP_LADDER[type][Math.max(-5, Math.min(5, gap))];
+  return CONFIG.GAP_LADDER[type][Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap))];
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
 function locRule(type: DefenseKind, g: number): LocRule {
@@ -96,7 +96,7 @@ function locRule(type: DefenseKind, g: number): LocRule {
   return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block and parry +1..+5 off-shield keep the gap-0 limit
 }
 function rowKey(type: DefenseKind, gap: number, shield: boolean): string {
-  const g = Math.max(-5, Math.min(5, gap));
+  const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
   return [ladder(type, g), locRule(type, g), g <= -3 ? 'anywhere' : g === -2 ? 'adjacent' : '', shield && g >= 0].join('|');
 }
 
@@ -248,7 +248,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     gapShifts.push({ source: 'Slip the Blow', value: 1 });
   }
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
-  const g = Math.max(-5, Math.min(5, gap));
+  const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
   let multiplier = ladder(type, g);
   const shield = type === 'block';
   const deciding = {
