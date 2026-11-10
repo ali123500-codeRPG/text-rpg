@@ -1,7 +1,7 @@
 // XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
 import type { Actor, AchievementBy, AchievementRule, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
-import { bodyType, getLibrary, itemDef } from '../library';
+import { bodyType, getLibrary, itemDef, npcTemplate } from '../library';
 import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
 import { isActive, stance } from './relations';
@@ -217,9 +217,17 @@ export function rating(a: Actor): number {
     const cat = groupsOf(lib.skills[id])[0] ?? ''; // the skill's first group; no group counts 0
     (by[cat] ??= []).push(effort(skillOpen(a, id) ? e.raw * tierMult(id) : 0)); // the tier counts in the rating
   }
-  return Object.entries(by).reduce((n, [cat, es]) =>
+  return levelRating(a) + Object.entries(by).reduce((n, [cat, es]) =>
     n + (CONFIG.XP_GROUP_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
 }
+
+/** the levels an actor paid XP for: its class and bonus levels less its free and bonus levels (as xpToNext counts them),
+ * else an NPC's template level */
+export const actorLevel = (a: Actor): number => charLevel(a)
+  ? Math.max(0, charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0))
+  : (a.core.templateId ? npcTemplate(null, a.core.templateId)?.level ?? 0 : 0);
+/** levels in the rating (the thread the foe wove): LEVEL_RATING_SHARE × the XP its levels cost, LEVEL_XP × L(L−1)/2 */
+export const levelRating = (a: Actor): number => { const l = actorLevel(a); return CONFIG.LEVEL_RATING_SHARE * CONFIG.LEVEL_XP * l * (l - 1) / 2; };
 
 /** a foe's gear in its rating: GEAR_RATING_FACTOR × the coin value of what it holds and wears (gear coin is priced at
  * about one coin per skill point of power). Carried spares and coin don't count. */
