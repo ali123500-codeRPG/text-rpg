@@ -1,8 +1,8 @@
-// 146 free levels: level-ups that cost no XP, given by achievements and perks. The tiers chain (Across Two Heights up to
+// 146 free levels: level-ups that cost no XP, given by achievements and perks; and bonus levels, character levels no class gets. The tiers chain (Across Two Heights up to
 // Every Height Climbed) gives +1, +2, +3, +4, +5 by its place, each level including the lower ones (+3 in all at the second).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { charLevel, freeLevelsOwed, grantAchievement, spendXp, xpToNext } from '../../src/engine/xp';
+import { bonusLevelsOwed, charLevel, freeLevelsOwed, grantAchievement, spendXp, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { freeLevelsEarned, rewardLines } from '../../src/ruleset/achRewards';
 import { classMaxLevel } from '../../src/library/spawn';
@@ -62,5 +62,28 @@ describe('146 free levels', () => {
     spendXp(s);
     expect(freeLevelsOwed(p)).toBe(0);
     expect(next.level).toBe(1);
+  });
+
+  it('bonus levels add character levels no class gets: perk points on even levels, no class level, no dearer XP', () => {
+    const s = makeVillage();
+    const p = s.player, pr = p.progression!;
+    pr.xp = 0;
+    const row = getLibrary().achievements![ACH.clean_10];
+    row.bonusLevels = 2; // a stand-in row for the test; no row gives bonus levels yet
+    try {
+      const level = charLevel(p), points = pr.unspentPerkPoints, log = pr.xpLog?.length ?? 0;
+      const classLevels = () => p.core.classes.reduce((n, c) => n + c.level, 0), before = classLevels();
+      expect(rewardLines(row)).toContain('+2 bonus levels (character levels no class gets: perk points, no class perks)');
+      grantAchievement(s, ACH.clean_10);
+      const ups = pr.xpLog!.slice(log).filter((x) => x.levelUp);
+      const xpLevels = ups.filter((x) => x.source === 'level').length; // the achievement's own 100 XP may buy a level too
+      expect(ups.filter((x) => x.source === 'bonus level').map((x) => x.levelUp!.classId)).toEqual(['', '']);
+      expect(bonusLevelsOwed(p)).toBe(0);
+      expect(pr.bonusLevelsTaken).toBe(2);
+      expect(charLevel(p)).toBe(level + 2 + xpLevels);
+      expect(classLevels()).toBe(before + xpLevels); // no class got the bonus levels
+      expect(pr.unspentPerkPoints).toBe(points + ups.filter((x) => x.levelUp!.level % 2 === 0).length); // a point on each even level
+      expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP * Math.max(1, charLevel(p) - 2)); // bonus levels don't make the next level dearer
+    } finally { delete row.bonusLevels; }
   });
 });
