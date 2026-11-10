@@ -785,8 +785,8 @@ export function placeName(s: GameState): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> {
-  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> = {};
+export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> {
+  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> = {};
   const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? n.charAt(0).toUpperCase() + n.slice(1) : n);
   const words = (x: string) => x.replace(/_/g, ' ');
   let check: LineCheck | undefined, checkEv: string | undefined;
@@ -832,6 +832,18 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     }
   }
   if (incoming.length) out.incomingChecks = incoming;
+  // the turn left the player down: name the last blow that hurt them (only hits lower health), as they perceived it
+  if (s.player.id === 'player' && isDownLevel(safeHealth(s.player))) {
+    const hit = [...events].reverse().find((e) => e.attack && e.attack.targetId === 'player' && e.attack.damage > 0);
+    if (hit?.attack) {
+      const pk = nv.events.find((x) => x.id === hit.id)?.packet;
+      const by = pk?.actor && pk.actor !== 'player' ? pk.actor : 'someone';
+      const loc = hit.attack.location; // an unseen blow is still felt where it lands
+      out.downedBy = { by, weapon: pk ? pk.weapon : null, part: pk?.location?.part ?? (loc && loc !== 'general' && loc !== 'shield' ? words(loc) : null),
+        outcome: pk?.outcome ?? words(hit.attack.outcome),
+        ...(by === 'someone' ? { unseen: true as const } : {}) };
+    }
+  }
   const speech = nv.heard.filter((l) => !narration.includes(l.text)).map((l) => ({ speaker: l.speaker, volume: l.volume, text: l.text }));
   if (speech.length) out.speech = speech;
   const changes: NonNullable<LogLine['changes']> = [];

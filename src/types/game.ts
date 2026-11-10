@@ -25,10 +25,14 @@ export type LogLine = {
   levelUps?: { classId: string; level: number }[]; // X9: levels the player reached this turn, by class (library classes id)
   achievements?: { id: string; name: string }[]; // achievements and scars earned this turn (progression.achievements id, its name now)
   incomingChecks?: (LineCheck & { by: string })[]; // rolls others made against the player this turn; by = how the player knows them
+  downedBy?: DownedBy; // the turn left the player down: the last blow that hurt them, as they knew it ("You fell" screen)
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
   place?: { id: string; name: string }; // where the player ended the turn; name like "River path · the Riverside"
   scene?: number; // stage.sceneNumber when the turn ended
 };
+
+/** the blow that dropped the player, in words the player knows: by = the attacker as perceived ('someone' if unseen) */
+export type DownedBy = { by: string; weapon: string | null; part: string | null; outcome: string; unseen?: true };
 
 /** one healing of the player: the health level and each body part that changed state */
 /** better: health went up without changing level or any part state (a bandage on a light wound) */
