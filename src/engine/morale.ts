@@ -13,10 +13,10 @@ import { isActive } from './relations';
 import { logCode } from './effects';
 
 
-/** pays fear `id`: gap = the contest's tier gap (perTier rows), mult and shift = a perk's extra (Make an Example, MB26),
+/** pays fear `id` (cost overrides the row's cost: a part fear's sum, partFearCost): gap = the contest's tier gap (perTier rows), mult and shift = a perk's extra (Make an Example, MB26),
  * overwhelm = the owner's Overwhelm took hold (MR4): all morale is lost and the actor surrenders.
  * Returns 'broken' or 'surrendered' when this pushed the actor to Broken. */
-export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean } = {}): 'broken' | 'surrendered' | undefined {
+export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean; cost?: number } = {}): 'broken' | 'surrendered' | undefined {
   const f = getLibrary().fears?.[id];
   if (!f || !isActive(a) || a.mind?.moraleState) return undefined;
   if (o.overwhelm) {
@@ -25,7 +25,7 @@ export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { g
     logCode(state, 'morale', { actorId: a.id, fear: id, paid, overwhelm: true, from, to: moraleLevel(a) });
     return from === 'broken' ? undefined : 'surrendered';
   }
-  let cost = f.cost * (f.perTier ? Math.abs(o.gap ?? 1) : 1) * (o.mult ?? 1);
+  let cost = (o.cost ?? f.cost) * (f.perTier ? Math.abs(o.gap ?? 1) : 1) * (o.mult ?? 1);
   // All-50 Last to Fall: at Wounded or worse, morale losses shrink
   const L = CONFIG.HEALTH_TRACK;
   if (cost > 0 && hasPerk(a, PK.last_to_fall) && L.findIndex(([l]) => l === healthLevel(a)) >= L.findIndex(([l]) => l === 'Wounded')) cost *= CONFIG.LAST_TO_FALL_MULT;
