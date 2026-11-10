@@ -1,6 +1,8 @@
 // Perk moves (AE5, AE8; rules in src/library/perks.ts). The player names one by its perk id in the
 // Parser's perkMove. A free move resolves beside the main action, before it; the others will be main actions of their
 // own type (Plead, Battle Cry, Buy Them Off, later milestones).
+//   Battle Cry (C2, I9): the main action, once per engagement, aimed at no one; a Loud roar resolved in resolve.ts
+//   doPerkMove() by battleCry() in auras.ts.
 //   Dirt in the Eyes (A9): free, once per engagement, needs a free hand; an unarmed_improvised roll against the foe's
 //   dodge; unless the foe wins, its next attack or defense roll is two tiers worse (until the end of its next turn).
 //   Bluff (LI1c): free, once per foe per engagement; a Lying roll against the foe's answer to a lie (answerRoll, so
@@ -26,10 +28,17 @@ export const freeHand = (state: GameState, a: Actor) => {
 /** the key a move's uses are counted under this engagement: per foe for a perFoe move */
 const useKey = (perk: string, targetId: string | null) => PERK_MOVES[perk]?.perFoe ? `${perk}:${targetId}` : perk;
 
+/** counts a use of the move; one used outside an engagement starts one, so its once-per-engagement use is counted */
+export function countPerkMove(state: GameState, a: Actor, perk: string, targetId: string | null): void {
+  if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
+  useThisEngagement(a, useKey(perk, targetId));
+}
+
 /** why the move can't be used now, or null */
 export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId: string | null): string | null {
   const def = PERK_MOVES[perk];
   if (!def || !hasPerk(a, perk)) return 'not_owned';
+  if (def.untargeted) return def.perEngagement && a.engagement && !usableThisEngagement(a, perk, def.perEngagement) ? 'used_this_engagement' : null;
   const t = targetId ? actorById(state, targetId) : undefined;
   if (!t || t === a || !isActive(t) || t.zone !== a.zone) return 'no_target';
   if (def.perEngagement && a.engagement && !usableThisEngagement(a, useKey(perk, targetId), def.perEngagement)) return 'used_this_engagement';
@@ -41,9 +50,7 @@ export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId
 /** resolves a perk move; returns the effects for its event and the roll */
 export function resolvePerkMove(state: GameState, a: Actor, perk: string, targetId: string, rng: Rng): { effects: Effect[]; result?: ContestResult } {
   const t = actorById(state, targetId)!;
-  // a perk move used outside an engagement starts one, so its once-per-engagement use is counted
-  if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
-  useThisEngagement(a, useKey(perk, targetId));
+  countPerkMove(state, a, perk, targetId);
   if (perk === PK.dirt_in_the_eyes) {
     const req = (id: string, skill: string) => ({ actorId: id, skill, modifiers: [], tierShifts: [] });
     const c = ruleset.contested(req(a.id, SK.unarmed_improvised), req(t.id, SK.dodge), state, rng);

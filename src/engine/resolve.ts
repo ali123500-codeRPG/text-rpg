@@ -16,10 +16,10 @@ import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
-import { engagementAuras } from './auras';
+import { battleCry, engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
-import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, bandById, foe, isActive, isEngaged, hostile, shortestPath, sparBetween, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
@@ -42,7 +42,7 @@ import { PK } from '../library/perkIds';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], alarm: ['deafening', 'high'],
+  attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
@@ -655,8 +655,22 @@ function step(ctx: Ctx, id: string): void {
 function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): void {
   const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
+  if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
+}
+
+/** I9 Battle Cry: the main action; a Loud roar heard at any level, however far (battleCry in auras.ts) */
+function doBattleCry(ctx: Ctx, a: Actor): void {
+  const { state, rng } = ctx;
+  countPerkMove(state, a, PK.battle_cry, null);
+  ctx.mainDone.add(a.id);
+  const ev = mk(ctx, a, 'battle_cry');
+  ev.perception = computePerception(ev, state, rng);
+  emit(ctx, ev, undefined, true);
+  for (const r of battleCry(state, a, ev, rng, (t, id, gap) => fear(ctx, t, id, gap === undefined ? {} : { gap }))) {
+    ev.effects.push({ kind: r.rallied ? 'rallied' : r.took ? 'cry_took' : 'cry_resisted', actorId: r.target.id, data: { by: a.id, perk: PK.battle_cry } });
+  }
 }
 
 /** the attack mode the actor would use from a zone (as doAttack picks it) and the distance to the target */

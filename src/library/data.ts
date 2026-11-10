@@ -456,6 +456,8 @@ export function prototypeLibrary(): Library {
       [FR.lost_intimidation]: { id: FR.lost_intimidation, name: 'You lose to intimidation', cost: 10, rolled: false, perTier: true }, // MB28, per tier of gap
       [FR.foe_downed]: { id: FR.foe_downed, name: 'You down a foe', cost: -10, rolled: false }, // MB10
       [FR.dread_presence]: { id: FR.dread_presence, name: 'An aura of dread gets to you', cost: 10, rolled: false, perTier: true }, // MB37: each failed aura check costs its own morale
+      [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
+      [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
     },
     // Game clock (T1): minutes per action; placeholders
     durations: {

@@ -647,15 +647,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, every foe that hears it, however far, makes a morale check against you, and every ally that hears it takes heart and shakes off its fear.
+*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, makes a morale roll against you, and every ally that hears it takes heart and shakes off its fear.
 
 - **Kind:** Move (offensive aura)
 - **Trigger:** The owner uses the move. The roar is a Loud noise.
-- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar gets 10 morale back and loses any Shaken.
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back and loses any Shaken.
 - **Lasts:** Instant.
-- **Cooldown:** Once per engagement.
-- **Needs first:** Moves.
-- **Banked as:** a later Intimidation perk, suggested for the 140 perk
+- **Cooldown:** Once per engagement. It is the owner's main action.
 
 ### Buy Them Off (Barter) · C3
 
@@ -713,7 +711,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and in the owner's zone or one sight link away. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scene.
 - **Effect:** The owner's Insight against the watcher's stealth (Combat Stealth in a fight, Sneaking otherwise). If the owner wins, it gets a hunch of being watched from the watcher's zone, never who, and turns suspicious of the watcher there. It can then look or listen for them as usual.
 - **Lasts:** Until the owner's belief changes on its own.
-- **Open:** Its place on the Insight ladder waits for Ali (LI7: 20 beside Overheard).
+- **Open:** Built, then parked by Ali until it has a place on the ladder (Insight 20 holds Overheard).
 - **Banked as:** a later Insight perk
 
 ### Not Born Yesterday (Insight) · LI2c

@@ -72,6 +72,10 @@ const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }>
   [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
   [PK.bluff]: { text: (who) => `Bluff ${who}: "Behind you!"`, note: 'Bluff · free, once per foe a fight' },
 };
+/** perk moves aimed at no one: one idea each */
+const PERK_SOLO_IDEA: Record<string, { text: string; note: string }> = {
+  [PK.battle_cry]: { text: 'Let out a battle cry', note: 'Battle Cry · your action, once a fight' },
+};
 
 /** the same name twice in one list reads as "the other …" from its second time on */
 function apart(names: string[]): string[] {
@@ -101,7 +105,7 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Use', items: [
       ...heldN.map((n) => ({ text: `Stow ${the(n)}`, note: 'free' })), ...stowedN.map((n) => ({ text: `Draw ${the(n)}`, note: 'free' })),
       ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free' })), { text: 'Look around' }] },
-    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.map((m) => m.id).flatMap((p) => PERK_IDEA[p]
+    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.map((m) => m.id).flatMap((p) => PERK_SOLO_IDEA[p] ? [PERK_SOLO_IDEA[p]] : PERK_IDEA[p]
       ? people.filter((a) => a.zone === pv.zone.id).map((a) => ({ text: PERK_IDEA[p].text(names[people.indexOf(a)]), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ group: g.group, items: 'all' in g ? g.items : g.items.slice(0, 3) }));
 }
