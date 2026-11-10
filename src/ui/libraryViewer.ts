@@ -676,7 +676,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
   ['Library', ['gear', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'status']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'fears', 'status']],
   ['World', null],
 ];
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
