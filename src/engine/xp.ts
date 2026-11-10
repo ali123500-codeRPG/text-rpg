@@ -17,7 +17,8 @@ import { achLevel, achXp, freeLevelsOwed } from '../ruleset/achRewards';
 export { achLevel, achXp, freeLevelsOwed };
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
-export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
+/** XP for the next level: free levels don't count, so they never make the next level dearer (D-153) */
+export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a) - (a.progression?.freeLevelsTaken ?? 0));
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
