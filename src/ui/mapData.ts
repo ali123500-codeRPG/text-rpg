@@ -72,3 +72,31 @@ export function compassOf(label: string): [number, number] | null {
   const n = Math.hypot(x, y);
   return [x / n, y / n];
 }
+
+/** the top-level place a place sits in (itself when it has no known parent) */
+export function rootPlace(m: KnownMap, id: string): string {
+  const byId = new Map(m.places.map((p) => [p.id, p]));
+  let p = byId.get(id);
+  for (let n = 0; p?.parentId && byId.has(p.parentId) && n < 20; n++) p = byId.get(p.parentId);
+  return p?.id ?? id;
+}
+
+/** the World view: one tile per top-level place you know (a village, a field, a road), joined by the roads you know between
+ *  them. Each tile is a MapZone whose id is the place's id, so the map's layout and drawing serve both views. */
+export function worldTiles(m: KnownMap): MapZone[] {
+  const roots = m.places.filter((p) => rootPlace(m, p.id) === p.id);
+  const zoneRoot = new Map(m.places.flatMap((p) => p.zones.map((z) => [z.id, rootPlace(m, p.id)] as const)));
+  const here = rootPlace(m, m.placeId);
+  return roots.map((r) => {
+    const inner = m.places.filter((p) => rootPlace(m, p.id) === r.id);
+    const zones = inner.flatMap((p) => p.zones);
+    const links: MapLink[] = [];
+    for (const z of zones) for (const l of z.links) {
+      const to = zoneRoot.get(l.to);
+      if (to && to !== r.id && !links.some((x) => x.to === to)) links.push({ to, label: l.label, sight: false, frontier: false, known: true });
+    }
+    const n = zones.length;
+    return { id: r.id, placeId: r.id, name: r.name, look: n ? `${n} zone${n === 1 ? '' : 's'} known` : 'no zones known', outdoor: true,
+      here: r.id === here, inView: r.id === here, links, people: [], items: [] };
+  });
+}
