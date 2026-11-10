@@ -2,7 +2,8 @@
 // Every Height Climbed) gives +1, +2, +3, +4, +5 by its place, each level including the lower ones (+3 in all at the second).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { charLevel, freeLevelsOwed, grantAchievement, spendXp } from '../../src/engine/xp';
+import { charLevel, freeLevelsOwed, grantAchievement, spendXp, xpToNext } from '../../src/engine/xp';
+import { CONFIG } from '../../src/config';
 import { freeLevelsEarned, rewardLines } from '../../src/ruleset/achRewards';
 import { classMaxLevel } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';
@@ -31,6 +32,19 @@ describe('146 free levels', () => {
     expect(freeLevelsEarned(p)).toBe(3); // the second level includes the first: +1 +2
     expect(pr.freeLevelsTaken).toBe(3);
     expect(pr.xpLog!.filter((x) => x.source === 'free level').length).toBe(3);
+  });
+
+  it('free levels do not raise the XP cost of the next level', () => {
+    const s = makeVillage();
+    const p = s.player, pr = p.progression!;
+    pr.xp = 0;
+    const cost = xpToNext(p), level = charLevel(p);
+    pr.freeLevelsTaken = 0;
+    p.core.classes.find((c) => c.state === 'current')!.level += 2;
+    pr.freeLevelsTaken = 2; // two levels that came free
+    expect(charLevel(p)).toBe(level + 2);
+    expect(xpToNext(p)).toBe(cost);
+    expect(cost).toBe(CONFIG.LEVEL_XP * Math.max(1, level));
   });
 
   it('free levels bank while no class has room, and arrive when a class is picked', () => {
