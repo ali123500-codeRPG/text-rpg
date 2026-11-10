@@ -34,6 +34,11 @@ const DEFAULTS = {
   STACK_RATIO: 0.5,
   /** the quality lever: a minted weapon's hit bonus = QUALITY_HIT_FACTOR × its need × its quality (1–4) */
   QUALITY_HIT_FACTOR: 0.04,
+  /** QE2: a minted weapon's damage boost = QUALITY_DAMAGE_FACTOR × need × quality × the mode's class factor × its tree factor */
+  QUALITY_DAMAGE_FACTOR: 0.02,
+  /** QE2 type levers: class factors follow class damage over medium's (20/25, 25/25, 30/25); melee and ranged start equal (placeholder) */
+  DAMAGE_CLASS_FACTOR: { light: 0.8, medium: 1, heavy: 1.2 } as Record<string, number>,
+  DAMAGE_TREE_FACTOR: { melee: 1, ranged: 1 } as Record<string, number>,
   /** the balance lever for all equipment: a standard-kit piece's bonus = EQUIP_FACTOR × its need (EQUIP_NEED) */
   EQUIP_FACTOR: 0.4,
   /** the armor lever (QE4): the damage armor stops = ARMOR_FACTOR × its need; the multiplier stays with its weight */
@@ -158,7 +163,7 @@ const DEFAULTS = {
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
-    damageAdj: [1, 2, 3, 4], tool: [5, 10, 15, 20],
+    tool: [5, 10, 15, 20],
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10, // placeholder (loot L3)

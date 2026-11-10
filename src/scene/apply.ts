@@ -88,13 +88,15 @@ export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['
   const q = m.quality;
   const T = CONFIG.QUALITY_TABLE;
   const def: ItemDef = { ...structuredClone(base), id: `${base.id}_m${state.turn}_${n}`, name: m.name, look: m.look, base: { itemId: base.id, quality: q, boosts: m.boosts } };
+  const need = requirement(def)?.need ?? 0; // gear stats scale with the minted level's need (quality 3 and 4 move it up a level)
   if (def.weapon) {
     for (const mode of def.weapon.modes) {
-      if (m.boosts === 'damageAdj') mode.damageAdj = (mode.damageAdj ?? 0) + T.damageAdj[q - 1];
-      else mode.hitAdj = (mode.hitAdj ?? 0) + Math.round(CONFIG.QUALITY_HIT_FACTOR * (requirement(def)?.need ?? 0) * q); // gear stats scale with need
+      if (m.boosts === 'damageAdj') { // QE2: fractions stay
+        const f = (CONFIG.DAMAGE_CLASS_FACTOR[mode.class] ?? 1) * (CONFIG.DAMAGE_TREE_FACTOR[mode.tree] ?? 1);
+        mode.damageAdj = (mode.damageAdj ?? 0) + Math.round(CONFIG.QUALITY_DAMAGE_FACTOR * need * q * f * 100) / 100;
+      } else mode.hitAdj = (mode.hitAdj ?? 0) + Math.round(CONFIG.QUALITY_HIT_FACTOR * need * q);
     }
   }
-  const need = requirement(def)?.need ?? 0; // the minted level's need (quality 3 and 4 move it up a level)
   if (def.armor) def.armor.reduction = CONFIG.ARMOR_FACTOR * need + Math.round(CONFIG.ARMOR_QUALITY_FACTOR * need * q); // QE4, QE6
   if (def.shield) def.shield.pool = CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * need + Math.round(CONFIG.POOL_QUALITY_FACTOR * need * q); // QE5, QE6
   if (def.kind === 'tool') for (const e of def.effects ?? []) if (e.kind === 'skill') e.value += T.tool[q - 1];
