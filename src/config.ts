@@ -193,7 +193,10 @@ const DEFAULTS = {
   // Kill XP from stats (X18–X23): rating = per category, skills' training effort ranked high to low at 1, ½, ¼…,
   // × the category weight; kill XP = rating × taper × KILL_XP_MULT. Placeholders, tuned later (X19).
   /** a foe's rating: one pool per skill group (a skill counts in its first group), × this weight; a skill with no group counts 0 */
-  XP_GROUP_WEIGHT: { [GR.melee]: 1, [GR.ranged]: 1, [GR.defense]: 1, [GR.health]: 1, [GR.notice]: 0.5, [GR.stealth]: 1, [GR.influence]: 0.25, [GR.speed]: 0 } as Record<string, number>,
+  /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
+  XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
+  /** each skill group's XP factor level in the defeat-XP rating */
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none' } as Record<string, string>,
   KILL_XP_MULT: 1, // X20: ×1 for now
   /** a foe's held and worn gear adds this × its coin value to the foe's rating (foe side only) */
   GEAR_RATING_FACTOR: 0.25,
