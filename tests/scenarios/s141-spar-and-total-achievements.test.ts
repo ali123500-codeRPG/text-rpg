@@ -71,9 +71,9 @@ describe('141 lost fights and the first spar lost', () => {
 });
 
 describe('141 scars pay one reward level lower', () => {
-  it('a scar pays the XP of the level below its own; below level 0 it pays SCAR_XP_BELOW_ZERO', () => {
-    expect(achXp({ level: 'zero', scar: true })).toBe(CONFIG.SCAR_XP_BELOW_ZERO);
-    expect(CONFIG.SCAR_XP_BELOW_ZERO).toBe(25);
+  it('a scar pays the XP of the level below its own; a level 0 scar pays level −1 (25)', () => {
+    expect(achXp({ level: 'zero', scar: true })).toBe(CONFIG.REWARD_XP.minus_1);
+    expect(CONFIG.REWARD_XP.minus_1).toBe(25);
     expect(achXp({ level: 'i', scar: true })).toBe(CONFIG.REWARD_XP.zero);
     expect(achXp({ level: 'v', scar: true })).toBe(CONFIG.REWARD_XP.iv);
     expect(achXp({ level: 'ii' })).toBe(CONFIG.REWARD_XP.ii);
