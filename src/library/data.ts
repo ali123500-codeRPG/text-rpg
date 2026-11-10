@@ -61,9 +61,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.persuasion, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.intimidation, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.barter, TR.speech, [FN.influence], [RL.speech]),
-  sk(SK.feint, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
   sk(SK.riposte, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
-  sk(SK.disarm, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
   sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', undefined, 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
@@ -383,7 +381,7 @@ export function prototypeLibrary(): Library {
       [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
