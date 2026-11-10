@@ -653,9 +653,9 @@ export function prototypeLibrary(): Library {
       [ACH.class_tiers_4]: { id: ACH.class_tiers_4, name: 'Across Four Heights', level: 'iv', rule: 'class_max_tiers', tags: ['progression'], count: 4, after: ACH.class_tiers_3, freeLevels: 3 },
       [ACH.class_tiers_5]: { id: ACH.class_tiers_5, name: 'Across Five Heights', level: 'v', rule: 'class_max_tiers', tags: ['progression'], count: 5, after: ACH.class_tiers_4, freeLevels: 4 },
       [ACH.class_tiers_all]: { id: ACH.class_tiers_all, name: 'Every Height Climbed', level: 'vi', rule: 'class_max_tiers', tags: ['progression'], count: CLASS_TIERS.keys.length, after: ACH.class_tiers_5, freeLevels: 5 },
-      [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Beyond the Summit ({level})', level: 'zero', rule: 'char_level', tags: ['progression'], count: 10, every: 10,
+      [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Woven Past Counting ({level})', level: 'zero', rule: 'char_level', tags: ['progression'], count: 10, every: 10,
         names: { 10: 'No Longer Green', 20: 'Steady Hand', 30: 'Battle-Tested', 40: 'A Name Worth Knowing', 50: 'Half a Hundred Roads',
-          60: 'Veteran of Countless Roads', 70: 'Talked of in Taverns', 80: 'Living Legend', 90: 'Last of the Old Breed', 100: 'One Who Stands at the Summit' } },
+          60: 'Something Tugs at the Edges', 70: 'The Pattern Takes Notice', 80: 'Caught in the Weave', 90: 'A Thread That Will Not Fray', 100: 'One Who Pulls the Threads' } },
     },
   });
   // ST1: a skill's tree is wherever the trees table lists it, so moving a skill is one edit there
