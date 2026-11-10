@@ -886,7 +886,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   const ach = s.player.progression?.achievements ?? [];
   for (const x of s.player.progression?.xpLog ?? []) {
     if (x.turn !== turn) continue;
-    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${getLibrary().classes[x.levelUp.classId]?.name ?? x.levelUp.classId})`); continue; }
+    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${x.levelUp.classId ? getLibrary().classes[x.levelUp.classId]?.name ?? x.levelUp.classId : 'bonus level'})`); continue; }
     const [kind, id] = x.source.split(/:(.*)/);
     const what = kind === 'defeat' ? name(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
     out.push(`+${num(x.amount)} XP (${what})`);

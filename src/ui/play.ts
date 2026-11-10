@@ -258,7 +258,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       gains.length ? row('Skills', gains.map(([k, n]) => `${skillName(k)} +${n}`).join(' · ')) : null,
       xp ? row('XP', `+${xp}`) : null,
       ...(l.heals ?? []).map(healCard),
-      ...(l.levelUps ?? []).map((u) => goldCard('Level up', `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}`, ['See perks', seePerks])),
+      ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks])),
       ...(l.achievements ?? []).map((a) => goldCard('Achievement', a.name, ['See achievements', () => nav('achievements')])),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
       ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks])),

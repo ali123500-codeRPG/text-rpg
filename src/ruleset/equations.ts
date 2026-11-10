@@ -154,7 +154,7 @@ export function equations(lib: Library): EquationGroup[] {
     { key: 'levels', title: 'Levels', about: 'How XP turns into levels.', equations: [
       { name: 'XP to the next level', at: 'xpToNext · spendXp · src/engine/xp.ts',
         formula: `XP to go from level n to n + 1 = ${CONFIG.LEVEL_XP} × n`,
-        terms: [[String(CONFIG.LEVEL_XP), 'CONFIG.LEVEL_XP'], ['n', 'character level: the sum of every class\'s level (at least 1)']],
+        terms: [[String(CONFIG.LEVEL_XP), 'CONFIG.LEVEL_XP'], ['n', 'character level: the sum of every class\'s level, plus bonus levels, less the free and bonus levels taken (at least 1); free and bonus levels never make the next level dearer']],
         table: { head: ['From level', 'To level', 'XP needed', 'Total from level 1'], rows: [1, 2, 3, 4, 5, 10, 15, 19].map((l) => [String(l), String(l + 1), String(CONFIG.LEVEL_XP * l), String(CONFIG.LEVEL_XP * l * (l + 1) / 2)]) },
         notes: [`The XP is spent and the level goes into the current class, or the class picked for the next level. The player starts at level ${CONFIG.START_LEVEL}.`,
           'One gain can take several levels in a row. When the class has no room left (at its top level), the XP stays banked until a class with room is picked.',

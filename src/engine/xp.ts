@@ -13,11 +13,13 @@ import { functionName, groupName, groupsOf } from '../library/functionNames';
 import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
-import { achLevel, achXp, freeLevelsOwed } from '../ruleset/achRewards';
-export { achLevel, achXp, freeLevelsOwed };
+import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed } from '../ruleset/achRewards';
+export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
-export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
-export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
+/** character level: every class's level, plus bonus levels (levels no class gets) */
+export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0) + (a.progression?.bonusLevelsTaken ?? 0);
+/** XP for the next level: free levels don't count, so they never make the next level dearer (D-153) */
+export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0));
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
@@ -45,6 +47,7 @@ export function levelTarget(p: Actor) {
 export function spendXp(state: GameState): void {
   const p = state.player, pr = p.progression;
   if (!pr) return;
+  takeBonusLevels(state);
   for (let free = freeLevelsOwed(p) > 0; (free || pr.xp >= xpToNext(p)) && levelTarget(p); free = freeLevelsOwed(p) > 0) {
     if (free) pr.freeLevelsTaken = (pr.freeLevelsTaken ?? 0) + 1;
     else pr.xp -= xpToNext(p);
@@ -52,12 +55,26 @@ export function spendXp(state: GameState): void {
     (pr.xpLog ??= []).push({ source: free ? 'free level' : 'level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
+  takeBonusLevels(state); // a class perk can give bonus levels too
   classFeats(state);
   unlockClasses(state); // a class-level perk can unlock a class (Commoner 5 opens A Nobody)
   const cur = p.core.classes.find((c) => c.state === 'current');
   if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the top level
     if (!c.fallback || p.core.classes.some((x) => x.classId === c.id)) continue;
     openClass(state, c.id);
+  }
+}
+
+/** bonus levels: character levels no class gets, taken at once (they never wait for a class). Each gives the perk point
+ * of an even character level like any level, but no class perks, and none of them raise XP costs. */
+function takeBonusLevels(state: GameState): void {
+  const p = state.player, pr = p.progression!;
+  while (bonusLevelsOwed(p) > 0) {
+    pr.bonusLevelsTaken = (pr.bonusLevelsTaken ?? 0) + 1;
+    if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
+    const up = { classId: '', level: charLevel(p) };
+    (pr.xpLog ??= []).push({ source: 'bonus level', amount: 0, turn: state.turn, levelUp: up });
+    logCode(state, 'level_up', up);
   }
 }
 
@@ -265,7 +282,7 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   const xp = achXp(d, of);
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
-  if (d.freeLevels) spendXp(state); // free levels need no XP to arrive
+  if (d.freeLevels || d.bonusLevels) spendXp(state); // free and bonus levels need no XP to arrive
   // achievements for the total earned: every other achievement counts, replaced levels too; scars and these totals do not
   if (!d.scar && d.rule !== 'achievements')
     tally(state, 'achievements', { to: pr.achievements!.filter((x) => { const k = lib[x.key ?? '']; return k && !k.scar && k.rule !== 'achievements'; }).length });
