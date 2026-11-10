@@ -373,6 +373,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     who.replaceChildren(h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp' }, h('b', {}, cap(a.name ?? a.label)),
       a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, isDownLevel(a.health) ? 'Down' : a.health)
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
+      // MB16: others' morale, only from Afraid down
+      a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
       // A13 Read Wounds: a foe's Damaged parts
       ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`)))) : [h('span', { class: 'hs-note' }, 'Nobody in view')]));
 
