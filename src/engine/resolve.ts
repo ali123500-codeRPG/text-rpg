@@ -28,6 +28,7 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { buy, sell } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
+import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
@@ -734,6 +735,13 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // NT14/I4: engagement auras check each newly qualifying target before anyone acts
   for (const c of engagementAuras(state, rng, (a, id, gap) => fear(ctx, a, id, { gap }))) {
     emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk } }] }), c.contest);
+  }
+  // LI5b Gut Feeling: a hunch of a hidden watcher, from its zone; the owner turns suspicious of it there
+  for (const h of gutFeelings(state, rng)) {
+    if (!h.felt) continue;
+    const ev = mk(ctx, h.owner, 'hunch', { zone: h.watcher.zone, perception: { [h.owner.id]: { level: 'partial', cue: 'sight' } } });
+    ctx.events.push(ev); // not emitted: a feeling makes no sound and shows the owner to no one
+    updateBeliefs(state, { kind: 'detection', observerId: h.owner.id, aboutId: h.watcher.id, status: 'suspicious', event: ev });
   }
   const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), orders, rng);
 

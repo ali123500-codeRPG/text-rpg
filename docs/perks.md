@@ -587,11 +587,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Blade Wall (Parry) · B19
 
-*Story:* Let them all come. Your sword turns one blow after another. When you parry with a medium weapon, being outnumbered doesn't hurt your guard.
+*Story:* Let them all come. Your sword turns one blow after another. When you parry with a medium or heavy weapon, being outnumbered doesn't hurt your guard.
 
 - **Kind:** Always on
 - **Trigger:** The owner parries.
-- **Conditions:** The owner parries with a medium melee weapon.
+- **Conditions:** The owner parries with a medium or heavy melee weapon.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
 
@@ -703,6 +703,18 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Until the end of the owner's next turn, one shot.
 - **Needs first:** Moves; reactions.
 - **Banked as:** a later Medium ranged perk, suggested for the 60 perk
+
+### Gut Feeling (Insight) · LI5b
+
+*Story:* You can feel ill will on the back of your neck. When someone who means you harm watches you from hiding, you may get a hunch of where they are, though never who.
+
+- **Kind:** Always on
+- **Trigger:** The start of each turn.
+- **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and in the owner's zone or one sight link away. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scene.
+- **Effect:** The owner's Insight against the watcher's stealth (Combat Stealth in a fight, Sneaking otherwise). If the owner wins, it gets a hunch of being watched from the watcher's zone, never who, and turns suspicious of the watcher there. It can then look or listen for them as usual.
+- **Lasts:** Until the owner's belief changes on its own.
+- **Open:** Its place on the Insight ladder waits for Ali (LI7: 20 beside Overheard).
+- **Banked as:** a later Insight perk
 
 ### Not Born Yesterday (Insight) · LI2c
 
@@ -952,6 +964,37 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Kind:** Always on
 - **Trigger:** A hit lands on the owner's body (not a shield).
 - **Effect:** The hit's damage before armor is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
+### Against the Grain (Combat – Defense, Parry) · T4g
+
+*Story:* A heavy blade is no harder to turn than any other. Heavy weapons lose their edge against your parry.
+
+- **Kind:** Always on
+- **Trigger:** The owner parries a heavy melee weapon.
+- **Effect:** The heavy-weapon gap shift (−1, HEAVY_VS_BLOCK_GAP) is not applied to the owner's parries. Blocks still take it.
+- **Lasts:** Always.
+- **Built:** yes
+
+### Iron Rim (Combat – Defense, Block) · T4h
+
+*Story:* Your shield is bound to last. It wears down a quarter slower than anyone else's.
+
+- **Kind:** Always on
+- **Trigger:** A blow lands on the owner's shield.
+- **Effect:** The damage the shield's pool takes is ×0.75 (CONFIG.IRON_RIM_MULT, placeholder). Shield Breaker's ×2 still applies on top.
+- **Lasts:** Always.
+- **Built:** yes
+
+### Grit (Fortitude, Resolve) · T4i
+
+*Story:* A hard body makes a hard mind. A quarter of your Endurance adds to every Resolve roll, morale rolls included, and both skills learn from them.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a Resolve roll (a morale roll, or an answer to an aura).
+- **Conditions:** The Fortitude tree is open to the owner.
+- **Effect:** Endurance augments Resolve: the roll adds the owner's true Endurance × 0.25 (CONFIG.GRIT_SHARE, placeholder) × its tier, the way a skill augment does, and Endurance can learn from the roll the same way.
 - **Lasts:** Always.
 - **Built:** yes
 

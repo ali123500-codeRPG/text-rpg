@@ -158,6 +158,8 @@ export type PerkDef = {
   improveRolls?: { below: number; rolls: number };
   freeLevels?: number; // free levels: this many level-ups that cost no XP, given while the perk is owned and active
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
+  /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open) */
+  augments?: { from: string; skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
