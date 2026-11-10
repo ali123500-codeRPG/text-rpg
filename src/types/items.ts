@@ -54,6 +54,8 @@ export type AttackMode = {
   reach: number;
   hands: 0 | 1 | 2;
   thrown?: true;
+  /** set at use from the attack mode row (Throw): a combined roll, each skill's effective value (its own stand-ins) × its share, summed */
+  blend?: { skill: LibraryRef; share: number }[];
   damageAdj?: number;
   hitAdj?: number;
   /** extra skill functions whose skills may stand in for this mode's skill, at the usual share (

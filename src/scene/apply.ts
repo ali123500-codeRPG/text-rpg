@@ -92,7 +92,8 @@ export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['
   if (def.weapon) {
     for (const mode of def.weapon.modes) {
       if (m.boosts === 'damageAdj') { // QE2: fractions stay
-        const f = (CONFIG.DAMAGE_CLASS_FACTOR[mode.class] ?? 1) * (CONFIG.DAMAGE_TREE_FACTOR[mode.tree] ?? 1);
+        const use = def.gearClass ? getLibrary().gearClasses?.[def.gearClass]?.use : undefined; // the gear class's melee/ranged tag, not the mode's (a thrown dagger is melee gear)
+        const f = (CONFIG.DAMAGE_CLASS_FACTOR[mode.class] ?? 1) * (CONFIG.DAMAGE_TREE_FACTOR[use === 'melee' || use === 'ranged' ? use : mode.tree] ?? 1);
         mode.damageAdj = (mode.damageAdj ?? 0) + Math.round(CONFIG.QUALITY_DAMAGE_FACTOR * need * q * f * 100) / 100;
       } else mode.hitAdj = (mode.hitAdj ?? 0) + Math.round(CONFIG.QUALITY_HIT_FACTOR * need * q);
     }
