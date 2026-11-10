@@ -13,6 +13,7 @@ import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
+import { autopilotBar } from './autopilot';
 import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -187,7 +188,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   try { folded = localStorage.getItem('sheetFolded') !== '0'; } catch { /* storage blocked: start with the strip */ }
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
   const wrap = h('div', { class: 'play-wrap' }, body, sheet);
-  const el = h('main', { class: 'playmain' }, title, who, wrap, fell);
+  // Watch an agent play: it types each command into the box, then sends it like Send
+  const auto = autopilotBar(api, async (text) => {
+    input.value = '';
+    for (const ch of text) { input.value += ch; await new Promise((r) => setTimeout(r, Math.min(35, 1500 / text.length))); }
+    await submit(true);
+  }, () => update());
+  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell);
 
   // Escape closes whatever is open; PageUp/PageDown scroll the story while the box has focus; Tab takes the suggestion
   document.addEventListener('keydown', (e) => {
@@ -207,9 +214,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   let offered: LogLine | null = null;
 
-  async function submit() {
+  async function submit(byAgent = false) {
     const text = input.value.trim();
-    if (!text || api.busy()) return;
+    if (!text || api.busy() || (auto.playing() && !byAgent)) return;
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
     if (NAV_COMMANDS[cmd] && text === cmd) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
@@ -419,8 +426,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     notices.replaceChildren(...ns.map((n) => h('div', { class: 'hs-hl ' + (n.kind === 'stop_play' || n.kind === 'save_failed' ? 'bad' : 'ask'), role: 'status' },
       h('span', { class: 'hs-hl-b', 'data-kind': NOTICE_KIND[n.kind] }, n.text))));
     const stopped = ns.some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
-    input.disabled = stopped || busy;
-    send.disabled = stopped || busy;
+    input.disabled = stopped || busy || auto.playing(); // the autopilot has the box while it plays
+    send.disabled = stopped || busy || auto.playing();
+    auto.update();
     aimBtn.disabled = stopped;
     st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it

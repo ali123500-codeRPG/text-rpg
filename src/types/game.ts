@@ -67,8 +67,11 @@ export interface GameApi {
   fell(): boolean; // "You fell" screen (lethal fight incapacitated the player)
   subscribe(cb: () => void): () => void;
   validateBuild(build: CreationBuild): string[]; // empty = valid
-  newStory(build: CreationBuild): Promise<void>;
-  resume(): Promise<boolean>; // load the latest story; false when none
+  newStory(build: CreationBuild, opts?: { owner?: import('./state').StoryOwner }): Promise<void>;
+  /** load the owner's latest story (the player's by default); false when it has none */
+  resume(owner?: import('./state').StoryOwner): Promise<boolean>;
+  /** autopilot: the agent's next command and one short line of commentary, or null when the call failed */
+  agentMove(persona?: string): Promise<{ command: string; say: string } | null>;
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
   reset(): Promise<void>; // confirmed by the UI first
