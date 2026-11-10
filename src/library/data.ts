@@ -518,7 +518,7 @@ export function prototypeLibrary(): Library {
       [ACH.mastery_superior_50]: { id: ACH.mastery_superior_50, name: 'Paragon of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
       [ACH.mastery_superior_100]: { id: ACH.mastery_superior_100, name: 'Ascendant of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_superior_50 },
       [ACH.mastery_superior_150]: { id: ACH.mastery_superior_150, name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_superior_100 },
-      [ACH.mastery_legendary_50]: { id: ACH.mastery_legendary_50, name: 'Heir to the Lost Art of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
+      [ACH.mastery_legendary_50]: { id: ACH.mastery_legendary_50, name: 'Chosen of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
       [ACH.mastery_legendary_100]: { id: ACH.mastery_legendary_100, name: '{tree} Incarnate', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_legendary_50 },
       [ACH.mastery_legendary_150]: { id: ACH.mastery_legendary_150, name: 'The Heavens Kneel to {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_legendary_100 },
       // deeds: the player's tallies (tally in src/engine/xp.ts, turnFeats in src/engine/feats.ts)
