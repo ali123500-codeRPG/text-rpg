@@ -36,6 +36,7 @@ export type Actor = {
   haggle?: Record<ActorId, number>;
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
   pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
+  hunches?: { scene: number; ids: string[] }; // LI5b Gut Feeling: watchers that set off the owner's hunch this scene (sceneStartTurn)
   auraChecks?: string[]; // NT14/I4: the auras (perk:owner) this actor has already checked against this engagement
   /** NT3: speech tries this engagement, by listener and speech kind */
   speechTries?: Record<ActorId, Record<string, number>>;
@@ -52,7 +53,9 @@ export type EngagementKind = 'talk' | 'fight' | 'spar';
 export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
-export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true };
+export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true;
+  /** the most a hostile foe's power (rating + gear rating) was above the player's: in points and in % */
+  above?: number; abovePct?: number };
 
 export type SkillState = 'tagged' | 'normal' | 'flawed';
 export type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };

@@ -32,7 +32,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
 
   function start(b: CreationBuild) {
     const player = playerFromBuild(b, 'fake', 'tav_common', 'tavern');
-    const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_MECHANICS, tone: CONFIG.STYLE.tone };
+    const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone };
     const slime = spawnNpc(null, TP.slime, { id: 'slime_1', zone: 'field_mid', placeId: 'field', bandId: 'slimes', storyId: 'fake', name: 'slime' });
     slime.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'field_edge', lastSeenTurn: 2, source: 'seen', revealed: [] } };
     const guard = spawnNpc(null, TP.guard, { id: 'guard_1', zone: 'tav_common', placeId: 'tavern', bandId: 'village_watch', storyId: 'fake', name: 'Bren' });
@@ -80,6 +80,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     validateBuild: validateBuildLocal,
     async newStory(b) { start(b); emit(); },
     async resume() { return state !== null; },
+    async hallOfFame() {
+      return [{ name: 'Aldric', pronouns: 'he', title: 'Slime-Bane', classes: [{ name: 'Swordsman', level: 6 }], level: 6, owner: 'player' as const, storyId: 'story_fake',
+        skills: [{ name: 'Medium weapons', value: 58 }, { name: 'Parry', value: 47 }, { name: 'Endurance', value: 50 }, { name: 'Dodge', value: 31 }],
+        perks: ['Keen Ear', 'Turn the Blade'], achievements: ['First Blood', 'Slime-Bane'], scars: ['First Crack'], defeats: 12, turn: 48, day: 3,
+        place: 'The back yard · The Lantern & Ladle', downedBy: { by: 'a lanky youth', weapon: 'dagger', part: 'neck', outcome: 'crushing hit' }, fellAt: '2026-11-10T21:00:00.000Z' }];
+    },
+    async agentMove() { return { command: 'I look around.', say: 'Getting my bearings first.' }; },
     async submit(text, o) {
       if (busy || !state) return;
       // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one
@@ -90,8 +97,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       await new Promise((r) => setTimeout(r, 600));
       state.turn = t + 1;
       if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
+      const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
+      if (drop) fell = true;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scene: state.stage.sceneNumber }];
+        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },

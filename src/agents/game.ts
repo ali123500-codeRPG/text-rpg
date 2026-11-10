@@ -1,7 +1,7 @@
 // The turn pipeline (Part 2, Architecture: one turn) behind GameApi.
 // Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scene setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
-import type { AgentName, TierRoll,
+import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
   GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PlannerOutput, Rng, TurnRecord, Actor,
 } from '../types';
@@ -22,7 +22,9 @@ import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
 import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
-import { StopPlay, type AgentCtx, type RunResult } from './call';
+import { StopPlay, modelFor, type AgentCtx, type RunResult } from './call';
+import { fameEntry } from './fame';
+import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
 import { isComm, noticeCue } from '../perception';
@@ -468,7 +470,8 @@ export function createGame(deps: GameDeps): Game {
 
   // ---------------- story lifecycle ----------------
 
-  async function newStory(build: CreationBuild): Promise<void> {
+  async function newStory(build: CreationBuild, opts: { owner?: StoryOwner } = {}): Promise<void> {
+    const owner = opts.owner ?? 'player';
     const errs = validateBuild(build);
     if (errs.length) throw new Error(errs.join('; '));
     // GAP: W6's director is injected; without it there is no way to set up turn 0
@@ -479,6 +482,7 @@ export function createGame(deps: GameDeps): Game {
     const seed = (now >>> 0) || 1;
     state = newState(storyId, seed, { ...createPlayer(build, storyId), placeId: 'tavern' /* the first build starts in the village tavern (Story start) */ }, new Date(now).toISOString());
     state.player.core.standingDefense = defaultStandingDefense(state, state.player); // same rule as the creation preview
+    if (owner === 'agent') state.meta.owner = 'agent'; // the autopilot's own save: one story per owner
     lines = [];
     savedLines = 0;
     notices = [];
@@ -486,13 +490,13 @@ export function createGame(deps: GameDeps): Game {
     busy = true;
     emit();
     // the build is kept until turn 0 is saved, so closing the game during the opening doesn't lose it (resume restarts it)
-    await save.savePendingStart(store, { storyId, build, at: new Date(now).toISOString() }).catch(() => {});
+    await save.savePendingStart(store, { storyId, build, at: new Date(now).toISOString(), ...(owner === 'agent' ? { owner } : {}) }).catch(() => {});
     try {
       const rng = createRng(seed);
       const events = await director.startStory(state, rng, ctxFor(0, turnLog));
       state.rngState = rng.state;
       await finishTurn(state, events, { playerInput: '', rngBefore: seed, aimed: false, intent: null }, null);
-      if (await save.storySaved(store, storyId).catch(() => false)) await save.clearPendingStart(store).catch(() => {});
+      if (await save.storySaved(store, storyId).catch(() => false)) await save.clearPendingStart(store, owner).catch(() => {});
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
       else throw e;
@@ -502,19 +506,20 @@ export function createGame(deps: GameDeps): Game {
     }
   }
 
-  async function resume(): Promise<boolean> {
-    // the newest story runs (same order as save.listStories)
-    const latest = (await save.listStories(store))[0];
+  async function resume(owner: StoryOwner = 'player'): Promise<boolean> {
+    // the owner's newest story runs (same order as save.listStories): one story per owner, the player's and the autopilot's
+    const latest = (await save.listStories(store)).find((m) => (m.owner ?? 'player') === owner);
     // a story closed during its opening (turn 0 never saved): start that opening again from the kept build
-    const pending = await save.loadPendingStart(store).catch(() => null);
+    const pending = await save.loadPendingStart(store, owner).catch(() => null);
     const pendingLive = !!pending && !(await save.storySaved(store, pending.storyId).catch(() => false)) && !(latest && latest.createdAt > pending.at);
     if (pending && pendingLive) {
-      void newStory(pending.build).catch((e) => notice({ kind: 'load_refused', text: `The story could not start: ${(e as Error).message}` }));
+      void newStory(pending.build, { owner }).catch((e) => notice({ kind: 'load_refused', text: `The story could not start: ${(e as Error).message}` }));
       return true;
     }
-    if (pending) await save.clearPendingStart(store).catch(() => {});
+    if (pending) await save.clearPendingStart(store, owner).catch(() => {});
     const storyId = latest?.storyId;
     if (!storyId) return false;
+    abortBackground(); // switching stories (the autopilot's own save and back): the old story's background calls stop
     try {
       const loaded = await save.loadStory(store, storyId, getLibrary());
       state = loaded.state;
@@ -549,12 +554,19 @@ export function createGame(deps: GameDeps): Game {
     validateBuild,
     newStory,
     resume,
+    hallOfFame: () => save.listFallen(store),
+    async agentMove(persona = '') {
+      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona) }], json: true, ...modelFor('autopilot') });
+      return r.ok ? readMove(r.value) : null;
+    },
     submit,
     async reset() {
       abortBackground();
       if (state) {
         // D-73: archive, so a reload starts fresh instead of loading the old story again
-        await save.archiveStory(store, state.storyId, new Date(clock.now()).toISOString());
+        const at = new Date(clock.now()).toISOString();
+        // hall of fame: a character archived while down is kept as they fell
+        await save.archiveStory(store, state.storyId, at, isDownLevel(safeHealth(state.player)) ? fameEntry(state, lines, placeName(state), at) : undefined);
         await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
       }
       state = null;
@@ -777,8 +789,8 @@ export function placeName(s: GameState): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> {
-  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> = {};
+export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> {
+  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> = {};
   const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? n.charAt(0).toUpperCase() + n.slice(1) : n);
   const words = (x: string) => x.replace(/_/g, ' ');
   let check: LineCheck | undefined, checkEv: string | undefined;
@@ -824,6 +836,18 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     }
   }
   if (incoming.length) out.incomingChecks = incoming;
+  // the turn left the player down: name the last blow that hurt them (only hits lower health), as they perceived it
+  if (s.player.id === 'player' && isDownLevel(safeHealth(s.player))) {
+    const hit = [...events].reverse().find((e) => e.attack && e.attack.targetId === 'player' && e.attack.damage > 0);
+    if (hit?.attack) {
+      const pk = nv.events.find((x) => x.id === hit.id)?.packet;
+      const by = pk?.actor && pk.actor !== 'player' ? pk.actor : 'someone';
+      const loc = hit.attack.location; // an unseen blow is still felt where it lands
+      out.downedBy = { by, weapon: pk ? pk.weapon : null, part: pk?.location?.part ?? (loc && loc !== 'general' && loc !== 'shield' ? words(loc) : null),
+        outcome: pk?.outcome ?? words(hit.attack.outcome),
+        ...(by === 'someone' ? { unseen: true as const } : {}) };
+    }
+  }
   const speech = nv.heard.filter((l) => !narration.includes(l.text)).map((l) => ({ speaker: l.speaker, volume: l.volume, text: l.text }));
   if (speech.length) out.speech = speech;
   const changes: NonNullable<LogLine['changes']> = [];
@@ -944,7 +968,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
 // Player creation and build checks live in src/library/spawn.ts (createPlayer, validateBuild), shared with the creation preview.
 
 function newState(storyId: string, seed: number, player: Actor, createdAt: string): GameState {
-  const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_MECHANICS, tone: CONFIG.STYLE.tone };
+  const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone };
   return {
     storyId, turn: 0, mode: 'explore', zones: [], player, actors: [],
     bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: {} }],

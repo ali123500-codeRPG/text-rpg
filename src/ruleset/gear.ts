@@ -149,6 +149,21 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
   return best!; // GAP: hard cap (D-3) and condition effects not designed yet
 }
 
+/** augments the actor's perks give (PerkDef.augments, All-50 Grit), for `skill` on a roll of this kind: the augmenting
+ * skill's tree must be open and the skill not dormant, as for a skill's own augments */
+export function perkAugments(actor: Actor, skill: string, rollKind?: RollKind): { from: string; share?: number; perk: string }[] {
+  const perks = getLibrary().perks, out: { from: string; share?: number; perk: string }[] = [];
+  for (const p of actor.core.perks) {
+    const def = perks[p.perkId];
+    if (p.dormant || !def?.augments) continue;
+    for (const g of def.augments) {
+      if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, g.from) || actor.core.skills[g.from]?.dormant) continue;
+      out.push({ from: g.from, share: g.share, perk: def.name });
+    }
+  }
+  return out;
+}
+
 /** skills augmenting `skill` on this roll (SkillDef.augments): each adds true skill × share × its tier, when its tree is
  * open and the roll kind fits (no kinds listed: every roll and check of the skill) */
 export function augmentsOf(actor: Actor, skill: string, rollKind?: RollKind): { source: string; value: number }[] {
@@ -159,6 +174,10 @@ export function augmentsOf(actor: Actor, skill: string, rollKind?: RollKind): { 
       const value = trueSkill(actor, id) * (g.share ?? 1) * tierMult(id);
       if (value) out.push({ source: `${skillName(id)} (augments)`, value });
     }
+  }
+  for (const g of perkAugments(actor, skill, rollKind)) {
+    const value = trueSkill(actor, g.from) * (g.share ?? 1) * tierMult(g.from);
+    if (value) out.push({ source: `${skillName(g.from)} (augments, ${g.perk})`, value });
   }
   return out;
 }

@@ -105,7 +105,22 @@ export type StoryMeta = {
   settings: Settings;
   /** set by a confirmed reset (D-73): the story's pages stay under its id, but play no longer loads it */
   archivedAt?: string;
+  /** whose story it is: absent = the player's; 'agent' = the autopilot's own save. One story per owner runs at a time. */
+  owner?: StoryOwner;
+  /** hall of fame: the character as they fell, written when a fallen story is archived */
+  fame?: FameEntry;
 };
+/** a fallen character, kept for the hall of fame (names, not ids, so it reads the same if the library changes) */
+export type FameEntry = {
+  name: string; pronouns?: string; title?: string;
+  classes: { name: string; level: number }[]; level: number;
+  skills: { name: string; value: number }[]; // the highest true skills, best first
+  perks: string[]; achievements: string[]; scars: string[];
+  defeats: number; turn: number; day: number; place: string;
+  downedBy?: import('./game').DownedBy;
+  fellAt: string; // ISO time the story was archived
+};
+export type StoryOwner = 'player' | 'agent';
 
 export type PageRef = { version: Turn; hash: string; bytes: number };
 export type Bookmark = { turn: Turn; pages: Record<string, PageRef> };

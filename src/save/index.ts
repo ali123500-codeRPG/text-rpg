@@ -1,5 +1,5 @@
 // W1 — Save, load, undo, backups (Part 4 §6–8, §10–11).
-import type { CreationBuild, Bookmark, EnginePage, GameState, Head, LogLine, PageRef, StoryMeta, TurnRecord } from '../types';
+import type { CreationBuild, Bookmark, EnginePage, GameState, Head, LogLine, PageRef, StoryMeta, StoryOwner, TurnRecord, FameEntry } from '../types';
 import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
@@ -266,23 +266,34 @@ export async function listStories(store: Store): Promise<StoryMeta[]> {
   return metas.filter((m): m is StoryMeta => !!m && !m.archivedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
 }
 
+/** Hall of fame: every archived story whose character fell, with its owner, newest fall first. */
+export async function listFallen(store: Store): Promise<(FameEntry & { owner: StoryOwner; storyId: string })[]> {
+  const metas = await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)));
+  return metas.flatMap((m) => (m?.fame ? [{ ...m.fame, owner: m.owner ?? 'player', storyId: m.storyId }] : []))
+    .sort((a, b) => b.fellAt.localeCompare(a.fellAt));
+}
+
 /** A confirmed reset (D-73: the GM can reset the save): the story is archived, not deleted. Its meta is
  * marked, so listStories (and so resume) skips it, and a story still starting is dropped too. */
-export async function archiveStory(store: Store, storyId: string, at: string): Promise<void> {
+export async function archiveStory(store: Store, storyId: string, at: string, fame?: FameEntry): Promise<void> {
   const meta = await guard(() => store.get<StoryMeta>(story(storyId)));
-  if (meta) await guard(() => store.set(story(storyId), { ...meta, archivedAt: at }));
-  const pending = await guard(() => store.get<PendingStart>(PENDING_START)).catch(() => null);
-  if (pending?.storyId === storyId) await guard(() => store.delete(PENDING_START));
+  if (meta) await guard(() => store.set(story(storyId), { ...meta, archivedAt: at, ...(fame ? { fame } : {}) }));
+  for (const owner of ['player', 'agent'] as const) {
+    const pending = await guard(() => store.get<PendingStart>(pendingPath(owner))).catch(() => null);
+    if (pending?.storyId === storyId) await guard(() => store.delete(pendingPath(owner)));
+  }
 }
 
 // ---------- a story still starting ----------
 /** Closing the game during turn 0 lost the new story, because nothing is saved until the opening
  * scene is planned and narrated. The build is written first; resume finds it and starts the opening again. */
-export type PendingStart = { storyId: string; build: CreationBuild; at: string };
+export type PendingStart = { storyId: string; build: CreationBuild; at: string; owner?: StoryOwner };
 const PENDING_START = 'pending/start';
-export const savePendingStart = (store: Store, p: PendingStart) => guard(() => store.set(PENDING_START, p));
-export const loadPendingStart = (store: Store) => guard(() => store.get<PendingStart>(PENDING_START));
-export const clearPendingStart = (store: Store) => guard(() => store.delete(PENDING_START));
+/** one pending start per owner: the player's, and the autopilot agent's own save */
+const pendingPath = (owner: StoryOwner = 'player') => (owner === 'agent' ? 'pending/agent' : PENDING_START);
+export const savePendingStart = (store: Store, p: PendingStart) => guard(() => store.set(pendingPath(p.owner), p));
+export const loadPendingStart = (store: Store, owner?: StoryOwner) => guard(() => store.get<PendingStart>(pendingPath(owner)));
+export const clearPendingStart = (store: Store, owner?: StoryOwner) => guard(() => store.delete(pendingPath(owner)));
 /** has this story's first turn been saved (a head exists)? */
 export const storySaved = async (store: Store, storyId: string) => !!(await guard(() => store.get(headPath(storyId))));
 

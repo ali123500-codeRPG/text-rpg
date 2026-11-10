@@ -25,6 +25,7 @@ import { itemLevel, requirement } from '../ruleset/requirements';
 import { fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
+import { ALL_BUNDLES } from '../library/allPerks';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -196,10 +197,17 @@ function bankedText(d: PerkWriteup): string {
   if (d.bankedAs === 'allX') return `banked: ${d.aimAt ? `All-${d.aimAt}` : 'All-X'} candidate${treeOfSkill(d.skill) ? ` · ${treeOfSkill(d.skill)}` : ''}`;
   return 'banked: other';
 }
+/** who holds an All-X part: a skill's part names the skill, the tree's passive names the tree; a part no skill carries is parked */
+function allHolder(st: { treeId: string; step: number; skill?: string }, id: string): string {
+  const tree = lib.trees[st.treeId]?.name ?? st.treeId;
+  if (st.skill) return `All-${st.step} · ${skillName(st.skill)} (${tree})`;
+  if (ALL_BUNDLES.some((b) => b.passive === id)) return `All-${st.step} · ${tree} passive`;
+  return `All-${st.step} · ${tree} · parked: no skill holds it`;
+}
 function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   const r = d.rules;
   return card(sec, d.id, d, d.name, [
-    d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`) : 'allStep' in d && d.allStep ? chip(`${ms(d)} · ${lib.trees[d.allStep.treeId]?.name ?? d.allStep.treeId}`)
+    d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`) : 'allStep' in d && d.allStep ? chip(allHolder(d.allStep, d.id))
       : 'classLevel' in d && d.classLevel ? chip(`${ms(d)} · ${className(d.classLevel.classId)}`)
       : chip(('place' in d ? d.place : '') || 'no milestone'),
     'bankedAs' in d && d.bankedAs ? chip(bankedText(d)) : null,
@@ -424,7 +432,9 @@ function achievements(): HTMLElement[] {
         return all.length ? all.join('; ') : none('none, XP only'); })()),
       d.levelUp ? row('Pays more', Object.entries(d.levelUp).map(([k, n]) => `${k.replace("_", " ")}: +${n} reward level${n === 1 ? '' : 's'}`).join('; ')) : null,
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
-      row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
+      // `only` pins a by-kind row to one healing row: name that source instead of "one source … once per heal source"
+      d.only ? row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule].replace(/ \(.*\)$/, '').replace(/\bone source$/, '')}`, link('healing', d.only, lib.healing?.[d.only]?.name ?? d.only))
+        : row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
   };
   const section = (title: string, list: [string, AchievementDef][]) =>

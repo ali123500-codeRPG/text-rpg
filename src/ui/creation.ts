@@ -1,9 +1,9 @@
 // Creation screen (Part 4 §4, approved layout B: tree grid). Point-buy over the open skills.
 import { TR } from '../library/treeIds';
-import type { Actor, CreationBuild, GameApi } from '../types';
+import type { Actor, CreationBuild, GameApi, Pronouns } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
+import { classFloors, creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
@@ -37,19 +37,23 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId: str
   return host;
 }
 
+// name and gender carry over when the player switches starting class
+const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they', 'Other']];
+const identity: { name: string; pronouns: Pronouns } = { name: 'Aldric', pronouns: 'he' };
+
 function classScreen(api: GameApi, onStarted: () => void, classId: string, switchTo: (id: string) => void): HTMLElement {
   const lib = getLibrary();
   const cls = lib.classes[classId];
-  const floors = cls?.floors ?? {};
+  const floors = classFloors(classId).all; // the class floors plus its unlock conditions
   const who = { core: newPlayer(classId) } as Actor;
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
   const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
-  const st = { v: {} as Record<string, number>, tags: new Set<string>(), name: 'Aldric', swings: 400 };
+  const st = { v: {} as Record<string, number>, tags: new Set<string>(), swings: 400 };
   const total = () => creationPoints(classId), cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
   const recommended = () => { const r = recommendedBuild(classId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
-  const build = (): CreationBuild => ({ name: st.name.trim(), classId, skills: { ...st.v }, tagged: [...st.tags] });
+  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, classId, skills: { ...st.v }, tagged: [...st.tags] });
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };
 
   const tilesHost = h('div');
@@ -161,10 +165,19 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),
       onclick: () => { if (id !== classId) switchTo(id); } },
     `${lib.classes[id].name} · ${CLASS_TIERS.name(lib.classes[id].tier)} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
+  function whoRow(): HTMLElement {
+    const gender = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Gender' }, GENDERS.map(([p, label]) =>
+      h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `Others speak of you as “${p}”`,
+        onclick: (e: Event) => { identity.pronouns = p; (e.currentTarget as HTMLElement).parentElement!.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, label)));
+    return h('div', { class: 'who-row' },
+      h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: 40, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
+        oninput: (e: Event) => { identity.name = (e.target as HTMLInputElement).value; } })),
+      h('span', { class: 'hs-label' }, 'Gender'), gender);
+  }
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
-      h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), starts,
+      h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), whoRow(), starts,
         cls?.story ? h('p', { class: 'story-line' }, cls.story) : null,
         perkNames(classId).length ? h('p', {}, `Class perk at level 1: ${perkNames(classId).join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),

@@ -5,6 +5,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()
   PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
   PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()
+  PK.overheard, // LI5a (Insight 20): src/engine/speech.ts overhearLie(), from doSpeak() and the exchange slot in resolve.ts
   PK.plain_as_day, // LI2a (Insight 60): src/engine/speech.ts pressedWords() and src/agents/game.ts
   PK.read_their_face, // LI2b (Insight 100): src/views/index.ts seenActors()
   PK.dread_presence, // I1 (Intimidation 100): src/engine/auras.ts engagementAuras(), from resolveTurn
@@ -13,6 +14,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.hunters_eye, // T2d: src/ruleset/perks.ts trueSkill() fnSkill
   PK.opening_strike, PK.unerring, // T1a, T2a: src/engine/resolve.ts openingShifts()
   PK.hard_to_hold, // T3a: src/engine/held.ts breakFree()
+  PK.against_the_grain, PK.iron_rim, PK.grit, // PT10: attack() gap in src/ruleset/index.ts; PT11: applyEffects shield pool; PT8: perkAugments() in src/ruleset/gear.ts
   PK.junk_arsenal, PK.last_to_fall, // T3e: attack() in src/ruleset/index.ts; T4f: src/engine/morale.ts payFear()
   PK.know_the_step, // T5f: src/views/index.ts knowsStep()
   PK.iron_knuckles, PK.bare_handed_guard, // T3d, T3d2: attack() in src/ruleset/index.ts; trueSkillTo

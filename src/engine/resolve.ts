@@ -8,7 +8,7 @@ import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
-import { applyHealing, creditHealing, passiveHealing, wouldHeal } from './heal';
+import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
 import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -28,7 +28,8 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { buy, sell } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
-import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, pushContest } from './speech';
+import { gutFeelings } from './hunches';
+import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
@@ -267,6 +268,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
     }
   }
   emit(ctx, ev, undefined, push);
+  if (o.type === 'deceive') overhearLie(state, ev, ev.push ? [ev.push.listener] : [], ctx.rng, ev.contest?.a); // LI5a
 }
 
 /** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
@@ -403,9 +405,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   const L = CONFIG.HEALTH_TRACK;
   const i = L.findIndex(([l]) => l === healthLevel(t));
   if (isActive(t) && hasPerk(t, PK.second_wind) && i >= L.findIndex(([l]) => l === 'Wounded') && !isDownLevel(L[i][0]) && onceThisEngagement(state, t, PK.second_wind)) {
-    const was = t.core.condition.hpLostPct;
-    t.core.condition.hpLostPct = L[i - 1][1] as number;
-    creditHealing(state, t, HL.perk, was - t.core.condition.hpLostPct);
+    healFromPerk(state, t, L[i - 1][1] as number);
     emit(ctx, mk(ctx, t, 'perk_move', { effects: [{ kind: PK.second_wind, actorId: t.id, data: { from: L[i][0], to: L[i - 1][0] } }] }));
   }
   if (followUp) return;
@@ -736,6 +736,13 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const c of engagementAuras(state, rng, (a, id, gap) => fear(ctx, a, id, { gap }))) {
     emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk } }] }), c.contest);
   }
+  // LI5b Gut Feeling: a hunch of a hidden watcher, from its zone; the owner turns suspicious of it there
+  for (const h of gutFeelings(state, rng)) {
+    if (!h.felt) continue;
+    const ev = mk(ctx, h.owner, 'hunch', { zone: h.watcher.zone, perception: { [h.owner.id]: { level: 'partial', cue: 'sight' } } });
+    ctx.events.push(ev); // not emitted: a feeling makes no sound and shows the owner to no one
+    updateBeliefs(state, { kind: 'detection', observerId: h.owner.id, aboutId: h.watcher.id, status: 'suspicious', event: ev });
+  }
   const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), orders, rng);
 
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order
@@ -746,6 +753,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       speech: { skill: ex.skill, impression: ex.impression ?? undefined, addressees: input.spokespeople },
     });
     emit(ctx, ev);
+    if (playerOrder.type === 'deceive') overhearLie(state, ev, Object.keys(ex.perSpokesperson), ctx.rng, Object.values(ex.perSpokesperson)[0]?.contest.a); // LI5a
     ctx.exchangeEvents.push(ev);
     // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
     if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s && applySpeech(state.player, s, playerOrder.type, r.contest).status === 'shaken') fear(ctx, s, FR.lost_intimidation, { gap: r.contest.gap }); }

@@ -36,24 +36,17 @@ function moveTo(state: GameState, a: Actor, zoneId: string): void {
   a.placeId = z.placeId;
 }
 
-/** every link between a new zone and a stage zone is made two-way. GAP: the plan can't add links to stage zones, so code adds the way back. */
+/** every link between zones runs both ways (the validator reads the graph undirected): a link without its way back
+ * gets one, labelled with the zone's name. The plan's own links among its new zones count too (run: a yard whose only
+ * links were the ways in, so the player found no exit). */
 function ensureBackLinks(state: GameState, newZones: Zone[]): void {
-  const fresh = new Set(newZones.map((z) => z.id));
-  for (const z of newZones) {
-    for (const l of z.links) {
-      if (l.frontier || fresh.has(l.to)) continue;
-      const other = zoneById(state, l.to);
-      if (other && !other.links.some((b) => b.to === z.id)) other.links.push({ to: z.id, label: z.name, sight: l.sight });
-    }
-  }
-  for (const s of state.zones) {
-    if (fresh.has(s.id)) continue;
-    for (const l of s.links) {
-      if (!fresh.has(l.to)) continue;
-      const z = zoneById(state, l.to)!;
-      if (!z.links.some((b) => b.to === s.id)) z.links.push({ to: s.id, label: s.name, sight: l.sight });
-    }
-  }
+  for (const z of newZones) for (const l of z.links) addBackLink(state, z, l);
+  for (const s of state.zones) for (const l of s.links) if (newZones.some((z) => z.id === l.to)) addBackLink(state, s, l);
+}
+function addBackLink(state: GameState, from: Zone, l: ZoneLink): void {
+  if (l.frontier) return;
+  const other = zoneById(state, l.to);
+  if (other && other !== from && !other.links.some((b) => b.to === from.id)) other.links.push({ to: from.id, label: from.name, sight: l.sight });
 }
 
 /** an extension's entry: links into the crossed frontier now lead to `entry`, and the player stands there. */

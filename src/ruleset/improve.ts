@@ -2,13 +2,14 @@
 // A use marks a skill when the opposition is from MARK_WINDOW below its raw skill to MARK_WINDOW above its true skill (SP2, SP6); a hit that
 // costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of each engagement or
 // when the scene breaks (SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
-import type { Actor, AttackResult, CheckResult, ContestResult, GameState, Rng } from '../types';
+import type { Actor, AttackResult, CheckResult, ContestResult, GameState, RollKind, Rng } from '../types';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
 import { MILESTONES, hasPerk, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
+import { augmentsOf, perkAugments, tierMult } from './gear';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 
@@ -33,6 +34,44 @@ export function markIfClose(state: GameState, actor: Actor | undefined, skill: s
   if (tied || close(actor, skill, opposition)) mark(actor, skill); // close calls teach: a tier gap of exactly 0 marks whatever the skills
 }
 
+/** the skills that augment `skill` on a roll of this kind (SkillDef.augments), each with its share × tier. On the sheet or
+ * not: an augment at 0 can learn once its tree opens. */
+function augmenters(actor: Actor, skill: string, rollKind?: RollKind): { id: string; k: number }[] {
+  const out: { id: string; k: number }[] = [];
+  for (const d of Object.values(getLibrary().skills)) for (const g of d.augments ?? []) {
+    if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, d.id) || actor.core.skills[d.id]?.dormant) continue;
+    out.push({ id: d.id, k: (g.share ?? 1) * tierMult(d.id) });
+  }
+  for (const g of perkAugments(actor, skill, rollKind)) out.push({ id: g.from, k: (g.share ?? 1) * tierMult(g.from) }); // All-50 Grit
+  return out;
+}
+/** a side's level on a roll for augment learning: its true skill plus what its augments added (AU2) */
+const rollLevel = (actor: Actor, r: { skill: string; asked?: string; rollKind?: RollKind }) =>
+  trueSkill(actor, r.skill) + augmentsOf(actor, r.asked ?? r.skill, r.rollKind).reduce((n, a) => n + a.value, 0);
+/** the learning window of a roll of `skill` with these augments (AU1 option B): raw sums to max(raw, true) sums, each augment at share × tier */
+function rollWindow(actor: Actor, skill: string, augs: { id: string; k: number }[]): [number, number] {
+  const raw = (id: string) => actor.core.skills[id]?.raw ?? 0, top = (id: string) => Math.max(raw(id), trueSkill(actor, id));
+  return learningWindow(raw(skill) + augs.reduce((n, a) => n + raw(a.id) * a.k, 0), top(skill) + augs.reduce((n, a) => n + top(a.id) * a.k, 0));
+}
+/** the window an augmenting skill learns in: that of the roll it adds to (its first augments entry), for the sheet.
+ * null for a skill that augments nothing. */
+export function augmentWindow(actor: Actor, skill: string): { via: string; window: [number, number] } | null {
+  const g = getLibrary().skills[skill]?.augments?.[0];
+  if (!g) return null;
+  return { via: g.skill, window: rollWindow(actor, g.skill, augmenters(actor, g.skill, g.rollKinds?.[0])) };
+}
+/** Augmenting skills learn at the level the roll was made at (AU1 option B): one window for the whole roll, built like any
+ * skill's window from the roll's sums. Low end: the rolled skill's raw + each augment's raw × share × tier. High end: the
+ * rolled skill's max(raw, true) + each augment's max(raw, true) × share × tier. Every augment that added to the roll marks
+ * when the opposition (the other side's level, augments included) is inside it, or on a close call (AU4). */
+function markAugments(state: GameState, actor: Actor | undefined, r: { skill: string; asked?: string; rollKind?: RollKind }, opposition: number | undefined, force = false): void {
+  if (!actor || actor.id !== state.player.id || opposition === undefined) return;
+  const augs = augmenters(actor, r.asked ?? r.skill, r.rollKind);
+  if (!augs.length) return;
+  const [lo, hi] = rollWindow(actor, r.skill, augs);
+  if (force || (opposition >= lo && opposition <= hi)) for (const a of augs) mark(actor, a.id);
+}
+
 /** AR5: a hit on a part your worn armor covers marks the armor skill for its weight, when the
  * attacker's skill or the armor's requirement is inside your armor skill's learning window (SP2) */
 function markArmor(state: GameState, result: AttackResult): void {
@@ -53,27 +92,29 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
   // Every Fall a Lesson: losing by exactly one tier step marks too. The gap is B − A in a contest and defense − attack in
   // an attack, so side A (the attacker) loses by one at gap +1 and side B (the defender) at gap −1.
   const near = (who: Actor | undefined, side: 1 | -1) => 'gap' in result && result.gap === side && hasPerk(who, PK.every_fall_a_lesson);
-  const both = (who: Actor | undefined, r: { skill: string; asked?: string; parts?: string[] }, opp: number | undefined, side: 1 | -1) => {
+  const both = (who: Actor | undefined, r: { skill: string; asked?: string; parts?: string[]; rollKind?: RollKind }, opp: number | undefined, side: 1 | -1, augOpp?: number) => {
     const force = tied || near(who, side);
+    markAugments(state, who, r, augOpp, force); // skills that augmented the roll learn at the roll's level
     markIfClose(state, who, r.skill, opp, force);
     if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp, force);
     for (const p of r.parts ?? []) if (p !== r.skill) markIfClose(state, who, p, opp, force); // a combined roll: every part learns
   };
   if ('target' in result) {
     for (const sk of new Set([skill, result.skill, ...(result.asked ? [result.asked] : [])])) markIfClose(state, actor, sk, result.target);
+    markAugments(state, actor, result, result.target);
     return;
   }
   if ('a' in result) {
     const [me, them, side] = result.a.actorId === actor.id ? [result.a, result.b, 1 as const] : [result.b, result.a, -1 as const];
     const other = actorById(state, them.actorId);
-    return both(actor, me, other ? trueSkill(other, them.skill) : undefined, side);
+    return both(actor, me, other ? trueSkill(other, them.skill) : undefined, side, other ? rollLevel(other, them) : undefined);
   }
   markArmor(state, result);
   const atk = result.attack, def = result.defense;
   const attacker = actorById(state, atk.actorId), defender = def ? actorById(state, def.actorId) : undefined;
   if (def && defender) {
-    both(attacker, atk, trueSkill(defender, def.skill), 1);
-    if (attacker) both(defender, def, trueSkill(attacker, atk.skill), -1);
+    both(attacker, atk, trueSkill(defender, def.skill), 1, rollLevel(defender, def));
+    if (attacker) both(defender, def, trueSkill(attacker, atk.skill), -1, rollLevel(attacker, atk));
   }
 }
 
