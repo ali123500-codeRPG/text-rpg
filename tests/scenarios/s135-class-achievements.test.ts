@@ -27,10 +27,18 @@ describe('135 class and level achievements', () => {
       if (n === 2) expect(got).toContain(`${ACH.class_max_tier_2}:${t}`);
       if (n >= 3) expect(got).toContain(`${ACH.class_max_tier_3}:${t}`);
     }
-    if (tiers.size >= 4) expect(got).toContain(ACH.class_tiers_4);
-    else if (tiers.size >= 2) expect(got).toContain(ACH.class_tiers_2);
+    const step = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5][Math.min(tiers.size, 5) - 2];
+    if (step) expect(got).toContain(step);
     const peak = s.player.progression!.achievements!.find((a) => a.id === `${ACH.class_max_tier_1}:tier_1`);
-    if (peak) expect(achievementName(s, peak)).toBe('Peak of Tier 1');
+    if (peak) expect(achievementName(s, peak)).toBe('Peak of the Trained');
+  });
+  it('the tiers chain steps one at a time from 2 up to every tier, which pays level VI', () => {
+    const a = getLibrary().achievements!;
+    const chain = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5, ACH.class_tiers_all];
+    expect(chain.map((id) => a[id].count)).toEqual([2, 3, 4, 5, 6]);
+    expect(chain.map((id) => a[id].level)).toEqual(['ii', 'iii', 'iv', 'v', 'vi']);
+    expect(chain.slice(1).map((id) => a[id].after)).toEqual(chain.slice(0, -1));
+    expect(CONFIG.REWARD_XP.vi).toBe(10000);
   });
   it('every 10 character levels pays a level 0 achievement, once per multiple', () => {
     const s = makeVillage();
