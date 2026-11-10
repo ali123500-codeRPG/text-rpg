@@ -32,8 +32,8 @@ describe('player creation', () => {
     expect(p.progression!.startingTotal).toBe(250 - 50 - 40 - 50);
     expect(p.core.skills[SK.block]).toEqual({ raw: 40, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
-      // the starter kit: every 'starter' item the build meets; the spear is met too and is carried
-      [IT.arming_sword, 'hand:right_arm', undefined], [IT.spear, undefined, undefined], [IT.crude_clothes, undefined, undefined], [IT.gambeson, 'armor', undefined], [IT.round_shield, 'hand:left_arm', undefined],
+      // the starter kit: per gear class the highest 'starter' item met (the spear ties the sword and is not given; the gambeson beats the clothes)
+      [IT.arming_sword, 'hand:right_arm', undefined], [IT.gambeson, 'armor', undefined], [IT.round_shield, 'hand:left_arm', undefined],
       [IT.coin, undefined, CONFIG.STARTING_COIN], [IT.bandage, undefined, CONFIG.STARTING_BANDAGES],
     ]);
     expect(p.core.classes).toEqual([{ classId: CL.swordsman, state: 'current', level: 4 }]); // EQ13: the player starts at level 4
