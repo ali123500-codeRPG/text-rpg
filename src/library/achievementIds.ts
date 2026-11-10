@@ -89,6 +89,31 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   won_above_pct: '% a hostile foe\'s power (rating + gear) was above yours, in a fight you won',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
+/** ACH_RULE_TEXT for a count of exactly 1, where the noun changes ("1 foe defeated", not "1 foes defeated");
+ * a rule left out reads the same at 1 (copper, HP, points, %, true skill, class unlocked) */
+export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
+  defeats: 'defeat', unaware_defeats: 'foe defeated while unaware of you', yielded: 'foe who surrendered or broke while fighting you',
+  crits: 'roll at Critical Success or better with a skill of the group', beyond_crit: 'step past Critical Success on a roll',
+  crippled_defeats: 'foe defeated while one of your parts is Crippled', zones: 'zone entered', deals: 'deal struck with you',
+  days: 'game day survived', flawless: 'fight won without losing HP, after at least one defense roll',
+  outnumbered: `fight won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
+  brink: 'fight survived after reaching Critical health (once per fight)', held_line: 'fight won beside at least one ally, while the foes outnumbered your side',
+  quests_done: 'quest finished', quests_abandoned: 'quest you gave up', clean_defense: 'dodge or block that stopped a hit completely',
+  unseen_moves: 'sneak into a zone where someone was suspicious of you, and no one there saw you', vanished: 'vanish that lost everyone who saw you',
+  spotted: 'person you noticed while they were sneaking or hiding', speech_won: 'speech contest won with the skill',
+  talked_down: 'foe talked out of hostility before any blow from you', outmatched: 'contest won against someone with higher true skill',
+  enemy_to_friend: 'person once hostile to you who became friendly', won_without_blow: 'fight won without making an attack yourself',
+  mended: 'Crippled part healed back to Healthy', back_from_down: 'time back to Unhurt after going Down',
+  holds: 'hold on a foe, or hold you broke free of', aimed_hits: 'aimed strike that landed on the part you called',
+  quests_for_giver: 'quest finished for the same person', quest_givers: 'person you finished a quest for',
+  quest_chains: 'run of follow-up quests finished from the first to the last', quests_early: 'quest finished before half its time ran out',
+  quests_unpaid: 'quest finished for someone who promised no pay', class_max: 'class at its top level',
+  class_max_tiers: 'class tier with a class at its top level', char_level: 'character level, again at every multiple',
+  spar_wins: 'spar won', cruel_spar_wins: 'cruel spar won (fought to Incapacitated)', spar_losses: 'spar lost',
+  defeated: 'fight lost: you went Down, or got away while a foe still fought you',
+  won_panicking: 'fight won while your morale is Panicking', morale_breaks: 'time your morale broke',
+  achievements: 'other achievement earned (scars and these totals do not count; a replaced level still does)',
+};
 /** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,
  * grander the higher the rating; an inferior tree earns none */
 export const MASTERY_ACH: Partial<Record<string, Record<number, string>>> = {

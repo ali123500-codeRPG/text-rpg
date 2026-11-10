@@ -45,6 +45,9 @@ describe('play screen motion', () => {
     expect(b.level).not.toBe(a.level);
     expect(b.hpFill).toBeLessThan(a.hpFill);
     expect(b.parts.right_arm).toBe('Crippled');
+    // the rail's perk-point badge is one of them, so it changes with the level-up beat, not before it
+    s.player.progression = { ...(s.player.progression ?? {}), unspentPerkPoints: 1 } as typeof s.player.progression;
+    expect(shownValues(s, s.player).points).toBe(1);
   });
 
   it('a shield shows its state and armor its pool points on the gear lines, and a change shows in the shown values (Q2)', () => {

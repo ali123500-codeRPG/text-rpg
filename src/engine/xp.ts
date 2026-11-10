@@ -15,7 +15,7 @@ import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
 import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
-import { ACH_RULE_TEXT } from '../library/achievementIds';
+import { ACH_RULE_ONE, ACH_RULE_TEXT } from '../library/achievementIds';
 export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
 /** character level: every class's level, plus bonus levels (levels no class gets) */
@@ -369,10 +369,10 @@ const fmtCount = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
 /** what an achievement asks for, in words: its count and what it counts (ACH_RULE_TEXT), for one earning. The one text
  * every screen shows for "earned at" (a row pinned to one healing source names it; an every-N row names its level). */
 export function earnedAtText(state: GameState, d: AchievementDef, of?: string): string {
-  let what = ACH_RULE_TEXT[d.rule] ?? d.rule;
+  const n = d.every && of && Number.isFinite(+of) ? +of : d.count;
+  let what = (n === 1 ? ACH_RULE_ONE[d.rule] : undefined) ?? ACH_RULE_TEXT[d.rule] ?? d.rule;
   if (d.only) what = what.replace(/ \(.*\)$/, '').replace(/\bone source$/, getLibrary().healing?.[d.only]?.name ?? d.only);
   if (d.every) what = what.replace(/, again at every multiple$/, '');
-  const n = d.every && of && Number.isFinite(+of) ? +of : d.count;
   const kind = d.by && !d.only && of ? ` (${title(kindName(state, d, of))})` : d.rule === 'mastery' && of ? ` (${kindName(state, d, of)})` : '';
   return `${n !== undefined ? `${fmtCount(n)} ` : ''}${what}${kind}`;
 }
@@ -384,8 +384,10 @@ export function achievementInfo(state: GameState, a: { id: string; key?: string;
   const name = achievementName(state, a);
   if (!d) return { id: a.id, name, level: '', levelName: '', xp: 0, scar: false, earnedAt: '', why: '', rewards: [] as string[] };
   const level = achLevel(d, a.of), earnedAt = earnedAtText(state, d, a.of);
-  const why = a.reached !== undefined && !d.every
-    ? `Turn ${a.turn}: you reached ${fmtCount(Math.round(a.reached * 10) / 10)}; this needs ${earnedAt}.`
+  // the value reached is named only when it went past what the row needs (a high-water mark like a 137-point power gap)
+  const reached = a.reached === undefined ? undefined : Math.round(a.reached * 10) / 10;
+  const why = reached !== undefined && !d.every && reached !== d.count
+    ? `Turn ${a.turn}: you reached ${fmtCount(reached)}; this needs ${earnedAt}.`
     : `Turn ${a.turn}: you reached ${earnedAt}.`;
   return { id: a.id, name, level, levelName: rewardName(level), xp: achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
 }

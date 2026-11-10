@@ -127,11 +127,12 @@ const spar = nul(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])
 const yields = (v: unknown, p: string, e: string[]) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean;
 const acceptYield = yields;
 const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields', 'acceptYield'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields' | 'acceptYield')[];
-const planner = obj<PlannerOutput>({ action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield }, MEMORY_KEYS);
+const npcMove = nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after']));
+const planner = obj<PlannerOutput>({ action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield }, ['move', ...MEMORY_KEYS]);
 const responder = obj<ResponderOutput>({
-  action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield,
+  action: npcAction, move: npcMove, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields, acceptYield,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
-}, MEMORY_KEYS);
+}, ['move', ...MEMORY_KEYS]);
 const voice = obj<VoiceOutput>({
   action: npcAction, line: str, volume: VOLUME,
   shares: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),

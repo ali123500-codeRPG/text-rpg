@@ -285,7 +285,7 @@ export function createGame(deps: GameDeps): Game {
       }
       const agenda = new Map(spokespeople.map((id) => [id, hasAgenda(s, id)])); // from turn-start state
       exchange = engine.resolveSpeech(s, intent, spokespeople, rng);
-      const input: DialogueInput = [{ spoken: intent.spoken ?? '', impression: exchange.impression }];
+      const input: DialogueInput = [{ spoken: intent.spoken?.trim() || engine.NO_WORDS, impression: exchange.impression }];
       const world = worldIds(s);
       // NT7: a listener that saw through a lie hears the impression with a tell (plainly with Plain as Day, LI2a)
       const inputFor = (id: string): DialogueInput => (exchange!.perSpokesperson[id]?.tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.tellFor(s.actors.find((x) => x.id === id))}` }] : input);

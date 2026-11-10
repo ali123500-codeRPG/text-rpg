@@ -36,6 +36,15 @@ export function npcActionToOrder(actorId: string, action: NpcAction, extra: Part
   };
 }
 
+/** Q2: a Planner or Responder's move beside its action, as the player's; an action that is itself a move keeps only that */
+const MOVE_ACTIONS = ['move', 'flee', 'sneak', 'vanish'];
+function npcMove(o: AcceptedAgentOutput): Partial<Order> {
+  if (o.agent === 'voice') return {};
+  const m = o.output.move;
+  if (!m?.toZone || MOVE_ACTIONS.includes(o.output.action.type)) return {};
+  return { move: m.toZone, ...(m.after ? { moveAfter: true } : {}) };
+}
+
 export function agentLine(o: AcceptedAgentOutput): Order['line'] {
   if (o.agent === 'voice') return o.output.line ? { text: o.output.line, volume: o.output.volume, introduces: o.output.introduces } : null;
   return o.output.dialogue ? { text: o.output.dialogue.line, volume: o.output.dialogue.volume, introduces: o.output.dialogue.introduces } : null;
@@ -62,7 +71,7 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   const agent = new Map<string, Order>();
   for (const o of usableAgentOutputs(input)) {
     if (!views.has(o.actorId) || agent.has(o.actorId)) continue;
-    agent.set(o.actorId, npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o) }));
+    agent.set(o.actorId, npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o), ...npcMove(o) }));
   }
   for (const [id, o] of agent) {
     const cur = out.get(id);
