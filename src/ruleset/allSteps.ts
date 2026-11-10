@@ -3,7 +3,7 @@
 // gets the tree's passive and the parts of the skills at 50 (SKILL_PARTS, so a part follows its skill), each once built, for free (OwnedPerk source 'mastery'); a
 // further skill reaching 50 adds its part. Every tree, with a bundle or without, earns the player its mastery achievements at
 // 50, 100 and 150 on the same rule, from its rating's line (MASTERY_ACH: normal Adept/Master/Grandmaster, superior
-// Paragon/Ascendant/Transcendent Sovereign, legendary Heir to the Lost Art/Incarnate/The Heavens Kneel).
+// Paragon/Ascendant/Transcendent Sovereign, legendary Chosen/Incarnate/The Heavens Kneel).
 // Checked at the end of every turn, so raises, perks and spawns all count.
 // Also the rolls that read All-50 parts on the other side (Dodgy) or after the dice (Curiouser and Curiouser).
 import { TR } from '../library/treeIds';
