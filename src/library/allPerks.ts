@@ -109,7 +109,7 @@ export const ALL_PARTS: PerkWriteup[] = [
     rules: { kind: 'Always on', trigger: 'A hit lands on the owner\'s body (not a shield).', conditions: [],
       effect: 'The hit\'s damage before armor is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).', lasts: 'Always.' } }),
   // ---- Perception ----
-  // Spotter is parked (Ali): no skill carries it in SKILL_PARTS, so it is never granted
+  // Spotter is parked: no skill carries it in SKILL_PARTS, so it is never granted
   part(TR.perception, { id: PK.spotter, ref: 'T5b', name: 'Spotter', effect: 'senses',
     story: 'What you see, your people sense. Your band-mates beside you know something is there whenever you do.',
     rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor outside its band.', 'A band-mate is in the owner\'s zone and is less than suspicious of that actor.'],
