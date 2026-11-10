@@ -281,7 +281,8 @@ const DEFAULTS = {
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
   SHOW_MECHANICS: true, // master switch: false removes Show rolls everywhere
-  SHOW_ROLLS_DEFAULT: false, // a new story starts with Show rolls off; the player turns it on from the play header
+  SHOW_ROLLS_DEFAULT: false,
+  TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder) // a new story starts with Show rolls off; the player turns it on from the play header
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,

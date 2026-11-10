@@ -1,4 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { noteLeft } from './trail';
 import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel } from '../ruleset/morale';
@@ -223,6 +224,7 @@ function doMove(ctx: Ctx, a: Actor, to: string, o: Order, withBark: boolean): bo
   const zone = zoneById(state, path[0])!;
   a.zone = zone.id;
   a.placeId = zone.placeId;
+  if (a === state.player) noteLeft(state, from);
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { fromZone: from, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);

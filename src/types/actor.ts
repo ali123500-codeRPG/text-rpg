@@ -175,6 +175,8 @@ export type Journal = {
   clearSight?: Record<ActorId, string>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;
+  /** the places the player last left, newest first, with the turn it left each (CONFIG.TRAIL_ZONES long): "go back" reads it */
+  trail?: { zone: string; left: Turn }[];
 };
 
 export type { PlaceId };
