@@ -42,6 +42,7 @@ export const warm = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) >=
  * is hostile to a too, unless a is friendly or warmer toward that one. A friend does the same only against someone a is
  * already opposed (or colder) to. */
 export function hostile(state: GameState, a: Actor, b: Actor): boolean {
+  if (truce(state, a, b)) return false;
   const s = stance(state, a, b);
   if (s === 'hostile') return true;
   if (s === 'yielded' || warm(s)) return false;
@@ -51,6 +52,12 @@ export function hostile(state: GameState, a: Actor, b: Actor): boolean {
     const ac = stance(state, a, c);
     return ac === 'loyal' || (ac === 'friend' && opposed);
   });
+}
+/** MB42: the player and a foe that took the player's yield are at truce for the rest of the scene */
+export function truce(state: GameState, a: Actor, b: Actor): boolean {
+  const y = state.yielding;
+  const other = a === state.player ? b : b === state.player ? a : undefined;
+  return !!y && !!other && y.accepted.includes(other.id);
 }
 /** SP1: the live spar that has a and b on different sides with neither out yet (SP4, SP5) */
 export function sparBetween(state: GameState, a: Actor, b: Actor) {

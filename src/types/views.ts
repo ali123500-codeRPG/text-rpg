@@ -50,6 +50,9 @@ export type WareView = { id: string; name: string; price: string; stock?: number
 /** SL9: what a Trader would pay for one of the player's items: id is the player's item, for a sell's item */
 export type OfferView = { id: string; name: string; price: string };
 
+/** MB40–MB43: the player's yield this scene, by name: who took it (truce), who has yet to answer, who fought on */
+export type YieldView = { took: string[]; waiting: string[]; refused: string[] };
+
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
@@ -77,6 +80,7 @@ export type PlayerView = {
     standingDefense: 'dodge' | 'block';
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
     spar?: SparView; // SP1: the spar the player fights in
+    yielded?: YieldView; // MB40: the player yielded in a real fight this scene
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
@@ -120,6 +124,7 @@ export type ActorView = {
     lastHitBy?: ActorId; // from events it perceived
     stealthy?: true; // NS: moving unseen
     spar?: SparView; // SP1: the spar it is a fighter in
+    playerYielded?: true; // MB41: the player yielded to self and awaits an answer (acceptYield)
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
     offers?: OfferView[]; // SL9: what it would pay for the player's items
   };
@@ -188,7 +193,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string }; // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string; yielded?: YieldView }; // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; morale?: string; activityLook?: string }[]; // health: Wounded or worse, morale: Afraid or worse, as the player sees it

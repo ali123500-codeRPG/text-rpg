@@ -1,6 +1,7 @@
 // Deed achievements checked every turn: zones walked, days survived, and the fight achievements (flawless,
 // outnumbered, back from the brink), judged when the player's fight ends from the FightLog kept on the engagement.
 // Critical Success achievements count in every player roll (rollFeats in xp.ts).
+import { yieldTaken } from './yield';
 import { moraleLevel } from '../ruleset/morale';
 import type { ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
 import { CONFIG } from '../config';
@@ -116,8 +117,8 @@ function noteBlows(state: GameState, f: FightLog, events: GameEvent[]): void {
 export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = []): void {
   noteBlows(state, f, events);
   // a lost fight (the Loser scars): you went Down, or it ended with a foe still up and fighting you (you got away).
-  // a morale break counts too (MB12); yielding will once it is built (D-147)
-  if (f.down || f.broke || !isActive(state.player)) return tally(state, 'defeated');
+  // a morale break counts too (MB12), and a yield a foe took (MB42)
+  if (f.down || f.broke || yieldTaken(state) || !isActive(state.player)) return tally(state, 'defeated');
   if (f.brink) tally(state, 'brink');
   const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !isActive(x) || !!x.mind?.moraleState; });
   if (!won) {
