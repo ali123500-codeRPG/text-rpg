@@ -1982,7 +1982,7 @@ A copy does not roll: its skills are the template's minimums, read live.
 
 **Personality.** Each template names one personality, which sets its starting Resolve (Part 3, Morale): fearless 90, bold 70, steady 50, timid 30 (PERSONALITY\_RESOLVE).
 
-**Slime template** (first build): a copy of race Slime (body type amorphous) with no class (BR7: the Slime class is gone; the Slime senses tree needs race Slime), level 0, personality fearless. Skills: unarmed\_natural 30, dodge 0, everything else 0. HP multiplier 0.6 (30 HP). Its slam uses the slam class: damage 20, hit +10, reach 0.
+**Slime template** (first build): a copy of race Slime (body type amorphous) with no class (BR7: the Slime class is gone; the Slime senses tree needs race Slime), level 0, personality steady (Resolve 50; slimes are no longer fearless). Skills: unarmed\_natural 30, dodge 0, everything else 0. HP multiplier 0.6 (30 HP). Its slam uses the slam class: damage 20, hit +10, reach 0.
 
 **Village templates** (first build; every number a placeholder). All three are copies of race Human (body type humanoid) with no class:
 

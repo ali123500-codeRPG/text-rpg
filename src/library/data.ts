@@ -278,7 +278,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
-    level: 0, bonusPoints: 0, focus: [], personality: 'fearless', control: 'code', label: 'a slime',
+    level: 0, bonusPoints: 0, focus: [], personality: 'steady', control: 'code', label: 'a slime',
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [TP.guard]: {

@@ -18,6 +18,6 @@ it('103 Broken flees: toward the exit slot one link, holds once there; a broken 
   const sl = actor(s, 'slime_1');
   place(s, 'player', 'field_mid');
   sl.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'field_mid', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
-  sl.mind!.moraleState = 'broken'; // fearless is Resolve 90 now (MB4), so a slime can break
+  sl.mind!.moraleState = 'broken'; // a slime has a morale bar too, so it can break
   expect(fallbackOrder(buildActorView(s, 'slime_1'), createRng(1)).type).toBe('flee');
 });
