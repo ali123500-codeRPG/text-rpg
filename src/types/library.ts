@@ -255,5 +255,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   only?: string;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number;
+  /** with `every`: each later earning is this many reward levels higher than the one before (capped at the top) */
+  levelStep?: number;
   /** a name of its own for each earning, by what it is earned for (an every-N row: the level); others use `name` */
   names?: Record<string, string> };

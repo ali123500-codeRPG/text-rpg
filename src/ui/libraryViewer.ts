@@ -7,7 +7,7 @@ import './libraryViewer.css';
 import type { ClassDef, HealingDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
-import { achXp, rewardLines } from '../ruleset/achRewards';
+import { achLevel, achXp, rewardLines, rewardName } from '../ruleset/achRewards';
 import { ACH_RULE_TEXT, ACH_TAGS } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
@@ -421,13 +421,13 @@ function achievements(): HTMLElement[] {
     const after = named.length && d.every ? Number(named[named.length - 1][0]) + d.every : 0;
     const title = named.length ? named[0][1]
       : d.every && d.name.includes('{level}') ? d.name.replace('{level}', `${[0, 1, 2].map((i) => (d.count ?? d.every!) + i * d.every!).join(', ')}…`) : d.name;
-    return card('achievements', key, d, title, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, toneFor('Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`)), chip(`${achXp(d)} XP`),
+    return card('achievements', key, d, title, [chip(`Level ${rewardName(d.level)}`, toneFor('Level', `Level ${rewardName(d.level)}`)), chip(`${achXp(d)} XP`),
       bane ? chip(`+${bane} skill vs that ${kind}`) : null, total ? chip(`+${total} combat rolls`) : null,
       rewardLines(d).length ? chip('reward') : null,
       d.scar ? chip('scar', toneFor('Kind', 'scar')) : null, ...tags.map((t) => chip(achTagName(t), toneFor('Tag', achTagName(t))))],
       row('Name', name(title)),
-      named.length ? row('Names', h('ul', { class: 'lv-names' }, ...named.map(([k, n]) => h('li', {}, `Level ${k}: ${n}`)),
-        after ? h('li', {}, `Levels ${after}, ${after + d.every!}…: ${d.name.replace('{level}', String(after))}, and so on`) : null)) : null,
+      named.length ? row('Names', h('ul', { class: 'lv-names' }, ...named.map(([k, n]) => h('li', {}, `Level ${k}: ${n}${d.levelStep ? ` · reward level ${rewardName(achLevel(d, k))}, ${achXp(d, k)} XP` : ''}`)),
+        after ? h('li', {}, `Levels ${after}, ${after + d.every!}…: ${d.name.replace('{level}', String(after))}, and so on${d.levelStep ? ` · reward level ${rewardName(achLevel(d, String(after)))} and up, ${d.levelStep === 1 ? 'one level' : `${d.levelStep} levels`} a step` : ''}`) : null)) : null,
       row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
         ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),
@@ -696,7 +696,7 @@ const FACETS: Record<string, Facets> = {
     ...[...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]), ...(i.tags ?? [])].filter((f) => f !== i.kind).map((f): [string, string] => ['Flag', f])], // a flag that repeats the kind says nothing new
   perks: (d: PerkDef & { place?: string; skill?: string; bankedAs?: string }) => [['Banked as', d.bankedAs && ({ milestone: 'milestone perk', allX: 'All-X candidate', other: 'other' } as Record<string, string>)[d.bankedAs]], ['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)]],
-  achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`]],
+  achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${rewardName(d.level)}`]],
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Access', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
     ...(t.access?.blockedBy ?? []).map((c): [string, string] => ['Blocked by', condName(c)]),

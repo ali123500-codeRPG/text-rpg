@@ -16,6 +16,7 @@ import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS, MORALE_LEVELS } from '../scales';
 import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
+import { coins, coinWords } from '../engine/trade';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -240,10 +241,10 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
     onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
     // the current level sits beside the HP number, as on the character card
-    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, `${level} · ${whole(hp)} HP`)),
+    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, h('span', { 'data-m': 'hp-level' }, level), ' · ', h('span', { 'data-m': 'hp' }, whole(hp)), ' HP')),
     sideSteps(0),
     // the 7th section lights only when Unhurt, so a full Bruised bar can't be read as Unhurt
-    h('span', { class: 'cs-hptrack', title: 'Health track, Unhurt on the right' }, h('b', { style: `width:${fill}%` }),
+    h('span', { class: 'cs-hptrack', title: 'Health track, Unhurt on the right', 'data-m': 'hp-track' }, h('b', { style: `width:${fill}%` }),
       [...segs.slice(0, -1).map((x) => x.from * scale), 100 - UNHURT_SECTION].map((at) => h('i', { style: `left:${at}%` }))),
     sideSteps(1));
   btn.addEventListener('click', () => { (btn.querySelector('.cs-row span') as HTMLElement).textContent = `Health ${partOpen.on ? '⌄' : '›'}`; });
@@ -253,7 +254,7 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
 /** each body part that is not Healthy, as "Left leg crippled" in its state's colour; none while all are Healthy */
 export function partChips(s: GameState, p: Actor): HTMLElement {
   const bad = (safe(() => actorBody(s, p).parts) ?? []).map((d) => ({ id: d.id, st: poolState(p.core.condition.parts[d.id] ?? 100) })).filter((x) => x.st !== 'Healthy');
-  return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st.toLowerCase()}` }, `${partName(x.id)} ${x.st.toLowerCase()}`)));
+  return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st.toLowerCase()}`, 'data-part': x.id }, `${partName(x.id)} ${x.st.toLowerCase()}`)));
 }
 
 /** NT20: Shaken and Swayed as chips with the roll penalty; the title names who caused it and how long it lasts */
@@ -265,8 +266,8 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
   const left = Math.round(max * (100 - lost) / 100);
   const ticks = full ? CONFIG.MORALE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, 'Morale'), h('b', {}, full ? `${level} · ${left} / ${max}` : level)),
-    h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}` },
+    h('span', { class: 'cs-row' }, h('span', {}, 'Morale'), h('b', {}, h('span', { 'data-m': 'morale-level' }, level), full ? [' · ', h('span', { 'data-m': 'morale-left' }, String(left)), ` / ${max}`] : null)),
+    h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}`, 'data-m': 'morale-track' },
       h('b', { style: `width:${100 - lost}%` }), ...ticks),
   ];
 }
@@ -302,8 +303,8 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   const left = level === 'Unhurt' ? 100 : Math.max(0, 100 - p.core.condition.hpLostPct) * (100 - UNHURT_SECTION) / 100;
   const hw = heldWorn(s, p);
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, level)),
-    h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` })),
+    h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, h('span', { 'data-m': 'hp-level' }, level))),
+    h('span', { class: 'cs-hptrack', 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
     ...moraleBar(p, false),
     ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x),
@@ -324,12 +325,51 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
     ...((hb) => [hb[0], hb[1], h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x), ...hb.slice(2)])(healthBar(s, p, healed, last?.turn ?? -1, changed)),
     pressureChips(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
+    h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', { 'data-m': 'coin' }, coinWords(coins(p)))),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
+    ...[xpLine(p)].filter((x): x is HTMLElement => !!x),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
-      t.rows.map((r) => h('div', { class: 'r' + (gains[r.id] ? ' up' : '') },
+      t.rows.map((r) => h('div', { class: 'r' + (gains[r.id] ? ' up' : ''), 'data-skill': r.id },
         h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
-        bar(r.raw, windowOf(p, r.id)), h('b', {}, String(r.raw)))))),
+        bar(r.raw, windowOf(p, r.id)), h('b', { 'data-m': 'skill' }, String(r.raw)))))),
   ];
+}
+
+/** M-36: the level and XP on the play sheet, as a bar to the next level */
+function xpLine(p: Actor): HTMLElement | null {
+  const v = xpShown(p);
+  if (!v) return null;
+  return h('div', { class: 'cs-xp' },
+    h('div', { class: 'cs-row' }, h('span', { 'data-m': 'lvl' }, `Level ${v.level}`), h('b', {}, h('span', { 'data-m': 'xp' }, whole(v.xp)), ` / ${v.need} XP`)),
+    h('div', { class: 'cs-bar', 'data-m': 'xp-track' }, h('b', { style: `width:${v.pct}%` })));
+}
+const xpShown = (p: Actor) => {
+  const pr = p.progression;
+  if (!pr) return null;
+  const need = xpToNext(p);
+  return { level: charLevel(p), xp: pr.xp, need, pct: need > 0 ? Math.min(100, (pr.xp / need) * 100) : 100 };
+};
+
+/** M-74: every value the play sheet shows, before and after a turn, so the screen animates only what changed */
+export type ShownValues = {
+  hp: number | null; level: string; hpFill: number;
+  morale: string; moraleLeft: number; moraleFill: number;
+  parts: Record<string, string>; skills: Record<string, number>;
+  lvl: number | null; xp: number | null; xpPct: number | null; coin: number;
+};
+export function shownValues(s: GameState, p: Actor): ShownValues {
+  const level = shownLevel(healthLevel(p));
+  const left = Math.max(0, 100 - p.core.condition.hpLostPct);
+  const scale = (100 - UNHURT_SECTION) / 100;
+  const lost = Math.max(0, Math.min(100, moraleLostPct(p)));
+  const xp = xpShown(p);
+  return {
+    hp: hpLeft(s, p).hp, level, hpFill: level === 'Unhurt' ? 100 : left * scale,
+    morale: MORALE_LEVELS.name(moraleLevel(p)), moraleLeft: Math.round(maxMorale(p) * (100 - lost) / 100), moraleFill: 100 - lost,
+    parts: Object.fromEntries((safe(() => actorBody(s, p).parts) ?? []).map((d) => [d.id, poolState(p.core.condition.parts[d.id] ?? 100)])),
+    skills: Object.fromEntries(trees(s, p, false).flatMap((t) => t.rows.map((r) => [r.id, r.raw]))),
+    lvl: xp?.level ?? null, xp: xp?.xp ?? null, xpPct: xp?.pct ?? null, coin: coins(p),
+  };
 }
