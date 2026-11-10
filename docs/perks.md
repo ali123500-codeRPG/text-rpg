@@ -735,6 +735,40 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Open:** Parked by Ali.
 - **Banked as:** a later Insight perk
 
+### Steady Nerves (Resolve) · MR5a
+
+*Story:* Your hands shake. Your aim doesn't. Being Rattled or Afraid no longer costs you anything on your rolls.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a roll while Rattled or Afraid.
+- **Effect:** The Rattled and Afraid roll penalties do not apply to the owner.
+- **Lasts:** Always.
+- **Open:** Parked by Ali. One of three options for the Resolve 20 perk.
+- **Banked as:** a later Resolve perk
+
+### Used to the Pain (Resolve) · MR5b
+
+*Story:* A cut is just a cut. Your own wounds shake you one step later than they would anyone else.
+
+- **Kind:** Always on
+- **Trigger:** The owner is wounded.
+- **Effect:** The owner's own wounds start costing morale one health level later.
+- **Lasts:** Always.
+- **Open:** Parked by Ali. One of three options for the Resolve 20 perk (could be Resolve 60 instead).
+- **Banked as:** a later Resolve perk
+
+### Run Later (Resolve) · MR5c
+
+*Story:* You can run later. Once in a fight, a blow to your nerve that would break you leaves you Panicking instead.
+
+- **Kind:** Once per fight
+- **Trigger:** A morale loss would make the owner Broken.
+- **Conditions:** Not used yet this fight.
+- **Effect:** The owner is left at Panicking instead of Broken.
+- **Lasts:** That morale loss.
+- **Open:** Parked by Ali. One of three options for the Resolve 20 perk (could be Resolve 60 instead). Shown on the morale page as Not Yet; renamed because an achievement is already called Not Yet.
+- **Banked as:** a later Resolve perk
+
 ### Crushing Blow (Heavy weapons) · D1
 
 *Story:* A block only delays the inevitable. Against a block, your heavy weapon pushes the outcome two steps your way instead of one.
