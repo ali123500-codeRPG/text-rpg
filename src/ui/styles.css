@@ -572,6 +572,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-pchips { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; }
 .cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
 .ps-damaged, .ps-pressure { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
+/* Q2: a shield's state or an armor pool's points beside the item on the gear lines; colour carries the state (M-34) */
+.cs-gn { margin-left: .35em; font-weight: 500; font-size: 12px; color: var(--pc, var(--muted)); }
+.cs-gn.ps-pool { --pc: var(--muted); }
 .rolls-sw[aria-pressed="true"], .auto-open[aria-pressed="true"] { color: var(--text); }
 
 /* QT15: the quest line under the place line on the Play screen; only the quest text shrinks */
@@ -622,6 +625,8 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* ---- play screen motion (Motion Rules Review M-01–M-74); src/ui/motion.ts plays it, always on top of the final state */
 .cs-row [data-m] { display: inline-block; }
 .m-host { position: relative; }
+/* something that left (an item, someone in Who's here): struck through while it fades out (M-32) */
+.m-ghost { text-decoration: line-through; pointer-events: none; }
 .m-delta { position: absolute; right: 100%; top: 50%; margin: -6px 8px 0 0; font-size: 12px; font-weight: 800; line-height: 12px; white-space: nowrap; pointer-events: none; }
 .m-bar { position: absolute; top: 0; bottom: 0; transform-origin: left center; pointer-events: none; border-radius: inherit; }
 .m-bar.trail { background: color-mix(in srgb, var(--text) 70%, var(--danger)); }
