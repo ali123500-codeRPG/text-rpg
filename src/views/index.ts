@@ -293,6 +293,7 @@ export function buildPlayerView(state: GameState): PlayerView {
     zones: perceivedZones(state, p.zone),
     actors,
     ...(lastSeen(state, actors).length ? { lastSeen: lastSeen(state, actors) } : {}),
+    ...(p.journal?.trail?.length ? { cameFrom: p.journal.trail.map((x) => ({ zone: x.zone, name: zoneById(state, x.zone)?.name ?? x.zone, leftTurn: x.left })) } : {}),
     facts: factsFor(state, p.placeId, actors.filter((a) => a.level === 'full').map((a) => a.id)),
     headlines: headlinesFor(state, p.placeId, false),
     ...(agreementViews(state, p.id).length ? { agreements: agreementViews(state, p.id) } : {}),
