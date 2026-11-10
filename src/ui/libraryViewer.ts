@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { ClassDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { ClassDef, HealingDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achXp, rewardLines } from '../ruleset/achRewards';
@@ -344,6 +344,22 @@ function gearClasses(): HTMLElement[] {
     }))];
 }
 
+// Healing: what each source restores in words, morale included, so the table view shows it too (the raw % fields stay in Code)
+function restores(d: HealingDef): string {
+  if (d.countOnly) return 'nothing itself: it only tallies healing from perks, for achievements that count healing by source';
+  if (d.hourly) {
+    const at50 = +(d.hourly.pctPerPoint * 50).toFixed(2);
+    return `every hour, ${d.hourly.pctPerPoint} % of max ${d.hourly.morale ? 'morale' : 'health'} per ${skillName(d.hourly.skill)} point (${at50} % at 50)`;
+  }
+  const parts = [d.hpPct ? `${d.hpPct} % health` : '', d.partPct ? `${d.partPct} % to body parts` : '', d.moralePct ? `${d.moralePct} % morale` : ''].filter(Boolean);
+  return parts.length ? parts.join(', ') : 'nothing';
+}
+function healing(): HTMLElement[] {
+  return [h('div', { class: 'lv-grid' }, Object.values(lib.healing ?? {}).map((d) => card('healing', d.id, d, d.name,
+    [d.countOnly ? chip('tally only') : null, d.hourly?.morale || d.moralePct ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
+    row('Restores', restores(d)), ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'moralePct', 'hourly', 'countOnly']))))];
+}
+
 function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
     const ct = lib.bodyTypes[r.bodyTypeId];
@@ -642,12 +658,15 @@ const CUSTOM: Section[] = [
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
   { key: 'classes', title: 'Classes', table: 'classes', view: classes },
+  { key: 'healing', title: 'Healing', table: 'healing', view: healing },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
   { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
   gearClasses: (g: { use?: string }) => [['Use', g.use]],
+  healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? (d.hourly.morale ? 'morale' : 'health') + ' hourly' : undefined],
+    ...(['hpPct', 'partPct', 'moralePct'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', moralePct: 'morale' }[k]])],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
   stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],
@@ -1102,7 +1121,7 @@ function drawSwitch(): void {
     onclick: () => { viewOfTable[shown] = m; keep('lv-view', viewOfTable); tablify(); drawSwitch(); } }, m === 'cards' ? 'Cards' : 'Table')));
 }
 const cellText = (n: Element | null | undefined) => (n?.textContent ?? '').replace(/\s+/g, ' ').trim();
-const ALWAYS_COLS = new Set(['Reward', 'Effect']);
+const ALWAYS_COLS = new Set(['Reward', 'Effect', 'Restores']);
 function tablify(): void {
   body.querySelectorAll('.lv-table').forEach((t) => t.remove());
   body.querySelectorAll('.lv-tabled').forEach((g) => g.classList.remove('lv-tabled'));
