@@ -668,3 +668,102 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* M-36: level and XP on the play sheet */
 .cs-xp { display: grid; gap: var(--space-1); }
 .cs-xp .cs-bar > b { background: var(--scene-mark); }
+
+/* ---- Map page (map.ts): the map fills everything beside the side column; tiles are zones, lines their exits.
+   Outdoors leans to the sky blue, indoors to the surface; remembered zones are faded; you are the gold pin. */
+main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: auto minmax(0, 1fr); padding-bottom: 20px; }
+.map-body { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 24vw, 420px); gap: var(--space-6); min-height: 0; }
+.map-stage { position: relative; min-height: 420px; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--accent-soft) 70%, transparent), color-mix(in srgb, var(--bg) 85%, transparent) 75%); }
+.map-svg { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; user-select: none; font-family: var(--font-round); }
+.map-svg.grabbing { cursor: grabbing; }
+.map-dot { fill: var(--rule); opacity: .55; }
+.map-link { stroke: color-mix(in srgb, var(--faint) 70%, transparent); stroke-width: 2.5; stroke-linecap: round; }
+.map-link.hidden-view { stroke-dasharray: 7 6; stroke: color-mix(in srgb, var(--faint) 55%, transparent); }
+.map-link.hot { stroke: var(--scene-mark); stroke-width: 3; }
+.map-stub { stroke: color-mix(in srgb, var(--faint) 45%, transparent); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
+.map-stub.hot { stroke: var(--scene-mark); }
+.map-stub.away { stroke: var(--accent); stroke-dasharray: 8 6; cursor: pointer; }
+.map-pill.away { cursor: pointer; pointer-events: auto; }
+.map-pill.away rect { stroke: var(--accent); }
+.map-arrowhead { fill: color-mix(in srgb, var(--faint) 70%, transparent); }
+.map-pill rect { fill: var(--bg); stroke: color-mix(in srgb, var(--scene-mark) 60%, transparent); }
+.map-pill.unknown rect { stroke: var(--rule); stroke-dasharray: 3 3; }
+.map-pill text { fill: var(--text); font-size: 11.5px; font-weight: 700; }
+.map-pill.unknown text { fill: var(--muted); font-weight: 600; }
+.map-area { cursor: pointer; outline: none; }
+.map-area rect { fill: color-mix(in srgb, var(--c15) 6%, transparent); stroke: color-mix(in srgb, var(--c15) 40%, transparent); stroke-width: 1.5; stroke-dasharray: 10 6; }
+.map-area.mine rect { fill: color-mix(in srgb, var(--scene-mark) 6%, transparent); }
+.map-area.on rect, .map-area:hover rect, .map-area:focus-visible rect { stroke: var(--scene-mark); stroke-dasharray: none; }
+.map-area-name { fill: var(--c15); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.map-area.on .map-area-name { fill: var(--scene-mark); }
+.map-tile { cursor: pointer; outline: none; }
+.map-tile-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+.map-tile.outdoor .map-tile-box { fill: color-mix(in srgb, var(--c9) 22%, var(--surface)); stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); }
+.map-tile.indoor .map-tile-box { fill: color-mix(in srgb, var(--c15) 12%, var(--surface)); stroke: color-mix(in srgb, var(--c15) 45%, var(--border)); }
+.map-tile.dark .map-tile-box { fill: color-mix(in srgb, var(--bg) 60%, var(--surface)); }
+.map-tile.remembered { opacity: .62; }
+.map-tile.remembered .map-tile-box { stroke-dasharray: 5 4; }
+.map-tile.here .map-tile-box { stroke: var(--accent); stroke-width: 3; }
+.map-tile.selected .map-tile-box { stroke: var(--scene-mark); stroke-width: 3; }
+.map-tile:hover .map-tile-box, .map-tile:focus-visible .map-tile-box { stroke: var(--scene-mark); }
+.map-tile-name { fill: var(--text); font-size: 15px; font-weight: 800; }
+.map-tile-sub { fill: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.map-tile.here .map-tile-sub { fill: var(--accent); }
+.map-who circle { fill: var(--c4); stroke: var(--bg); stroke-width: 2; }
+.map-who text { fill: var(--on-pill); font-size: 11px; font-weight: 800; }
+.map-who.last circle { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
+.map-who.last text { fill: var(--c4); }
+.map-pin circle { fill: var(--scene-mark); stroke: var(--bg); stroke-width: 2.5; }
+.map-pin circle.core { fill: var(--bg); stroke: none; }
+.map-crumbs { position: absolute; left: 12px; top: 12px; right: 64px; display: flex; flex-wrap: nowrap; align-items: center; gap: 4px;
+  white-space: nowrap; overflow-x: auto; scrollbar-width: none; pointer-events: none; }
+.map-crumbs .crumb, .map-crumbs .sep { flex: none; }
+.map-crumbs .crumb { pointer-events: auto; border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted);
+  border-radius: var(--r-pill); padding: 4px 12px; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; }
+.map-crumbs .crumb.on { color: var(--text); border-color: var(--accent); }
+.map-crumbs .sep { color: var(--faint); }
+.map-compass { position: absolute; right: 16px; top: 12px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: start center;
+  border: 1px solid var(--rule); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--scene-mark); font-weight: 800; font-size: 12px; padding-top: 4px; box-sizing: border-box; }
+.map-compass::after { content: ""; position: absolute; left: 50%; top: 19px; width: 2px; height: 14px; margin-left: -1px; background: linear-gradient(var(--scene-mark), var(--rule)); }
+.map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
+.map-btn { width: 38px; height: 38px; border-radius: var(--r-md); border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--text); font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; }
+.map-btn:hover { border-color: var(--accent); }
+.map-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--muted); pointer-events: none; }
+.map-side { display: grid; gap: var(--space-6); align-content: start; overflow-y: auto; min-height: 0; padding-right: 4px; }
+.map-side section { display: grid; gap: var(--space-2); }
+.map-side p { margin: 0; }
+.map-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 16px 18px; }
+.map-card-h { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.map-card-h h2 { margin: 0; font-size: 20px; }
+.map-look { font: 15px/1.55 var(--font-story); }
+.map-exits, .map-places ul, .map-facts, .map-legend ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.map-exits li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-3); align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.map-exits .to { color: var(--muted); font-size: 13px; }
+.map-go { border: 0; background: none; color: var(--accent); font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; padding: 0 4px; }
+.hs-tg.faded { opacity: .65; }
+.map-side .hs-tg { margin: 0 4px 4px 0; }
+.map-place { width: 100%; display: flex; justify-content: space-between; gap: var(--space-3); text-align: left; padding: 6px 10px 6px calc(10px + var(--d, 0) * 16px);
+  border: 1px solid transparent; border-radius: var(--r-md); background: none; color: var(--text); font: inherit; cursor: pointer; }
+.map-place:hover { border-color: var(--border); }
+.map-place.on { background: var(--accent-soft); border-color: var(--accent); }
+.map-place .c { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.map-place .you { color: var(--scene-mark); font-weight: 700; }
+.map-facts li { font: 14px/1.5 var(--font-story); color: var(--muted); }
+.map-legend ul { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); font-size: 12.5px; color: var(--muted); }
+.map-legend li { display: flex; align-items: center; gap: 8px; }
+.map-legend i { flex: none; display: inline-block; }
+.k-tile { width: 18px; height: 12px; border-radius: 3px; border: 1.5px solid var(--border); background: var(--surface); }
+.k-tile.outdoor { background: color-mix(in srgb, var(--c9) 22%, var(--surface)); border-color: color-mix(in srgb, var(--c9) 55%, var(--border)); }
+.k-tile.indoor { background: color-mix(in srgb, var(--c15) 12%, var(--surface)); border-color: color-mix(in srgb, var(--c15) 45%, var(--border)); }
+.k-tile.remembered { opacity: .62; border-style: dashed; }
+.k-line { width: 20px; height: 0; border-top: 2.5px solid color-mix(in srgb, var(--faint) 70%, transparent); }
+.k-line.dashed { border-top-style: dashed; }
+.k-line.stub { border-top: 2px dotted color-mix(in srgb, var(--faint) 60%, transparent); }
+.k-line.away { border-top: 2px dashed var(--accent); }
+.k-pin { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 4px solid var(--scene-mark); }
+.k-area { width: 20px; height: 12px; border-radius: 4px; border: 1.5px dashed color-mix(in srgb, var(--c15) 60%, transparent); }
+.k-who { width: 12px; height: 12px; border-radius: 50%; background: var(--c4); }
+.k-who.last { background: none; border: 1.5px dashed var(--c4); }
+@media (max-width: 1000px) { main.map-page { height: auto; } .map-body { grid-template-columns: minmax(0, 1fr); } .map-stage { height: 70vh; } .map-crumbs { pointer-events: auto; } }

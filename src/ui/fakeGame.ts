@@ -62,6 +62,32 @@ function earnTurn(st: GameState, keys: string[]): Partial<LogLine> {
 
 export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);
 
+// the fake world for the Map page: a village, the tavern inside it and the field east of it (the cellar and the north road unexplored)
+type FakeZone = GameState['places'][number]['zones'][number];
+const FZ = (id: string, placeId: string, name: string, look: string, links: [string, string, boolean?, true?][], extra: Partial<FakeZone> = {}): FakeZone =>
+  ({ id, placeId, name, look, links: links.map(([to, label, sight = true, frontier]) => ({ to, label, sight, ...(frontier ? { frontier } : {}) })), cover: 'some', light: 'dim', groundItems: [], ...extra });
+const FP = (id: string, kind: string, parentId: string | null, name: string, zones: FakeZone[]): GameState['places'][number] =>
+  ({ id, storyId: 'fake', kind, parentId, names: { current: name, past: [] }, zones, state: {}, headlines: [] });
+const FAKE_PLACES = (): GameState['places'] => [
+  FP('village', 'village', null, 'Millbrook', [
+    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['ash_gate', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none' }),
+  ]),
+  FP('ashford', 'village', null, 'Ashford', [
+    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['v_square', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none' }),
+  ]),
+  FP('tavern', 'tavern', 'village', 'the Crooked Kettle', [
+    FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]]),
+    FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', false], ['tav_cellar', 'the cellar hatch, down', false]]),
+    FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some' }),
+    FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', false]], { light: 'dark' }),
+    FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', false]], { light: 'dark' }),
+  ]),
+  FP('field', 'field', 'village', 'the slime field', [
+    FZ('field_edge', 'field', 'field edge', 'Long grass streaked with silver trails.', [['v_square', 'the lane back west'], ['field_mid', 'into the field, north']], { outdoor: true, light: 'bright', cover: 'none' }),
+    FZ('field_mid', 'field', 'middle of the field', 'Trampled grass around a shallow pond.', [['field_edge', 'the field edge, south'], ['f_trees', 'the trees, east', true, true]], { outdoor: true, light: 'bright', cover: 'some' }),
+  ]),
+];
+
 export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
   let state: GameState | null = null;
   let lines: LogLine[] = [];
@@ -74,6 +100,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
 
   function start(b: CreationBuild) {
     const player = playerFromBuild(b, 'fake', 'tav_common', 'tavern');
+    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['ash_gate', 'v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], clearSight: { slime_1: 'field_mid' } };
     const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone };
     const slime = spawnNpc(null, TP.slime, { id: 'slime_1', zone: 'field_mid', placeId: 'field', bandId: 'slimes', storyId: 'fake', name: 'slime' });
     slime.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'field_edge', lastSeenTurn: 2, source: 'seen', revealed: [] } };
@@ -84,7 +111,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
       log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
-      places: [{ id: 'tavern', storyId: 'fake', kind: 'tavern', parentId: null, names: { current: 'the Crooked Kettle', past: [] }, zones: [{ id: 'tav_common', placeId: 'tavern', name: 'common room', look: 'A low room with a hearth.', links: [], cover: 'some', light: 'dim', groundItems: [] }], state: {}, headlines: [] }], facts: [], stage: { zoneIds: [], tier: 'success', sceneNumber: 2, sceneStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scene planning failed: placeholder area', turn: 2 } } : {}) },
+      places: FAKE_PLACES(), facts: [], stage: { zoneIds: [], tier: 'success', sceneNumber: 2, sceneStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scene planning failed: placeholder area', turn: 2 } } : {}) },
       sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
       quests: [
         { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },

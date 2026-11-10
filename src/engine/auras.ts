@@ -16,15 +16,12 @@ import { allActors, atLeast, isActive, shortestPath, stance, wary } from './rela
 import { besidePlayer } from './engagement';
 import { perceptionOf } from '../perception';
 import type { GameEvent } from '../types';
+import { AURAS, type AuraDef } from '../library/auras';
 import { applySpeech, toContest } from './speech';
 import { contestFeat } from './feats';
+import { maxMorale } from '../ruleset/morale';
 
-export type AuraDef = { perk: string; fn: string; skill: string; fear: string; shaken?: true };
-/** every aura in the game, keyed by its perk; a new aura is one row */
-export const AURAS: AuraDef[] = [
-  { perk: PK.dread_presence, fn: FN.engagement_aura, skill: SK.intimidation, fear: FR.dread_presence, shaken: true },
-  { perk: PK.battle_cry, fn: FN.offensive_aura, skill: SK.intimidation, fear: FR.battle_cry }, // triggered by its move (battleCry)
-];
+export { AURAS, type AuraDef } from '../library/auras';
 
 const key = (aura: AuraDef, owner: Actor) => `${aura.perk}:${owner.id}`;
 
@@ -36,11 +33,17 @@ function inReach(state: GameState, owner: Actor, t: Actor): boolean {
   return !!path && path.length <= CONFIG.AURA_REACH;
 }
 
-export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean };
+export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean; overwhelmed?: true };
+export type AuraFear = (a: Actor, id: string, gap?: number, overwhelm?: boolean) => void;
+
+/** MR2–MR4 Overwhelm (Resolve 100): any of the owner's auras that wins by OVERWHELM_TIERS or more against a target whose
+ * max morale is at most OVERWHELM_MORALE_SHARE of the owner's breaks the target at once, and it surrenders */
+export const overwhelms = (owner: Actor, t: Actor, c: ContestResult): boolean =>
+  c.winner === 'a' && hasPerk(owner, PK.overwhelm) && -c.gap >= CONFIG.OVERWHELM_TIERS && maxMorale(t) <= CONFIG.OVERWHELM_MORALE_SHARE * maxMorale(owner);
 
 /** I4: at the start of each turn, every engagement aura checks each target that qualifies for the first time this
  * engagement. `fear` pays the morale cost (resolve.ts, so a break is handled as any other). */
-export function engagementAuras(state: GameState, rng: Rng, fear: (a: Actor, id: string, gap: number) => void): AuraCheck[] {
+export function engagementAuras(state: GameState, rng: Rng, fear: AuraFear): AuraCheck[] {
   const out: AuraCheck[] = [];
   for (const owner of allActors(state)) {
     if (!isActive(owner)) continue;
@@ -55,15 +58,16 @@ export function engagementAuras(state: GameState, rng: Rng, fear: (a: Actor, id:
         contestFeat(state, contest);
         const took = contest.winner === 'a';
         if (took && aura.shaken) applySpeech(owner, t, 'intimidate', contest); // I6: the bigger Shaken stands
-        if (took) fear(t, aura.fear, contest.gap);
-        out.push({ owner, target: t, aura, contest, took });
+        const ow = overwhelms(owner, t, contest);
+        if (took) fear(t, aura.fear, contest.gap, ow);
+        out.push({ owner, target: t, aura, contest, took, ...(ow ? { overwhelmed: true as const } : {}) });
       }
     }
   }
   return out;
 }
 
-export type CryResult = { target: Actor; contest?: ContestResult; took?: boolean; rallied?: true };
+export type CryResult = { target: Actor; contest?: ContestResult; took?: boolean; rallied?: true; overwhelmed?: true };
 
 /** an ally of the owner for Battle Cry: a bandmate, someone who counts the owner a friend or better, or (for the player)
  * someone fighting beside them */
@@ -74,7 +78,7 @@ export const cryAlly = (state: GameState, t: Actor, owner: Actor): boolean =>
  * reaches everyone who perceives it at any level, however far. Each foe (opposed or hostile to the owner) rolls its
  * morale skill (Resolve) against the owner's Intimidation and pays FR.battle_cry per tier of gap when it loses. Each
  * ally gets FR.rallied (10 morale back) and loses any Shaken. */
-export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rng, fear: (a: Actor, id: string, gap?: number) => void): CryResult[] {
+export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rng, fear: AuraFear): CryResult[] {
   const out: CryResult[] = [];
   for (const t of allActors(state)) {
     if (t === owner || !isActive(t) || !(ev.perception[t.id] ?? perceptionOf(ev, state, t))) continue;
@@ -84,8 +88,9 @@ export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rn
       markUse(state, t, contest.b.skill, contest);
       contestFeat(state, contest);
       const took = contest.winner === 'a';
-      if (took) fear(t, FR.battle_cry, contest.gap);
-      out.push({ target: t, contest, took });
+      const ow = overwhelms(owner, t, contest);
+      if (took) fear(t, FR.battle_cry, contest.gap, ow);
+      out.push({ target: t, contest, took, ...(ow ? { overwhelmed: true as const } : {}) });
     } else if (cryAlly(state, t, owner)) {
       fear(t, FR.rallied);
       for (const p of Object.values(t.pressure ?? {})) delete p.shaken;

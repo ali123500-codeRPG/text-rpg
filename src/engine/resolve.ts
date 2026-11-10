@@ -1,5 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
-import { noteLeft } from './trail';
+import { noteLeft, noteZonesSeen } from './trail';
 import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel } from '../ruleset/morale';
@@ -19,6 +19,7 @@ import { updateEngagements, usableThisEngagement, useThisEngagement } from './en
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
+import { syncPerkLinks } from '../ruleset/perkLinks';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, bandById, foe, isActive, isEngaged, hostile, shortestPath, sparBetween, zoneById } from './relations';
@@ -170,7 +171,7 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
 
 /** pays a fear (engine/morale.ts) and applies a break. Rolled fears count only while the actor is engaged, as the
  * morale check did. `seen` = who perceived the event, for the bandmates a break frightens (MB23). */
-function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number } = {}, seen: Record<string, unknown> = {}): void {
+function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean } = {}, seen: Record<string, unknown> = {}): void {
   const { state } = ctx;
   if (getLibrary().fears?.[id]?.rolled && !isEngaged(state, a)) return;
   const r = payFear(state, ctx.rng, a, id, o);
@@ -670,8 +671,8 @@ function doBattleCry(ctx: Ctx, a: Actor): void {
   const ev = mk(ctx, a, 'battle_cry');
   ev.perception = computePerception(ev, state, rng);
   emit(ctx, ev, undefined, true);
-  for (const r of battleCry(state, a, ev, rng, (t, id, gap) => fear(ctx, t, id, gap === undefined ? {} : { gap }))) {
-    ev.effects.push({ kind: r.rallied ? 'rallied' : r.took ? 'cry_took' : 'cry_resisted', actorId: r.target.id, data: { by: a.id, perk: PK.battle_cry } });
+  for (const r of battleCry(state, a, ev, rng, (t, id, gap, overwhelm) => fear(ctx, t, id, { ...(gap === undefined ? {} : { gap }), ...(overwhelm ? { overwhelm } : {}) }))) {
+    ev.effects.push({ kind: r.rallied ? 'rallied' : r.took ? 'cry_took' : 'cry_resisted', actorId: r.target.id, data: { by: a.id, perk: PK.battle_cry, ...(r.overwhelmed ? { overwhelmed: true } : {}) } });
   }
 }
 
@@ -727,6 +728,7 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 // ---------- the turn ----------
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
+  noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
   const learnedBefore = learned(state);
   const playerUp = isActive(state.player);
   // MB41: foes asked by the player's yield answer in this turn's output, before anyone acts
@@ -749,8 +751,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(), parryStrikes: new Set(),
   };
   // NT14/I4: engagement auras check each newly qualifying target before anyone acts
-  for (const c of engagementAuras(state, rng, (a, id, gap) => fear(ctx, a, id, { gap }))) {
-    emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk } }] }), c.contest);
+  for (const c of engagementAuras(state, rng, (a, id, gap, overwhelm) => fear(ctx, a, id, { gap, ...(overwhelm ? { overwhelm } : {}) }))) {
+    emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk, ...(c.overwhelmed ? { overwhelmed: true } : {}) } }] }), c.contest);
   }
   // LI5b Gut Feeling: a hunch of a hidden watcher, from its zone; the owner turns suspicious of it there
   for (const h of gutFeelings(state, rng)) {
@@ -823,6 +825,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   updateQuests(state, ctx.events, defeated);
+  noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
   updateSpars(state, ctx.events); // after the scene-break checks, so a break ends the spar this turn
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
@@ -833,7 +836,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   turnFeats(state, ctx.events);
   if (ended || state.stage.breakCause) { improveMarked(state, rng); unlockClasses(state); }
   for (const x of allActors(state)) expireMarks(state, x);
-  for (const x of allActors(state)) grantAllSteps(state, x); // All-50 parts and mastery achievements
+  for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); } // All-50 parts and mastery achievements; linked perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
   state.events.push(...ctx.events);

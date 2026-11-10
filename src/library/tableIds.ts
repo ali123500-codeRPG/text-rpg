@@ -5,6 +5,8 @@ export const RL = { sense: 'RL1', grip: 'RL2', move: 'RL3', fly: 'RL4', strike: 
 export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', composure: 'HL5', perk: 'HL6' } as const;
 /** fears: what costs (or restores) morale (MB21–MB28) */
 export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', foe_downed: 'FR6', dread_presence: 'FR7', battle_cry: 'FR8', rallied: 'FR9' } as const;
+/** linked perks: a set of perks that together grant one more perk, or merge into one (src/library/perkLinks.ts) */
+export const LK = { crushing_presence: 'LK1' } as const;
 export const DU = { fight_turn: 'DU1', action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5' } as const;
 export const ZK = { room: 'ZK1', corridor: 'ZK2', stairs: 'ZK3', cellar: 'ZK4', street: 'ZK5', square: 'ZK6', gate: 'ZK7', yard: 'ZK8', field: 'ZK9', woods: 'ZK10' } as const;
 export const AM = {
