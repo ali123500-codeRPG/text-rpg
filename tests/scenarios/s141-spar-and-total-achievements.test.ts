@@ -3,11 +3,12 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { startSpar, updateSpars } from '../../src/engine/spar';
-import { grantAchievement } from '../../src/engine/xp';
+import { achXp, grantAchievement } from '../../src/engine/xp';
 import { fightEnded } from '../../src/engine/feats';
 import { actor } from '../harness/village';
 import { ACH } from '../../src/library/achievementIds';
 import type { GameState } from '../../src/types';
+import { CONFIG } from '../../src/config';
 
 const keys = (s: GameState) => (s.player.progression?.achievements ?? []).map((a) => a.key);
 const spar = (s: GameState, cruel: boolean, playerWins: boolean) => {
@@ -65,6 +66,16 @@ describe('141 lost fights and the first spar lost', () => {
     delete slime.mind!.moraleState;
     fightEnded(s, { hp: 0, foes: [slime.id], most: 1 });
     expect(keys(s)).toContain(ACH.defeated_5);
-    expect(s.player.progression!.xp).toBe(xp); // scars pay no XP
+    expect(s.player.progression!.xp).toBe(xp + CONFIG.REWARD_XP.zero); // a level I scar pays level 0's XP
+  });
+});
+
+describe('141 scars pay one reward level lower', () => {
+  it('a scar pays the XP of the level below its own; below level 0 it pays SCAR_XP_BELOW_ZERO', () => {
+    expect(achXp({ level: 'zero', scar: true })).toBe(CONFIG.SCAR_XP_BELOW_ZERO);
+    expect(CONFIG.SCAR_XP_BELOW_ZERO).toBe(25);
+    expect(achXp({ level: 'i', scar: true })).toBe(CONFIG.REWARD_XP.zero);
+    expect(achXp({ level: 'v', scar: true })).toBe(CONFIG.REWARD_XP.iv);
+    expect(achXp({ level: 'ii' })).toBe(CONFIG.REWARD_XP.ii);
   });
 });

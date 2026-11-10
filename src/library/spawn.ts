@@ -147,13 +147,18 @@ export const newPlayer = (classId = PLAYER_CLASS): Pick<Actor['core'], 'bodyType
   perks: [...racePerks(RC.human), ...classPerks(classId, 0, startLevel(classId))],
 });
 
-/** The starter kit: after creation the player gets every item tagged 'starter' whose equip requirement
- * their skills meet. Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
+/** The starter kit: after creation the player gets, for each gear class, the highest-level item tagged 'starter'
+ * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece). Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
  * that weapon takes two hands; worn: the highest-level armor met. The rest is carried. */
 export function starterKit(a: Actor): ItemInstance[] {
   const lib = getLibrary();
-  const met = Object.values(lib.items).filter((d) => d.tags?.includes('starter') && !shortBy(a, d));
   const lvl = (d: ItemDef) => EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude');
+  const top = new Map<string, ItemDef>(); // per gear class, only the highest level met
+  for (const d of Object.values(lib.items)) if (d.tags?.includes('starter') && !shortBy(a, d)) {
+    const k = d.gearClass ?? d.id, b = top.get(k);
+    if (!b || lvl(d) > lvl(b)) top.set(k, d);
+  }
+  const met = [...top.values()];
   const score = (d: ItemDef) => { const r = requirement(d); return (r ? skillToward(a, r.skill) : 0) * 10 + lvl(d); };
   const best = (ds: ItemDef[]) => ds.reduce<ItemDef | undefined>((b, d) => (!b || score(d) > score(b) ? d : b), undefined);
   const weapon = best(met.filter((d) => d.kind === 'weapon'));

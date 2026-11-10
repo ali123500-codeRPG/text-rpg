@@ -46,11 +46,11 @@ describe('128 Late bloomer and class-level perks', () => {
     delete getLibrary().classes[CL.swordsman].levelPerks;
   });
 
-  it('the starter kit: every starter item the skills meet, the best weapon held, a shield beside a one-handed weapon', () => {
+  it('the starter kit: the highest starter item met per gear class, the best weapon held, a shield beside a one-handed weapon', () => {
     const b = recommendedBuild();
     const p = createPlayer({ ...b, skills: { ...b.skills, [SK.melee_medium]: 40, [SK.earshot]: 40 } }, 's1');
     const kit = p.core.inventory.filter((i) => getLibrary().items[i.itemId].tags?.includes('starter'));
-    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.crude_clothes, null], [IT.gambeson, ['armor']], [IT.round_shield, ['hand:left_arm']]]); // no weapon met at 40
+    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.gambeson, ['armor']], [IT.round_shield, ['hand:left_arm']], [IT.hand_axe, ['hand:right_arm']]]); // Medium Weapons 40: the Common hand axe
     const q = createPlayer(b, 's1');
     expect(q.core.inventory.find((i) => i.equippedIn?.includes('hand:right_arm'))?.itemId).toBe(IT.arming_sword);
   });
