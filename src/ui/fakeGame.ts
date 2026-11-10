@@ -80,6 +80,12 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     validateBuild: validateBuildLocal,
     async newStory(b) { start(b); emit(); },
     async resume() { return state !== null; },
+    async hallOfFame() {
+      return [{ name: 'Aldric', pronouns: 'he', title: 'Slime-Bane', classes: [{ name: 'Swordsman', level: 6 }], level: 6, owner: 'player' as const, storyId: 'story_fake',
+        skills: [{ name: 'Medium weapons', value: 58 }, { name: 'Parry', value: 47 }, { name: 'Endurance', value: 50 }, { name: 'Dodge', value: 31 }],
+        perks: ['Keen Ear', 'Turn the Blade'], achievements: ['First Blood', 'Slime-Bane'], scars: ['First Crack'], defeats: 12, turn: 48, day: 3,
+        place: 'The back yard · The Lantern & Ladle', downedBy: { by: 'a lanky youth', weapon: 'dagger', part: 'neck', outcome: 'crushing hit' }, fellAt: '2026-11-10T21:00:00.000Z' }];
+    },
     async agentMove() { return { command: 'I look around.', say: 'Getting my bearings first.' }; },
     async submit(text, o) {
       if (busy || !state) return;

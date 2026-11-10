@@ -1,10 +1,11 @@
 // The boundary between the game (W7 pipeline) and the screens (W8).
 import type { GameState } from './state';
+import type { Pronouns } from './actor';
 import type { AgentTurnLog, Volume } from './agents';
 import type { Tier } from './core';
 import type { LogEntry } from './core';
 
-export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; classId?: string /* the starting class; left out = swordsman */ };
+export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; classId?: string /* the starting class; left out = swordsman */; pronouns?: Pronouns /* the character's gender as others speak of them; left out = they */ };
 
 export type LogLine = {
   turn: number;
@@ -30,6 +31,9 @@ export type LogLine = {
   place?: { id: string; name: string }; // where the player ended the turn; name like "River path · the Riverside"
   scene?: number; // stage.sceneNumber when the turn ended
 };
+
+/** a hall-of-fame row: the fallen character, whose story it was, and its story id */
+export type FallenCharacter = import('./state').FameEntry & { owner: import('./state').StoryOwner; storyId: string };
 
 /** the blow that dropped the player, in words the player knows: by = the attacker as perceived ('someone' if unseen) */
 export type DownedBy = { by: string; weapon: string | null; part: string | null; outcome: string; unseen?: true };
@@ -75,6 +79,7 @@ export interface GameApi {
   /** load the owner's latest story (the player's by default); false when it has none */
   resume(owner?: import('./state').StoryOwner): Promise<boolean>;
   /** autopilot: the agent's next command and one short line of commentary, or null when the call failed */
+  hallOfFame(): Promise<FallenCharacter[]>; // archived stories whose character fell, newest first
   agentMove(persona?: string): Promise<{ command: string; say: string } | null>;
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
