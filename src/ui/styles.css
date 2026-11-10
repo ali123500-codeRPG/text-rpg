@@ -683,6 +683,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-link.hot { stroke: var(--scene-mark); stroke-width: 3; }
 .map-stub { stroke: color-mix(in srgb, var(--faint) 45%, transparent); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
 .map-stub.hot { stroke: var(--scene-mark); }
+.map-link.road { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 10 7; }
+.map-tile.world-place .map-tile-name { font-size: 16px; }
 .map-stub.away { stroke: var(--accent); stroke-dasharray: 8 6; cursor: pointer; }
 .map-pill.away { cursor: pointer; pointer-events: auto; }
 .map-pill.away rect { stroke: var(--accent); }

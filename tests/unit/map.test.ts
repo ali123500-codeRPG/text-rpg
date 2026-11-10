@@ -1,6 +1,6 @@
 // The Map page: only what the character knows, and a layout that follows the exits' compass words.
 import { describe, it, expect } from 'vitest';
-import { compassOf, knownMap } from '../../src/ui/mapData';
+import { compassOf, knownMap, worldTiles } from '../../src/ui/mapData';
 import { layout } from '../../src/ui/map';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { noteZonesSeen } from '../../src/engine/trail';
@@ -58,6 +58,16 @@ describe('map', () => {
     const road = m.places.flatMap((p) => p.zones).find((z) => z.id === 'v_square')!.links.find((l) => l.to === 'ash_gate')!;
     expect(road.known).toBe(true);
     expect(road.otherPlace).toBe('Ashford');
+  });
+
+  it('the World view has one tile per top-level place, joined by the roads between them', async () => {
+    const s = await game();
+    const w = worldTiles(knownMap(s));
+    expect(w.map((t) => t.id).sort()).toEqual(['ashford', 'village']);
+    expect(w.find((t) => t.id === 'village')!.here).toBe(true);
+    expect(w.find((t) => t.id === 'village')!.look).toBe('7 zones known');
+    expect(w.find((t) => t.id === 'village')!.links.map((l) => l.to)).toEqual(['ashford']);
+    expect(w.find((t) => t.id === 'ashford')!.links.map((l) => l.to)).toEqual(['village']);
   });
 
   it('places a zone on the side its exit names', async () => {
