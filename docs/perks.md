@@ -24,11 +24,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Turn the Blade (Medium weapons) · A2
 
-*Story:* Their steel meets yours and slides away, and for one heartbeat they are wide open. When you block a melee attack cleanly with any melee weapon, the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
+*Story:* Their steel meets yours and slides away, and for one heartbeat they are wide open. When you parry a melee attack cleanly with any melee weapon, the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
 
 - **Kind:** Always on
-- **Trigger:** The owner blocks a melee attack.
-- **Conditions:** The owner blocks with any melee weapon held in a working Grip arm. The gap is +2 or better for the owner.
+- **Trigger:** The owner parries a melee attack.
+- **Conditions:** The owner parries with any melee weapon held in a working Grip arm (not barehanded). The gap is +2 or better for the owner.
 - **Effect:** The attacker is marked as open to the owner. The owner's next melee attack on that attacker gets tier shift +1, and the mark clears.
 - **Lasts:** Until it is used or the engagement ends.
 
@@ -74,12 +74,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Open-Hand Guard (Strike) · A7
 
-*Story:* Who said you need a weapon to stop one? You catch and turn blows on bare hands and forearms. With empty hands and no weapon or shield, you can still block. A blow that gets through lands half on your arm and half on your body.
+*Story:* Who said you need a weapon to stop one? You catch and turn blows on bare hands and forearms. With empty hands and no weapon or shield, you can still parry. A blow that gets through lands half on your arm and half on your body.
 
 - **Kind:** Always on
-- **Trigger:** The owner defends with block.
+- **Trigger:** The owner defends with parry.
 - **Conditions:** The owner holds no shield or weapon, and has at least one working Grip arm with an empty hand.
-- **Effect:** The owner may block (block normally needs a held shield or weapon). The block uses the block column of the gap ladder. A hit that gets through is split: 0.5× of its damage goes to the blocking arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test.
+- **Effect:** The owner may parry (parry normally needs a held melee weapon). The parry uses the parry column of the gap ladder, and a parry that earns the free strike back strikes with a fist. A hit that gets through is split: 0.5× of its damage goes to the parrying arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test.
 - **Lasts:** Each defense.
 
 ### Don't Let Go (Grapple) · A8
@@ -119,7 +119,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on; can be switched off per character (on by default)
 - **Trigger:** A ranged attack targets an actor friendly to the owner in the owner's zone.
-- **Conditions:** The owner's standing defense is block and the owner can block (working Grip arm with a shield or weapon). The owner is active. The owner's block value is higher than the value of the ally's own standing defense. Cover Ally is switched on for the owner (a per-character switch, on by default).
+- **Conditions:** The owner's standing defense is block and the owner can block (a shield held in a working Grip arm). The owner is active. The owner's block value is higher than the value of the ally's own standing defense. Cover Ally is switched on for the owner (a per-character switch, on by default).
 - **Effect:** The owner defends in the ally's place with the owner's own block roll. A hit that gets through lands on the owner, who stepped into its path. It counts as one of the owner's defenses this turn (outnumbered).
 - **Lasts:** Each attack.
 
@@ -252,6 +252,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** The foe's next turn.
 - **Cooldown:** Once per foe per engagement.
 
+### Overheard (Insight) · LI5a
+
+*Story:* Not every lie is meant for you, and you catch those too. When someone within your earshot lies to someone else, you can see through it as if it were told to you.
+
+- **Kind:** Always on
+- **Trigger:** Someone lies (a deceive) to someone else, and the owner hears it: the words, or the sound of the voice.
+- **Conditions:** The owner is not the one lied to and did not already answer the lie.
+- **Effect:** The speaker's Lying against the owner's answer to a lie (Insight, or the better of Insight and Lying with Takes One to Know One). If the owner wins, the owner sees through it: the hint that something doesn't sit right, or plainly a lie with Plain as Day. Seeing through it changes nothing else.
+- **Lasts:** Each lie overheard.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1
@@ -265,11 +275,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Guard Drill (Medium weapons) · P2
 
-*Story:* +5 Medium weapons, +1 Melee. Every guard you hold makes the next one harder to break: +10 Block.
+*Story:* +5 Medium weapons, +1 Melee. Every guard you hold makes the next one harder to break: +10 Parry.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Medium weapons. +1 true skill in every skill of group Melee. +10 true skill in Block.
+- **Effect:** +5 true skill in Medium weapons. +1 true skill in every skill of group Melee. +10 true skill in Parry.
 - **Lasts:** Always.
 
 ### Heavy Hand (Heavy weapons) · P3
@@ -457,7 +467,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner dodges.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
-- **Banked as:** a later Dodge perk, suggested for the 60 perk
 
 ### Shield Wall (Block) · B9
 
@@ -468,7 +477,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner blocks with a shield.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
-- **Banked as:** a later Block perk, suggested for the 100 perk
 
 ### Refuse to Fall (Endurance) · B10
 
@@ -560,15 +568,14 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Answer the Blow (Riposte) · B18
 
-*Story:* A clean parry is half a cut. When you turn a blow aside cleanly with a medium weapon, you strike back at once.
+*Story:* A clean parry is half a cut. With a medium weapon you answer sooner: a parry that only turns the blow partly aside already earns your strike back.
 
 - **Kind:** Always on
-- **Trigger:** The owner blocks a melee attack with a medium melee weapon.
-- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack. Once per turn.
-- **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
-- **Lasts:** That attack.
+- **Trigger:** The owner parries a melee attack with a medium melee weapon.
+- **Effect:** The parry's free strike back comes at a gap 2 lower (ANSWER_THE_BLOW_DROP): +1 instead of +3. The damage the parry lets through is unchanged. The strike is still once per turn.
+- **Lasts:** Each parry.
 
-### Step and Cut (Slip Counter) · B18b
+### Step and Cut (Blade Dance) · B18b
 
 *Story:* The blade passes where you were a moment ago. When you slip a blow cleanly with a light or medium weapon in hand, you cut back at once.
 
@@ -578,13 +585,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
 - **Lasts:** That attack.
 
-### Blade Wall (Block) · B19
+### Blade Wall (Parry) · B19
 
-*Story:* Let them all come. Your sword turns one blow after another. When you block with a medium weapon, being outnumbered doesn't hurt your guard.
+*Story:* Let them all come. Your sword turns one blow after another. When you parry with a medium weapon, being outnumbered doesn't hurt your guard.
 
 - **Kind:** Always on
-- **Trigger:** The owner blocks.
-- **Conditions:** The owner blocks with a medium melee weapon, not a shield.
+- **Trigger:** The owner parries.
+- **Conditions:** The owner parries with a medium melee weapon.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
 
@@ -628,17 +635,27 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner sees that speaker's stance toward the owner.
 - **Lasts:** While the owner sees them, for the rest of the scene.
 
+### Dread Presence (Intimidation) · I1
+
+*Story:* You don't have to say a word. Anyone who means you harm feels it the moment they face you, and it stays with them for the rest of the fight.
+
+- **Kind:** Always on (engagement aura)
+- **Trigger:** An actor opposed or hostile to the owner is aware of the owner in the owner's zone or one zone away, for the first time this engagement.
+- **Conditions:** Once per target per engagement.
+- **Effect:** The owner's Intimidation against the target's Resolve (its morale roll, renown included). If the owner wins, the target is Shaken toward the owner by −5 × the tier gap until the engagement ends (the bigger Shaken stands), and loses 10 morale × the tier gap. Each aura's morale cost adds up on its own.
+- **Lasts:** Shaken until the engagement ends.
+
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar tells every foe close by exactly how this ends. Once per fight, every hostile in your zone that hears it makes a morale check.
+*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, every foe that hears it, however far, makes a morale check against you, and every ally that hears it takes heart and shakes off its fear.
 
-- **Kind:** Move
-- **Trigger:** The owner uses the move.
-- **Effect:** Every foe hostile to the owner in the owner's zone that hears it makes a morale check.
+- **Kind:** Move (offensive aura)
+- **Trigger:** The owner uses the move. The roar is a Loud noise.
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar gets 10 morale back and loses any Shaken.
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement.
 - **Needs first:** Moves.
-- **Banked as:** a later Intimidation perk, suggested for the 100 perk
+- **Banked as:** a later Intimidation perk, suggested for the 140 perk
 
 ### Buy Them Off (Barter) · C3
 
@@ -765,19 +782,19 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 Granted free once enough skills of the tree reach 50 true skill, by the tree's rating (inferior never, normal 3, superior 2, legendary 1): the tree's passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Fortitude All-50: Hard to Kill; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
 
-### Opening Strike (Combat – Arms, Light weapons) · T1a
+### Opening Strike (Combat – Arms, Heavy weapons) · T1a
 
 *Story:* You always make the first blow count. Your first melee attack on each foe in a fight lands one outcome better.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a melee attack.
 - **Conditions:** It is the owner's first melee attack on that foe in this engagement.
-- **Effect:** Tier shift +1 on the attack roll. The defense roll still happens.
+- **Effect:** Tier shift +1 on the attack roll.
 - **Lasts:** That attack.
 - **Cooldown:** Once per foe per engagement.
 - **Built:** yes
 
-### Counter (Combat – Arms, Heavy weapons) · T1c
+### Counter (Combat – Arms, Light weapons) · T1c
 
 *Story:* A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.
 
@@ -790,23 +807,23 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 
 ### Fighter's Frame (Combat – Arms, passive) · T1d
 
-*Story:* A body hardened by a thousand bouts. Melee blows on you land a tenth lighter.
+*Story:* A body hardened by a thousand bouts. Melee blows that get past your armor cost you a tenth less health.
 
 - **Kind:** Always on
-- **Trigger:** A melee or unarmed attack hits the owner.
+- **Trigger:** A melee or unarmed attack damages the owner's body (not a shield).
 - **Conditions:** The attack mode is not ranged.
-- **Effect:** The hit's damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).
+- **Effect:** The health lost from that hit, after armor, is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 
 ### Steady Guard (Combat – Arms, Medium weapons) · T1e
 
-*Story:* Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.
+*Story:* Your blade knows where the blow will land. Your Parry is 5 higher, and 5 higher again when you parry with a medium weapon.
 
 - **Kind:** Always on
-- **Trigger:** Always; and the owner makes a Block roll.
-- **Conditions:** The extra +5 needs the block to be made with a melee weapon, not a shield.
-- **Effect:** +5 true skill in Block. Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).
+- **Trigger:** Always; and the owner makes a Parry roll.
+- **Conditions:** The extra +5 needs the parry to be made with a medium melee weapon.
+- **Effect:** +5 true skill in Parry. Parry rolls made with a medium melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 
@@ -817,7 +834,7 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
 - **Conditions:** It is the owner's first ranged attack in this engagement. The target hasn't acted yet in its engagement (it has none, or it began this turn and the target hasn't had its action).
-- **Effect:** Tier shift −1 on the target's defense roll. No roll is skipped.
+- **Effect:** Tier shift −1 on the target's defense roll.
 - **Lasts:** That attack.
 - **Cooldown:** Once per engagement.
 - **Built:** yes
@@ -874,6 +891,16 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Lasts:** Always.
 - **Built:** yes
 
+### Junk Arsenal (Combat – Unarmed, Improvisation) · T3e
+
+*Story:* A chair leg, a bottle, a tankard: in your hands they all hurt. Your improvised weapons hit a fifth harder.
+
+- **Kind:** Always on
+- **Trigger:** The owner hits with an improvised weapon (an attack that rolls Improvisation, or a throw that blends it in).
+- **Effect:** The hit's damage before armor is ×1.2 (CONFIG.JUNK_ARSENAL_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
 ### Bare-Handed Guard (Combat – Unarmed, passive) · T3d2
 
 *Story:* With nothing in your hands, nothing slows you. Your Dodge is 5 higher, and 5 higher again while you hold no weapon.
@@ -897,27 +924,38 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Cooldown:** Once per engagement.
 - **Built:** yes
 
+### Last to Fall (Fortitude, passive) · T4f
+
+*Story:* The worse it gets, the steadier you are. Once you are badly hurt, fear takes a quarter less out of you.
+
+- **Kind:** Always on
+- **Trigger:** The owner loses morale.
+- **Conditions:** The owner is at Wounded or worse on the health track.
+- **Effect:** The morale lost is ×0.75 (CONFIG.LAST_TO_FALL_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
 ### Dodgy (Combat – Defense, Dodge) · T4d
 
-*Story:* You are never quite where they aim. Attacks on you lose 5 skill.
+*Story:* You are never quite where they aim. Attacks on you lose 10 skill.
 
 - **Kind:** Always on
 - **Trigger:** An attack roll is made against the owner.
-- **Effect:** That attack roll gets −5 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).
+- **Effect:** That attack roll gets −10 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).
 - **Lasts:** That roll.
 - **Built:** yes
 
 ### Thick Hide (Combat – Defense, passive) · T4e
 
-*Story:* Blows that would cut others only bruise you. Every hit costs you a little less health.
+*Story:* Blows that would cut others only bruise you. Every hit lands a little lighter, before your armor takes its share.
 
 - **Kind:** Always on
-- **Trigger:** A hit damages the owner's body (not a shield).
-- **Effect:** The health lost from that hit, after armor, is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).
+- **Trigger:** A hit lands on the owner's body (not a shield).
+- **Effect:** The hit's damage before armor is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 
-### Spotter (Perception, Earshot) · T5b
+### Spotter (Perception, passive) · T5b
 
 *Story:* What you see, your people sense. Your band-mates beside you know something is there whenever you do.
 
@@ -937,6 +975,17 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Conditions:** The roll ends in Success or better.
 - **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
 - **Lasts:** That roll.
+- **Built:** yes
+
+### Know the Step (Perception, Earshot) · T5f
+
+*Story:* A cough, a gait, the way a voice drops. You know the people you have met by sound alone.
+
+- **Kind:** Always on
+- **Trigger:** The owner hears someone it can't see (sound only).
+- **Conditions:** The owner knows that someone's name.
+- **Effect:** The owner learns who it is: the heard event and any words spoken name them, as if seen.
+- **Lasts:** That event.
 - **Built:** yes
 
 ### Night Eyes (Perception, Eyesight) · T5e

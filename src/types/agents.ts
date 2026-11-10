@@ -1,6 +1,7 @@
 // Agent I/O (Part 2: Parser, Planner, Responder, Voice, Narrator, Weaver) and the Claude-call boundary.
 import type { Cover, Grade, Light, Stance, Tactics } from './core';
 import type { GearOp } from './items';
+import type { DefenseKind } from './actor';
 import type { TimeOfDay } from '../scales';
 import type { Plan, Secret, Trigger } from './hidden';
 
@@ -53,7 +54,7 @@ export type NpcAction = {
   skill: string | null;
   targetPart: string | null;
   aimed: boolean;
-  defense: 'dodge' | 'block' | null;
+  defense: DefenseKind | null;
   item: string | null;
   qty?: number | null; // give: how many of a stack (null: all of it)
   mode: string | null;

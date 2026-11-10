@@ -22,18 +22,19 @@ describe('player creation', () => {
     const b = recommendedBuild();
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.earshot]: 20 } })).toEqual(['Spend exactly 250 points (240 spent)']);
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.melee_medium]: 61, [SK.earshot]: 19 } })).toEqual(['Medium weapons is above 60']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.block]: 35, [SK.earshot]: 35 } })).toEqual(['Block must be at least 40 (class floor)']); // floors 40/40
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.parry]: 35, [SK.earshot]: 35 } })).toEqual(['Parry must be at least 40 (class floor)']); // floors 40/40
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.tremor]: 10, [SK.earshot]: 20 } })).toEqual(['Tremor is not open to the point-buy']);
-    expect(validateBuild({ ...b, tagged: [SK.block, SK.dodge] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
+    expect(validateBuild({ ...b, tagged: [SK.parry, SK.dodge] })).toEqual(['Tag exactly 3 skills (2 tagged)']);
     expect(validateBuild({ ...b, name: ' ' })).toEqual(['Name the character']);
   });
   it('builds the sheet: StartingTotal, tags, starting gear, coin', () => {
     const p = createPlayer(recommendedBuild(), 's1');
     expect(p.progression!.startingTotal).toBe(250 - 50 - 40 - 50);
-    expect(p.core.skills[SK.block]).toEqual({ raw: 40, state: 'tagged' });
+    expect(p.core.skills[SK.parry]).toEqual({ raw: 40, state: 'tagged' });
     expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn?.[0], i.qty])).toEqual([
-      // the starter kit: per gear class the highest 'starter' item met (the spear ties the sword and is not given; the gambeson beats the clothes)
-      [IT.arming_sword, 'hand:right_arm', undefined], [IT.gambeson, 'armor', undefined], [IT.round_shield, 'hand:left_arm', undefined],
+      // the starter kit: per gear class the highest 'starter' item met (the spear ties the sword and is not given; the gambeson beats the clothes;
+      // the recommended swordsman parries, so with Block 0 it gets no shield)
+      [IT.arming_sword, 'hand:right_arm', undefined], [IT.gambeson, 'armor', undefined],
       [IT.coin, undefined, CONFIG.STARTING_COIN], [IT.bandage, undefined, CONFIG.STARTING_BANDAGES],
     ]);
     expect(p.core.classes).toEqual([{ classId: CL.swordsman, state: 'current', level: 4 }]); // EQ13: the player starts at level 4
@@ -52,7 +53,7 @@ describe('unique generation', () => {
     const a = rollUniqueSkills(bandit, createRng(5));
     expect(rollUniqueSkills(bandit, createRng(5))).toEqual(a);
     expect(sum(a)).toBe(sum(Object.fromEntries(Object.entries(bandit.minimums).map(([k, v]) => [k, { raw: v }]))) + bandit.level * CONFIG.POINTS_PER_LEVEL + bandit.bonusPoints);
-    expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.block, SK.melee_medium, SK.eyesight].sort());
+    expect(Object.entries(a).filter(([, e]) => e.state === 'tagged').map(([k]) => k).sort()).toEqual([SK.parry, SK.melee_medium, SK.eyesight].sort());
     const seeds = new Set([1, 2, 3, 4, 5, 6].map((n) => JSON.stringify(rollUniqueSkills(bandit, createRng(n)))));
     expect(seeds.size).toBeGreaterThan(1); // spending is uneven across seeds
   });

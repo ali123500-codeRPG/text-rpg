@@ -3,11 +3,12 @@ import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
+import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
-import { applyHealing, passiveHealing, wouldHeal } from './heal';
+import { applyHealing, creditHealing, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
 import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -15,6 +16,7 @@ import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
+import { engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
@@ -26,7 +28,7 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { buy, sell } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
-import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, pushContest } from './speech';
+import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
@@ -65,6 +67,7 @@ type Ctx = {
   defenses: Map<string, number>;
   exchangeEvents: GameEvent[];
   counters: Set<string>; // All-50 Counter: once per turn
+  parryStrikes: Set<string>; // PA4: a parry's free strike back, once per turn
 };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
@@ -264,6 +267,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
     }
   }
   emit(ctx, ev, undefined, push);
+  if (o.type === 'deceive') overhearLie(state, ev, ev.push ? [ev.push.listener] : [], ctx.rng, ev.contest?.a); // LI5a
 }
 
 /** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
@@ -347,6 +351,21 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
   }
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
+  parryStrike(ctx, a, t, res);
+}
+
+/** PA4: a parry at the strike gap or better gives the defender one free melee attack back at the attacker, with the
+ * parrying weapon (a fist after a barehanded parry), once per turn. A free attack can earn one too: once per turn ends the chain. */
+function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
+  const { state } = ctx;
+  if (!res.strikeBack || !isActive(t) || !isActive(a) || t.zone !== a.zone || ctx.parryStrikes.has(t.id)) return;
+  const weapon = parryItem(state, t);
+  const modes = usableModes(state, t);
+  const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
+    : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
+  if (!back) return;
+  ctx.parryStrikes.add(t.id);
+  doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: 'parry strike' }, true);
 }
 
 /** an order the engine makes for a free attack (All-50 Counter and Volley) */
@@ -385,7 +404,9 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   const L = CONFIG.HEALTH_TRACK;
   const i = L.findIndex(([l]) => l === healthLevel(t));
   if (isActive(t) && hasPerk(t, PK.second_wind) && i >= L.findIndex(([l]) => l === 'Wounded') && !isDownLevel(L[i][0]) && onceThisEngagement(state, t, PK.second_wind)) {
+    const was = t.core.condition.hpLostPct;
     t.core.condition.hpLostPct = L[i - 1][1] as number;
+    creditHealing(state, t, HL.perk, was - t.core.condition.hpLostPct);
     emit(ctx, mk(ctx, t, 'perk_move', { effects: [{ kind: PK.second_wind, actorId: t.id, data: { from: L[i][0], to: L[i - 1][0] } }] }));
   }
   if (followUp) return;
@@ -710,8 +731,12 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
-    state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(),
+    state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(), parryStrikes: new Set(),
   };
+  // NT14/I4: engagement auras check each newly qualifying target before anyone acts
+  for (const c of engagementAuras(state, rng, (a, id, gap) => fear(ctx, a, id, { gap }))) {
+    emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk } }] }), c.contest);
+  }
   const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), orders, rng);
 
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order
@@ -722,6 +747,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       speech: { skill: ex.skill, impression: ex.impression ?? undefined, addressees: input.spokespeople },
     });
     emit(ctx, ev);
+    if (playerOrder.type === 'deceive') overhearLie(state, ev, Object.keys(ex.perSpokesperson), ctx.rng, Object.values(ex.perSpokesperson)[0]?.contest.a); // LI5a
     ctx.exchangeEvents.push(ev);
     // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
     if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s && applySpeech(state.player, s, playerOrder.type, r.contest).status === 'shaken') fear(ctx, s, FR.lost_intimidation, { gap: r.contest.gap }); }

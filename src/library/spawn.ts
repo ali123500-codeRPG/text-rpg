@@ -1,13 +1,13 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import { BT, RC } from './raceIds';
-import type { Actor, CreationBuild, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
+import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
 import { CLASS_TIERS, EQUIP_LEVELS } from '../scales';
 import { createRng } from '../rng';
-import { SK } from './skillIds';
+import { SK, DEFENSE_SKILL } from './skillIds';
 import { skillName } from './skillNames';
 import { CL } from './classIds';
 import { IT } from './itemIds';
@@ -103,7 +103,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 }))],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
-      standingDefense: (skills[SK.block]?.raw ?? 0) >= (skills[SK.dodge]?.raw ?? 0) ? 'block' : 'dodge', // GAP: raw skill; a tie goes to block like the player
+      standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, t.loadout ?? []), // GAP: raw skill; ties go block, parry, dodge like the player
     },
     // GAP: unique NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'unique' ? { progression: {
@@ -172,18 +172,27 @@ export function starterKit(a: Actor): ItemInstance[] {
   });
 }
 
+/** a new sheet's standing defense from raw skill: the highest of block, parry and dodge (ties in that order). With a
+ * known loadout, block needs a shield in it and parry a melee weapon. */
+function rawDefense(raw: (id: string) => number, loadout?: string[]): DefenseKind {
+  const has = (f: (d: ItemDef) => boolean) => !loadout || loadout.some((id) => { const d = getLibrary().items[id]; return !!d && f(d); });
+  const kinds = (['block', 'parry', 'dodge'] as DefenseKind[]).filter((t) => t === 'dodge'
+    || (t === 'block' ? has((d) => !!d.shield) : has((d) => !!d.weapon?.modes.some((m) => m.tree === 'melee' && !m.thrown))));
+  return kinds.reduce((best, t) => (raw(DEFENSE_SKILL[t]) > raw(DEFENSE_SKILL[best]) ? t : best), kinds[0]);
+}
+
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
- * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
+ * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, parry, endurance). */
 export function recommendedBuild(classId = PLAYER_CLASS): CreationBuild {
   if (classId === CL.late_bloomer || classId === CL.a_nobody) return { // 50 points; the same kit, so its gear is short at the start
     name: 'Aldric', classId,
-    skills: { [SK.melee_medium]: 15, [SK.block]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
-    tagged: [SK.melee_medium, SK.block, SK.endurance],
+    skills: { [SK.melee_medium]: 15, [SK.parry]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
+    tagged: [SK.melee_medium, SK.parry, SK.endurance],
   };
   return {
     name: 'Aldric',
-    skills: { [SK.melee_medium]: 50, [SK.block]: 40, [SK.dodge]: 25, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.light_armor]: 25 },
-    tagged: [SK.melee_medium, SK.block, SK.endurance],
+    skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 25, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.light_armor]: 25 },
+    tagged: [SK.melee_medium, SK.parry, SK.endurance],
   };
 }
 
@@ -232,8 +241,8 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       skills,
       condition: { hpLostPct: 0, parts: fullParts(null, BT.humanoid), status: [] },
       inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
-      // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here
-      standingDefense: (build.skills[SK.block] ?? 0) >= (build.skills[SK.dodge] ?? 0) ? 'block' : 'dodge',
+      // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
+      standingDefense: rawDefense((id) => build.skills[id] ?? 0),
     },
     progression: {
       startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),

@@ -21,14 +21,14 @@ it('144a weapons: kit bonus plus reach', () => {
   expect(val(IT.improvised_medium)).toBe(0);
 });
 
-it('144b the basket-hilted sword: +5 Block beyond its requirement adds to its value and to Block', () => {
+it('144b the basket-hilted sword: +5 Parry beyond its requirement adds to its value and to Parry', () => {
   expect(val(IT.basket_hilt_sword)).toBe(val(IT.arming_sword) + 5 * V.skillPoint);
   expect(benefits(itemDef(null, IT.basket_hilt_sword)).map((b) => b.what)).toContain('+5 skill bonus');
   const s = makeVillage();
-  s.player.core.skills[SK.block] = { raw: 30, marked: false } as never;
-  const before = effectiveSkill(s, s.player, SK.block).value;
+  s.player.core.skills[SK.parry] = { raw: 30, marked: false } as never;
+  const before = effectiveSkill(s, s.player, SK.parry).value;
   s.player.core.inventory.push({ id: 'bh', itemId: IT.basket_hilt_sword, equippedIn: ['hand:right'] } as never);
-  expect(effectiveSkill(s, s.player, SK.block).value).toBeGreaterThan(before);
+  expect(effectiveSkill(s, s.player, SK.parry).value).toBeGreaterThan(before);
 });
 
 it('144c armor, shields and the lucky charm are priced from their numbers', () => {

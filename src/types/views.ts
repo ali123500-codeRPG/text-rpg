@@ -3,6 +3,7 @@
 import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, Tier, TierName, Grade, Fact } from './core';
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
+import type { DefenseKind } from './actor';
 
 export type HealthLevel = 'Unhurt' | 'Bruised' | 'Hurt' | 'Injured' | 'Wounded' | 'Mauled' | 'Critical' | 'Incapacitated' | 'Dead';
 export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
@@ -38,6 +39,7 @@ export type EventView = {
   outcome?: string; // attacks: packet outcome label
   spar?: true; // SP11: a sparring blow (seen fully)
   took?: string; // OQ-29 (NT10): the speaker's own speech roll at the player, as it saw the player take it
+  tell?: string; // LI5a Overheard: a lie told to someone else that the viewer saw through
 };
 
 /** SP1/SP4: the spar a viewer fights in: opponents and allies (ids in NPC views, names in the player's), the health level
@@ -78,7 +80,7 @@ export type PlayerView = {
     morale: string; // the morale bar's level (MB11)
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
-    standingDefense: 'dodge' | 'block';
+    standingDefense: DefenseKind;
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
     spar?: SparView; // SP1: the spar the player fights in
     yielded?: YieldView; // MB40: the player yielded in a real fight this scene
@@ -113,7 +115,7 @@ export type ActorView = {
     morale: string; // the morale bar's level
     active: boolean; broken: boolean; surrendered: boolean;
     control: 'agent' | 'code';
-    standingDefense: 'dodge' | 'block';
+    standingDefense: DefenseKind;
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
     attackSkill: string; // fallback.attackSkill (template, else body type)
@@ -164,8 +166,8 @@ export type CombatPacket = {
   action: string; // 'melee attack' | 'aimed melee attack' | 'ranged attack' ...
   weapon: string | null; armor: string | null; shield: string | null;
   attack: { tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] };
-  defense: { type: 'dodge' | 'block'; tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
-  outcome: string; // missed, dodged, grazed, blocked, full hit, heavy hit, crushing hit
+  defense: { type: DefenseKind; tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
+  outcome: string; // missed, dodged, grazed, blocked, parried, full hit, heavy hit, crushing hit
   location: { part: string; how: string } | null;
   changes: string[];
   events: string[];
@@ -182,6 +184,7 @@ export type NarrationEvent = {
   packet?: CombatPacket; // attacks
   spar?: true; // SP11: a sparring blow, not a real attack
   pressed?: { how: string; took?: string }; // OQ-29: an NPC's speech roll at the player, in words
+  overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words
   for?: string; // buy: who got it

@@ -2,7 +2,7 @@
 // Contract: the eight Ruleset methods plus the helpers below. Every number comes from CONFIG.
 import { RL } from '../library/tableIds';
 import type {
-  Actor, AttackRequest, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
+  Actor, AttackRequest, DefenseKind, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
   PartState, Rng, RollRequest, RollResult, Ruleset, SituationResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
@@ -20,7 +20,7 @@ import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats } from '../engine/xp';
 import { shortShifts } from './requirements';
-import { blendedSkill, blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
+import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -87,15 +87,15 @@ function mustActor(state: GameState, id: string): Actor {
 }
 
 /** gap ladder (Part 3, Defense); a gap past ±5 uses the ±5 entry */
-export function ladder(type: 'dodge' | 'block', gap: number): number {
+export function ladder(type: DefenseKind, gap: number): number {
   return CONFIG.GAP_LADDER[type][Math.max(-5, Math.min(5, gap))];
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
-function locRule(type: 'dodge' | 'block', g: number): LocRule {
+function locRule(type: DefenseKind, g: number): LocRule {
   if (type === 'dodge') return g >= 0 ? 'no_essential' : 'any'; // +1 graze: never essential, like the tie (OQ-17 settled)
-  return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block +1..+5 off-shield keep the gap-0 limit
+  return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block and parry +1..+5 off-shield keep the gap-0 limit
 }
-function rowKey(type: 'dodge' | 'block', gap: number, shield: boolean): string {
+function rowKey(type: DefenseKind, gap: number, shield: boolean): string {
   const g = Math.max(-5, Math.min(5, gap));
   return [ladder(type, g), locRule(type, g), g <= -3 ? 'anywhere' : g === -2 ? 'adjacent' : '', shield && g >= 0].join('|');
 }
@@ -209,19 +209,20 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (!tierAtLeast(atk, 'near_miss')) return { ...base, outcome: 'missed', deciding: { attack: atkDeciding, defense: [], gap: [] } };
 
   // 3. defense roll with the standing defense
-  let type: 'dodge' | 'block' = D.core.standingDefense;
-  const blocker = type === 'block' ? blockItem(state, D) : null;
-  const openArm = type === 'block' && !blocker ? openHandArm(state, D) : null; // A7 Open-Hand Guard
-  if (!blocker && !openArm) type = 'dodge'; // GAP: no working arm holding a shield or melee weapon, so the free reaction falls back to dodge
+  // a standing defense that can't work here falls back to the best one that can (no shield, no block; parry can't stop missiles)
+  const type = usableDefense(state, D, ranged);
+  const blocker = defenseItem(state, D, type); // the shield that blocks or the weapon that parries
+  const openArm = type === 'parry' && !blocker ? openHandArm(state, D) : null; // A7 Open-Hand Guard (PA10): a barehanded parry
+  const mediumParry = type === 'parry' && !!blocker && !!itemDef(state, blocker.itemId).weapon?.modes.some((x) => x.tree === 'melee' && x.class === 'medium');
   const dm: Mod[] = [];
-  // B19 Blade Wall: Block rolls with a medium melee weapon never take the outnumbered penalty
-  const bladeWall = type === 'block' && !!blocker && hasPerk(D, PK.blade_wall) && !!itemDef(state, blocker.itemId).weapon?.modes.some((x) => x.tree === 'melee' && x.class === 'medium');
-  if ((req.context?.defensesThisTurn ?? 0) >= 1 && !bladeWall) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
+  // never outnumbered: B19 Blade Wall (Parry 60, a medium weapon), B9 Shield Wall (Block 60), B8 Slip the Crowd (Dodge 60)
+  const noCrowd = (mediumParry && hasPerk(D, PK.blade_wall)) || (type === 'block' && hasPerk(D, PK.shield_wall)) || (type === 'dodge' && hasPerk(D, PK.slip_the_crowd));
+  if ((req.context?.defensesThisTurn ?? 0) >= 1 && !noCrowd) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
   dm.push(...situational(state, DEFENSE_SKILL[type], { light: zoneA }).modifiers); // ST21: light by tag (sight)
-  // All-50 Steady Guard: Block rolls made with a melee weapon (not a shield)
-  if (type === 'block' && blocker && !itemDef(state, blocker.itemId).shield && hasPerk(D, PK.steady_guard)) {
+  // All-50 Steady Guard: Parry rolls made with a medium melee weapon
+  if (mediumParry && hasPerk(D, PK.steady_guard)) {
     dm.push({ source: 'Steady Guard', type: 'roll_perk', value: CONFIG.SKILL_WEIGHT * CONFIG.STEADY_GUARD });
   }
   // All-50 Bare-Handed Guard: Dodge rolls while the owner holds no weapon
@@ -235,7 +236,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
 
   // 4. gap
   const gapShifts: TierShift[] = [];
-  if (mode.class === 'heavy' && type === 'block') gapShifts.push({ source: 'heavy vs block', value: CONFIG.HEAVY_VS_BLOCK_GAP });
+  if (mode.class === 'heavy' && type !== 'dodge') gapShifts.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP }); // PA11: Parry too
   // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
   const coverKey = zoneD && ranged && hasPerk(A, PK.past_the_cover) ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
@@ -249,16 +250,19 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
   const g = Math.max(-5, Math.min(5, gap));
   let multiplier = ladder(type, g);
-  const shield = !!(blocker && itemDef(state, blocker.itemId).shield);
+  const shield = type === 'block';
   const deciding = {
     attack: atkDeciding,
     defense: defDeciding,
     gap: gapShifts.filter((s) => rowKey(type, gap - s.value, shield) !== rowKey(type, gap, shield)).map((s) => s.source),
   };
   let outcome: AttackResult['outcome'] =
-    multiplier === 0 ? 'dodged' : type === 'dodge' && g === 1 ? 'grazed' : type === 'block' && (g >= 1 || (g === 0 && shield)) ? 'blocked'
+    multiplier === 0 ? (type === 'parry' ? 'parried' : 'dodged') : type === 'dodge' && g === 1 ? 'grazed' : type !== 'dodge' && (g >= 1 || (g === 0 && shield)) ? 'blocked'
       : g <= -5 ? 'crushing_hit' : g === -4 ? 'heavy_hit' : 'full_hit';
-  if (multiplier === 0) return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, deciding };
+  // PA4: a parry at PARRY_STRIKE_GAP or better earns a free strike back (the engine makes it); PA7 Answer the Blow lowers it with a medium weapon
+  const strikeAt = CONFIG.PARRY_STRIKE_GAP - (mediumParry && hasPerk(D, PK.answer_the_blow) ? CONFIG.ANSWER_THE_BLOW_DROP : 0);
+  const strike = type === 'parry' && !ranged && gap >= strikeAt ? { strikeBack: true as const } : {};
+  if (multiplier === 0) return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, deciding, ...strike };
 
   // 5. location
   let location: string;
@@ -309,16 +313,19 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
-  const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame
+  const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, PK.iron_knuckles) ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * frame * knuckles; // 40/80/120 perk: Heavy Hand
-  const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
-  const hide = hasPerk(D, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on health lost (after armor)
-  const damage = location === 'shield' ? Math.max(0, raw) : (afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare) * hide;
+  const improvised = skill === SK.unarmed_improvised || !!mode.blend?.some((b) => b.skill === SK.unarmed_improvised);
+  const junk = improvised && hasPerk(A, PK.junk_arsenal) ? CONFIG.JUNK_ARSENAL_MULT : 1; // All-50: Junk Arsenal
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * knuckles * junk; // 40/80/120 perk: Heavy Hand
+  const hide = location !== 'shield' && hasPerk(D, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on the body hit before armor
+  const body = raw * hide;
+  const generalShare = openArm ? afterArmor(body * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') * frame : 0;
+  const damage = location === 'shield' ? Math.max(0, raw) : (afterArmor(openArm ? body * CONFIG.OPEN_HAND_ARM_SHARE : body, location) * frame + generalShare);
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
   const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, PK.leg_bolt)
     && !!ct.parts.find((p) => p.id === location)?.roles.includes(RL.move);
-  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...(openArm ? { generalShare } : {}), ...(legBolt ? { legBolt } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, PK.shield_breaker) ? { shieldMult: 2 } : {}) } : {}) };
+  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...strike, ...(openArm ? { generalShare } : {}), ...(legBolt ? { legBolt } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, PK.shield_breaker) ? { shieldMult: 2 } : {}) } : {}) };
 }
 
 function applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[] {
