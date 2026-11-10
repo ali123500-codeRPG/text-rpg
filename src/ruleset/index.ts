@@ -134,7 +134,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on
   let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
-  const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
+  const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), ...(req.rollKind ? { rollKind: req.rollKind } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
   return out;
 }

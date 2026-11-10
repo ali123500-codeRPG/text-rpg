@@ -100,6 +100,8 @@ export type GameEvent = {
   /** OQ-29: an NPC's speech roll at the player: the speech type, whether it landed, the penalty it left, a lie the player saw
    * through, and whether the speaker saw how it was taken */
   push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; seen?: true };
+  /** LI5a Overheard: owners of Overheard who heard this lie told to someone else and saw through it */
+  overheard?: string[];
 };
 
 export type LogEntry = { turn: number; code: string; detail?: Record<string, unknown> };

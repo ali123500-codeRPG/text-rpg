@@ -39,6 +39,7 @@ export type EventView = {
   outcome?: string; // attacks: packet outcome label
   spar?: true; // SP11: a sparring blow (seen fully)
   took?: string; // OQ-29 (NT10): the speaker's own speech roll at the player, as it saw the player take it
+  tell?: string; // LI5a Overheard: a lie told to someone else that the viewer saw through
 };
 
 /** SP1/SP4: the spar a viewer fights in: opponents and allies (ids in NPC views, names in the player's), the health level
@@ -183,6 +184,7 @@ export type NarrationEvent = {
   packet?: CombatPacket; // attacks
   spar?: true; // SP11: a sparring blow, not a real attack
   pressed?: { how: string; took?: string }; // OQ-29: an NPC's speech roll at the player, in words
+  overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words
   for?: string; // buy: who got it
