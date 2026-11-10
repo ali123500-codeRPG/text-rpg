@@ -9,7 +9,7 @@ import { MILESTONES, hasPerk, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
-import { augmentsOf, tierMult } from './gear';
+import { augmentsOf, perkAugments, tierMult } from './gear';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 
@@ -42,6 +42,7 @@ function augmenters(actor: Actor, skill: string, rollKind?: RollKind): { id: str
     if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, d.id) || actor.core.skills[d.id]?.dormant) continue;
     out.push({ id: d.id, k: (g.share ?? 1) * tierMult(d.id) });
   }
+  for (const g of perkAugments(actor, skill, rollKind)) out.push({ id: g.from, k: (g.share ?? 1) * tierMult(g.from) }); // All-50 Grit
   return out;
 }
 /** a side's level on a roll for augment learning: its true skill plus what its augments added (AU2) */

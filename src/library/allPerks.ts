@@ -10,6 +10,7 @@ import { FN } from './functionIds';
 import type { PerkWriteup } from '../types';
 import { SK } from './skillIds';
 import { PK } from './perkIds';
+import { CONFIG } from '../config';
 
 /** a tree's All-50: its name and its passive (the skills' parts are in SKILL_PARTS) */
 export type AllBundle = { treeId: string; step: 50; name: string; passive?: string };
@@ -27,12 +28,12 @@ export const ALL_BUNDLES: AllBundle[] = [
 ];
 
 /** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
- * No part yet: Block, Parry, Resolve, Insight, Vanishing, Intimidation and the one-skill trees. */
+ * No part yet: Insight (parked), Vanishing, Intimidation and the one-skill trees. */
 export const SKILL_PARTS: Record<string, string> = {
   [SK.melee_light]: PK.counter, [SK.melee_medium]: PK.steady_guard, [SK.melee_heavy]: PK.opening_strike,
   [SK.ranged_light]: PK.unerring, [SK.ranged_medium]: PK.volley, [SK.ranged_heavy]: PK.past_the_cover,
   [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold, [SK.unarmed_improvised]: PK.junk_arsenal,
-  [SK.dodge]: PK.dodgy, [SK.endurance]: PK.second_wind,
+  [SK.dodge]: PK.dodgy, [SK.parry]: PK.against_the_grain, [SK.block]: PK.iron_rim, [SK.endurance]: PK.second_wind, [SK.resolve]: PK.grit,
   [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.know_the_step, // Spotter parked
   [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade,
   [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
@@ -116,6 +117,19 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'Blows that would cut others only bruise you. Every hit lands a little lighter, before your armor takes its share.',
     rules: { kind: 'Always on', trigger: 'A hit lands on the owner\'s body (not a shield).', conditions: [],
       effect: 'The hit\'s damage before armor is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).', lasts: 'Always.' } }),
+  part(TR.defense, { id: PK.against_the_grain, ref: 'T4g', name: 'Against the Grain', effect: 'defense',
+    story: 'A heavy blade is no harder to turn than any other. Heavy weapons lose their edge against your parry.',
+    rules: { kind: 'Always on', trigger: 'The owner parries a heavy melee weapon.', conditions: [],
+      effect: 'The heavy-weapon gap shift (−1, HEAVY_VS_BLOCK_GAP) is not applied to the owner\'s parries. Blocks still take it.', lasts: 'Always.' } }),
+  part(TR.defense, { id: PK.iron_rim, ref: 'T4h', name: 'Iron Rim', effect: 'defense',
+    story: 'Your shield is bound to last. It wears down a quarter slower than anyone else\'s.',
+    rules: { kind: 'Always on', trigger: 'A blow lands on the owner\'s shield.', conditions: [],
+      effect: 'The damage the shield\'s pool takes is ×0.75 (CONFIG.IRON_RIM_MULT, placeholder). Shield Breaker\'s ×2 still applies on top.', lasts: 'Always.' } }),
+  part(TR.fortitude, { id: PK.grit, ref: 'T4i', name: 'Grit', effect: 'health',
+    story: 'A hard body makes a hard mind. A quarter of your Endurance adds to every Resolve roll, morale rolls included, and both skills learn from them.',
+    rules: { kind: 'Always on', trigger: 'The owner makes a Resolve roll (a morale roll, or an answer to an aura).', conditions: ['The Fortitude tree is open to the owner.'],
+      effect: 'Endurance augments Resolve: the roll adds the owner\'s true Endurance × 0.25 (CONFIG.GRIT_SHARE, placeholder) × its tier, the way a skill augment does, and Endurance can learn from the roll the same way.', lasts: 'Always.' },
+    augments: [{ from: SK.endurance, skill: SK.resolve, share: CONFIG.GRIT_SHARE }] }),
   // ---- Perception ----
   // Spotter is parked: no skill carries it in SKILL_PARTS, so it is never granted
   part(TR.perception, { id: PK.spotter, ref: 'T5b', name: 'Spotter', effect: 'senses',
