@@ -9,7 +9,9 @@ import { IT } from '../../src/library/itemIds';
 import { act, intent, plannerOut } from './w4-kit';
 import { resolveTurn } from '../../src/engine';
 import { healthLevel, partStates, ruleset } from '../../src/ruleset';
-import { partFears } from '../../src/ruleset/morale';
+import { partFearCost, partFears } from '../../src/ruleset/morale';
+import { getLibrary } from '../../src/library';
+import { BT } from '../../src/library/raceIds';
 import { isActive } from '../../src/engine/relations';
 import { FR } from '../../src/library/tableIds';
 
@@ -28,11 +30,23 @@ it('167 a hit that moves the player to a new health level pays the health fear',
   expect(checked).toBe(5);
 });
 
-it('167b a hit that cripples a part rolls the part fear, once per hit', () => {
-  expect(partFears([{ id: 'arm', state: 'Damaged' }], [{ id: 'arm', state: 'Crippled' }]).map((f) => f.id)).toEqual([FR.own_part_crippled]);
-  expect(partFears([{ id: 'arm', state: 'Healthy' }], [{ id: 'arm', state: 'Destroyed' }]).map((f) => f.id)).toEqual([FR.own_part_crippled]);
-  expect(partFears([{ id: 'arm', state: 'Crippled' }], [{ id: 'arm', state: 'Destroyed' }])).toEqual([]);
-  expect(partFears([{ id: 'arm', state: 'Healthy' }], [{ id: 'arm', state: 'Damaged' }])).toEqual([]);
+it('167b a hit that cripples a part rolls the part fear, once per hit; Destroyed rolls again', () => {
+  const ids = (b: string, a: string) => partFears([{ id: 'arm', state: b }], [{ id: 'arm', state: a }]).map((x) => x.fear.id);
+  expect(ids('Damaged', 'Crippled')).toEqual([FR.own_part_crippled]);
+  expect(ids('Healthy', 'Destroyed')).toEqual([FR.own_part_crippled, FR.own_part_destroyed]);
+  expect(ids('Crippled', 'Destroyed')).toEqual([FR.own_part_destroyed]);
+  expect(ids('Healthy', 'Damaged')).toEqual([]);
+  // costs by impact for a 6-part body (5 / 15 / 30), scaled by 6 ÷ the body's parts; Destroyed is 1.5 × Crippled
+  const fears = getLibrary().fears!;
+  const human = getLibrary().bodyTypes[BT.humanoid].parts;
+  expect(human.length).toBe(6);
+  expect(partFearCost(fears[FR.own_part_crippled], ['left_arm'], human)).toBe(15);
+  expect(partFearCost(fears[FR.own_part_crippled], ['neck', 'left_arm'], human)).toBe(45);
+  expect(partFearCost(fears[FR.own_part_destroyed], ['head'], human)).toBe(45);
+  const dragon = getLibrary().bodyTypes[BT.winged_quadruped].parts;
+  expect(partFearCost(fears[FR.own_part_crippled], ['tail'], dragon)).toBe(5 * 6 / dragon.length);
+  const twelve = [...human, ...human.map((p) => ({ ...p, id: p.id + '_2' }))];
+  expect(partFearCost(fears[FR.own_part_crippled], ['left_arm'], twelve)).toBe(7.5);
   let checked = 0, paid = 0;
   for (let seed = 1; seed < 400 && checked < 5; seed++) {
     const s = makeVillage({ playerZone: 'tav_common' });

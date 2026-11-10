@@ -11,6 +11,7 @@ import { learningWindow } from './improve';
 import { tierMult } from './gear';
 import { skillName } from '../library/skillNames';
 import { SK } from '../library/skillIds';
+import { FR } from '../library/tableIds';
 
 export type Equation = {
   name: string;
@@ -99,7 +100,7 @@ export function equations(lib: Library): EquationGroup[] {
           ['modifiers', 'wounds: the health level, the morale level (fear feeds on itself) and a crippled essential part; the player\'s renown on every morale roll of a foe fighting the player; the player\'s rally on allies fighting beside the player']],
         table: { head: ['Resolve', 'Max morale', 'Share of a fear paid'], rows: [30, 50, 70, 90].map((m) => [String(m), String(CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * m),
           `×${(D100.reduce((t, d) => t + tierCostMult(rollLevel(d, m)), 0) / 100).toFixed(2)}`]) },
-        notes: [`Fears are the library fears table: flat costs, a negative cost restores. Rolled fears count only while engaged; the player is engaged while someone is fighting them. A hit that leaves one of the actor's parts Crippled or worse rolls the part fear once, however many parts it took. Reaching Broken breaks an NPC (it flees), or makes it surrender when the roll that broke it was a Critical Failure or worse. The player at Broken cannot attack. Overwhelm: an aura that wins by ${CONFIG.OVERWHELM_TIERS}+ tiers against a target with max morale at most ${CONFIG.OVERWHELM_MORALE_SHARE * 100} % of the owner's takes all its morale, and an NPC surrenders.`,
+        notes: [`Fears are the library fears table: flat costs, a negative cost restores. Rolled fears count only while engaged; the player is engaged while someone is fighting them. A hit that leaves parts Crippled or worse rolls the Crippled fear once, paying each part's cost by its impact (non-essential, normal, essential) for a ${n(lib.fears?.[FR.own_part_crippled]?.refParts ?? 6)}-part body, scaled by ${n(lib.fears?.[FR.own_part_crippled]?.refParts ?? 6)} ÷ the body's part count; a part Destroyed rolls again at ${n(lib.fears?.[FR.own_part_destroyed]?.partCostOf?.mult ?? 1.5)} × those costs. Reaching Broken breaks an NPC (it flees), or makes it surrender when the roll that broke it was a Critical Failure or worse. The player at Broken cannot attack. Overwhelm: an aura that wins by ${CONFIG.OVERWHELM_TIERS}+ tiers against a target with max morale at most ${CONFIG.OVERWHELM_MORALE_SHARE * 100} % of the owner's takes all its morale, and an NPC surrenders.`,
           'Shares in the table are calm and unhurt, with no modifiers.'] },
       { name: 'Situation roll (no skill)', at: 'situation · src/ruleset/index.ts',
         formula: `margin = d100 ${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.SITUATION_BASE - 100)} + modifiers`,

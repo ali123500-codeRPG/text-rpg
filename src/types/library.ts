@@ -211,8 +211,13 @@ export type ComposureDef = {
 /** MB21–MB28: something that costs morale (a negative cost restores it). `rolled`: the morale roll's tier scales the cost
  * (MORALE_TIER_MULT); otherwise it is flat (× `perTier` the contest's tier gap for a lost speech roll).
  * `health`: the health-level positions (HEALTH_TRACK names) that set it off; perks and achievements move `from` with fearFrom. */
-/** part: a PART_STATES key; the fear fires when one of the actor's body parts reaches that state or worse from a better one */
-export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; health?: { from: string; to: string }; part?: string };
+/** part: a PART_STATES key; the fear fires when one of the actor's body parts reaches that state or worse from a better one.
+ * partCost: its cost per part by the part's impact, for a body of refParts parts; a body with more parts pays less per part
+ * (cost × refParts ÷ the body's part count). One roll per hit pays the sum for every part the hit took there. */
+export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; health?: { from: string; to: string }; part?: string;
+  partCost?: Record<ImpactId, number>; refParts?: number;
+  /** reads another part fear's partCost and refParts by reference, × mult, so editing that row changes this one too */
+  partCostOf?: { fear: string; mult: number } };
 
 /** innatePerks / innateQuirks: perk ids every member of the race is born with (OwnedPerk source 'race').
  * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
