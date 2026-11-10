@@ -40,7 +40,7 @@ describe('125 All-50 parts', () => {
     grantAllSteps(s, p);
     grantAllSteps(s, p);
     const got = p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId);
-    expect(got).toEqual([PK.fighters_frame, PK.opening_strike, PK.steady_guard, PK.counter]);
+    expect(got).toEqual([PK.fighters_frame, PK.counter, PK.steady_guard, PK.opening_strike]);
     const ach = p.progression!.achievements!.filter((a) => a.key === ACH.mastery_50);
     expect(ach.map((a) => a.id)).toEqual([`${ACH.mastery_50}:${TR.melee}`]);
     expect(achievementName(s, ach[0])).toBe('Adept of Combat – Arms');
@@ -52,9 +52,9 @@ describe('125 All-50 parts', () => {
     set(p, [SK.eyesight, SK.earshot], 50);
     grantAllSteps(s, p);
     expect(p.core.perks.some((x) => x.source === 'mastery')).toBe(false); // two of three
-    set(p, [SK.insight], 50); // Insight has no part yet: the passive and the other two parts come
+    set(p, [SK.insight], 50); // Insight and Earshot have no part yet (Spotter parked): the passive and Night Eyes come
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes, PK.spotter]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes]);
     const q = makeVillage().player;
     q.core.perks = [];
     set(q, [SK.melee_light, SK.melee_heavy, SK.melee_medium], 0);
@@ -68,7 +68,7 @@ describe('125 All-50 parts', () => {
     expect(q.core.perks.some((x) => x.perkId === PK.dodgy || x.perkId === PK.thick_hide)).toBe(false);
     set(q, [SK.melee_medium], 50); // the third Arms skill: passive + all three parts
     grantAllSteps(s2, q);
-    expect(q.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(4)).toEqual([PK.fighters_frame, PK.opening_strike, PK.steady_guard, PK.counter]);
+    expect(q.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(4)).toEqual([PK.fighters_frame, PK.counter, PK.steady_guard, PK.opening_strike]);
   });
   it('a tree\'s rating sets how many skills at 50 earn it: inferior never, superior 2, legendary 1', () => {
     const s = makeVillage(), p = s.player;
@@ -79,12 +79,12 @@ describe('125 All-50 parts', () => {
     set(p, [SK.eyesight, SK.earshot], 50);
     lib.trees[TR.perception].rating = 'superior';
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes, PK.spotter]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes]);
     set(p, [SK.melee_medium, SK.melee_heavy], 0);
     set(p, [SK.melee_light], 50);
     lib.trees[TR.melee].rating = 'legendary';
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(3)).toEqual([PK.fighters_frame, PK.opening_strike]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(2)).toEqual([PK.fighters_frame, PK.counter]);
     set(p, [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], 50);
     lib.trees[TR.ranged].rating = 'inferior';
     grantAllSteps(s, p);
@@ -102,7 +102,7 @@ describe('125 All-50 parts', () => {
       set(p, [SK.melee_light, SK.melee_medium, SK.melee_heavy], 0);
       set(p, [SK.melee_light, SK.dodge, SK.melee_medium], 50);
       grantAllSteps(s, p);
-      expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.fighters_frame, PK.opening_strike, PK.steady_guard, PK.dodgy]);
+      expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.fighters_frame, PK.counter, PK.steady_guard, PK.dodgy]);
     } finally {
       arms.skills = armsSkills;
       def.skills = defSkills;
@@ -121,7 +121,7 @@ describe('125 All-50 parts', () => {
     give(s.player, PK.silver_words);
     expect([SK.persuasion, SK.intimidation, SK.barter, SK.eyesight].map((k) => trueSkill(s.player, k))).toEqual([35, 35, 35, 30]);
   });
-  it("Fighter's Frame: melee hits on the owner deal ×0.9 damage before armor", () => {
+  it("Fighter's Frame: melee hits on the owner cost ×0.9 health, after armor", () => {
     const dmg = (perk: boolean) => {
       const s = makeVillage();
       place(s, 'patron_1', s.player.zone);
@@ -240,11 +240,12 @@ describe('125 All-50 parts', () => {
     const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]));
     expect(r.defense!.modifiers.filter((m) => m.source === 'Steady Guard')).toEqual([{ source: 'Steady Guard', type: 'roll_perk', value: 2.5 }]);
   });
-  it('Thick Hide: health lost from a hit is ×0.95, after armor', () => {
+  it('Thick Hide: a hit on the owner is ×0.95 before armor', () => {
     const dmg = (perk: boolean) => {
       const s = makeVillage();
       place(s, 'patron_1', s.player.zone);
       arm(s, 'patron_1');
+      s.player.core.inventory = s.player.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
       if (perk) give(s.player, PK.thick_hide);
       return ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
     };
@@ -262,13 +263,13 @@ describe('125 All-50 parts', () => {
     expect([mod(SK.eyesight), mod(SK.sneaking)]).toEqual([situational(s, SK.eyesight, { light: { ...zone, light: 'dim' } }).modifiers[0]?.value ?? 0, before[1]]);
     expect(mod(SK.eyesight)).toBeGreaterThan(before[0]);
   });
-  it('Dodgy: attack rolls against the owner get −5 effective skill', () => {
+  it('Dodgy: attack rolls against the owner get −10 effective skill', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     arm(s, 'patron_1');
     give(s.player, PK.dodgy);
     const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
-    expect(r.attack.modifiers.filter((m) => m.type === 'foe_perk')).toEqual([{ source: 'Dodgy', type: 'foe_perk', value: -2.5 }]);
+    expect(r.attack.modifiers.filter((m) => m.type === 'foe_perk')).toEqual([{ source: 'Dodgy', type: 'foe_perk', value: -5 }]);
   });
 });
 

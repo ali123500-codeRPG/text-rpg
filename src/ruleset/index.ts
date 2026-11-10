@@ -309,12 +309,13 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     for (const a of [armor, ct.naturalArmor]) if (a?.covers.includes(at)) d = (d - Math.max(0, a.reduction - pierce)) * a.multiplier;
     return Math.max(0, d); // fractions allowed, no rounding (OQ-25, decided)
   };
-  const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame
+  const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, PK.iron_knuckles) ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * frame * knuckles; // 40/80/120 perk: Heavy Hand
-  const generalShare = openArm ? afterArmor(raw * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') : 0;
-  const hide = hasPerk(D, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on health lost (after armor)
-  const damage = location === 'shield' ? Math.max(0, raw) : (afterArmor(openArm ? raw * CONFIG.OPEN_HAND_ARM_SHARE : raw, location) + generalShare) * hide;
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * knuckles; // 40/80/120 perk: Heavy Hand
+  const hide = location !== 'shield' && hasPerk(D, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on the body hit before armor
+  const body = raw * hide;
+  const generalShare = openArm ? afterArmor(body * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') * frame : 0;
+  const damage = location === 'shield' ? Math.max(0, raw) : (afterArmor(openArm ? body * CONFIG.OPEN_HAND_ARM_SHARE : body, location) * frame + generalShare);
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
   const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, PK.leg_bolt)
     && !!ct.parts.find((p) => p.id === location)?.roles.includes(RL.move);
