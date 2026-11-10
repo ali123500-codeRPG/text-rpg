@@ -622,7 +622,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** Any roll by the owner.
 - **Effect:** The owner's health-track penalty is taken from one level less hurt. Each body part's effective state is one step milder on the part-state scale, by position in the names table: Destroyed counts as Crippled, Crippled as Damaged, Damaged as Healthy. Only penalties change: a Destroyed part is still gone from the hit table.
 - **Lasts:** Always.
-- **Banked as:** an All-X candidate for the Combat – Defense tree, suggested for All-100
+- **Banked as:** an All-X candidate for the Fortitude tree, suggested for All-100
 
 ## Banked, no milestone yet
 

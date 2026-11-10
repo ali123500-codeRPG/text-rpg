@@ -13,12 +13,12 @@ import { CL } from '../library/classIds';
 import { CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
-export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.riposte]: 'effect not designed', [SK.slip_counter]: 'effect not designed' };
+export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale (not built yet)', [SK.riposte]: 'effect not designed', [SK.slip_counter]: 'effect not designed' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
-  { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
+  { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.fortitude, c: 'c6' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
   { id: TR.perception, c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: TR.ranged, c: 'c7' }, { id: TR.unarmed, c: 'c14' },
   { id: TR.stealth, c: 'c3' }, { id: TR.speech, c: 'c4' }, { id: TR.trickery, c: 'c9' },
 ];
