@@ -27,13 +27,13 @@ export const ALL_BUNDLES: AllBundle[] = [
 ];
 
 /** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
- * No part yet: Improvisation, Block, Resolve, Insight, Vanishing, Intimidation and the one-skill trees. */
+ * No part yet: Improvisation, Block, Earshot, Resolve, Insight, Vanishing, Intimidation and the one-skill trees. */
 export const SKILL_PARTS: Record<string, string> = {
-  [SK.melee_light]: PK.opening_strike, [SK.melee_medium]: PK.steady_guard, [SK.melee_heavy]: PK.counter,
+  [SK.melee_light]: PK.counter, [SK.melee_medium]: PK.steady_guard, [SK.melee_heavy]: PK.opening_strike,
   [SK.ranged_light]: PK.unerring, [SK.ranged_medium]: PK.volley, [SK.ranged_heavy]: PK.past_the_cover,
   [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold,
   [SK.dodge]: PK.dodgy, [SK.endurance]: PK.second_wind,
-  [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.spotter,
+  [SK.eyesight]: PK.night_eyes, // Earshot: none (Spotter parked)
   [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade,
   [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
 };
@@ -53,9 +53,9 @@ export const ALL_PARTS: PerkWriteup[] = [
       conditions: ['The attack roll ends in Critical Failure or worse.', 'The attack was not itself a free attack.', 'The owner is active, in the attacker\'s zone, and its default mode at that range is melee or unarmed.', 'Once per turn.'],
       effect: 'The owner makes one attack at the attacker at once, with that mode. It does not use the owner\'s action.', lasts: 'That attack.' } }),
   part(TR.melee, { id: PK.fighters_frame, ref: 'T1d', name: "Fighter's Frame", effect: 'defense',
-    story: 'A body hardened by a thousand bouts. Melee blows on you land a tenth lighter.',
-    rules: { kind: 'Always on', trigger: 'A melee or unarmed attack hits the owner.', conditions: ['The attack mode is not ranged.'],
-      effect: 'The hit\'s damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).', lasts: 'Always.' } }),
+    story: 'A body hardened by a thousand bouts. Melee blows that get past your armor cost you a tenth less health.',
+    rules: { kind: 'Always on', trigger: 'A melee or unarmed attack damages the owner\'s body (not a shield).', conditions: ['The attack mode is not ranged.'],
+      effect: 'The health lost from that hit, after armor, is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).', lasts: 'Always.' } }),
   part(TR.melee, { id: PK.steady_guard, ref: 'T1e', name: 'Steady Guard', effect: 'defense',
     story: 'Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.',
     rules: { kind: 'Always on', trigger: 'Always; and the owner makes a Block roll.', conditions: ['The extra +5 needs the block to be made with a melee weapon, not a shield.'],
@@ -101,14 +101,15 @@ export const ALL_PARTS: PerkWriteup[] = [
     rules: { kind: 'Automatic', trigger: 'An attack leaves the owner at Wounded or worse on the health track.', conditions: ['Once per engagement.', 'The owner is not down (Incapacitated or worse).'],
       effect: 'The owner\'s health lost drops to the top of the level one better (Wounded to Injured: 45% lost). Body parts are unchanged.', lasts: 'Permanent (it is healing).', cooldown: 'Once per engagement.' } }),
   part(TR.defense, { id: PK.dodgy, ref: 'T4d', name: 'Dodgy', effect: 'defense',
-    story: 'You are never quite where they aim. Attacks on you lose 5 skill.',
+    story: 'You are never quite where they aim. Attacks on you lose 10 skill.',
     rules: { kind: 'Always on', trigger: 'An attack roll is made against the owner.', conditions: [],
-      effect: 'That attack roll gets −5 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).', lasts: 'That roll.' } }),
+      effect: 'That attack roll gets −10 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).', lasts: 'That roll.' } }),
   part(TR.defense, { id: PK.thick_hide, ref: 'T4e', name: 'Thick Hide', effect: 'health',
-    story: 'Blows that would cut others only bruise you. Every hit costs you a little less health.',
-    rules: { kind: 'Always on', trigger: 'A hit damages the owner\'s body (not a shield).', conditions: [],
-      effect: 'The health lost from that hit, after armor, is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).', lasts: 'Always.' } }),
+    story: 'Blows that would cut others only bruise you. Every hit lands a little lighter, before your armor takes its share.',
+    rules: { kind: 'Always on', trigger: 'A hit lands on the owner\'s body (not a shield).', conditions: [],
+      effect: 'The hit\'s damage before armor is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).', lasts: 'Always.' } }),
   // ---- Perception ----
+  // Spotter is parked (Ali): no skill carries it in SKILL_PARTS, so it is never granted
   part(TR.perception, { id: PK.spotter, ref: 'T5b', name: 'Spotter', effect: 'senses',
     story: 'What you see, your people sense. Your band-mates beside you know something is there whenever you do.',
     rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor outside its band.', 'A band-mate is in the owner\'s zone and is less than suspicious of that actor.'],

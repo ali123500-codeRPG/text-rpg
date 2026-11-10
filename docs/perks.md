@@ -765,7 +765,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 Granted free once enough skills of the tree reach 50 true skill, by the tree's rating (inferior never, normal 3, superior 2, legendary 1): the tree's passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Fortitude All-50: Hard to Kill; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
 
-### Opening Strike (Combat – Arms, Light weapons) · T1a
+### Opening Strike (Combat – Arms, Heavy weapons) · T1a
 
 *Story:* You always make the first blow count. Your first melee attack on each foe in a fight lands one outcome better.
 
@@ -777,7 +777,7 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Cooldown:** Once per foe per engagement.
 - **Built:** yes
 
-### Counter (Combat – Arms, Heavy weapons) · T1c
+### Counter (Combat – Arms, Light weapons) · T1c
 
 *Story:* A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.
 
@@ -790,12 +790,12 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 
 ### Fighter's Frame (Combat – Arms, passive) · T1d
 
-*Story:* A body hardened by a thousand bouts. Melee blows on you land a tenth lighter.
+*Story:* A body hardened by a thousand bouts. Melee blows that get past your armor cost you a tenth less health.
 
 - **Kind:** Always on
-- **Trigger:** A melee or unarmed attack hits the owner.
+- **Trigger:** A melee or unarmed attack damages the owner's body (not a shield).
 - **Conditions:** The attack mode is not ranged.
-- **Effect:** The hit's damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).
+- **Effect:** The health lost from that hit, after armor, is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 
@@ -899,25 +899,25 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 
 ### Dodgy (Combat – Defense, Dodge) · T4d
 
-*Story:* You are never quite where they aim. Attacks on you lose 5 skill.
+*Story:* You are never quite where they aim. Attacks on you lose 10 skill.
 
 - **Kind:** Always on
 - **Trigger:** An attack roll is made against the owner.
-- **Effect:** That attack roll gets −5 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).
+- **Effect:** That attack roll gets −10 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).
 - **Lasts:** That roll.
 - **Built:** yes
 
 ### Thick Hide (Combat – Defense, passive) · T4e
 
-*Story:* Blows that would cut others only bruise you. Every hit costs you a little less health.
+*Story:* Blows that would cut others only bruise you. Every hit lands a little lighter, before your armor takes its share.
 
 - **Kind:** Always on
-- **Trigger:** A hit damages the owner's body (not a shield).
-- **Effect:** The health lost from that hit, after armor, is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).
+- **Trigger:** A hit lands on the owner's body (not a shield).
+- **Effect:** The hit's damage before armor is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 
-### Spotter (Perception, Earshot) · T5b
+### Spotter (Perception, passive) · T5b
 
 *Story:* What you see, your people sense. Your band-mates beside you know something is there whenever you do.
 

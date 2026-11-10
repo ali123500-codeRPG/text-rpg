@@ -234,7 +234,7 @@ const DEFAULTS = {
   OUTNUMBERED_FOES: 3,
   /** All-50 part numbers (src/library/allPerks.ts; placeholders) */
   FIGHTERS_FRAME_MULT: 0.9,
-  DODGY_SKILL: 5,
+  DODGY_SKILL: 10,
   IRON_KNUCKLES_MULT: 1.1, // All-50 Iron Knuckles: unarmed hits deal a tenth more (placeholder)
   BARE_HANDED_GUARD: 5,
   STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
