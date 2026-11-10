@@ -4,7 +4,7 @@ import { HL } from '../library/tableIds';
 import type { Actor, GameState } from '../types';
 import { getLibrary } from '../library';
 import { PART_STATES } from '../scales';
-import { boostMult, healthLevel, partStates, trueSkill } from '../ruleset';
+import { boostMult, healthLevel, partStates, totalHp, trueSkill } from '../ruleset';
 import { isActive } from './relations';
 import { logCode } from './effects';
 import { bestReward } from '../ruleset/achRewards';
@@ -17,10 +17,11 @@ export const healingName = (id: string) => getLibrary().healing?.[id]?.name ?? i
  * than the row's reach (H4/H12); a Crippled or worse part a row reaches starts again from 0. Destroyed parts need a row
  * that reaches them (OQ-6: a special perk, item or story event). `quiet` logs only a visible change (passive healing).
  * Returns false if nothing changed. */
-/** Achievements count the health % the player gets back, by where it came from: the healing row's id. Healing a perk
- * gives (Second Wind, Fast Healer's extra) is counted under the Perks row (HL.perk). Health only, not body parts. */
+/** Achievements count the HP the player gets back (a flat number: the health % healed of their total HP), by where it
+ * came from: the healing row's id. Healing a perk gives (Second Wind, Fast Healer's extra) is counted under the Perks
+ * row (HL.perk). Health only, not body parts. */
 export function creditHealing(state: GameState, a: Actor, sourceId: string, pct: number): void {
-  if (a === state.player && pct > 0) tally(state, 'healed', { by: 'heal_source', of: sourceId, add: pct });
+  if (a === state.player && pct > 0) tally(state, 'healed', { by: 'heal_source', of: sourceId, add: pct / 100 * totalHp(state, a) });
 }
 
 /** `boost`: a perk multiplied this healing (Fast Healer); the part above ×1 is counted as healing from perks */

@@ -1,5 +1,6 @@
-// 155 Healing by source: achievements count the health % the player gets back, kept apart by where it came from
-// (a healing-table row). Rest, natural recovery and perks (Second Wind, Fast Healer's extra) each have their own count.
+// 155 Healing by source: achievements count the HP the player gets back (a flat number), kept apart by where it came
+// from (a healing-table row). Rest, natural recovery and perks (Second Wind, Fast Healer's extra) each have their own
+// count and their own achievement chain (D-172, D-173).
 import { HL } from '../../src/library/tableIds';
 import { PK } from '../../src/library/perkIds';
 import { describe, expect, it } from 'vitest';
@@ -9,20 +10,24 @@ import { achievementName } from '../../src/engine';
 import { tally } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
+import { totalHp } from '../../src/ruleset';
+import { ACH } from '../../src/library/achievementIds';
 import type { Actor, GameState } from '../../src/types';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const healed = (s: GameState, source: string) => s.player.progression?.tally?.[`healed:heal_source:${source}`] ?? 0;
+const hp = (s: GameState, pct: number) => pct / 100 * totalHp(s, s.player);
+const has = (s: GameState, key: string) => !!s.player.progression?.achievements?.some((x) => x.key === key && !x.replacedBy);
 
 describe('155 healing by source', () => {
   it('rest counts what it actually healed, under the rest row only', () => {
     const s = makeVillage();
     s.player.core.condition.hpLostPct = 10;
     applyHealing(s, s.player, HL.rest);
-    expect(healed(s, HL.rest)).toBeCloseTo(Math.min(10, CONFIG.REST_HEAL_PCT), 5); // capped by what was lost
+    expect(healed(s, HL.rest)).toBeCloseTo(hp(s, Math.min(10, CONFIG.REST_HEAL_PCT)), 5); // HP, capped by what was lost
     expect(healed(s, HL.passive)).toBe(0);
     applyHealing(s, s.player, HL.rest); // nothing left to heal: nothing counted
-    expect(healed(s, HL.rest)).toBeCloseTo(Math.min(10, CONFIG.REST_HEAL_PCT), 5);
+    expect(healed(s, HL.rest)).toBeCloseTo(hp(s, Math.min(10, CONFIG.REST_HEAL_PCT)), 5);
   });
   it('natural recovery counts under its own row; Fast Healer\'s extra counts as healing from perks', () => {
     const plain = makeVillage();
@@ -36,7 +41,7 @@ describe('155 healing by source', () => {
     give(fast.player, PK.quick_mend);
     passiveHealing(fast, 120);
     const total = 30 - fast.player.core.condition.hpLostPct;
-    expect(healed(fast, HL.passive) + healed(fast, HL.perk)).toBeCloseTo(total, 5);
+    expect(healed(fast, HL.passive) + healed(fast, HL.perk)).toBeCloseTo(hp(fast, total), 5);
     expect(healed(fast, HL.perk)).toBeCloseTo(healed(fast, HL.passive), 5); // ×2: half is the perk's
   });
   it('a clinic and a bandage keep their own counts; healing an NPC counts nothing', () => {
@@ -44,8 +49,8 @@ describe('155 healing by source', () => {
     s.player.core.condition.hpLostPct = 30;
     applyHealing(s, s.player, HL.bandage);
     applyHealing(s, s.player, HL.clinic);
-    expect(healed(s, HL.bandage)).toBeCloseTo(getLibrary().healing![HL.bandage].hpPct, 5);
-    expect(healed(s, HL.clinic)).toBeCloseTo(30 - getLibrary().healing![HL.bandage].hpPct, 5);
+    expect(healed(s, HL.bandage)).toBeCloseTo(hp(s, getLibrary().healing![HL.bandage].hpPct), 5);
+    expect(healed(s, HL.clinic)).toBeCloseTo(hp(s, 30 - getLibrary().healing![HL.bandage].hpPct), 5);
     expect(healed(s, HL.rest)).toBe(0);
     const npc = s.actors[0];
     npc.core.condition.hpLostPct = 30;
@@ -73,5 +78,23 @@ describe('155 healing by source', () => {
       expect(got?.of).toBe(HL.passive);
       expect(achievementName(s, got!)).toBe('Mended by Natural Recovery');
     } finally { delete lib.TEST_HEAL; }
+  });
+  it('each source has its own chain, counted in HP: rest heals never earn the natural-recovery or perk lines', () => {
+    const s = makeVillage();
+    tally(s, 'healed', { by: 'heal_source', of: HL.rest, add: 99 });
+    expect(has(s, ACH.healed_rest_100)).toBe(false);
+    tally(s, 'healed', { by: 'heal_source', of: HL.rest, add: 1 });
+    expect(has(s, ACH.healed_rest_100)).toBe(true);
+    expect(has(s, ACH.healed_natural_50) || has(s, ACH.healed_perk_50)).toBe(false);
+    tally(s, 'healed', { by: 'heal_source', of: HL.rest, add: 900 });
+    expect(has(s, ACH.healed_rest_1000)).toBe(true);
+    expect(has(s, ACH.healed_rest_100)).toBe(false); // replaced by the higher level
+    tally(s, 'healed', { by: 'heal_source', of: HL.clinic, add: 5000 }); // a clinic is not resting
+    expect(has(s, ACH.healed_rest_10000)).toBe(false);
+    tally(s, 'healed', { by: 'heal_source', of: HL.passive, add: 50 });
+    expect(has(s, ACH.healed_natural_50)).toBe(true);
+    expect(achievementName(s, s.player.progression!.achievements!.find((x) => x.key === ACH.healed_natural_50)!)).toBe('Knits Back Together');
+    tally(s, 'healed', { by: 'heal_source', of: HL.perk, add: 2500 });
+    expect(has(s, ACH.healed_perk_2500)).toBe(true);
   });
 });
