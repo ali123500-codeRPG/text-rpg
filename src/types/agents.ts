@@ -40,6 +40,7 @@ export type Intent = {
   addressees: string[] | null; // actor ids, band ids or "everyone"
   deferred: string[];
   clarify: string | null;
+  yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
 };
 
 // ---- Agent Planner / Responder / Voice ----
@@ -61,10 +62,23 @@ export type NpcAction = {
 export type PlanUpdate = { goal: string; steps: string[]; triggers: Trigger[]; memoryNote?: string; routine: string | null }; // memoryNote: older outputs, read as one memory entry
 /** PM1/PM2: memory list changes; drop names entries by their number in the view (n) */
 export type MemoryOps = { add: string[]; drop: number[] };
-/** PM3/PM4: a deal struck this turn, said aloud to the other party */
-export type AgreementMade = { with: string; text: string };
+/** QT2/QT23/QT24/QT25: a job the player agreed to do for the speaker, as the speaker's agent writes it */
+export type JobOffer = {
+  line: string; // QT4: one short line of what was asked
+  goal: { kind: 'defeat' | 'deliver' | 'reach' | 'find' | 'other'; target?: string | null; count?: number | null; item?: string | null; qty?: number | null; to?: string | null };
+  pay?: { coin?: number | null; item?: string | null; qty?: number | null } | null; // only a definite promise
+  due?: { days: number; by?: TimeOfDay | null } | null;
+  after?: string | null; // the quest it follows
+};
+/** PM3/PM4: a deal struck this turn, said aloud to the other party; job: the deal is a quest for the player (QT1) */
+export type AgreementMade = { with: string; text: string; job?: JobOffer | null };
+/** QT22/QT6/QT12: a giver calls a job off (said to the player), judges an "other" job done, or hears the player give it up */
+export type QuestEnd = { id: string; outcome: 'done' | 'abandoned' | 'called_off' };
 export type AgreementEnd = { id: string; outcome: 'done' | 'broken' };
 export type StanceStep = { toward: string; step: 'friendlier' | 'colder' };
+/** SP2/SP3: a spar agreed aloud this turn: each side's actor ids (the maker on one of them); cruel: fought until someone is
+ * Incapacitated, only when every fighter accepted that (SP4) */
+export type SparMade = { sides: string[][]; cruel?: boolean };
 
 export type PlannerOutput = {
   action: NpcAction;
@@ -75,6 +89,9 @@ export type PlannerOutput = {
   memory?: MemoryOps | null;
   agreement?: AgreementMade | null;
   endAgreements?: AgreementEnd[];
+  questEnd?: QuestEnd | null;
+  spar?: SparMade | null;
+  yields?: boolean; // SP5: gives up the spar it is in
 };
 export type ResponderOutput = PlannerOutput & { reveals: string[] };
 export type VoiceOutput = {
@@ -87,6 +104,9 @@ export type VoiceOutput = {
   stance: StanceStep | null;
   routine: string | null;
   agreement?: AgreementMade | null; // PM3: a deal with the player struck in talk
+  questEnd?: QuestEnd | null;
+  spar?: SparMade | null;
+  yields?: boolean;
 };
 
 // ---- Agent Narrator ----
@@ -132,6 +152,8 @@ export type StagePlan = {
     place: { carriedBy: string } | { groundIn: string };
   }[];
   hiddenTerms: string[];
+  /** SP2: spars under way or agreed when the scene opens (a training yard, a tournament): each side's cast keys or actor ids */
+  spars?: SparMade[];
   weaverNote: string;
 };
 

@@ -7,6 +7,7 @@ import { hasPerk, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { heldBy, isActive } from './relations';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { contestFeat } from './feats';
 
 const GRAPPLE = SK.unarmed_grapple;
 const MISSES = new Set(['missed', 'dodged']);
@@ -30,6 +31,7 @@ export function breakFree(state: GameState, a: Actor, rng: Rng): { free: boolean
   const mine = ruleset.roll({ ...req(a.id), tierShifts: hasPerk(a, PK.hard_to_hold) ? [{ source: 'Hard to Hold', value: 1 }] : [] }, state, rng);
   const theirs = ruleset.roll(req(h.id), state, rng);
   const free = tierLevel(mine) - tierLevel(theirs) >= 0;
+  contestFeat(state, { a: mine, b: theirs, gap: tierLevel(theirs) - tierLevel(mine), winner: free ? 'a' : 'b' }); // N4c
   if (free) delete a.heldBy;
   return { free, effect: { kind: free ? 'broke_free' : 'still_held', actorId: a.id, data: { by: h.id, tier: mine.tier } } };
 }

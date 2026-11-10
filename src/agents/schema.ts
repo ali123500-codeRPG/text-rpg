@@ -1,8 +1,8 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
-import type { Intent, NarratorOutput, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
-import { GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
+import type { AgreementMade, Intent, NarratorOutput, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
 import { COVER, LIGHT, STANCES, TACTICS, TIME_OF_DAY, type Scale } from '../scales';
@@ -77,7 +77,8 @@ const intent = obj<Intent>({
   addressees: nul(arr(str)),
   deferred: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
   clarify: nul(str),
-}, ['perkMove']);
+  yields: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
+}, ['perkMove', 'yields']);
 
 const npcAction = obj<PlannerOutput['action']>({
   type: oneOf(['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee', 'talk', 'use_item', 'equip', 'give', 'other'] as const),
@@ -110,19 +111,31 @@ const memory = nul(obj<NonNullable<PlannerOutput['memory']>>({
   add: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
   drop: (v, p, e) => (v === undefined || v === null ? [] : arr(num)(v, p, e)),
 }));
-const agreement = nul(obj<NonNullable<PlannerOutput['agreement']>>({ with: str, text: str }));
+const nNum = nul(num), nStr = nul(str);
+type Job = NonNullable<AgreementMade['job']>;
+const job = obj<Job>({
+  line: str,
+  goal: obj<Job['goal']>({ kind: oneOf(GOAL_KINDS), target: nStr, count: nNum, item: nStr, qty: nNum, to: nStr }, ['target', 'count', 'item', 'qty', 'to']),
+  pay: nul(obj<NonNullable<Job['pay']>>({ coin: nNum, item: nStr, qty: nNum }, ['coin', 'item', 'qty'])),
+  due: nul(obj<NonNullable<Job['due']>>({ days: num, by: nul((v, p, e) => TIME_OF_DAY.keyOf(v) ?? (e.push(`${p}: expected one of ${TIME_OF_DAY.keys.join(', ')}`), null)) }, ['by'])),
+  after: nStr,
+}, ['pay', 'due', 'after']);
+const agreement = nul(obj<AgreementMade>({ with: str, text: str, job }, ['job']));
+const questEnd = nul(obj<QuestEnd>({ id: str, outcome: oneOf(['done', 'abandoned', 'called_off'] as const) }));
 const endAgreements = (v: unknown, p: string, e: string[]) => (v === undefined || v === null ? [] : arr(obj<NonNullable<PlannerOutput['endAgreements']>[number]>({ id: str, outcome: oneOf(['done', 'broken'] as const) }))(v, p, e));
-const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements'] as ('memory' | 'agreement' | 'endAgreements')[];
-const planner = obj<PlannerOutput>({ action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements }, MEMORY_KEYS);
+const spar = nul(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel']));
+const yields = (v: unknown, p: string, e: string[]) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean;
+const MEMORY_KEYS = ['memory', 'agreement', 'endAgreements', 'questEnd', 'spar', 'yields'] as ('memory' | 'agreement' | 'endAgreements' | 'questEnd' | 'spar' | 'yields')[];
+const planner = obj<PlannerOutput>({ action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields }, MEMORY_KEYS);
 const responder = obj<ResponderOutput>({
-  action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements,
+  action: npcAction, dialogue, gear: GEAR, stance: STANCE, planUpdate, memory, agreement, endAgreements, questEnd, spar, yields,
   reveals: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
 }, MEMORY_KEYS);
 const voice = obj<VoiceOutput>({
   action: npcAction, line: str, volume: VOLUME,
   shares: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
-  introduces: optArr(str), gear: GEAR, stance: STANCE, routine: nul(str), agreement,
-}, ['introduces', 'agreement']);
+  introduces: optArr(str), gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields,
+}, ['introduces', 'agreement', 'questEnd', 'spar', 'yields']);
 const narrator = obj<NarratorOutput>({
   text: (v, p, e) => {
     const s = str(v, p, e);
@@ -183,7 +196,8 @@ const weaver = obj<StagePlan>({
   }, ['qty'])),
   hiddenTerms: arr(str),
   weaverNote: str,
-}, ['timeOfDay']);
+  spars: arr(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])),
+}, ['timeOfDay', 'spars']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);

@@ -1,4 +1,5 @@
 import type { SkillFunction } from './types';
+import type { QuestRewardLevel } from './scales';
 import { FN } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -77,6 +78,7 @@ const DEFAULTS = {
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
   ENGAGEMENT_END_TURNS: 2, // E1: an engagement ends after this many turns with no one engaged with the actor
+  SPAR_LIMIT: 'Critical', // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
@@ -172,8 +174,12 @@ const DEFAULTS = {
   BARE_HANDED_GUARD: 5,
   STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
-  /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements and quests */
+  /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
   REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
+  /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
+  QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
+  /** QT9: a quest's reward level from the scene's gain grade when it is accepted (iv is kept for later story quests) */
+  QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)

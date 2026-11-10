@@ -10,6 +10,7 @@ export type LogLine = {
   turn: number;
   kind: 'player' | 'narration' | 'clarify' | 'command' | 'notice';
   text: string;
+  aimed?: true; // a player line: the turn was aimed (the Aim toggle or /aim)
   mechanics?: string[]; // dice, modifiers, damage from code (shown while SHOW_MECHANICS is on)
   // Play screen extras on a narration line, all built by code from what the character perceived (no numbers):
   check?: LineCheck; // the player's own roll this turn
@@ -21,6 +22,12 @@ export type LogLine = {
   unlocks?: { skill: string; milestone: number }[]; // V2a: milestones a skill crossed this turn
   gains?: Record<string, number>; // V1b: skill points gained this turn, by skill
   timePassed?: { minutes: number; day: number; timeOfDay: string }; // T2 b: a wait or sleep; timeOfDay is a TIME_OF_DAY key
+  levelUps?: { classId: string; level: number }[]; // X9: levels the player reached this turn, by class (library classes id)
+  achievements?: { id: string; name: string }[]; // achievements and scars earned this turn (progression.achievements id, its name now)
+  incomingChecks?: (LineCheck & { by: string })[]; // rolls others made against the player this turn; by = how the player knows them
+  gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
+  place?: { id: string; name: string }; // where the player ended the turn; name like "River path · the Riverside"
+  scene?: number; // stage.sceneNumber when the turn ended
 };
 
 /** one healing of the player: the health level and each body part that changed state */
@@ -73,4 +80,8 @@ export interface GameApi {
   /** spend a perk point on a ladder perk, or undo it before the next turn (K3); in memory until the next turn saves */
   takePerk(perkId: string): void;
   undoPerk(perkId: string): void;
+  /** QT12: give up an open quest (the giver cools one step); in memory until the next turn saves */
+  abandonQuest(questId: string): void;
+  /** pin a quest to the Play screen's quest line, or unpin it */
+  pinQuest(questId: string): void;
 }

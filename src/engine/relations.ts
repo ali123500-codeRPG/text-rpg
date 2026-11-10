@@ -1,7 +1,7 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
 import type { Actor, BeliefStatus, GameState, Stance } from '../types';
-import { BELIEF_ORDER } from '../types';
-import { STANCES } from '../scales';
+import { AWARENESS, STANCES } from '../scales';
+import { firstSightOf } from '../ruleset/achRewards';
 
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
@@ -32,12 +32,38 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
   const o = a.mind?.overrides?.[b.id];
   if (o) return o;
   if (a.bandId === b.bandId) return 'friendly';
-  return bandById(state, a.bandId)?.relations[b.bandId] ?? 'neutral';
+  const s = bandById(state, a.bandId)?.relations[b.bandId] ?? 'neutral';
+  // an achievement's first-sight reward: a hunted kind meets b wary until b attacks it (the attack sets a hostile override)
+  return s === 'hostile' && firstSightOf(b, a) ? 'opposed' : s;
 }
-/** hostile: a attacks b on sight. */
+/** friendly or warmer (friendly, friend, loyal) */
+export const warm = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) >= STANCES.pos('friendly');
+/** hostile: a attacks b on sight. RS3 loyal: a takes the side of anyone it is loyal to, so whoever is hostile to them
+ * is hostile to a too, unless a is friendly or warmer toward that one. A friend does the same only against someone a is
+ * already opposed (or colder) to. */
 export function hostile(state: GameState, a: Actor, b: Actor): boolean {
-  return stance(state, a, b) === 'hostile';
+  const s = stance(state, a, b);
+  if (s === 'hostile') return true;
+  if (s === 'yielded' || warm(s)) return false;
+  const opposed = STANCES.pos(s) <= STANCES.pos('opposed');
+  return allActors(state).some((c) => {
+    if (c === a || c === b || !isActive(c) || stance(state, b, c) !== 'hostile') return false;
+    const ac = stance(state, a, c);
+    return ac === 'loyal' || (ac === 'friend' && opposed);
+  });
 }
+/** SP1: the live spar that has a and b on different sides with neither out yet (SP4, SP5) */
+export function sparBetween(state: GameState, a: Actor, b: Actor) {
+  if (a === b || !isActive(a) || !isActive(b)) return undefined;
+  return state.spars?.find((sp) => {
+    if (a.id in sp.out || b.id in sp.out) return false;
+    const sa = sp.sides.findIndex((s) => s.includes(a.id)), sb = sp.sides.findIndex((s) => s.includes(b.id));
+    return sa >= 0 && sb >= 0 && sa !== sb;
+  });
+}
+export const sparring = (state: GameState, a: Actor, b: Actor): boolean => !!sparBetween(state, a, b);
+/** a fights b: for real (hostile) or in a spar (SP1). Stance and XP rules use hostile; fighting rules use foe. */
+export const foe = (state: GameState, a: Actor, b: Actor): boolean => hostile(state, a, b) || sparring(state, a, b);
 /** wary: opposed or colder. a's alert fires when it notices b, but only hostile attacks. */
 export function wary(state: GameState, a: Actor, b: Actor): boolean {
   const s = stance(state, a, b);
@@ -45,17 +71,18 @@ export function wary(state: GameState, a: Actor, b: Actor): boolean {
 }
 
 export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): boolean {
-  return BELIEF_ORDER.indexOf(status ?? 'unaware') >= BELIEF_ORDER.indexOf(min);
+  return AWARENESS.pos(status ?? 'unaware') >= AWARENESS.pos(min);
 }
 
-/** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to. */
+/** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to
+ * or sparring with (SP1). */
 export function isEngaged(state: GameState, actor: Actor): boolean {
   if (actor.kind === 'player' || !countsInFight(actor)) return false;
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
     if (!atLeast(b.status, 'suspicious')) return false;
     const other = actorById(state, id);
-    return !!other && countsInFight(other) && hostile(state, actor, other);
+    return !!other && countsInFight(other) && foe(state, actor, other);
   });
 }
 

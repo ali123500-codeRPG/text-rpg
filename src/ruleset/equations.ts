@@ -7,6 +7,7 @@ import { TIERS } from '../scales';
 import { MARGIN_BANDS, SITUATION_BANDS, band, ladder, naturalEdge, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
+import { tierMult } from './gear';
 import { skillName } from '../library/skillNames';
 import { SK } from '../library/skillIds';
 
@@ -41,6 +42,10 @@ const improveChance = (target: number, flawed: boolean) => flawed
   ? D100.reduce((s, a) => s + D100.filter((b) => improves(Math.min(a, b), target)).length, 0) / 100
   : D100.filter((d) => improves(d, target)).length;
 
+/** the effective skill worked example; tests/unit/equations.test.ts checks it against effectiveSkill */
+export const EFF_EX = { skill: SK.melee_medium, standIn: SK.melee_light, trueSkill: 60, gear: 20 };
+export const effExample = () => (EFF_EX.trueSkill + EFF_EX.gear) * CONFIG.SUBSTITUTE_EFFICIENCY * tierMult(EFF_EX.standIn);
+
 export function equations(lib: Library): EquationGroup[] {
   const edges = [[1, 1], [2, 5], [96, 99], [100, 100]].map(([a, b]) => [a === b ? `${a}` : `${a}–${b}`, sg(naturalEdge(a))]);
   const ex = { d: 60, eff: 50, mods: 0 };
@@ -50,14 +55,15 @@ export function equations(lib: Library): EquationGroup[] {
   return [
     { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill situation roll.', equations: [
       { name: 'True skill', at: 'trueSkill · src/ruleset/perks.ts',
-        formula: 'true skill = raw + perk true skill',
-        terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), and perks that add to every skill of a function (fnSkill)']],
+        formula: 'true skill = raw + perk true skill + achievement true skill',
+        terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), and perks that add to every skill of a function (fnSkill)'], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
         notes: ['A dormant skill, or one in a tree the actor can\'t use, counts as 0.'] },
       { name: 'Effective skill', at: 'effectiveSkill · src/ruleset/gear.ts',
-        formula: 'effective skill = best of ( true skill × share + gear ) × tier multiplier, over the skill and its stand-ins',
-        terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab). A function roll counts every skill with the function at 1.`],
+        formula: 'effective skill = best of ( true skill + gear ) × share × tier multiplier, over the skill and its stand-ins',
+        terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab; perks and achievements such as Master of the Moment add to it). A function roll counts every skill with the function at 1.`],
           ['gear', `skill effects of worn, held or carried items, also × share; a standard kit gives EQUIP_FACTOR (${n(CONFIG.EQUIP_FACTOR)}) × its need, shared once per roll (the best piece)`],
-          ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')]] },
+          ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')]],
+        notes: [`Example: ${skillName(EFF_EX.standIn)} ${EFF_EX.trueSkill} with +${EFF_EX.gear} ${skillName(EFF_EX.standIn)} gear, standing in for ${skillName(EFF_EX.skill)} 0 → (${EFF_EX.trueSkill} + ${EFF_EX.gear}) × ${n(CONFIG.SUBSTITUTE_EFFICIENCY)} × ${n(tierMult(EFF_EX.standIn))} = ${n(effExample())}. Gear for the named skill (the held weapon's bonus) does not pass to a stand-in.`] },
       { name: 'Skill roll', at: 'roll · src/ruleset/index.ts',
         formula: `margin = d100 + ${n(W())} × effective skill + modifiers − ${n(NEED())}`,
         terms: [['d100', '1 to 100'], ['0.5', `CONFIG.SKILL_WEIGHT = ${n(W())}`], ['modifiers', 'all roll modifiers, each type stacked on its own (see the Stacking tab)'], [n(NEED()), `CONFIG.ROLL_NEEDED = ${n(NEED())}`]],
@@ -65,7 +71,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Tier of a roll', at: 'band · naturalEdge · tierAt · src/ruleset/index.ts',
         formula: 'tier = band of the margin + natural edge + tier shifts',
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
-        terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, marks, falling short on gear, Curiouser and Curiouser']],
+        terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
         notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).'] },
       { name: 'Chance by effective skill', at: 'computed with band and naturalEdge',
         formula: '% of d100 results that reach each tier, no modifiers',
@@ -76,11 +82,10 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k} ${v}`).join(' · ')]],
         notes: ['Modifiers add in full here, with no stacking.'] },
       { name: 'Contest', at: 'contested · src/ruleset/index.ts',
-        formula: 'gap = tier of B − tier of A; the side with the higher tier wins, equal tiers tie',
-        notes: ['Both sides make a skill roll against each other. Aim modifiers are dropped.'] },
+        formula: 'gap = tier of B − tier of A; the side with the higher tier wins, equal tiers tie' },
       { name: 'Situation roll (no skill)', at: 'situation · src/ruleset/index.ts',
-        formula: `margin = d100 + ${CONFIG.SITUATION_BASE} + modifiers − 100`,
-        terms: [[String(CONFIG.SITUATION_BASE), 'CONFIG.SITUATION_BASE'], ['modifiers', 'perk, gear and status situation bonuses, stacked by type']],
+        formula: `margin = d100 ${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.SITUATION_BASE - 100)} + modifiers`,
+        terms: [[`${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.SITUATION_BASE - 100)}`, `situation base ${CONFIG.SITUATION_BASE} (CONFIG.SITUATION_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
         table: { head: ['Tier', 'Margin'], rows: bandRows(SITUATION_BANDS) },
         notes: ['The natural edge applies here too. There are no tier shifts.'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
@@ -88,9 +93,13 @@ export function equations(lib: Library): EquationGroup[] {
         notes: [`Example: three +10 of one type → ${n(stackType([10, 10, 10]))}.`] },
     ] },
     { key: 'attacks', title: 'Attacks', about: 'From the attack roll to the damage a hit does.', equations: [
+      { name: 'Initiative', at: 'initiative · initiativeBonus · src/ruleset/index.ts; initiativeOrder · src/engine/resolve.ts',
+        formula: `initiative = d100 + ${n(CONFIG.SKILL_WEIGHT)} × best Initiative-function skill + initiative roll modifiers; ${CONFIG.INIT_UNAWARE} (INIT_UNAWARE) instead for an actor unaware of anyone attacking it this turn (not with Never Surprised when the attack's noise reaches it); higher acts first`,
+        terms: [['Initiative-function skill', 'the best effective skill with the Initiative function, at full value (0 when none)'], ['initiative roll modifiers', "gear and other effects with rollMod roll 'initiative'"]],
+        notes: ['No skill has the Initiative function yet, so today it is a plain d100. Dodge is in the Speed group but has no Initiative function, so it does not count. Ties go to the seeded random roll.'] },
       { name: 'Attack and defense', at: 'attack · src/ruleset/index.ts',
         formula: 'attack roll (skill roll); below Near Miss it misses. Otherwise the defender makes a dodge or block roll',
-        terms: [['attack modifiers', 'weapon class hit + mode hitAdj, range, aim, light, perks'], ['defense modifiers', 'outnumbered, unaware, dodge vs missile, light, perks']] },
+        terms: [['attack modifiers', 'weapon class hit + mode hitAdj, range, aim, light, perks'], ['defense modifiers', 'outnumbered, unaware (not with Never Surprised when the attack\'s noise reaches the defender), dodge vs missile, light, perks']] },
       { name: 'Gap', at: 'attack · src/ruleset/index.ts',
         formula: 'gap = defense tier − attack tier + gap shifts, kept between −5 and +5',
         terms: [['gap shifts', `heavy weapon vs block ${sg(CONFIG.HEAVY_VS_BLOCK_GAP)}, cover (ranged), Slip the Blow +1 on a tie`]] },

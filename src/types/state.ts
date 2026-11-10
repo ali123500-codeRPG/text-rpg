@@ -4,6 +4,7 @@ import type { Actor, NameHistory } from './actor';
 import type { HiddenStore } from './hidden';
 import type { SituationResult } from './ruleset';
 import type { AgentTurnLog } from './agents';
+import type { QuestRewardLevel, TimeOfDay } from '../scales';
 
 export type Pending = { turn: number; mode: Mode; engaged: string[]; fired: string[] };
 
@@ -15,13 +16,41 @@ export type StageInfo = {
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
-  breakCause?: 'rest' | 'story_beat' | 'time_skip'; // P7: set by the engine; the director starts a new scene after this turn
+  breakCause?: 'rest' | 'story_beat' | 'time_skip' | 'knocked_out'; // P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere safe)
   /** OQ-27 (c): the NPC the player last spoke with this scene (sticky dialogue partner) */
   partner?: string;
 };
 
 export type Settings = { difficulty: string; showMechanics: boolean; tone: string };
-export type Quest = { id: string; state: string; text: string };
+/** QT11/QT21: quest states and goal kinds are unordered categories, so their names are their IDs */
+export const QUEST_STATES = ['active', 'ready', 'done', 'failed', 'abandoned', 'called_off'] as const;
+export type QuestState = (typeof QUEST_STATES)[number];
+export const GOAL_KINDS = ['defeat', 'deliver', 'reach', 'find', 'other'] as const;
+/** QT7: what code checks from events; "other" is judged by the giver's agent at report-back (QT6) */
+export type QuestGoal =
+  | { kind: 'defeat'; by: 'body_type' | 'race' | 'actor'; of: string; count: number; noun?: string } // noun: the giver's word for them
+  | { kind: 'deliver'; item: string; inst?: true; qty: number; to: string } // inst: item is one item instance, not a library item
+  | { kind: 'reach'; place: string } // a zone or place id
+  | { kind: 'find'; actor: string }
+  | { kind: 'other' };
+/** QT1: a job an NPC gave the player, held in a deal (dealId) that only code ends */
+export type Quest = {
+  id: string; state: QuestState; text: string;
+  giver: string; dealId: string; goal: QuestGoal; progress: number;
+  level: QuestRewardLevel; // QT9/QT28: from the scene's gain grade when accepted
+  startTurn: number; endTurn?: number;
+  startAt?: number; // game clock minutes when it was given (set with `due`: the 'quests_early' achievement)
+  after?: string; // QT24: the quest it follows
+  pay?: { coin?: number; item?: string; qty?: number }; // QT10/QT23: promised payment (coin in copper, a library item)
+  paid?: { coin: number; qty: number }; // what the giver has handed over since
+  unpaid?: true; // the promise was broken
+  due?: number; dueBy?: TimeOfDay; // QT25: game clock minutes the goal must be met by; dueBy: the time of day named
+  pinned?: true; // shown on the Play screen's quest line
+};
+
+/** SP1/SP3: a spar between sides (one actor each for one against one; every actor on its own side for a free-for-all).
+ * out: who has yielded or reached the limit (SP4, SP5), with the turn; last: the turn of the latest blow between sides (or the start). */
+export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
 
 // In-memory working state, built from Part 4's pages on load. Never saved as one document.
 export type GameState = {
@@ -47,6 +76,7 @@ export type GameState = {
   clocks: Record<string, number>;
   flags: Record<string, string | number | boolean>;
   quests: Quest[];
+  spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   settings: Settings;
   libraryVersion: number;
   blueprints: BlueprintPage[]; // story blueprints (story first, then library)
@@ -97,6 +127,7 @@ export type EnginePage = {
   flags: Record<string, string | number | boolean>;
   bands: Band[];
   quests: Quest[];
+  spars?: Spar[];
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */

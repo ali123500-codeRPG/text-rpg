@@ -13,7 +13,7 @@ export const GRADES: readonly Grade[] = ['none', 'minor', 'moderate', 'major', '
 /** a tier's display name, only in text for people and for Claude */
 export type TierName = string;
 
-import type { COVER, LIGHT, NoiseKey, STANCES, TACTICS, TIERS, VisibilityKey } from '../scales';
+import type { AWARENESS, COVER, LIGHT, NoiseKey, STANCES, TACTICS, TIERS, VisibilityKey } from '../scales';
 /** keys of the ordered scales in src/scales.ts (code and saves use only keys) */
 export type Light = (typeof LIGHT.keys)[number];
 export type Cover = (typeof COVER.keys)[number];
@@ -29,8 +29,7 @@ export type Cue = 'sight' | 'sound' | 'smell' | 'touch';
  * nothing; attacked again it turns hostile; at the scene's end it turns opposed (a grudge) and leaves. Not on the
  * STANCES scale: agents can't choose it, only a surrender sets it. */
 export type Stance = (typeof STANCES.keys)[number] | 'yielded';
-export type BeliefStatus = 'unaware' | 'suspicious' | 'aware' | 'tracking';
-export const BELIEF_ORDER: readonly BeliefStatus[] = ['unaware', 'suspicious', 'aware', 'tracking'];
+export type BeliefStatus = (typeof AWARENESS.keys)[number];
 
 export type Band = {
   id: string;
@@ -79,6 +78,7 @@ export type GameEvent = {
   noise: NoiseKey;
   visibility: VisibilityKey;
   perception: Record<string, { level: Perception; cue: Cue }>; // absent = not perceived
+  spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):
   line?: { text: string; volume: 'whisper' | 'normal' | 'shout'; introduces?: string[] };

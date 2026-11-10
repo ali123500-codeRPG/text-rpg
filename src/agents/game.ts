@@ -16,16 +16,19 @@ import type { AcceptedAgentOutput, ExchangeSpeech, TurnInput } from '../engine';
 import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
-import { getLibrary, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef } from '../library';
+import { actorById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
+import { achievementName, wearable, wornTitle } from '../engine/xp';
 import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, type AgentCtx, type RunResult } from './call';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
-import { isComm } from '../perception';
+import { isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
+import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 
 /**
  * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
@@ -61,7 +64,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed). The story saves every turn.';
+  '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed), /title [number or off] (wear an achievement as your title). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -237,7 +240,8 @@ export function createGame(deps: GameDeps): Game {
   async function playTurn(text: string, aimed: boolean): Promise<void> {
     const s = state!;
     const submitAt = clock.now();
-    lines.push({ turn: s.turn, kind: 'player', text });
+    lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
+    const gearBefore = gearSnap(s, s.player);
     emit();
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
       notice({ kind: 'read_only', text: 'This story is open in another window; this one is read-only.' });
@@ -291,11 +295,11 @@ export function createGame(deps: GameDeps): Game {
       s.rngState = rng.state;
     }
     aimNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent }, spokespeople.length ? submitAt : null);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -328,17 +332,23 @@ export function createGame(deps: GameDeps): Game {
       if (!err.committed) notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` });
     }
     reportFallbacks(s, turnLog);
+    // QT27: an "other" quest goal is filed for the build threads, so code can learn to track it
+    for (const l of s.log.filter((x) => x.code === 'quest_goal_gap'))
+      store.set(`bugs/${s.storyId}_t${s.turn}_quest_goal_gap`, { code: 'quest_goal_gap', storyId: s.storyId, turn: s.turn, at: clock.now(), ...l.detail }).catch(() => {});
     const nv = views.buildNarrationView(s, events, rec.intent);
     const leak = buildLeakContext(s);
     const mechanics = mechanicsLines(s, events);
     const turn = s.turn;
     const narrLog = turnLog;
     const notes = turnNotes(s);
+    // shown again after a reload: what the turn changed in the gear, and where the player ended it
+    const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
+    const where = { ...(gear.length ? { gear } : {}), place: { id: s.player.placeId, name: placeName(s) }, scene: s.stage.sceneNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
-      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
+      ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
     await storeHistory(s.storyId);
@@ -374,8 +384,8 @@ export function createGame(deps: GameDeps): Game {
       case 'inv':
         return say(s.player.core.inventory.map((i) => `${nameOf(s, i.itemId)}${i.qty ? ` ×${i.qty}` : ''}${i.equippedIn?.length ? ` (${i.equippedIn.join(', ')})` : ''}`).join('; ') || 'You carry nothing.');
       case 'quests': {
-        const active = s.quests.filter((q) => q.state === 'active');
-        return say(active.length ? active.map((q) => q.text).join('\n') : 'No active quests.');
+        const open = s.quests.filter(isOpen);
+        return say(open.length ? open.map((q) => [q.text, views.questGoalText(s, q), q.state === 'ready' ? QUEST_STATE_NAME.ready : '', dueText(q), payText(s, q)].filter(Boolean).join(' · ')).join('\n') : 'No active quests.');
       }
       case 'help': {
         const recap = lines.filter((l) => l.kind === 'narration').slice(-3).map((l) => l.text);
@@ -385,6 +395,18 @@ export function createGame(deps: GameDeps): Game {
         // GAP: the spec names no difficulty settings; the word is stored as given and saved with the next turn
         if (arg) s.settings.difficulty = arg;
         return say(`Difficulty: ${s.settings.difficulty}.`);
+      case 'title': {
+        // T18: wear one current achievement as a title; it reaches only people who see you (src/views/index.ts)
+        const pr = s.player.progression, list = wearable(s);
+        if (!pr) return say('You have no achievements to wear.');
+        if (arg.toLowerCase() === 'off') { delete pr.title; return say('You wear no title now.'); }
+        const n = Number(arg);
+        const pick = arg ? (Number.isInteger(n) ? list[n - 1] : list.find((x) => achievementName(s, x).toLowerCase() === arg.toLowerCase())) : undefined;
+        if (pick) { pr.title = pick.id; return say(`You now go by ${achievementName(s, pick)}. Only people who see you will know it.`); }
+        if (!list.length) return say('You have no achievements to wear yet.');
+        return say([`Title: ${wornTitle(s) ?? 'none'}. Type /title and a number to wear one, or /title off.`,
+          ...list.map((x, i) => `${i + 1}. ${achievementName(s, x)}`)].join('\n'));
+      }
       case 'aim':
         aimNext = true;
         if (arg) return submit(arg, opts);
@@ -549,6 +571,9 @@ export function createGame(deps: GameDeps): Game {
     // GAP: a pick lives in memory until the next turn is played and saved; a reload before then drops it (K3 keeps it undoable till then)
     takePerk(id) { if (state && !busy) { takePerk(state, state.player, id); emit(); } },
     undoPerk(id) { if (state && !busy) { undoPerk(state, state.player, id); emit(); } },
+    // GAP: like a perk pick, these live in memory until the next turn is played and saved
+    abandonQuest(id) { if (state && !busy && abandonQuest(state, id)) emit(); },
+    pinQuest(id) { if (state && !busy) { pinQuest(state, id); emit(); } },
     adopt(s) {
       abortBackground();
       state = s;
@@ -682,8 +707,9 @@ function nameOf(s: GameState, itemId: string): string {
  * turn, the lines heard (word for word, unless the narration already quotes them) and the turn's visible changes.
  */
 /** H11, V1b, V2a: the player's healing, skill gains and milestones from this turn's code log, kept on the story line
- * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. */
-export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains' | 'timePassed'> {
+ * because advance() clears the log. Failed improvement rolls log nothing, so they show nothing. X9: level-ups and
+ * achievements from the player's progression, so the play screen can show them with mechanics off. */
+export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'gains' | 'timePassed' | 'levelUps' | 'achievements'> {
   const heals: HealNote[] = [], unlocks: { skill: string; milestone: number }[] = [], gains: Record<string, number> = {};
   let minutes = 0;
   for (const l of s.log) {
@@ -698,16 +724,58 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
     } else if (l.code === 'time_passed') minutes += (l.detail as { minutes: number }).minutes;
   }
   const timePassed = minutes > 0 ? { minutes: Math.round(minutes), day: timeView(s).day, timeOfDay: timeOfDay(now(s)) } : undefined;
-  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}) };
+  const pr = s.player.progression;
+  const levelUps = (pr?.xpLog ?? []).filter((x) => x.turn === s.turn && x.levelUp).map((x) => ({ ...x.levelUp! }));
+  const achievements = (pr?.achievements ?? []).filter((a) => a.turn === s.turn).map((a) => ({ id: a.id, name: engine.achievementName(s, a) }));
+  return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}),
+    ...(levelUps.length ? { levelUps } : {}), ...(achievements.length ? { achievements } : {}) };
 }
 
-export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes'> {
-  const out: Pick<LogLine, 'check' | 'speech' | 'changes'> = {};
+/** the player's gear as code saw it: item id → name, where it sits ("held:right hand", "worn", "pack") and how many */
+export type GearSnap = Map<string, { name: string; where: string; qty: number }>;
+const handWord = (slot: string) => slot.replace(/^hand:/, '').replace(/_arm$/, '').replace(/_/g, ' ') + ' hand';
+export function gearSnap(s: GameState, p: Actor): GearSnap {
+  const gear: GearSnap = new Map();
+  for (const i of p.core.inventory) {
+    const hands = (i.equippedIn ?? []).filter((x) => x.startsWith('hand:'));
+    let name = i.itemId;
+    try { name = itemDef(s, i.itemId).name; } catch { /* an unknown item keeps its id */ }
+    gear.set(i.id, { name, qty: i.qty ?? 1, where: hands.length ? `held:${hands.map(handWord).join(' and ')}` : i.equippedIn?.length ? 'worn' : 'pack' });
+  }
+  return gear;
+}
+/** ready-to-show rows for what a turn changed in the player's gear: "Picked up: …", "Now held: right hand · …" */
+export function gearRows(a: GearSnap, b: GearSnap): string[] {
+  const rows: string[] = [];
+  for (const [id, x] of b) {
+    const was = a.get(id);
+    if (!was || x.qty > was.qty) rows.push(`Picked up: ${x.name}`);
+    else if (x.qty < was.qty) rows.push(`Used: ${x.name}`);
+    if (was && was.where === x.where) continue;
+    if (x.where.startsWith('held:')) rows.push(`Now held: ${x.where.slice(5)} · ${x.name}`);
+    else if (x.where === 'worn') rows.push(`Now worn: ${x.name}`);
+    else if (was) rows.push(`Put away: ${x.name}`);
+  }
+  for (const [id, x] of a) if (!b.has(id)) rows.push(`Gone: ${x.name}`);
+  return rows;
+}
+
+/** where the player is: "River path · the Riverside" (the place and the place around it) */
+export function placeName(s: GameState): string {
+  const place = s.places.find((x) => x.id === s.player.placeId);
+  const parent = place?.parentId ? s.places.find((x) => x.id === place.parentId) : undefined;
+  const t = [place?.names.current, parent?.names.current].filter(Boolean).join(' · ');
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> {
+  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> = {};
   const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? n.charAt(0).toUpperCase() + n.slice(1) : n);
   const words = (x: string) => x.replace(/_/g, ' ');
-  let check: LineCheck | undefined;
+  let check: LineCheck | undefined, checkEv: string | undefined;
   for (const e of events) {
     if (check) break;
+    checkEv = e.id;
     if (e.attack && e.attack.attackerId === 'player') {
       const a = e.attack;
       const pk = nv.events.find((x) => x.id === e.id)?.packet;
@@ -727,6 +795,26 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     }
   }
   if (check) out.check = check;
+  // rolls others made against the player: attacks on them, and contests they were drawn into beyond their own check
+  const incoming: NonNullable<LogLine['incomingChecks']> = [];
+  for (const e of events) {
+    const pk = nv.events.find((x) => x.id === e.id)?.packet;
+    if (e.attack && e.attack.targetId === 'player' && e.attack.attackerId !== 'player') {
+      const a = e.attack;
+      const loc = pk?.location?.part ?? '';
+      incoming.push({ by: pk?.actor ?? 'someone', kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
+        ...(a.defense && a.defenseType ? { against: { what: `your ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
+        result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}` });
+    } else if (e.contest && e.actorId !== 'player' && e.id !== checkEv) {
+      const c = e.contest;
+      const mine = c.a.actorId === 'player' ? c.a : c.b.actorId === 'player' ? c.b : null;
+      if (!mine) continue;
+      const other = mine === c.a ? c.b : c.a;
+      const result = c.winner === 'tie' ? 'a tie' : (c.winner === 'a') === (mine === c.a) ? 'you win' : 'you lose';
+      incoming.push({ by: views.callName(s, 'player', other.actorId), kind: 'contest', skill: other.skill, ...tierPart(other), against: { what: `your ${skillName(mine.skill).toLowerCase()}`, ...tierPart(mine) }, result });
+    }
+  }
+  if (incoming.length) out.incomingChecks = incoming;
   const speech = nv.heard.filter((l) => !narration.includes(l.text)).map((l) => ({ speaker: l.speaker, volume: l.volume, text: l.text }));
   if (speech.length) out.speech = speech;
   const changes: NonNullable<LogLine['changes']> = [];
@@ -748,25 +836,47 @@ export function tierGap(mine: TierRoll, theirs: TierRoll): string {
   return d === 0 ? 'same tier' : `${Math.abs(d)} tier${Math.abs(d) === 1 ? '' : 's'} ${d > 0 ? 'ahead' : 'behind'}`;
 }
 
-/** mechanics panel: dice, modifiers and damage of events the player took part in or perceived (never sent to an agent) */
+/** mechanics panel: dice, modifiers and damage of events the player took part in or perceived clearly (never sent to an
+ * agent). Someone the player doesn't clearly perceive stays "someone", an event only heard or glimpsed shows no dice,
+ * and a sight or hearing roll shows only once its target is perceived (UI5). */
 export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
-  const label = (id: string) => (id === 'player' ? 'You' : s.actors.find((a) => a.id === id)?.label ?? id);
-  const mods = (m: { source: string; value: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.value >= 0 ? '+' : ''}${x.value}`).join(', ')}]` : '');
+  const me = s.player.id;
+  const pv = views.buildPlayerView(s).actors;
+  const seen = new Set(pv.map((a) => a.id)), clear = new Set(pv.filter((a) => a.level === 'full').map((a) => a.id));
+  const cap = (x: string) => x.charAt(0).toUpperCase() + x.slice(1);
+  const name = (id: string) => (id === me ? 'You' : clear.has(id) ? cap(views.callName(s, me, id)) : 'Someone');
+  const whose = (id: string) => (id === me ? 'Your' : `${name(id)}’s`);
+  const num = (n: number) => String(Math.round(n * 10) / 10);
+  const mods = (m: { source: string; value: number }[]) => (m.length ? ` [${m.map((x) => `${x.source} ${x.value >= 0 ? '+' : ''}${num(x.value)}`).join(', ')}]` : '');
+  const roll = (r: TierRoll & { actorId: string; skill: string; d100: number }) => `${whose(r.actorId)} ${skillName(r.skill).toLowerCase()} d100 ${r.d100} → ${tierName(r)}`;
+  const sense = (skill: string) => !!noticeCue(skill);
+  const unseen = (id: string | undefined) => !!id && id !== me && s.actors.some((a) => a.id === id) && !seen.has(id);
+  const part = (a: { location: string | null; targetId: string }) => {
+    const t = a.location === 'general' ? actorById(s, a.targetId) : undefined;
+    return t ? actorBody(s, t).general.name : a.location?.replace(/_/g, ' ');
+  };
   const out: string[] = [];
   for (const e of events) {
-    if (e.actorId !== 'player' && !e.perception.player) continue;
+    const target = e.attack?.targetId ?? e.target;
+    if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;
     if (e.attack) {
       const a = e.attack;
       const def = a.defense ? `; ${a.defenseType} d100 ${a.defense.d100} → ${tierName(a.defense)}${mods(a.defense.modifiers)}` : '';
-      out.push(`${label(a.attackerId)} → ${label(a.targetId)}: ${skillName(a.attack.skill)} d100 ${a.attack.d100} → ${tierName(a.attack)}${mods(a.attack.modifiers)}${def}` +
-        `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${a.outcome.replace(/_/g, ' ')}${a.location ? ` (${a.location})` : ''}${a.damage ? `, damage ${a.damage}` : ''}`);
+      const where = part(a);
+      out.push(`${name(a.attackerId)} → ${a.targetId === me ? 'you' : name(a.targetId)}: ${skillName(a.attack.skill)} d100 ${a.attack.d100} → ${tierName(a.attack)}${mods(a.attack.modifiers)}${def}` +
+        `${a.gap !== null ? `; gap ${a.gap}` : ''}; ${a.outcome.replace(/_/g, ' ')}${where ? ` (${where})` : ''}${a.damage ? `, damage ${num(a.damage)}` : ''}`);
     } else if (e.contest) {
       const c = e.contest;
-      out.push(`${label(c.a.actorId)} ${skillName(c.a.skill)} d100 ${c.a.d100} → ${tierName(c.a)} vs ${label(c.b.actorId)} d100 ${c.b.d100} → ${tierName(c.b)}: ${c.winner}`);
+      if ((sense(c.a.skill) || sense(c.b.skill)) && (unseen(c.a.actorId) || unseen(c.b.actorId))) continue;
+      const won = c.winner === 'tie' ? 'a tie' : (c.winner === 'a' ? c.a : c.b).actorId === me ? 'you win' : `${name((c.winner === 'a' ? c.a : c.b).actorId)} wins`;
+      out.push(`${roll(c.a)} vs ${roll(c.b).replace(/^Your/, 'your')}: ${won}`);
     } else if (e.roll) {
-      out.push(`${label(e.roll.actorId)} ${skillName(e.roll.skill)} d100 ${e.roll.d100} → ${tierName(e.roll)}${mods(e.roll.modifiers)}`);
+      if (sense(e.roll.asked ?? e.roll.skill) && unseen(e.target)) continue;
+      out.push(`${roll(e.roll)}${mods(e.roll.modifiers)}`);
     } else if (e.check) {
-      out.push(`${label(e.check.actorId)} ${skillName(e.check.skill)} vs ${e.check.target}: ${e.check.passed ? 'passed' : 'failed'}${mods(e.check.modifiers)}`);
+      const k = e.check;
+      if (sense(k.asked ?? k.skill) && unseen(e.target)) continue;
+      out.push(`${whose(k.actorId)} ${skillName(k.skill).toLowerCase()} vs difficulty ${k.target}: ${k.passed ? 'passed' : 'failed'}${mods(k.modifiers)}`);
     }
   }
   // X9: XP awards and level-ups this turn
@@ -776,8 +886,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     if (x.turn !== turn) continue;
     if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${getLibrary().classes[x.levelUp.classId]?.name ?? x.levelUp.classId})`); continue; }
     const [kind, id] = x.source.split(/:(.*)/);
-    const what = kind === 'defeat' ? label(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
-    out.push(`+${x.amount} XP (${what})`);
+    const what = kind === 'defeat' ? name(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
+    out.push(`+${num(x.amount)} XP (${what})`);
   }
   // H11: healing; the look is the designer's (plain text for now)
   for (const l of s.log) {

@@ -19,10 +19,12 @@ export type BeliefView = {
   lastSeenTurn?: number;
   source: 'seen' | 'heard' | 'told';
   revealed: string[];
+  stance: Stance; // RS5: self's stance toward this actor; yielded (Q1/Q4): self broke or surrendered before it, and still flees from it
   hostile: boolean; // hostile(self, about): attacks on sight
-  yielded?: true; // Q1/Q4: self yielded to (broke or surrendered before) this actor; a broken actor still flees from it
+  sparring?: true; // SP1: self and this actor are on different sides of a live spar
   active: boolean;
   label: string; // public label or known name
+  title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
 };
 
 export type EventView = {
@@ -34,7 +36,12 @@ export type EventView = {
   where?: string; // partial: zone-link label
   line?: { text: string; volume: Volume };
   outcome?: string; // attacks: packet outcome label
+  spar?: true; // SP11: a sparring blow (seen fully)
 };
+
+/** SP1/SP4: the spar a viewer fights in: opponents and allies (ids in NPC views, names in the player's), the health level
+ * that puts a fighter out, whether it is fought until someone is Incapacitated, and whether the viewer is already out */
+export type SparView = { opponents: string[]; allies: string[]; limit: HealthLevel; cruel: boolean; out: boolean };
 
 /** PY2: one thing a seller offers: id goes in the buy's item; price in coin words, for the viewer; stock for goods */
 export type WareView = { id: string; name: string; price: string; stock?: number };
@@ -62,6 +69,7 @@ export type PlayerView = {
     posture: 'open' | 'stealthy';
     standingDefense: 'dodge' | 'block';
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
+    spar?: SparView; // SP1: the spar the player fights in
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
@@ -73,8 +81,11 @@ export type PlayerView = {
   agreements?: AgreementView[]; // PM5: the player's deals with NPCs
 };
 
-/** PM3: one deal as a party sees it; with = what the viewer calls the other party */
-export type AgreementView = { id: string; with: string; withId: string; text: string; madeTurn: number };
+/** PM3: one deal as a party sees it; with = what the viewer calls the other party; quest: the job it holds (locked, QT22) */
+export type AgreementView = { id: string; with: string; withId: string; text: string; madeTurn: number; quest?: string };
+/** QT5/QT8: a job the viewer gave the player, or one that sends the player to it (giver: who gave it, when not the
+ * viewer). A finished job shows as active until the player hands it in: the giver only knows what it sees. */
+export type JobView = { id: string; text: string; state: string; giver?: string; owed?: string; due?: string; after?: string };
 
 // ---------- ActorView: code minds ----------
 /** T4/T5: the day number and time of day; never minutes */
@@ -100,6 +111,7 @@ export type ActorView = {
     alarm?: { armed: boolean; lastAlarmTurn?: number; returnTo?: { id: string; anchorTurn: number } };
     lastHitBy?: ActorId; // from events it perceived
     stealthy?: true; // NS: moving unseen
+    spar?: SparView; // SP1: the spar it is a fighter in
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
   };
   beliefs: BeliefView[];
@@ -116,6 +128,7 @@ export type ActorView = {
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives
+  jobs?: JobView[]; // QT5: the player's jobs from it or sending the player to it
 };
 
 // ---------- OppositionView: Agent Planner and Responder ----------
@@ -152,6 +165,7 @@ export type NarrationEvent = {
   line?: { text: string; volume: Volume; speaker?: string };
   activityLook?: string; // presence events
   packet?: CombatPacket; // attacks
+  spar?: true; // SP11: a sparring blow, not a real attack
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words
   for?: string; // buy: who got it
@@ -164,7 +178,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[] }; // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string }; // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
@@ -179,7 +193,8 @@ export type WeaverView = {
   /** null at story start: the Weaver picks the opening time of day (T8) */
   time: TimeView | null;
   stakes: string;
-  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string };
+  /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
+  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string; wake?: true };
   headlines: string[];
   stage: ZoneView[];
   actors: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[];

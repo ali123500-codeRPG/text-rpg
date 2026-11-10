@@ -1,4 +1,5 @@
 // Library content shapes (Part 1 §3 skills, Part 3 body type database, Part 4 classes/templates, Part 5 items, routine bank).
+import type { IntelligenceKey } from '../scales';
 import type { AttackMode, ItemDef } from './items';
 import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
@@ -22,6 +23,7 @@ export type SkillDef = {
   id: string;
   treeId: string;
   functions: SkillFunction[];
+  groups?: SkillGroup[]; // groups the skill joins directly, without that group's function (Dodge: Speed)
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   xpCategory: XpCategory;
@@ -175,6 +177,7 @@ export type RaceDef = {
   naturalAttacks?: AttackMode[]; naturalArmor?: NaturalArmor; fallback?: { attackSkill: string };
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
+  intelligence: IntelligenceKey; // an INTELLIGENCE key (src/scales.ts)
 };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].
@@ -182,12 +185,37 @@ export type RaceDef = {
  * and its Bane bonus is the lower level's bonus plus its own. */
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
 export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
-  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level';
+  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
+  | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
+  | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
+  | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
-export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier';
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
-export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; count?: number; by?: AchievementBy; after?: string; scar?: true;
-  /** reward: every healing source reaches this many part states further (Damaged to Crippled), never to Destroyed */
-  healReach?: number;
+/** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
+export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
+/** a reward field of AchievementDef */
+export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation';
+export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
+  /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
+   * read from their rows; `excludes` names inherited rewards this level drops */
+  perk?: string; // granted when earned, kept for good
+  unawareShift?: number; // tier steps up on attacks against a target unaware of the owner
+  quieter?: number; // the owner's moves are this many steps quieter on the noise scale
+  readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
+  skillAdd?: Record<string, number>; // true skill added to these skills
+  renown?: number; // every foe fighting the owner takes this much off its first morale check against the owner
+  deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
+  excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
+  standIn?: number; // + this share for stand-ins on rolls of a skill in the achievement's group
+  reqLower?: number; // equip requirements on the achievement's tree's skills ask this much less of the owner (the gear's own numbers stay)
+  pricePct?: number; // + this % off the owner's buying prices
+  rally?: number; // allies fighting beside the owner get + this on their morale checks
+  restPct?: number; // + this % HP and part healing on each rest
+  situation?: number; // + this on the owner's situation rolls
+  firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
+  /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
+  levelUp?: Partial<Record<string, number>>;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };

@@ -1,6 +1,9 @@
 // The Equations tab is built from equations(); it must build from the live library and CONFIG without throwing.
 import { describe, expect, it } from 'vitest';
-import { equations } from '../../src/ruleset/equations';
+import { EFF_EX, effExample, equations } from '../../src/ruleset/equations';
+import { effectiveSkill } from '../../src/ruleset/gear';
+import { getLibrary } from '../../src/library';
+import { makeVillage } from '../harness';
 import { prototypeLibrary } from '../../src/library/data';
 
 describe('equations for the library viewer', () => {
@@ -11,5 +14,17 @@ describe('equations for the library viewer', () => {
       expect(e.formula).not.toMatch(/undefined|NaN/);
       for (const r of e.table?.rows ?? []) expect(r.join(' ')).not.toMatch(/undefined|NaN/);
     }
+  });
+
+  it('the effective skill example matches effectiveSkill', () => {
+    const s = makeVillage(), p = s.player;
+    p.core.skills = { [EFF_EX.skill]: { raw: 0, state: 'normal' }, [EFF_EX.standIn]: { raw: EFF_EX.trueSkill, state: 'normal' } };
+    p.core.perks = [];
+    getLibrary().items.ex_ring = { id: 'ex_ring', kind: 'trinket', name: 'ring', look: '', bulk: 0, value: 0,
+      effects: [{ kind: 'skill', skill: EFF_EX.standIn, value: EFF_EX.gear, active: 'worn', scope: 'any' }] } as never;
+    p.core.inventory = [{ id: 'r', itemId: 'ex_ring', equippedIn: ['acc:ring'] }];
+    const eff = effectiveSkill(s, p, EFF_EX.skill);
+    expect(eff.skill).toBe(EFF_EX.standIn);
+    expect(eff.value).toBeCloseTo(effExample());
   });
 });

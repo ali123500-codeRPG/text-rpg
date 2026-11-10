@@ -8,11 +8,13 @@ import type {
 import { CONFIG } from '../config';
 import { COVER, TIERS } from '../scales';
 import { actorBody, itemDef } from '../library';
-import { actorById, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
+import { actorById, foe, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { baneMods, defeatsMods } from './bane';
+import { bestReward, deathsDoor, rallyMods, renownMods } from './achRewards';
+import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats } from '../engine/xp';
@@ -20,6 +22,7 @@ import { shortShifts } from './requirements';
 import { blockItem, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { FN } from '../library/functionIds';
 
 export { totalHp, healthLevel, isDownLevel, SHOWN_LEVELS, shownLevel, partStates, woundsMods, hitTable } from './body';
 export { improveMarked, markEndurance, markUse } from './improve';
@@ -182,14 +185,16 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (hit) am.push({ source: `weapon: ${name}`, type: 'gear', value: hit });
   if (ranged) {
     if (dist >= 1 && CONFIG.RANGE_MODS[dist]) am.push({ source: 'range', type: 'situational', value: CONFIG.RANGE_MODS[dist] });
-    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && hostile(state, A, o));
+    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && foe(state, A, o));
     if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));
   // A1 Hidden Strike: an attack on a target unaware of the owner lands one tier better
   const marks = markShifts(state, A, D, ranged, skill); // A2, A5, A10, B15
-  const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
+  const unseen = req.context?.defenderUnaware ? bestReward(A, 'unawareShift') : undefined; // an achievement reward
+  const atkShifts: TierShift[] = [...(req.context?.defenderUnaware && hasPerk(A, PK.hidden_strike) ? [{ source: 'Hidden Strike', value: 1 }] : []),
+    ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, standInFns: mode.standInFns }, state, rng);
   const atkEff = effectiveSkill(state, A, skill, { itemId: req.weaponId });
   const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
@@ -373,11 +378,19 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
   }
   const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
   const add = T.core.condition.hpLostPct + (counted / hp) * 100;
-  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : add; // a destroyed essential part kills
+  const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : deathsDoor(state, T, T.core.condition.hpLostPct, add); // a destroyed essential part kills
   T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
   const levelAfter = healthLevel(T);
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
   return out;
+}
+
+/** what initiative adds to its d100: the best skill with the Initiative function (full value, like a function roll; 0 when
+ * none) × SKILL_WEIGHT, plus roll modifiers naming initiative (rollMod roll 'initiative') */
+export function initiativeBonus(state: GameState, actor: Actor): number {
+  const fns = fnSkills(FN.initiative);
+  const best = Math.max(0, ...fns.map((id) => effectiveSkill(state, actor, id, { fullValue: fns }).value));
+  return CONFIG.SKILL_WEIGHT * best + modTotal(rollMods(state, actor, 'initiative'));
 }
 
 function recordUse(actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult, state: GameState): void {
@@ -386,7 +399,7 @@ function recordUse(actor: Actor, skill: string, result: CheckResult | ContestRes
 }
 
 export const ruleset: Ruleset = {
-  initiative: (_actor, _state, rng) => rng.d100(), // INIT_UNAWARE for unaware actors is the engine's call
+  initiative: (actor, state, rng) => rng.d100() + initiativeBonus(state, actor), // the engine gives INIT_UNAWARE to an actor unaware of its attacker (initiativeOrder)
   check,
   contested,
   roll,
@@ -396,6 +409,13 @@ export const ruleset: Ruleset = {
   recordUse,
 };
 
+/** D-54 survival roll: roll() with no skill and no modifiers; Near Miss or better survives */
+export function survivalRoll(rng: Rng): { d100: number; tier: string; survived: boolean } {
+  const d = rng.d100();
+  const level = tierOf(d, 0, [], []);
+  return { d100: d, tier: tierName(tierAt(level).tier), survived: level >= TIERS.pos('near_miss') };
+}
+
 /** morale check (Part 3, Morale): roll() with Mind.morale. Fearless never checks; reaching Critical always breaks. */
 export function moraleCheck(state: GameState, actor: Actor, rng: Rng, reason: 'level' | 'bandmate_down'): 'steady' | 'broken' | 'surrendered' {
   void reason;
@@ -403,6 +423,6 @@ export function moraleCheck(state: GameState, actor: Actor, rng: Rng, reason: 'l
   if (healthLevel(actor) === 'Critical') return 'broken';
   const d = rng.d100();
   const morale = actor.mind.morale ?? CONFIG.MORALE_DEFAULT;
-  const level = tierOf(d, morale, woundsMods(state, actor, 'morale'), []);
+  const level = tierOf(d, morale, [...woundsMods(state, actor, 'morale'), ...renownMods(state, actor, hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor))], []);
   return level < TIERS.pos('failure') ? 'surrendered' : level < TIERS.pos('near_miss') ? 'broken' : 'steady';
 }

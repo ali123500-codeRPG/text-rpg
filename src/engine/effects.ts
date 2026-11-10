@@ -1,5 +1,5 @@
 // Agent side effects, applied when the turn resolves. Every model output is a request; the engine decides.
-import type { Actor, GameState, Trigger } from '../types';
+import type { Actor, AgreementMade, GameState, Trigger } from '../types';
 import { STANCES } from '../scales';
 import { CONFIG } from '../config';
 import { calmBandmatesSwitch, switchRoutine } from '../minds';
@@ -8,6 +8,9 @@ import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
 import type { TurnInput } from './types';
 import { applyMemoryOps, endAgreements, makeAgreement } from './memory';
+import { agentQuestEnd, makeQuest } from './quests';
+import { tally } from './xp';
+import { startSpar, yieldSpar } from './spar';
 
 const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
 
@@ -41,6 +44,20 @@ export type EffectsCtx = {
   heardNow(listener: string, speaker: string): boolean;
 };
 
+/** one stance step toward `other`; a yielded actor steps from opposed: talked colder it fights again, warmer it lets the grudge go (Q1) */
+export function stepStance(state: GameState, a: Actor, other: Actor, step: 'friendlier' | 'colder'): void {
+  if (!a.mind) return;
+  const cur = stance(state, a, other);
+  const i = STANCES.pos(cur === 'yielded' ? 'opposed' : cur) + (step === 'friendlier' ? 1 : -1);
+  a.mind.overrides = { ...(a.mind.overrides ?? {}), [other.id]: STANCES.at(i) };
+}
+
+/** PM3/PM4: a deal; QT1/QT3/QT16: a job in a deal with the player becomes a quest once the giver heard the player accept */
+function deal(state: GameState, a: Actor, made: AgreementMade, ctx: EffectsCtx): void {
+  const id = makeAgreement(state, a, made, ctx.heardNow);
+  if (id && made.job && made.with === state.player.id) makeQuest(state, a, id, made.job, ctx.heardSpeech(a.id, state.player.id));
+}
+
 export function applyAgentEffects(state: GameState, input: TurnInput, ctx: EffectsCtx): void {
   const spokes = new Set(input.spokespeople);
   for (const o of usableAgentOutputs(input)) {
@@ -51,17 +68,26 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
       const other = actorById(state, st.toward);
       if (!other || !ctx.heardSpeech(a.id, st.toward)) logCode(state, 'invalid_stance', { actorId: a.id, toward: st.toward });
       else {
-        // a yielded actor steps from opposed: talked colder it fights again, warmer it lets the grudge go (Q1)
-        const cur = stance(state, a, other);
-        const i = STANCES.pos(cur === 'yielded' ? 'opposed' : cur) + (st.step === 'friendlier' ? 1 : -1);
-        a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [other.id]: STANCES.at(i) };
+        // N4b: a foe hostile to the player, never hit by them, talked out of hostility by their words
+        const talkedDown = other === state.player && st.step === 'friendlier' && stance(state, a, other) === 'hostile' && !a.mind?.hitByPlayer;
+        stepStance(state, a, other, st.step);
+        if (talkedDown) tally(state, 'talked_down');
       }
     }
+    // SP2/SP5: a spar agreed aloud this turn (every other fighter heard the maker), or giving one up
+    const sp = o.output.spar;
+    if (sp) {
+      const others = sp.sides.flat().filter((id) => id !== a.id);
+      if (!sp.sides.some((x) => x.includes(a.id)) || others.some((id) => !ctx.heardNow(id, a.id))) logCode(state, 'invalid_spar', { by: a.id, sides: sp.sides });
+      else startSpar(state, sp.sides, !!sp.cruel, a.id);
+    }
+    if (o.output.yields) yieldSpar(state, a);
+    if (o.output.questEnd) agentQuestEnd(state, a, o.output.questEnd, ctx.heardSpeech(a.id, state.player.id), ctx.heardNow(state.player.id, a.id));
     let routineId: string | null = null;
     if (o.agent === 'voice') {
       routineId = o.output.routine;
       // PM3: the Voice can strike a deal with the player only
-      if (o.output.agreement) makeAgreement(state, a, { ...o.output.agreement, with: state.player.id }, ctx.heardNow);
+      if (o.output.agreement) deal(state, a, { ...o.output.agreement, with: state.player.id }, ctx);
     } else {
       const pu = o.output.planUpdate;
       if (pu) {
@@ -70,7 +96,7 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
       }
       applyMemoryOps(state, a, o.output.memory, pu?.memoryNote); // PM1/PM2
       endAgreements(state, a, o.output.endAgreements);
-      if (o.output.agreement) makeAgreement(state, a, o.output.agreement, ctx.heardNow); // PM3/PM4
+      if (o.output.agreement) deal(state, a, o.output.agreement, ctx); // PM3/PM4
     }
     if (o.agent === 'responder') {
       for (const id of o.output.reveals ?? []) {

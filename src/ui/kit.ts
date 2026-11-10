@@ -122,11 +122,11 @@ export type PanelRow = { k: string; v: string | Node; edit?: boolean };
 let panelHost: HTMLElement | null = null;
 export function setPanelHost(el: HTMLElement) { panelHost = el; }
 export function closePanel() { if (panelHost) { panelHost.hidden = true; panelHost.replaceChildren(); } }
-export function openPanel(title: string, rows: PanelRow[], note?: string) {
+export function openPanel(title: string, rows: PanelRow[], note?: string, head?: Node) {
   if (!panelHost) return;
   panelHost.hidden = false;
   panelHost.replaceChildren(
-    h('div', { class: 'hs-panel-head' }, h('span', {}, title), h('button', { class: 'hs-icon-btn', type: 'button', 'aria-label': 'Close', title: 'Close', onclick: closePanel }, '×')),
+    h('div', { class: 'hs-panel-head' }, h('span', {}, title), head ?? null, h('button', { class: 'hs-icon-btn', type: 'button', 'aria-label': 'Close', title: 'Close', onclick: closePanel }, '×')),
     ...rows.map((r) => h('div', { class: 'hs-panel-row' + (r.edit ? ' edit' : '') }, h('span', { class: 'k' }, r.k),
       r.edit && typeof r.v === 'string' ? h('input', { class: 'hs-input', value: r.v, readOnly: true, 'aria-label': r.k }) : h('span', {}, r.v))),
     note ? h('p', { class: 'hs-note', style: 'padding-top:12px' }, note) : '',

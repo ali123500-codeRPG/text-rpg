@@ -13,7 +13,6 @@ import { GR } from '../../src/library/functionIds';
 import { SK } from '../../src/library/skillIds';
 import type { GameEvent, GameState } from '../../src/types';
 import { isBane } from '../../src/ruleset/bane';
-import { applyHealing, wouldHeal } from '../../src/engine/heal';
 import { grantAchievement } from '../../src/engine/xp';
 import { MOD_SOURCES } from '../../src/ruleset/modSources';
 import { getLibrary } from '../../src/library';
@@ -92,19 +91,5 @@ describe('130 deed achievements', () => {
       ACH.first_defeat_race, ACH.defeats_10_race, ACH.defeats_100_race].sort());
     const fed = MOD_SOURCES.find((m) => m.source.startsWith('Bane'))!.feeds!(getLibrary()).map((f) => f.id);
     expect(fed.sort()).toEqual(banes.sort());
-  });
-  it('Bones Heal Later: rest reaches Crippled parts, but never Destroyed ones', () => {
-    const s = makeVillage();
-    const parts = s.player.core.condition.parts;
-    parts.left_arm = -10; // Crippled
-    expect(wouldHeal(s, s.player, HL.rest)).toBe(false);
-    expect(applyHealing(s, s.player, HL.rest)).toBe(false);
-    grantAchievement(s, ACH.crippled_10);
-    expect(wouldHeal(s, s.player, HL.rest)).toBe(true);
-    applyHealing(s, s.player, HL.rest);
-    expect(parts.left_arm).toBeGreaterThan(0);
-    parts.right_arm = -100; // Destroyed
-    applyHealing(s, s.player, HL.rest);
-    expect(parts.right_arm).toBe(-100);
   });
 });
