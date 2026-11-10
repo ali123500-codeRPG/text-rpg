@@ -196,6 +196,26 @@ export function pushContest(state: GameState, speaker: Actor, type: string, rng:
   return contest;
 }
 
+/** LI5a Overheard: a lie (`ev`, a speak event) told to someone else, heard by an owner of Overheard (the words or the
+ * voice's sound), gets the speaker's Lying against the owner's answer to a lie (answerRoll). `answered` already rolled
+ * against it; `lie` is the speaker's roll when it made one, else it rolls once. An owner that wins is listed in
+ * ev.overheard and sees through it (tellFor). */
+export function overhearLie(state: GameState, ev: GameEvent, answered: string[], rng: Rng, lie?: RollResult): void {
+  const speaker = state.actors.find((a) => a.id === ev.actorId);
+  if (!speaker) return;
+  let roll = lie;
+  for (const o of [state.player, ...state.actors.filter((a) => a !== state.player)]) {
+    if (o.id === speaker.id || answered.includes(o.id) || !isActive(o) || !hasPerk(o, PK.overheard)) continue;
+    const heard = ev.perception?.[o.id];
+    if (!heard || (heard.level !== 'full' && heard.cue !== 'sound')) continue;
+    roll ??= ruleset.roll({ actorId: speaker.id, skill: SK.lying, modifiers: [], tierShifts: [] }, state, rng);
+    const contest = toContest(roll, answerRoll(state, o, SK.insight, speaker.id, rng));
+    contestFeat(state, contest);
+    markUse(state, o, contest.b.skill, contest);
+    if (contest.winner === 'b') (ev.overheard ??= []).push(o.id);
+  }
+}
+
 /** OQ-29: what a speech contest leaves, whoever spoke (the speaker is side a). A lost intimidation leaves the listener
  * Shaken toward the speaker, a lost persuasion Swayed, by CONFIG.SHAKEN_PER_TIER / SWAYED_PER_TIER × the tier gap; the
  * bigger penalty stands. Barter with a Trader sets prices (PY6). A listener that beats a lie sees through it. */
