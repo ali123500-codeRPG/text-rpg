@@ -10,6 +10,8 @@ import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
+import { ACH } from '../library/achievementIds';
+import { achievementInfo, grantAchievement } from '../engine/xp';
 import { placeName } from '../agents/game';
 
 const NARRATION = [
@@ -48,6 +50,14 @@ function levelTurn(st: GameState): Partial<LogLine> {
   p.progression.xp = 20;
   p.progression.unspentPerkPoints += 1;
   return { levelUps: [{ classId: c.classId, level: c.level }] };
+}
+
+/** grants achievements through the engine and returns them as the turn line carries them */
+function earnTurn(st: GameState, keys: string[]): Partial<LogLine> {
+  const pr = st.player.progression;
+  const had = new Set((pr?.achievements ?? []).map((a) => a.id));
+  for (const k of keys) grantAchievement(st, k, undefined, 1);
+  return { achievements: (pr?.achievements ?? []).filter((a) => !had.has(a.id)).map((a) => achievementInfo(st, a)) };
 }
 
 export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);
@@ -136,8 +146,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       const hurt = /^attack\b/i.test(text) ? fightTurn(state) : null;
       // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
       const lvl = /^train\b/i.test(text) ? levelTurn(state) : null;
+      // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
+      const earned = hurt || /^spar\b/i.test(text) ? earnTurn(state, hurt ? [ACH.crippled_1] : [ACH.spar_losses_1]) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}) }];
+        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
