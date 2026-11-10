@@ -28,7 +28,8 @@ export type ItemDef = {
     pools?: Record<string, number>;
   };
   shield?: { pool: number };
-  level?: EquipLevelKey; // EQ8/EQ10: equipment level; the skill it asks for comes from the item (src/ruleset/requirements.ts)
+  level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
+  gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
   base?: { itemId: LibraryRef; quality: 1 | 2 | 3 | 4; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
 };
