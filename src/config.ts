@@ -129,6 +129,11 @@ const DEFAULTS = {
   SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
   TRADER_PURSE: 50, // SL3: coin every Trader carries when the Weaver places it
   QUALITY_PRICE_FACTOR: 2, // SL8: a minted item's value is its base value × this × its quality (1–4)
+  /** SL12 b / SL14: the coin each benefit number is worth; an item's value is its benefits summed (src/ruleset/value.ts).
+   * skillPoint: per point of skill bonus (a roll bonus counts as the skill points that move a roll as much);
+   * reachZone: per zone of reach (its best attack mode); armorStop: per point of damage stopped, per part covered;
+   * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
+  ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
   TRADE_SELLER_LINKS: 1, // S1: buy from a seller up to this many zone links away (across the counter); farther trades are parked
   TRADE_GIFT_LINKS: 2, // S2: buy for someone up to this many zone links from the buyer
   WARES_CAP: 8, // goods lines plus services per seller

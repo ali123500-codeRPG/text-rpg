@@ -9,7 +9,7 @@ export type ItemDef = {
   name: string;
   look: string; // public text
   bulk: 0 | 1 | 2 | 3;
-  value: number;
+  value: number; // hand-set coin value, used only by consumables and items with no benefit numbers; other items are priced from their benefits (src/ruleset/value.ts)
   heal?: string; // a healing source id (H2): using the item applies that row and uses it up
   boon?: number; // hand-set Boon, overrides value ÷ BOON_COIN (loot V8b)
   stackable?: true;

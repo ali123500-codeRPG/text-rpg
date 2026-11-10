@@ -8,6 +8,7 @@ import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
+import { itemValue } from '../ruleset/value';
 
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
 const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard', 'quiet_turns'];
@@ -349,11 +350,11 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 
 type Reward = StagePlan['rewards'][number];
 
-/** Loot V8: a reward's Boon = the item's boon (or value ÷ BOON_COIN) × qty, × BOON_QUALITY for a minted item. */
+/** Loot V8: a reward's Boon = the item's boon (or its value ÷ BOON_COIN, src/ruleset/value.ts) × qty, × BOON_QUALITY for a minted item. */
 export function boon(state: GameState, item: Reward['item'], qty = 1): number {
   const def = itemDef(state, typeof item === 'string' ? item : item.base);
   const q = typeof item === 'string' ? 0 : item.quality;
-  return (def.boon ?? def.value / CONFIG.BOON_COIN) * qty * CONFIG.BOON_QUALITY[q];
+  return (def.boon ?? itemValue(state, def) / CONFIG.BOON_COIN) * qty * CONFIG.BOON_QUALITY[q];
 }
 
 /**

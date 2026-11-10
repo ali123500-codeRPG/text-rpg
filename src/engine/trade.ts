@@ -11,6 +11,7 @@ import { isActive, shortestPath, wary } from './relations';
 import { PK } from '../library/perkIds';
 import { IT } from '../library/itemIds';
 import { tally } from './xp';
+import { itemValue as benefitValue } from '../ruleset/value';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -35,11 +36,8 @@ export const isSeller = (a: Actor): boolean => !!a.wares && a.core.classes.some(
 const stockOf = (a: Actor, itemId: string): ItemInstance[] => a.core.inventory.filter((i) => i.itemId === itemId && !i.equippedIn?.length);
 const count = (insts: ItemInstance[]) => insts.reduce((n, i) => n + (i.qty ?? 1), 0);
 
-/** SL8: an item's trade value: its library value, × QUALITY_PRICE_FACTOR × quality for a minted item */
-export function itemValue(state: GameState, itemId: string): number {
-  const d = itemDef(state, itemId);
-  return d.value * (d.base ? CONFIG.QUALITY_PRICE_FACTOR * d.base.quality : 1);
-}
+/** an item's trade value: its benefits in coin, × QUALITY_PRICE_FACTOR × quality for a minted item (src/ruleset/value.ts) */
+export const itemValue = (state: GameState, itemId: string): number => benefitValue(state, itemDef(state, itemId));
 
 /** the price buyer pays seller for one of a ware, or null when the seller doesn't offer it */
 export function warePrice(state: GameState, buyer: Actor, seller: Actor, wareId: string): number | null {
