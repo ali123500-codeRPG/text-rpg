@@ -41,6 +41,7 @@ export const ACH = {
   spar_1: 'AC118', spar_10: 'AC119', spar_25: 'AC120', spar_50: 'AC121', spar_200: 'AC122',
   cruel_spar_1: 'AC123', cruel_spar_10: 'AC124', cruel_spar_25: 'AC125', spar_losses_10: 'AC126',
   total_10: 'AC127', total_25: 'AC128', total_50: 'AC129', total_100: 'AC130', total_250: 'AC131',
+  spar_losses_1: 'AC132', defeated_5: 'AC133', defeated_25: 'AC134', defeated_100: 'AC135',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -68,7 +69,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   quests_unpaid: 'quests finished for someone who promised no pay',
   class_max: 'classes at their top level', class_max_tiers: 'class tiers with a class at its top level',
   char_level: 'character levels, again at every multiple',
-  spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost',
+  spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
 /** the tree mastery achievement for an All-XXX step */

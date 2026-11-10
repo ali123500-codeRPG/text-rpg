@@ -762,6 +762,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
  * one left to finish the job) one survival roll: Near Miss or better wakes somewhere safe at Critical (the next scene). */
 function playerDown(state: GameState, rng: Rng): void {
   const p = state.player;
+  if (p.engagement?.fight) p.engagement.fight.down = true; // a lost fight, even if the player wakes (the Loser scars)
   if (healthLevel(p) === 'Dead') return;
   if (state.actors.some((x) => isActive(x) && hostile(state, x, p) && bandById(state, x.bandId)?.lethal !== false)) {
     logCode(state, 'player_fell', { lethal: true });
