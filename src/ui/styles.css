@@ -271,13 +271,16 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-tree-h b { font-size: 15px; }
 .cs-tree-h span { color: var(--muted); font-size: 13px; }
 .cs-tree-block { display: block; color: var(--muted); font-size: 13px; }
-.cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 40px; gap: var(--space-3); align-items: center; }
+.cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 104px 40px; gap: var(--space-3); align-items: center; }
 .cs-sk .n { font-weight: 600; }
 .cs-sk .n small { display: block; font-weight: 400; font-size: 12px; color: var(--faint); }
 .cs-sk .num { text-align: right; font-weight: 800; font-size: 16px; }
 .cs-sk.zero .n, .cs-sk.zero .num { color: var(--faint); }
 .cs-bar { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); }
 .cs-bar > b { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--t); }
+.cs-bar > .lw { position: absolute; top: -3px; bottom: -3px; border: 1.5px solid var(--text); border-radius: 6px; opacity: .5; }
+.cs-bar > .lw.via { border-style: dashed; }
+.cs-sk .lwn { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .cs-side-h { display: flex; justify-content: space-between; align-items: center; }
 /* Deals (PM5, K1 c): an "N deals" chip beside the scene title opens the player's deals, gold-edged and tinted as promises */
 .dl-wrap { position: relative; display: inline-block; margin-left: 14px; vertical-align: middle; font: 14px/1.4 var(--font-round); }
@@ -466,7 +469,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 
 /* Play screen, layout A "Book with a status strip": fixed rows (header, who's here, story and input), one reading column
    of 68ch on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
-.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) auto minmax(0, 1fr); }
+.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) auto minmax(0, 1fr); padding-bottom: 0; }
+/* the bottom gap sits inside the columns, so the sheet's divider runs to the foot of the screen */
+.playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
 .playmain > .fell { grid-row: 4; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
 .play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
@@ -541,7 +546,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-pchips { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; }
 .cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
 .ps-damaged, .ps-pressure { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
-.rolls-sw[aria-pressed="true"] { color: var(--text); }
+.rolls-sw[aria-pressed="true"], .auto-open[aria-pressed="true"] { color: var(--text); }
 
 /* QT15: the quest line under the place line on the Play screen; only the quest text shrinks */
 .quest-line { display: flex; align-items: center; gap: var(--space-2); width: fit-content; max-width: 100%; min-height: 24px; padding: 0; margin-top: var(--space-1);
@@ -556,9 +561,18 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* Watch an agent play: the autopilot bar under who's here */
 .auto { display: grid; gap: var(--space-2); }
 .auto:empty { display: none; }
-.auto-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
-.auto-row.end { justify-content: flex-end; }
-.auto-row select { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); height: var(--control-h); padding: 0 var(--space-2); }
-.auto-say { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: var(--r-md); font-family: var(--font-story); }
+/* the agent bar: one quiet panel under Who's here; settings on the left, the go controls pushed right */
+.auto-panel { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: color-mix(in oklch, var(--surface) 82%, transparent); }
+.auto-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.auto-field { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: 13px; }
+.auto-field select { font: 14px/1 var(--font-round); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md);
+  height: var(--control-h); padding: 0 var(--space-2); }
+.auto-go { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.auto-x { font-size: 20px; line-height: 1; min-width: var(--control-h); color: var(--muted); }
+.auto-say { margin: 0; display: flex; gap: var(--space-3); align-items: baseline; font: italic 15px/1.5 var(--font-story); }
+.auto-who { flex: none; font: 600 11px/1 var(--font-round); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-style: normal; }
+.auto-panel .hs-note { margin: 0; }
 .auto-own { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-md); }
+.title-tools { display: flex; align-items: center; gap: var(--space-3); align-self: start; }
 
