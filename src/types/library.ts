@@ -104,6 +104,7 @@ export type Library = {
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
+  gearClasses?: Record<string, { id: string; name: string; skill: string }>; // GC…: the skill an item of the class asks for
   attackModes?: Record<string, { id: string; name: string }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
