@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, DU, HL, RL, ZK } from './tableIds';
+import { AM, DU, GC, HL, RL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -137,41 +137,41 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
-  { id: IT.dagger, level: 'common', tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
+  { id: IT.dagger, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reach: 0, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reach: 1, hands: 1, thrown: true })] } },
-  { id: IT.arming_sword, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
+  { id: IT.arming_sword, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
-  { id: IT.greataxe, level: 'superior', tags: ['starter'], kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
+  { id: IT.greataxe, level: 'superior', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
-  { id: IT.spear, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
+  { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reach: 1, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reach: 1, hands: 1, thrown: true })] } },
-  { id: IT.shortbow, level: 'common', tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
+  { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reach: 3, hands: 2 })] } },
-  { id: IT.longbow, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
+  { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reach: 4, hands: 2 })] } },
-  { id: IT.crossbow, level: 'superior', tags: ['starter'], kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
+  { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
   // SL12 test piece: a medium weapon whose basket hilt gives +5 Block while held, apart from its requirement's skill
-  { id: IT.basket_hilt_sword, level: 'fine', kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, hands: 1,
+  { id: IT.basket_hilt_sword, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, hands: 1,
     effects: [KIT(), { kind: 'skill', skill: SK.block, value: 5, active: 'held', scope: 'any' }],
     weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
-  { id: IT.hidden_blade, level: 'fine', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
+  { id: IT.hidden_blade, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
-  { id: IT.crude_clothes, level: 'crude', tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
+  { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
     armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
-  { id: IT.cudgel, level: 'crude', kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
+  { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
-  { id: IT.rusty_knife, level: 'crude', kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
+  { id: IT.rusty_knife, level: 'crude', gearClass: GC.melee_light, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
-  { id: IT.gambeson, level: 'common', tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
+  { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light', 'common') } },
-  { id: IT.mail_hauberk, level: 'fine', tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
+  { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
     armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'fine') } },
-  { id: IT.plate_harness, level: 'superior', tags: ['starter'], kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
+  { id: IT.plate_harness, level: 'superior', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'superior'), pools: { head: 20 } } },
-  { id: IT.round_shield, level: 'common', tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: POOL('common') },
+  { id: IT.round_shield, level: 'common', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: POOL('common') },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'situation', value: 5, active: 'carried', scope: 'any' }] },
@@ -179,11 +179,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
   { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
   // generic bases for minted items with no close match, and for scene objects the player grabs (loot L2, L3)
-  { id: IT.improvised_light, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('light', 1) } },
-  { id: IT.improvised_medium, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
+  { id: IT.improvised_medium, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('medium', 1) } },
-  { id: IT.improvised_heavy, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
+  { id: IT.improvised_heavy, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
   { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
   { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
@@ -416,6 +416,13 @@ export function prototypeLibrary(): Library {
       [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi' },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
+    // gear classes (GC): the class sets which skill an item asks for; its level sets how much (EQUIP_NEED)
+    gearClasses: Object.fromEntries(([
+      [GC.melee_light, 'Light melee weapon', SK.melee_light], [GC.melee_medium, 'Medium melee weapon', SK.melee_medium], [GC.melee_heavy, 'Heavy melee weapon', SK.melee_heavy],
+      [GC.ranged_light, 'Light ranged weapon', SK.ranged_light], [GC.ranged_medium, 'Medium ranged weapon', SK.ranged_medium], [GC.ranged_heavy, 'Heavy ranged weapon', SK.ranged_heavy],
+      [GC.improvised, 'Improvised weapon', SK.unarmed_improvised], [GC.armor_light, 'Light armor', SK.light_armor], [GC.armor_medium, 'Medium armor', SK.medium_armor],
+      [GC.armor_heavy, 'Heavy armor', SK.heavy_armor], [GC.shield, 'Shield', SK.block],
+    ] as const).map(([id, name, skill]) => [id, { id, name, skill }])),
     // attack modes: what an attack does; weapon modes and natural attacks name one by id
     attackModes: Object.fromEntries(Object.entries(AM).map(([w, id]) => [id, { id, name: w[0].toUpperCase() + w.slice(1) }])),
     zoneKinds: Object.fromEntries(([

@@ -9,3 +9,8 @@ export const AM = {
   chop: 'AM1', club: 'AM2', cut: 'AM3', grapple: 'AM4', punch: 'AM5', shoot: 'AM6', slam: 'AM7', slash: 'AM8', stab: 'AM9', strike: 'AM10',
   throw: 'AM11', thrust: 'AM12', unarmed: 'AM13',
 } as const;
+/** gear classes: a class sets which skill an item asks for (its level sets how much) */
+export const GC = {
+  melee_light: 'GC1', melee_medium: 'GC2', melee_heavy: 'GC3', ranged_light: 'GC4', ranged_medium: 'GC5', ranged_heavy: 'GC6',
+  improvised: 'GC7', armor_light: 'GC8', armor_medium: 'GC9', armor_heavy: 'GC10', shield: 'GC11',
+} as const;
