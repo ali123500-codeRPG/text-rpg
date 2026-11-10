@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { ClassDef, HealingDef, FearDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName } from '../ruleset/achRewards';
@@ -20,7 +20,7 @@ import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, type PartStateKey, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
-import { earnedAtText, xpGroupFactor } from '../engine/xp';
+import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
 import { partFearCost } from '../ruleset/morale';
@@ -367,14 +367,35 @@ function restores(d: HealingDef): string {
     return `every hour, ${d.hourly.pctPerPoint} % of max health per ${skillName(d.hourly.skill)} point (${at50} % at 50)`;
   }
   const calm = d.composure ? lib.composure?.[d.composure] : undefined; // morale comes from the composure table's row
-  const parts = [d.hpPct ? `${d.hpPct} % health` : '', d.partPct ? `${d.partPct} % to body parts` : '', calm?.pct ? `${calm.pct} % morale (composure row ${calm.name})` : ''].filter(Boolean);
+  const parts = [d.hpPct ? `${d.hpPct} % health` : '', d.partPct ? `${d.partPct} % to body parts` : '', calm?.pct ? `${calm.pct} % morale` : ''].filter(Boolean);
   return parts.length ? parts.join(', ') : 'nothing';
 }
 function healing(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.healing ?? {}).map((d) => card('healing', d.id, d, d.name,
     [d.countOnly ? chip('tally only') : null, d.composure ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
-    row('Restores', restores(d)), ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'composure', 'hourly', 'countOnly']))))];
+    row('Restores', restores(d)),
+    d.composure ? row('Morale from', link('composure', d.composure, lib.composure?.[d.composure]?.name ?? d.composure), ' (composure row)') : null,
+    ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'composure', 'hourly', 'countOnly']))))];
 }
+// Composure: what restores morale, its own table so it tunes apart from healing; a healing row names the row it also restores
+function composureText(d: ComposureDef): string {
+  if (d.countOnly) return 'nothing itself: it only tallies morale restored by perks, for achievements that count morale by source';
+  if (d.hourly) return `every hour, ${d.hourly.pctPerPoint} % of max morale per ${skillName(d.hourly.skill)} point (${+(d.hourly.pctPerPoint * 50).toFixed(2)} % at 50)`;
+  return `${d.pct} % of max morale`;
+}
+function composure(): HTMLElement[] {
+  return [h('p', { class: 'hs-note' }, 'What restores morale. Healing rows that also calm you (rest, clinic) name their row here, so morale and health tune apart.'),
+    h('div', { class: 'lv-grid' }, Object.values(lib.composure ?? {}).map((d) => {
+      const from = Object.values(lib.healing ?? {}).filter((x) => x.composure === d.id);
+      return card('composure', d.id, d, d.name, [d.countOnly ? chip('tally only') : null, d.inFight ? chip('in a fight') : null],
+        row('Restores', composureText(d)),
+        from.length ? row('Also given by', links('healing', from.map((x) => [x.id, x.name]))) : null,
+        row('Achievements', usedByAch(d.id)),
+        ...fields(d as unknown as Entry, ['id', 'name', 'pct', 'hourly', 'countOnly']));
+    }))];
+}
+const usedByAch = (row: string) => { const a = Object.values(lib.achievements ?? {}).filter((x) => x.by === 'morale_source' && x.only === row);
+  return a.length ? links('achievements', a.map((x) => [x.id, x.name])) : none('none'); };
 
 /** Fears: a part fear's cost comes from per-part impact costs (partCost, or another row's × mult), so its card shows
  * those and what one part of each impact costs on each body type, worked out by the game's partFearCost */
@@ -469,8 +490,8 @@ function achievements(): HTMLElement[] {
       d.levelUp ? row('Pays more', Object.entries(d.levelUp).map(([k, n]) => `${k.replace("_", " ")}: +${n} reward level${n === 1 ? '' : 's'}`).join('; ')) : null,
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
       // the engine's one "what it asks for" text (earnedAtText); the viewer only links the healing row and names the per-kind split
-      (() => { const at = earnedAtText(NO_STATE, d), heal = d.only ? lib.healing?.[d.only]?.name ?? d.only : '';
-        return heal && at.endsWith(heal) ? row('Earned at', at.slice(0, -heal.length), link('healing', d.only!, heal))
+      (() => { const at = earnedAtText(NO_STATE, d), heal = d.only ? sourceRowName(d, d.only) : '', tbl = d.by === 'morale_source' ? 'composure' : 'healing';
+        return heal && at.endsWith(heal) ? row('Earned at', at.slice(0, -heal.length), link(tbl, d.only!, heal))
           : row('Earned at', `${at}${d.by && !d.only ? `, once per ${d.by.replace('_', ' ')}` : ''}`); })(),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
   };
@@ -765,6 +786,7 @@ const CUSTOM: Section[] = [
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
   { key: 'classes', title: 'Classes', table: 'classes', view: classes },
   { key: 'healing', title: 'Healing', table: 'healing', view: healing },
+  { key: 'composure', title: 'Composure', table: 'composure', view: composure },
   { key: 'fears', title: 'Fears', table: 'fears', view: fears },
   { key: 'quests', title: 'Quests', table: 'perks', view: questsView, count: 4 + QUEST_STATES.length + GOAL_KINDS.length },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
@@ -777,6 +799,7 @@ const perkSkills = (d: PerkDef & { skill?: string }): string[] => [...new Set([d
   ...Object.keys(d.trueSkillTo ?? {}), ...(d.fnSkill ? fnSkills(d.fnSkill.fn) : []), ...(d.augments ?? []).flatMap((a) => [a.from, a.skill])]
   .filter((x): x is string => !!x && !!lib.skills[x]))];
 const FACETS: Record<string, Facets> = {
+  composure: (d: ComposureDef) => [['In fight', d.inFight ? 'yes' : 'no'], ['Kind', d.countOnly ? 'tally only' : d.hourly ? 'hourly' : 'one-off']],
   fears: (f: FearDef) => [['Roll', f.rolled ? 'rolled' : 'flat'], ['Cost', f.partCost || f.partCostOf ? 'by part' : f.perTier ? 'per tier' : f.cost < 0 ? 'restores' : 'flat cost'], ['Part', f.part && PART_STATES.name(f.part as PartStateKey)]],
   gearClasses: (g: { use?: string }) => [['Use', g.use]],
   healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? 'health hourly' : undefined],
@@ -816,7 +839,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
   ['Library', ['gear', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'quests', 'fears', 'status']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'composure', 'quests', 'fears', 'status']],
   ['World', null],
 ];
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
