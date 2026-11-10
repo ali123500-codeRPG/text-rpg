@@ -1,6 +1,7 @@
 // 34 Fallback is flagged: a plan that fails twice yields the fallback stage, and all four flags appear:
 // stage record, weaver_fallback log, GM banner, play-screen marker. The banner and the marker are drawn by
 // the UI from stage.fallback (GmSnapshot.fallbackBanner / Notice scene_fallback, W7/W8); this test checks their source.
+import { ZK } from '../../src/library/tableIds';
 import { describe, expect, it, vi } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import type { StagePlan } from '../../src/types';
@@ -30,7 +31,7 @@ describe('34 Fallback is flagged', () => {
     // the flags stay until the next scene start
     weave.mockResolvedValue(null as never);
     weave.mockResolvedValueOnce({ ...villageStagePlan('success'), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
-      zones: [{ key: 'snug', place: 'tavern', kind: 'room', name: 'the snug', look: 'a cramped side room', cover: 'some', light: 'dim', links: [{ to: 'tav_common', label: 'the common room', sight: true }] }] });
+      zones: [{ key: 'snug', place: 'tavern', kind: ZK.room, name: 'the snug', look: 'a cramped side room', cover: 'some', light: 'dim', links: [{ to: 'tav_common', label: 'the common room', sight: true }] }] });
     s.turn = 9;
     await d.startScene(s, createRng(s.rngState));
     expect(s.stage.fallback).toBeUndefined();

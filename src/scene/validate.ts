@@ -182,8 +182,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`zone ${z.key} name`, z.name, true);
     text(`zone ${z.key} look`, z.look, true);
     if (!isPlace(z.place)) err('unresolved_place', `zone ${z.key}: place ${z.place} unknown`);
-    const kinds = Object.keys(getLibrary().zoneKinds ?? {});
-    if (!kinds.includes(z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.join(', ')}`);
+    const kinds = Object.values(getLibrary().zoneKinds ?? {});
+    if (!kinds.some((k) => k.id === z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.map((k) => `${k.id} (${k.name})`).join(', ')}`);
     if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);

@@ -1,6 +1,7 @@
 // 110 Engagement (E1): one encounter per actor covering talk and fights. It starts on a fight or a
 // spoken exchange, a talk that turns into a fight stays one engagement, it ends after ENGAGEMENT_END_TURNS turns with
 // nothing engaging the actor, and the player's marked skills roll when it ends.
+import { PK } from '../../src/library/perkIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
@@ -41,12 +42,12 @@ describe('110 engagement', () => {
   });
   it('once-per-engagement uses reset with a new engagement', () => {
     const s = makeVillage();
-    expect(usableThisEngagement(s.player, 'battle_cry')).toBe(false); // not engaged
+    expect(usableThisEngagement(s.player, PK.battle_cry)).toBe(false); // not engaged
     next(s, [speak(s, 'player', 'patron_1')]);
-    useThisEngagement(s.player, 'battle_cry');
-    expect(usableThisEngagement(s.player, 'battle_cry')).toBe(false);
+    useThisEngagement(s.player, PK.battle_cry);
+    expect(usableThisEngagement(s.player, PK.battle_cry)).toBe(false);
     s.stage.breakCause = 'rest'; next(s); delete s.stage.breakCause;
     next(s, [speak(s, 'player', 'patron_1')]);
-    expect(usableThisEngagement(s.player, 'battle_cry')).toBe(true);
+    expect(usableThisEngagement(s.player, PK.battle_cry)).toBe(true);
   });
 });

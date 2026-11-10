@@ -1,5 +1,6 @@
 // 92 Reach: a reach-1 spear hits a target one linked zone away with sight; the same attack through a link without sight
 // becomes a wasted action.
+import { AM } from '../../src/library/tableIds';
 import { expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
@@ -12,8 +13,8 @@ it('92 Reach', () => {
   place(s, 'patron_1', 'tav_counter').mind!.slots!.seat = 'tav_counter'; // tav_common -> tav_counter: sight
   place(s, 'trader', 'street_door').mind!.slots!.counter = 'street_door'; // routines keep both where they are // tav_common -> street_door: no sight
   const gear = [{ op: 'stow' as const, item: `player_${IT.arming_sword}_1` }, { op: 'stow' as const, item: `player_${IT.round_shield}_2` }, { op: 'draw' as const, item: 'sp' }];
-  const ev = play(s, { intent: intent({ gear, action: { type: 'attack', target: 'patron_1', skill: SK.melee_medium, item: 'sp', mode: 'thrust' } }) });
+  const ev = play(s, { intent: intent({ gear, action: { type: 'attack', target: 'patron_1', skill: SK.melee_medium, item: 'sp', mode: AM.thrust } }) });
   expect(ev.find((e) => e.actorId === 'player' && e.target === 'patron_1')).toMatchObject({ kind: 'attack' });
-  const ev2 = play(s, { intent: intent({ action: { type: 'attack', target: 'trader', skill: SK.melee_medium, item: 'sp', mode: 'thrust' } }) });
+  const ev2 = play(s, { intent: intent({ action: { type: 'attack', target: 'trader', skill: SK.melee_medium, item: 'sp', mode: AM.thrust } }) });
   expect(ev2.find((e) => e.actorId === 'player' && e.target === 'trader')).toMatchObject({ kind: 'wasted' });
 });

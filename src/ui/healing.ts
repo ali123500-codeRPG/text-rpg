@@ -1,6 +1,7 @@
 // Healing displays: H1 d, the "Patched up" card with coloured state tags and a health-track bar
 // whose healed segment glows; H3 b, one quick-use slot beside Aim for a healing item, picked in the Inventory
 // (default: the strongest, ties to the one carried most). H2 a (the healed body part glows) is in charsheet.ts.
+import { HL } from '../library/tableIds';
 import type { Actor, GameState, HealNote, HealingDef } from '../types';
 import { SHOWN_LEVELS } from '../ruleset/body';
 import { getLibrary, itemDef } from '../library';
@@ -17,7 +18,7 @@ const lvTag = (l: string) => h('span', { class: `htag lv${Math.max(0, LEVELS().i
 const psTag = (st: string) => h('span', { class: `htag ps${Math.max(0, PART_STATES.indexOf(st))}` }, st);
 const arrow = () => h('span', { class: 'ar', 'aria-hidden': 'true' }, '→');
 
-const TITLE: Record<string, string> = { rest: 'Rested', clinic: 'Treated' };
+const TITLE: Record<string, string> = { [HL.rest]: 'Rested', [HL.clinic]: 'Treated' };
 
 /** health track: segments from Unhurt up to the level now, each in its level's colour; the healed one glows and the
  * levels healed away are dashed */
@@ -28,7 +29,7 @@ function trackBar(n: HealNote): HTMLElement {
 }
 
 /** healing rows that show as a quiet line instead of a card (T3 b): healing the player didn't choose */
-const QUIET = new Set(['passive']);
+const QUIET = new Set<string>([HL.passive]);
 
 export function healCard(n: HealNote): HTMLElement {
   const name = getLibrary().healing?.[n.source]?.name ?? cap(n.source);
@@ -71,6 +72,6 @@ const VIAL = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9.5" y="2.5" 
 /** an item's icon: by healing source for now (a library icon field can replace this) */
 export function healIcon(it: HealItem): HTMLElement {
   const el = h('span', { class: 'hico' });
-  el.innerHTML = it.row.id === 'bandage' ? BANDAGE : VIAL;
+  el.innerHTML = it.row.id === HL.bandage ? BANDAGE : VIAL;
   return el;
 }

@@ -1,5 +1,6 @@
 // 130 D-120 deed achievements: tallies per rule (counts, or the best reached), per group and per class; Critical
 // Success and beyond on combat rolls; unaware and crippled defeats; and the fight achievements judged when a fight ends.
+import { HL } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';

@@ -15,7 +15,7 @@ export type SkillGroup = (typeof GR)[keyof typeof GR];
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
-export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike' | 'speech';
+export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
 
@@ -90,7 +90,7 @@ export type Library = {
   skills: Record<string, SkillDef>;
   trees: Record<string, TreeDef>;
   classes: Record<string, ClassDef>;
-  roles: Record<RoleId, { shared: boolean }>;
+  roles: Record<RoleId, { name: string; shared: boolean }>;
   bodyTypes: Record<string, BodyType>;
   items: Record<string, ItemDef>;
   templates: Record<string, NpcTemplate>;
@@ -104,6 +104,7 @@ export type Library = {
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
+  attackModes?: Record<string, { id: string; name: string }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
 /** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
@@ -154,7 +155,7 @@ export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | 
  * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree>. */
 /** How long an action takes on the game clock (T1). `orders` lists the order types the row covers;
- * the row with no `orders` named 'action' is the default; 'fight_turn' is every turn of a fight; 'sleep' is one sleep. */
+ * the action row (DU in src/library/tableIds.ts) is the default; the fight turn row is every turn of a fight; the sleep row is one sleep. */
 export type DurationDef = { id: string; name: string; minutes: number; orders?: string[] };
 
 /** A healing source (H1/H12): what it restores, the worst part state it can heal (`reach`, a

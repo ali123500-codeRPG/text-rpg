@@ -1,5 +1,6 @@
 // 125 All-50 parts (All-50 doc round 1): a tree's built parts are granted free when every skill of the
 // tree reaches 50 true skill, with the tree's mastery achievement; then the first six built parts.
+import { AM } from '../../src/library/tableIds';
 import { TR } from '../../src/library/treeIds';
 import { ACH } from '../../src/library/achievementIds';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -108,7 +109,7 @@ describe('125 All-50 parts', () => {
       const foe = s.actors.find((a) => a.id === 'patron_1')!;
       foe.core.inventory = foe.core.inventory.filter((i) => !i.equippedIn?.includes('armor'));
       if (perk) give(s.player, PK.iron_knuckles);
-      return ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'unarmed', modeId: 'punch', targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
+      return ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'unarmed', modeId: AM.punch, targetPart: null, aimed: false }, s, forcedRng([99, 2, 50, 50])).damage;
     };
     expect(dmg(false)).toBeGreaterThan(0);
     expect(dmg(true)).toBeCloseTo(dmg(false) * 1.1);

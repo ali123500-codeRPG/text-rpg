@@ -1,3 +1,4 @@
+import { AM } from '../../src/library/tableIds';
 import type { Tier } from '../../src/types';
 import { describe, expect, it, vi } from 'vitest';
 import type { AttackResult, GameEvent, GameState, RollResult } from '../../src/types';
@@ -155,7 +156,7 @@ describe('NarrationView and the packet', () => {
     const result: AttackResult = {
       attack: roll('great_success', 87, 13.5, 1), defense: roll('success', 42, 7), defenseType: 'block', gap: -1, gapShifts: [],
       outcome: 'full_hit', location: 'general', locationHow: 'rolled', multiplier: 0.8, damage: 17,
-      deciding: { attack: ['aim'], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: 'cut',
+      deciding: { attack: ['aim'], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: AM.cut,
     };
     const e = run(s, ev({ id: 'evt_a', actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', attack: result,
       effects: [{ kind: 'part_state_changed', actorId: 'guard_1', data: { part: 'left_arm', from: 'Healthy', to: 'Damaged' } }] }));
@@ -179,7 +180,7 @@ describe('NarrationView and the packet', () => {
     const result: AttackResult = {
       attack: roll('great_success', 87, 13.5), defense: def, defenseType: 'block', gap: -1, gapShifts: [],
       outcome: 'full_hit', location: 'general', locationHow: 'rolled', multiplier: 0.8, damage: 17,
-      deciding: { attack: ['aim'], defense: [...shown, ...hidden], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: 'cut',
+      deciding: { attack: ['aim'], defense: [...shown, ...hidden], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: AM.cut,
     };
     const e = run(s, ev({ id: 'evt_b', actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', attack: result }));
     expect(buildCombatPacket(s, e, 'player').defense!.deciding).toEqual(shown);

@@ -9,7 +9,7 @@ import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
 import { achLevel, achievementName } from '../engine/xp';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
-import { kitBonus } from '../ruleset/gear';
+import { kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { isDownLevel } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
@@ -118,10 +118,10 @@ export function inventoryPage(api: GameApi) {
       const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
       const rows: PanelRow[] = [{ k: 'Look', v: d.look }, { k: 'Kind', v: d.kind }];
       if (d.hands) rows.push({ k: 'Hands', v: String(d.hands) });
-      for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${m.name ?? m.id}`, v: `${m.tree} ${m.class}, reach ${m.reach}, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
+      for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach}, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
       if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
       if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
-      for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : e.skill) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
+      for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
       const heal = healItems(s, s.player).find((x) => x.itemId === it!.itemId);
       if (heal) {
         const r = heal.row;

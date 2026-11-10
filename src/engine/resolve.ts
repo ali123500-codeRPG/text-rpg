@@ -1,4 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { DU, HL, RL } from '../library/tableIds';
 import { bestReward } from '../ruleset/achRewards';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
@@ -406,7 +407,7 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
     // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, once paid for (PY8), else the rest row
     const row = restRow(state, a);
     applyHealing(state, a, row);
-    if (row !== 'rest') a.paid = a.paid?.filter((x) => x !== row);
+    if (row !== HL.rest) a.paid = a.paid?.filter((x) => x !== row);
     state.clocks[key] = now(state);
     ev.effects.push({ kind: 'rested', actorId: a.id, data: {} });
   }
@@ -416,7 +417,7 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
 /** H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row when the actor paid for it (PY8), else the rest row */
 function restRow(state: GameState, a: Actor): string {
   const kind = state.places.find((p) => p.id === a.placeId)?.kind ?? '';
-  return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? 'rest';
+  return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? HL.rest;
 }
 
 const threatHere = (state: GameState, a: Actor): boolean =>
@@ -439,7 +440,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       return emit(ctx, ev);
     }
     const until = named ?? nextTimeOfDay(timeOfDay(t));
-    const minutes = o.type === 'sleep' ? getLibrary().durations?.sleep?.minutes ?? 0 : minutesUntil(t, until);
+    const minutes = o.type === 'sleep' ? getLibrary().durations?.[DU.sleep]?.minutes ?? 0 : minutesUntil(t, until);
     passTime(state, minutes);
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     if (o.type === 'sleep') {
@@ -459,11 +460,11 @@ function passTime(state: GameState, minutes: number): void {
   passiveHealing(state, minutes);
 }
 
-/** T1: a fight turn, else the durations row naming the order type, else the default 'action' row */
+/** T1: a fight turn, else the durations row naming the order type, else the default action row (DU) */
 function turnMinutes(state: GameState, o: Order): number {
   const rows = getLibrary().durations ?? {};
-  if (state.mode === 'tactical') return rows.fight_turn?.minutes ?? 0;
-  return (Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows.action)?.minutes ?? 0;
+  if (state.mode === 'tactical') return rows[DU.fight_turn]?.minutes ?? 0;
+  return (Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows[DU.action])?.minutes ?? 0;
 }
 
 /** H2/H3: using a carried item that names a healing source applies that row and uses one up; works in a fight only
@@ -624,7 +625,7 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 const lame = (state: GameState, a: Actor) => {
   if (slowed(state, a)) return true;
   const parts = new Map(partStates(state, a).map((p) => [p.id, p.state]));
-  return actorBody(state, a).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
+  return actorBody(state, a).parts.some((p) => p.roles.includes(RL.move) && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
 };
 
 /** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a

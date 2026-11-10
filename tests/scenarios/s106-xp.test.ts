@@ -110,12 +110,12 @@ describe('106 XP and levels', () => {
     const s = makeVillage();
     const p = s.player, pr = p.progression!;
     expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP);
-    p.core.classes.push({ classId: 'slime', state: 'unlocked', level: 0 });
-    pr.nextClass = 'slime';
+    p.core.classes.push({ classId: CL.trader, state: 'unlocked', level: 0 });
+    pr.nextClass = CL.trader;
     awardXp(s, CONFIG.LEVEL_XP + 5, 'test');
     expect(pr.xp).toBe(5);
-    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 1], ['slime', 'current', 1]]);
+    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 1], [CL.trader, 'current', 1]]);
     expect(pr.unspentPerkPoints).toBe(1); // level 2 is even
-    expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: 'slime', level: 2 });
+    expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: CL.trader, level: 2 });
   });
 });

@@ -12,7 +12,7 @@ import { ACH_RULE_TEXT, ACH_TAGS } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
-import { fnSkills, kitBonus, standInShare, standInTable } from '../ruleset/gear';
+import { fnSkills, kitBonus, modeName, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
@@ -131,7 +131,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     row('Bulk · value', `${i.bulk} · ${i.value} coin`),
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
-    i.weapon ? row('Modes', h('div', { class: 'lv-sub' }, i.weapon.modes.map((m) => h('div', {}, h('b', {}, m.id), ` · ${m.tree} ${m.class} · reach ${m.reach} · ${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+    i.weapon ? row('Modes', h('div', { class: 'lv-sub' }, i.weapon.modes.map((m) => h('div', {}, h('b', {}, modeName(m)), ` · ${m.tree} ${m.class} · reach ${m.reach} · ${m.hands} hand${m.hands === 1 ? '' : 's'}`,
       m.skill ? ` · ${skillName(m.skill)}` : '', m.thrown ? ' · thrown' : '', m.hitAdj ? ` · hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : '')))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
@@ -339,7 +339,7 @@ function bodyTypes(): HTMLElement[] {
         row('NPC templates', usedBy((t) => lib.races?.[t.raceId as string]?.bodyTypeId === c.id)))),
       c.parts.length ? h('table', { class: 'hs-tbl lv-parts' }, h('thead', {}, h('tr', {}, ['Part', 'Size', 'Impact', 'Roles', 'Next to'].map((x) => h('th', {}, x)))),
         h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', {}, p.size),
-          h('td', {}, label(p.impact)), h('td', {}, p.roles.join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
+          h('td', {}, label(p.impact)), h('td', {}, p.roles.map((r) => lib.roles[r]?.name ?? r).join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
   ];
 }
 
@@ -418,7 +418,7 @@ function skills(): HTMLElement[] {
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Group', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneFor('Function', functionName(f))))) : '—'),
-        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneFor('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
+        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneFor('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.map((r) => lib.roles[r as keyof typeof lib.roles]?.name ?? r).join(', ') || '—'),
         h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneFor('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP)
   const groupChips = (ids: string[]) => [...new Set(ids.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`${GROUP_NAMES[g]} group`, toneFor('Group', GROUP_NAMES[g])));

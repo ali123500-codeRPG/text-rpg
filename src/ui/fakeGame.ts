@@ -1,4 +1,5 @@
 // In-memory fake GameApi with canned lines, for building and screenshotting the screens until W7's pipeline lands.
+import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice } from '../types';
 import { CONFIG } from '../config';
@@ -60,7 +61,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { turn: 3, kind: 'narration', text: NARRATION[2], place: KETTLE, scene: 2,
         check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
-        heals: [{ source: 'bandage', from: 'Hurt', to: 'Bruised', parts: [{ id: 'left_leg', from: 'Damaged', to: 'Healthy' }] }],
+        heals: [{ source: HL.bandage, from: 'Hurt', to: 'Bruised', parts: [{ id: 'left_leg', from: 'Damaged', to: 'Healthy' }] }],
         unlocks: [{ skill: SK.block, milestone: 40 }], gains: { [SK.block]: 3 },
         incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'great_success', against: { what: 'your block', tier: 'success' }, result: 'blocked, shield', by: 'the slime' }],
         changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],
