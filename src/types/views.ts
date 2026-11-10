@@ -75,7 +75,7 @@ export type PlayerView = {
     id: 'player'; name: string; classes: { id: string; name: string }[];
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
-    perkMoves?: { id: string; name: string; does: string }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like
+    perkMoves?: { id: string; name: string; does: string; action?: true }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action
     health: HealthLevel; parts: { id: string; state: PartState }[];
     morale: string; // the morale bar's level (MB11)
     inventory: OwnGearView[];
@@ -87,6 +87,8 @@ export type PlayerView = {
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
+  /** the places the player last left, newest first (journal trail): "go back" means cameFrom[0] */
+  cameFrom?: { zone: string; name: string; leftTurn: number }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
   lastSeen?: { id: string; name: string; zone: string }[];

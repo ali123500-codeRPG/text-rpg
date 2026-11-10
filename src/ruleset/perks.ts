@@ -23,9 +23,11 @@ export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks
 
 /** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it */
 /** `does` tells the Parser what the move looks like in the player's words, so it is found without its name */
-export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number; perFoe?: true; does: string }> = {
+export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number; perFoe?: true; untargeted?: true; does: string }> = {
   [PK.dirt_in_the_eyes]: { free: true, perEngagement: 1, does: "throw dirt, sand, a drink or anything at hand in a foe's eyes" },
   // LI1c: once per foe per engagement
+  // I9: the turn's main action, once per engagement, aimed at no one
+  [PK.battle_cry]: { free: false, perEngagement: 1, untargeted: true, does: 'a war cry or roar to shake the foes and rally your side ("Come on, then!", a wordless bellow)' },
   [PK.bluff]: { free: true, perEngagement: 1, perFoe: true, does: 'a quick lie or false warning at a foe, to make it look away or hesitate ("Behind you!", "Your boot\'s untied", pointing at nothing)' },
 };
 /** the perk moves an actor owns (shown to the Parser and in Commands) */

@@ -1,6 +1,7 @@
 // Scene orchestration: scene start (situation roll, Weaver, repair retry, WEAVER_TIMEOUT), background stage
 // extensions held in memory per frontier, crossing (waits for a late extension), saved-zone re-entry.
 // The pipeline (W7) injects `weave`, which wraps the real Agent Weaver call and logs it.
+import { noteLeft } from '../engine/trail';
 import type { Clock, GameEvent, GameState, Rng, SituationResult, StagePlan, WeaverView } from '../types';
 import { CONFIG } from '../config';
 import { ruleset } from '../ruleset';
@@ -80,6 +81,13 @@ export class SceneDirector {
 
   /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no situation roll. */
   async cross(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
+    const from = state.player.zone;
+    const res = await this.crossTo(state, key, rng, entry);
+    noteLeft(state, from); // the trail: "go back" leads to the zone the frontier was crossed from
+    return res;
+  }
+
+  private async crossTo(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy'): Promise<SceneResult> {
     if (isSavedZone(state, key)) {
       loadSavedZone(state, key);
       const z = zoneById(state, key)!;

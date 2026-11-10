@@ -8,6 +8,7 @@ export const BUILT_PERKS = new Set<string>([
   PK.overheard, // LI5a (Insight 20): src/engine/speech.ts overhearLie(), from doSpeak() and the exchange slot in resolve.ts
   PK.plain_as_day, // LI2a (Insight 60): src/engine/speech.ts pressedWords() and src/agents/game.ts
   PK.read_their_face, // LI2b (Insight 100): src/views/index.ts seenActors()
+  PK.battle_cry, // C2/I9 (Intimidation 140): a perk move, src/engine/resolve.ts doBattleCry() and src/engine/auras.ts battleCry()
   PK.dread_presence, // I1 (Intimidation 100): src/engine/auras.ts engagementAuras(), from resolveTurn
   PK.never_surprised, // C1 (Earshot 100): src/engine/resolve.ts initiativeOrder() and doAttack(), via hears() in src/perception
   // All-50 parts (src/library/allPerks.ts), granted by src/ruleset/allSteps.ts
