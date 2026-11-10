@@ -104,10 +104,15 @@ function logFight(state: GameState, events: GameEvent[]): void {
 
 /** the player's fight has ended: won = every foe is down, fled or yielded */
 export function fightEnded(state: GameState, f: FightLog): void {
-  if (!isActive(state.player)) return;
+  // a lost fight (the Loser scars): you went Down, or it ended with a foe still up and fighting you (you got away).
+  // Yielding and morale breaks will count too once the player can do them (D-147).
+  if (f.down || !isActive(state.player)) return tally(state, 'defeated');
   if (f.brink) tally(state, 'brink');
   const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !isActive(x) || !!x.mind?.moraleState; });
-  if (!won) return;
+  if (!won) {
+    if (f.foes.some((id) => { const x = actorById(state, id); return !!x && isActive(x) && !x.mind?.moraleState && hostile(state, x, state.player); })) tally(state, 'defeated');
+    return;
+  }
   if (!f.hurt && f.defended) tally(state, 'flawless');
   if (f.most >= CONFIG.OUTNUMBERED_FOES && !f.helped) tally(state, 'outnumbered');
   if (f.heldLine) tally(state, 'held_line');
