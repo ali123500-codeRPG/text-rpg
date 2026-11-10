@@ -182,12 +182,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const body = h('div', { class: 'play' }, story, h('div', { class: 'sec col' }, notices, helpPanel, bar));
   const title = h('div', { class: 'head' });
   const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
-  // layout A: the status strip by default; on a wide screen the full sheet is open by default, so the space beside the story
-  // is used. Each width keeps its own choice (the player can still fold or open it).
+  // layout A with the full sheet open by default at every width, so the screen is always filled (the player can still fold
+  // it). Wide and narrow screens each keep their own choice.
   const WIDE = '(min-width: 1280px)';
   const wide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matches;
-  const foldKey = () => (wide() ? 'sheetFoldedWide' : 'sheetFolded');
-  const readFolded = () => { try { const v = localStorage.getItem(foldKey()); return v === null ? !wide() : v === '1'; } catch { return !wide(); } };
+  const foldKey = () => (wide() ? 'sheetFoldedWide' : 'sheetFoldedNarrow');
+  const readFolded = () => { try { return localStorage.getItem(foldKey()) === '1'; } catch { return false; } };
   let folded = readFolded();
   if (typeof matchMedia === 'function') matchMedia(WIDE).addEventListener?.('change', () => { folded = readFolded(); if (el.isConnected) update(); });
   let dealsOpen = false;
