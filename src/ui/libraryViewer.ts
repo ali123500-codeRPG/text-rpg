@@ -424,7 +424,9 @@ function achievements(): HTMLElement[] {
         return all.length ? all.join('; ') : none('none, XP only'); })()),
       d.levelUp ? row('Pays more', Object.entries(d.levelUp).map(([k, n]) => `${k.replace("_", " ")}: +${n} reward level${n === 1 ? '' : 's'}`).join('; ')) : null,
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
-      row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
+      // `only` pins a by-kind row to one healing row: name that source instead of "one source … once per heal source"
+      d.only ? row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule].replace(/ \(.*\)$/, '').replace(/\bone source$/, '')}`, link('healing', d.only, lib.healing?.[d.only]?.name ?? d.only))
+        : row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
   };
   const section = (title: string, list: [string, AchievementDef][]) =>
