@@ -3,7 +3,7 @@
 // survive only when no one hostile from a lethal band is left standing.
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
-import { actor, createRng, makeVillage } from '../harness';
+import { actor, createRng, makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { healthLevel } from '../../src/ruleset';
@@ -63,6 +63,26 @@ describe('140 sparring', () => {
     expect(t.mind!.overrides?.player).toBeUndefined();
     expect(t.mind!.alarm?.armed ?? false).toBe(false);
     expect(p.mind!.hitByPlayer).toBeUndefined();
+  });
+
+  it('SP11: a sparring blow from hiding raises no alarm, in the target or an unaware bystander who spots it', () => {
+    let noticed = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = village();
+      startSpar(s, [['player'], ['patron_1']], false, 'test');
+      s.player.posture = 'stealthy';
+      const p = actor(s, 'patron_1'), t = actor(s, 'trader');
+      p.mind!.knowledge = {};
+      delete t.mind!.knowledge.player;
+      place(s, 'trader', 'tav_common');
+      const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }) }, seed);
+      expect(ev.find((e) => e.kind === 'attack' && e.actorId === 'player')?.spar).toBe(true);
+      if (p.mind!.knowledge.player?.status === 'aware') noticed++;
+      expect(p.mind!.alarm?.armed ?? false).toBe(false);
+      expect(t.mind!.alarm?.armed ?? false).toBe(false);
+      expect(p.mind!.overrides?.player).toBeUndefined();
+    }
+    expect(noticed).toBeGreaterThan(0); // some targets win the ambush roll and see who hit them
   });
 
   it('SP4/SP8: reaching the limit puts a fighter out; the last side in wins and the win is counted, not paid as a defeat', () => {
