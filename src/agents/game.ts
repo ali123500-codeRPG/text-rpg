@@ -64,7 +64,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed), /title [number or off] (wear an achievement as your title). The story saves every turn.';
+  '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -77,6 +77,7 @@ export function createGame(deps: GameDeps): Game {
   let stopped = false;
   let rateLimited = false;
   let aimNext = false;
+  let yieldNext = false; // MB40: /yield
   let lastDisplayAt = clock.now();
   let turnLog: AgentTurnLog[] = [];
   let lastLog: AgentTurnLog[] = [];
@@ -256,6 +257,7 @@ export function createGame(deps: GameDeps): Game {
       return;
     }
     const intent = engine.fillSpeech(s, parsed.intent, text);
+    if (yieldNext) intent.yields = true;
     // OQ-27 (c): ask who is meant, from code: no Claude call, no turn spent
     const unclear = engine.unclearAddressee(s, intent, pv.actors.map((a) => a.id));
     if (unclear) {
@@ -280,8 +282,8 @@ export function createGame(deps: GameDeps): Game {
       exchange = engine.resolveSpeech(s, intent, spokespeople, rng);
       const input: DialogueInput = [{ spoken: intent.spoken ?? '', impression: exchange.impression }];
       const world = worldIds(s);
-      // NT7: a listener that saw through a lie hears the impression with a tell
-      const inputFor = (id: string): DialogueInput => (exchange!.perSpokesperson[id]?.tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.TELL}` }] : input);
+      // NT7: a listener that saw through a lie hears the impression with a tell (plainly with Plain as Day, LI2a)
+      const inputFor = (id: string): DialogueInput => (exchange!.perSpokesperson[id]?.tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.tellFor(s.actors.find((x) => x.id === id))}` }] : input);
       agentOutputs.push(...(await Promise.all(spokespeople.map((id) => dialogueCall(s, id, inputFor(id), exchange!, agenda.get(id)!, ctx, world)))));
     }
     // timing rule: resolution never before the previous display plus BACKGROUND_WINDOW, in every mode
@@ -297,6 +299,7 @@ export function createGame(deps: GameDeps): Game {
       s.rngState = rng.state;
     }
     aimNext = false;
+    yieldNext = false;
     await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore }, spokespeople.length ? submitAt : null);
   }
 
@@ -409,6 +412,10 @@ export function createGame(deps: GameDeps): Game {
         return say([`Title: ${wornTitle(s) ?? 'none'}. Type /title and a number to wear one, or /title off.`,
           ...list.map((x, i) => `${i + 1}. ${achievementName(s, x)}`)].join('\n'));
       }
+      case 'yield':
+        // MB40: yield as a command; the words go to the Parser as the player's line
+        yieldNext = true;
+        return submit(arg || 'I yield.', opts);
       case 'aim':
         aimNext = true;
         if (arg) return submit(arg, opts);

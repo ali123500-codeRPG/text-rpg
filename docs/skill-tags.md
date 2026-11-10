@@ -26,7 +26,8 @@ function in its group; adding a function or group is one row there.
 | Ranged | ranged | ranged_light, ranged_medium, ranged_heavy |
 | Defense | defense | dodge, block |
 | Defense | armor | light_armor, medium_armor, heavy_armor (tree "Armor – Conventional", AR1–AR3) |
-| Health | health | endurance |
+| Health | health | endurance (tree "Fortitude") |
+| Will | morale | resolve (tree "Fortitude"; the morale roll) |
 | Notice | sight | sight, tremor |
 | Notice | hearing | hearing, tremor |
 | Stealth | stealth | sneaking, combat_stealth, vanishing |

@@ -99,13 +99,13 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 /* foldable section headers: click (or Enter/Space) folds what is under them */
 .lv-group > h2.hs-section { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 0; }
 .lv-group > h2.hs-section::after { content: "\25BE"; margin-left: 8px; font-size: 12px; transition: transform .15s; }
-.lv-group.lv-folded > h2.hs-section::after { transform: rotate(-90deg); }
+body:not(.lv-searching) .lv-group.lv-folded > h2.hs-section::after { transform: rotate(-90deg); }
 .lv-group > h2.hs-section:hover, .lv-group > h2.hs-section:focus-visible { color: var(--text); }
-.lv-group.lv-folded > :not(h2) { display: none !important; }
+body:not(.lv-searching) .lv-group.lv-folded > :not(h2) { display: none !important; }
 .lv-foldcard > header > h3 { cursor: pointer; user-select: none; }
 .lv-foldcard > header > h3::after { content: "\25BE"; margin-left: 8px; font-size: 12px; display: inline-block; transition: transform .15s; }
-.lv-foldcard.lv-folded > header > h3::after { transform: rotate(-90deg); }
-.lv-foldcard.lv-folded > :not(header) { display: none !important; }
+body:not(.lv-searching) .lv-foldcard.lv-folded > header > h3::after { transform: rotate(-90deg); }
+body:not(.lv-searching) .lv-foldcard.lv-folded > :not(header) { display: none !important; }
 .lv-refresh { min-height: var(--control-h); padding: 0 var(--space-3); font-size: 12px; margin-left: var(--space-2); vertical-align: middle; }
 .lv-refresh-note { font-size: 12px; color: var(--muted); }
 
@@ -193,3 +193,4 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .lv-hits { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 .lv-allgroup { display: grid; gap: var(--space-2); }
 .lv-allgroup h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.lv-names { margin: 0; padding-left: 1.1em; }

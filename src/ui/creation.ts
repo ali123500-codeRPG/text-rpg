@@ -13,12 +13,12 @@ import { CL } from '../library/classIds';
 import { CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
-export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.riposte]: 'effect not designed', [SK.slip_counter]: 'effect not designed' };
+export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.riposte]: 'effect not designed', [SK.slip_counter]: 'effect not designed' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
-  { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
+  { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.fortitude, c: 'c6' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
   { id: TR.perception, c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: TR.ranged, c: 'c7' }, { id: TR.unarmed, c: 'c14' },
   { id: TR.stealth, c: 'c3' }, { id: TR.speech, c: 'c4' }, { id: TR.trickery, c: 'c9' },
 ];
@@ -165,6 +165,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
       h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), starts,
+        cls?.story ? h('p', { class: 'story-line' }, cls.story) : null,
         perkNames(classId).length ? h('p', {}, `Class perk at level 1: ${perkNames(classId).join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
       h('div', { class: 'actions' },

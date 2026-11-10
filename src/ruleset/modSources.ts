@@ -50,10 +50,10 @@ export const MOD_SOURCES: ModSource[] = [
     value: `+${CONFIG.DEFEATS_ROLL_PER_TIER} per tier`,
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.rule === 'defeats' && !a.by).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(defeatsRoll(k)) })) },
   { type: 'achievement', roll: 'skill', source: 'Renown', at: 'src/ruleset/achRewards.ts',
-    when: 'A foe\'s first morale check while it fights a player holding a renown achievement.', value: 'minus the achievement\'s renown',
+    when: 'Every morale roll of a foe fighting a player holding a renown achievement (MB24).', value: 'minus the achievement\'s renown',
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.renown).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(-a.renown!) })) },
   { type: 'achievement', roll: 'skill', source: 'Rally', at: 'src/ruleset/achRewards.ts',
-    when: 'An ally\'s morale check while it fights beside a player holding a rally achievement.', value: 'plus the achievement\'s rally',
+    when: 'An ally\'s morale roll while it fights beside a player holding a rally achievement.', value: 'plus the achievement\'s rally',
     feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.rally).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(a.rally!) })) },
   // roll_perk
   { type: 'roll_perk', roll: 'skill', source: '40/80/120 perk numbers', at: 'src/ruleset/perks.ts',
@@ -77,6 +77,8 @@ export const MOD_SOURCES: ModSource[] = [
   // wounds
   { type: 'wounds', roll: 'skill', source: 'Health level', at: 'src/ruleset/body.ts', when: 'Every roll, by the actor\'s place on the health track.',
     value: list(Object.fromEntries(CONFIG.HEALTH_TRACK.map(([l, , v]) => [l, v]))) },
+  { type: 'wounds', roll: 'skill', source: 'Morale level', at: 'src/ruleset/morale.ts', when: 'Every roll, the morale roll included (fear feeds on itself), by the actor\'s morale level (MB3).',
+    value: CONFIG.MORALE_TRACK.filter(([, , v]) => v).map(([k, , v]) => `${k} ${v}`).join(', ') },
   { type: 'wounds', roll: 'skill', source: 'Role wounds', at: 'src/ruleset/body.ts',
     when: 'Rolls whose skill uses a body role (grip, strike, sense …) on a damaged or crippled part. Shared roles split it across their parts; a crippled sense part hits every roll.',
     value: list(CONFIG.ROLE_PENALTY) },

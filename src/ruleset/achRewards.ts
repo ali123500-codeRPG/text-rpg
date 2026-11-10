@@ -92,18 +92,16 @@ export function achievementReqLower(a: Actor, skill: string): number {
   const trees = getLibrary().trees ?? {};
   return bestReward(a, 'reqLower', (x) => !!x.of && !!trees[x.of]?.skills.includes(skill as never))?.value ?? 0;
 }
-/** rally: an ally of the player fighting beside them gets the player's best rally on its morale checks */
+/** rally: an ally of the player fighting beside them gets the player's best rally on its morale rolls */
 export function rallyMods(state: GameState, ally: Actor, besidePlayer: boolean): Mod[] {
   const r = besidePlayer ? bestReward(state.player, 'rally') : undefined;
   return r ? [{ source: `rally: ${r.name}`, type: 'achievement', value: r.value }] : [];
 }
 
-/** renown: a foe fighting the player takes the player's best renown off its first morale check against them */
+/** renown (MB24): every morale roll of a foe fighting the player takes off the player's best renown */
 export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean): Mod[] {
-  const r = fightingPlayer && foe.mind && !foe.mind.renownFelt ? bestReward(state.player, 'renown') : undefined;
-  if (!r) return [];
-  foe.mind!.renownFelt = true;
-  return [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }];
+  const r = fightingPlayer ? bestReward(state.player, 'renown') : undefined;
+  return r ? [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }] : [];
 }
 
 /** free or bonus levels earned: every current achievement's along its chain, plus every active owned perk's.
@@ -128,7 +126,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'deathsDoor': return [`once every ${d.deathsDoor === 1 ? 'game day' : steps(d.deathsDoor!, 'game day')}, a hit that would take you Down leaves you at Critical`];
     case 'readsHealth': return [`you see the health level of every member of that ${(d.by ?? 'kind').replace('_', ' ')}`];
     case 'skillAdd': return Object.entries(d.skillAdd ?? {}).map(([sk, n]) => `+${n} true skill in ${skillName(sk)}`);
-    case 'renown': return [`every foe fighting you takes ${-d.renown!} on its first morale check against you`];
+    case 'renown': return [`every foe fighting you takes ${-d.renown!} on its morale rolls`];
     case 'firstSight': {
       const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');
       return [`${who} members of that ${(d.by ?? 'kind').replace('_', ' ')} meet you wary (opposed), not hostile`];
@@ -136,7 +134,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'standIn': return [`stand-ins on rolls of a ${d.by === 'group' ? 'skill of that group' : 'skill'} count +${d.standIn} share`];
     case 'reqLower': return [`equip requirements on that tree's skills ask ${d.reqLower} less of you (the gear's own numbers stay)`];
     case 'pricePct': return [`+${d.pricePct}% off what you pay traders`];
-    case 'rally': return [`allies fighting beside you get +${d.rally} on their morale checks`];
+    case 'rally': return [`allies fighting beside you get +${d.rally} on their morale rolls`];
     case 'restPct': return [`+${d.restPct}% healing on each rest`];
     case 'situation': return [`+${d.situation} on your situation rolls`];
     case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];

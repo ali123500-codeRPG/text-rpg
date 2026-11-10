@@ -1,5 +1,7 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
-import { DU, HL, RL } from '../library/tableIds';
+import { DU, FR, HL, RL } from '../library/tableIds';
+import { payFear } from './morale';
+import { healthFear, moraleLevel } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
@@ -7,12 +9,12 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
-import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
-import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
+import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
@@ -28,6 +30,7 @@ import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, pushContest } from './
 import { payDefeats, tally, unlockClasses } from './xp';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
+import { answerYield, playerYields, yieldBars } from './yield';
 import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
@@ -103,7 +106,7 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
     const a = actorById(state, id)!;
     const roll = ruleset.initiative(a, state, rng);
     const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x.zone, armorNoise(state, x, 'attack', SENSE.attack[0])));
-    return { id, init: caught ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() };
+    return { id, init: caught || bluffed(state, a) ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() }; // LI1c: a believed Bluff acts last too
   });
   rows.sort((x, y) => y.init - x.init || y.tie - x.tie);
   return rows.map((r) => r.id);
@@ -160,20 +163,24 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
   }
 }
 
-function morale(ctx: Ctx, a: Actor, reason: 'level' | 'bandmate_down'): void {
+/** pays a fear (engine/morale.ts) and applies a break. Rolled fears count only while the actor is engaged, as the
+ * morale check did. `seen` = who perceived the event, for the bandmates a break frightens (MB23). */
+function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number } = {}, seen: Record<string, unknown> = {}): void {
   const { state } = ctx;
-  if (a.kind !== 'npc' || !isActive(a) || a.mind?.moraleState || !isEngaged(state, a)) return;
-  const r = moraleCheck(state, a, ctx.rng, reason);
-  logCode(state, 'morale_check', { actorId: a.id, reason, result: r });
-  if (r === 'steady') return;
+  if (getLibrary().fears?.[id]?.rolled && !isEngaged(state, a)) return;
+  const r = payFear(state, ctx.rng, a, id, o);
+  if (!r) return;
   // SP5: in a spar with no real foe, a surrender or a break just yields the spar
   if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && hostile(state, a, x))) { yieldSpar(state, a); return; }
+  if (a === state.player) { tally(state, 'morale_breaks'); return; } // MB12: you keep control but cannot attack (doAttack)
   if (hostile(state, a, state.player)) tally(state, 'yielded');
   a.mind!.moraleState = r;
   // Q1/Q4: a surrender, or a break, replaces hostile with yielded toward everyone it was fighting
   // (broken shares the yielded stance so both tune together until further notice)
   for (const x of allActors(state)) if (x !== a && hostile(state, a, x)) a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [x.id]: 'yielded' };
   if (!ctx.acted.has(a.id) && ctx.orders.has(a.id)) ctx.orders.set(a.id, brokenOrder(buildActorView(state, a.id)));
+  // MB23: bandmates who perceived it are frightened too
+  for (const p of allActors(state)) if (p !== a && !!a.bandId && p.bandId === a.bandId && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
 }
 
 const LEVELS = () => CONFIG.HEALTH_TRACK.map((l) => l[0]);
@@ -244,6 +251,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
       ev.contest = contest;
       ev.push = { type: o.type, listener: p.id, landed: contest.winner === 'a', ...applySpeech(a, p, o.type, contest),
         ...(atLeast(beliefStatus(state, a, p), 'aware') ? { seen: true as const } : {}) }; // NT10: the speaker sees how it was taken
+      if (ev.push.status === 'shaken') fear(ctx, p, FR.lost_intimidation, { gap: contest.gap }); // MB15/MB28
     }
   }
   // Voice shares: only facts from its knows list
@@ -264,6 +272,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   let t = o.target ? actorById(state, o.target) : undefined;
   const wasted = () => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
   if (!t || t === a || !isActive(t)) return wasted();
+  if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted(); } // MB12
+  if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted(); } // MB43
   if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted(); }
   const dist = shortestPath(state, a.zone, t.zone, true)?.length ?? Infinity;
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
@@ -321,12 +331,14 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   emit(ctx, ev, res, true);
   // Destroyed arm drops what it held: ruleset.applyEffects moves the item; each drop is its own perceived event
   for (const f of ev.effects) if (f.kind === 'item_dropped') emit(ctx, mk(ctx, t, 'item_dropped', { itemId: f.data.itemId as string }));
-  // morale: a new level from Injured onwards; bandmates who perceive an incapacitation
+  // morale (MB21–MB23): a new health level a health fear covers; bandmates who perceive a fall; the one who downed it
   const L = LEVELS();
   const after = healthLevel(t);
-  if (L.indexOf(after) > L.indexOf(before.level) && L.indexOf(after) >= L.indexOf('Injured')) morale(ctx, t, 'level');
+  const hf = L.indexOf(after) > L.indexOf(before.level) ? healthFear(t, after) : undefined;
+  if (hf) fear(ctx, t, hf.id, {}, ev.perception);
   if (!isActive(t)) {
-    for (const p of state.actors) if (p !== t && p.bandId === t.bandId && ev.perception[p.id]) morale(ctx, p, 'bandmate_down');
+    fear(ctx, a, FR.foe_downed);
+    for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
   }
   // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, PK.one_two)
@@ -681,6 +693,8 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
   const learnedBefore = learned(state);
   const playerUp = isActive(state.player);
+  // MB41: foes asked by the player's yield answer in this turn's output, before anyone acts
+  for (const o of usableAgentOutputs(input)) answerYield(state, actorById(state, o.actorId)!, o.output.acceptYield);
   const active = state.actors.filter(isActive);
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
@@ -710,7 +724,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     emit(ctx, ev);
     ctx.exchangeEvents.push(ev);
     // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
-    if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s) applySpeech(state.player, s, playerOrder.type, r.contest); }
+    if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s && applySpeech(state.player, s, playerOrder.type, r.contest).status === 'shaken') fear(ctx, s, FR.lost_intimidation, { gap: r.contest.gap }); }
     if (input.quickWord) playerOrder.line = null; // A15: the line was said; the action follows in turn order
     else ctx.mainDone.add(state.player.id);
     const spokes = new Set(input.spokespeople);
@@ -747,7 +761,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     heardExchange: (id) => ctx.exchangeEvents.some((e) => !!e.perception[id]),
     heardNow: (listener, speaker) => ctx.events.some((e) => e.actorId === speaker && !!e.line && !!e.perception[listener]),
   });
-  if (input.intent?.yields && isActive(state.player)) yieldSpar(state, state.player); // SP5: "I yield", after the turn's blows
+  // SP5: "I yield" in a spar leaves it; MB40: in a real fight it yields to the foes fighting the player. After the turn's blows
+  if (input.intent?.yields && isActive(state.player)) (sparOf(state, state.player.id) ? yieldSpar(state, state.player) : playerYields(state));
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   const defeated = payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);

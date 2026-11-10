@@ -41,7 +41,9 @@ export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' 
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
-export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess };
+export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess;
+  /** TREE_RATINGS key (default normal): how many skills at a step earn the tree's All-XXX (CONFIG.ALL_STEP_SKILLS) */
+  rating?: import('../scales').TreeRatingKey };
 /** PY3: a service a seller can offer; heals names the healing row it pays for */
 export type ServiceDef = { id: string; name: string; price: number; heals?: string };
 export type ClassDef = {
@@ -50,6 +52,8 @@ export type ClassDef = {
   tier: import('../scales').ClassTierKey;
   /** the public stranger label a player starting in this class has */
   label?: string;
+  /** flavor text shown with the class; its grandeur grows with the class's tier */
+  story?: string;
   /** a creation option: points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
   creation?: { points?: number; level?: number };
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
@@ -104,6 +108,7 @@ export type Library = {
   routineSets: Record<string, RoutineSet>;
   perks: Record<string, PerkDef>;
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
+  fears?: Record<string, FearDef>; // MB21: what costs morale
   services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
@@ -122,6 +127,8 @@ export type ZoneKind = { id: string; name: string; outdoor: boolean; cover: impo
 export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
+  /** MB21: moves a health fear's `from` level by `steps` (+ later, − sooner) */
+  fearFrom?: { fear: string; steps: number };
   /** zones added to the throw action's reach (on top of THROWN_REACH_BONUS) */
   throwReach?: number;
   /** zone links added to how far the owner hears (Keen Ear 1) */
@@ -141,8 +148,8 @@ export type PerkDef = {
   built?: boolean;
   /** a quirk: a perk that is negative in nature */
   quirk?: boolean;
-  /** an All-XXX part (src/library/allPerks.ts): granted when every skill of the tree reaches `step` true skill */
-  allStep?: { treeId: string; step: 50 | 100 | 150 };
+  /** an All-XXX part (src/library/allPerks.ts): `skill` is the tree skill it belongs to; none = the tree's passive */
+  allStep?: { treeId: string; step: 50 | 100 | 150; skill?: string };
   /** true skill added to every skill with this function (Hunter's Eye: +10 to the sight function) */
   fnSkill?: { fn: SkillFunction; add: number };
   /** a class-level perk (ClassDef.levelPerks): the class and level that grant it */
@@ -177,8 +184,15 @@ export type HealingDef = {
   id: string; name: string; hpPct: number; partPct: number; reach: PartStateKey; inFight: boolean; placeKinds?: string[];
   /** heals a Dead actor (no for every row for now; a lever for resurrection later) */
   revivesDead: boolean;
-  hourly?: { skill: string; pctPerPoint: number };
+  /** MB8: share of max morale restored (hourly rows: `hourly.morale` restores morale instead of health) */
+  moralePct?: number;
+  hourly?: { skill: string; pctPerPoint: number; morale?: true };
 };
+
+/** MB21–MB28: something that costs morale (a negative cost restores it). `rolled`: the morale roll's tier scales the cost
+ * (MORALE_TIER_MULT); otherwise it is flat (× `perTier` the contest's tier gap for a lost speech roll).
+ * `health`: the health-level positions (HEALTH_TRACK names) that set it off; perks and achievements move `from` with fearFrom. */
+export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; health?: { from: string; to: string } };
 
 /** innatePerks / innateQuirks: perk ids every member of the race is born with (OwnedPerk source 'race').
  * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
@@ -200,7 +214,8 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
   | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
-  | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated';
+  | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated'
+  | 'won_panicking' | 'morale_breaks';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
@@ -213,17 +228,18 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
   perk?: string; // granted when earned, kept for good
+  fearFrom?: { fear: string; steps: number }; // MB21: as PerkDef.fearFrom
   unawareShift?: number; // tier steps up on attacks against a target unaware of the owner
   quieter?: number; // the owner's moves are this many steps quieter on the noise scale
   readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
   skillAdd?: Record<string, number>; // true skill added to these skills
-  renown?: number; // every foe fighting the owner takes this much off its first morale check against the owner
+  renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
   standIn?: number; // + this share for stand-ins on rolls of a skill in the achievement's group
   reqLower?: number; // equip requirements on the achievement's tree's skills ask this much less of the owner (the gear's own numbers stay)
   pricePct?: number; // + this % off the owner's buying prices
-  rally?: number; // allies fighting beside the owner get + this on their morale checks
+  rally?: number; // allies fighting beside the owner get + this on their morale rolls
   restPct?: number; // + this % HP and part healing on each rest
   situation?: number; // + this on the owner's situation rolls
   freeLevels?: number; // free levels: this many level-ups that cost no XP (taken like any level, src/engine/xp.ts spendXp)
@@ -232,4 +248,6 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
   levelUp?: Partial<Record<string, number>>;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
-  every?: number };
+  every?: number;
+  /** a name of its own for each earning, by what it is earned for (an every-N row: the level); others use `name` */
+  names?: Record<string, string> };

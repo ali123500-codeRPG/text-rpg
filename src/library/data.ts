@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, DU, GC, HL, RL, ZK } from './tableIds';
+import { AM, DU, FR, GC, HL, RL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -40,7 +40,9 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.unarmed_natural, TR.natural, [FN.unarmed], [RL.strike]), // its own tree, open to slime and dragon bodies (TA5)
   { ...sk(SK.dodge, TR.defense, [FN.defense], [RL.move]), groups: [GR.speed] }, // Defense and Speed groups; no Initiative function, so it doesn't add to initiative
   sk(SK.block, TR.defense, [FN.defense], [RL.grip]),
-  sk(SK.endurance, TR.defense, [FN.health], []), // endurance sets total HP
+  // Fortitude (MB5, MB32): body and mind. Endurance sets total HP; Resolve sets max morale and rolls the morale roll
+  sk(SK.endurance, TR.fortitude, [FN.health], []),
+  sk(SK.resolve, TR.fortitude, [FN.morale], []),
   // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.
   // What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it.
   sk(SK.light_armor, TR.armor, [FN.armor], []),
@@ -276,7 +278,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
-    level: 0, bonusPoints: 0, focus: [], personality: 'fearless', control: 'code', label: 'a slime',
+    level: 0, bonusPoints: 0, focus: [], personality: 'steady', control: 'code', label: 'a slime',
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [TP.guard]: {
@@ -383,7 +385,8 @@ export function prototypeLibrary(): Library {
       [TR.ranged]: { id: TR.ranged, name: 'Combat – Ranged', skills: [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], access: { blockedBy: [AMORPHOUS] } },
       [TR.unarmed]: { id: TR.unarmed, name: 'Combat – Unarmed', skills: [SK.unarmed_strike, SK.unarmed_grapple, SK.unarmed_improvised], access: { blockedBy: [AMORPHOUS] } },
       [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: RC.dragon }] } /* the shape's slam; the dragon's own attacks */ },
-      [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.endurance] },
+      [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block] },
+      [TR.fortitude]: { id: TR.fortitude, name: 'Fortitude', skills: [SK.endurance, SK.resolve] }, // third slot open (MB32)
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
       [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
@@ -393,32 +396,32 @@ export function prototypeLibrary(): Library {
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.slip_counter], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
-      [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
+      [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', rating: 'inferior', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
-      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
+      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade and shield, drilled until the guard comes up before the thought does. Steady work, and it keeps you breathing.', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
-      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
+      [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name. No master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands, and nothing about you says legend. That is the point: the story that ends with your name has not been written yet, and you are the one holding the pen.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
-      [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
+      [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', story: "Blade and footwork, drilled until the step comes before the thought does. You are not there when the blow lands.", floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
-      [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', floors: {}, fallback: true, capstone: [PK.nobody_special] },
+      [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days. Most people live their whole lives here.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
       // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
-      [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
+      [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that. Every fall and every quiet year taught you something the noticed never learn.', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       // any weapon, any armor and any defense skill, and a perk that adds a hearing link (Keen Ear, which patrol templates have)
-      [CL.guard]: { id: CL.guard, name: 'Guard', tier: 'tier_1', label: 'a guard', floors: {},
+      [CL.guard]: { id: CL.guard, name: 'Guard', tier: 'tier_1', label: 'a guard', story: "You walk the same wall every night until you know its sounds by heart. Whatever doesn't belong, you hear first.", floors: {},
         unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40, [SK.ranged_light]: 40, [SK.ranged_medium]: 40, [SK.ranged_heavy]: 40 },
           { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30 }] as Record<string, number>[],
         unlockPerkWith: { hearingReach: 1 } },
-      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
-      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
+      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', story: "Buy low, sell higher, and remember who still owes you.", floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
+      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: "Known at every stall, and now trusted with more than one. Your word moves goods two towns away.", floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)
@@ -433,11 +436,22 @@ export function prototypeLibrary(): Library {
     bodyTypes: BODY_TYPES,
     // Healing sources (H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
-      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, reach: 'damaged', revivesDead: false, inFight: false },
-      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
+      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, moralePct: CONFIG.REST_MORALE_PCT, reach: 'damaged', revivesDead: false, inFight: false },
+      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, moralePct: CONFIG.CLINIC_HEAL_PCT, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
       [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false, inFight: true },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
       [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
+      // MB8/MB34: morale comes back from Resolve: 0.1 % of max morale per point an hour (5 % at 50), all the time
+      [HL.composure]: { id: HL.composure, name: 'Natural composure', hpPct: 0, partPct: 0, reach: 'healthy', revivesDead: false, inFight: true, hourly: { skill: SK.resolve, pctPerPoint: 0.1, morale: true } },
+    },
+    // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
+    fears: {
+      [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 25, rolled: true, health: { from: 'Injured', to: 'Mauled' } },
+      [FR.own_critical]: { id: FR.own_critical, name: 'Your health reaches Critical', cost: 50, rolled: true, health: { from: 'Critical', to: 'Critical' } },
+      [FR.bandmate_down]: { id: FR.bandmate_down, name: 'A bandmate goes down', cost: 25, rolled: true },
+      [FR.bandmate_broken]: { id: FR.bandmate_broken, name: 'A bandmate breaks', cost: 25, rolled: true }, // MB23
+      [FR.lost_intimidation]: { id: FR.lost_intimidation, name: 'You lose to intimidation', cost: 10, rolled: false, perTier: true }, // MB28, per tier of gap
+      [FR.foe_downed]: { id: FR.foe_downed, name: 'You down a foe', cost: -10, rolled: false }, // MB10
     },
     // Game clock (T1): minutes per action; placeholders
     durations: {
@@ -497,10 +511,16 @@ export function prototypeLibrary(): Library {
       [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_10 },
       [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iii', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
       [ACH.defeats_1000]: { id: ACH.defeats_1000, name: 'Thousand-Slayer, Herald of Ruin', level: 'iv', rule: 'defeats', tags: ['combat'], count: 1000, after: ACH.defeats_250 },
-      // one per tree and mastery step, id <id>:<tree>
+      // one per tree and mastery step, id <id>:<tree>; each tree rating has its own line (MASTERY_ACH), grander the higher the rating
       [ACH.mastery_50]: { id: ACH.mastery_50, name: 'Adept of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
-      [ACH.mastery_100]: { id: ACH.mastery_100, name: 'Ascendant of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_50 },
-      [ACH.mastery_150]: { id: ACH.mastery_150, name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_100 },
+      [ACH.mastery_100]: { id: ACH.mastery_100, name: 'Master of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_50 },
+      [ACH.mastery_150]: { id: ACH.mastery_150, name: 'Grandmaster of {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_100 },
+      [ACH.mastery_superior_50]: { id: ACH.mastery_superior_50, name: 'Paragon of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
+      [ACH.mastery_superior_100]: { id: ACH.mastery_superior_100, name: 'Ascendant of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_superior_50 },
+      [ACH.mastery_superior_150]: { id: ACH.mastery_superior_150, name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_superior_100 },
+      [ACH.mastery_legendary_50]: { id: ACH.mastery_legendary_50, name: 'Chosen of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
+      [ACH.mastery_legendary_100]: { id: ACH.mastery_legendary_100, name: '{tree} Incarnate', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_legendary_50 },
+      [ACH.mastery_legendary_150]: { id: ACH.mastery_legendary_150, name: 'The Heavens Kneel to {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_legendary_100 },
       // deeds: the player's tallies (tally in src/engine/xp.ts, turnFeats in src/engine/feats.ts)
       [ACH.unaware_1]: { id: ACH.unaware_1, name: 'Never Saw It Coming', level: 'i', rule: 'unaware_defeats', tags: ['combat', 'stealth'], count: 1 },
       [ACH.unaware_10]: { id: ACH.unaware_10, name: 'Knife in the Dark', level: 'ii', rule: 'unaware_defeats', tags: ['combat', 'stealth'], count: 10, after: ACH.unaware_1 },
@@ -598,6 +618,13 @@ export function prototypeLibrary(): Library {
       [ACH.defeated_5]: { id: ACH.defeated_5, name: 'Loser', level: 'i', rule: 'defeated', tags: ['combat'], count: 5, scar: true },
       [ACH.defeated_25]: { id: ACH.defeated_25, name: 'Sore Loser', level: 'ii', rule: 'defeated', tags: ['combat'], count: 25, after: ACH.defeated_5, scar: true },
       [ACH.defeated_100]: { id: ACH.defeated_100, name: 'Born Loser', level: 'iii', rule: 'defeated', tags: ['combat'], count: 100, after: ACH.defeated_25, scar: true },
+      // D-160 morale: fights won while Panicking, and the scar for breaking (a break also counts as defeated)
+      [ACH.won_panicking_1]: { id: ACH.won_panicking_1, name: 'Hands Still Shaking', level: 'i', rule: 'won_panicking', tags: ['combat'], count: 1 },
+      [ACH.won_panicking_10]: { id: ACH.won_panicking_10, name: 'Fear Rides With Me', level: 'ii', rule: 'won_panicking', tags: ['combat'], count: 10, after: ACH.won_panicking_1 },
+      [ACH.won_panicking_25]: { id: ACH.won_panicking_25, name: 'Panic Is Just Another Weapon', level: 'iii', rule: 'won_panicking', tags: ['combat'], count: 25, after: ACH.won_panicking_10 },
+      [ACH.morale_breaks_1]: { id: ACH.morale_breaks_1, name: 'First Crack', level: 'zero', rule: 'morale_breaks', tags: ['combat'], count: 1, scar: true },
+      [ACH.morale_breaks_5]: { id: ACH.morale_breaks_5, name: 'Glass Nerves', level: 'i', rule: 'morale_breaks', tags: ['combat'], count: 5, after: ACH.morale_breaks_1, scar: true },
+      [ACH.morale_breaks_25]: { id: ACH.morale_breaks_25, name: 'Nothing Left to Break', level: 'ii', rule: 'morale_breaks', tags: ['combat'], count: 25, after: ACH.morale_breaks_5, scar: true },
       [ACH.total_10]: { id: ACH.total_10, name: 'A Few Threads', level: 'i', rule: 'achievements', tags: ['progression'], count: 10 },
       [ACH.total_25]: { id: ACH.total_25, name: 'Woven In', level: 'ii', rule: 'achievements', tags: ['progression'], count: 25, after: ACH.total_10 },
       [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25 },
@@ -626,10 +653,17 @@ export function prototypeLibrary(): Library {
       [ACH.class_tiers_4]: { id: ACH.class_tiers_4, name: 'Across Four Heights', level: 'iv', rule: 'class_max_tiers', tags: ['progression'], count: 4, after: ACH.class_tiers_3, freeLevels: 3 },
       [ACH.class_tiers_5]: { id: ACH.class_tiers_5, name: 'Across Five Heights', level: 'v', rule: 'class_max_tiers', tags: ['progression'], count: 5, after: ACH.class_tiers_4, freeLevels: 4 },
       [ACH.class_tiers_all]: { id: ACH.class_tiers_all, name: 'Every Height Climbed', level: 'vi', rule: 'class_max_tiers', tags: ['progression'], count: CLASS_TIERS.keys.length, after: ACH.class_tiers_5, freeLevels: 5 },
-      [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Risen to Level {level}', level: 'zero', rule: 'char_level', tags: ['progression'], count: 10, every: 10 },
+      [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Woven Past Counting ({level})', level: 'zero', rule: 'char_level', tags: ['progression'], count: 10, every: 10,
+        names: { 10: 'No Longer Green', 20: 'Steady Hand', 30: 'Battle-Tested', 40: 'A Name Worth Knowing', 50: 'Half a Hundred Roads',
+          60: 'Something Tugs at the Edges', 70: 'The Pattern Takes Notice', 80: 'Caught in the Weave', 90: 'A Thread That Will Not Fray', 100: 'One Who Pulls the Threads' } },
     },
   });
   // ST1: a skill's tree is wherever the trees table lists it, so moving a skill is one edit there
   for (const t of Object.values(lib.trees)) for (const id of t.skills) if (lib.skills[id]) lib.skills[id].treeId = t.id;
+  // an All-50 skill part sits in its skill's current tree, so it moves with the skill
+  for (const p of Object.values(lib.perks)) if (p.allStep?.skill) {
+    const treeId = lib.skills[p.allStep.skill]?.treeId;
+    if (treeId) p.allStep = { ...p.allStep, treeId };
+  }
   return lib;
 }

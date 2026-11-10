@@ -12,7 +12,8 @@ import { h } from './kit';
 import { callName } from '../views';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
-import { CLASS_TIERS } from '../scales';
+import { CLASS_TIERS, MORALE_LEVELS } from '../scales';
+import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -243,6 +244,30 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
 }
 
 /** NT20: Shaken and Swayed as chips with the roll penalty; the title names who caused it and how long it lasts */
+/** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
+export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
+  const level = MORALE_LEVELS.name(moraleLevel(p));
+  const lost = Math.max(0, Math.min(100, moraleLostPct(p)));
+  const max = maxMorale(p);
+  const left = Math.round(max * (100 - lost) / 100);
+  const ticks = full ? CONFIG.MORALE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
+  return [
+    h('span', { class: 'cs-row' }, h('span', {}, 'Morale'), h('b', {}, full ? `${level} · ${left} / ${max}` : level)),
+    h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}` },
+      h('b', { style: `width:${100 - lost}%` }), ...ticks),
+  ];
+}
+
+/** MB40–MB43: after /yield, who took it, who is still deciding and who fights on; nothing when the player has not yielded */
+export function yieldBlock(s: GameState): HTMLElement | null {
+  const y = s.yielding;
+  if (!y) return null;
+  const names = (ids: string[]) => ids.map((id) => cap(callName(s, s.player.id, id))).join(', ');
+  const row = (k: string, ids: string[], cls: string) => ids.length ? h('span', { class: 'yr ' + cls }, h('span', {}, k), h('b', {}, names(ids))) : null;
+  return h('div', { class: 'cs-yield' }, h('span', { class: 'hs-label' }, 'You yielded'),
+    row('Took it', y.accepted, 'took'), row('Deciding', y.pending, 'wait'), row('Fight on', y.refused, 'refused'));
+}
+
 export function pressureChips(s: GameState, p: Actor): HTMLElement {
   const rows = Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => {
     const who = callName(s, p.id, id);
@@ -267,6 +292,8 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
     h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, level)),
     h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
+    ...moraleBar(p, false),
+    ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x),
     pressureChips(s, p),
     h('span', { class: 'cs-held' }, h('span', { class: 'hs-label' }, 'Held'), hw.held.length ? hw.held.map(cap).join(' · ') : 'Nothing'),
   ];
@@ -280,7 +307,8 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
   const atk = attackOf(s, p);
   const hw = heldWorn(s, p);
   return [
-    ...healthBar(s, p, healed, last?.turn ?? -1, changed),
+    // health and its part chips, then morale, then the body figure (when open)
+    ...((hb) => [hb[0], hb[1], h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x), ...hb.slice(2)])(healthBar(s, p, healed, last?.turn ?? -1, changed)),
     pressureChips(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
