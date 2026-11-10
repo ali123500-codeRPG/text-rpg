@@ -1,5 +1,5 @@
-// 113 Coded 20-milestone perks, batch 3: Open-Hand Guard (block with empty hands; a hit through is
-// split between the blocking arm and the general area) and Threaten for Answers (intimidation counts at full value
+// 113 Coded 20-milestone perks, batch 3: Open-Hand Guard (parry with empty hands; a hit through is
+// split between the parrying arm and the general area) and Threaten for Answers (intimidation counts at full value
 // against an opposed or hostile listener, and can win information).
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
@@ -16,17 +16,17 @@ const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: '
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 
 describe('113 coded perks, batch 3', () => {
-  it('Open-Hand Guard: empty hands can block, and a hit through lands half on the arm, half general', () => {
+  it('Open-Hand Guard: empty hands can parry, and a hit through lands half on the arm, half general', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     for (const i of wim.core.inventory) delete i.equippedIn;
-    wim.core.standingDefense = 'block';
+    wim.core.standingDefense = 'parry';
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false };
     const plain = ruleset.attack(req, s, forcedRng([60, 40, 50]));
-    expect(plain.defenseType).toBe('dodge'); // no shield or weapon: falls back to dodge
+    expect(plain.defenseType).toBe('dodge'); // no weapon: falls back to dodge
     give(wim, PK.open_hand_guard);
     const og = ruleset.attack(req, s, forcedRng([60, 40, 50]));
-    expect(og.defenseType).toBe('block');
+    expect(og.defenseType).toBe('parry');
     expect(og.damage).toBeGreaterThan(0);
     expect(og.locationHow).toBe('open_hand');
     expect(['right_arm', 'left_arm']).toContain(og.location);
@@ -36,7 +36,7 @@ describe('113 coded perks, batch 3', () => {
     ruleset.applyEffects(og, s);
     expect(wim.core.condition.parts[og.location!]).toBeLessThan(100);
     expect(wim.core.condition.hpLostPct).toBeGreaterThan(hpBefore);
-    // holding a weapon or shield turns it off (the normal block takes over)
+    // holding a weapon or shield turns it off (the weapon parries)
     wim.core.inventory.push({ id: 'wim_club', itemId: IT.arming_sword, equippedIn: ['hand:right_arm'] });
     expect(ruleset.attack(req, s, forcedRng([60, 40, 50])).locationHow).not.toBe('open_hand');
     expect(CONFIG.OPEN_HAND_ARM_SHARE).toBe(0.5);

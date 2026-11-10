@@ -2,6 +2,9 @@
 import type { ActorId, Belief, BeliefStatus, Fact, FactId, LibraryRef, PlaceId, SlotKey, StoryId, Turn, Stance } from './core';
 import type { ItemInstance } from './items';
 
+/** a standing defense: a choice, not a skill; DEFENSE_SKILL names the skill each one rolls */
+export type DefenseKind = 'dodge' | 'block' | 'parry';
+
 export const PRONOUNS = ['he', 'she', 'they', 'it'] as const;
 export type Pronouns = (typeof PRONOUNS)[number];
 
@@ -33,6 +36,7 @@ export type Actor = {
   haggle?: Record<ActorId, number>;
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
   pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
+  auraChecks?: string[]; // NT14/I4: the auras (perk:owner) this actor has already checked against this engagement
   /** NT3: speech tries this engagement, by listener and speech kind */
   speechTries?: Record<ActorId, Record<string, number>>;
   /** PY8: healing rows (the clinic's) this actor has paid for and not used yet */
@@ -63,7 +67,7 @@ export type Core = {
   perks: OwnedPerk[];
   condition: SavedCondition;
   inventory: ItemInstance[];
-  standingDefense: 'dodge' | 'block';
+  standingDefense: DefenseKind;
   perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
 };
 

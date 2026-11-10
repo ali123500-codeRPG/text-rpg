@@ -52,9 +52,9 @@ describe('125 All-50 parts', () => {
     set(p, [SK.eyesight, SK.earshot], 50);
     grantAllSteps(s, p);
     expect(p.core.perks.some((x) => x.source === 'mastery')).toBe(false); // two of three
-    set(p, [SK.insight], 50); // Insight and Earshot have no part yet (Spotter parked): the passive and Night Eyes come
+    set(p, [SK.insight], 50); // Insight has no part yet: the passive, Night Eyes and Know the Step come
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes, PK.know_the_step]);
     const q = makeVillage().player;
     q.core.perks = [];
     set(q, [SK.melee_light, SK.melee_heavy, SK.melee_medium], 0);
@@ -63,7 +63,7 @@ describe('125 All-50 parts', () => {
     const s2 = makeVillage(); s2.player = q;
     grantAllSteps(s2, q);
     expect(q.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.hunters_eye, PK.unerring, PK.volley, PK.past_the_cover]);
-    set(q, [SK.dodge, SK.block], 60); // Defense has two skills now
+    set(q, [SK.dodge, SK.block], 60); // two of Defense's three skills
     grantAllSteps(s2, q);
     expect(q.core.perks.some((x) => x.perkId === PK.dodgy || x.perkId === PK.thick_hide)).toBe(false);
     set(q, [SK.melee_medium], 50); // the third Arms skill: passive + all three parts
@@ -79,12 +79,12 @@ describe('125 All-50 parts', () => {
     set(p, [SK.eyesight, SK.earshot], 50);
     lib.trees[TR.perception].rating = 'superior';
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes, PK.know_the_step]);
     set(p, [SK.melee_medium, SK.melee_heavy], 0);
     set(p, [SK.melee_light], 50);
     lib.trees[TR.melee].rating = 'legendary';
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(2)).toEqual([PK.fighters_frame, PK.counter]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(3)).toEqual([PK.fighters_frame, PK.counter]);
     set(p, [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], 50);
     lib.trees[TR.ranged].rating = 'inferior';
     grantAllSteps(s, p);
@@ -228,17 +228,20 @@ describe('125 All-50 parts', () => {
     expect(mate.mind!.knowledge.player.status).toBe('suspicious');
     expect(mate.mind!.knowledge.player.source).toBe('told');
   });
-  it('Steady Guard: +5 true Block always, +5 effective on Block rolls made with a melee weapon', () => {
+  it('Steady Guard: +5 true Parry always, +5 effective on Parry rolls made with a medium weapon', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     arm(s, 'patron_1');
-    arm(s, 'player');
-    set(s.player, [SK.block], 30);
+    arm(s, 'player', IT.arming_sword);
+    set(s.player, [SK.parry], 30);
     give(s.player, PK.steady_guard);
-    expect(trueSkill(s.player, SK.block)).toBe(35);
-    s.player.core.standingDefense = 'block';
-    const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]));
-    expect(r.defense!.modifiers.filter((m) => m.source === 'Steady Guard')).toEqual([{ source: 'Steady Guard', type: 'roll_perk', value: 2.5 }]);
+    expect(trueSkill(s.player, SK.parry)).toBe(35);
+    s.player.core.standingDefense = 'parry';
+    const guard = () => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]))
+      .defense!.modifiers.filter((m) => m.source === 'Steady Guard');
+    expect(guard()).toEqual([{ source: 'Steady Guard', type: 'roll_perk', value: 2.5 }]);
+    arm(s, 'player'); // a dagger is light: no extra
+    expect(guard()).toEqual([]);
   });
   it('Thick Hide: a hit on the owner is ×0.95 before armor', () => {
     const dmg = (perk: boolean) => {

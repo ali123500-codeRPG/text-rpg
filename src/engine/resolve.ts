@@ -3,6 +3,7 @@ import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
+import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
@@ -15,6 +16,7 @@ import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
+import { engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
@@ -65,6 +67,7 @@ type Ctx = {
   defenses: Map<string, number>;
   exchangeEvents: GameEvent[];
   counters: Set<string>; // All-50 Counter: once per turn
+  parryStrikes: Set<string>; // PA4: a parry's free strike back, once per turn
 };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
@@ -347,6 +350,21 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
   }
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
+  parryStrike(ctx, a, t, res);
+}
+
+/** PA4: a parry at the strike gap or better gives the defender one free melee attack back at the attacker, with the
+ * parrying weapon (a fist after a barehanded parry), once per turn. A free attack can earn one too: once per turn ends the chain. */
+function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
+  const { state } = ctx;
+  if (!res.strikeBack || !isActive(t) || !isActive(a) || t.zone !== a.zone || ctx.parryStrikes.has(t.id)) return;
+  const weapon = parryItem(state, t);
+  const modes = usableModes(state, t);
+  const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
+    : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
+  if (!back) return;
+  ctx.parryStrikes.add(t.id);
+  doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: 'parry strike' }, true);
 }
 
 /** an order the engine makes for a free attack (All-50 Counter and Volley) */
@@ -710,8 +728,12 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
-    state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(),
+    state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(), parryStrikes: new Set(),
   };
+  // NT14/I4: engagement auras check each newly qualifying target before anyone acts
+  for (const c of engagementAuras(state, rng, (a, id, gap) => fear(ctx, a, id, { gap }))) {
+    emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk } }] }), c.contest);
+  }
   const ordered = initiativeOrder(state, [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : x < y ? -1 : 1)), orders, rng);
 
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order

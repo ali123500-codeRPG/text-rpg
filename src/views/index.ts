@@ -179,12 +179,20 @@ function sparView(state: GameState, viewer: Actor, name: (id: string) => string)
   };
 }
 
+/** All-50 Know the Step: a viewer with the perk who only hears someone whose name it knows learns who it is */
+function knowsStep(state: GameState, viewer: Actor, e: GameEvent): boolean {
+  const p = e.perception[viewer.id];
+  const a = actorById(state, e.actorId);
+  if (!p || p.level === 'full' || p.cue !== 'sound' || !a || a === viewer || !hasPerk(viewer, PK.know_the_step)) return false;
+  return viewer.id === state.player.id ? nameKnown(state, a) : !!viewer.bandId && viewer.bandId === a.bandId;
+}
+
 function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
   const p = e.perception[viewer.id];
   const full = p.level === 'full';
   return {
     id: e.id, turn: e.turn, kind: e.kind, zone: e.zone,
-    ...(full ? { actorId: e.actorId } : {}),
+    ...(full || knowsStep(state, viewer, e) ? { actorId: e.actorId } : {}),
     ...(full && e.target ? { target: e.target } : {}),
     ...(full && e.tier !== undefined && e.actorId === viewer.id ? { tier: tierName(e.tier) } : {}),
     level: p.level, cue: p.cue,
@@ -213,6 +221,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'dirt_dodged') out.push(`${who} turns away from ${by}'s thrown dirt`);
     if (f.kind === 'bluff_believed') out.push(`${who} falls for ${by}'s bluff and hesitates`); // LI1c Bluff
     if (f.kind === 'bluff_seen_through') out.push(`${who} doesn't fall for ${by}'s bluff`);
+    if (f.kind === 'aura_took') out.push(`${who} falters before ${by}`); // NT14 auras: Dread Presence
     if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
@@ -302,7 +311,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const perceived = history.filter((e) => e.perception[a.id] && !e.bark).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const told = history.filter((e) => e.perception[a.id] && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const said = history.filter((e) => e.actorId === a.id && e.line?.text && !e.bark).slice(-CONFIG.SAID_LINES).map((e) => e.line!.text);
-  const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged'].includes(e.attack.outcome));
+  const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged', 'parried'].includes(e.attack.outcome));
   const scratchHits = state.scratch?.[a.id];
   const lastHitBy = hit?.actorId ?? (Array.isArray(scratchHits) ? (scratchHits.at(-1) as string | undefined) : undefined);
   const beliefs: BeliefView[] = [];
@@ -409,7 +418,7 @@ function agreementViews(state: GameState, viewerId: string): AgreementView[] {
 export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): string | null {
   if (['hold', 'idle', 'wait', 'rest', 'sleep', 'presence'].includes(e.kind)) return null;
   const v = eventView(state, viewer, e);
-  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} something${v.where ? ` ${v.where}` : ''}`;
+  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
   const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
@@ -473,7 +482,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const full = per.level === 'full';
     const changes = visibleChanges(state, e.effects, me);
     if ((e.kind === 'threshold_crossed' || e.kind === 'part_state_changed') && !changes.length) continue; // hidden change
-    const speaker = full ? callName(state, me, e.actorId) : undefined;
+    const speaker = full || knowsStep(state, p, e) ? callName(state, me, e.actorId) : undefined;
     const hears = !!e.line && (full || per.cue === 'sound');
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;
