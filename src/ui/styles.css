@@ -212,7 +212,7 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .chg td { padding: 4px 12px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
 .who .pp { display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 10px; border: 1px solid var(--border); border-radius: var(--r-pill); font-size: 13px; }
 .who .st { color: var(--muted); }
-.who .st.warn { color: var(--warn); } .who .st.down { color: var(--danger); }
+.who .st.warn { color: var(--warn); } .who .st.down { color: var(--danger); } .who .st.fear { color: var(--c5); }
 .helps { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 14px 20px 16px; display: grid; gap: var(--space-3); }
 .helps-h { display: flex; justify-content: space-between; align-items: center; }
 .helps ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
@@ -297,6 +297,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-hptrack { position: relative; display: block; height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; }
 .cs-hptrack b { display: block; height: 100%; background: var(--ok); }
 .cs-hptrack i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bg); }
+/* MB11: the morale bar sits under health in its own colour */
+.cs-morale b { background: var(--c5); }
+.cs-mbar { display: grid; gap: var(--space-1); }
 .cs-hpsteps { position: relative; display: block; height: 14px; font-size: 11px; color: var(--faint); }
 .cs-hpsteps span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
 .cs-hpsteps .now { color: var(--text); font-weight: 700; }
