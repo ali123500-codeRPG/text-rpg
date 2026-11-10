@@ -1,6 +1,6 @@
 // All-XXX perks (src/library/allPerks.ts). When every skill of a tree reaches 50 true skill, the actor
-// gets each built part of that tree's All-50 bundle for free (OwnedPerk source 'mastery'), and the player earns the
-// tree's mastery achievement ("Adept of {tree}"). Checked at the end of every turn, so raises, perks and spawns all count.
+// gets each built part of that tree's All-50 bundle for free (OwnedPerk source 'mastery'). Every tree, with a bundle or
+// without, earns the player its mastery achievements at 50, 100 and 150 (Adept, Ascendant, Transcendent Sovereign of {tree}). Checked at the end of every turn, so raises, perks and spawns all count.
 // Also the rolls that read All-50 parts on the other side (Dodgy) or after the dice (Curiouser and Curiouser).
 import { TR } from '../library/treeIds';
 import type { Actor, GameState, Mod, TierShift } from '../types';
@@ -24,10 +24,11 @@ export function treeAt(a: Actor, treeId: string, step: number): boolean {
 }
 
 export function grantAllSteps(state: GameState, a: Actor): void {
-  const perks = getLibrary().perks;
+  const lib = getLibrary(), perks = lib.perks;
+  if (a.id === state.player.id) for (const treeId of Object.keys(lib.trees)) for (const [step, key] of Object.entries(MASTERY_ACH))
+    if (treeAt(a, treeId, Number(step))) grantAchievement(state, key, treeId); // once only (B4)
   for (const b of ALL_BUNDLES) {
     if (!treeAt(a, b.treeId, b.step)) continue;
-    if (a.id === state.player.id) grantAchievement(state, MASTERY_ACH[b.step], b.treeId); // once only (B4)
     for (const id of b.parts) {
       if (!perks[id]?.built || a.core.perks.some((p) => p.perkId === id)) continue;
       a.core.perks.push({ perkId: id, source: 'mastery', gainedTurn: state.turn, treeId: b.treeId, tier: b.step });

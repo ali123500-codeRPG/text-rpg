@@ -61,7 +61,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   vanished: 'vanishes that lost everyone who saw you', spotted: 'people you noticed while they were sneaking or hiding',
   speech_won: 'speech contests won with the skill', talked_down: 'foes talked out of hostility before any blow from you',
   outmatched: 'contests won against someone with higher true skill', enemy_to_friend: 'people once hostile to you who became friendly',
-  won_without_blow: 'foes who surrendered to your threats before any attack', coin_spent: 'copper spent buying',
+  won_without_blow: 'fights won without making an attack yourself', coin_spent: 'copper spent buying',
   coin_earned: 'copper earned selling', mended: 'Crippled parts healed back to Healthy', back_from_down: 'times back to Unhurt after going Down',
   holds: 'holds on a foe, or holds you broke free of', aimed_hits: 'aimed strikes that landed on the part you called',
   quests_for_giver: 'quests finished for the same person', quest_givers: 'different people you finished quests for',

@@ -138,7 +138,7 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
         h('div', { class: 'actions' },
           h('button', { type: 'button', onclick: () => { keepCapstone(p, classId); redraw(); } }, `Keep ${base || 'the default'}`),
           ids.map((id) => h('button', { type: 'button', title: perk(id)?.story ?? '',
-            onclick: () => { swapCapstone(p, classId, id, s.turn); redraw(); } }, perk(id)?.name ?? id))));
+            onclick: () => { swapCapstone(s, classId, id); redraw(); } }, perk(id)?.name ?? id))));
     }));
   return el;
 }

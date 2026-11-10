@@ -55,9 +55,15 @@ export function spendXp(state: GameState): void {
   const cur = p.core.classes.find((c) => c.state === 'current');
   if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the top level
     if (!c.fallback || p.core.classes.some((x) => x.classId === c.id)) continue;
-    p.core.classes.push({ classId: c.id, state: 'unlocked', level: 0 });
-    logCode(state, 'class_unlocked', { classId: c.id });
+    openClass(state, c.id);
   }
+}
+
+/** a class the player doesn't have unlocks at level 0, however it opens, and earns {class} Awakened */
+function openClass(state: GameState, classId: string): void {
+  state.player.core.classes.push({ classId, state: 'unlocked', level: 0 });
+  tally(state, 'class_unlock', { by: 'class', of: classId });
+  logCode(state, 'class_unlocked', { classId });
 }
 
 /** class and level achievements: classes at their top level (in all, per class tier, tiers covered) and every 10 levels */
@@ -116,24 +122,23 @@ export function keepCapstone(p: Actor, classId: string): boolean {
 }
 
 /** swap a class's default capstone for an offered alternate; once per class. False when it isn't on offer. */
-export function swapCapstone(p: Actor, classId: string, perkId: string, turn: number): boolean {
-  const pr = p.progression, opts = pr?.capstoneOptions?.[classId];
+export function swapCapstone(state: GameState, classId: string, perkId: string): boolean {
+  const p = state.player, turn = state.turn, pr = p.progression, opts = pr?.capstoneOptions?.[classId];
   if (!pr || !opts?.includes(perkId)) return false;
   const base = getLibrary().classes[classId]?.capstone ?? [];
   p.core.perks = p.core.perks.filter((x) => !(x.source === 'class' && base.includes(x.perkId)));
   p.core.perks.push({ perkId, source: 'class', gainedTurn: turn });
   delete pr.capstoneOptions![classId];
-  openEveryClass(p);
+  openEveryClass(state);
   return true;
 }
 
 /** Write Your Own Ending: every class in the library the owner doesn't have unlocks at level 0, its conditions
  * ignored. Returns the ids it unlocked. */
-function openEveryClass(p: Actor): string[] {
-  if (!hasPerk(p, PK.write_your_own_ending)) return [];
-  const ids = Object.keys(getLibrary().classes).filter((id) => !p.core.classes.some((x) => x.classId === id));
-  for (const id of ids) p.core.classes.push({ classId: id, state: 'unlocked', level: 0 });
-  return ids;
+function openEveryClass(state: GameState): void {
+  const p = state.player;
+  if (!hasPerk(p, PK.write_your_own_ending)) return;
+  for (const id of Object.keys(getLibrary().classes)) if (!p.core.classes.some((x) => x.classId === id)) openClass(state, id);
 }
 
 /** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when
@@ -141,16 +146,14 @@ function openEveryClass(p: Actor): string[] {
  * Sword-dancer at Dodge 40 and Light or Medium Weapons 40). An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;
-  for (const id of openEveryClass(p)) logCode(state, 'class_unlocked', { classId: id });
+  openEveryClass(state);
   for (const c of Object.values(getLibrary().classes)) {
     if (!(c.unlock || c.unlockAny || c.unlockPerk) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     if (!Object.entries(c.unlock ?? {}).every(met)) continue;
     if (c.unlockAny && !Object.entries(c.unlockAny).some(met)) continue;
-    p.core.classes.push({ classId: c.id, state: 'unlocked', level: 0 });
-    tally(state, 'class_unlock', { by: 'class', of: c.id });
-    logCode(state, 'class_unlocked', { classId: c.id });
+    openClass(state, c.id);
   }
 }
 
