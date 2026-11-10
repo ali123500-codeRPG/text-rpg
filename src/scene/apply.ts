@@ -9,9 +9,11 @@ import { installRoutines, desiredState, detectPlayer } from '../minds';
 import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
 import { actorById, isActive, zoneById } from '../engine/relations';
+import { startSpar } from '../engine/spar';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyRewards } from './validate';
 import { requirement } from '../ruleset/requirements';
+import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 
@@ -34,24 +36,17 @@ function moveTo(state: GameState, a: Actor, zoneId: string): void {
   a.placeId = z.placeId;
 }
 
-/** every link between a new zone and a stage zone is made two-way. GAP: the plan can't add links to stage zones, so code adds the way back. */
+/** every link between zones runs both ways (the validator reads the graph undirected): a link without its way back
+ * gets one, labelled with the zone's name. The plan's own links among its new zones count too (run: a yard whose only
+ * links were the ways in, so the player found no exit). */
 function ensureBackLinks(state: GameState, newZones: Zone[]): void {
-  const fresh = new Set(newZones.map((z) => z.id));
-  for (const z of newZones) {
-    for (const l of z.links) {
-      if (l.frontier || fresh.has(l.to)) continue;
-      const other = zoneById(state, l.to);
-      if (other && !other.links.some((b) => b.to === z.id)) other.links.push({ to: z.id, label: z.name, sight: l.sight });
-    }
-  }
-  for (const s of state.zones) {
-    if (fresh.has(s.id)) continue;
-    for (const l of s.links) {
-      if (!fresh.has(l.to)) continue;
-      const z = zoneById(state, l.to)!;
-      if (!z.links.some((b) => b.to === s.id)) z.links.push({ to: s.id, label: s.name, sight: l.sight });
-    }
-  }
+  for (const z of newZones) for (const l of z.links) addBackLink(state, z, l);
+  for (const s of state.zones) for (const l of s.links) if (newZones.some((z) => z.id === l.to)) addBackLink(state, s, l);
+}
+function addBackLink(state: GameState, from: Zone, l: ZoneLink): void {
+  if (l.frontier) return;
+  const other = zoneById(state, l.to);
+  if (other && other !== from && !other.links.some((b) => b.to === from.id)) other.links.push({ to: from.id, label: from.name, sight: l.sight });
 }
 
 /** an extension's entry: links into the crossed frontier now lead to `entry`, and the player stands there. */
@@ -82,18 +77,23 @@ function idleHere(a: Actor, here: string, turn: number): void {
   m.routine = { id: 'idle_here', anchorTurn: turn };
 }
 
-function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'], string>, n: number): string {
+export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'], string>, n: number): string {
   const base = itemDef(state, m.base);
   const q = m.quality;
   const T = CONFIG.QUALITY_TABLE;
   const def: ItemDef = { ...structuredClone(base), id: `${base.id}_m${state.turn}_${n}`, name: m.name, look: m.look, base: { itemId: base.id, quality: q, boosts: m.boosts } };
+  const need = requirement(def)?.need ?? 0; // gear stats scale with the minted level's need (quality 3 and 4 move it up a level)
   if (def.weapon) {
     for (const mode of def.weapon.modes) {
-      if (m.boosts === 'damageAdj') mode.damageAdj = (mode.damageAdj ?? 0) + T.damageAdj[q - 1];
-      else mode.hitAdj = (mode.hitAdj ?? 0) + Math.round(CONFIG.QUALITY_HIT_FACTOR * (requirement(def)?.need ?? 0) * q); // gear stats scale with need
+      if (m.boosts === 'damageAdj') { // QE2: fractions stay
+        const use = def.gearClass ? getLibrary().gearClasses?.[def.gearClass]?.use : undefined; // the gear class's melee/ranged tag, not the mode's (a thrown dagger is melee gear)
+        const f = (CONFIG.DAMAGE_CLASS_FACTOR[mode.class] ?? 1) * (CONFIG.DAMAGE_TREE_FACTOR[use === 'melee' || use === 'ranged' ? use : mode.tree] ?? 1);
+        mode.damageAdj = (mode.damageAdj ?? 0) + Math.round(CONFIG.QUALITY_DAMAGE_FACTOR * need * q * f * 100) / 100;
+      } else mode.hitAdj = (mode.hitAdj ?? 0) + Math.round(CONFIG.QUALITY_HIT_FACTOR * need * q);
     }
   }
-  if (def.armor) def.armor.reduction += T.reduction[q - 1];
+  if (def.armor) def.armor.reduction = CONFIG.ARMOR_FACTOR * need + Math.round(CONFIG.ARMOR_QUALITY_FACTOR * need * q); // QE4, QE6
+  if (def.shield) def.shield.pool = CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * need + Math.round(CONFIG.POOL_QUALITY_FACTOR * need * q); // QE5, QE6
   if (def.kind === 'tool') for (const e of def.effects ?? []) if (e.kind === 'skill') e.value += T.tool[q - 1];
   state.blueprints.push({ storyId: state.storyId, id: def.id, kind: 'item', data: def as unknown as Record<string, unknown> });
   state.sceneCaps.minted += 1;
@@ -118,8 +118,10 @@ export function beginScene(state: GameState, tier: Tier): void {
  * yielded to, its surrender ends (Morale: it lasts the scene), and it leaves for its exit slot if it has one.
  * GAP: there is no off-stage yet (D-46, D-67), so "leaves" means it goes to its exit zone. */
 function endYields(state: GameState): void {
-  // Q4: broken and surrendered last only the scene (Morale)
+  // Q4: broken and surrendered last only the scene (Morale); MB9: a bar still at Broken moves up to Panicking, one point short of Broken
   for (const a of state.actors) if (a.mind?.moraleState) delete a.mind.moraleState;
+  delete state.yielding; // MB42: the truce lasts the scene
+  for (const a of [state.player, ...state.actors]) if (moraleLevel(a) === 'broken') setMoraleLost(a, maxMorale(a) - 1);
   for (const a of state.actors) {
     const o = a.mind?.overrides;
     if (!o || !Object.values(o).includes('yielded')) continue;
@@ -184,6 +186,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   if (ctx.kind === 'extension' && ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0]);
   // GAP: at story start the player has no zone on the stage yet; it starts in the plan's first zone.
   if (firstZone && !state.stage.zoneIds.includes(state.player.zone)) moveTo(state, state.player, firstZone);
+  else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
 
   // ---- bands (existing bands keep theirs) ----
   for (const b of plan.bands) {
@@ -274,6 +277,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const revealWhen: Secret['revealWhen'] = r.type === 'event_in_zone' ? { ...r, zone: zoneRef(r.zone) } : { ...r, againstActorId: actorRef(r.againstActorId) };
     state.hidden.secrets.push({ ...s, holderId: actorRef(s.holderId), leakTerms: [...s.leakTerms], revealWhen });
   }
+
+  // SP2: spars the scene opens with
+  for (const sp of plan.spars ?? []) startSpar(state, sp.sides.map((x) => x.map(actorRef)), !!sp.cruel, 'weaver');
 
   // ---- rewards ----
   const { rewards, notes } = tidyRewards(state, plan);
@@ -396,5 +402,6 @@ function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast']
     else if (!services.includes(s)) services.push(s);
   }
   a.wares = { items, services };
+  a.core.inventory.push({ id: `purse${turn}_${a.id}`, itemId: IT.coin, qty: CONFIG.TRADER_PURSE }); // SL3: the Trader's purse
   if (dropped.length) state.log.push({ turn, code: 'wares_dropped', detail: { actorId: a.id, dropped } });
 }

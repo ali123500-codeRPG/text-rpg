@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { achievementName, awardXp, charLevel } from '../../src/engine/xp';
+import { achLevel, achXp, rewardName } from '../../src/ruleset/achRewards';
 import { classMaxLevel } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
@@ -27,12 +28,28 @@ describe('135 class and level achievements', () => {
       if (n === 2) expect(got).toContain(`${ACH.class_max_tier_2}:${t}`);
       if (n >= 3) expect(got).toContain(`${ACH.class_max_tier_3}:${t}`);
     }
-    if (tiers.size >= 4) expect(got).toContain(ACH.class_tiers_4);
-    else if (tiers.size >= 2) expect(got).toContain(ACH.class_tiers_2);
+    const step = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5][Math.min(tiers.size, 5) - 2];
+    if (step) expect(got).toContain(step);
     const peak = s.player.progression!.achievements!.find((a) => a.id === `${ACH.class_max_tier_1}:tier_1`);
-    if (peak) expect(achievementName(s, peak)).toBe('Peak of Tier 1');
+    if (peak) expect(achievementName(s, peak)).toBe('Peak of the Trained');
   });
-  it('every 10 character levels pays a level 0 achievement, once per multiple', () => {
+  it('the tiers chain steps one at a time from 2 up to every tier, which pays level VI', () => {
+    const a = getLibrary().achievements!;
+    const chain = [ACH.class_tiers_2, ACH.class_tiers_3, ACH.class_tiers_4, ACH.class_tiers_5, ACH.class_tiers_all];
+    expect(chain.map((id) => a[id].count)).toEqual([2, 3, 4, 5, 6]);
+    expect(chain.map((id) => a[id].level)).toEqual(['ii', 'iii', 'iv', 'v', 'vi']);
+    expect(chain.slice(1).map((id) => a[id].after)).toEqual(chain.slice(0, -1));
+    expect(CONFIG.REWARD_XP.vi).toBe(10000);
+  });
+  it('each 10 levels has a name of its own, and past 100 the row falls back to its template', () => {
+    const s = makeVillage();
+    const d = getLibrary().achievements![ACH.char_level_10];
+    const names = Array.from({ length: 10 }, (_, i) => achievementName(s, { id: `${ACH.char_level_10}:${(i + 1) * 10}`, key: ACH.char_level_10, of: String((i + 1) * 10) }));
+    expect(new Set(names).size).toBe(10);
+    expect(names[9]).toBe(d.names![100]);
+    expect(achievementName(s, { id: `${ACH.char_level_10}:110`, key: ACH.char_level_10, of: '110' })).toBe('Woven Past Counting (110)');
+  });
+  it('every 10 character levels pays an achievement, once per multiple, one reward level higher each time from −1', () => {
     const s = makeVillage();
     const cur = s.player.core.classes.find((c) => c.state === 'current')!;
     cur.level = 0;
@@ -44,7 +61,14 @@ describe('135 class and level achievements', () => {
     const lv = charLevel(s.player);
     const want = Array.from({ length: Math.floor(lv / 10) }, (_, i) => `${ACH.char_level_10}:${(i + 1) * 10}`);
     expect(earned(s).filter((x) => x.startsWith(`${ACH.char_level_10}:`))).toEqual(want);
-    expect(CONFIG.REWARD_XP[getLibrary().achievements![ACH.char_level_10].level]).toBe(50);
-    if (want.length) expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === want[0])!)).toBe('Risen to Level 10');
+    const d = getLibrary().achievements![ACH.char_level_10];
+    expect([10, 20, 30, 40, 50, 60, 70, 80].map((n) => achLevel(d, String(n)))).toEqual(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'v', 'vi']);
+    expect(achXp(d, '10')).toBe(CONFIG.REWARD_XP.minus_1);
+    expect(achXp(d, '30')).toBe(CONFIG.REWARD_XP.i);
+    // no cap: past VI come VII, VIII…, each paying REWARD_XP_BEYOND_MULT × the level before
+    expect([90, 100, 150].map((n) => rewardName(achLevel(d, String(n))))).toEqual(['VII', 'VIII', 'XIII']);
+    expect(achXp(d, '90')).toBe(CONFIG.REWARD_XP.vi * CONFIG.REWARD_XP_BEYOND_MULT);
+    expect(achXp(d, '100')).toBe(CONFIG.REWARD_XP.vi * CONFIG.REWARD_XP_BEYOND_MULT ** 2);
+    if (want.length) expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === want[0])!)).toBe('No Longer Green');
   });
 });

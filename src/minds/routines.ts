@@ -90,8 +90,9 @@ export function routineOrder(view: ActorView): Order {
   return order(view, 'move', 'routine', `walk toward ${d.zone}`, { target: path[0], activity: d.activity });
 }
 
+/** those it fights: hostile, or a spar opponent (SP1) */
 function hostileBeliefs(view: ActorView) {
-  return view.beliefs.filter((b) => b.hostile && b.active && b.status !== 'unaware');
+  return view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && b.status !== 'unaware');
 }
 /** whom a broken actor runs from: those it is hostile to, and those it yielded to (Q4) */
 const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b.stance === 'yielded') && b.active && b.status !== 'unaware');
@@ -102,7 +103,7 @@ export function brokenOrder(view: ActorView): Order {
 
 function flee(view: ActorView, source: Order['source']): Order {
   const hold = () => order(view, 'hold', source, 'hold');
-  if (view.self.surrendered || view.self.fearless) return hold();
+  if (view.self.surrendered) return hold();
   const here = view.self.zone;
   for (const key of ['exit', 'refuge']) {
     const b = view.self.slots[key];
@@ -130,11 +131,11 @@ function flee(view: ActorView, source: Order['source']): Order {
 
 export function fallbackOrder(view: ActorView, rng: Rng): Order {
   const s = view.self;
-  // 1. Flee (fearless actors never break)
-  if ((s.broken || s.surrendered) && !s.fearless) return flee(view, 'fallback');
+  // 1. Flee
+  if (s.broken || s.surrendered) return flee(view, 'fallback');
   // 2. Attack
   const here = view.beliefs
-    .filter((b) => b.hostile && b.active && (b.status === 'aware' || b.status === 'tracking') && b.lastKnownZone === s.zone)
+    .filter((b) => (b.hostile || b.sparring) && b.active && (b.status === 'aware' || b.status === 'tracking') && b.lastKnownZone === s.zone)
     .map((b) => b.about)
     .sort();
   if (here.length) {

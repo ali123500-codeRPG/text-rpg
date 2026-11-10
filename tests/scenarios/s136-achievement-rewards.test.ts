@@ -76,14 +76,14 @@ describe('136 achievement rewards', () => {
     expect(readsHealthOf(s.player, slime)).toBe(true);
     expect(readsHealthOf(s.player, actor(s, 'patron_1'))).toBe(slime.core.bodyTypeId === actor(s, 'patron_1').core.bodyTypeId);
   });
-  it('The Name That Ends Fights: every foe fighting you takes 10 off its first morale check', () => {
+  it('The Name That Ends Fights: every foe fighting you takes 10 off every morale roll (MB24)', () => {
     const s = makeVillage();
     const foe = actor(s, 'slime_1');
     expect(renownMods(s, foe, true)).toEqual([]);
     grantAchievement(s, ACH.yielded_50);
     expect(renownMods(s, foe, false)).toEqual([]); // not fighting you
     expect(renownMods(s, foe, true)).toEqual([{ source: 'renown: The Name That Ends Fights', type: 'achievement', value: -10 }]);
-    expect(renownMods(s, foe, true)).toEqual([]); // only the first check
+    expect(renownMods(s, foe, true)).toHaveLength(1); // every roll, not only the first
   });
   it('a level carries up its lower levels\' rewards, read from their rows: Breaker of Wills +5 Intimidation', () => {
     const s = makeVillage();
@@ -98,7 +98,7 @@ describe('136 achievement rewards', () => {
     expect(trueSkill(s.player, SK.intimidation)).toBe(15); // carried up from Breaker of Wills
     expect(rewardLines(ach[ACH.yielded_50])).toEqual([
       '+5 true skill in Intimidation (from Breaker of Wills)',
-      'every foe fighting you takes -10 on its first morale check against you']);
+      'every foe fighting you takes -10 on its morale rolls']);
     const was = ach[ACH.yielded_10].skillAdd;
     try {
       ach[ACH.yielded_10].skillAdd = { [SK.intimidation]: 2 }; // nerf the lower level: every level above follows

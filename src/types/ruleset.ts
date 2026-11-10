@@ -1,7 +1,7 @@
 // Part 2, Resolution engine: the Ruleset interface and its request/result types.
 import type { SkillFunction } from './library';
 import type { Effect, GameEvent, Tier } from './core';
-import type { Actor } from './actor';
+import type { Actor, DefenseKind } from './actor';
 import type { GameState } from './state';
 import type { GearOp } from './items';
 
@@ -16,7 +16,7 @@ export interface Rng {
   d100(): number;
 }
 
-export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk';
+export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status';
 export type Mod = { source: string; type: ModType; value: number };
 export type TierShift = { source: string; value: number };
 
@@ -48,6 +48,8 @@ export type RollRequest = {
   fn?: SkillFunction;
   /** extra functions whose skills may stand in here (an attack mode's standInFns) */
   standInFns?: SkillFunction[];
+  /** a combined roll (an attack mode's blend): each skill × its share, summed */
+  blend?: { skill: string; share: number }[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
@@ -60,6 +62,10 @@ export type RollResult = {
   skill: string;
   /** the skill the action asked for, when a stand-in made the roll (both learn) */
   asked?: string;
+  /** a combined roll: the skills that rolled each part (after stand-ins); each learns */
+  parts?: string[];
+  /** the roll's kind, when it had one: augments limited to roll kinds learn only from their own kinds */
+  rollKind?: import('./items').RollKind;
   d100: number;
   margin: number;
   tier: Tier; // clamped to the TIERS table
@@ -94,12 +100,12 @@ export type AttackRequest = {
     defenderShifts?: TierShift[]; // engine-side shifts on the defense roll (All-50 Unerring)
   };
 };
-export type AttackOutcome = 'missed' | 'dodged' | 'grazed' | 'blocked' | 'full_hit' | 'heavy_hit' | 'crushing_hit';
+export type AttackOutcome = 'missed' | 'dodged' | 'grazed' | 'blocked' | 'parried' | 'full_hit' | 'heavy_hit' | 'crushing_hit';
 export type AttackResult = {
   attack: RollResult;
   unaware?: true; // the target was unaware of the attacker
   defense: RollResult | null;
-  defenseType: 'dodge' | 'block' | null;
+  defenseType: DefenseKind | null;
   gap: number | null;
   gapShifts: TierShift[];
   outcome: AttackOutcome;
@@ -116,7 +122,8 @@ export type AttackResult = {
   shieldItemId?: string;
   shieldMult?: number; // A3 Shield Breaker: the shield pool takes this multiple of the damage
   legBolt?: boolean; // A6 Leg Bolt: the leg's pool takes CONFIG.LEG_BOLT_PART_MULT× the damage, and the target is slowed
-  /** A7 Open-Hand Guard: of `damage`, this much goes to the general area; the rest lands on the blocking arm (location) */
+  strikeBack?: true; // PA4: a parry at the strike gap or better; the engine gives the defender one free melee attack back
+  /** A7 Open-Hand Guard: of `damage`, this much goes to the general area; the rest lands on the parrying arm (location) */
   generalShare?: number;
 };
 
@@ -135,7 +142,7 @@ export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine'
 
 /** every order type the engine knows (trigger orders are checked against it) */
 export const ORDER_TYPES = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
-  'intimidate', 'use_item', 'equip', 'give', 'buy', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'other'] as const;
+  'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'other'] as const;
 export type Order = {
   actorId: string;
   type: string; // attack | move | search | hide | sneak | hold | call_help | alarm | flee | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | rest | wait | sleep | idle | other
@@ -149,7 +156,7 @@ export type Order = {
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;
   aimed?: boolean;
-  defense?: 'dodge' | 'block' | null;
+  defense?: DefenseKind | null;
   item?: string | null;
   qty?: number | null; // give, buy: how many (give null: the whole stack; buy null: one)
   for?: string | null; // buy: who gets it (null: the buyer)

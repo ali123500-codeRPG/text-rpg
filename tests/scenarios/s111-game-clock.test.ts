@@ -1,6 +1,7 @@
 // 111 Game clock (T1–T11) and natural recovery (H12–H15). Code owns one clock in game minutes;
 // each action's time is a durations row; the time of day lights outdoor zones and picks routine sets; waiting moves
 // the clock and breaks the scene; natural recovery heals endurance × 0.01 % an hour, never Crippled or worse.
+import { HL } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
@@ -63,7 +64,7 @@ describe('111 game clock', () => {
     const t0 = now(s);
     turn(s, act('sleep'));
     expect(now(s) - t0).toBe(480 + 1);
-    expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === 'rest')).toHaveLength(2);
+    expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === HL.rest)).toHaveLength(2);
     expect(s.player.core.condition.hpLostPct).toBeLessThan(80 - 2 * CONFIG.REST_HEAL_PCT);
     const w = makeVillage();
     startClock(w, 'day');

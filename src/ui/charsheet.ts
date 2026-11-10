@@ -5,13 +5,17 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { achievementName, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
+import { defenseItem } from '../ruleset/gear';
+import { achievementName, charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
+import { augmentWindow, learningWindow } from '../ruleset/improve';
 import { h } from './kit';
+import { callName } from '../views';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
-import { CLASS_TIERS } from '../scales';
+import { CLASS_TIERS, MORALE_LEVELS } from '../scales';
+import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -26,8 +30,7 @@ export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: numb
 
 function standing(s: GameState, p: Actor): { kind: string; value: number | null } {
   const kind = p.core.standingDefense;
-  const shield = p.core.inventory.find((i) => safe(() => itemDef(s, i.itemId).kind) === 'shield' && i.equippedIn?.length);
-  const value = safe(() => effectiveSkill(s, p, DEFENSE_SKILL[kind], kind === 'block' && shield ? { itemId: shield.id } : {}).value);
+  const value = safe(() => effectiveSkill(s, p, DEFENSE_SKILL[kind], { itemId: defenseItem(s, p, kind)?.id }).value);
   return { kind, value };
 }
 
@@ -53,7 +56,19 @@ const tag = () => h('span', { class: 'tag', title: 'Tagged skill' }, '✦');
 /** V3a: a skill marked for an improvement roll */
 const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to improve when this fight ends', 'aria-label': 'marked to improve' });
 const marked = (p: Actor, id: string) => !!p.progression?.marks.includes(id);
-const bar = (raw: number) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (raw / BAR_SCALE) * 100)}%` }));
+const pct = (n: number) => Math.max(0, Math.min(100, (n / BAR_SCALE) * 100));
+/** the skill's learning window: the opposition range a use of it learns from (SP2) */
+/** an augmenting skill learns only on the rolls it adds to, at that roll's level (AU1), so it shows that roll's window */
+type Win = { lo: number; hi: number; via?: string };
+const windowOf = (p: Actor, id: string): Win => {
+  const aug = augmentWindow(p, id);
+  const [lo, hi] = (aug?.window ?? learningWindow(p.core.skills[id]?.raw ?? 0, trueSkill(p, id))).map((n) => Math.max(0, Math.round(n)));
+  return { lo, hi, via: aug ? skillName(aug.via) : undefined };
+};
+const winText = (w: Win) => `${w.via ? `via ${w.via} ` : ''}${w.lo}–${w.hi}`;
+const winTitle = (w: Win) => `Learns from opposition ${w.lo} to ${w.hi}${w.via ? `, on ${w.via} rolls it adds to` : ''}`;
+const bar = (raw: number, win?: Win) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${pct(raw)}%` }),
+  win ? h('i', { class: 'lw' + (win.via ? ' via' : ''), style: `left:${pct(win.lo)}%;width:${pct(win.hi) - pct(win.lo)}%`, title: winTitle(win) }) : null);
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
 
@@ -78,7 +93,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
     h('span', {}, h('a', { href: '#inv', class: 'cs-item', title: 'Open in Inventory for its full stats', onclick: () => { invFocus.id = i.id; } }, cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId)), ` · ${i.equippedIn!.some((x) => x.startsWith('hand:')) ? 'held' : 'worn'}`));
   return h('div', { class: 'cs-card' },
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
-      h('div', {}, h('b', {}, p.names.current || cls.charAt(0).toUpperCase() + cls.slice(1)), h('span', {}, place ? `In the ${place}` : ''))),
+      h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, place ? `In the ${place}` : ''))),
     h('div', { class: 'cs-track' },
       h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${level} · ${whole(hp)} HP`)),
       // each level named at its segment, alternating one above the bar and one below
@@ -113,7 +128,7 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const el: HTMLElement = h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (pr.xp / need) * 100)}%` })),
-    !target ? h('small', {}, 'Your class is at its top level. XP is banked until you pick a class for the next level.') : null,
+    !target ? h('small', {}, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level.`) : null,
     open.length > 1 || !target
       ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),
         h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; spendXp(s); el.replaceWith(xpTrack(s, p) ?? ''); } },
@@ -138,7 +153,7 @@ function capstoneChoice(s: GameState, p: Actor): HTMLElement | null {
         h('div', { class: 'actions' },
           h('button', { type: 'button', onclick: () => { keepCapstone(p, classId); redraw(); } }, `Keep ${base || 'the default'}`),
           ids.map((id) => h('button', { type: 'button', title: perk(id)?.story ?? '',
-            onclick: () => { swapCapstone(p, classId, id, s.turn); redraw(); } }, perk(id)?.name ?? id))));
+            onclick: () => { swapCapstone(s, classId, id); redraw(); } }, perk(id)?.name ?? id))));
     }));
   return el;
 }
@@ -150,7 +165,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
       t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
+        bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
 }
 
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
@@ -241,6 +256,39 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
   return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st.toLowerCase()}` }, `${partName(x.id)} ${x.st.toLowerCase()}`)));
 }
 
+/** NT20: Shaken and Swayed as chips with the roll penalty; the title names who caused it and how long it lasts */
+/** MB11: the player's morale bar, a second bar under health: level word, how much is left, and the track's thresholds as ticks */
+export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
+  const level = MORALE_LEVELS.name(moraleLevel(p));
+  const lost = Math.max(0, Math.min(100, moraleLostPct(p)));
+  const max = maxMorale(p);
+  const left = Math.round(max * (100 - lost) / 100);
+  const ticks = full ? CONFIG.MORALE_TRACK.slice(1, -1).map(([, at]) => h('i', { style: `left:${100 - Math.min(100, at)}%` })) : [];
+  return [
+    h('span', { class: 'cs-row' }, h('span', {}, 'Morale'), h('b', {}, full ? `${level} · ${left} / ${max}` : level)),
+    h('span', { class: 'cs-hptrack cs-morale', title: 'Morale track, Calm on the right', role: 'img', 'aria-label': `Morale: ${level}` },
+      h('b', { style: `width:${100 - lost}%` }), ...ticks),
+  ];
+}
+
+/** MB40–MB43: after /yield, who took it, who is still deciding and who fights on; nothing when the player has not yielded */
+export function yieldBlock(s: GameState): HTMLElement | null {
+  const y = s.yielding;
+  if (!y) return null;
+  const names = (ids: string[]) => ids.map((id) => cap(callName(s, s.player.id, id))).join(', ');
+  const row = (k: string, ids: string[], cls: string) => ids.length ? h('span', { class: 'yr ' + cls }, h('span', {}, k), h('b', {}, names(ids))) : null;
+  return h('div', { class: 'cs-yield' }, h('span', { class: 'hs-label' }, 'You yielded'),
+    row('Took it', y.accepted, 'took'), row('Deciding', y.pending, 'wait'), row('Fight on', y.refused, 'refused'));
+}
+
+export function pressureChips(s: GameState, p: Actor): HTMLElement {
+  const rows = Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => {
+    const who = callName(s, p.id, id);
+    return h('span', { class: 'cs-pchip ps-pressure', title: `${cap(k)} by ${who}: −${x[k]} on every roll against them, until this encounter ends` }, `${cap(k)} −${x[k]}`);
+  }));
+  return h('p', { class: 'cs-pchips', hidden: !rows.length }, rows);
+}
+
 /** what the character holds and wears, by item name: "arming sword · round shield" */
 export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string[] } {
   const on = p.core.inventory.filter((i) => i.equippedIn?.length);
@@ -257,6 +305,9 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
     h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, level)),
     h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
+    ...moraleBar(p, false),
+    ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x),
+    pressureChips(s, p),
     h('span', { class: 'cs-held' }, h('span', { class: 'hs-label' }, 'Held'), hw.held.length ? hw.held.map(cap).join(' · ') : 'Nothing'),
   ];
 }
@@ -269,7 +320,9 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
   const atk = attackOf(s, p);
   const hw = heldWorn(s, p);
   return [
-    ...healthBar(s, p, healed, last?.turn ?? -1, changed),
+    // health and its part chips, then morale, then the body figure (when open)
+    ...((hb) => [hb[0], hb[1], h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x), ...hb.slice(2)])(healthBar(s, p, healed, last?.turn ?? -1, changed)),
+    pressureChips(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
@@ -277,6 +330,6 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
       t.rows.map((r) => h('div', { class: 'r' + (gains[r.id] ? ' up' : '') },
         h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
-        bar(r.raw), h('b', {}, String(r.raw)))))),
+        bar(r.raw, windowOf(p, r.id)), h('b', {}, String(r.raw)))))),
   ];
 }

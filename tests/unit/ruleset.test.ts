@@ -1,9 +1,10 @@
+import { AM } from '../../src/library/tableIds';
 import { BT } from '../../src/library/raceIds';
 import { TIERS } from '../../src/scales';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, actor, forcedRng, createRng } from '../harness';
 import {
-  band, defaultMode, effectiveSkill, healthLevel, hitTable, moraleCheck, ruleset, stackType, totalHp, usableModes, woundsMods,
+  band, defaultMode, effectiveSkill, healthLevel, hitTable, moraleRoll, ruleset, stackType, totalHp, usableModes, woundsMods,
   tierLevel,
 } from '../../src/ruleset';
 import type { Actor } from '../../src/types';
@@ -11,6 +12,7 @@ import { SK } from '../../src/library/skillIds';
 import { FN, GR } from '../../src/library/functionIds';
 import { groupsOf } from '../../src/library/functionNames';
 import { kitBonus } from '../../src/ruleset/gear';
+import { maxMorale, moraleLevel, restoreMorale, tierCostMult } from '../../src/ruleset/morale';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
@@ -101,7 +103,7 @@ describe('body', () => {
     expect(woundsMods(s, s.player, SK.persuasion)).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -10 });
     expect(woundsMods(s, s.player, SK.dodge).map((m) => m.value)).toEqual([-5]);
     s.player.core.condition.parts.head = -10; // Sense Crippled: every roll, plus speech on speech rolls
-    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5, -20, -20]);
+    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5, CONFIG.ESSENTIAL_CRIPPLED_PENALTY, -20, -20]); // a crippled head is an essential part too
   });
 });
 
@@ -112,11 +114,12 @@ describe('ruleset methods', () => {
     // player 50 → Success; patron dodge 30 → Failure: gap −2; location 20 → left arm
     const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: sword, targetPart: null, aimed: false }, s, forcedRng([50, 30, 20]));
     expect(JSON.stringify(s)).toBe(before);
-    expect(r).toMatchObject({ location: 'left_arm', damage: 25, outcome: 'full_hit', modeId: 'cut' });
+    const dmg = 25 * CONFIG.GAP_LADDER.dodge[-2]; // a dodge at gap −2 lets the blow through at its ladder multiplier
+    expect(r).toMatchObject({ location: 'left_arm', damage: dmg, outcome: 'full_hit', modeId: AM.cut });
     const fx = ruleset.applyEffects(r, s);
     const p = actor(s, 'patron_1'); // 50 HP, arm pool 15
-    expect(p.core.condition.parts.left_arm).toBeCloseTo(100 - (25 / 15) * 100);
-    expect(p.core.condition.hpLostPct).toBe(50);
+    expect(p.core.condition.parts.left_arm).toBeCloseTo(100 - (dmg / 15) * 100);
+    expect(p.core.condition.hpLostPct).toBeCloseTo((dmg / 50) * 100);
     expect(fx).toEqual([
       { kind: 'part_state_changed', actorId: 'patron_1', data: { part: 'left_arm', from: 'Healthy', to: 'Crippled' } },
       { kind: 'threshold_crossed', actorId: 'patron_1', data: { who: 'patron_1', from: 'Unhurt', to: 'Wounded' } },
@@ -127,7 +130,7 @@ describe('ruleset methods', () => {
     const g = place(s, 'guard_1', 'tav_common');
     g.core.condition.parts.right_arm = -90;
     const hit = { attack: null as never, defense: null, defenseType: null, gap: -3, gapShifts: [], outcome: 'full_hit' as const, locationHow: 'aimed' as const,
-      multiplier: 1, deciding: { attack: [], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: sword, modeId: 'cut' };
+      multiplier: 1, deciding: { attack: [], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: sword, modeId: AM.cut };
     const fx = ruleset.applyEffects({ ...hit, location: 'right_arm', damage: 5 }, s);
     expect(fx.map((e) => e.kind)).toContain('item_dropped');
     expect(g.core.inventory.some((i) => i.itemId === IT.arming_sword)).toBe(false);
@@ -176,23 +179,30 @@ describe('ruleset methods', () => {
       context: { defensesThisTurn: 1, defenderUnaware: true } }, s, forcedRng([60, 50, 80]));
     expect(r.defense!.modifiers.map((m) => m.source)).toEqual(['outnumbered', 'unaware']);
   });
-  it('morale: fearless never checks, Critical always breaks, Critical Failure surrenders', () => {
+  it('morale: Resolve from personality, max morale, levels, the roll scales a fear; fear feeds on itself', () => {
     const s = makeVillage();
-    expect(moraleCheck(s, actor(s, 'slime_1'), forcedRng([1]), 'level')).toBe('steady');
-    const p = actor(s, 'patron_1'); // timid 30
-    expect(moraleCheck(s, p, forcedRng([90]), 'bandmate_down')).toBe('steady'); // 90 + 15 − 63.5 → Great Success
-    expect(moraleCheck(s, p, forcedRng([10]), 'bandmate_down')).toBe('broken'); // −38.5 → Failure
-    expect(moraleCheck(s, p, forcedRng([1]), 'bandmate_down')).toBe('surrendered'); // Failure, natural 01 → below Critical Failure
-    p.core.condition.hpLostPct = 80;
-    expect(moraleCheck(s, p, forcedRng([100]), 'level')).toBe('broken'); // reaching Critical always breaks
-    expect(moraleCheck(s, s.player, forcedRng([1]), 'level')).toBe('steady'); // the player never checks
+    const slime = actor(s, 'slime_1'), p = actor(s, 'patron_1'); // steady 50, timid 30
+    expect(slime.core.skills[SK.resolve].raw).toBe(50);
+    expect(maxMorale(p)).toBe(CONFIG.MORALE_BASE + 30);
+    expect(tierLevel(moraleRoll(s, p, forcedRng([90])))).toBe(TIERS.pos('great_success')); // 90 + 15 − 63.5
+    expect([1, 0, 1, 2, 5].map((l) => tierCostMult(l))).toEqual([1.5, 2, 1.5, 1, 0]);
+    expect(tierCostMult(-2)).toBe(3); // two steps past Critical Failure
+    p.core.condition.moraleLost = 40; // 50 % of 80: Afraid
+    expect(moraleLevel(p)).toBe('afraid');
+    expect(woundsMods(s, p, SK.resolve).find((m) => m.source === 'morale: Afraid')?.value).toBe(-5);
+    p.core.condition.moraleLost = 80;
+    expect(moraleLevel(p)).toBe('broken');
+    restoreMorale(p, 25); // engagement end: back 20 of 80
+    expect(p.core.condition.moraleLost).toBe(60);
+    restoreMorale(p, 500);
+    expect(p.core.condition.moraleLost).toBe(0);
   });
   it('modes: held first, natural after; default by reach', () => {
     const s = makeVillage();
-    expect(usableModes(s, s.player).map((m) => `${m.itemId}/${m.mode.id}`)).toEqual([`${sword}/cut`, 'natural:punch/punch', 'natural:grapple/grapple']);
-    expect(defaultMode(s, s.player, 0)!.mode.id).toBe('cut');
+    expect(usableModes(s, s.player).map((m) => `${m.itemId}/${m.mode.id}`)).toEqual([`${sword}/${AM.cut}`, `natural:${AM.punch}/${AM.punch}`, `natural:${AM.grapple}/${AM.grapple}`]);
+    expect(defaultMode(s, s.player, 0)!.mode.id).toBe(AM.cut);
     expect(defaultMode(s, s.player, 1)).toBeNull();
     s.player.core.condition.parts.right_arm = -10; // Crippled sword arm: no sword attack
-    expect(usableModes(s, s.player).map((m) => m.mode.id)).toEqual(['punch', 'grapple']);
+    expect(usableModes(s, s.player).map((m) => m.mode.id)).toEqual([AM.punch, AM.grapple]);
   });
 });

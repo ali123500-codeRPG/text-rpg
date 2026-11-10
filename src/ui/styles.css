@@ -9,6 +9,7 @@
 @font-face { font-family: "Literata"; font-weight: 700; font-style: normal; font-display: block; src: url(./assets/Literata-Bold.woff2) format("woff2"); }
 
 :root {
+  --fall-edge: rgba(120, 0, 0, .65); --fall-flash: rgba(200, 0, 0, .35); /* the fall's red edge and its first flash */
   --font-round: "HISAB Round", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   --font-story: "Literata", Georgia, serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -32,7 +33,7 @@
 @media (min-width: 2400px) { html { zoom: 1.3; } :root { --vh: calc(100vh / 1.3); } }
 
 [hidden] { display: none !important; }
-html, body { height: 100%; }
+html { height: 100%; }
 body { margin: 0; font: 14px/1.4 var(--font-round); font-variant-numeric: tabular-nums; color: var(--text);
   display: grid; grid-template-columns: var(--rail-w) minmax(0, 1fr) auto; min-height: var(--vh);
   background:
@@ -69,6 +70,7 @@ main { padding: 20px var(--space-8) 48px; display: grid; gap: var(--space-6); al
 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-6); flex-wrap: wrap; }
 h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spacing: .02em; }
 .head p { margin: 4px 0 0; color: var(--muted); }
+.head p.story-line { font-family: var(--font-story); color: var(--text); }
 .actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 
 /* Readouts */
@@ -211,7 +213,7 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .chg td { padding: 4px 12px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
 .who .pp { display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 10px; border: 1px solid var(--border); border-radius: var(--r-pill); font-size: 13px; }
 .who .st { color: var(--muted); }
-.who .st.warn { color: var(--warn); } .who .st.down { color: var(--danger); }
+.who .st.warn { color: var(--warn); } .who .st.down { color: var(--danger); } .who .st.fear { color: var(--c5); }
 .helps { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 14px 20px 16px; display: grid; gap: var(--space-3); }
 .helps-h { display: flex; justify-content: space-between; align-items: center; }
 .helps ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
@@ -232,6 +234,23 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .notices { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .fell { display: grid; gap: var(--space-4); align-content: start; padding-top: var(--space-9); }
 .fell h2 { font-size: 34px; font-weight: 800; margin: 0; }
+.fell-cause { font: italic 19px/1.5 var(--font-story); max-width: 52ch; margin: 0; }
+.fell-facts, .fell-how { margin: 0; }
+/* the fall: the story shakes, drains of colour and sinks under a red edge; then "You fell" slams in and the rest follows */
+.playmain.dying .play-wrap, .playmain.dying .who { animation: fall-hit 0.45s cubic-bezier(.36,.07,.19,.97), fall-drain 1.4s ease-in forwards; pointer-events: none; }
+.playmain.dying::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  background: radial-gradient(ellipse at center, transparent 30%, var(--fall-edge) 100%); animation: fall-veil 1.4s ease-out forwards; }
+@keyframes fall-hit { 0%, 100% { transform: none; } 15% { transform: translate(-9px, 4px) rotate(-.6deg); } 35% { transform: translate(8px, -5px) rotate(.5deg); }
+  55% { transform: translate(-6px, 3px); } 75% { transform: translate(4px, -2px); } }
+@keyframes fall-drain { 0% { filter: none; opacity: 1; } 30% { filter: saturate(.4) brightness(1.15); } 100% { filter: grayscale(1) blur(3px) brightness(.35); opacity: .25; transform: translateY(28px) scale(.97); } }
+@keyframes fall-veil { 0% { opacity: 0; } 12% { opacity: 1; background-color: var(--fall-flash); } 40% { background-color: transparent; } 100% { opacity: .8; } }
+.fell.enter h2 { animation: fell-slam .75s cubic-bezier(.2,.9,.25,1) both; }
+.fell.enter .fell-cause { animation: fell-rise .7s .7s ease-out both; }
+.fell.enter .fell-facts { animation: fell-rise .6s 1.3s ease-out both; }
+.fell.enter .fell-how, .fell.enter .confirm { animation: fell-rise .6s 1.8s ease-out both; }
+@keyframes fell-slam { 0% { opacity: 0; transform: scale(2.4); letter-spacing: .5em; filter: blur(10px); }
+  60% { opacity: 1; transform: scale(.94); letter-spacing: 0; filter: none; } 100% { transform: none; } }
+@keyframes fell-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .confirm { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
 
 /* GM debug */
@@ -270,13 +289,16 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-tree-h b { font-size: 15px; }
 .cs-tree-h span { color: var(--muted); font-size: 13px; }
 .cs-tree-block { display: block; color: var(--muted); font-size: 13px; }
-.cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 40px; gap: var(--space-3); align-items: center; }
+.cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 104px 40px; gap: var(--space-3); align-items: center; }
 .cs-sk .n { font-weight: 600; }
 .cs-sk .n small { display: block; font-weight: 400; font-size: 12px; color: var(--faint); }
 .cs-sk .num { text-align: right; font-weight: 800; font-size: 16px; }
 .cs-sk.zero .n, .cs-sk.zero .num { color: var(--faint); }
 .cs-bar { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); }
 .cs-bar > b { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--t); }
+.cs-bar > .lw { position: absolute; top: -3px; bottom: -3px; border: 1.5px solid var(--text); border-radius: 6px; opacity: .5; }
+.cs-bar > .lw.via { border-style: dashed; }
+.cs-sk .lwn { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .cs-side-h { display: flex; justify-content: space-between; align-items: center; }
 /* Deals (PM5, K1 c): an "N deals" chip beside the scene title opens the player's deals, gold-edged and tinted as promises */
 .dl-wrap { position: relative; display: inline-block; margin-left: 14px; vertical-align: middle; font: 14px/1.4 var(--font-round); }
@@ -296,6 +318,16 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-hptrack { position: relative; display: block; height: 10px; border-radius: 5px; background: var(--accent-soft); overflow: hidden; }
 .cs-hptrack b { display: block; height: 100%; background: var(--ok); }
 .cs-hptrack i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--bg); }
+/* MB11: the morale bar sits under health in its own colour */
+.cs-morale b { background: var(--c5); }
+.cs-mbar { display: grid; gap: var(--space-1); }
+/* MB40: after /yield: who took it, who is deciding, who fights on */
+.cs-yield { display: grid; gap: 2px; padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in oklch, var(--warn) 50%, transparent); border-radius: var(--r-md); background: var(--warn-soft); font-size: 13px; }
+.cs-yield .hs-label, .cs-strip .cs-yield .hs-label { color: var(--warn); }
+.cs-yield .yr b { text-align: right; }
+.cs-yield .yr { display: flex; justify-content: space-between; gap: var(--space-3); }
+.cs-yield .yr span { color: var(--muted); }
+.cs-yield .yr.refused b { color: var(--danger); }
 .cs-hpsteps { position: relative; display: block; height: 14px; font-size: 11px; color: var(--faint); }
 .cs-hpsteps span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
 .cs-hpsteps .now { color: var(--text); font-weight: 700; }
@@ -454,29 +486,31 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .tone-muted { color: var(--muted); }
 
 /* Play screen, layout A "Book with a status strip": fixed rows (header, who's here, story and input), one reading column
-   of 68ch on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
-.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) minmax(0, 1fr); }
-.playmain > .fell { grid-row: 3; }
+   filling the space on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
+.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) auto minmax(0, 1fr); padding-bottom: 0; }
+/* the bottom gap sits inside the columns, so the sheet's divider runs to the foot of the screen */
+.playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
+.playmain > .fell { grid-row: 4; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
-.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
+.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) clamp(var(--panel-w), 30vw, 600px); } /* the open sheet grows with the screen */
 .play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
-/* the reading measure: about 70 characters a line of Literata 17px (58ch, as Literata's figures run wide); the free space
-   goes to the right margin */
-.play { --measure: 58ch; }
-.col { font: 17px/1.6 var(--font-story); width: min(100%, var(--measure)); box-sizing: border-box; }
+/* the story fills all the space beside the sheet at every width (always fit the screen, no empty spaces); its type
+   grows a little with the screen so wide lines stay readable */
+.play { --story-size: clamp(17px, 0.45vw + 11px, 21px); }
+.col { font: var(--story-size)/1.6 var(--font-story); width: 100%; box-sizing: border-box; }
 .col > * { font: 14px/1.4 var(--font-round); }
 .story { overflow-y: auto; min-height: 0; scrollbar-color: var(--rule) transparent;
   mask-image: linear-gradient(to bottom, transparent, black var(--space-4)); } /* lines leave softly under the who's-here row */
 .story .col { padding-top: var(--space-4); }
 /* a stronger veil behind the column (never solid) so the stars and cloud don't pass behind the letters */
-.play { font: 17px/1.6 var(--font-story); margin-left: calc(-1 * var(--space-8)); padding-left: var(--space-8);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--bg) var(--veil1), transparent) calc(var(--measure) + var(--space-8) + var(--space-6)), transparent calc(var(--measure) + var(--space-8) + var(--space-9) * 2)); }
+.play { font: var(--story-size)/1.6 var(--font-story); margin-left: calc(-1 * var(--space-8)); padding-left: var(--space-8);
+  background: color-mix(in srgb, var(--bg) var(--veil1), transparent); }
 .story .col, .sec.col { padding-right: var(--space-6); }
 .story .col { padding-bottom: var(--space-4); }
 .log { display: flex; flex-direction: column; gap: var(--space-4); }
 .log:focus-visible { outline-offset: 4px; }
 .log p { margin: 0; overflow-wrap: anywhere; }
-.ln-narration { color: var(--text); white-space: pre-wrap; font: 17px/1.6 var(--font-story); text-wrap: pretty; }
+.ln-narration { color: var(--text); white-space: pre-wrap; font: var(--story-size, 17px)/1.6 var(--font-story); text-wrap: pretty; }
 .ln-player .aimed { color: var(--muted); font-weight: 400; }
 .turn { display: grid; gap: var(--space-3); }
 /* place and scene breaks: a quiet rule, named when the player reached a new place */
@@ -529,8 +563,8 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-hw { text-align: right; font-weight: 600; }
 .cs-pchips { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; }
 .cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
-.ps-damaged { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
-.rolls-sw[aria-pressed="true"] { color: var(--text); }
+.ps-damaged, .ps-pressure { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
+.rolls-sw[aria-pressed="true"], .auto-open[aria-pressed="true"] { color: var(--text); }
 
 /* QT15: the quest line under the place line on the Play screen; only the quest text shrinks */
 .quest-line { display: flex; align-items: center; gap: var(--space-2); width: fit-content; max-width: 100%; min-height: 24px; padding: 0; margin-top: var(--space-1);
@@ -542,3 +576,37 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .quest-line .ok { color: var(--ok); font-weight: 600; }
 .quest-line .warn { color: var(--warn); }
 .quest-line .more { color: var(--faint); }
+/* Watch an agent play: the autopilot bar under who's here */
+.auto { display: grid; gap: var(--space-2); }
+.auto:empty { display: none; }
+/* the agent bar: one quiet panel under Who's here; settings on the left, the go controls pushed right */
+.auto-panel { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: color-mix(in oklch, var(--surface) 82%, transparent); }
+.auto-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.auto-field { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: 13px; }
+.auto-field select { font: 14px/1 var(--font-round); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md);
+  height: var(--control-h); padding: 0 var(--space-2); }
+.auto-go { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.auto-x { font-size: 20px; line-height: 1; min-width: var(--control-h); color: var(--muted); }
+.auto-say { margin: 0; display: flex; gap: var(--space-3); align-items: baseline; font: italic 15px/1.5 var(--font-story); }
+.auto-who { flex: none; font: 600 11px/1 var(--font-round); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-style: normal; }
+.auto-panel .hs-note { margin: 0; }
+.auto-own { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-md); }
+.title-tools { display: flex; align-items: center; gap: var(--space-3); align-self: start; }
+
+/* creation: name and gender above the class picker */
+.who-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin: var(--space-3) 0; }
+.who-row .hs-input { margin-left: var(--space-2); width: 20ch; font: 600 15px/1.2 var(--font-round); text-transform: none; letter-spacing: normal; color: var(--text); }
+/* hall of fame (fame.ts): cards fill the row (auto-fit), so one fallen character spans the page instead of leaving it empty;
+   inside, who they were sits beside what they had once the card is wide enough */
+.fame-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); gap: var(--space-6); }
+.fame-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 20px 24px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--space-4) var(--space-8); align-content: start; }
+.fame-who, .fame-had { display: grid; gap: var(--space-3); align-content: start; }
+.fame-had { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.fame-card p { margin: 0; }
+.fame-h { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.fame-h h2 { margin: 0; font-size: 22px; }
+.fame-h small { font-weight: 400; color: var(--muted); }
+.fame-cause { font: italic 16px/1.5 var(--font-story); }
+.fame-list p:last-child { display: flex; flex-wrap: wrap; gap: 4px; }

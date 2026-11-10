@@ -6,10 +6,11 @@ import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
-import { achievementName } from '../engine/xp';
+import { achLevel, achXp, achievementName } from '../engine/xp';
+import { rewardName, rewardPos } from '../ruleset/achRewards';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
-import { kitBonus } from '../ruleset/gear';
+import { kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
 import { isDownLevel } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
@@ -118,10 +119,10 @@ export function inventoryPage(api: GameApi) {
       const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
       const rows: PanelRow[] = [{ k: 'Look', v: d.look }, { k: 'Kind', v: d.kind }];
       if (d.hands) rows.push({ k: 'Hands', v: String(d.hands) });
-      for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${m.name ?? m.id}`, v: `${m.tree} ${m.class}, reach ${m.reach}, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
+      for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach}, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
       if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
       if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
-      for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : e.skill) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
+      for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
       const heal = healItems(s, s.player).find((x) => x.itemId === it!.itemId);
       if (heal) {
         const r = heal.row;
@@ -268,19 +269,20 @@ export function achievementsPage(api: GameApi) {
     groups: (s) => {
       const lib = getLibrary().achievements ?? {};
       const mine = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars);
-      return REWARD_LEVELS.keys.map((lv) => {
-        const rows: TRow[] = mine.filter((a) => lib[a.key!].level === lv).map((a) => ({ id: a.id, sortKey: a.turn,
+      const levels = [...new Set([...REWARD_LEVELS.keys, ...mine.map((a) => achLevel(lib[a.key!], a.of))])].sort((x, y) => rewardPos(x) - rewardPos(y)); // past VI too
+      return levels.map((lv) => {
+        const rows: TRow[] = mine.filter((a) => achLevel(lib[a.key!], a.of) === lv).map((a) => ({ id: a.id, sortKey: a.turn,
           cells: { name: achievementName(s, a), state: a.replacedBy ? 'Replaced by the next level' : 'Current', turn: `turn ${a.turn}` },
           ...(a.replacedBy ? { tones: { state: 'muted' as const } } : {}) }));
-        const title = `Level ${REWARD_LEVELS.name(lv)}`;
+        const title = `Level ${rewardName(lv)}`;
         return { id: lv, title, rows, value: String(rows.length), unit: unitOf(rows.length, scars ? 'scar' : 'achievement'),
-          sub: `${CONFIG.REWARD_XP[lv] ?? 0} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
+          sub: `${achXp({ level: lv, ...(scars ? { scar: true as const } : {}) })} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
       }).filter((g) => g.rows.length);
     },
     line: (s) => {
       const lib = getLibrary().achievements ?? {};
-      const xp = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + (CONFIG.REWARD_XP[lib[a.key!].level] ?? 0), 0);
-      return `${xp} XP earned this way`;
+      const xp = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + achXp(lib[a.key!], a.of), 0);
+      return scars ? `${plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')}, ${xp} XP` : `${xp} XP earned this way`;
     },
   });
 }

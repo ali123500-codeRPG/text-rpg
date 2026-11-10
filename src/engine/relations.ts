@@ -39,13 +39,38 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
 /** friendly or warmer (friendly, friend, loyal) */
 export const warm = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) >= STANCES.pos('friendly');
 /** hostile: a attacks b on sight. RS3 loyal: a takes the side of anyone it is loyal to, so whoever is hostile to them
- * is hostile to a too, unless a is friendly or warmer toward that one. */
+ * is hostile to a too, unless a is friendly or warmer toward that one. A friend does the same only against someone a is
+ * already opposed (or colder) to. */
 export function hostile(state: GameState, a: Actor, b: Actor): boolean {
+  if (truce(state, a, b)) return false;
   const s = stance(state, a, b);
   if (s === 'hostile') return true;
   if (s === 'yielded' || warm(s)) return false;
-  return allActors(state).some((c) => c !== a && c !== b && isActive(c) && stance(state, a, c) === 'loyal' && stance(state, b, c) === 'hostile');
+  const opposed = STANCES.pos(s) <= STANCES.pos('opposed');
+  return allActors(state).some((c) => {
+    if (c === a || c === b || !isActive(c) || stance(state, b, c) !== 'hostile') return false;
+    const ac = stance(state, a, c);
+    return ac === 'loyal' || (ac === 'friend' && opposed);
+  });
 }
+/** MB42: the player and a foe that took the player's yield are at truce for the rest of the scene */
+export function truce(state: GameState, a: Actor, b: Actor): boolean {
+  const y = state.yielding;
+  const other = a === state.player ? b : b === state.player ? a : undefined;
+  return !!y && !!other && y.accepted.includes(other.id);
+}
+/** SP1: the live spar that has a and b on different sides with neither out yet (SP4, SP5) */
+export function sparBetween(state: GameState, a: Actor, b: Actor) {
+  if (a === b || !isActive(a) || !isActive(b)) return undefined;
+  return state.spars?.find((sp) => {
+    if (a.id in sp.out || b.id in sp.out) return false;
+    const sa = sp.sides.findIndex((s) => s.includes(a.id)), sb = sp.sides.findIndex((s) => s.includes(b.id));
+    return sa >= 0 && sb >= 0 && sa !== sb;
+  });
+}
+export const sparring = (state: GameState, a: Actor, b: Actor): boolean => !!sparBetween(state, a, b);
+/** a fights b: for real (hostile) or in a spar (SP1). Stance and XP rules use hostile; fighting rules use foe. */
+export const foe = (state: GameState, a: Actor, b: Actor): boolean => hostile(state, a, b) || sparring(state, a, b);
 /** wary: opposed or colder. a's alert fires when it notices b, but only hostile attacks. */
 export function wary(state: GameState, a: Actor, b: Actor): boolean {
   const s = stance(state, a, b);
@@ -56,14 +81,15 @@ export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): bo
   return AWARENESS.pos(status ?? 'unaware') >= AWARENESS.pos(min);
 }
 
-/** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to. */
+/** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to
+ * or sparring with (SP1). */
 export function isEngaged(state: GameState, actor: Actor): boolean {
   if (actor.kind === 'player' || !countsInFight(actor)) return false;
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
     if (!atLeast(b.status, 'suspicious')) return false;
     const other = actorById(state, id);
-    return !!other && countsInFight(other) && hostile(state, actor, other);
+    return !!other && countsInFight(other) && foe(state, actor, other);
   });
 }
 

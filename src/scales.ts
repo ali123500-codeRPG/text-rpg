@@ -58,7 +58,7 @@ export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];
 /** how much one actor knows of another, least first (Belief.status; decays one step at a time) */
 export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicious'], ['aware', 'Aware'], ['tracking', 'Tracking']]);
 /** XP reward levels for achievements; XP per level is CONFIG.REWARD_XP */
-export const REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
+export const REWARD_LEVELS = scale([['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI']]);
 export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** QT28: quests' own reward levels; XP per level is CONFIG.QUEST_REWARD_XP, the level from CONFIG.QUEST_GAIN_LEVEL */
 export const QUEST_REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
@@ -89,6 +89,15 @@ export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy
 /** Skill tiers: a skill's tier sets its final efficiency multiplier (CONFIG.SKILL_TIER_MULT). */
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
 export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];
+/** morale levels, calmest first (MB2); bands and penalties per level are CONFIG.MORALE_TRACK */
+export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken']]);
+export type MoraleLevel = (typeof MORALE_LEVELS.keys)[number];
+/** how much a skill group counts in a foe's defeat-XP rating, least first; the factor per level is CONFIG.XP_FACTOR_MULT */
+export const XP_FACTORS = scale([['none', 'None'], ['quarter', 'Quarter'], ['half', 'Half'], ['three_quarters', 'Three quarters'], ['full', 'Full']]);
+export type XpFactorKey = (typeof XP_FACTORS.keys)[number];
 /** Class tiers: how strong a class is, to compare classes and to place NPC templates */
-export const CLASS_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2'], ['tier_3', 'Tier 3'], ['tier_4', 'Tier 4'], ['tier_5', 'Tier 5']]);
+export const CLASS_TIERS = scale([['tier_0', 'Common'], ['tier_1', 'Trained'], ['tier_2', 'Seasoned'], ['tier_3', 'Renowned'], ['tier_4', 'Heroic'], ['tier_5', 'Legendary']]);
 export type ClassTierKey = (typeof CLASS_TIERS.keys)[number];
+/** a skill tree's rating, weakest first: sets how many of its skills at a step earn its All-XXX (CONFIG.ALL_STEP_SKILLS) */
+export const TREE_RATINGS = scale([['inferior', 'Inferior'], ['normal', 'Normal'], ['superior', 'Superior'], ['legendary', 'Legendary']]);
+export type TreeRatingKey = (typeof TREE_RATINGS.keys)[number];

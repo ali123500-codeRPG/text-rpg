@@ -2,6 +2,9 @@
 import type { ActorId, Belief, BeliefStatus, Fact, FactId, LibraryRef, PlaceId, SlotKey, StoryId, Turn, Stance } from './core';
 import type { ItemInstance } from './items';
 
+/** a standing defense: a choice, not a skill; DEFENSE_SKILL names the skill each one rolls */
+export type DefenseKind = 'dodge' | 'block' | 'parry';
+
 export const PRONOUNS = ['he', 'she', 'they', 'it'] as const;
 export type Pronouns = (typeof PRONOUNS)[number];
 
@@ -31,6 +34,12 @@ export type Actor = {
   wares?: { items: string[]; services: string[] };
   /** PY6: price multipliers this actor won or lost haggling, by seller; cleared when its engagement ends */
   haggle?: Record<ActorId, number>;
+  /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
+  pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
+  hunches?: { scene: number; ids: string[] }; // LI5b Gut Feeling: watchers that set off the owner's hunch this scene (sceneStartTurn)
+  auraChecks?: string[]; // NT14/I4: the auras (perk:owner) this actor has already checked against this engagement
+  /** NT3: speech tries this engagement, by listener and speech kind */
+  speechTries?: Record<ActorId, Record<string, number>>;
   /** PY8: healing rows (the clinic's) this actor has paid for and not used yet */
   paid?: string[];
 };
@@ -40,11 +49,13 @@ export type PerkMark = { perk: string; target?: string; until?: number };
 
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
-export type EngagementKind = 'talk' | 'fight';
+export type EngagementKind = 'talk' | 'fight' | 'spar';
 export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
-export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true };
+export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true;
+  /** the most a hostile foe's power (rating + gear rating) was above the player's: in points and in % */
+  above?: number; abovePct?: number };
 
 export type SkillState = 'tagged' | 'normal' | 'flawed';
 export type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };
@@ -59,7 +70,7 @@ export type Core = {
   perks: OwnedPerk[];
   condition: SavedCondition;
   inventory: ItemInstance[];
-  standingDefense: 'dodge' | 'block';
+  standingDefense: DefenseKind;
   perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
 };
 
@@ -84,6 +95,7 @@ export type SavedCondition = {
   parts: Record<string, number>; // body-part id -> pool % left (100 = full), state derived
   destroyed?: string[]; // reserved
   status: string[];
+  moraleLost?: number; // MB5: flat morale points lost; the level is derived from this and max morale
 };
 
 export type Progression = {
@@ -102,9 +114,14 @@ export type Progression = {
   /** achievement charges: the game day each was last spent, by achievement key */
   charges?: Record<string, number>;
   zonesSeen?: string[]; // zones the player has entered
+  crippled?: string[]; // parts Crippled or worse, waiting to heal back to Healthy (the 'mended' achievements)
+  wasDown?: true; // went Down and is not yet back to Unhurt (the 'back_from_down' achievement)
+  grudges?: string[]; // people who have been hostile to the player and are not yet friendly (the 'enemy_to_friend' achievements)
   /** alternate capstones the player may swap in for a class's default, by class id; set when the class reaches
    * its top level with those alternates' conditions met, and cleared by a swap */
   capstoneOptions?: Record<LibraryRef, LibraryRef[]>;
+  freeLevelsTaken?: number; // free levels already taken (owed = levelsEarned(a, 'freeLevels') − this)
+  bonusLevelsTaken?: number; // bonus levels already taken: character levels outside every class (owed = levelsEarned(a, 'bonusLevels') − this)
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
   quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
 };
@@ -116,9 +133,6 @@ export type Mind = {
   /** PM6: code-made lines about perceived events that fell out of its recent window; upTo = last summarized event id */
   earlier?: { upTo: string; lines: string[] };
   behavior: string;
-  morale?: number;
-  fearless?: boolean; // from the template's personality
-  renownFelt?: true; // this actor has made its first morale check against a player with renown
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware
@@ -161,6 +175,8 @@ export type Journal = {
   clearSight?: Record<ActorId, string>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;
+  /** the places the player last left, newest first, with the turn it left each (CONFIG.TRAIL_ZONES long): "go back" reads it */
+  trail?: { zone: string; left: Turn }[];
 };
 
 export type { PlaceId };

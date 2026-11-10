@@ -1,5 +1,8 @@
-// All-50 perks (All-50 doc https://claude.ai/artifact/R5CirgnTX2vwoG4tPp8oxR). A tree's All-50 is a
-// bundle of parts, granted for free when every skill of the tree reaches 50 true skill (G1–G8). Each part is its own perk
+// All-50 perks (All-50 doc https://claude.ai/artifact/R5CirgnTX2vwoG4tPp8oxR). Each skill has its own All-50 part
+// (SKILL_PARTS), and each tree has one passive that fits it (ALL_BUNDLES). Once enough skills of a tree reach 50 true
+// skill (CONFIG.ALL_STEP_SKILLS by the tree's rating: never, 3, 2 or 1), the tree's passive and those skills' parts
+// are granted free; each further skill of the tree that reaches 50 then adds its own part. A skill's part belongs to the skill, not the tree, so a skill that moves to another tree
+// takes its part along. A tree with fewer skills than that never earns its All-50. Each part is its own perk
 // (so code checks hasPerk on the part) with a Story and an exact Rules view, like the ladder perks. A part is granted
 // only once it is built (BUILT_PERKS). Names: "<tree> All-50: <name>" (G5); All-50 and 100+ names may be dramatic.
 import { TR } from './treeIds';
@@ -7,19 +10,34 @@ import { FN } from './functionIds';
 import type { PerkWriteup } from '../types';
 import { SK } from './skillIds';
 import { PK } from './perkIds';
+import { CONFIG } from '../config';
 
-/** a tree's All-50 bundle: its name and its parts, in the doc's order */
-export type AllBundle = { treeId: string; step: 50; name: string; parts: string[] };
+/** a tree's All-50: its name and its passive (the skills' parts are in SKILL_PARTS) */
+export type AllBundle = { treeId: string; step: 50; name: string; passive?: string };
 
 export const ALL_BUNDLES: AllBundle[] = [
-  { treeId: TR.melee, step: 50, name: 'Warborn', parts: [PK.opening_strike, PK.counter, PK.fighters_frame, PK.steady_guard] }, // Weapon Drill dropped (Round 3)
-  { treeId: TR.ranged, step: 50, name: 'Death from Afar', parts: [PK.unerring, PK.volley, PK.past_the_cover, PK.hunters_eye] },
-  { treeId: TR.unarmed, step: 50, name: 'Open Hand', parts: [PK.hard_to_hold, PK.iron_knuckles, PK.bare_handed_guard] },
-  { treeId: TR.defense, step: 50, name: 'The Unbroken', parts: [PK.second_wind, PK.dodgy, PK.thick_hide] },
-  { treeId: TR.perception, step: 50, name: 'Nothing Escapes', parts: [PK.spotter, PK.curiouser, PK.night_eyes] }, // Light Sleeper parked
-  { treeId: TR.stealth, step: 50, name: 'One with the Dark', parts: [PK.strike_and_fade, PK.child_of_night, PK.hushed_steps] },
-  { treeId: TR.speech, step: 50, name: 'Silver Voice', parts: [PK.soft_landing, PK.easy_speaker, PK.silver_words] }, // Read Them parked; Silver Words picked in Round 4
+  { treeId: TR.melee, step: 50, name: 'Warborn', passive: PK.fighters_frame }, // Weapon Drill dropped (Round 3)
+  { treeId: TR.ranged, step: 50, name: 'Death from Afar', passive: PK.hunters_eye },
+  { treeId: TR.unarmed, step: 50, name: 'Open Hand', passive: PK.bare_handed_guard },
+  // Defense (Dodge, Block) and Fortitude (Endurance, Resolve) have two skills each, so neither earns its All-50 for now
+  { treeId: TR.defense, step: 50, name: 'The Unbroken', passive: PK.thick_hide },
+  { treeId: TR.fortitude, step: 50, name: 'Hard to Kill', passive: PK.last_to_fall },
+  { treeId: TR.perception, step: 50, name: 'Nothing Escapes', passive: PK.curiouser }, // Light Sleeper parked
+  { treeId: TR.stealth, step: 50, name: 'One with the Dark', passive: PK.child_of_night },
+  { treeId: TR.speech, step: 50, name: 'Silver Voice', passive: PK.silver_words }, // Read Them parked
 ];
+
+/** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
+ * No part yet: Insight (parked), Vanishing, Intimidation and the one-skill trees. */
+export const SKILL_PARTS: Record<string, string> = {
+  [SK.melee_light]: PK.counter, [SK.melee_medium]: PK.steady_guard, [SK.melee_heavy]: PK.opening_strike,
+  [SK.ranged_light]: PK.unerring, [SK.ranged_medium]: PK.volley, [SK.ranged_heavy]: PK.past_the_cover,
+  [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold, [SK.unarmed_improvised]: PK.junk_arsenal,
+  [SK.dodge]: PK.dodgy, [SK.parry]: PK.against_the_grain, [SK.block]: PK.iron_rim, [SK.endurance]: PK.second_wind, [SK.resolve]: PK.grit,
+  [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.know_the_step, // Spotter parked
+  [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade,
+  [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
+};
 
 const part = (treeId: string, p: Omit<PerkWriteup, 'skill' | 'place' | 'allStep'>): PerkWriteup =>
   ({ ...p, skill: treeId, place: 'all50', allStep: { treeId, step: 50 } });
@@ -29,27 +47,27 @@ export const ALL_PARTS: PerkWriteup[] = [
   part(TR.melee, { id: PK.opening_strike, ref: 'T1a', name: 'Opening Strike', effect: 'attack',
     story: 'You always make the first blow count. Your first melee attack on each foe in a fight lands one outcome better.',
     rules: { kind: 'Always on', trigger: 'The owner makes a melee attack.', conditions: ['It is the owner\'s first melee attack on that foe in this engagement.'],
-      effect: 'Tier shift +1 on the attack roll. The defense roll still happens.', lasts: 'That attack.', cooldown: 'Once per foe per engagement.' } }),
+      effect: 'Tier shift +1 on the attack roll.', lasts: 'That attack.', cooldown: 'Once per foe per engagement.' } }),
   part(TR.melee, { id: PK.counter, ref: 'T1c', name: 'Counter', effect: 'defense',
     story: 'A clumsy swing is an invitation. When a melee attack on you goes badly wrong, you strike back at once.',
     rules: { kind: 'Always on', trigger: 'A melee attack on the owner is resolved.',
       conditions: ['The attack roll ends in Critical Failure or worse.', 'The attack was not itself a free attack.', 'The owner is active, in the attacker\'s zone, and its default mode at that range is melee or unarmed.', 'Once per turn.'],
       effect: 'The owner makes one attack at the attacker at once, with that mode. It does not use the owner\'s action.', lasts: 'That attack.' } }),
   part(TR.melee, { id: PK.fighters_frame, ref: 'T1d', name: "Fighter's Frame", effect: 'defense',
-    story: 'A body hardened by a thousand bouts. Melee blows on you land a tenth lighter.',
-    rules: { kind: 'Always on', trigger: 'A melee or unarmed attack hits the owner.', conditions: ['The attack mode is not ranged.'],
-      effect: 'The hit\'s damage before armor is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).', lasts: 'Always.' } }),
+    story: 'A body hardened by a thousand bouts. Melee blows that get past your armor cost you a tenth less health.',
+    rules: { kind: 'Always on', trigger: 'A melee or unarmed attack damages the owner\'s body (not a shield).', conditions: ['The attack mode is not ranged.'],
+      effect: 'The health lost from that hit, after armor, is ×0.9 (CONFIG.FIGHTERS_FRAME_MULT, placeholder).', lasts: 'Always.' } }),
   part(TR.melee, { id: PK.steady_guard, ref: 'T1e', name: 'Steady Guard', effect: 'defense',
-    story: 'Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.',
-    rules: { kind: 'Always on', trigger: 'Always; and the owner makes a Block roll.', conditions: ['The extra +5 needs the block to be made with a melee weapon, not a shield.'],
-      effect: '+5 true skill in Block. Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).', lasts: 'Always.' },
-    trueSkillTo: { [SK.block]: 5 } }),
+    story: 'Your blade knows where the blow will land. Your Parry is 5 higher, and 5 higher again when you parry with a medium weapon.',
+    rules: { kind: 'Always on', trigger: 'Always; and the owner makes a Parry roll.', conditions: ['The extra +5 needs the parry to be made with a medium melee weapon.'],
+      effect: '+5 true skill in Parry. Parry rolls made with a medium melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).', lasts: 'Always.' },
+    trueSkillTo: { [SK.parry]: 5 } }),
   // ---- Combat – Ranged ----
   part(TR.ranged, { id: PK.unerring, ref: 'T2a', name: 'Unerring', effect: 'attack',
     story: 'Your first shot comes before they are ready. The first time you shoot in a fight, at a foe who hasn\'t moved yet, it is harder to avoid.',
     rules: { kind: 'Always on', trigger: 'The owner makes a ranged attack.',
       conditions: ['It is the owner\'s first ranged attack in this engagement.', 'The target hasn\'t acted yet in its engagement (it has none, or it began this turn and the target hasn\'t had its action).'],
-      effect: 'Tier shift −1 on the target\'s defense roll. No roll is skipped.', lasts: 'That attack.', cooldown: 'Once per engagement.' } }),
+      effect: 'Tier shift −1 on the target\'s defense roll.', lasts: 'That attack.', cooldown: 'Once per engagement.' } }),
   part(TR.ranged, { id: PK.volley, ref: 'T2b', name: 'Volley', effect: 'attack',
     story: 'One shot is never the last. Once a fight, after a ranged hit, your next shot is already on its way to another foe.',
     rules: { kind: 'Automatic', trigger: 'The owner\'s ranged attack hits.',
@@ -73,6 +91,10 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'Your hands are weapons now. Your unarmed hits deal a tenth more damage.',
     rules: { kind: 'Always on', trigger: 'The owner hits with an unarmed mode (punch, grapple, slam and the rest).', conditions: [],
       effect: 'The hit\'s damage before armor is ×1.1 (CONFIG.IRON_KNUCKLES_MULT, placeholder).', lasts: 'Always.' } }),
+  part(TR.unarmed, { id: PK.junk_arsenal, ref: 'T3e', name: 'Junk Arsenal', effect: 'attack',
+    story: 'A chair leg, a bottle, a tankard: in your hands they all hurt. Your improvised weapons hit a fifth harder.',
+    rules: { kind: 'Always on', trigger: 'The owner hits with an improvised weapon (an attack that rolls Improvisation, or a throw that blends it in).', conditions: [],
+      effect: 'The hit\'s damage before armor is ×1.2 (CONFIG.JUNK_ARSENAL_MULT, placeholder).', lasts: 'Always.' } }),
   part(TR.unarmed, { id: PK.bare_handed_guard, ref: 'T3d2', name: 'Bare-Handed Guard', effect: 'defense',
     story: 'With nothing in your hands, nothing slows you. Your Dodge is 5 higher, and 5 higher again while you hold no weapon.',
     rules: { kind: 'Always on', trigger: 'Always; and the owner makes a Dodge roll.', conditions: ['The extra +5 needs the owner to hold no item with a weapon mode.'],
@@ -83,15 +105,33 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'When the blood starts to run, you find more in you. Once a fight, at your first serious wound, you shake one off.',
     rules: { kind: 'Automatic', trigger: 'An attack leaves the owner at Wounded or worse on the health track.', conditions: ['Once per engagement.', 'The owner is not down (Incapacitated or worse).'],
       effect: 'The owner\'s health lost drops to the top of the level one better (Wounded to Injured: 45% lost). Body parts are unchanged.', lasts: 'Permanent (it is healing).', cooldown: 'Once per engagement.' } }),
+  part(TR.fortitude, { id: PK.last_to_fall, ref: 'T4f', name: 'Last to Fall', effect: 'health',
+    story: 'The worse it gets, the steadier you are. Once you are badly hurt, fear takes a quarter less out of you.',
+    rules: { kind: 'Always on', trigger: 'The owner loses morale.', conditions: ['The owner is at Wounded or worse on the health track.'],
+      effect: 'The morale lost is ×0.75 (CONFIG.LAST_TO_FALL_MULT, placeholder).', lasts: 'Always.' } }),
   part(TR.defense, { id: PK.dodgy, ref: 'T4d', name: 'Dodgy', effect: 'defense',
-    story: 'You are never quite where they aim. Attacks on you lose 5 skill.',
+    story: 'You are never quite where they aim. Attacks on you lose 10 skill.',
     rules: { kind: 'Always on', trigger: 'An attack roll is made against the owner.', conditions: [],
-      effect: 'That attack roll gets −5 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).', lasts: 'That roll.' } }),
+      effect: 'That attack roll gets −10 effective skill (a foe_perk modifier, CONFIG.DODGY_SKILL, placeholder).', lasts: 'That roll.' } }),
   part(TR.defense, { id: PK.thick_hide, ref: 'T4e', name: 'Thick Hide', effect: 'health',
-    story: 'Blows that would cut others only bruise you. Every hit costs you a little less health.',
-    rules: { kind: 'Always on', trigger: 'A hit damages the owner\'s body (not a shield).', conditions: [],
-      effect: 'The health lost from that hit, after armor, is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).', lasts: 'Always.' } }),
+    story: 'Blows that would cut others only bruise you. Every hit lands a little lighter, before your armor takes its share.',
+    rules: { kind: 'Always on', trigger: 'A hit lands on the owner\'s body (not a shield).', conditions: [],
+      effect: 'The hit\'s damage before armor is ×0.95 (CONFIG.THICK_HIDE_MULT, placeholder).', lasts: 'Always.' } }),
+  part(TR.defense, { id: PK.against_the_grain, ref: 'T4g', name: 'Against the Grain', effect: 'defense',
+    story: 'A heavy blade is no harder to turn than any other. Heavy weapons lose their edge against your parry.',
+    rules: { kind: 'Always on', trigger: 'The owner parries a heavy melee weapon.', conditions: [],
+      effect: 'The heavy-weapon gap shift (−1, HEAVY_VS_BLOCK_GAP) is not applied to the owner\'s parries. Blocks still take it.', lasts: 'Always.' } }),
+  part(TR.defense, { id: PK.iron_rim, ref: 'T4h', name: 'Iron Rim', effect: 'defense',
+    story: 'Your shield is bound to last. It wears down a quarter slower than anyone else\'s.',
+    rules: { kind: 'Always on', trigger: 'A blow lands on the owner\'s shield.', conditions: [],
+      effect: 'The damage the shield\'s pool takes is ×0.75 (CONFIG.IRON_RIM_MULT, placeholder). Shield Breaker\'s ×2 still applies on top.', lasts: 'Always.' } }),
+  part(TR.fortitude, { id: PK.grit, ref: 'T4i', name: 'Grit', effect: 'health',
+    story: 'A hard body makes a hard mind. A quarter of your Endurance adds to every Resolve roll, morale rolls included, and both skills learn from them.',
+    rules: { kind: 'Always on', trigger: 'The owner makes a Resolve roll (a morale roll, or an answer to an aura).', conditions: ['The Fortitude tree is open to the owner.'],
+      effect: 'Endurance augments Resolve: the roll adds the owner\'s true Endurance × 0.25 (CONFIG.GRIT_SHARE, placeholder) × its tier, the way a skill augment does, and Endurance can learn from the roll the same way.', lasts: 'Always.' },
+    augments: [{ from: SK.endurance, skill: SK.resolve, share: CONFIG.GRIT_SHARE }] }),
   // ---- Perception ----
+  // Spotter is parked: no skill carries it in SKILL_PARTS, so it is never granted
   part(TR.perception, { id: PK.spotter, ref: 'T5b', name: 'Spotter', effect: 'senses',
     story: 'What you see, your people sense. Your band-mates beside you know something is there whenever you do.',
     rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor outside its band.', 'A band-mate is in the owner\'s zone and is less than suspicious of that actor.'],
@@ -100,6 +140,10 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.',
     rules: { kind: 'Always on', trigger: 'The owner makes a sight or hearing roll (any skill with that function, Tremor included).', conditions: ['The roll ends in Success or better.'],
       effect: 'Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.', lasts: 'That roll.' } }),
+  part(TR.perception, { id: PK.know_the_step, ref: 'T5f', name: 'Know the Step', effect: 'senses',
+    story: 'A cough, a gait, the way a voice drops. You know the people you have met by sound alone.',
+    rules: { kind: 'Always on', trigger: 'The owner hears someone it can\'t see (sound only).', conditions: ['The owner knows that someone\'s name.'],
+      effect: 'The owner learns who it is: the heard event and any words spoken name them, as if seen.', lasts: 'That event.' } }),
   part(TR.perception, { id: PK.night_eyes, ref: 'T5e', name: 'Night Eyes', effect: 'senses',
     story: 'The dark hides little from you. Light counts one step brighter when you look.',
     rules: { kind: 'Always on', trigger: 'The owner makes an Eyesight roll.', conditions: [],
@@ -134,3 +178,11 @@ export const ALL_PARTS: PerkWriteup[] = [
       effect: '+5 true skill in Persuasion, Intimidation and Barter.', lasts: 'Always.' },
     trueSkillTo: { [SK.persuasion]: 5, [SK.intimidation]: 5, [SK.barter]: 5 } }),
 ];
+
+// a passive carries its tree; a skill's part carries its skill (src/library/data.ts fills in the skill's current tree)
+for (const p of ALL_PARTS) {
+  const b = ALL_BUNDLES.find((x) => x.passive === p.id);
+  const skill = Object.keys(SKILL_PARTS).find((k) => SKILL_PARTS[k] === p.id);
+  if (b) Object.assign(p, { skill: b.treeId, allStep: { treeId: b.treeId, step: b.step } });
+  else if (skill) Object.assign(p, { allStep: { treeId: p.allStep!.treeId, step: 50, skill } });
+}

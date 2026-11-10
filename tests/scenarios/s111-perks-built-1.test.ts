@@ -70,7 +70,7 @@ describe('111 coded perks, batch 1', () => {
     expect(grip()).toBe(0);
     s.player.core.condition.parts.right_arm = -10; // Crippled
     expect(grip()).toBeLessThan(0);
-    give(s.player, 'tough_it_out'); // Crippled counts as Damaged
+    give(s.player, PK.tough_it_out); // Crippled counts as Damaged
     expect(grip()).toBe(0);
   });
   it('Read Wounds: a foe’s Damaged parts and its health one level earlier', () => {

@@ -6,12 +6,13 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, effort, killXp, payDefeats, rating, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, effort, gearRating, killXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
 import type { GameEvent } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { GR } from '../../src/library/functionIds';
 import { CL } from '../../src/library/classIds';
 
 const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'player', kind: 'attack', zone: 'field_mid', effects: [], noise: 'quiet', visibility: 'low', perception: {},
@@ -21,11 +22,11 @@ describe('106 XP and levels', () => {
   it('rating: categories ranked 1, ½, ¼, weighted; weak foes taper (X18–X23)', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
-    // one offensive skill, plus tremor (50, tier 0 so read as 25) at the notice weight (Taste removed)
-    expect(rating(slime)).toBeCloseTo(effort(30) + CONFIG.XP_CATEGORY_WEIGHT.notice * effort(25), 5);
+    // one offensive skill, plus tremor (50, tier 0 so read as 25) at the notice weight (Taste removed), plus steady Resolve 50 (Will)
+    expect(rating(slime)).toBeCloseTo(effort(30) + xpGroupFactor(GR.notice) * effort(25) + xpGroupFactor(GR.will) * effort(50), 5);
     const g = actor(s, 'guard_1');
     expect(rating(g)).toBeGreaterThan(rating(slime));
-    const t = Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / rating(s.player));
+    const t = Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / (rating(s.player) + gearRating(s, s.player))); // the player's gear counts too
     expect(killXp(s, slime)).toBeCloseTo(rating(slime) * t * CONFIG.KILL_XP_MULT, 1);
     s.player.core.skills[SK.barter] = { raw: 90, state: 'normal' }; // influence counts at 0.25×
     const before = rating(s.player);
@@ -58,7 +59,7 @@ describe('106 XP and levels', () => {
   it('every achievement pays the XP of its reward level', () => {
     const lib = getLibrary().achievements!;
     for (const d of Object.values(lib)) expect(REWARD_LEVELS.has(d.level)).toBe(true);
-    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([50, 100, 250, 1000, 2000]);
+    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([25, 50, 100, 250, 1000, 2000, 5000, 10000]);
     expect(CONFIG.REWARD_XP[lib[ACH.mastery_150].level]).toBe(2000);
   });
   it('a foe with a race also earns the first race defeat', () => {
@@ -110,12 +111,12 @@ describe('106 XP and levels', () => {
     const s = makeVillage();
     const p = s.player, pr = p.progression!;
     expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP);
-    p.core.classes.push({ classId: 'slime', state: 'unlocked', level: 0 });
-    pr.nextClass = 'slime';
+    p.core.classes.push({ classId: CL.trader, state: 'unlocked', level: 0 });
+    pr.nextClass = CL.trader;
     awardXp(s, CONFIG.LEVEL_XP + 5, 'test');
     expect(pr.xp).toBe(5);
-    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 1], ['slime', 'current', 1]]);
+    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 1], [CL.trader, 'current', 1]]);
     expect(pr.unspentPerkPoints).toBe(1); // level 2 is even
-    expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: 'slime', level: 2 });
+    expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: CL.trader, level: 2 });
   });
 });

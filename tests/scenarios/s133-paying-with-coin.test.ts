@@ -1,5 +1,6 @@
 // 133 Paying with coin (D-93, PY1–PY10): a Trader's wares show at the player's prices; buy swaps coin for goods or a
 // service with no roll; haggling and Hard Bargain change the price; clinic care is bought, then used by resting.
+import { HL } from '../../src/library/tableIds';
 import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
@@ -88,7 +89,7 @@ it('133e clinic care is bought, then used by resting in the clinic', () => {
   expect(c.hpLostPct).toBeGreaterThan(0); // unpaid: the plain rest row
   s.clocks = {};
   play(s, { intent: intent({ action: { type: 'buy', target: 'trader', item: `service:${SV.clinic}` } }) });
-  expect(s.player.paid).toEqual(['clinic']);
+  expect(s.player.paid).toEqual([HL.clinic]);
   play(s, { intent: intent({ action: { type: 'rest' } }) });
   expect(c.hpLostPct).toBe(0);
   expect(s.player.paid).toEqual([]);

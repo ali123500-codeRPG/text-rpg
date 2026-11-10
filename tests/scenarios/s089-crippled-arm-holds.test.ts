@@ -1,3 +1,4 @@
+import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { hitTable, ruleset } from '../../src/ruleset';
@@ -11,7 +12,7 @@ describe('89 Crippled arm holds', () => {
     const table = hitTable(s, s.player);
     s.player.core.condition.parts.left_arm = -10; // Crippled
     const shield = s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!;
-    const r = ruleset.attack({ attackerId: 'slime_1', targetId: 'player', weaponId: 'natural:slam', targetPart: null, aimed: false }, s, forcedRng([80, 50, 80]));
+    const r = ruleset.attack({ attackerId: 'slime_1', targetId: 'player', weaponId: `natural:${AM.slam}`, targetPart: null, aimed: false }, s, forcedRng([80, 50, 80]));
     expect(r.defenseType).toBe('dodge');
     expect(shield.equippedIn).toEqual(['hand:left_arm']);
     expect(hitTable(s, s.player)).toEqual(table);

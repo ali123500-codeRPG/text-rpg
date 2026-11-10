@@ -408,3 +408,34 @@ describe('story text (Q18)', () => {
     expect(await loadHistory(st, 'a')).toEqual(lines.map(({ turn, kind, text }) => ({ turn, kind, text })));
   });
 });
+
+describe('save and load round trips', () => {
+  /** a store that counts how many requests wait in line: each "round" is one database round trip in play */
+  function rounds(st: ReturnType<typeof memoryStore>) {
+    let open = 0, n = 0;
+    const wrap = <A extends unknown[], R>(f: (...a: A) => Promise<R>) => async (...a: A): Promise<R> => {
+      if (open++ === 0) n++;
+      await new Promise((r) => setTimeout(r, 1));
+      try { return await f(...a); } finally { open--; }
+    };
+    const s = { ...st, get: wrap(st.get), set: wrap(st.set), delete: wrap(st.delete), list: wrap(st.list) } as typeof st;
+    return { s, count: () => n, reset: () => { n = 0; } };
+  }
+
+  it('a turn save, a backup and a load each take a few round trips, not one per page', async () => {
+    const mem = memoryStore(), r = rounds(mem), s = makeVillage();
+    await play(r.s, s, 1, 2);
+    const pages = Object.keys((await head(mem)).pages).length;
+    expect(pages).toBeGreaterThan(8);
+    r.reset();
+    await play(r.s, s, 3, 3);
+    expect(r.count()).toBeLessThanOrEqual(5); // head + meta, pages + record, head, cleanup lists, deletes
+    r.reset();
+    s.turn = CONFIG.BACKUP_EVERY;
+    await saveTurn(r.s, s, rec(s, CONFIG.BACKUP_EVERY)); // the backup packs the pages just saved, no read-back
+    expect(r.count()).toBeLessThanOrEqual(8);
+    r.reset();
+    await loadStory(r.s, s.storyId, lib());
+    expect(r.count()).toBeLessThanOrEqual(2); // head + meta, then every page together
+  });
+});

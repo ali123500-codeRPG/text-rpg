@@ -17,11 +17,18 @@ export const PERKS_NEEDED: Record<number, number> = { 20: 0, 40: 0, 60: 1, 80: 1
 
 const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
 /** the actor owns this perk and it is not dormant: every coded perk checks this */
+/** the sum of one perk number over an actor's active perks */
+export const perkSum = (a: Actor, key: 'hearingReach' | 'throwReach') => a.core.perks.reduce((n, p) => n + (p.dormant ? 0 : getLibrary().perks[p.perkId]?.[key] ?? 0), 0);
 export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks.some((p) => p.perkId === perkId && !p.dormant);
 
 /** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it */
-export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number }> = {
-  [PK.dirt_in_the_eyes]: { free: true, perEngagement: 1 },
+/** `does` tells the Parser what the move looks like in the player's words, so it is found without its name */
+export const PERK_MOVES: Record<string, { free: boolean; perEngagement?: number; perFoe?: true; untargeted?: true; does: string }> = {
+  [PK.dirt_in_the_eyes]: { free: true, perEngagement: 1, does: "throw dirt, sand, a drink or anything at hand in a foe's eyes" },
+  // LI1c: once per foe per engagement
+  // I9: the turn's main action, once per engagement, aimed at no one
+  [PK.battle_cry]: { free: false, perEngagement: 1, untargeted: true, does: 'a war cry or roar to shake the foes and rally your side ("Come on, then!", a wordless bellow)' },
+  [PK.bluff]: { free: true, perEngagement: 1, perFoe: true, does: 'a quick lie or false warning at a foe, to make it look away or hesitate ("Behind you!", "Your boot\'s untied", pointing at nothing)' },
 };
 /** the perk moves an actor owns (shown to the Parser and in Commands) */
 export const ownPerkMoves = (a: Actor): string[] => Object.keys(PERK_MOVES).filter((id) => hasPerk(a, id));

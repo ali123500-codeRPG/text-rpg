@@ -36,10 +36,10 @@ describe('skill tree access', () => {
 
   it('a new swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(open(p)).toEqual([TR.armor, TR.defense, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.unarmed].sort());
+    expect(open(p)).toEqual([TR.armor, TR.defense, TR.fortitude, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.trickery, TR.unarmed].sort());
     expect(treeBlock(p, TR.natural)).toBe('Needs one of: Amorphous, Dragon');
     const slime = spawnNpc(null, TP.slime, opts);
-    expect(open(slime)).toEqual([TR.defense, TR.natural, TR.slime_senses, TR.stealth].sort());
+    expect(open(slime)).toEqual([TR.defense, TR.fortitude, TR.natural, TR.slime_senses, TR.stealth].sort());
     expect(treeBlock(slime, TR.perception)).toBe('Blocked by: Amorphous');
     expect(treeBlock(slime, TR.armor)).toBe('Blocked by: Amorphous'); // AR6
   });
@@ -72,15 +72,15 @@ describe('skill tree access', () => {
   it('a closed tree counts as 0 and is not raised, and its points come back with access (TA4 a)', () => {
     const s = makeVillage();
     const p = s.player;
-    p.core.skills[SK.feint] = { raw: 30, state: 'normal' };
-    expect(trueSkill(p, SK.feint)).toBe(30);
+    p.core.skills[SK.riposte] = { raw: 30, state: 'normal' };
+    expect(trueSkill(p, SK.riposte)).toBe(30);
     p.core.classes[0].state = 'unlocked';
-    expect(skillOpen(p, SK.feint)).toBe(false);
-    expect(trueSkill(p, SK.feint)).toBe(0);
-    markIfClose(s, p, SK.feint, 30);
-    expect(p.progression!.marks).not.toContain(SK.feint);
+    expect(skillOpen(p, SK.riposte)).toBe(false);
+    expect(trueSkill(p, SK.riposte)).toBe(0);
+    markIfClose(s, p, SK.riposte, 30);
+    expect(p.progression!.marks).not.toContain(SK.riposte);
     p.core.classes[0].state = 'current';
-    expect(trueSkill(p, SK.feint)).toBe(30);
+    expect(trueSkill(p, SK.riposte)).toBe(30);
   });
 
   it('every NPC template only has skills its body, race and class can use (TA9)', () => {

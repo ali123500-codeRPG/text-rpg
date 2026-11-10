@@ -8,21 +8,29 @@ import { CL } from '../../src/library/classIds';
 import { ACH } from '../../src/library/achievementIds';
 import { SV } from '../../src/library/serviceIds';
 import { PK } from '../../src/library/perkIds';
+import { PERK_WRITEUPS } from '../../src/library/perks';
 import { IT } from '../../src/library/itemIds';
 import { TR } from '../../src/library/treeIds';
 import { BT, RC } from '../../src/library/raceIds';
 import { TP } from '../../src/library/templateIds';
+import { AM, DU, GC, HL, RL, ZK } from '../../src/library/tableIds';
+import { modeSkill } from '../../src/ruleset/gear';
+import { ARMOR_SKILL } from '../../src/library/skillIds';
+import { modeIdOf } from '../../src/ruleset/gear';
 import { BUILT_PERKS } from '../../src/library/builtPerks';
-import { ALL_BUNDLES } from '../../src/library/allPerks';
+import { ALL_BUNDLES, SKILL_PARTS } from '../../src/library/allPerks';
 import { MARK_SOURCE } from '../../src/engine/perkMarks';
 import { PERK_MOVES } from '../../src/ruleset/perks';
 
+/** banked perk write-ups have PK IDs but are not library perks until they get a milestone */
+const BANKED = new Set(PERK_WRITEUPS.filter((d) => !d.ladder && !d.allStep).map((d) => d.id));
 const lib = () => getLibrary() as unknown as Record<string, Record<string, { id?: string }>>;
 
 /** a table: its library key, its prefix and its constants */
 const TABLES: [string, string, Record<string, string>][] = [
   ['skills', 'SK', SK], ['classes', 'CL', CL], ['achievements', 'AC', ACH], ['services', 'SV', SV], ['perks', 'PK', PK], ['items', 'IT', IT], ['trees', 'TR', TR],
   ['races', 'RC', RC], ['bodyTypes', 'BT', BT], ['templates', 'TP', TP],
+  ['roles', 'RL', RL], ['healing', 'HL', HL], ['durations', 'DU', DU], ['zoneKinds', 'ZK', ZK], ['attackModes', 'AM', AM], ['gearClasses', 'GC', GC],
 ];
 
 describe('typed IDs', () => {
@@ -34,7 +42,7 @@ describe('typed IDs', () => {
         if (d && typeof d === 'object' && 'id' in d) expect(d.id, k).toBe(k);
       }
       expect(new Set(Object.values(ids)).size, 'no ID listed twice').toBe(Object.values(ids).length);
-      expect(Object.keys(rows).sort()).toEqual([...Object.values(ids)].sort());
+      expect(Object.keys(rows).sort()).toEqual([...Object.values(ids)].filter((id) => !(table === 'perks' && BANKED.has(id))).sort());
     });
   }
 
@@ -53,7 +61,8 @@ describe('typed IDs', () => {
     }
     for (const r of Object.values(L.races ?? {})) for (const id of [...(r.innatePerks ?? []), ...(r.innateQuirks ?? [])]) known(id, `race ${r.id}`);
     for (const t of Object.values(L.templates)) for (const id of t.perks ?? []) known(id, `template ${t.id}`);
-    for (const b of ALL_BUNDLES) for (const id of b.parts) known(id, `bundle ${b.name}`);
+    for (const b of ALL_BUNDLES) if (b.passive) known(b.passive, `bundle ${b.name}`);
+    for (const [sk, id] of Object.entries(SKILL_PARTS)) { known(id, `skill part ${sk}`); expect(L.skills[sk], `skill part ${sk}`).toBeDefined(); }
     for (const id of BUILT_PERKS) known(id, 'BUILT_PERKS');
     for (const id of Object.keys(MARK_SOURCE)) known(id, 'MARK_SOURCE');
     for (const id of Object.keys(PERK_MOVES)) known(id, 'PERK_MOVES');
@@ -62,6 +71,25 @@ describe('typed IDs', () => {
   it('every item reference names a library item', () => {
     const L = getLibrary();
     for (const t of Object.values(L.templates)) for (const id of t.loadout ?? []) expect(L.items[id], `template ${t.id}: ${id}`).toBeDefined();
+  });
+
+  it('healing sources, attack modes and agent-written mode names resolve to real rows', () => {
+    const L = getLibrary();
+    for (const i of Object.values(L.items)) if (i.heal) expect(L.healing?.[i.heal], `item ${i.id} heal`).toBeDefined();
+    for (const v of Object.values(L.services ?? {})) if (v.heals) expect(L.healing?.[v.heals], `service ${v.id} heals`).toBeDefined();
+    const modes = [...Object.values(L.items).flatMap((i) => i.weapon?.modes ?? []), ...Object.values(L.bodyTypes).flatMap((b) => b.naturalAttacks)];
+    for (const m of modes) expect(L.attackModes?.[m.id], `mode ${m.id}`).toBeDefined();
+    expect(modeIdOf('Thrust')).toBe(AM.thrust);
+    expect(modeIdOf(AM.thrust)).toBe(AM.thrust);
+  });
+
+  it('every weapon, armor and shield has a gear class whose skill fits how it is used', () => {
+    const L = getLibrary();
+    for (const i of Object.values(L.items)) {
+      if (!i.weapon && !i.armor && !i.shield) continue;
+      const use = i.weapon ? modeSkill(i.weapon.modes[0]) : i.armor ? ARMOR_SKILL[i.armor.weight] : SK.block;
+      expect(L.gearClasses?.[i.gearClass ?? '']?.skill, `${i.id} ${i.name}`).toBe(use);
+    }
   });
 
   it('templates name real races, races real body types, and skills real trees', () => {

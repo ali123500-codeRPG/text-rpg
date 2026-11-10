@@ -5,6 +5,7 @@
 //   Make Them Stumble (A10): a clean dodge of a melee attack makes the attacker's next defense one tier worse.
 //   Leg Bolt (A6): a medium or heavy ranged hit that wounds a leg slows the target (no dash) until the end of its next turn.
 //   Dirt in the Eyes (A9): the foe's next attack or defense roll (they need sight) is two tiers worse (perkMoves.ts makes it).
+//   Bluff (LI1c): a foe that believed the bluff acts last next turn (perkMoves.ts makes it, resolve.ts initiativeOrder reads it).
 //   Set Them Up (B15): a Strike attack, hit or miss, marks the target for the owner's next improvised attack on it, and an
 //   improvised attack marks it for the owner's next Strike.
 // The two openings last until used or the owner's engagement ends; the stumble, slow and dirt until the end of the
@@ -12,7 +13,7 @@
 import type { Actor, AttackResult, GameState } from '../types';
 import { itemDef } from '../library';
 import { hasPerk } from '../ruleset/perks';
-import { blockItem, canBlock, effectiveSkill } from '../ruleset/gear';
+import { canBlock, defenseItem, effectiveSkill, parryItem, usableDefense } from '../ruleset/gear';
 import { allActors, isActive, stance, warm } from './relations';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -48,6 +49,8 @@ export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean
 }
 
 /** A6 Leg Bolt: slowed actors can't dash */
+/** LI1c Bluff: the actor believed a bluff and acts last this turn */
+export const bluffed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.bluff && m.until !== undefined && m.until >= state.turn);
 export const slowed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.leg_bolt && (m.until === undefined || m.until >= state.turn));
 
 /** a mark that runs out at the end of the marked actor's next turn */
@@ -67,10 +70,8 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
   if (setUp && hasPerk(A, PK.set_them_up)) add(A, { perk: setUp.leaves, target: D.id }); // on the attempt, hit or miss
   if (r.legBolt && hasPerk(A, PK.leg_bolt)) markUntilNextTurn(state, D, PK.leg_bolt);
   const clean = r.gap !== null && r.gap >= 2;
-  if (!ranged && clean && r.defenseType === 'block' && hasPerk(D, PK.turn_the_blade)) {
-    const blocker = blockItem(state, D); // what the block was made with
-    if (blocker && !itemDef(state, blocker.itemId).shield) add(D, { perk: PK.turn_the_blade, target: A.id });
-  }
+  // A2 Turn the Blade: a clean parry made with a weapon (not barehanded)
+  if (!ranged && clean && r.defenseType === 'parry' && hasPerk(D, PK.turn_the_blade) && parryItem(state, D)) add(D, { perk: PK.turn_the_blade, target: A.id });
   if (ranged && HITS.has(r.outcome) && hasPerk(A, PK.hunters_mark)) add(A, { perk: PK.hunters_mark, target: D.id });
   if (!ranged && clean && r.defenseType === 'dodge' && hasPerk(D, PK.make_them_stumble)) add(A, { perk: PK.make_them_stumble, until: state.turn + 1 });
 }
@@ -83,7 +84,8 @@ export function expireMarks(state: GameState, a: Actor): void {
 /** Cover Ally (A11): an actor in the target's zone, friendly to it, with the perk switched on, standing on block and able
  * to block, whose block beats the target's own standing defense, takes a ranged attack in the target's place. */
 export function coverFor(state: GameState, target: Actor): Actor | undefined {
-  const own = (a: Actor) => effectiveSkill(state, a, DEFENSE_SKILL[a.core.standingDefense], a.core.standingDefense === 'block' ? { itemId: blockItem(state, a)?.id } : {}).value;
+  // the target's own defense against a missile: parry can't stop one, so it uses its fallback
+  const own = (a: Actor) => { const t = usableDefense(state, a, true); return effectiveSkill(state, a, DEFENSE_SKILL[t], { itemId: defenseItem(state, a, t)?.id }).value; };
   const mine = own(target);
   return allActors(state).filter((c) => c !== target && c.zone === target.zone && isActive(c) && hasPerk(c, PK.cover_ally) && !c.core.perksOff?.includes(PK.cover_ally)
     && warm(stance(state, c, target)) && c.core.standingDefense === 'block' && canBlock(state, c) && own(c) > mine)

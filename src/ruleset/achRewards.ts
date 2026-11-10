@@ -7,11 +7,11 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { skillName } from '../library/skillNames';
-import { INTELLIGENCE } from '../scales';
+import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'situation'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels' | 'bonusLevels';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'situation', 'freeLevels', 'bonusLevels'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -92,19 +92,30 @@ export function achievementReqLower(a: Actor, skill: string): number {
   const trees = getLibrary().trees ?? {};
   return bestReward(a, 'reqLower', (x) => !!x.of && !!trees[x.of]?.skills.includes(skill as never))?.value ?? 0;
 }
-/** rally: an ally of the player fighting beside them gets the player's best rally on its morale checks */
+/** rally: an ally of the player fighting beside them gets the player's best rally on its morale rolls */
 export function rallyMods(state: GameState, ally: Actor, besidePlayer: boolean): Mod[] {
   const r = besidePlayer ? bestReward(state.player, 'rally') : undefined;
   return r ? [{ source: `rally: ${r.name}`, type: 'achievement', value: r.value }] : [];
 }
 
-/** renown: a foe fighting the player takes the player's best renown off its first morale check against them */
+/** renown (MB24): every morale roll of a foe fighting the player takes off the player's best renown */
 export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean): Mod[] {
-  const r = fightingPlayer && foe.mind && !foe.mind.renownFelt ? bestReward(state.player, 'renown') : undefined;
-  if (!r) return [];
-  foe.mind!.renownFelt = true;
-  return [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }];
+  const r = fightingPlayer ? bestReward(state.player, 'renown') : undefined;
+  return r ? [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }] : [];
 }
+
+/** free or bonus levels earned: every current achievement's along its chain, plus every active owned perk's.
+ * Free levels are level-ups that cost no XP (into a class); bonus levels are character levels no class gets. */
+export function levelsEarned(a: Actor, f: 'freeLevels' | 'bonusLevels'): number {
+  const perks = getLibrary().perks ?? {};
+  return currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, f), 0)
+    + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + (perks[p.perkId]?.[f] ?? 0), 0);
+}
+export const freeLevelsEarned = (a: Actor) => levelsEarned(a, 'freeLevels');
+/** free levels earned and not yet taken */
+export const freeLevelsOwed = (a: Actor) => Math.max(0, levelsEarned(a, 'freeLevels') - (a.progression?.freeLevelsTaken ?? 0));
+/** bonus levels earned and not yet taken */
+export const bonusLevelsOwed = (a: Actor) => Math.max(0, levelsEarned(a, 'bonusLevels') - (a.progression?.bonusLevelsTaken ?? 0));
 
 /** the display lines of one reward written on a row */
 function linesOf(d: AchievementDef, f: AchievementReward): string[] {
@@ -115,7 +126,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'deathsDoor': return [`once every ${d.deathsDoor === 1 ? 'game day' : steps(d.deathsDoor!, 'game day')}, a hit that would take you Down leaves you at Critical`];
     case 'readsHealth': return [`you see the health level of every member of that ${(d.by ?? 'kind').replace('_', ' ')}`];
     case 'skillAdd': return Object.entries(d.skillAdd ?? {}).map(([sk, n]) => `+${n} true skill in ${skillName(sk)}`);
-    case 'renown': return [`every foe fighting you takes ${-d.renown!} on its first morale check against you`];
+    case 'renown': return [`every foe fighting you takes ${-d.renown!} on its morale rolls`];
     case 'firstSight': {
       const who = INTELLIGENCE.keys.slice(0, INTELLIGENCE.pos(d.firstSight!) + 1).map((x) => INTELLIGENCE.name(x).toLowerCase()).join(' and ');
       return [`${who} members of that ${(d.by ?? 'kind').replace('_', ' ')} meet you wary (opposed), not hostile`];
@@ -123,9 +134,11 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'standIn': return [`stand-ins on rolls of a ${d.by === 'group' ? 'skill of that group' : 'skill'} count +${d.standIn} share`];
     case 'reqLower': return [`equip requirements on that tree's skills ask ${d.reqLower} less of you (the gear's own numbers stay)`];
     case 'pricePct': return [`+${d.pricePct}% off what you pay traders`];
-    case 'rally': return [`allies fighting beside you get +${d.rally} on their morale checks`];
+    case 'rally': return [`allies fighting beside you get +${d.rally} on their morale rolls`];
     case 'restPct': return [`+${d.restPct}% healing on each rest`];
     case 'situation': return [`+${d.situation} on your situation rolls`];
+    case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
+    case 'bonusLevels': return [`+${steps(d.bonusLevels!, 'bonus level')} (character levels no class gets: perk points, no class perks)`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
   }
 }
@@ -133,4 +146,36 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
  * a lower level names that level */
 export function rewardLines(d: AchievementDef): string[] {
   return chainRewards(d).flatMap((e) => linesOf(e.from, e.field).map((l) => e.from === d ? l : `${l} (from ${e.from.name})`));
+}
+
+/** Reward levels never cap: past the last row of REWARD_LEVELS (VI) come VII, VIII and on, keyed `beyond_<n>`, each paying
+ * REWARD_XP_BEYOND_MULT × the level before. These helpers are the one way to read a reward level's position, name and XP. */
+const TOP = () => REWARD_LEVELS.keys.length - 1;
+export const rewardPos = (key: string): number =>
+  REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : key.startsWith('beyond_') ? TOP() + Number(key.slice(7)) : -1;
+export const rewardKeyAt = (pos: number): string => (pos <= TOP() ? REWARD_LEVELS.at(Math.max(0, pos)) : `beyond_${pos - TOP()}`);
+const ROMAN: [number, string][] = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+const roman = (n: number) => ROMAN.reduce((out, [v, r]) => { while (n >= v) { out += r; n -= v; } return out; }, '');
+/** a reward level's display name: the table's name, else the next roman numerals past the top (VII, VIII…) */
+export const rewardName = (key: string): string => REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : roman(rewardPos(key) - REWARD_LEVELS.pos('zero'));
+/** a reward level's XP: CONFIG.REWARD_XP, and past the top REWARD_XP_BEYOND_MULT × the level before */
+export const rewardXp = (key: string): number => {
+  const p = rewardPos(key);
+  return p <= TOP() ? CONFIG.REWARD_XP[key] ?? 0 : (CONFIG.REWARD_XP[REWARD_LEVELS.at(TOP())] ?? 0) * CONFIG.REWARD_XP_BEYOND_MULT ** (p - TOP());
+};
+
+/** an achievement's reward level for one earning: its row's level, + levelUp for that kind, + levelStep for each `every`
+ * step past its first count (an every-N row climbs as it is earned again). No cap: past VI it keeps climbing. */
+export function achLevel(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number }, of?: string): string {
+  const steps = d.every && d.levelStep && of && Number.isFinite(+of) ? Math.max(0, Math.floor((+of - (d.count ?? d.every)) / d.every)) * d.levelStep : 0;
+  const up = ((of && d.levelUp?.[of]) || 0) + steps;
+  return up && rewardPos(d.level) >= 0 ? rewardKeyAt(rewardPos(d.level) + up) : d.level;
+}
+
+/** the XP an achievement pays: its reward level's XP; a scar pays the level one step below (none below the lowest) */
+export function achXp(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number; scar?: true }, of?: string): number {
+  const lv = achLevel(d, of);
+  if (!d.scar) return rewardXp(lv);
+  const i = rewardPos(lv);
+  return i > 0 ? rewardXp(rewardKeyAt(i - 1)) : 0;
 }

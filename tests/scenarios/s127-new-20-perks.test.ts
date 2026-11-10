@@ -145,22 +145,26 @@ describe('127 20 perks for the new skills', () => {
     expect(r.target).toBe('aware');
   });
 
-  it('Blade Wall: a block with a medium melee weapon takes no outnumbered penalty; a shield or light weapon still does', () => {
-    const mods = (itemId: string, perk: boolean) => {
+  it('the 60s against crowds: Blade Wall (Parry, medium weapon), Shield Wall (Block) and Slip the Crowd (Dodge) drop the outnumbered penalty', () => {
+    const mods = (itemId: string | null, perk: string | null, stance: 'dodge' | 'block' | 'parry') => {
       const s = makeVillage();
       place(s, 'patron_1', s.player.zone);
       arm(s, 'patron_1');
       for (const i of s.player.core.inventory) delete i.equippedIn;
-      s.player.core.inventory.push({ id: 'guard', itemId, equippedIn: ['hand:right_arm'] });
-      fit(s.player, itemId);
-      s.player.core.standingDefense = 'block';
-      if (perk) give(s.player, PK.blade_wall);
+      if (itemId) { s.player.core.inventory.push({ id: 'guard', itemId, equippedIn: ['hand:right_arm'] }); fit(s.player, itemId); }
+      s.player.core.standingDefense = stance;
+      if (perk) give(s.player, perk);
       const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false, context: { defensesThisTurn: 1 } }, s, forcedRng([60, 50, 50, 50, 50]));
+      expect(r.defenseType).toBe(stance);
       return r.defense!.modifiers.some((m) => m.source === 'outnumbered');
     };
-    expect(mods(IT.arming_sword, false)).toBe(true);
-    expect(mods(IT.arming_sword, true)).toBe(false);
-    expect(mods(IT.dagger, true)).toBe(true);
-    expect(mods(IT.round_shield, true)).toBe(true);
+    expect(mods(IT.arming_sword, null, 'parry')).toBe(true);
+    expect(mods(IT.arming_sword, PK.blade_wall, 'parry')).toBe(false);
+    expect(mods(IT.dagger, PK.blade_wall, 'parry')).toBe(true);
+    expect(mods(IT.round_shield, null, 'block')).toBe(true);
+    expect(mods(IT.round_shield, PK.blade_wall, 'block')).toBe(true);
+    expect(mods(IT.round_shield, PK.shield_wall, 'block')).toBe(false);
+    expect(mods(null, null, 'dodge')).toBe(true);
+    expect(mods(null, PK.slip_the_crowd, 'dodge')).toBe(false);
   });
 });

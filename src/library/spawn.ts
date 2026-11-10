@@ -1,13 +1,13 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import { BT, RC } from './raceIds';
-import type { Actor, CreationBuild, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
+import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
 import { CLASS_TIERS, EQUIP_LEVELS } from '../scales';
 import { createRng } from '../rng';
-import { SK } from './skillIds';
+import { SK, DEFENSE_SKILL } from './skillIds';
 import { skillName } from './skillNames';
 import { CL } from './classIds';
 import { IT } from './itemIds';
@@ -48,9 +48,32 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
 
 export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string };
 
+/** A class's skill floors: its own floors plus its unlock conditions (a character of the class must meet what unlocks it).
+ * all = every skill must reach its value; any = either-of groups, one skill in each must reach its value. */
+export function classFloors(classId: string | undefined): { all: Record<string, number>; any: Record<string, number>[] } {
+  const c = classId ? getLibrary().classes[classId] : undefined;
+  const all: Record<string, number> = { ...(c?.floors ?? {}) };
+  for (const [id, v] of Object.entries(c?.unlock ?? {})) all[id] = Math.max(all[id] ?? 0, v);
+  return { all, any: c?.unlockAny ?? [] };
+}
+
+/** a template's minimums raised to its class floors; an unmet either-of group raises the skill the template has most of (first listed on a tie) */
+export function templateMinimums(t: NpcTemplate): Record<string, number> {
+  const min = { ...t.minimums };
+  const f = classFloors(t.classId);
+  for (const [id, v] of Object.entries(f.all)) min[id] = Math.max(min[id] ?? 0, v);
+  for (const g of f.any) {
+    const ids = Object.keys(g);
+    if (ids.some((id) => (min[id] ?? 0) >= g[id])) continue;
+    const best = ids.reduce((b, id) => ((min[id] ?? 0) > (min[b] ?? 0) ? id : b), ids[0]);
+    min[best] = g[best];
+  }
+  return min;
+}
+
 /** Unique generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
 export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
-  const raw: Record<string, number> = { ...t.minimums };
+  const raw: Record<string, number> = { [SK.resolve]: CONFIG.PERSONALITY_RESOLVE[t.personality] ?? 0, ...templateMinimums(t) }; // class floors included // MB30: personality sets starting Resolve
   let points = t.level * CONFIG.POINTS_PER_LEVEL + t.bonusPoints;
   while (points > 0 && t.focus.length) {
     const chunk = Math.min(5, points); // GAP: a remainder under 5 goes out as the last, smaller chunk
@@ -84,7 +107,6 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     // Q3: copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
     : rollUniqueSkills(t, createRng(templateSeed(t.id)));
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
-  const morale = CONFIG.PERSONALITY_MORALE[t.personality];
   return {
     id: opts.id,
     storyId: opts.storyId ?? state?.storyId ?? 'story',
@@ -104,7 +126,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       perks: [...racePerks(t.raceId, state?.turn ?? 0), ...(t.perks ?? []).map((perkId) => ({ perkId, source: 'template' as const, gainedTurn: state?.turn ?? 0 }))],
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
-      standingDefense: (skills[SK.block]?.raw ?? 0) >= (skills[SK.dodge]?.raw ?? 0) ? 'block' : 'dodge', // GAP: raw skill; a tie goes to block like the player
+      standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, t.loadout ?? []), // GAP: raw skill; ties go block, parry, dodge like the player
     },
     // GAP: unique NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'unique' ? { progression: {
@@ -114,8 +136,6 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     mind: {
       control: t.control,
       behavior: t.personality,
-      morale: morale ?? CONFIG.MORALE_DEFAULT,
-      fearless: t.personality === 'fearless',
       knowledge: {},
       knows: [],
     },
@@ -147,13 +167,18 @@ export const newPlayer = (classId = PLAYER_CLASS): Pick<Actor['core'], 'bodyType
   perks: [...racePerks(RC.human), ...classPerks(classId, 0, startLevel(classId))],
 });
 
-/** The starter kit: after creation the player gets every item tagged 'starter' whose equip requirement
- * their skills meet. Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
+/** The starter kit: after creation the player gets, for each gear class, the highest-level item tagged 'starter'
+ * whose equip requirement their skills meet (every class has a Common 25 and a Fine 50 piece). Held: the weapon whose required skill is highest (then the higher level), and a met shield unless
  * that weapon takes two hands; worn: the highest-level armor met. The rest is carried. */
 export function starterKit(a: Actor): ItemInstance[] {
   const lib = getLibrary();
-  const met = Object.values(lib.items).filter((d) => d.tags?.includes('starter') && !shortBy(a, d));
   const lvl = (d: ItemDef) => EQUIP_LEVELS.pos(itemLevel(d) ?? 'crude');
+  const top = new Map<string, ItemDef>(); // per gear class, only the highest level met
+  for (const d of Object.values(lib.items)) if (d.tags?.includes('starter') && !shortBy(a, d)) {
+    const k = d.gearClass ?? d.id, b = top.get(k);
+    if (!b || lvl(d) > lvl(b)) top.set(k, d);
+  }
+  const met = [...top.values()];
   const score = (d: ItemDef) => { const r = requirement(d); return (r ? skillToward(a, r.skill) : 0) * 10 + lvl(d); };
   const best = (ds: ItemDef[]) => ds.reduce<ItemDef | undefined>((b, d) => (!b || score(d) > score(b) ? d : b), undefined);
   const weapon = best(met.filter((d) => d.kind === 'weapon'));
@@ -170,18 +195,27 @@ export function starterKit(a: Actor): ItemInstance[] {
   });
 }
 
+/** a new sheet's standing defense from raw skill: the highest of block, parry and dodge (ties in that order). With a
+ * known loadout, block needs a shield in it and parry a melee weapon. */
+function rawDefense(raw: (id: string) => number, loadout?: string[]): DefenseKind {
+  const has = (f: (d: ItemDef) => boolean) => !loadout || loadout.some((id) => { const d = getLibrary().items[id]; return !!d && f(d); });
+  const kinds = (['block', 'parry', 'dodge'] as DefenseKind[]).filter((t) => t === 'dodge'
+    || (t === 'block' ? has((d) => !!d.shield) : has((d) => !!d.weapon?.modes.some((m) => m.tree === 'melee' && !m.thrown))));
+  return kinds.reduce((best, t) => (raw(DEFENSE_SKILL[t]) > raw(DEFENSE_SKILL[best]) ? t : best), kinds[0]);
+}
+
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
- * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, block, endurance). */
+ * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, parry, endurance). */
 export function recommendedBuild(classId = PLAYER_CLASS): CreationBuild {
   if (classId === CL.late_bloomer || classId === CL.a_nobody) return { // 50 points; the same kit, so its gear is short at the start
     name: 'Aldric', classId,
-    skills: { [SK.melee_medium]: 15, [SK.block]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
-    tagged: [SK.melee_medium, SK.block, SK.endurance],
+    skills: { [SK.melee_medium]: 15, [SK.parry]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
+    tagged: [SK.melee_medium, SK.parry, SK.endurance],
   };
   return {
     name: 'Aldric',
-    skills: { [SK.melee_medium]: 50, [SK.block]: 40, [SK.dodge]: 25, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.light_armor]: 25 },
-    tagged: [SK.melee_medium, SK.block, SK.endurance],
+    skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 25, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.light_armor]: 25 },
+    tagged: [SK.melee_medium, SK.parry, SK.endurance],
   };
 }
 
@@ -200,8 +234,11 @@ export function validateBuild(build: CreationBuild): string[] {
     else if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${skillName(id)} is above ${CONFIG.CREATION_MAX_SKILL}`);
     spent += v;
   }
-  for (const [id, min] of Object.entries(lib.classes[cls]?.floors ?? {}))
+  const floors = classFloors(cls);
+  for (const [id, min] of Object.entries(floors.all))
     if ((build.skills[id] ?? 0) < min) errs.push(`${skillName(id)} must be at least ${min} (class floor)`);
+  for (const g of floors.any)
+    if (!Object.entries(g).some(([id, min]) => (build.skills[id] ?? 0) >= min)) errs.push(`One of ${Object.entries(g).map(([id, min]) => `${skillName(id)} ${min}`).join(', ')} (class floor)`);
   if (spent !== creationPoints(cls)) errs.push(`Spend exactly ${creationPoints(cls)} points (${spent} spent)`);
   const tags = new Set(build.tagged);
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
@@ -221,7 +258,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
   const skills = Object.fromEntries(Object.entries(build.skills).filter(([k, v]) => v > 0 || build.tagged.includes(k))
     .map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }]));
   const p: Actor = {
-    id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] },
+    id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, ...(build.pronouns ? { pronouns: build.pronouns } : {}),
     label: getLibrary().classes[build.classId ?? PLAYER_CLASS]?.label ?? 'a stranger', // the starting class's stranger label
     placeId: '', zone: '', // GAP: set by story-start scene setup (the village tavern, Part 2 Scene setup)
     posture: 'open', bandId: 'player_band',
@@ -230,8 +267,8 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       skills,
       condition: { hpLostPct: 0, parts: fullParts(null, BT.humanoid), status: [] },
       inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
-      // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here
-      standingDefense: (build.skills[SK.block] ?? 0) >= (build.skills[SK.dodge] ?? 0) ? 'block' : 'dodge',
+      // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
+      standingDefense: rawDefense((id) => build.skills[id] ?? 0),
     },
     progression: {
       startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),

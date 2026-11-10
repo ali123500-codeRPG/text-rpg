@@ -78,6 +78,7 @@ export type GameEvent = {
   noise: NoiseKey;
   visibility: VisibilityKey;
   perception: Record<string, { level: Perception; cue: Cue }>; // absent = not perceived
+  spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):
   line?: { text: string; volume: 'whisper' | 'normal' | 'shout'; introduces?: string[] };
@@ -96,6 +97,11 @@ export type GameEvent = {
   /** Q17: the player's look, a sight roll */
   roll?: import('./ruleset').RollResult;
   speech?: { skill: string; impression?: string; addressees: string[] }; // dialogue-turn speech
+  /** OQ-29: an NPC's speech roll at the player: the speech type, whether it landed, the penalty it left, a lie the player saw
+   * through, and whether the speaker saw how it was taken */
+  push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; seen?: true };
+  /** LI5a Overheard: owners of Overheard who heard this lie told to someone else and saw through it */
+  overheard?: string[];
 };
 
 export type LogEntry = { turn: number; code: string; detail?: Record<string, unknown> };

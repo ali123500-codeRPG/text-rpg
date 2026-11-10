@@ -2,7 +2,8 @@
 // SUBSTITUTE_EFFICIENCY 0.3, which perks can move); each function sits in one broad group (40 perk +1, XP category).
 import { RC } from '../../src/library/raceIds';
 import { TR } from '../../src/library/treeIds';
-import { FN } from '../../src/library/functionIds';
+import { FN, GR } from '../../src/library/functionIds';
+import { groupsOf } from '../../src/library/functionNames';
 import { afterEach, describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { effectiveSkill, trueSkill } from '../../src/ruleset';
@@ -20,11 +21,12 @@ const only = (a: Actor, skills: Record<string, number>) => {
 afterEach(() => { delete getLibrary().perks.test_stand_in; });
 
 describe('124 skill groups and functions', () => {
-  it('F1/F6: tremor has both the sight and hearing functions; F8: XP categories unchanged', () => {
+  it('F1/F6: tremor has both the sight and hearing functions; XP reads the skill group', () => {
     const k = getLibrary().skills;
     expect(k[SK.tremor].functions).toEqual([FN.sight, FN.hearing]);
-    expect([k[SK.melee_light].xpCategory, k[SK.unarmed_strike].xpCategory, k[SK.ranged_heavy].xpCategory]).toEqual(['offensive', 'offensive', 'offensive']);
-    expect([k[SK.dodge].xpCategory, k[SK.endurance].xpCategory, k[SK.eyesight].xpCategory, k[SK.tremor].xpCategory, k[SK.barter].xpCategory]).toEqual(['defensive', 'endurance', 'notice', 'notice', 'influence']);
+    // XP reads the skill's first group (no separate XP category)
+    expect([k[SK.melee_light], k[SK.unarmed_strike], k[SK.ranged_heavy], k[SK.riposte], k[SK.blade_dance]].map((s) => groupsOf(s)[0])).toEqual([GR.melee, GR.melee, GR.ranged, GR.melee, GR.melee]);
+    expect([k[SK.dodge], k[SK.endurance], k[SK.eyesight], k[SK.tremor], k[SK.barter], k[SK.lockpicking]].map((s) => groupsOf(s)[0])).toEqual([GR.defense, GR.health, GR.notice, GR.notice, GR.influence, undefined]);
     expect(getLibrary().trees[TR.melee].name).toBe('Combat – Arms'); // F7
   });
   it('F4: sight and hearing no longer stand in for each other; tremor stands in for both', () => {

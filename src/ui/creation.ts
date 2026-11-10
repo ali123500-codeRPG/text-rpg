@@ -1,9 +1,9 @@
 // Creation screen (Part 4 §4, approved layout B: tree grid). Point-buy over the open skills.
 import { TR } from '../library/treeIds';
-import type { Actor, CreationBuild, GameApi } from '../types';
+import type { Actor, CreationBuild, GameApi, Pronouns } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
+import { classFloors, creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
@@ -13,14 +13,14 @@ import { CL } from '../library/classIds';
 import { CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
-export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.feint]: 'effect not designed', [SK.riposte]: 'effect not designed', [SK.disarm]: 'effect not designed' };
+export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.riposte]: 'adds to Parry', [SK.blade_dance]: 'adds to Dodge' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
-  { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
+  { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.fortitude, c: 'c6' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
   { id: TR.perception, c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: TR.ranged, c: 'c7' }, { id: TR.unarmed, c: 'c14' },
-  { id: TR.stealth, c: 'c3' }, { id: TR.speech, c: 'c4' },
+  { id: TR.stealth, c: 'c3' }, { id: TR.speech, c: 'c4' }, { id: TR.trickery, c: 'c9' },
 ];
 
 const STEP = 5;
@@ -37,19 +37,23 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId: str
   return host;
 }
 
+// name and gender carry over when the player switches starting class
+const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they', 'Other']];
+const identity: { name: string; pronouns: Pronouns } = { name: 'Aldric', pronouns: 'he' };
+
 function classScreen(api: GameApi, onStarted: () => void, classId: string, switchTo: (id: string) => void): HTMLElement {
   const lib = getLibrary();
   const cls = lib.classes[classId];
-  const floors = cls?.floors ?? {};
+  const floors = classFloors(classId).all; // the class floors plus its unlock conditions
   const who = { core: newPlayer(classId) } as Actor;
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
   const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
-  const st = { v: {} as Record<string, number>, tags: new Set<string>(), name: 'Aldric', swings: 400 };
+  const st = { v: {} as Record<string, number>, tags: new Set<string>(), swings: 400 };
   const total = () => creationPoints(classId), cap = () => CONFIG.CREATION_MAX_SKILL, maxTags = () => CONFIG.CREATION_TAGS;
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
   const recommended = () => { const r = recommendedBuild(classId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
-  const build = (): CreationBuild => ({ name: st.name.trim(), classId, skills: { ...st.v }, tagged: [...st.tags] });
+  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, classId, skills: { ...st.v }, tagged: [...st.tags] });
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };
 
   const tilesHost = h('div');
@@ -109,8 +113,8 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       { label: 'Attack', value: dash(p.attack), unit: 'skill', sub: p.weapon ? `${p.weapon.skill} · ${p.weapon.name}` : '—',
         how: 'Effective skill of your starting attack: the first weapon in your starting kit, or bare hands when the kit has none (raw skill plus gear).' },
       { label: 'Standing defense', value: dash(p.defense?.value ?? null), unit: p.defense?.kind ?? 'skill',
-        sub: p.defense ? (p.defense.kind === 'block' ? (p.shield ? `block + ${p.shield}` : 'block, no shield') : 'dodge (higher than block)') : 'block or dodge, the higher',
-        how: 'The higher of effective block (with your starting shield, if any) and effective dodge.' },
+        sub: p.defense ? (p.guard ? `${p.defense.kind} + ${p.guard}` : p.defense.kind) : 'block, parry or dodge, the highest',
+        how: 'The highest of effective block (needs a starting shield), parry (needs a starting melee weapon) and dodge.' },
       { label: 'Vs one slime', value: p.swingsToKill === null ? '—' : '≈ ' + dash(p.swingsToKill, 1), unit: 'swings to kill',
         sub: p.slamsToDown === null ? 'Its slams to down you: —' : `It downs you in about ${Math.round(p.slamsToDown)} slams`,
         how: `Estimated: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, from ${st.swings} practice swings with the game’s attack rules.` },
@@ -161,10 +165,20 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),
       onclick: () => { if (id !== classId) switchTo(id); } },
     `${lib.classes[id].name} · ${CLASS_TIERS.name(lib.classes[id].tier)} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
+  function whoRow(): HTMLElement {
+    const gender = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Gender' }, GENDERS.map(([p, label]) =>
+      h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `Others speak of you as “${p}”`,
+        onclick: (e: Event) => { identity.pronouns = p; (e.currentTarget as HTMLElement).parentElement!.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); } }, label)));
+    return h('div', { class: 'who-row' },
+      h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: 40, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
+        oninput: (e: Event) => { identity.name = (e.target as HTMLInputElement).value; } })),
+      h('span', { class: 'hs-label' }, 'Gender'), gender);
+  }
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
-      h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), starts,
+      h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), whoRow(), starts,
+        cls?.story ? h('p', { class: 'story-line' }, cls.story) : null,
         perkNames(classId).length ? h('p', {}, `Class perk at level 1: ${perkNames(classId).join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
       h('div', { class: 'actions' },

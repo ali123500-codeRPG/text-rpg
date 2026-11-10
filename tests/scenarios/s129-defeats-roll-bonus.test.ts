@@ -37,7 +37,7 @@ describe('129 total-defeats roll bonus', () => {
     const s = makeVillage();
     grantAchievement(s, ACH.defeats_10);
     grantAchievement(s, ACH.defeats_100);
-    const m = [{ source: `achievement: ${ACH.defeats_100}`, type: 'achievement', value: 2 }];
+    const m = [{ source: 'achievement: Calamity of a Hundred Blades', type: 'achievement', value: 2 }];
     expect(fight(s)).toEqual({ atk: m, def: m });
     const look = ruleset.roll({ actorId: 'player', skill: SK.eyesight, modifiers: [], tierShifts: [], rollKind: 'perception' }, s, forcedRng([50]));
     expect(look.modifiers.filter((x) => x.type === 'achievement')).toEqual([]);

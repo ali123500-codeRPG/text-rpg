@@ -4,25 +4,29 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { ClassDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { ClassDef, HealingDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
-import { rewardLines } from '../ruleset/achRewards';
+import { achLevel, achXp, rewardLines, rewardName } from '../ruleset/achRewards';
 import { ACH_RULE_TEXT, ACH_TAGS } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
-import { fnSkills, kitBonus, standInShare, standInTable } from '../ruleset/gear';
+import { benefits, itemValue } from '../ruleset/value';
+import { fnSkills, kitBonus, modeName, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
-import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupsOf, functionName } from '../library/functionNames';
+import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS } from '../scales';
-import { requirement } from '../ruleset/requirements';
+import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { xpGroupFactor } from '../engine/xp';
+import { itemLevel, requirement } from '../ruleset/requirements';
 import { fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
+import { ALL_BUNDLES } from '../library/allPerks';
+import { classFloors } from '../library/spawn';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -46,12 +50,14 @@ let facetOf: Facets = () => [];
 function card(sec: string, id: string, entry: unknown, title: string, chips: (HTMLElement | null)[], ...body: (Node | null)[]): HTMLElement {
   const f = facetOf(entry).filter(([, v]) => v !== undefined && v !== '').map(([g, v]) => `${g}\t${v}`);
   return h('article', { class: 'lv-card', id: `${sec}/${id}`, 'data-q': `${title} ${JSON.stringify(entry)}`.toLowerCase(), 'data-f': [...new Set(f)].join('\n') },
-    h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#${sec}/${id}` }, title)), h('code', { class: 'lv-id' }, id), ...chips), ...body, raw(entry));
+    h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#${sec}/${id}` }, title)), h('code', { class: 'lv-id' }, id), ...chips),
+    // the fields sit in one box, so cards side by side in a grid start their fields on the same line (subgrid)
+    h('div', { class: 'lv-cbody' }, ...body, raw(entry)));
 }
 
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
 /** a field key as words: raceId → Race, focusTreeId → Focus tree, hpMultiplier → Hp multiplier */
-const humanKey = (k: string): string => { if (!/^[a-z][A-Za-z0-9_]*$/.test(k)) return k; const w = k.replace(/Ids?$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase(); return w.charAt(0).toUpperCase() + w.slice(1); };
+const humanKey = (k: string): string => { if (!/^[a-z][A-Za-z0-9_]*$/.test(k)) return k; const w = k.replace(/Ids?$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase().replace(/^fn\b/, 'function'); return w.charAt(0).toUpperCase() + w.slice(1); };
 /** typed ids (RC1, CL6, IT2, SK1 …) shown as their entry's name, linked to its pop-up; the raw id stays in the Code view */
 let idIndex: Map<string, [string | null, string]> | undefined;
 function typedId(v: string): Node | null {
@@ -64,7 +70,10 @@ function typedId(v: string): Node | null {
     for (const [id, t] of Object.entries(lib.trees)) if (!idIndex.has(id)) idIndex.set(id, [null, (t as { name?: string }).name ?? id]);
   }
   const hit = idIndex.get(v);
-  if (!hit) return null;
+  if (!hit) { // functions and groups are not tables; show their names, linked to the stand-in check where one exists
+    const name = v.startsWith('FN') ? functionName(v) : v.startsWith('GR') ? groupName(v) : undefined;
+    return name && name !== v ? (v.startsWith('FN') ? link('standIns', `fn-${v}`, name) : h('span', { title: v }, name)) : null;
+  }
   return hit[0] ? link(hit[0], v, hit[1]) : h('span', { title: v }, hit[1]);
 }
 function val(v: unknown, depth = 0): Node | string {
@@ -89,7 +98,7 @@ const named = (k: string, v: unknown): unknown => {
   if (k === 'unlockPerk' && typeof v === 'string') return perkLinks([v]);
   if (k === 'levelPerks' && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([lv, ids]) => [`level ${lv}`, perkLinks(ids as string[])]));
   if (/perks?$|quirks?$/i.test(k) && Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && lib.perks[x])) return perkLinks(v as string[]);
-  if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => [a, named(a, b)])) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
+  if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object' ? Object.fromEntries(Object.entries(x).map(([a, b]) => (SKILL_KEYED.has(k) ? [skillName(a), b] : [a, named(a, b)]))) : SKILL_KEYED.has(k) && typeof x === 'string' ? skillName(x) : x));
   if (SKILL_KEYED.has(k) && v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([a, b]) => [skillName(a), b]));
   return v;
 };
@@ -115,11 +124,14 @@ const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essentia
 
 // ---------- Gear ----------
 const ACTIVE: Record<ItemEffect['active'], string> = { worn: 'when worn', held: 'when held', inUse: 'while in use', carried: 'when carried' };
-function effectText(e: ItemEffect, def?: ItemDef): string {
+function effectParts(e: ItemEffect, def?: ItemDef): [string, string[]] {
   const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : skillName(String(e.skill))) : `${e.roll} rolls`;
   const v = e.kit && def ? kitBonus(def, e) : e.value; // a kit piece: EQUIP_FACTOR × its need, as the game reads it
-  return `${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what} · ${ACTIVE[e.active]}${e.scope === 'withItem' ? ' · with this item only' : ''}${e.kit ? ' · kit' : ''}`;
+  return [`${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what}`, [ACTIVE[e.active], ...(e.scope === 'withItem' ? ['with this item only'] : []), ...(e.kit ? ['kit'] : [])]];
 }
+/** a multi-part value as one line: the lead in full, the rest as quiet aligned bits (no " · " strings) */
+const parts = (lead: Node | string, bits: (string | null | false | undefined)[]) =>
+  h('div', { class: 'lv-part' }, h('b', {}, lead), h('span', { class: 'lv-bits' }, ...bits.filter((b): b is string => !!b).map((b) => h('span', {}, b))));
 function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const humanoid = lib.bodyTypes[BT.humanoid];
   const req = requirement(i);
@@ -127,17 +139,19 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const covers = new Set(i.armor?.covers ?? []);
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
+    i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
-    row('Bulk · value', `${i.bulk} · ${i.value} coin`),
+    row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
-    i.weapon ? row('Modes', h('div', { class: 'lv-sub' }, i.weapon.modes.map((m) => h('div', {}, h('b', {}, m.id), ` · ${m.tree} ${m.class} · reach ${m.reach} · ${m.hands} hand${m.hands === 1 ? '' : 's'}`,
-      m.skill ? ` · ${skillName(m.skill)}` : '', m.thrown ? ' · thrown' : '', m.hitAdj ? ` · hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : '')))) : null,
+    i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
+      `reach ${m.reach}${row?.reachBonus ? ` + ${row.reachBonus} (${row.name})` : ''}`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
         row('Covers', val(i.armor.covers.map(label))), i.armor.pools ? row('Pools', val(i.armor.pools)) : null)) : null,
     i.shield ? row('Shield pool', String(i.shield.pool)) : null,
-    i.effects?.length ? row('Effects', h('div', { class: 'lv-sub' }, i.effects.map((e) => h('div', {}, effectText(e, i))))) : null,
+    i.effects?.length ? row('Effects', h('div', { class: 'lv-plist' }, i.effects.map((e) => { const [lead, bits] = effectParts(e, i); return parts(lead, bits); }))) : null,
     i.heal ? row('Heals as', link('healing', i.heal, lib.healing?.[i.heal]?.name ?? i.heal)) : null);
 }
 function gear(): HTMLElement[] {
@@ -148,7 +162,7 @@ function gear(): HTMLElement[] {
   const kit = Object.values(lib.items).filter((i) => i.tags?.includes('starter'));
   const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How the starter kit is given'), chip('starterKit · src/library/spawn.ts')),
     h('ol', { class: 'lv-steps' },
-      h('li', {}, 'After creation the player gets every item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share).'),
+      h('li', {}, 'After creation the player gets, for each gear class, the highest-level item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share). Every class has a 25 and a 50 piece.'),
       h('li', {}, 'Held: the met weapon whose required skill is highest, then the higher item level. A met shield goes in the other hand unless that weapon takes two hands.'),
       h('li', {}, 'Worn: the highest-level armor met.'),
       h('li', {}, 'Everything else met is carried in the pack.')));
@@ -184,10 +198,17 @@ function bankedText(d: PerkWriteup): string {
   if (d.bankedAs === 'allX') return `banked: ${d.aimAt ? `All-${d.aimAt}` : 'All-X'} candidate${treeOfSkill(d.skill) ? ` · ${treeOfSkill(d.skill)}` : ''}`;
   return 'banked: other';
 }
+/** who holds an All-X part: a skill's part names the skill, the tree's passive names the tree; a part no skill carries is parked */
+function allHolder(st: { treeId: string; step: number; skill?: string }, id: string): string {
+  const tree = lib.trees[st.treeId]?.name ?? st.treeId;
+  if (st.skill) return `All-${st.step} · ${skillName(st.skill)} (${tree})`;
+  if (ALL_BUNDLES.some((b) => b.passive === id)) return `All-${st.step} · ${tree} passive`;
+  return `All-${st.step} · ${tree} · parked: no skill holds it`;
+}
 function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   const r = d.rules;
   return card(sec, d.id, d, d.name, [
-    d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`) : 'allStep' in d && d.allStep ? chip(`${ms(d)} · ${lib.trees[d.allStep.treeId]?.name ?? d.allStep.treeId}`)
+    d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`) : 'allStep' in d && d.allStep ? chip(allHolder(d.allStep, d.id))
       : 'classLevel' in d && d.classLevel ? chip(`${ms(d)} · ${className(d.classLevel.classId)}`)
       : chip(('place' in d ? d.place : '') || 'no milestone'),
     'bankedAs' in d && d.bankedAs ? chip(bankedText(d)) : null,
@@ -210,21 +231,28 @@ let pane = '';
 // Remembered per viewer (this browser only): which sections are folded and which sub-tab each tab had open
 const remember = <T>(key: string, fallback: T): T => { try { return JSON.parse(localStorage.getItem(key) ?? '') as T; } catch { return fallback; } };
 const keep = (key: string, value: unknown): void => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked: keep it for this visit only */ } };
-const foldedSet = new Set<string>(remember<string[]>('lv-folded', []));
+// older keys carried the sub-tab (tab|pane|title); a fold now covers every sub-tab, so keep tab|title
+const foldedSet = new Set<string>(remember<string[]>('lv-folded', []).map((k) => { const p = k.split('|'); return p.length > 2 ? `${p[0]}|${p.slice(2).join('|')}` : k; }));
 const paneOf: Record<string, string> = remember<Record<string, string>>('lv-pane', {});
+// every sub-tab row starts with All (every sub-tab at once, for searching across them), unless the table's own
+// first sub-tab already lists everything (gear, achievements)
+const ALL_PANES = '*';
+const showsPane = (key: string) => pane === ALL_PANES || pane === key;
 function panes(list: Pane[]): HTMLElement[] {
-  if (!list.some((p) => p.key === pane)) pane = list[0].key;
-  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, list.map((p) => h('button', {
+  const tabs: Pane[] = list[0].title === 'All' || list[0].title.startsWith('All ') ? list
+    : [{ key: ALL_PANES, title: 'All', n: list.reduce((n, p) => n + p.n, 0), content: [] }, ...list];
+  if (!tabs.some((p) => p.key === pane)) pane = tabs[0].key;
+  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, tabs.map((p) => h('button', {
     type: 'button', role: 'tab', 'data-pane': p.key, 'aria-selected': String(p.key === pane), onclick: () => showPane(p.key),
     ...(p.short ? { title: p.title, 'aria-label': `${p.title}, ${p.n}` } : {}),
   }, p.short ?? p.title, h('small', {}, String(p.n)))));
-  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: p.key !== pane }, ...(p.content.filter(Boolean) as HTMLElement[])))];
+  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: !showsPane(p.key) }, ...(p.content.filter(Boolean) as HTMLElement[])))];
 }
 function showPane(key: string): void {
   pane = key;
   paneOf[shown] = key; keep('lv-pane', paneOf);
   document.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
-  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
+  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = !showsPane(p.dataset.pane!); });
   drawBar(); paint(); filter();
 }
 
@@ -290,7 +318,7 @@ function perks(): HTMLElement[] {
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By skill and milestone'), grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))]))),
         cardsOf('Built', ladder.filter((d) => d.built), 'None built yet.')] },
       { key: 'all', title: 'All-XX perks', short: 'All-XX', n: allParts.length, content: [
-        h('p', { class: 'hs-note' }, 'Granted when every skill of a tree reaches the step (allStep in src/library/allPerks.ts).'),
+        h('p', { class: 'hs-note' }, 'Granted when enough skills of a tree reach the step, by the tree\'s rating (inferior never, normal 3, superior 2, legendary 1): the tree\'s passive plus each of those skills\' part; a further skill at the step adds its part (allStep in src/library/allPerks.ts).'),
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By tree and step'), grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))]))),
         cardsOf('Built', allParts.filter((d) => d.built), 'None built yet.')] },
       { key: 'unused', title: 'Not in use', n: unused.length, content: [
@@ -311,6 +339,36 @@ function perks(): HTMLElement[] {
 const links = (sec: string, pairs: [string, string][]) => (pairs.length ? h('span', {}, ...pairs.flatMap(([id, t], i) => [i ? ', ' : '', link(sec, id, t)])) : none());
 const usedBy = (pred: (t: Entry) => boolean) => links('templates', Object.values(lib.templates).filter((x) => pred(x as unknown as Entry)).map((x) => [x.id, x.label]));
 const perkList = (ids: string[] | undefined) => links('perks', (ids ?? []).map((id) => [id, lib.perks[id]?.name ?? id]));
+// ---------- Gear classes ----------
+// a class sets WHICH skill its items ask for; the item's level sets HOW MUCH (EQUIP_NEED)
+const itemsOfClass = (gc: string) => Object.values(lib.items).filter((i) => i.gearClass === gc);
+function gearClasses(): HTMLElement[] {
+  return [h('p', { class: 'hs-note' }, 'A gear class sets which skill its items ask for. The item\'s level sets how much: ',
+      EQUIP_LEVELS.keys.map((l) => `${EQUIP_LEVELS.name(l)} ${CONFIG.EQUIP_NEED[l] ?? 0}`).join(', '), ' true skill.'),
+    h('div', { class: 'lv-grid' }, Object.values(lib.gearClasses ?? {}).map((g) => {
+      const items = itemsOfClass(g.id);
+      return card('gearClasses', g.id, g, g.name, [chip(g.use, toneFor('Use', g.use))],
+        row('Use', g.use), row('Skill', link('skills', g.skill, skillName(g.skill))),
+        row('Items', items.length ? h('span', {}, ...items.flatMap((i, n) => [n ? ', ' : '', link('gear', i.id, `${label(i.name)} (${EQUIP_LEVELS.name(itemLevel(i) ?? 'crude')}${items.filter((o) => o.name === i.name).length > 1 ? `, bulk ${i.bulk}` : ''})`)])) : none('none yet')));
+    }))];
+}
+
+// Healing: what each source restores in words, morale included, so the table view shows it too (the raw % fields stay in Code)
+function restores(d: HealingDef): string {
+  if (d.countOnly) return 'nothing itself: it only tallies healing from perks, for achievements that count healing by source';
+  if (d.hourly) {
+    const at50 = +(d.hourly.pctPerPoint * 50).toFixed(2);
+    return `every hour, ${d.hourly.pctPerPoint} % of max ${d.hourly.morale ? 'morale' : 'health'} per ${skillName(d.hourly.skill)} point (${at50} % at 50)`;
+  }
+  const parts = [d.hpPct ? `${d.hpPct} % health` : '', d.partPct ? `${d.partPct} % to body parts` : '', d.moralePct ? `${d.moralePct} % morale` : ''].filter(Boolean);
+  return parts.length ? parts.join(', ') : 'nothing';
+}
+function healing(): HTMLElement[] {
+  return [h('div', { class: 'lv-grid' }, Object.values(lib.healing ?? {}).map((d) => card('healing', d.id, d, d.name,
+    [d.countOnly ? chip('tally only') : null, d.hourly?.morale || d.moralePct ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
+    row('Restores', restores(d)), ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'moralePct', 'hourly', 'countOnly']))))];
+}
+
 function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
     const ct = lib.bodyTypes[r.bodyTypeId];
@@ -338,7 +396,7 @@ function bodyTypes(): HTMLElement[] {
         row('NPC templates', usedBy((t) => lib.races?.[t.raceId as string]?.bodyTypeId === c.id)))),
       c.parts.length ? h('table', { class: 'hs-tbl lv-parts' }, h('thead', {}, h('tr', {}, ['Part', 'Size', 'Impact', 'Roles', 'Next to'].map((x) => h('th', {}, x)))),
         h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', {}, p.size),
-          h('td', {}, label(p.impact)), h('td', {}, p.roles.join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
+          h('td', {}, label(p.impact)), h('td', {}, p.roles.map((r) => lib.roles[r]?.name ?? r).join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
   ];
 }
 
@@ -357,16 +415,27 @@ function achievements(): HTMLElement[] {
     const kind = d.by === 'body_type' ? 'body type' : 'race';
     const bane = isBane(d) ? baneSkill(key) : 0; // D-111: the same function the rolls use
     const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
-    return card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, toneFor('Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`)), chip(`${CONFIG.REWARD_XP[d.level] ?? '?'} XP`),
+    // {level} on an every-N row reads as the levels it is earned at: 10, 20, 30…
+    // a row with its own name per earning (names) reads by its first name; the Names row lists them all
+    const named = d.names ? Object.entries(d.names).sort(([a], [b]) => Number(a) - Number(b)) : [];
+    const after = named.length && d.every ? Number(named[named.length - 1][0]) + d.every : 0;
+    const title = named.length ? named[0][1]
+      : d.every && d.name.includes('{level}') ? d.name.replace('{level}', `${[0, 1, 2].map((i) => (d.count ?? d.every!) + i * d.every!).join(', ')}…`) : d.name;
+    return card('achievements', key, d, title, [chip(`Level ${rewardName(d.level)}`, toneFor('Level', `Level ${rewardName(d.level)}`)), chip(`${achXp(d)} XP`),
       bane ? chip(`+${bane} skill vs that ${kind}`) : null, total ? chip(`+${total} combat rolls`) : null,
       rewardLines(d).length ? chip('reward') : null,
       d.scar ? chip('scar', toneFor('Kind', 'scar')) : null, ...tags.map((t) => chip(achTagName(t), toneFor('Tag', achTagName(t))))],
-      row('Name', name(d.name)),
+      row('Name', name(title)),
+      named.length ? row('Names', h('ul', { class: 'lv-names' }, ...named.map(([k, n]) => h('li', {}, `Level ${k}: ${n}${d.levelStep ? ` · reward level ${rewardName(achLevel(d, k))}, ${achXp(d, k)} XP` : ''}`)),
+        after ? h('li', {}, `Levels ${after}, ${after + d.every!}…: ${d.name.replace('{level}', String(after))}, and so on${d.levelStep ? ` · reward level ${rewardName(achLevel(d, String(after)))} and up, ${d.levelStep === 1 ? 'one level' : `${d.levelStep} levels`} a step` : ''}`) : null)) : null,
       row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
         ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),
+      d.levelUp ? row('Pays more', Object.entries(d.levelUp).map(([k, n]) => `${k.replace("_", " ")}: +${n} reward level${n === 1 ? '' : 's'}`).join('; ')) : null,
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
-      row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
+      // `only` pins a by-kind row to one healing row: name that source instead of "one source … once per heal source"
+      d.only ? row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule].replace(/ \(.*\)$/, '').replace(/\bone source$/, '')}`, link('healing', d.only, lib.healing?.[d.only]?.name ?? d.only))
+        : row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
   };
   const section = (title: string, list: [string, AchievementDef][]) =>
@@ -390,13 +459,39 @@ function achievements(): HTMLElement[] {
 // ---------- Classes ----------
 /** classes, lowest tier first (CLASS_TIERS order), then by name */
 const byTier = (): ClassDef[] => Object.values(lib.classes ?? {}).sort((a, b) => CLASS_TIERS.pos(a.tier) - CLASS_TIERS.pos(b.tier) || a.name.localeCompare(b.name));
+/** every condition a class unlocks on, as one list (all must hold; an either-of group needs one of its skills) */
+const PERK_NUMBERS: Record<string, string> = { hearingReach: 'hearing reach' };
+function unlockRow(c: ClassDef): HTMLElement | null {
+  const sk = ([id, n]: [string, number]) => [link('skills', id, skillName(id)), ` ${n}`];
+  const lines: (Node | string)[][] = [
+    ...Object.entries(c.unlock ?? {}).map((e) => sk(e)),
+    ...(c.unlockAny ?? []).map((g) => ['one of: ', ...Object.entries(g).flatMap((e, i) => [i ? ', ' : '', ...sk(e)])]),
+    ...(c.unlockPerk ? [['the perk ', link('perks', c.unlockPerk, lib.perks[c.unlockPerk]?.name ?? c.unlockPerk)]] : []),
+    ...Object.entries(c.unlockPerkWith ?? {}).map(([k, n]) => {
+      const has = Object.values(lib.perks).filter((d) => ((d as unknown as Record<string, number>)[k] ?? 0) >= (n as number));
+      return [`an active perk with ${PERK_NUMBERS[k] ?? humanKey(k).toLowerCase()} ${n}`, ...(has.length ? [' (', ...has.flatMap((d, i) => [i ? ', ' : '', link('perks', d.id, d.name)]), ')'] : [])];
+    }),
+    ...Object.entries(c.unlockClass ?? {}).map(([id, lv]) => [link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` at its top level (${classMaxLevel(id)})` : ` level ${lv}`]),
+  ];
+  return lines.length ? row(lines.length > 1 ? 'Unlocks when all hold' : 'Unlocks when', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
+}
+/** skill floors a character of the class always meets: its own floors plus its unlock skills (classFloors in src/library/spawn.ts) */
+function floorsRow(c: ClassDef): HTMLElement | null {
+  const f = classFloors(c.id);
+  const sk = ([id, n]: [string, number]) => [link('skills', id, skillName(id)), ` ${n}`];
+  const lines: (Node | string)[][] = [...Object.entries(f.all).map((e) => sk(e)),
+    ...f.any.map((g) => ['one of: ', ...Object.entries(g).flatMap((e, i) => [i ? ', ' : '', ...sk(e)])])];
+  return lines.length ? row('Skill floors', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
+}
 function classes(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, `Lowest tier first. Tiers (CLASS_TIERS in src/scales.ts): ${CLASS_TIERS.keys.map((k) => CLASS_TIERS.name(k)).join(', ')}.`),
     h('div', { class: 'lv-grid' }, byTier().map((c) => card('classes', c.id, c, c.name,
       [chip(CLASS_TIERS.name(c.tier), toneFor('Tier', CLASS_TIERS.name(c.tier))), c.fallback ? chip('default class', toneFor('Kind', 'default class')) : null, c.creation ? chip('starting class', toneFor('Kind', 'starting class')) : null],
+      c.story ? h('p', { class: 'lv-story' }, c.story) : null,
       row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
-      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'capstone', 'capstones']),
+      unlockRow(c), floorsRow(c),
+      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'story', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerk', 'unlockPerkWith', 'unlockClass', 'floors']),
       c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
         ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default'))),
         ...(c.capstones ?? []).map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', chip('alternate'), ' ', ...access(x.needs))))) : null))),
@@ -415,9 +510,10 @@ function skills(): HTMLElement[] {
   const tree = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => card('skills', id, entry, title, chips,
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Group', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
-        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneFor('Function', functionName(f))))) : '—'),
-        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneFor('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
-        h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneFor('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
+        h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : []),
+          ...(s.augments ?? []).map((a) => h('div', { class: 'lv-bits' }, 'augments ', link('skills', a.skill, skillName(a.skill)), ` ×${a.share ?? 1}`, a.rollKinds?.length ? ` (${a.rollKinds.join(', ')} rolls)` : ''))), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneFor('Function', functionName(f))))) : '—'),
+        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneFor('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.map((r) => lib.roles[r as keyof typeof lib.roles]?.name ?? r).join(', ') || '—'),
+        h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, groupsOf(s)[0] ? chip(`${GROUP_NAMES[groupsOf(s)[0]]} · ${XP_FACTORS.name(CONFIG.XP_GROUP_FACTOR[groupsOf(s)[0]] as XpFactorKey ?? 'none')} ×${xpGroupFactor(groupsOf(s)[0])}`, toneFor('Group', GROUP_NAMES[groupsOf(s)[0]])) : '—'), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP)
   const groupChips = (ids: string[]) => [...new Set(ids.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`${GROUP_NAMES[g]} group`, toneFor('Group', GROUP_NAMES[g])));
   const treeCard = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => {
@@ -573,6 +669,7 @@ function equationsView(): HTMLElement[] {
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
+  { key: 'gearClasses', title: 'Gear classes', table: 'gearClasses', view: gearClasses },
   { key: 'perks', title: 'Perks', table: 'perks', view: perks },
   { key: 'races', title: 'Races', table: 'races', view: races },
   { key: 'bodyTypes', title: 'Body types', table: 'bodyTypes', view: bodyTypes },
@@ -580,22 +677,26 @@ const CUSTOM: Section[] = [
   { key: 'skills', title: 'Skills', table: 'skills', view: skills },
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
   { key: 'classes', title: 'Classes', table: 'classes', view: classes },
+  { key: 'healing', title: 'Healing', table: 'healing', view: healing },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
   { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
+  gearClasses: (g: { use?: string }) => [['Use', g.use]],
+  healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? (d.hourly.morale ? 'morale' : 'health') + ' hourly' : undefined],
+    ...(['hpPct', 'partPct', 'moralePct'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', moralePct: 'morale' }[k]])],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
   stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],
     ['Fed by', e.type ? (e.feeds ? 'library entries' : 'a fixed number') : undefined]],
   standIns: (e: { id?: string; functions?: string[]; own?: boolean }) => [['Rule', e.id ? (e.own ? 'own table' : 'flat share') : undefined], ['Tree', treeOf(e.id)],
     ...(e.functions ?? []).map((f): [string, string] => ['Function', functionName(f)])],
-  gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
+  gear: (i: ItemDef) => [['Kind', i.kind], ['Gear class', i.gearClass && lib.gearClasses?.[i.gearClass]?.name], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
     ...[...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]), ...(i.tags ?? [])].filter((f) => f !== i.kind).map((f): [string, string] => ['Flag', f])], // a flag that repeats the kind says nothing new
   perks: (d: PerkDef & { place?: string; skill?: string; bankedAs?: string }) => [['Banked as', d.bankedAs && ({ milestone: 'milestone perk', allX: 'All-X candidate', other: 'other' } as Record<string, string>)[d.bankedAs]], ['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)]],
-  achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`]],
+  achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${rewardName(d.level)}`]],
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Access', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
     ...(t.access?.blockedBy ?? []).map((c): [string, string] => ['Blocked by', condName(c)]),
@@ -618,8 +719,8 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
-  ['Library', ['gear', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'status']],
+  ['Library', ['gear', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'fears', 'status']],
   ['World', null],
 ];
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
@@ -629,6 +730,8 @@ const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('d
     return list.length ? [h('div', { class: 'lv-railgroup', 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
   }));
 const picks = new Map<string, 'shown' | 'out'>();
+// each table keeps its own filter picks, remembered across visits and reloads (this browser only)
+const picksBy = remember<Record<string, [string, 'shown' | 'out'][]>>('lv-picks', {});
 const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
 const titleEl = h('h1', {});
@@ -751,7 +854,8 @@ function paint(): void {
 /** does a card pass the search and the filters (leaving out one group's own picks, for that group's counts) */
 function passes(c: HTMLElement, q: string, skip?: string): boolean {
   const fs = new Set(facetsOf(c));
-  if (q && !c.dataset.q!.includes(q)) return false;
+  // the search also reads the section a card sits in (an achievement chain's title, a gear kind …)
+  if (q && !c.dataset.q!.includes(q) && !(c.closest('.lv-group')?.querySelector(':scope > h2')?.textContent ?? '').toLowerCase().includes(q)) return false;
   const shownBy = new Map<string, boolean>();
   for (const [f, st] of picks) {
     const g = f.split('\t')[0];
@@ -770,9 +874,13 @@ function pickWords(): string {
   return [...by].map(([g, vs]) => `${g}: ${vs.join(', ')}`).join('; ');
 }
 function filter(): void {
+  if (shown) { if (picks.size) picksBy[shown] = [...picks]; else delete picksBy[shown]; keep('lv-picks', picksBy); }
   const q = search.value.trim().toLowerCase();
   const allOn = allBox.checked && !!q;
   document.body.classList.toggle('lv-allmode', allOn);
+  // while a search is typed every section shows unfolded; the folds themselves are untouched, so clearing restores them
+  document.body.classList.toggle('lv-searching', !!q);
+  body.querySelectorAll('.lv-foldbtn').forEach((fb) => fb.setAttribute('aria-expanded', String(!!q || !fb.closest('.lv-group, .lv-foldcard')?.classList.contains('lv-folded'))));
   if (allOn) {
     const n = searchAll(q);
     if (allRes.parentNode !== body) body.prepend(allRes);
@@ -814,7 +922,6 @@ TONES = (() => {
     occ.set(sec.key, groups);
   }
   facetOf = () => [];
-  occ.set('skill XP', new Map([['XP', new Set(Object.values(lib.skills).map((s) => s.xpCategory))]])); // a chip, not a filter
   return toneTable(occ, TONE_ORDER);
 })();
 
@@ -972,15 +1079,26 @@ function fold(head: Element, open?: boolean, save = true): void {
   const folded = box(head).classList.toggle('lv-folded', open === undefined ? undefined : !open);
   if (save) {
     const k = foldKey(head);
-    if (folded) foldedSet.add(k); else foldedSet.delete(k);
-    keep('lv-folded', [...foldedSet]);
+    if (FOLDED_FIRST.has(shown)) { if (folded) openedSet.delete(k); else openedSet.add(k); keep('lv-opened', [...openedSet]); }
+    else { if (folded) foldedSet.add(k); else foldedSet.delete(k); keep('lv-folded', [...foldedSet]); }
+    // the same section in the other sub-tabs follows
+    body.querySelectorAll<HTMLElement>(HEAD).forEach((o) => {
+      if (o === head || foldKey(o) !== k) return;
+      box(o).classList.toggle('lv-folded', folded);
+      o.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
+    });
   }
   head.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
 }
-// keyed by the title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new build
-const foldKey = (head: Element): string => `${shown}|${head.closest<HTMLElement>('.lv-pane')?.dataset.pane ?? ''}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
+// tables whose sections start folded until opened; for them the remembered choice is which sections are open
+const FOLDED_FIRST = new Set(['achievements']);
+const openedSet = new Set<string>(remember<string[]>('lv-opened', []));
+const savedFolded = (k: string): boolean => (FOLDED_FIRST.has(shown) ? !openedSet.has(k) : foldedSet.has(k));
+// keyed by tab and title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new
+// build, and a section folded in one sub-tab is folded in every sub-tab that shows it
+const foldKey = (head: Element): string => `${shown}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
 function foldable(): void {
-  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) box(h2).classList.add('lv-folded'); });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (savedFolded(foldKey(h2))) box(h2).classList.add('lv-folded'); });
   // the heading stays a heading; a button inside it does the folding
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => {
     const btn = h2.querySelector(':scope > .lv-foldbtn') ?? h('button', { type: 'button', class: 'lv-foldbtn', title: 'Fold or unfold' }, ...Array.from(h2.childNodes));
@@ -988,7 +1106,7 @@ function foldable(): void {
     btn.setAttribute('aria-expanded', String(!box(h2).classList.contains('lv-folded')));
   });
 }
-body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
+body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2 && !document.body.classList.contains('lv-searching')) fold(h2); });
 
 // Table view (VR1, VR2): flat tables read as one row per entry. The cards stay in the page (hidden), so search,
 // filters, colour and pins keep working on them; each row mirrors its card.
@@ -1022,23 +1140,32 @@ function drawSwitch(): void {
     onclick: () => { viewOfTable[shown] = m; keep('lv-view', viewOfTable); tablify(); drawSwitch(); } }, m === 'cards' ? 'Cards' : 'Table')));
 }
 const cellText = (n: Element | null | undefined) => (n?.textContent ?? '').replace(/\s+/g, ' ').trim();
+const ALWAYS_COLS = new Set(['Reward', 'Effect', 'Restores']);
 function tablify(): void {
   body.querySelectorAll('.lv-table').forEach((t) => t.remove());
   body.querySelectorAll('.lv-tabled').forEach((g) => g.classList.remove('lv-tabled'));
   if (modeOf(shown) !== 'table') return;
-  body.querySelectorAll<HTMLElement>('.lv-grid').forEach((grid) => {
+  // each section picks the fields all its entries share and that fit a cell; when the sections' picks together
+  // are few enough, every section uses them all, so the tables of one tab read the same way
+  const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row, :scope > .lv-cbody > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
+  const grids = Array.from(body.querySelectorAll<HTMLElement>('.lv-grid')).map((grid) => {
     const list = Array.from(grid.querySelectorAll<HTMLElement>(':scope > .lv-card:not(.lv-fixed)'));
-    if (!list.length) return;
-    const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
     const maps = list.map(rowsOf);
-    // columns: fields every entry has, short enough for a cell; long ones stay in the pop-up
-    const cols = [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60).slice(0, 6);
+    // a column that only repeats the entry's name or a raw id says nothing new; what an entry gives (Reward, Effect) always shows
+    const echoes = (k: string) => maps.every((m, i) => { const v = cellText(m.get(k)); return v === cellText(list[i].querySelector(':scope > header > h3')) || v === list[i].id.split('/').pop() || /^[A-Z]{2,3}\d+\b/.test(v); });
+    const own = list.length ? [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && !echoes(k)
+      && (ALWAYS_COLS.has(k) || maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60)) : [];
+    return { grid, list, maps, own };
+  }).filter((g) => g.list.length);
+  const union = [...new Set(grids.flatMap((g) => g.own))];
+  grids.forEach(({ grid, list, maps, own }) => {
+    const cols = (union.length <= 6 ? union : own).slice(0, 6);
     const sort = { col: -1, dir: 1 };
     const tbody = h('tbody', {});
     const rows = list.map((c, i) => {
       const t = c.querySelector(':scope > header > h3');
       const tr = h('tr', { 'data-ref': c.id }, h('th', { scope: 'row' }, h('a', { class: 'lv-link', href: `#${c.id}` }, cellText(t))),
-        ...cols.map((k) => h('td', {}, ...Array.from(maps[i].get(k)!.cloneNode(true).childNodes))));
+        ...cols.map((k) => h('td', {}, ...(maps[i].has(k) ? Array.from(maps[i].get(k)!.cloneNode(true).childNodes) : ['—']))));
       return { tr, card: c, keys: [cellText(t), ...cols.map((k) => cellText(maps[i].get(k)))] };
     });
     const heads = ['Name', ...cols].map((k, ci) => h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'lv-sort', onclick: () => {
@@ -1087,6 +1214,9 @@ function route(): void {
     subRail.replaceChildren(...(tabs ? [tabs] : []));
     document.body.classList.toggle('lv-has-sub', !!tabs);
     foldable();
+    // bring back this table's remembered filters, leaving out values no entry has any more
+    const present = new Set(cards().flatMap((c) => facetsOf(c)));
+    for (const [f, st] of picksBy[sec.key] ?? []) if (present.has(f)) picks.set(f, st);
     tablify();
     drawSwitch();
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
@@ -1102,6 +1232,7 @@ function route(): void {
     const shutBox = el?.closest('.lv-folded');
     const shut = shutBox?.querySelector(':scope > h2.hs-section, :scope > header > h3');
     if (shut) fold(shut, true, false);
+    if (el?.hidden) { picks.clear(); search.value = ''; filter(); } // a remembered filter hides the entry linked to: drop it
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
     el?.scrollIntoView({ block: 'center' });

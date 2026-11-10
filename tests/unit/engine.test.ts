@@ -1,4 +1,5 @@
 // W4 engine unit tests. Other workstreams' modules are replaced by small local fakes.
+import { AM } from '../../src/library/tableIds';
 import type { Tier } from '../../src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, Order, RollRequest } from '../../src/types';
@@ -28,7 +29,7 @@ vi.mock('../../src/ruleset', async (orig) => {
   };
   const usableModes = (_s: GameState, a: Actor) => {
     const held = a.core.inventory.filter((i) => i.equippedIn?.some((x) => x.startsWith('hand:')));
-    const modes = held.flatMap((i) => (itemDef(null, i.itemId).weapon?.modes ?? []).map((mode) => ({ itemId: i.id, mode })));
+    const modes = held.flatMap((i) => (itemDef(null, i.itemId).weapon?.modes ?? []).map((mode) => ({ itemId: i.id, mode: real.withRow(a, itemDef(null, i.itemId), mode) }))); // the Throw row adds its reach
     const nat = bodyType(null, a.core.bodyTypeId).naturalAttacks.map((mode) => ({ itemId: `natural:${mode.id}`, mode }));
     return [...modes, ...nat];
   };
@@ -67,7 +68,8 @@ vi.mock('../../src/ruleset', async (orig) => {
       return p >= 100 ? 'Incapacitated' : p > 75 ? 'Critical' : p > 60 ? 'Mauled' : p > 45 ? 'Wounded' : p > 30 ? 'Injured' : p > 0 ? 'Hurt' : 'Unhurt';
     },
     partStates: (_s: GameState, a: Actor) => Object.entries(a.core.condition.parts).map(([id, v]) => ({ id, state: v <= 0 ? 'Destroyed' : 'Healthy' })),
-    moraleCheck: () => F.morale,
+    // the morale roll's tier: steady = Critical Success (pays nothing), broken = Failure, surrendered = Critical Failure
+    moraleRoll: () => ({ tier: F.morale === 'surrendered' ? 'critical_failure' : F.morale === 'broken' ? 'failure' : 'critical_success', beyond: 0 }),
     usableModes,
     defaultMode: (s: GameState, a: Actor, d: number) => usableModes(s, a).find((m) => m.mode.reach >= d) ?? usableModes(s, a).at(-1) ?? null,
   };
@@ -351,6 +353,17 @@ describe('agent side effects', () => {
     g.mind!.overrides = { player: 'friend' };
     expect(hostile(s, g, p)).toBe(false);
   });
+  it('a friend turns on whoever is hostile to its friend only if it is already opposed or colder to them', () => {
+    const g = actor(s, 'guard_1'), p = actor(s, 'patron_1');
+    p.mind!.overrides = { player: 'hostile' };
+    for (const [toPatron, want] of [['opposed', true], ['unfriendly', false], ['neutral', false], ['friendly', false]] as const) {
+      g.mind!.overrides = { player: 'friend', patron_1: toPatron };
+      expect(hostile(s, g, p), toPatron).toBe(want);
+    }
+    p.mind!.overrides = { player: 'opposed' }; // the patron isn't hostile to the player: no side to take
+    g.mind!.overrides = { player: 'friend', patron_1: 'opposed' };
+    expect(hostile(s, g, p)).toBe(false);
+  });
 });
 
 describe('gear and combat', () => {
@@ -365,10 +378,10 @@ describe('gear and combat', () => {
     // tav_counter linked with sight; street_door linked without sight
     place(s, 'patron_1', 'tav_counter');
     place(s, 'trader', 'street_door');
-    const r1 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'draw', item: 'sp' }], action: { type: 'attack', target: 'patron_1', mode: 'thrust' } }) }), createRng(1));
+    const r1 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'draw', item: 'sp' }], action: { type: 'attack', target: 'patron_1', mode: AM.thrust } }) }), createRng(1));
     expect(r1.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'attack', target: 'patron_1' });
     s.turn = 2;
-    const r2 = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'trader', mode: 'thrust' } }) }), createRng(1));
+    const r2 = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'trader', mode: AM.thrust } }) }), createRng(1));
     expect(r2.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'wasted', target: 'trader' });
   });
   it('a thrown dagger lands on the target zone ground, hit or miss', () => {
@@ -376,7 +389,7 @@ describe('gear and combat', () => {
     s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
     place(s, 'patron_1', 'tav_counter');
     F.defended = false;
-    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: 'throw' } }) }), createRng(1));
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: AM.throw } }) }), createRng(1));
     expect(s.zones.find((z) => z.id === 'tav_counter')!.groundItems.map((i) => i.id)).toEqual(['dg']);
     expect(s.player.core.inventory.some((i) => i.id === 'dg')).toBe(false);
   });
@@ -406,6 +419,7 @@ describe('gear and combat', () => {
     F.init = { player: 90, patron_1: 80, guard_1: 10 };
     F.damage = 20;
     F.morale = 'broken';
+    actor(s, 'guard_1').core.condition.moraleLost = 90; // near Broken: Injured's fear (25 × 1.5) breaks it
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }), agentOutputs: [planner('patron_1', npcAction('attack', 'guard_1'))] }), createRng(1));
     expect(F.attacks.map((a) => a.context?.defensesThisTurn)).toEqual([0, 1]);
     expect(actor(s, 'guard_1').mind!.moraleState).toBe('broken');
@@ -417,6 +431,7 @@ describe('gear and combat', () => {
     F.init = { player: 90, guard_1: 10 };
     F.damage = 45;
     F.morale = 'surrendered';
+    actor(s, 'guard_1').core.condition.moraleLost = 90; // Injured's fear at Critical Failure (25 × 2) breaks it: a surrender
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     const g = actor(s, 'guard_1');
     expect(g.mind!.moraleState).toBe('surrendered');
@@ -451,7 +466,7 @@ describe('gear and combat', () => {
     p.mind!.knowledge = {};
     F.rollTier.player = 'critical_success'; // the player stays unseen
     F.rollTier.patron_1 = 'critical_failure';
-    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: 'throw' } }) }), createRng(1));
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: AM.throw } }) }), createRng(1));
     expect(atLeastAware(p)).toBe(false);
     expect(p.mind!.overrides?.player).toBeUndefined();
     // seen: now it knows who it is, and a blow makes it hostile

@@ -1,5 +1,5 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
-import type { Actor, AttackMode, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
+import type { Actor, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
 import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
@@ -9,9 +9,11 @@ import { hasPerk, standInAdd, trueSkill } from './perks';
 import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
-import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
-import { requirement } from './requirements';
+import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL } from '../library/skillIds';
+import { requirement, requiredSkill } from './requirements';
 import { PK } from '../library/perkIds';
+import { skillName } from '../library/skillNames';
+import { AM } from '../library/tableIds';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
@@ -49,6 +51,25 @@ export function kitBonus(def: ItemDef, e: ItemEffect): number {
   return r ? CONFIG.EQUIP_FACTOR * r.need : e.value;
 }
 
+/** zones the throw action adds on top of the Throw row's reachBonus: perks' throwReach */
+export const perkThrowReach = (actor: Actor) => actor.core.perks.reduce((n, p) => n + (p.dormant ? 0 : getLibrary().perks[p.perkId]?.throwReach ?? 0), 0);
+
+/** an item's mode with its attack mode row's rules applied. Throw: reach + reachBonus (+ perks), and a combined roll of
+ * the weapon's own skill and the same class's ranged skill at the row's blend shares. */
+export function withRow(actor: Actor, def: ItemDef, mode: AttackMode): AttackMode {
+  const row = getLibrary().attackModes?.[mode.id];
+  if (!row?.reachBonus && !row?.blend) return mode;
+  const own = requiredSkill(def) ?? modeSkill(mode), ranged = CLASS_SKILL.ranged[mode.class];
+  return { ...mode, reach: mode.reach + (row.reachBonus ?? 0) + (mode.thrown ? perkThrowReach(actor) : 0),
+    ...(row.blend && ranged ? { skill: own, blend: [{ skill: own, share: row.blend.weapon }, { skill: ranged, share: row.blend.ranged }] } : {}) };
+}
+
+/** a combined roll's effective skill: each part's effectiveSkill (its own stand-ins and gear) × its share, summed */
+export function blendedSkill(state: GameState, actor: Actor, blend: { skill: string; share: number }[], ctx: Parameters<typeof effectiveSkill>[3] = {}) {
+  const parts = blend.map((b) => ({ ...effectiveSkill(state, actor, b.skill, ctx), share: b.share }));
+  return { skill: parts[0].skill, value: parts.reduce((n, p) => n + p.value * p.share, 0), gear: parts.flatMap((p) => p.gear.map((g) => ({ ...g, value: g.value * p.share }))), parts: parts.map((p) => p.skill) };
+}
+
 /** gear skill bonuses for one skill; all kit effects share one bonus, the best of them */
 function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string }) {
   const out: { source: string; value: number }[] = [];
@@ -56,7 +77,7 @@ function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: 
   for (const { def, e, source } of activeEffects(state, actor, ctx.itemId)) {
     if (e.kind !== 'skill') continue;
     const fits = e.skill === skill ||
-      (e.skill === '$mode' && (def.weapon?.modes ?? []).some((m) => (!ctx.modeId || m.id === ctx.modeId) && modeSkill(m) === skill));
+      (e.skill === '$mode' && (def.weapon?.modes ?? []).some((m) => (!ctx.modeId || m.id === ctx.modeId) && modeSkill(withRow(actor, def, m)) === skill));
     if (!fits) continue;
     if (e.kit) { const v = kitBonus(def, e); if (!kit || v > kit.value) kit = { source, value: v }; }
     else out.push({ source, value: e.value });
@@ -108,7 +129,7 @@ export const fnSkills = (fn: string): string[] => Object.values(getLibrary().ski
 export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: fnSkills(fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
-export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[] } = {}) {
+export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[]; rollKind?: RollKind } = {}) {
   const skills = getLibrary().skills;
   const table = standInTable(skill, actor, ctx.standInFns);
   const share = (id: string) => standInShare(skill, id, table, ctx.fullValue);
@@ -124,7 +145,41 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     for (const g of gear) g.value *= tier;
     if (!best || value > best.value) best = { skill: id, value, gear };
   }
+  for (const a of augmentsOf(actor, skill, ctx.rollKind)) { best!.value += a.value; best!.gear.push(a); } // skills that augment this one
   return best!; // GAP: hard cap (D-3) and condition effects not designed yet
+}
+
+/** augments the actor's perks give (PerkDef.augments, All-50 Grit), for `skill` on a roll of this kind: the augmenting
+ * skill's tree must be open and the skill not dormant, as for a skill's own augments */
+export function perkAugments(actor: Actor, skill: string, rollKind?: RollKind): { from: string; share?: number; perk: string }[] {
+  const perks = getLibrary().perks, out: { from: string; share?: number; perk: string }[] = [];
+  for (const p of actor.core.perks) {
+    const def = perks[p.perkId];
+    if (p.dormant || !def?.augments) continue;
+    for (const g of def.augments) {
+      if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, g.from) || actor.core.skills[g.from]?.dormant) continue;
+      out.push({ from: g.from, share: g.share, perk: def.name });
+    }
+  }
+  return out;
+}
+
+/** skills augmenting `skill` on this roll (SkillDef.augments): each adds true skill × share × its tier, when its tree is
+ * open and the roll kind fits (no kinds listed: every roll and check of the skill) */
+export function augmentsOf(actor: Actor, skill: string, rollKind?: RollKind): { source: string; value: number }[] {
+  const skills = getLibrary().skills, out: { source: string; value: number }[] = [];
+  for (const id of Object.keys(actor.core.skills)) {
+    for (const g of skills[id]?.augments ?? []) {
+      if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, id) || actor.core.skills[id].dormant) continue;
+      const value = trueSkill(actor, id) * (g.share ?? 1) * tierMult(id);
+      if (value) out.push({ source: `${skillName(id)} (augments)`, value });
+    }
+  }
+  for (const g of perkAugments(actor, skill, rollKind)) {
+    const value = trueSkill(actor, g.from) * (g.share ?? 1) * tierMult(g.from);
+    if (value) out.push({ source: `${skillName(g.from)} (augments, ${g.perk})`, value });
+  }
+  return out;
 }
 
 /** noted roll modifiers (type gear) for one roll kind */
@@ -174,7 +229,16 @@ export function pickTool(state: GameState, actor: Actor, skill: string): { itemI
 }
 
 /** fallback unarmed mode for a body type with no natural attacks (UNARMED_PROFILE = class punch) */
-export const UNARMED_MODE: AttackMode = { id: 'unarmed', tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' };
+/** an attack mode's display name: its own (natural attacks) or its attackModes row's */
+export const modeName = (m: AttackMode) => m.name ?? getLibrary().attackModes?.[m.id]?.name ?? m.id;
+
+/** the attack mode ID an agent wrote: an AM id as is, or a mode name (any case) mapped to its id */
+export function modeIdOf(word: string): string {
+  const w = word.trim().toLowerCase();
+  return Object.values(getLibrary().attackModes ?? {}).find((m) => m.id.toLowerCase() === w || m.name.toLowerCase() === w)?.id ?? word;
+}
+
+export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {
@@ -183,7 +247,8 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
   const out: { itemId: string; mode: AttackMode }[] = [];
   for (const inst of actor.core.inventory) {
     if (!isHeld(inst) || !handsOf(inst).every((h) => grips.includes(h))) continue;
-    for (const mode of itemDef(state, inst.itemId).weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode });
+    const def = itemDef(state, inst.itemId);
+    for (const mode of def.weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode: withRow(actor, def, mode) });
   }
   const ct = actorBody(state, actor);
   for (const mode of ct.naturalAttacks) {
@@ -205,29 +270,33 @@ export function resolveMode(state: GameState, actor: Actor, weaponId: string, mo
     const id = weaponId === 'unarmed' ? modeId : weaponId.slice(8);
     const mode = ct.naturalAttacks.find((m) => m.id === id) ?? (weaponId === 'unarmed' ? ct.naturalAttacks.find((m) => !m.partId) ?? UNARMED_MODE : undefined);
     if (!mode) throw new Error(`no natural attack ${weaponId}`);
-    return { mode, name: mode.name ?? mode.id };
+    return { mode, name: modeName(mode) };
   }
   const inst = actor.core.inventory.find((i) => i.id === weaponId);
   if (!inst) throw new Error(`${actor.id} has no item ${weaponId}`);
   const def = itemDef(state, inst.itemId);
-  const modes = def.weapon?.modes ?? [];
+  const modes = (def.weapon?.modes ?? []).map((m) => withRow(actor, def, m));
   const mode = modeId ? modes.find((m) => m.id === modeId) : modes.find((m) => m.reach >= distance) ?? modes[0];
   if (!mode) throw new Error(`no attack mode ${modeId ?? ''} on ${weaponId}`);
   return { mode, name: def.name };
 }
 
-/** the item a block uses: a held shield (not Crippled) in working Grip hands, else a held melee weapon. */
-export function blockItem(state: GameState, actor: Actor): ItemInstance | null {
+const heldInGrips = (state: GameState, actor: Actor): ItemInstance[] => {
   const grips = usableGrips(state, actor);
-  const held = actor.core.inventory.filter((i) => isHeld(i) && handsOf(i).every((h) => grips.includes(h)));
-  return (
-    held.find((i) => itemDef(state, i.itemId).shield && working(poolState(i.pools?.shield ?? 100))) ??
-    held.find((i) => itemDef(state, i.itemId).weapon?.modes.some((m) => m.tree === 'melee' && !m.thrown)) ??
-    null
-  );
+  return actor.core.inventory.filter((i) => isHeld(i) && handsOf(i).every((h) => grips.includes(h)));
+};
+
+/** the item a block uses: a held shield (not Crippled) in working Grip hands. Block is shields only (PA1). */
+export function blockItem(state: GameState, actor: Actor): ItemInstance | null {
+  return heldInGrips(state, actor).find((i) => itemDef(state, i.itemId).shield && working(poolState(i.pools?.shield ?? 100))) ?? null;
 }
 
-/** A7 Open-Hand Guard: an owner holding no shield or weapon blocks with a working Grip arm whose hand is empty; returns that arm. */
+/** the weapon a parry uses: a held melee weapon in working Grip hands (PA1, PA2) */
+export function parryItem(state: GameState, actor: Actor): ItemInstance | null {
+  return heldInGrips(state, actor).find((i) => itemDef(state, i.itemId).weapon?.modes.some((m) => m.tree === 'melee' && !m.thrown)) ?? null;
+}
+
+/** A7 Open-Hand Guard (PA10): an owner holding no shield or weapon parries with a working Grip arm whose hand is empty; returns that arm. */
 export function openHandArm(state: GameState, actor: Actor): string | null {
   if (!hasPerk(actor, PK.open_hand_guard)) return null;
   const held = actor.core.inventory.filter(isHeld);
@@ -236,13 +305,30 @@ export function openHandArm(state: GameState, actor: Actor): string | null {
   return usableGrips(state, actor).find((h) => !busy.has(h)) ?? null;
 }
 
-/** whether the actor can block at all: a held shield or melee weapon, or Open-Hand Guard */
-export const canBlock = (state: GameState, actor: Actor) => !!blockItem(state, actor) || !!openHandArm(state, actor);
+/** whether the actor can block at all: a held shield */
+export const canBlock = (state: GameState, actor: Actor) => !!blockItem(state, actor);
+/** whether the actor can parry at all: a held melee weapon, or Open-Hand Guard with an empty hand */
+export const canParry = (state: GameState, actor: Actor) => !!parryItem(state, actor) || !!openHandArm(state, actor);
 
-/** Default standing defense (Part 2, Agent Planner): whichever of dodge and block has the higher effective skill; a tie goes to block. */
-export function defaultStandingDefense(state: GameState, actor: Actor): 'block' | 'dodge' {
-  const shield = blockItem(state, actor);
-  if (!shield && !openHandArm(state, actor)) return 'dodge';
-  const block = effectiveSkill(state, actor, SK.block, { itemId: shield?.id }).value;
-  return block >= effectiveSkill(state, actor, SK.dodge).value ? 'block' : 'dodge';
+/** the item a defense rolls with (shield for block, weapon for parry), for gear bonuses on the roll */
+export function defenseItem(state: GameState, actor: Actor, type: DefenseKind): ItemInstance | null {
+  return type === 'block' ? blockItem(state, actor) : type === 'parry' ? parryItem(state, actor) : null;
+}
+
+/** the defense an actor can use against this attack: its standing defense if it works, else the best one that does
+ * (no shield, no block; no weapon or open hand, no parry; parry can't stop missiles, PA11) */
+export function usableDefense(state: GameState, actor: Actor, ranged: boolean): DefenseKind {
+  const can = (t: DefenseKind) => t === 'dodge' || (t === 'block' ? canBlock(state, actor) : !ranged && canParry(state, actor));
+  return can(actor.core.standingDefense) ? actor.core.standingDefense : bestDefense(state, actor, (['block', 'parry', 'dodge'] as DefenseKind[]).filter(can));
+}
+
+const bestDefense = (state: GameState, actor: Actor, kinds: DefenseKind[]): DefenseKind => {
+  const value = (t: DefenseKind) => effectiveSkill(state, actor, DEFENSE_SKILL[t], { itemId: defenseItem(state, actor, t)?.id }).value;
+  return kinds.reduce((best, t) => (value(t) > value(best) ? t : best), kinds[0] ?? 'dodge');
+};
+
+/** Default standing defense (Part 2, Agent Planner): whichever usable defense has the highest effective skill; ties go block, parry, dodge. */
+export function defaultStandingDefense(state: GameState, actor: Actor): DefenseKind {
+  const kinds: DefenseKind[] = ['block', 'parry', 'dodge'];
+  return bestDefense(state, actor, kinds.filter((t) => t === 'dodge' || (t === 'block' ? canBlock(state, actor) : canParry(state, actor))));
 }

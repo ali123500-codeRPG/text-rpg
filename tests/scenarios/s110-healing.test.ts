@@ -1,5 +1,6 @@
 // 110 Healing (H1–H11): one table of healing sources applied by one rule. Rest heals Healthy and
 // Damaged parts but not Crippled ones; a clinic lifts Crippled parts; a bandage works in a fight and is used up.
+import { HL } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { createRng, makeVillage } from '../harness';
@@ -23,11 +24,11 @@ describe('110 healing', () => {
     c.hpLostPct = 40;
     c.parts.left_leg = -30; // Crippled
     c.parts.right_leg = 20; // Damaged
-    applyHealing(s, s.player, 'rest');
+    applyHealing(s, s.player, HL.rest);
     expect(c.hpLostPct).toBeCloseTo(40 - CONFIG.REST_HEAL_PCT, 0);
     expect(c.parts.left_leg).toBe(-30);
     expect(c.parts.right_leg).toBe(20 + CONFIG.REST_HEAL_PCT);
-    applyHealing(s, s.player, 'clinic');
+    applyHealing(s, s.player, HL.clinic);
     expect(c.hpLostPct).toBe(0);
     expect(c.parts.left_leg).toBe(Math.min(100, CONFIG.CLINIC_HEAL_PCT));
   });
@@ -36,7 +37,7 @@ describe('110 healing', () => {
     s.player.core.inventory.push({ id: 'b1', itemId: IT.bandage, qty: 1 });
     s.player.core.condition.hpLostPct = 20; // Hurt
     const ev = turn(s, use(IT.bandage));
-    expect(s.player.core.condition.hpLostPct).toBeCloseTo(20 - getLibrary().healing!.bandage.hpPct, 0);
+    expect(s.player.core.condition.hpLostPct).toBeCloseTo(20 - getLibrary().healing![HL.bandage].hpPct, 0);
     expect(s.player.core.inventory.some((i) => i.id === 'b1')).toBe(false);
     expect(mechanicsLines(s, ev)).toContain('Bandage: Hurt → Bruised');
   });

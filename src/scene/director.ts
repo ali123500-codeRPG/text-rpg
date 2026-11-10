@@ -1,6 +1,7 @@
 // Scene orchestration: scene start (situation roll, Weaver, repair retry, WEAVER_TIMEOUT), background stage
 // extensions held in memory per frontier, crossing (waits for a late extension), saved-zone re-entry.
 // The pipeline (W7) injects `weave`, which wraps the real Agent Weaver call and logs it.
+import { noteLeft } from '../engine/trail';
 import type { Clock, GameEvent, GameState, Rng, SituationResult, StagePlan, WeaverView } from '../types';
 import { CONFIG } from '../config';
 import { ruleset } from '../ruleset';
@@ -49,11 +50,12 @@ export class SceneDirector {
     const situation = ruleset.situation(state.player, state, rng); // step 2
     this.lastSituation = situation;
     this.held.clear();
+    const wake = state.stage.breakCause === 'knocked_out'; // D-54
     beginScene(state, situation.tier);
-    const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId };
+    const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
     // GAP: WEAVER_TIMEOUT bounds the whole scene-start wait (first call and repair together).
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    const planned = await this.plan(state, ctx, { kind: 'scene', placeId }, deadline);
+    const planned = await this.plan(state, ctx, { kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) }, deadline);
     return { ...this.finish(state, ctx, planned, rng, entry), situation };
   }
 
@@ -79,6 +81,13 @@ export class SceneDirector {
 
   /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no situation roll. */
   async cross(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
+    const from = state.player.zone;
+    const res = await this.crossTo(state, key, rng, entry);
+    noteLeft(state, from); // the trail: "go back" leads to the zone the frontier was crossed from
+    return res;
+  }
+
+  private async crossTo(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy'): Promise<SceneResult> {
     if (isSavedZone(state, key)) {
       loadSavedZone(state, key);
       const z = zoneById(state, key)!;
@@ -160,8 +169,9 @@ export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | n
   const placeId = state.player.placeId;
   ensurePlace(state, placeId);
   const situation = ruleset.situation(state.player, state, rng);
+  const wake = state.stage.breakCause === 'knocked_out'; // D-54
   beginScene(state, situation.tier);
-  const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId };
+  const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
   const [first, second] = weaverOutputs;
   let planned: Planned;
   if (!first) planned = { plan: null, errors: [], reason: 'call_failed' };

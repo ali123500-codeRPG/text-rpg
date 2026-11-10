@@ -1,4 +1,5 @@
 // Small hand-built views for the W7 agent tests (no view builder needed).
+import { AM } from '../../src/library/tableIds';
 import type { ActorView, DialogueView, NarrationView, PlayerView, ZoneView, PlannerOutput, VoiceOutput, Intent } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 import { skillName } from '../../src/library/skillNames';
@@ -14,9 +15,9 @@ export function playerView(): PlayerView {
   return {
     turn: 1,
     player: {
-      id: 'player', name: 'Aldric', classes: [CL.swordsman], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
-      health: 'Unhurt', parts: [],
-      inventory: [{ id: 'sword_1', itemId: IT.arming_sword, name: 'arming sword', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['cut', 'thrust'] }],
+      id: 'player', name: 'Aldric', classes: [{ id: CL.swordsman, name: 'Swordsman' }], skills: [SK.melee_medium, SK.block, SK.persuasion, SK.eyesight].map((id) => ({ id, name: skillName(id) })), perks: [],
+      health: 'Unhurt', parts: [], morale: 'Calm',
+      inventory: [{ id: 'sword_1', itemId: IT.arming_sword, name: 'arming sword', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: [{ id: AM.cut, name: 'Cut' }, { id: AM.thrust, name: 'Thrust' }] }],
       posture: 'open', standingDefense: 'block',
     },
     zone: zone('tav_common', ['tav_counter', 'street_door'], ['mug_1']),
@@ -32,8 +33,8 @@ export function actorView(id = 'guard_1'): ActorView {
     time: { day: 1, timeOfDay: 'Day' },
     self: {
       id, label: 'a gate guard', name: 'Bertram', kind: 'npc', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch',
-      health: 'Unhurt', parts: [], active: true, broken: false, surrendered: false, fearless: false, control: 'agent', standingDefense: 'block',
-      gear: [{ id: 'spear_1', itemId: IT.spear, name: 'spear', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: ['thrust'] }],
+      health: 'Unhurt', parts: [], morale: 'Calm', active: true, broken: false, surrendered: false, control: 'agent', standingDefense: 'block',
+      gear: [{ id: 'spear_1', itemId: IT.spear, name: 'spear', kind: 'weapon', equippedIn: ['hand:right_arm'], modes: [{ id: AM.thrust, name: 'Thrust' }] }],
       attackSkill: SK.melee_medium, routines: [{ id: 'guard_post', brief: 'stand at the post' }, { id: 'guard_alert', brief: 'watch hard' }],
       slots: { post: 'gate_inner' },
     },
@@ -64,7 +65,7 @@ export function narrationView(): NarrationView {
       { id: 'e1', kind: 'presence', level: 'full', cue: 'sight', actor: 'an old drinker', activityLook: 'nursing a mug' },
       { id: 'e2', kind: 'move', level: 'partial', cue: 'sound', where: 'behind the bar' },
     ],
-    player: { name: 'Aldric', health: 'Unhurt', parts: [], zone: 'tav_common' },
+    player: { name: 'Aldric', health: 'Unhurt', morale: 'Calm', parts: [], zone: 'tav_common' },
     surroundings: [zone('tav_common', ['tav_counter'])],
     heard: [], actors: [{ label: 'an old drinker', zone: 'tav_common', activityLook: 'nursing a mug' }], facts: [], headlines: [],
   };

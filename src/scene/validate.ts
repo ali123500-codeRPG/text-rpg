@@ -8,6 +8,7 @@ import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
+import { itemValue } from '../ruleset/value';
 
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
 const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard', 'quiet_turns'];
@@ -182,8 +183,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`zone ${z.key} name`, z.name, true);
     text(`zone ${z.key} look`, z.look, true);
     if (!isPlace(z.place)) err('unresolved_place', `zone ${z.key}: place ${z.place} unknown`);
-    const kinds = Object.keys(getLibrary().zoneKinds ?? {});
-    if (!kinds.includes(z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.join(', ')}`);
+    const kinds = Object.values(getLibrary().zoneKinds ?? {});
+    if (!kinds.some((k) => k.id === z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.map((k) => `${k.id} (${k.name})`).join(', ')}`);
     if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
@@ -322,6 +323,13 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     for (const t of arr(p.triggers)) checkTrigger(`plan ${p.ownerId}`, t);
   }
   for (const t of arr(seeds.triggers)) checkTrigger('seeds.triggers', t);
+  if (ctx.wake && !zones.length) err('wake_needs_zone', 'the player wakes somewhere safe: plan at least one new zone; the first one is where they wake');
+  for (const [i, sp] of arr(plan.spars).entries()) {
+    const ids = arr(sp.sides).flatMap((x) => arr(x));
+    if (arr(sp.sides).length < 2 || arr(sp.sides).some((x) => !arr(x).length)) err('bad_spar', `spar ${i}: needs two sides or more, none empty`);
+    else if (new Set(ids).size !== ids.length) err('bad_spar', `spar ${i}: a fighter is on two sides`);
+    for (const id of ids) if (!isActor(id)) err('unresolved_actor', `spar ${i}: fighter ${id} unknown`);
+  }
   for (const s of secrets) {
     if (!arr(s.leakTerms).length) err('secret_without_leak_terms', `secret ${s.id}: needs leakTerms`);
     if (!isActor(s.holderId)) err('unresolved_actor', `secret ${s.id}: holder ${s.holderId} unknown`);
@@ -342,11 +350,11 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 
 type Reward = StagePlan['rewards'][number];
 
-/** Loot V8: a reward's Boon = the item's boon (or value ÷ BOON_COIN) × qty, × BOON_QUALITY for a minted item. */
+/** Loot V8: a reward's Boon = the item's boon (or its value ÷ BOON_COIN, src/ruleset/value.ts) × qty, × BOON_QUALITY for a minted item. */
 export function boon(state: GameState, item: Reward['item'], qty = 1): number {
   const def = itemDef(state, typeof item === 'string' ? item : item.base);
   const q = typeof item === 'string' ? 0 : item.quality;
-  return (def.boon ?? def.value / CONFIG.BOON_COIN) * qty * CONFIG.BOON_QUALITY[q];
+  return (def.boon ?? itemValue(state, def) / CONFIG.BOON_COIN) * qty * CONFIG.BOON_QUALITY[q];
 }
 
 /**

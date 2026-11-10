@@ -16,7 +16,7 @@ export type StageInfo = {
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
-  breakCause?: 'rest' | 'story_beat' | 'time_skip'; // P7: set by the engine; the director starts a new scene after this turn
+  breakCause?: 'rest' | 'story_beat' | 'time_skip' | 'knocked_out'; // P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere safe)
   /** OQ-27 (c): the NPC the player last spoke with this scene (sticky dialogue partner) */
   partner?: string;
 };
@@ -39,6 +39,7 @@ export type Quest = {
   giver: string; dealId: string; goal: QuestGoal; progress: number;
   level: QuestRewardLevel; // QT9/QT28: from the scene's gain grade when accepted
   startTurn: number; endTurn?: number;
+  startAt?: number; // game clock minutes when it was given (set with `due`: the 'quests_early' achievement)
   after?: string; // QT24: the quest it follows
   pay?: { coin?: number; item?: string; qty?: number }; // QT10/QT23: promised payment (coin in copper, a library item)
   paid?: { coin: number; qty: number }; // what the giver has handed over since
@@ -46,6 +47,12 @@ export type Quest = {
   due?: number; dueBy?: TimeOfDay; // QT25: game clock minutes the goal must be met by; dueBy: the time of day named
   pinned?: true; // shown on the Play screen's quest line
 };
+
+/** SP1/SP3: a spar between sides (one actor each for one against one; every actor on its own side for a free-for-all).
+ * out: who has yielded or reached the limit (SP4, SP5), with the turn; last: the turn of the latest blow between sides (or the start). */
+export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
+/** MB40–MB43: the player's yield this scene: foes yet to answer, those that took it (truce) and those that fought on */
+export type PlayerYield = { turn: number; pending: string[]; accepted: string[]; refused: string[] };
 
 // In-memory working state, built from Part 4's pages on load. Never saved as one document.
 export type GameState = {
@@ -71,6 +78,8 @@ export type GameState = {
   clocks: Record<string, number>;
   flags: Record<string, string | number | boolean>;
   quests: Quest[];
+  spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
+  yielding?: PlayerYield; // MB40: cleared when the scene ends
   settings: Settings;
   libraryVersion: number;
   blueprints: BlueprintPage[]; // story blueprints (story first, then library)
@@ -96,7 +105,22 @@ export type StoryMeta = {
   settings: Settings;
   /** set by a confirmed reset (D-73): the story's pages stay under its id, but play no longer loads it */
   archivedAt?: string;
+  /** whose story it is: absent = the player's; 'agent' = the autopilot's own save. One story per owner runs at a time. */
+  owner?: StoryOwner;
+  /** hall of fame: the character as they fell, written when a fallen story is archived */
+  fame?: FameEntry;
 };
+/** a fallen character, kept for the hall of fame (names, not ids, so it reads the same if the library changes) */
+export type FameEntry = {
+  name: string; pronouns?: string; title?: string;
+  classes: { name: string; level: number }[]; level: number;
+  skills: { name: string; value: number }[]; // the highest true skills, best first
+  perks: string[]; achievements: string[]; scars: string[];
+  defeats: number; turn: number; day: number; place: string;
+  downedBy?: import('./game').DownedBy;
+  fellAt: string; // ISO time the story was archived
+};
+export type StoryOwner = 'player' | 'agent';
 
 export type PageRef = { version: Turn; hash: string; bytes: number };
 export type Bookmark = { turn: Turn; pages: Record<string, PageRef> };
@@ -121,6 +145,8 @@ export type EnginePage = {
   flags: Record<string, string | number | boolean>;
   bands: Band[];
   quests: Quest[];
+  spars?: Spar[];
+  yielding?: PlayerYield;
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */

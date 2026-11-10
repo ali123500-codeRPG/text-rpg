@@ -3,11 +3,12 @@
 import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, Tier, TierName, Grade, Fact } from './core';
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
+import type { DefenseKind } from './actor';
 
 export type HealthLevel = 'Unhurt' | 'Bruised' | 'Hurt' | 'Injured' | 'Wounded' | 'Mauled' | 'Critical' | 'Incapacitated' | 'Dead';
 export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
 
-export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: string[]; classLabel?: string; weightLabel?: string; qty?: number };
+export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' };
 export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean }[]; groundItems: { id: string; name: string }[] };
 export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean }[] }; // geometry only, for code minds' pathing
@@ -21,6 +22,7 @@ export type BeliefView = {
   revealed: string[];
   stance: Stance; // RS5: self's stance toward this actor; yielded (Q1/Q4): self broke or surrendered before it, and still flees from it
   hostile: boolean; // hostile(self, about): attacks on sight
+  sparring?: true; // SP1: self and this actor are on different sides of a live spar
   active: boolean;
   label: string; // public label or known name
   title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
@@ -35,37 +37,58 @@ export type EventView = {
   where?: string; // partial: zone-link label
   line?: { text: string; volume: Volume };
   outcome?: string; // attacks: packet outcome label
+  spar?: true; // SP11: a sparring blow (seen fully)
+  took?: string; // OQ-29 (NT10): the speaker's own speech roll at the player, as it saw the player take it
+  tell?: string; // LI5a Overheard: a lie told to someone else that the viewer saw through
 };
+
+/** SP1/SP4: the spar a viewer fights in: opponents and allies (ids in NPC views, names in the player's), the health level
+ * that puts a fighter out, whether it is fought until someone is Incapacitated, and whether the viewer is already out */
+export type SparView = { opponents: string[]; allies: string[]; limit: HealthLevel; cruel: boolean; out: boolean };
 
 /** PY2: one thing a seller offers: id goes in the buy's item; price in coin words, for the viewer; stock for goods */
 export type WareView = { id: string; name: string; price: string; stock?: number };
+
+/** SL9: what a Trader would pay for one of the player's items: id is the player's item, for a sell's item */
+export type OfferView = { id: string; name: string; price: string };
+
+/** MB40–MB43: the player's yield this scene, by name: who took it (truce), who has yet to answer, who fought on */
+export type YieldView = { took: string[]; waiting: string[]; refused: string[] };
 
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
   health?: HealthLevel; // others: only from Wounded down
+  morale?: string; // MB16: others' morale level, only from Afraid down
+  stance?: string; // LI2b Read Their Face: a speaker's stance toward the viewer
   crippled?: string[]; destroyed?: string[];
   damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
   gear: SeenGearView[];
   wares?: WareView[]; // a seller the player sees, at the player's prices
+  offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
 };
 
 // ---------- PlayerView: Agent Parser ----------
 export type PlayerView = {
   turn: number;
   player: {
-    id: 'player'; name: string; classes: string[];
+    id: 'player'; name: string; classes: { id: string; name: string }[];
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
-    perkMoves?: { id: string; name: string }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id)
+    perkMoves?: { id: string; name: string; does: string; action?: true }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action
     health: HealthLevel; parts: { id: string; state: PartState }[];
+    morale: string; // the morale bar's level (MB11)
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
-    standingDefense: 'dodge' | 'block';
+    standingDefense: DefenseKind;
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
+    spar?: SparView; // SP1: the spar the player fights in
+    yielded?: YieldView; // MB40: the player yielded in a real fight this scene
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
+  /** the places the player last left, newest first (journal trail): "go back" means cameFrom[0] */
+  cameFrom?: { zone: string; name: string; leftTurn: number }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
   lastSeen?: { id: string; name: string; zone: string }[];
@@ -91,9 +114,10 @@ export type ActorView = {
     id: ActorId; label: string; name: string; kind: 'npc';
     zone: string; placeId: string; bandId: string;
     health: HealthLevel; parts: { id: string; state: PartState }[];
-    active: boolean; broken: boolean; surrendered: boolean; fearless: boolean;
+    morale: string; // the morale bar's level
+    active: boolean; broken: boolean; surrendered: boolean;
     control: 'agent' | 'code';
-    standingDefense: 'dodge' | 'block';
+    standingDefense: DefenseKind;
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
     attackSkill: string; // fallback.attackSkill (template, else body type)
@@ -104,7 +128,10 @@ export type ActorView = {
     alarm?: { armed: boolean; lastAlarmTurn?: number; returnTo?: { id: string; anchorTurn: number } };
     lastHitBy?: ActorId; // from events it perceived
     stealthy?: true; // NS: moving unseen
+    spar?: SparView; // SP1: the spar it is a fighter in
+    playerYielded?: true; // MB41: the player yielded to self and awaits an answer (acceptYield)
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
+    offers?: OfferView[]; // SL9: what it would pay for the player's items
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
@@ -141,8 +168,8 @@ export type CombatPacket = {
   action: string; // 'melee attack' | 'aimed melee attack' | 'ranged attack' ...
   weapon: string | null; armor: string | null; shield: string | null;
   attack: { tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] };
-  defense: { type: 'dodge' | 'block'; tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
-  outcome: string; // missed, dodged, grazed, blocked, full hit, heavy hit, crushing hit
+  defense: { type: DefenseKind; tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
+  outcome: string; // missed, dodged, grazed, blocked, parried, full hit, heavy hit, crushing hit
   location: { part: string; how: string } | null;
   changes: string[];
   events: string[];
@@ -157,6 +184,9 @@ export type NarrationEvent = {
   line?: { text: string; volume: Volume; speaker?: string };
   activityLook?: string; // presence events
   packet?: CombatPacket; // attacks
+  spar?: true; // SP11: a sparring blow, not a real attack
+  pressed?: { how: string; took?: string }; // OQ-29: an NPC's speech roll at the player, in words
+  overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words
   for?: string; // buy: who got it
@@ -169,10 +199,10 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string }; // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string; yielded?: YieldView }; // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
+  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; morale?: string; activityLook?: string }[]; // health: Wounded or worse, morale: Afraid or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
@@ -184,19 +214,22 @@ export type WeaverView = {
   /** null at story start: the Weaver picks the opening time of day (T8) */
   time: TimeView | null;
   stakes: string;
-  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string };
+  /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
+  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string; wake?: true };
   headlines: string[];
   stage: ZoneView[];
   actors: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[];
   quests: { id: string; state: string; text: string }[];
   flags: Record<string, string | number | boolean>;
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance> }[];
-  player: { level: number; currentClass: string | null; health: HealthLevel };
+  player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel };
   previousNote: string;
   catalogs: {
     templates: { id: string; label: string; raceId: string; classId?: string }[];
     services: { id: string; name: string; price: number }[]; // PY3: base prices, before the markup
     bodyTypes: { id: string; name: string }[]; // BT… id and name, plus story body types
+    races: { id: string; name: string }[]; // RC… id and name: what a template's raceId names
+    classes: { id: string; name: string }[]; // CL… id and name: what a template's classId names
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: { id: string; name: string }[];

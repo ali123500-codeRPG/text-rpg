@@ -13,6 +13,8 @@ import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
+import { fellFacts, fellLine } from './fell';
+import { autopilotBar } from './autopilot';
 import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -31,7 +33,7 @@ const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
-  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/aim ', 'this turn’s attack is aimed'], ['/undo', 'rewind one turn (dice are not rolled back)'],
+  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/yield', 'give up the fight you are in'], ['/aim ', 'this turn’s attack is aimed'], ['/undo', 'rewind one turn (dice are not rolled back)'],
   ['/difficulty ', 'show or change the difficulty'],
 ];
 const UNDONE = 'Turn undone.'; // the game's line after /undo
@@ -68,6 +70,11 @@ const spoken = (t: string, volume: string) => t.split(/\*([^*]+)\*/).map((x, i) 
 // AE8: how Ideas offers each perk move against someone in view
 const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
   [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
+  [PK.bluff]: { text: (who) => `Bluff ${who}: "Behind you!"`, note: 'Bluff · free, once per foe a fight' },
+};
+/** perk moves aimed at no one: one idea each */
+const PERK_SOLO_IDEA: Record<string, { text: string; note: string }> = {
+  [PK.battle_cry]: { text: 'Let out a battle cry', note: 'Battle Cry · your action, once a fight' },
 };
 
 /** the same name twice in one list reads as "the other …" from its second time on */
@@ -98,7 +105,7 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
     { group: 'Use', items: [
       ...heldN.map((n) => ({ text: `Stow ${the(n)}`, note: 'free' })), ...stowedN.map((n) => ({ text: `Draw ${the(n)}`, note: 'free' })),
       ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free' })), { text: 'Look around' }] },
-    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.map((m) => m.id).flatMap((p) => PERK_IDEA[p]
+    ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.map((m) => m.id).flatMap((p) => PERK_SOLO_IDEA[p] ? [PERK_SOLO_IDEA[p]] : PERK_IDEA[p]
       ? people.filter((a) => a.zone === pv.zone.id).map((a) => ({ text: PERK_IDEA[p].text(names[people.indexOf(a)]), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ group: g.group, items: 'all' in g ? g.items : g.items.slice(0, 3) }));
 }
@@ -156,6 +163,9 @@ export const NAV_COMMANDS: Record<string, string> = { '/stats': 'stats', '/inv':
 export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let aimed = false;
   let confirmReset = false;
+  // the fall: the story shakes and drains for a moment before "You fell" slams in (only when it happens in play, not on load)
+  let wasFallen: boolean | null = null, dyingUntil = 0, fellKey = '';
+  const FALL_MS = 1400;
   // the story: an append-only list (role=log announces each new entry once); the waiting line sits outside it
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
@@ -180,13 +190,25 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const body = h('div', { class: 'play' }, story, h('div', { class: 'sec col' }, notices, helpPanel, bar));
   const title = h('div', { class: 'head' });
   const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
-  let folded = true; // layout A: the status strip by default; the full sheet opens on a click
+  // layout A with the full sheet open by default at every width, so the screen is always filled (the player can still fold
+  // it). Wide and narrow screens each keep their own choice.
+  const WIDE = '(min-width: 1280px)';
+  const wide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matches;
+  const foldKey = () => (wide() ? 'sheetFoldedWide' : 'sheetFoldedNarrow');
+  const readFolded = () => { try { return localStorage.getItem(foldKey()) === '1'; } catch { return false; } };
+  let folded = readFolded();
+  if (typeof matchMedia === 'function') matchMedia(WIDE).addEventListener?.('change', () => { folded = readFolded(); if (el.isConnected) update(); });
   let dealsOpen = false;
   document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
-  try { folded = localStorage.getItem('sheetFolded') !== '0'; } catch { /* storage blocked: start with the strip */ }
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
   const wrap = h('div', { class: 'play-wrap' }, body, sheet);
-  const el = h('main', { class: 'playmain' }, title, who, wrap, fell);
+  // Watch an agent play: it types each command into the box, then sends it like Send
+  const auto = autopilotBar(api, async (text) => {
+    input.value = '';
+    for (const ch of text) { input.value += ch; await new Promise((r) => setTimeout(r, Math.min(35, 1500 / text.length))); }
+    await submit(true);
+  }, () => update());
+  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell);
 
   // Escape closes whatever is open; PageUp/PageDown scroll the story while the box has focus; Tab takes the suggestion
   document.addEventListener('keydown', (e) => {
@@ -206,9 +228,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   let offered: LogLine | null = null;
 
-  async function submit() {
+  async function submit(byAgent = false) {
     const text = input.value.trim();
-    if (!text || api.busy()) return;
+    if (!text || api.busy() || (auto.playing() && !byAgent)) return;
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
     if (NAV_COMMANDS[cmd] && text === cmd) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
@@ -258,7 +280,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       gains.length ? row('Skills', gains.map(([k, n]) => `${skillName(k)} +${n}`).join(' · ')) : null,
       xp ? row('XP', `+${xp}`) : null,
       ...(l.heals ?? []).map(healCard),
-      ...(l.levelUps ?? []).map((u) => goldCard('Level up', `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}`, ['See perks', seePerks])),
+      ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks])),
       ...(l.achievements ?? []).map((a) => goldCard('Achievement', a.name, ['See achievements', () => nav('achievements')])),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
       ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks])),
@@ -358,14 +380,14 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         h('p', { class: 'hs-section' }, 'Your deals'),
         deals.map((d) => h('div', { class: 'dl-row' }, h('b', {}, cap(d.with)), h('span', {}, d.text), h('small', {}, `Made turn ${d.madeTurn}`)))) : null) : null;
     // UI6: "Show rolls" sets the story's own showMechanics; the game records rolls only while it is on
-    const show = !!(s?.settings.showMechanics ?? CONFIG.SHOW_MECHANICS);
+    const show = !!(s?.settings.showMechanics ?? CONFIG.SHOW_ROLLS_DEFAULT);
     const rollsBtn = s && CONFIG.SHOW_MECHANICS ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(show),
       title: show ? 'Rolls show under each turn. Click to hide them' : 'Click to show the dice and modifiers under each turn',
       onclick: () => { s.settings.showMechanics = !show; update(); } }, show ? '✓ Show rolls' : 'Show rolls') : null;
     // the header names the last turn played, the one the last results row shows
     const lastTurn = [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
     title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), rollsBtn ?? '');
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), h('div', { class: 'title-tools' }, s ? auto.opener : '', rollsBtn ?? ''));
     story.classList.toggle('no-rolls', !show);
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
@@ -373,6 +395,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     who.replaceChildren(h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp' }, h('b', {}, cap(a.name ?? a.label)),
       a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, isDownLevel(a.health) ? 'Down' : a.health)
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
+      // MB16: others' morale, only from Afraid down
+      a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
       // A13 Read Wounds: a foe's Damaged parts
       ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`)))) : [h('span', { class: 'hs-note' }, 'Nobody in view')]));
 
@@ -416,8 +440,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     notices.replaceChildren(...ns.map((n) => h('div', { class: 'hs-hl ' + (n.kind === 'stop_play' || n.kind === 'save_failed' ? 'bad' : 'ask'), role: 'status' },
       h('span', { class: 'hs-hl-b', 'data-kind': NOTICE_KIND[n.kind] }, n.text))));
     const stopped = ns.some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
-    input.disabled = stopped || busy;
-    send.disabled = stopped || busy;
+    input.disabled = stopped || busy || auto.playing(); // the autopilot has the box while it plays
+    send.disabled = stopped || busy || auto.playing();
+    auto.update();
     aimBtn.disabled = stopped;
     st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
@@ -438,7 +463,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
 
     // layout A: the status strip, or the full sheet as a 420px side panel that pushes the story narrower
-    const setFolded = (f: boolean) => { folded = f; try { localStorage.setItem('sheetFolded', f ? '1' : '0'); } catch { /* not saved */ } update(); };
+    const setFolded = (f: boolean) => { folded = f; try { localStorage.setItem(foldKey(), f ? '1' : '0'); } catch { /* not saved */ } update(); };
     sheet.classList.toggle('folded', folded);
     wrap.classList.toggle('sheet-open', !folded);
     if (s && folded) sheet.replaceChildren(h('button', { type: 'button', class: 'cs-strip', 'aria-expanded': 'false', title: 'Open your full sheet', onclick: () => setFolded(false) },
@@ -448,20 +473,35 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(s ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration'), changedParts) : []));
 
     const fallen = api.fell();
-    wrap.hidden = fallen;
-    who.hidden = fallen;
-    fell.hidden = !fallen;
-    if (fallen) {
-      fell.replaceChildren(
-        h('h2', {}, 'You fell'),
-        h('p', { class: 'hs-note' }, 'The fight left you incapacitated. Rewind one turn, or start a new story.'),
-        h('div', { class: 'confirm' },
-          h('button', { class: 'hs-btn-main', type: 'button', onclick: () => api.submit('/undo', { aimed: false }) }, 'Undo one turn'),
-          confirmReset
-            ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and a new swordsman is made.'),
-               h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirmReset = false; await api.reset(); } }, 'Reset the story'),
-               h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirmReset = false; update(); } }, 'Keep it')]
-            : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset')));
+    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (wasFallen === false && fallen && !calm) { dyingUntil = Date.now() + FALL_MS; setTimeout(update, FALL_MS + 20); }
+    wasFallen = fallen;
+    const dying = fallen && Date.now() < dyingUntil;
+    el.classList.toggle('dying', dying);
+    wrap.hidden = fallen && !dying;
+    who.hidden = fallen && !dying;
+    fell.hidden = !fallen || dying;
+    if (!fallen) fellKey = '';
+    else if (!dying) {
+      const last = [...lines].reverse().find((l) => l.kind === 'narration');
+      const downed = [...lines].reverse().find((l) => l.downedBy)?.downedBy;
+      const key = `${last?.turn ?? 0}|${confirmReset}`;
+      if (key !== fellKey) {
+        fell.classList.toggle('enter', !fellKey); // the entrance plays once, not again when Reset asks to confirm
+        fellKey = key;
+        fell.replaceChildren(
+          h('h2', {}, 'You fell'),
+          h('p', { class: 'fell-cause' }, fellLine(downed, last?.turn ?? 0)),
+          fellFacts(downed) ? h('p', { class: 'hs-note fell-facts' }, fellFacts(downed)) : '',
+          h('p', { class: 'hs-note fell-how' }, 'Rewind one turn, or start a new story.'),
+          h('div', { class: 'confirm' },
+            h('button', { class: 'hs-btn-main', type: 'button', onclick: () => api.submit('/undo', { aimed: false }) }, 'Undo one turn'),
+            confirmReset
+              ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and a new swordsman is made.'),
+                 h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirmReset = false; await api.reset(); } }, 'Reset the story'),
+                 h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirmReset = false; update(); } }, 'Keep it')]
+              : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset')));
+      }
     }
   }
   aimBtn.onclick = () => { aimed = !aimed; update(); };

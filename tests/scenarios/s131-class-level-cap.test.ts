@@ -91,15 +91,15 @@ describe('131 Class level cap', () => {
     const { s, p } = reach20(40);
     expect(p.progression!.capstoneOptions).toEqual({ [CL.swordsman]: [PK.every_fall_a_lesson] }); // the dragon one isn't met
     expect(p.core.perks).toEqual([expect.objectContaining({ perkId: PK.quick_study, dormant: true })]); // the default waits, inactive
-    expect(swapCapstone(p, CL.swordsman, PK.nobody_special, s.turn)).toBe(false);
-    expect(swapCapstone(p, CL.swordsman, PK.every_fall_a_lesson, s.turn)).toBe(true);
+    expect(swapCapstone(s, CL.swordsman, PK.nobody_special)).toBe(false);
+    expect(swapCapstone(s, CL.swordsman, PK.every_fall_a_lesson)).toBe(true);
     expect(p.core.perks.map((x) => x.perkId)).toEqual([PK.every_fall_a_lesson]);
-    expect(swapCapstone(p, CL.swordsman, PK.every_fall_a_lesson, s.turn)).toBe(false); // once
+    expect(swapCapstone(s, CL.swordsman, PK.every_fall_a_lesson)).toBe(false); // once
     const kept = reach20(40);
     expect(keepCapstone(kept.p, CL.swordsman)).toBe(true); // keeping the default makes it active and closes the offer
     expect(kept.p.core.perks).toEqual([{ perkId: PK.quick_study, source: 'class', gainedTurn: kept.s.turn }]);
     expect(kept.p.progression!.capstoneOptions).toEqual({});
-    expect(swapCapstone(kept.p, CL.swordsman, PK.every_fall_a_lesson, kept.s.turn)).toBe(false);
+    expect(swapCapstone(kept.s, CL.swordsman, PK.every_fall_a_lesson)).toBe(false);
     expect(reach20(10).p.core.perks[0].dormant).toBeUndefined(); // nothing on offer: active at once
     makeVillage(); // restore the library
   });

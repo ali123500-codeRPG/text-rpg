@@ -1,5 +1,5 @@
 // W1 — Save, load, undo, backups (Part 4 §6–8, §10–11).
-import type { CreationBuild, Bookmark, EnginePage, GameState, Head, LogLine, PageRef, StoryMeta, TurnRecord } from '../types';
+import type { CreationBuild, Bookmark, EnginePage, GameState, Head, LogLine, PageRef, StoryMeta, StoryOwner, TurnRecord, FameEntry } from '../types';
 import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, type Pages } from './pages';
@@ -66,25 +66,30 @@ function pickVersion(key: string, base: number, hash: string, live: Bookmark[]):
   }
 }
 
-/** Save step 3: write every page whose content changed; unchanged pages keep their old ref. */
+/** Save step 3: write every page whose content changed; unchanged pages keep their old ref. The writes go out
+ * together (each page is its own document; nothing points at them until the head is written). */
 async function commitPages(store: Store, id: string, pages: Pages, base: number, live: Bookmark[], prev?: Record<string, PageRef>): Promise<Record<string, PageRef>> {
   const refs: Record<string, PageRef> = {};
+  const writes: Promise<void>[] = [];
   for (const [key, page] of Object.entries(pages)) {
     const bytes = byteLength(page);
     if (bytes > PAGE_LIMIT) throw new SaveError('page_too_large', `page ${key} is ${bytes} bytes, over 256 KiB`);
     const hash = hashPage(page);
     if (prev?.[key]?.hash === hash) { refs[key] = prev[key]; continue; }
     const { v, reuse } = pickVersion(key, base, hash, live);
-    if (!reuse) await store.set(pagePath(id, key, v), page);
+    if (!reuse) writes.push(store.set(pagePath(id, key, v), page));
     refs[key] = { version: v, hash, bytes };
   }
+  await Promise.all(writes);
   return refs;
 }
 
 async function readPages(store: Store, id: string, bm: Bookmark, r: CheckReport): Promise<Pages> {
   const pages: Pages = {};
-  for (const [key, ref] of Object.entries(bm.pages)) {
-    const page = await store.get(pagePath(id, key, ref.version));
+  const entries = Object.entries(bm.pages);
+  const got = await Promise.all(entries.map(([key, ref]) => store.get(pagePath(id, key, ref.version)))); // read together
+  for (const [i, [key, ref]] of entries.entries()) {
+    const page = got[i];
     if (page === null) r.errors.push(`checksum: page ${key}@${ref.version} missing`);
     else if (hashPage(page) !== ref.hash) r.errors.push(`checksum: page ${key}@${ref.version} does not match the head`);
     else pages[key] = page;
@@ -121,14 +126,17 @@ function fitRecord(record: TurnRecord): TurnRecord {
 export async function saveTurn(store: Store, state: GameState, record: TurnRecord): Promise<Head> {
   const id = state.storyId;
   if (record.storyId !== id) throw new SaveError('wrong_story', `record is for ${record.storyId}, state is ${id}`);
+  const pages = toPages(state);
   const head = await guard(async () => {
-    const prev = await store.get<Head>(headPath(id));
+    const [prev, stored] = await Promise.all([store.get<Head>(headPath(id)), store.get(story(id))]);
     const live = prev ? [bookmarkOf(prev), ...(prev.undo ? [prev.undo] : []), ...(prev.safety ? [prev.safety] : [])] : [];
-    const refs = await commitPages(store, id, toPages(state), record.turn, live, prev?.pages);
-    await store.set(turnPath(id, record.turn), fitRecord(record));
     const meta: StoryMeta = { ...state.meta, settings: state.settings };
-    const stored = await store.get(story(id));
-    if (stableStringify(stored) !== stableStringify(meta)) await store.set(story(id), meta);
+    // pages, the turn record and the story meta are written together; the head (the commit) goes last
+    const [refs] = await Promise.all([
+      commitPages(store, id, pages, record.turn, live, prev?.pages),
+      store.set(turnPath(id, record.turn), fitRecord(record)),
+      stableStringify(stored) !== stableStringify(meta) ? store.set(story(id), meta) : undefined,
+    ]);
     // safety (pre-migration or pre-restore) is dropped after this good turn
     const head: Head = { storyId: id, turn: record.turn, pages: refs, schemaVersion: CONFIG.SCHEMA_VERSION, libraryVersion: state.libraryVersion, undo: prev ? bookmarkOf(prev) : null };
     await store.set(headPath(id), head);
@@ -136,7 +144,7 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
   });
   await guard(async () => {
     await cleanup(store, id, head);
-    if (record.turn > 0 && record.turn % CONFIG.BACKUP_EVERY === 0) await writeBackup(store, id, head);
+    if (record.turn > 0 && record.turn % CONFIG.BACKUP_EVERY === 0) await writeBackup(store, id, head, pages);
   }, true);
   return head;
 }
@@ -144,8 +152,8 @@ export async function saveTurn(store: Store, state: GameState, record: TurnRecor
 /** Save step 6: drop page versions no bookmark points to, and turn records older than the last N. */
 async function cleanup(store: Store, id: string, head: Head): Promise<void> {
   const keep = new Set([head, head.undo, head.safety].filter((b): b is Bookmark => !!b).flatMap((b) => Object.entries(b.pages).map(([k, r]) => pagePath(id, k, r.version))));
-  for (const p of await store.list(`${story(id)}/pages`)) if (!keep.has(p)) await store.delete(p);
-  for (const p of await store.list(`${story(id)}/turns`)) if (+tail(p) <= head.turn - CONFIG.TURN_RECORDS_KEPT) await store.delete(p);
+  const [pages, turns] = await Promise.all([store.list(`${story(id)}/pages`), store.list(`${story(id)}/turns`)]);
+  await Promise.all([...pages.filter((p) => !keep.has(p)), ...turns.filter((p) => +tail(p) <= head.turn - CONFIG.TURN_RECORDS_KEPT)].map((p) => store.delete(p)));
 }
 
 // ---------- load ----------
@@ -153,8 +161,7 @@ async function cleanup(store: Store, id: string, head: Head): Promise<void> {
 export async function loadStory(store: Store, storyId: string, library: Library): Promise<{ state: GameState; report: string[] }> {
   return guard(async () => {
     const r = newReport();
-    const head = await store.get<Head>(headPath(storyId));
-    const meta = await store.get<StoryMeta>(story(storyId));
+    const [head, meta] = await Promise.all([store.get<Head>(headPath(storyId)), store.get<StoryMeta>(story(storyId))]);
     if (!head || !meta) { r.errors.push('no save for this story'); return refuse(r, head); }
     const pages = await readPages(store, storyId, head, r);
     if (r.errors.length) return refuse(r, head);
@@ -259,33 +266,45 @@ export async function listStories(store: Store): Promise<StoryMeta[]> {
   return metas.filter((m): m is StoryMeta => !!m && !m.archivedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
 }
 
+/** Hall of fame: every archived story whose character fell, with its owner, newest fall first. */
+export async function listFallen(store: Store): Promise<(FameEntry & { owner: StoryOwner; storyId: string })[]> {
+  const metas = await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)));
+  return metas.flatMap((m) => (m?.fame ? [{ ...m.fame, owner: m.owner ?? 'player', storyId: m.storyId }] : []))
+    .sort((a, b) => b.fellAt.localeCompare(a.fellAt));
+}
+
 /** A confirmed reset (D-73: the GM can reset the save): the story is archived, not deleted. Its meta is
  * marked, so listStories (and so resume) skips it, and a story still starting is dropped too. */
-export async function archiveStory(store: Store, storyId: string, at: string): Promise<void> {
+export async function archiveStory(store: Store, storyId: string, at: string, fame?: FameEntry): Promise<void> {
   const meta = await guard(() => store.get<StoryMeta>(story(storyId)));
-  if (meta) await guard(() => store.set(story(storyId), { ...meta, archivedAt: at }));
-  const pending = await guard(() => store.get<PendingStart>(PENDING_START)).catch(() => null);
-  if (pending?.storyId === storyId) await guard(() => store.delete(PENDING_START));
+  if (meta) await guard(() => store.set(story(storyId), { ...meta, archivedAt: at, ...(fame ? { fame } : {}) }));
+  for (const owner of ['player', 'agent'] as const) {
+    const pending = await guard(() => store.get<PendingStart>(pendingPath(owner))).catch(() => null);
+    if (pending?.storyId === storyId) await guard(() => store.delete(pendingPath(owner)));
+  }
 }
 
 // ---------- a story still starting ----------
 /** Closing the game during turn 0 lost the new story, because nothing is saved until the opening
  * scene is planned and narrated. The build is written first; resume finds it and starts the opening again. */
-export type PendingStart = { storyId: string; build: CreationBuild; at: string };
+export type PendingStart = { storyId: string; build: CreationBuild; at: string; owner?: StoryOwner };
 const PENDING_START = 'pending/start';
-export const savePendingStart = (store: Store, p: PendingStart) => guard(() => store.set(PENDING_START, p));
-export const loadPendingStart = (store: Store) => guard(() => store.get<PendingStart>(PENDING_START));
-export const clearPendingStart = (store: Store) => guard(() => store.delete(PENDING_START));
+/** one pending start per owner: the player's, and the autopilot agent's own save */
+const pendingPath = (owner: StoryOwner = 'player') => (owner === 'agent' ? 'pending/agent' : PENDING_START);
+export const savePendingStart = (store: Store, p: PendingStart) => guard(() => store.set(pendingPath(p.owner), p));
+export const loadPendingStart = (store: Store, owner?: StoryOwner) => guard(() => store.get<PendingStart>(pendingPath(owner)));
+export const clearPendingStart = (store: Store, owner?: StoryOwner) => guard(() => store.delete(pendingPath(owner)));
 /** has this story's first turn been saved (a head exists)? */
 export const storySaved = async (store: Store, storyId: string) => !!(await guard(() => store.get(headPath(storyId))));
 
 // ---------- backups (§11) ----------
 type BackupDoc = { storyId: string; turn: number; schemaVersion: number; libraryVersion: number; refs: Record<string, PageRef>; parts: number; pages: Pages };
 
-/** Every page the head lists, packed into as few documents as fit: backups/<turn>, then backups/<turn>/parts/<n>. */
-export async function writeBackup(store: Store, storyId: string, head: Head): Promise<void> {
+/** Every page the head lists, packed into as few documents as fit: backups/<turn>, then backups/<turn>/parts/<n>.
+ * `inMemory`: the pages just saved under this head, so they need not be read back. */
+export async function writeBackup(store: Store, storyId: string, head: Head, inMemory?: Pages): Promise<void> {
   const r = newReport();
-  const pages = await readPages(store, storyId, head, r);
+  const pages = inMemory && Object.keys(head.pages).every((k) => k in inMemory && hashPage(inMemory[k]) === head.pages[k].hash) ? inMemory : await readPages(store, storyId, head, r);
   if (r.errors.length) throw new SaveError('checksum', r.errors.join('; '));
   const envelope = { storyId, turn: head.turn, schemaVersion: head.schemaVersion, libraryVersion: head.libraryVersion, refs: head.pages, parts: 0 };
   const chunks: Pages[] = [{}];
@@ -297,14 +316,14 @@ export async function writeBackup(store: Store, storyId: string, head: Head): Pr
     size += b;
   }
   const base = backupPath(storyId, head.turn);
-  for (let i = 1; i < chunks.length; i++) await store.set(`${base}/parts/${i}`, { pages: chunks[i] });
+  await Promise.all(chunks.slice(1).map((c, i) => store.set(`${base}/parts/${i + 1}`, { pages: c })));
   await store.set(base, { ...envelope, parts: chunks.length - 1, pages: chunks[0] } satisfies BackupDoc);
   const all = (await store.list(`${story(storyId)}/backups`)).sort((a, b) => +tail(b) - +tail(a));
-  for (const p of all.slice(CONFIG.BACKUPS_KEPT)) await deleteBackup(store, p);
+  await Promise.all(all.slice(CONFIG.BACKUPS_KEPT).map((p) => deleteBackup(store, p)));
 }
 
 async function deleteBackup(store: Store, path: string): Promise<void> {
-  for (const p of await store.list(`${path}/parts`)) await store.delete(p);
+  await Promise.all((await store.list(`${path}/parts`)).map((p) => store.delete(p)));
   await store.delete(path);
 }
 
@@ -321,7 +340,8 @@ export async function restoreBackup(store: Store, storyId: string, turn: number,
     const doc = await store.get<BackupDoc>(backupPath(storyId, turn));
     if (!doc) { r.errors.push(`no backup at turn ${turn}`); return refuse(r, head); }
     const pages: Pages = { ...doc.pages };
-    for (let i = 1; i <= doc.parts; i++) Object.assign(pages, (await store.get<{ pages: Pages }>(`${backupPath(storyId, turn)}/parts/${i}`))?.pages ?? {});
+    const parts = await Promise.all(Array.from({ length: doc.parts }, (_, i) => store.get<{ pages: Pages }>(`${backupPath(storyId, turn)}/parts/${i + 1}`)));
+    for (const x of parts) Object.assign(pages, x?.pages ?? {});
     for (const [key, ref] of Object.entries(doc.refs)) {
       if (!(key in pages)) r.errors.push(`checksum: backup page ${key} missing`);
       else if (hashPage(pages[key]) !== ref.hash) r.errors.push(`checksum: backup page ${key} does not match`);

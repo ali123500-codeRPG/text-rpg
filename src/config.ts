@@ -1,6 +1,6 @@
-import type { SkillFunction } from './types';
+import type { DefenseKind, SkillFunction } from './types';
 import type { QuestRewardLevel } from './scales';
-import { FN } from './library/functionIds';
+import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
@@ -8,6 +8,9 @@ import { SK } from './library/skillIds';
 
 const DEFAULTS = {
   // ---- Part 1 ----
+  /** a tree's All-XXX passive (and its mastery achievement) is earned once this many of its skills reach the step, by the
+   * tree's rating (TREE_RATINGS; a tree with no rating is normal); null = never */
+  ALL_STEP_SKILLS: { inferior: null, normal: 3, superior: 2, legendary: 1 } as Record<string, number | null>,
   SUBSTITUTE_EFFICIENCY: 0.3, // F4: was 0.5; perks can change it (PerkDef.standIn)
   /** Skill tiers: the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder (Ali gave 0 and 2). */
   SKILL_TIER_MULT: { tier_0: 0.5, tier_1: 0.75, tier_2: 1 } as Record<string, number>,
@@ -24,8 +27,8 @@ const DEFAULTS = {
     [SK.melee_medium]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
     [SK.melee_heavy]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
   } as Record<string, { fn: SkillFunction; k: number }[]>,
-  /** Pairs of skills that never stand in for each other, even when they share a function (dodge and block) */
-  NO_STAND_IN: [[SK.dodge, SK.block]] as [string, string][],
+  /** Pairs of skills that never stand in for each other, even when they share a function (the three defenses) */
+  NO_STAND_IN: [[SK.dodge, SK.block], [SK.block, SK.parry], [SK.dodge, SK.parry]] as [string, string][],
   SITUATION_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
@@ -34,8 +37,22 @@ const DEFAULTS = {
   STACK_RATIO: 0.5,
   /** the quality lever: a minted weapon's hit bonus = QUALITY_HIT_FACTOR × its need × its quality (1–4) */
   QUALITY_HIT_FACTOR: 0.04,
+  /** QE2: a minted weapon's damage boost = QUALITY_DAMAGE_FACTOR × need × quality × the mode's class factor × its tree factor */
+  QUALITY_DAMAGE_FACTOR: 0.02,
+  /** QE2 type levers: class factors follow class damage over medium's (20/25, 25/25, 30/25); melee and ranged start equal (placeholder) */
+  DAMAGE_CLASS_FACTOR: { light: 0.8, medium: 1, heavy: 1.2 } as Record<string, number>,
+  DAMAGE_TREE_FACTOR: { melee: 1, ranged: 1 } as Record<string, number>,
   /** the balance lever for all equipment: a standard-kit piece's bonus = EQUIP_FACTOR × its need (EQUIP_NEED) */
   EQUIP_FACTOR: 0.4,
+  /** the armor lever (QE4): the damage armor stops = ARMOR_FACTOR × its need; the multiplier stays with its weight */
+  ARMOR_FACTOR: 0.08,
+  /** QE6: a minted armor piece stops ARMOR_QUALITY_FACTOR × its need × its quality more */
+  ARMOR_QUALITY_FACTOR: 0.01,
+  /** the shield pool levers (QE5): pool = POOL_BASE + POOL_FACTOR × its need */
+  POOL_BASE: 20,
+  POOL_FACTOR: 0.8,
+  /** QE6: a minted shield's pool grows by POOL_QUALITY_FACTOR × its need × its quality */
+  POOL_QUALITY_FACTOR: 0.1,
   POTENTIAL: 300,
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
@@ -61,6 +78,7 @@ const DEFAULTS = {
   GENERAL_BIG_WEIGHT: 4,
   IMPACT_MULT: { non_essential: 0, normal: 1, essential: 1.5 } as Record<string, number>,
   ROLE_PENALTY: { damaged: -10, crippled: -20 },
+  ESSENTIAL_CRIPPLED_PENALTY: -5, // wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
   SHARED_ROLE_OFF_PCT: 0.6,
   WEAPON_CLASSES: {
     light: { damage: 20, hit: 10 }, medium: { damage: 25, hit: 0 }, heavy: { damage: 30, hit: -10 },
@@ -68,16 +86,25 @@ const DEFAULTS = {
     grapple: { damage: 5, hit: 0 }, // grab and wrench (placeholder): anyone can grapple; Hold (A8) locks on
   } as Record<string, { damage: number; hit: number }>,
   UNARMED_PROFILE: { damage: 15, hit: 10 },
-  HEAVY_VS_BLOCK_GAP: -1,
+  HEAVY_VS_BLOCK_GAP: -1, // a heavy melee blow is harder to stop: gap shift against Block and Parry
+  PARRY_STRIKE_GAP: 3, // PA3/PA4: a parry at this gap or better stops the blow fully and earns a free strike back
+  ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
+  // the ladder runs GAP_MIN..GAP_MAX; a gap past either end uses the end row. −6..−10 are placeholders (+0.5 a step)
+  GAP_MIN: -10,
+  GAP_MAX: 5,
   GAP_LADDER: {
-    dodge: { [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
-    block: { [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.75, 2: 0.5, 3: 0.25, 4: 0.2, 5: 0.15 },
-  } as Record<'dodge' | 'block', Record<number, number>>,
+    dodge: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1.25, [-2]: 1.175, [-1]: 1.1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
+    block: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.75, 2: 0.5, 3: 0.25, 4: 0.2, 5: 0.15 },
+    // PA3 (placeholders): cuts less than Block at small gaps, stops the blow fully from +3; a failed parry punishes harder
+    parry: { [-10]: 5, [-9]: 4.5, [-8]: 4, [-7]: 3.5, [-6]: 3, [-5]: 2.5, [-4]: 2, [-3]: 1.5, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.85, 2: 0.65, 3: 0, 4: 0, 5: 0 },
+  } as Record<DefenseKind, Record<number, number>>,
   DODGE_VS_MISSILE: 10,
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
+  AURA_REACH: 1, // I3: an engagement aura reaches the owner's zone and zones one link away (a further reach factor is parked)
   ENGAGEMENT_END_TURNS: 2, // E1: an engagement ends after this many turns with no one engaged with the actor
+  SPAR_LIMIT: 'Critical', // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
@@ -92,8 +119,26 @@ const DEFAULTS = {
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
   SITUATION_TAGS: { light: { sight: 1, stealth: -1 }, cover: { hide: 1, ranged: -1 } } as Record<'light' | 'cover', Partial<Record<import('./types').SituationTag, number>>>,
-  MORALE_DEFAULT: 50,
-  PERSONALITY_MORALE: { fearless: null, bold: 70, steady: 50, timid: 30 } as Record<string, number | null>,
+  // ---- morale bar (MB1–MB43; placeholders) ----
+  /** max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (MB29), like HP from Endurance */
+  MORALE_BASE: 50,
+  MORALE_PER_RESOLVE: 1,
+  /** MB30: an NPC template's starting Resolve, by personality (MB4: fearless is 90, not immune) */
+  PERSONALITY_RESOLVE: { fearless: 90, bold: 70, steady: 50, timid: 30 } as Record<string, number>,
+  /** [MORALE_LEVELS key, max % of max morale lost, roll penalty (type wounds, MB3)]; broken = out of the fight */
+  MORALE_TRACK: [
+    ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -5], ['afraid', 60, -5],
+    ['terrified', 75, -10], ['panicking', 99.999, -15], ['broken', Infinity, 0],
+  ] as [string, number, number][],
+  /** MB6: a rolled fear's cost × this, by the morale roll's tier; each step below Critical Failure adds MORALE_BEYOND_CF */
+  MORALE_TIER_MULT: { critical_failure: 2, failure: 1.5, near_miss: 1, success: 0.5, great_success: 0.25, critical_success: 0 } as Record<string, number>,
+  MORALE_BEYOND_CF: 0.5,
+  /** MB9: share of max morale back when an actor's engagement ends */
+  MORALE_ENGAGEMENT_END_PCT: 25,
+  /** a single loss of this % of max morale or more marks the player's Resolve (like ENDURANCE_MARK_PCT) */
+  RESOLVE_MARK_PCT: 10,
+  /** others' morale shows (as words) from this level down (MB16), like HEALTH_SHOWN_FROM */
+  MORALE_SHOWN_FROM: 'afraid',
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
   // ---- game clock (T1-T8); durations per action are the library's durations table ----
   TIME_OF_DAY_FROM: { dawn: 5 * 60, day: 7 * 60, dusk: 18 * 60, night: 20 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
@@ -102,6 +147,7 @@ const DEFAULTS = {
   REST_HEAL_PCT: 25,
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
+  REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale
   // ---- Part 4 ----
   POINTS_PER_LEVEL: 10, // 10 × level (was 3)
   CREATION_POINTS: 250,
@@ -114,7 +160,22 @@ const DEFAULTS = {
   HAGGLE_WIN: 0.8, // a won barter contest against a seller, until the engagement ends
   HAGGLE_BAD_LOSS: 1.2, // lost by HAGGLE_BAD_GAP tiers or more
   HAGGLE_BAD_GAP: 2,
+  // OQ-29: losing a speech contest leaves the listener Shaken (intimidation) or Swayed (persuasion) toward the speaker until
+  // its engagement ends: a roll modifier of −(this × the tier gap) (placeholders)
+  SHAKEN_PER_TIER: 5,
+  SWAYED_PER_TIER: 5,
+  /** NT3: each earlier try of the same speech kind at the same listener this engagement, on the speaker's roll */
+  REPEAT_TRY: 15,
   HARD_BARGAIN_BUY: 0.9,
+  HARD_BARGAIN_SELL: 1.1,
+  SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
+  TRADER_PURSE: 50, // SL3: coin every Trader carries when the Weaver places it
+  QUALITY_PRICE_FACTOR: 2, // SL8: a minted item's value is its base value × this × its quality (1–4)
+  /** SL12 b / SL14: the coin each benefit number is worth; an item's value is its benefits summed (src/ruleset/value.ts).
+   * skillPoint: per point of skill bonus (a roll bonus counts as the skill points that move a roll as much);
+   * reachZone: per zone of reach (its best attack mode); armorStop: per point of damage stopped, per part covered;
+   * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
+  ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
   TRADE_SELLER_LINKS: 1, // S1: buy from a seller up to this many zone links away (across the counter); farther trades are parked
   TRADE_GIFT_LINKS: 2, // S2: buy for someone up to this many zone links from the buyer
   WARES_CAP: 8, // goods lines plus services per seller
@@ -128,7 +189,8 @@ const DEFAULTS = {
   SCHEMA_VERSION: 7, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
-  ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
+  /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
+  ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
   /** EQ9: true skill each equipment level needs, Masterwork ending at 100 (even steps, placeholders) */
   EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100 } as Record<string, number>,
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
@@ -138,10 +200,15 @@ const DEFAULTS = {
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
-    damageAdj: [1, 2, 3, 4], reduction: [1, 1, 2, 2], tool: [5, 10, 15, 20],
+    tool: [5, 10, 15, 20],
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
-  IMPROVISED_HIT_ADJ: -10, // placeholder (loot L3)
+  IMPROVISED_HIT_ADJ: -10,
+  /** the throw action adds this many zones to the weapon's own reach; perks add more (PerkDef.throwReach) */
+  THROWN_REACH_BONUS: 2, // placeholder (loot L3)
+  /** the throw action is a combined roll: the weapon's own skill (a melee weapon's melee skill) and the ranged skill of
+   * the same class, each with its own stand-ins, at these shares */
+  THROW_BLEND: { weapon: 0.75, ranged: 0.25 },
   // Boon (loot V8): a reward's worth to the player. Placeholders, tune after playtests (V8c).
   BOON_COIN: 20, // coin value per Boon, unless the item sets its own boon
   BOON_QUALITY: [1, 2, 3, 5, 8], // multiplier by minted quality (index 0 = not minted)
@@ -156,8 +223,16 @@ const DEFAULTS = {
   CLASS_LEVELS_PER_TIER: 5,
   // Kill XP from stats (X18–X23): rating = per category, skills' training effort ranked high to low at 1, ½, ¼…,
   // × the category weight; kill XP = rating × taper × KILL_XP_MULT. Placeholders, tuned later (X19).
-  XP_CATEGORY_WEIGHT: { offensive: 1, defensive: 1, endurance: 1, notice: 0.5, influence: 0.25, misc: 0 } as Record<string, number>,
+  /** a foe's rating: one pool per skill group (a skill counts in its first group), × this weight; a skill with no group counts 0 */
+  /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
+  XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
+  /** each skill group's XP factor level in the defeat-XP rating */
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full' } as Record<string, string>,
   KILL_XP_MULT: 1, // X20: ×1 for now
+  /** held and worn gear adds this × its coin value to the rating, on both sides (the foe's and the player's) */
+  GEAR_RATING_FACTOR: 0.25,
+  /** levels in the rating, both sides: this share of the XP the actor's levels cost (LEVEL_XP × L(L−1)/2) */
+  LEVEL_RATING_SHARE: 0.02,
   KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
@@ -168,13 +243,19 @@ const DEFAULTS = {
   OUTNUMBERED_FOES: 3,
   /** All-50 part numbers (src/library/allPerks.ts; placeholders) */
   FIGHTERS_FRAME_MULT: 0.9,
-  DODGY_SKILL: 5,
+  DODGY_SKILL: 10,
+  JUNK_ARSENAL_MULT: 1.2, // All-50 Junk Arsenal: improvised hits deal a fifth more (placeholder)
+  LAST_TO_FALL_MULT: 0.75, // All-50 Last to Fall: morale losses at Wounded or worse (placeholder)
   IRON_KNUCKLES_MULT: 1.1, // All-50 Iron Knuckles: unarmed hits deal a tenth more (placeholder)
   BARE_HANDED_GUARD: 5,
-  STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
+  STEADY_GUARD: 5, // All-50 Steady Guard: Parry effective skill with a medium melee weapon (placeholder)
+  IRON_RIM_MULT: 0.75, // All-50 Iron Rim (Block's part): damage the owner's shield pool takes (placeholder)
+  GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
-  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
+  REWARD_XP: { minus_1: 25, zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000 } as Record<string, number>,
+  /** reward levels past the top (VII, VIII…): each pays this × the level before (placeholder) */
+  REWARD_XP_BEYOND_MULT: 2,
   /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
   QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   /** QT9: a quest's reward level from the scene's gain grade when it is accepted (iv is kept for later story quests) */
@@ -199,10 +280,12 @@ const DEFAULTS = {
   EARLIER_LINES: 6, // PM6: code-made lines about events older than RECENT_EVENTS (placeholder)
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
-  SHOW_MECHANICS: true,
+  SHOW_MECHANICS: true, // master switch: false removes Show rolls everywhere
+  SHOW_ROLLS_DEFAULT: false,
+  TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder) // a new story starts with Show rolls off; the player turns it on from the play header
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
-  MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex' } as Record<string, 'quick' | 'default' | 'complex'>,
+  MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,
   STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // (flavor voice V5)
     length: '2 to 4 short paragraphs' },
 };
