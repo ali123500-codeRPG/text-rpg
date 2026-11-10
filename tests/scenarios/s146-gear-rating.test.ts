@@ -1,4 +1,4 @@
-// 146 A foe's gear in its rating: GEAR_RATING_FACTOR × the coin value of its held and worn gear, on the foe's side only.
+// 146 Gear in the rating: GEAR_RATING_FACTOR × the coin value of held and worn gear, on both sides (the player's too).
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actorLevel, gearRating, killXp, levelCost, levelRating, rating, xpToReach } from '../../src/engine/xp';
@@ -18,13 +18,16 @@ describe('146 Gear in the rating', () => {
     for (const i of g.core.inventory) delete i.equippedIn; // stowed gear is not power in the fight
     expect(gearRating(s, g)).toBe(0);
   });
-  it("the player's own gear never shrinks the taper on a weak foe", () => {
+  it("the player's own gear counts in the player's rating, so it shrinks the taper on a weak foe", () => {
     const s = makeVillage();
     const slime = s.actors.find((a) => a.core.templateId === TP.slime)!;
-    const before = killXp(s, slime);
-    expect(gearRating(s, s.player)).toBeGreaterThan(0);
-    expect(killXp(s, slime)).toBe(Math.round(rating(slime) * Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / rating(s.player)) * CONFIG.KILL_XP_MULT * 10) / 10);
-    expect(before).toBe(killXp(s, slime));
+    const mine = gearRating(s, s.player);
+    expect(mine).toBeGreaterThan(0);
+    const theirs = rating(slime) + gearRating(s, slime);
+    expect(killXp(s, slime)).toBe(Math.round(theirs * Math.min(1, CONFIG.KILL_XP_TAPER * theirs / (rating(s.player) + mine)) * CONFIG.KILL_XP_MULT * 10) / 10);
+    const geared = killXp(s, slime);
+    for (const i of s.player.core.inventory) delete i.equippedIn; // stowed gear is not power
+    expect(killXp(s, slime)).toBeGreaterThan(geared);
   });
   it('levels add LEVEL_RATING_SHARE × what the XP curve asks to reach them, on both sides', () => {
     const s = makeVillage();
