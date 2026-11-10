@@ -746,7 +746,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
   if (ended) unpaidQuests(state); // QT23
-  if (ended && fight) fightEnded(state, fight);
+  if (ended && fight) fightEnded(state, fight, ctx.events);
   turnFeats(state, ctx.events);
   if (ended || state.stage.breakCause) { improveMarked(state, rng); unlockClasses(state); }
   for (const x of allActors(state)) expireMarks(state, x);

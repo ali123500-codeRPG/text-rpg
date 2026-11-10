@@ -54,7 +54,7 @@ describe('134 Unwritten Legend capstones', () => {
     const { p, s } = legendAt19((p) => {
       for (let i = 0; i < 6; i++) p.core.classes.push({ classId: `x${i}`, state: 'unlocked', level: 0 });
     });
-    expect(swapCapstone(p, CL.late_bloomer, PK.write_your_own_ending, s.turn)).toBe(true);
+    expect(swapCapstone(s, CL.late_bloomer, PK.write_your_own_ending)).toBe(true);
     for (const id of Object.keys(getLibrary().classes)) expect(p.core.classes.some((c) => c.classId === id), id).toBe(true);
     expect(p.core.perks.map((x) => x.perkId)).toEqual([PK.write_your_own_ending]);
   });

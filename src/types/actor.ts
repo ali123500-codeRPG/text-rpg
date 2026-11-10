@@ -44,7 +44,7 @@ export type EngagementKind = 'talk' | 'fight' | 'spar';
 export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
-export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true };
+export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true };
 
 export type SkillState = 'tagged' | 'normal' | 'flawed';
 export type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };

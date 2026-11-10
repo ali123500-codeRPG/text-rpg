@@ -74,13 +74,13 @@ describe('130 deed achievements', () => {
     const s = makeVillage();
     const foes = ['slime_1', 'slime_2', 'patron_1'];
     for (const id of foes) actor(s, id).core.condition.hpLostPct = 100; // all down: the fight is won
-    fightEnded(s, { hp: 0, foes, most: 3 });
+    fightEnded(s, { hp: 0, foes, most: 3, struck: true });
     expect(earned(s)).toEqual([ACH.outnumbered_1]); // no defense roll: not flawless
-    fightEnded(s, { hp: 0, foes, most: 3, defended: true, helped: true, brink: true });
+    fightEnded(s, { hp: 0, foes, most: 3, struck: true, defended: true, helped: true, brink: true });
     expect(earned(s)).toEqual(expect.arrayContaining([ACH.flawless_1, ACH.brink_1]));
     expect(s.player.progression!.tally!.outnumbered).toBe(1); // helped: not counted
     actor(s, 'slime_1').core.condition.hpLostPct = 0; // a foe still up and hostile: not won
-    fightEnded(s, { hp: 0, foes, most: 3, defended: true, brink: true });
+    fightEnded(s, { hp: 0, foes, most: 3, struck: true, defended: true, brink: true });
     expect(s.player.progression!.tally!.flawless).toBe(1);
     expect(s.player.progression!.tally!.brink).toBe(2); // surviving the brink counts win or not
   });
