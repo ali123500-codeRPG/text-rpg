@@ -8,7 +8,7 @@ import { BUILT_PERKS } from '../library/builtPerks';
 import type { PerkWriteup } from '../types';
 import { skillName } from './creation';
 
-const PLACES: [PerkWriteup['place'], string][] = [['20', '20 milestone'], ['40', '40 milestone'], ['higher', 'Higher milestone'], ['very_high', 'Very high milestone'], ['banked', 'Banked, no milestone yet'], ['all50', 'All-50 parts']];
+const PLACES: [PerkWriteup['place'], string][] = [['20', '20 milestone'], ['40', '40 milestone'], ['higher', 'Higher milestone'], ['very_high', 'Very high milestone'], ['banked', 'Banked, no milestone yet'], ['all50', 'All-50 parts'], ['linked', 'Linked perks']];
 
 const bankedLabel = (p: PerkWriteup) => p.bankedAs === 'milestone' ? `a later ${skillName(p.skill)} perk${p.aimAt ? `, suggested for the ${p.aimAt} perk` : ''}`
   : p.bankedAs === 'allX' ? `an All-X candidate for the ${treeName(getLibrary().skills[p.skill]?.treeId ?? '')} tree${p.aimAt ? `, suggested for All-${p.aimAt}` : ''}` : 'other';

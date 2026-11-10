@@ -160,6 +160,10 @@ export type PerkDef = {
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
   /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open) */
   augments?: { from: string; skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
+  /** true skill added to every aura skill (the skills the game's auras roll, src/library/auras.ts) */
+  auraSkill?: number;
+  /** a linked perk (src/library/perkLinks.ts): granted by owning a set of perks, never taken */
+  linked?: true;
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
@@ -168,7 +172,7 @@ export type PerkRules = { kind: string; trigger: string; conditions: string[]; e
 /** What a write-up with no ladder yet is kept for: a later milestone perk of its own skill, an All-X candidate
  * (All-100/150 of the skill's tree), or something else. `aimAt` is the suggested milestone (60/100/140) or All tier (100/150). */
 export type BankedAs = 'milestone' | 'allX' | 'other';
-export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50'; story: string; rules: PerkRules;
+export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | '40' | 'higher' | 'very_high' | 'banked' | 'all50' | 'linked'; story: string; rules: PerkRules;
   bankedAs?: BankedAs; aimAt?: number };
 
 /** X6/X11: a library achievement, keyed by its fixed id (ACH in src/library/achievementIds.ts), with a name. 'defeats' is earned at `count`

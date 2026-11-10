@@ -6,6 +6,7 @@ import type { PerkWriteup } from '../types';
 import { SK } from './skillIds';
 import { skillName } from './skillNames';
 import { PK } from './perkIds';
+import { CONFIG } from '../config';
 
 export const PERK_WRITEUPS: PerkWriteup[] = [
   { id: PK.hidden_strike, ref: "A1", name: "Hidden Strike", skill: SK.melee_light, place: "20",
@@ -444,6 +445,22 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       effect: "Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back and loses any Shaken.",
       lasts: "Instant.",
       cooldown: "Once per engagement. It is the owner's main action." } },
+  { id: PK.overwhelm, ref: "MR2", name: "Overwhelm", skill: SK.resolve, place: "very_high",
+    ladder: { skill: SK.resolve, milestone: 100 }, effect: "speech",
+    story: "Some wills simply give way before yours. A foe who loses badly to any of your auras, and whose nerve is not half of yours, doesn't just waver: it breaks on the spot and gives up.",
+    rules: { kind: "Always on (upgrades the owner's auras)",
+      trigger: "Any of the owner's auras (Dread Presence, Battle Cry and any later aura) wins its roll against a target.",
+      conditions: [`The owner wins by ${CONFIG.OVERWHELM_TIERS} tiers or more.`, `The target's max morale is at most ${CONFIG.OVERWHELM_MORALE_SHARE * 100}% of the owner's.`],
+      effect: "Instead of the aura's normal morale cost, the target loses all its morale: it is Broken at once and surrenders. A player who is overwhelmed is Broken (cannot attack) but keeps control.",
+      lasts: "As any surrender." } },
+  { id: PK.crushing_presence, ref: "L1", name: "Crushing Presence", skill: SK.intimidation, place: "linked", linked: true,
+    auraSkill: 5, effect: "speech",
+    story: "Your presence and your will have become one thing. Every aura you carry presses harder.",
+    rules: { kind: "Always on (linked perk)",
+      trigger: "The owner has both Dread Presence and Overwhelm.",
+      conditions: [],
+      effect: `+5 true skill to every aura skill (the skills the game's auras roll: today ${skillName(SK.intimidation)}).`,
+      lasts: "While the owner has both perks." } },
   { id: PK.buy_them_off, ref: "C3", name: "Buy Them Off", skill: SK.barter, place: "very_high", bankedAs: "milestone", aimAt: 100,
     story: "Everyone has a price, even mid-swing. In the middle of a fight you offer coin, as much as you choose; a bigger offer is harder to refuse. Win a barter contest and the foe takes the coin and stops attacking you for the rest of the fight.",
     rules: { kind: "Move",
