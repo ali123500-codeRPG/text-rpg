@@ -424,14 +424,30 @@ function achievements(): HTMLElement[] {
 // ---------- Classes ----------
 /** classes, lowest tier first (CLASS_TIERS order), then by name */
 const byTier = (): ClassDef[] => Object.values(lib.classes ?? {}).sort((a, b) => CLASS_TIERS.pos(a.tier) - CLASS_TIERS.pos(b.tier) || a.name.localeCompare(b.name));
+/** every condition a class unlocks on, as one list (all must hold; an either-of group needs one of its skills) */
+const PERK_NUMBERS: Record<string, string> = { hearingReach: 'hearing reach' };
+function unlockRow(c: ClassDef): HTMLElement | null {
+  const sk = ([id, n]: [string, number]) => [link('skills', id, skillName(id)), ` ${n}`];
+  const lines: (Node | string)[][] = [
+    ...Object.entries(c.unlock ?? {}).map((e) => sk(e)),
+    ...(c.unlockAny ?? []).map((g) => ['one of: ', ...Object.entries(g).flatMap((e, i) => [i ? ', ' : '', ...sk(e)])]),
+    ...(c.unlockPerk ? [['the perk ', link('perks', c.unlockPerk, lib.perks[c.unlockPerk]?.name ?? c.unlockPerk)]] : []),
+    ...Object.entries(c.unlockPerkWith ?? {}).map(([k, n]) => {
+      const has = Object.values(lib.perks).filter((d) => ((d as unknown as Record<string, number>)[k] ?? 0) >= (n as number));
+      return [`an active perk with ${PERK_NUMBERS[k] ?? humanKey(k).toLowerCase()} ${n}`, ...(has.length ? [' (', ...has.flatMap((d, i) => [i ? ', ' : '', link('perks', d.id, d.name)]), ')'] : [])];
+    }),
+    ...Object.entries(c.unlockClass ?? {}).map(([id, lv]) => [link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` at its top level (${classMaxLevel(id)})` : ` level ${lv}`]),
+  ];
+  return lines.length ? row(lines.length > 1 ? 'Unlocks when all hold' : 'Unlocks when', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
+}
 function classes(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, `Lowest tier first. Tiers (CLASS_TIERS in src/scales.ts): ${CLASS_TIERS.keys.map((k) => CLASS_TIERS.name(k)).join(', ')}.`),
     h('div', { class: 'lv-grid' }, byTier().map((c) => card('classes', c.id, c, c.name,
       [chip(CLASS_TIERS.name(c.tier), toneFor('Tier', CLASS_TIERS.name(c.tier))), c.fallback ? chip('default class', toneFor('Kind', 'default class')) : null, c.creation ? chip('starting class', toneFor('Kind', 'starting class')) : null],
       row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
-      c.unlockClass ? row('Unlocks at', h('span', {}, ...Object.entries(c.unlockClass).flatMap(([id, lv], i) => [i ? ', or ' : '', link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` top level (${classMaxLevel(id)})` : ` level ${lv}`]))) : null,
-      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'capstone', 'capstones', 'unlockClass']),
+      unlockRow(c),
+      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerk', 'unlockPerkWith', 'unlockClass']),
       c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
         ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default'))),
         ...(c.capstones ?? []).map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', chip('alternate'), ' ', ...access(x.needs))))) : null))),
