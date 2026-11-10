@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { defenseItem } from '../ruleset/gear';
+import { defenseItem, modeName } from '../ruleset/gear';
 import { achievementName, charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
@@ -40,7 +40,9 @@ function attackOf(s: GameState, p: Actor): { name: string; value: number | null 
   const m = safe(() => defaultMode(s, p, 0));
   if (!m) return null;
   const inst = p.core.inventory.find((i) => i.id === m.itemId);
-  return { name: safe(() => itemDef(s, inst!.itemId).name) ?? m.itemId, value: safe(() => effectiveSkill(s, p, modeSkill(m.mode), { itemId: m.itemId, modeId: m.mode.id }).value) };
+  // a natural attack ('natural:<mode>') has no item: it shows the mode's name, e.g. "punch"
+  const name = m.itemId.startsWith('natural:') ? modeName(m.mode).toLowerCase() : safe(() => itemDef(s, inst!.itemId).name) ?? m.itemId;
+  return { name, value: safe(() => effectiveSkill(s, p, modeSkill(m.mode), { itemId: m.itemId, modeId: m.mode.id }).value) };
 }
 
 /** Trees the player has points in, each with its open skills. */
@@ -313,12 +315,10 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   ];
 }
 
-/** Compact sheet beside the story: health, standing defense and skills above 0. */
+/** Compact sheet beside the story: health, morale, gear and skills above 0 (standing attack and defense live on the Character page). */
 export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<string>): HTMLElement[] {
-  const def = standing(s, p);
   const gains = last?.gains ?? {}; // V1b: skill gains from the last played turn
   const healed = new Set((last?.heals ?? []).flatMap((x) => x.parts.filter((pt) => pt.to !== pt.from).map((pt) => pt.id))); // H2 a
-  const atk = attackOf(s, p);
   const hw = heldWorn(s, p);
   return [
     // health and its part chips, then morale, then the body figure (when open)
@@ -326,8 +326,6 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
     pressureChips(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
     h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', { 'data-m': 'coin' }, coinWords(coins(p)))),
-    h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
-    h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
     ...[xpLine(p)].filter((x): x is HTMLElement => !!x),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
