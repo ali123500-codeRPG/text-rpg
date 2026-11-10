@@ -197,6 +197,8 @@ const DEFAULTS = {
   KILL_XP_MULT: 1, // X20: ×1 for now
   /** a foe's held and worn gear adds this × its coin value to the foe's rating (foe side only) */
   GEAR_RATING_FACTOR: 0.25,
+  /** levels in the rating, both sides: this share of the XP the actor's levels cost (LEVEL_XP × L(L−1)/2) */
+  LEVEL_RATING_SHARE: 0.02,
   KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
