@@ -22,7 +22,7 @@ describe('equations for the library viewer', () => {
   it('the level tables match xpToNext and classMaxLevel', () => {
     const lv = equations(prototypeLibrary()).find((g) => g.key === 'levels')!.equations;
     const p = makeVillage().player;
-    for (const [from, need] of lv[0].table!.rows) {
+    for (const [from, , need] of lv[0].table!.rows) {
       p.core.classes = [{ classId: p.core.classes[0].classId, state: 'current', level: Number(from) }];
       expect(xpToNext(p)).toBe(Number(need));
     }
