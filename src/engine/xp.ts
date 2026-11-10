@@ -241,10 +241,14 @@ export function gearRating(state: GameState, a: Actor): number {
   return CONFIG.GEAR_RATING_FACTOR * a.core.inventory.filter((i) => isHeld(i) || isWorn(i)).reduce((n, i) => n + itemValue(state, itemDef(state, i.itemId)), 0);
 }
 
-/** Kill XP = (rating + gear rating) × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
- * Gear counts on both sides: the player's own gear is part of the player's rating in the taper. */
+/** An actor's power: its rating plus its gear rating. The one measure of how strong someone is, used by defeat XP and by
+ * the stronger-foe achievements, so a change here changes both. */
+export const power = (state: GameState, a: Actor): number => rating(a) + gearRating(state, a);
+
+/** Kill XP = foe power × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
+ * Power counts gear on both sides. */
 export function killXp(state: GameState, t: Actor): number {
-  const theirs = rating(t) + gearRating(state, t), mine = rating(state.player) + gearRating(state, state.player);
+  const theirs = power(state, t), mine = power(state, state.player);
   const taper = mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1;
   return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
 }

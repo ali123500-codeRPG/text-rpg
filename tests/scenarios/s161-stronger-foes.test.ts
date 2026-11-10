@@ -10,7 +10,7 @@ import type { Actor, GameState } from '../../src/types';
 
 const know = (a: Actor, b: Actor) => { a.mind!.knowledge[b.id] = { status: 'aware', lastKnownZone: b.zone, source: 'seen', revealed: [] }; };
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.key!);
-const power = (s: GameState, a: Actor) => rating(a) + gearRating(s, a);
+const power = (s: GameState, a: Actor) => rating(a) + gearRating(s, a); // written out: must equal engine power()
 
 describe('161 stronger foes', () => {
   it('a fight turn records how far the strongest hostile foe is above you, in points and in %', () => {
@@ -45,5 +45,17 @@ describe('161 stronger foes', () => {
     t.player.core.condition.hpLostPct = 120; // Incapacitated
     fightEnded(t, { hp: 0, foes: [], most: 1, above: 200, abovePct: 200, down: true });
     expect(earned(t).some((k) => k === ACH.survived_above_100 || k === ACH.won_above_100)).toBe(false);
+  });
+});
+
+describe('161 one power measure', () => {
+  it('defeat XP and the stronger-foe gap read the same power (rating + gear rating)', async () => {
+    const { power, killXp } = await import('../../src/engine/xp');
+    const { CONFIG } = await import('../../src/config');
+    const s = makeVillage();
+    const guard = actor(s, 'guard_1');
+    expect(power(s, guard)).toBeCloseTo(rating(guard) + gearRating(s, guard), 5);
+    const t = Math.min(1, CONFIG.KILL_XP_TAPER * power(s, guard) / power(s, s.player));
+    expect(killXp(s, guard)).toBeCloseTo(power(s, guard) * t * CONFIG.KILL_XP_MULT, 1);
   });
 });

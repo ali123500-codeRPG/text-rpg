@@ -3,7 +3,7 @@
 // Critical Success achievements count in every player roll (rollFeats in xp.ts).
 import { yieldTaken } from './yield';
 import { moraleLevel } from '../ruleset/morale';
-import type { AchievementRule, Actor, ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
+import type { AchievementRule, ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
 import { CONFIG } from '../config';
 import { healthLevel, partStates, working } from '../ruleset/body';
 import { trueSkill } from '../ruleset/perks';
@@ -11,7 +11,7 @@ import { actorBody, getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { actorById, allActors, atLeast, hostile, isActive, stance, warm } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
-import { gearRating, rating, tally } from './xp';
+import { power, tally } from './xp';
 
 const atLeastCritical = () => CONFIG.HEALTH_TRACK.findIndex(([l]) => l === 'Critical');
 
@@ -103,7 +103,7 @@ function logFight(state: GameState, events: GameEvent[]): void {
   if (allies.length && foes.length > allies.length + 1) f.heldLine = true; // the foes outnumber your whole side
   if (CONFIG.HEALTH_TRACK.findIndex(([l]) => l === healthLevel(p)) >= atLeastCritical()) f.brink = true;
   if (moraleLevel(p) === 'broken') f.broke = true;
-  // D-177: the strongest hostile foe, against the player's own power (both sides count their gear)
+  // D-177: the strongest hostile foe, against the player's own power (the same power defeat XP uses)
   const mine = power(state, p);
   for (const x of foes.filter((y) => hostile(state, y, p))) {
     const gap = power(state, x) - mine;
@@ -111,9 +111,6 @@ function logFight(state: GameState, events: GameEvent[]): void {
     if (mine > 0) f.abovePct = Math.max(f.abovePct ?? -100, (gap / mine) * 100);
   }
 }
-
-/** an actor's fighting power for the stronger-foe achievements: its rating plus its gear rating */
-const power = (state: GameState, a: Actor) => rating(a) + gearRating(state, a);
 
 /** D-177: a fight against a stronger hostile foe ended with the player up (survived), or won: the gap is a high-water mark */
 function strongerFoe(state: GameState, f: FightLog, won: boolean): void {
