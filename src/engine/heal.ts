@@ -9,6 +9,7 @@ import { isActive } from './relations';
 import { logCode } from './effects';
 import { bestReward } from '../ruleset/achRewards';
 import { moraleLost, restoreMorale } from '../ruleset/morale';
+import { tally } from './xp';
 
 export const healingName = (id: string) => getLibrary().healing?.[id]?.name ?? id;
 
@@ -16,7 +17,14 @@ export const healingName = (id: string) => getLibrary().healing?.[id]?.name ?? i
  * than the row's reach (H4/H12); a Crippled or worse part a row reaches starts again from 0. Destroyed parts need a row
  * that reaches them (OQ-6: a special perk, item or story event). `quiet` logs only a visible change (passive healing).
  * Returns false if nothing changed. */
-export function applyHealing(state: GameState, a: Actor, sourceId: string, opts: { pct?: number; quiet?: boolean } = {}): boolean {
+/** Achievements count the health % the player gets back, by where it came from: the healing row's id. Healing a perk
+ * gives (Second Wind, Fast Healer's extra) is counted under the Perks row (HL.perk). Health only, not body parts. */
+export function creditHealing(state: GameState, a: Actor, sourceId: string, pct: number): void {
+  if (a === state.player && pct > 0) tally(state, 'healed', { by: 'heal_source', of: sourceId, add: pct });
+}
+
+/** `boost`: a perk multiplied this healing (Fast Healer); the part above ×1 is counted as healing from perks */
+export function applyHealing(state: GameState, a: Actor, sourceId: string, opts: { pct?: number; quiet?: boolean; boost?: number } = {}): boolean {
   const src = getLibrary().healing?.[sourceId];
   if (!src) return false;
   const c = a.core.condition;
@@ -39,6 +47,9 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
     const was = before.find((b) => b.id === p.id)!.state;
     if (was !== p.state) changed.push({ id: p.id, from: was, to: p.state });
   }
+  const got = lost - c.hpLostPct, own = got / Math.max(1, opts.boost ?? 1);
+  creditHealing(state, a, sourceId, own);
+  creditHealing(state, a, HL.perk, got - own);
   if (src.moralePct) healed = restoreMorale(a, src.moralePct) !== 0 || healed; // MB8
   const to = healthLevel(a);
   if (!opts.quiet || to !== level || changed.length) logCode(state, 'healed', { actorId: a.id, source: sourceId, from: level, to, parts: changed, better: c.hpLostPct < lost || healed });
@@ -68,8 +79,9 @@ export function passiveHealing(state: GameState, minutes: number): void {
     if (!isActive(a) || (a !== state.player && !stage.has(a.zone))) continue;
     for (const h of rows) {
       if (h.hourly!.morale) { restoreMorale(a, trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60)); continue; } // MB34
-      const pct = trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // 40/80/120 perk: Quick Mend
-      if (pct > 0) applyHealing(state, a, h.id, { pct, quiet: true });
+      const boost = boostMult(a, h.hourly!.skill, 'recoveryMult'); // 40/80/120 perk: Quick Mend
+      const pct = trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60) * boost;
+      if (pct > 0) applyHealing(state, a, h.id, { pct, quiet: true, boost });
     }
   }
 }
