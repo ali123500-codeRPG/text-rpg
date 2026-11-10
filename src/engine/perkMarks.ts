@@ -5,6 +5,7 @@
 //   Make Them Stumble (A10): a clean dodge of a melee attack makes the attacker's next defense one tier worse.
 //   Leg Bolt (A6): a medium or heavy ranged hit that wounds a leg slows the target (no dash) until the end of its next turn.
 //   Dirt in the Eyes (A9): the foe's next attack or defense roll (they need sight) is two tiers worse (perkMoves.ts makes it).
+//   Bluff (LI1c): a foe that believed the bluff acts last next turn (perkMoves.ts makes it, resolve.ts initiativeOrder reads it).
 //   Set Them Up (B15): a Strike attack, hit or miss, marks the target for the owner's next improvised attack on it, and an
 //   improvised attack marks it for the owner's next Strike.
 // The two openings last until used or the owner's engagement ends; the stumble, slow and dirt until the end of the
@@ -48,6 +49,8 @@ export function markShifts(state: GameState, A: Actor, D: Actor, ranged: boolean
 }
 
 /** A6 Leg Bolt: slowed actors can't dash */
+/** LI1c Bluff: the actor believed a bluff and acts last this turn */
+export const bluffed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.bluff && m.until !== undefined && m.until >= state.turn);
 export const slowed = (state: GameState, a: Actor) => !!a.perkMarks?.some((m) => m.perk === PK.leg_bolt && (m.until === undefined || m.until >= state.turn));
 
 /** a mark that runs out at the end of the marked actor's next turn */

@@ -12,7 +12,7 @@ import { wornTitle } from '../engine/xp';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
+import { PERK_MOVES, hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
@@ -115,6 +115,13 @@ function lookOf(events: GameEvent[], viewerId: string, actorId: string): string 
 }
 
 /** the viewer fully perceived an event by `aboutId` since the scene began (recent history included) */
+/** LI2b Read Their Face: the viewer sees the stance toward it of anyone who spoke to it this scene */
+function readsFace(state: GameState, viewer: Actor, a: Actor): boolean {
+  return hasPerk(viewer, PK.read_their_face) && !!a.mind && [...(state.recentEvents ?? []), ...state.events].some((e) =>
+    e.kind === 'speak' && !e.bark && e.actorId === a.id && e.turn >= state.stage.sceneStartTurn
+    && (e.target === viewer.id || !!e.speech?.addressees?.includes(viewer.id)));
+}
+
 function seenClearly(state: GameState, viewerId: string, aboutId: string): boolean {
   return [...(state.recentEvents ?? []), ...state.events].some((e) =>
     e.actorId === aboutId && e.turn >= state.stage.sceneStartTurn && e.perception[viewerId]?.level === 'full');
@@ -149,6 +156,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       ...(moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
+      ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
@@ -203,6 +211,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'still_held') out.push(`${who} fails to break free of ${by}`);
     if (f.kind === 'dirt_in_eyes') out.push(`${by} throws dirt in ${who}'s eyes`); // A9 Dirt in the Eyes
     if (f.kind === 'dirt_dodged') out.push(`${who} turns away from ${by}'s thrown dirt`);
+    if (f.kind === 'bluff_believed') out.push(`${who} falls for ${by}'s bluff and hesitates`); // LI1c Bluff
+    if (f.kind === 'bluff_seen_through') out.push(`${who} doesn't fall for ${by}'s bluff`);
     if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
@@ -258,7 +268,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       classes: p.core.classes.map((c) => ({ id: c.classId, name: getLibrary().classes[c.classId]?.name ?? c.classId })),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
-      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id })) } : {}),
+      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does })) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), morale: moraleWord(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
@@ -481,7 +491,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
       ...(full && e.spar ? { spar: true as const } : {}),
-      ...(e.push?.listener === me && pressedWords(e) ? { pressed: pressedWords(e) } : {}),
+      ...(e.push?.listener === me && pressedWords(e, p) ? { pressed: pressedWords(e, p) } : {}),
       ...(item ? { item } : {}),
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(forWhom ? { for: forWhom } : {}),

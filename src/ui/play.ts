@@ -68,6 +68,7 @@ const spoken = (t: string, volume: string) => t.split(/\*([^*]+)\*/).map((x, i) 
 // AE8: how Ideas offers each perk move against someone in view
 const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
   [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
+  [PK.bluff]: { text: (who) => `Bluff ${who}: "Behind you!"`, note: 'Bluff · free, once per foe a fight' },
 };
 
 /** the same name twice in one list reads as "the other …" from its second time on */

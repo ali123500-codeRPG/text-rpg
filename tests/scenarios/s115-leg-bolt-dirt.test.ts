@@ -5,7 +5,7 @@
 import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage, place, fit } from '../harness';
-import { ruleset } from '../../src/ruleset';
+import { PERK_MOVES, ruleset } from '../../src/ruleset';
 import { afterAttack, markShifts, slowed } from '../../src/engine/perkMarks';
 import { perkMoveBlock, resolvePerkMove } from '../../src/engine/perkMoves';
 import { checkParserLegality } from '../../src/agents/legality';
@@ -104,7 +104,7 @@ describe('115 Dirt in the Eyes', () => {
     give(s.player, PK.dirt_in_the_eyes);
     for (const it of s.player.core.inventory) delete it.equippedIn; // a free hand
     const pv = buildPlayerView(s);
-    expect(pv.player.perkMoves).toEqual([{ id: PK.dirt_in_the_eyes, name: 'Dirt in the Eyes' }]);
+    expect(pv.player.perkMoves).toEqual([{ id: PK.dirt_in_the_eyes, name: 'Dirt in the Eyes', does: PERK_MOVES[PK.dirt_in_the_eyes].does }]);
     expect(checkParserLegality(i, pv).intent.perkMove).toEqual({ perk: PK.dirt_in_the_eyes, target: wim.id });
     expect(ideas(pv).find((g) => g.group === 'Perks')?.items[0]?.text).toMatch(/^Throw dirt in .+'s eyes$/);
     const ev = play(s, { intent: i });

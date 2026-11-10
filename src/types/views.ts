@@ -58,6 +58,7 @@ export type SeenActor = {
   level: Perception; activityLook?: string;
   health?: HealthLevel; // others: only from Wounded down
   morale?: string; // MB16: others' morale level, only from Afraid down
+  stance?: string; // LI2b Read Their Face: a speaker's stance toward the viewer
   crippled?: string[]; destroyed?: string[];
   damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
   gear: SeenGearView[];
@@ -72,7 +73,7 @@ export type PlayerView = {
     id: 'player'; name: string; classes: { id: string; name: string }[];
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
-    perkMoves?: { id: string; name: string }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id)
+    perkMoves?: { id: string; name: string; does: string }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like
     health: HealthLevel; parts: { id: string; state: PartState }[];
     morale: string; // the morale bar's level (MB11)
     inventory: OwnGearView[];

@@ -242,6 +242,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner stays Stealthy. The target becomes aware of the owner. Every other observer makes a Combat Stealth contest against the owner instead of seeing it, as for a shot.
 - **Lasts:** That attack.
 
+### Bluff (Lying) · LI1c
+
+*Story:* Half a second of doubt is all a knife needs. "Behind you!" Once per foe in a fight, and without giving up your action, you throw a lie at a foe in your zone. If it believes you, it hesitates and acts last next turn.
+
+- **Kind:** Free move
+- **Trigger:** The owner uses the move on a foe in the owner's zone. It does not use the owner's action.
+- **Effect:** A Lying roll against the foe's answer to a lie (Insight). Unless the foe wins, it believes the lie and acts last next turn, as if caught unaware.
+- **Lasts:** The foe's next turn.
+- **Cooldown:** Once per foe per engagement.
+
 ## 40 milestone
 
 ### Keen Edge (Light weapons) · P1
@@ -578,6 +588,24 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
 
+### Takes One to Know One (Lying) · LI1a
+
+*Story:* You know every trick in the book, because you wrote half of them. When someone lies to you, you answer with the better of your Insight and your Lying.
+
+- **Kind:** Always on
+- **Trigger:** Someone lies to the owner (a lie, or a Bluff).
+- **Effect:** The owner's answering roll uses the better of Insight and Lying, each at full value.
+- **Lasts:** Each answer to a lie.
+
+### Plain as Day (Insight) · LI2a
+
+*Story:* Some people can't lie to your face, and they all try. A lie you see through is plainly a lie, not a vague feeling that something doesn't sit right.
+
+- **Kind:** Always on
+- **Trigger:** The owner sees through a lie (wins the answering roll).
+- **Effect:** The owner is told plainly that the speaker is lying, instead of the hint that something doesn't sit right.
+- **Lasts:** Each lie seen through.
+
 ## Very high milestone
 
 ### Never Surprised (Earshot) · C1
@@ -589,6 +617,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The attacker's approach or attack is within the owner's hearing range.
 - **Effect:** The owner counts as aware: no unaware initiative or defense penalty.
 - **Lasts:** Always.
+
+### Read Their Face (Insight) · LI2b
+
+*Story:* Words say one thing. Faces say the rest. You see how anyone who speaks to you really stands toward you (hostile, opposed, friendly and so on), even when they hide it.
+
+- **Kind:** Always on
+- **Trigger:** Someone the owner sees clearly has spoken to the owner this scene.
+- **Conditions:** The owner sees the speaker clearly (not in the dark or half seen).
+- **Effect:** The owner sees that speaker's stance toward the owner.
+- **Lasts:** While the owner sees them, for the rest of the scene.
 
 ### Battle Cry (Intimidation) · C2
 
@@ -648,6 +686,17 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Until the end of the owner's next turn, one shot.
 - **Needs first:** Moves; reactions.
 - **Banked as:** a later Medium ranged perk, suggested for the 60 perk
+
+### Not Born Yesterday (Insight) · LI2c
+
+*Story:* Sweet words, and you hear every hook in them. When someone persuades you, you answer with the better of Persuasion and Insight.
+
+- **Kind:** Always on
+- **Trigger:** Someone persuades the owner.
+- **Effect:** The owner's answering roll uses the better of Persuasion and Insight, each at full value.
+- **Lasts:** Each answer to a persuasion.
+- **Open:** Parked by Ali.
+- **Banked as:** a later Insight perk
 
 ### Crushing Blow (Heavy weapons) · D1
 

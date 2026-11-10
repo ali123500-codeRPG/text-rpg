@@ -3,16 +3,19 @@
 // own type (Plead, Battle Cry, Buy Them Off, later milestones).
 //   Dirt in the Eyes (A9): free, once per engagement, needs a free hand; an unarmed_improvised roll against the foe's
 //   dodge; unless the foe wins, its next attack or defense roll is two tiers worse (until the end of its next turn).
+//   Bluff (LI1c): free, once per foe per engagement; a Lying roll against the foe's answer to a lie (answerRoll, so
+//   Takes One to Know One counts); unless the foe wins, it believes the lie and acts last next turn (initiativeOrder).
 import type { Actor, ContestResult, Effect, GameState, Rng } from '../types';
 import { PERK_MOVES, hasPerk, markUse, ruleset } from '../ruleset';
 import { usableGrips } from '../ruleset/body';
 import { handsOf, isHeld } from '../ruleset/gear';
-import { actorById, isActive } from './relations';
+import { actorById, isActive, wary } from './relations';
 import { usableThisEngagement, useThisEngagement } from './engagement';
 import { markUntilNextTurn } from './perkMarks';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from './feats';
+import { answerRoll, answerSkill, toContest } from './speech';
 
 /** the actor has a working Grip arm with nothing held in it */
 export const freeHand = (state: GameState, a: Actor) => {
@@ -20,14 +23,18 @@ export const freeHand = (state: GameState, a: Actor) => {
   return usableGrips(state, a).some((g: string) => !busy.has(g));
 };
 
+/** the key a move's uses are counted under this engagement: per foe for a perFoe move */
+const useKey = (perk: string, targetId: string | null) => PERK_MOVES[perk]?.perFoe ? `${perk}:${targetId}` : perk;
+
 /** why the move can't be used now, or null */
 export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId: string | null): string | null {
   const def = PERK_MOVES[perk];
   if (!def || !hasPerk(a, perk)) return 'not_owned';
   const t = targetId ? actorById(state, targetId) : undefined;
   if (!t || t === a || !isActive(t) || t.zone !== a.zone) return 'no_target';
-  if (def.perEngagement && a.engagement && !usableThisEngagement(a, perk, def.perEngagement)) return 'used_this_engagement';
+  if (def.perEngagement && a.engagement && !usableThisEngagement(a, useKey(perk, targetId), def.perEngagement)) return 'used_this_engagement';
   if (perk === PK.dirt_in_the_eyes && !freeHand(state, a)) return 'no_free_hand';
+  if (perk === PK.bluff && !wary(state, a, t) && !wary(state, t, a)) return 'not_a_foe';
   return null;
 }
 
@@ -36,7 +43,7 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
   const t = actorById(state, targetId)!;
   // a perk move used outside an engagement starts one, so its once-per-engagement use is counted
   if (!a.engagement) a.engagement = { start: state.turn, last: state.turn, kinds: ['fight'] };
-  useThisEngagement(a, perk);
+  useThisEngagement(a, useKey(perk, targetId));
   if (perk === PK.dirt_in_the_eyes) {
     const req = (id: string, skill: string) => ({ actorId: id, skill, modifiers: [], tierShifts: [] });
     const c = ruleset.contested(req(a.id, SK.unarmed_improvised), req(t.id, SK.dodge), state, rng);
@@ -46,6 +53,15 @@ export function resolvePerkMove(state: GameState, a: Actor, perk: string, target
     const dodged = c.winner === 'b'; // the foe must win outright
     if (!dodged) markUntilNextTurn(state, t, PK.dirt_in_the_eyes);
     return { effects: [{ kind: dodged ? 'dirt_dodged' : 'dirt_in_eyes', actorId: t.id, data: { by: a.id, perk } }], result: c };
+  }
+  if (perk === PK.bluff) {
+    const c = toContest(ruleset.roll({ actorId: a.id, skill: SK.lying, modifiers: [], tierShifts: [], against: t.id }, state, rng), answerRoll(state, t, answerSkill('deceive'), a.id, rng));
+    markUse(state, a, c.a.skill, c);
+    contestFeat(state, c);
+    markUse(state, t, c.b.skill, c);
+    const seen = c.winner === 'b'; // the foe must win outright to see through it
+    if (!seen) markUntilNextTurn(state, t, PK.bluff);
+    return { effects: [{ kind: seen ? 'bluff_seen_through' : 'bluff_believed', actorId: t.id, data: { by: a.id, perk } }], result: c };
   }
   return { effects: [] };
 }

@@ -282,8 +282,8 @@ export function createGame(deps: GameDeps): Game {
       exchange = engine.resolveSpeech(s, intent, spokespeople, rng);
       const input: DialogueInput = [{ spoken: intent.spoken ?? '', impression: exchange.impression }];
       const world = worldIds(s);
-      // NT7: a listener that saw through a lie hears the impression with a tell
-      const inputFor = (id: string): DialogueInput => (exchange!.perSpokesperson[id]?.tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.TELL}` }] : input);
+      // NT7: a listener that saw through a lie hears the impression with a tell (plainly with Plain as Day, LI2a)
+      const inputFor = (id: string): DialogueInput => (exchange!.perSpokesperson[id]?.tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.tellFor(s.actors.find((x) => x.id === id))}` }] : input);
       agentOutputs.push(...(await Promise.all(spokespeople.map((id) => dialogueCall(s, id, inputFor(id), exchange!, agenda.get(id)!, ctx, world)))));
     }
     // timing rule: resolution never before the previous display plus BACKGROUND_WINDOW, in every mode
