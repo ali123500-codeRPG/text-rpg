@@ -105,7 +105,10 @@ export type StoryMeta = {
   settings: Settings;
   /** set by a confirmed reset (D-73): the story's pages stay under its id, but play no longer loads it */
   archivedAt?: string;
+  /** whose story it is: absent = the player's; 'agent' = the autopilot's own save. One story per owner runs at a time. */
+  owner?: StoryOwner;
 };
+export type StoryOwner = 'player' | 'agent';
 
 export type PageRef = { version: Turn; hash: string; bytes: number };
 export type Bookmark = { turn: Turn; pages: Record<string, PageRef> };

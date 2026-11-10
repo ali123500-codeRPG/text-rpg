@@ -9,7 +9,7 @@ import { MILESTONES, hasPerk, trueSkill } from './perks';
 import { skillOpen } from './access';
 import { getLibrary, itemDef } from '../library';
 import { requirement } from './requirements';
-import { augmentsOf, tierMult } from './gear';
+import { augmentsOf, perkAugments, tierMult } from './gear';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 
@@ -42,11 +42,24 @@ function augmenters(actor: Actor, skill: string, rollKind?: RollKind): { id: str
     if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, d.id) || actor.core.skills[d.id]?.dormant) continue;
     out.push({ id: d.id, k: (g.share ?? 1) * tierMult(d.id) });
   }
+  for (const g of perkAugments(actor, skill, rollKind)) out.push({ id: g.from, k: (g.share ?? 1) * tierMult(g.from) }); // All-50 Grit
   return out;
 }
 /** a side's level on a roll for augment learning: its true skill plus what its augments added (AU2) */
 const rollLevel = (actor: Actor, r: { skill: string; asked?: string; rollKind?: RollKind }) =>
   trueSkill(actor, r.skill) + augmentsOf(actor, r.asked ?? r.skill, r.rollKind).reduce((n, a) => n + a.value, 0);
+/** the learning window of a roll of `skill` with these augments (AU1 option B): raw sums to max(raw, true) sums, each augment at share × tier */
+function rollWindow(actor: Actor, skill: string, augs: { id: string; k: number }[]): [number, number] {
+  const raw = (id: string) => actor.core.skills[id]?.raw ?? 0, top = (id: string) => Math.max(raw(id), trueSkill(actor, id));
+  return learningWindow(raw(skill) + augs.reduce((n, a) => n + raw(a.id) * a.k, 0), top(skill) + augs.reduce((n, a) => n + top(a.id) * a.k, 0));
+}
+/** the window an augmenting skill learns in: that of the roll it adds to (its first augments entry), for the sheet.
+ * null for a skill that augments nothing. */
+export function augmentWindow(actor: Actor, skill: string): { via: string; window: [number, number] } | null {
+  const g = getLibrary().skills[skill]?.augments?.[0];
+  if (!g) return null;
+  return { via: g.skill, window: rollWindow(actor, g.skill, augmenters(actor, g.skill, g.rollKinds?.[0])) };
+}
 /** Augmenting skills learn at the level the roll was made at (AU1 option B): one window for the whole roll, built like any
  * skill's window from the roll's sums. Low end: the rolled skill's raw + each augment's raw × share × tier. High end: the
  * rolled skill's max(raw, true) + each augment's max(raw, true) × share × tier. Every augment that added to the roll marks
@@ -55,8 +68,7 @@ function markAugments(state: GameState, actor: Actor | undefined, r: { skill: st
   if (!actor || actor.id !== state.player.id || opposition === undefined) return;
   const augs = augmenters(actor, r.asked ?? r.skill, r.rollKind);
   if (!augs.length) return;
-  const raw = (id: string) => actor.core.skills[id]?.raw ?? 0, top = (id: string) => Math.max(raw(id), trueSkill(actor, id));
-  const [lo, hi] = learningWindow(raw(r.skill) + augs.reduce((n, a) => n + raw(a.id) * a.k, 0), top(r.skill) + augs.reduce((n, a) => n + top(a.id) * a.k, 0));
+  const [lo, hi] = rollWindow(actor, r.skill, augs);
   if (force || (opposition >= lo && opposition <= hi)) for (const a of augs) mark(actor, a.id);
 }
 

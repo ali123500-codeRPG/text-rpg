@@ -401,8 +401,8 @@ export function prototypeLibrary(): Library {
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
-      // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
-      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.parry]: 40 } },
+      // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
+      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.parry]: 40 }, unlockAny: [{ [SK.melee_medium]: 40, [SK.melee_heavy]: 40 }] },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
       [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
@@ -444,7 +444,7 @@ export function prototypeLibrary(): Library {
       [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
       // MB8/MB34: morale comes back from Resolve: 0.1 % of max morale per point an hour (5 % at 50), all the time
       [HL.composure]: { id: HL.composure, name: 'Natural composure', hpPct: 0, partPct: 0, reach: 'healthy', revivesDead: false, inFight: true, hourly: { skill: SK.resolve, pctPerPoint: 0.1, morale: true } },
-      // never applied itself: healing a perk gives (Second Wind, Fast Healer's extra) is counted here for achievements
+      // never applied itself: healing straight from a perk (Second Wind) is counted here for achievements; Fast Healer counts as natural recovery
       [HL.perk]: { id: HL.perk, name: 'Perks', hpPct: 0, partPct: 0, reach: 'healthy', revivesDead: false, inFight: true, countOnly: true },
     },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
@@ -629,6 +629,16 @@ export function prototypeLibrary(): Library {
       [ACH.morale_breaks_1]: { id: ACH.morale_breaks_1, name: 'First Crack', level: 'zero', rule: 'morale_breaks', tags: ['combat'], count: 1, scar: true },
       [ACH.morale_breaks_5]: { id: ACH.morale_breaks_5, name: 'Glass Nerves', level: 'i', rule: 'morale_breaks', tags: ['combat'], count: 5, after: ACH.morale_breaks_1, scar: true },
       [ACH.morale_breaks_25]: { id: ACH.morale_breaks_25, name: 'Nothing Left to Break', level: 'ii', rule: 'morale_breaks', tags: ['combat'], count: 25, after: ACH.morale_breaks_5, scar: true },
+      // D-174: HP healed (a flat number) from one healing row each; counts are placeholders
+      [ACH.healed_rest_100]: { id: ACH.healed_rest_100, name: 'A Good Night\'s Sleep', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 100 },
+      [ACH.healed_rest_1000]: { id: ACH.healed_rest_1000, name: 'Sleeps Through Anything', level: 'i', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 1000, after: ACH.healed_rest_100 },
+      [ACH.healed_rest_10000]: { id: ACH.healed_rest_10000, name: 'The Long Rest', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.rest, tags: ['survival'], count: 10000, after: ACH.healed_rest_1000 },
+      [ACH.healed_natural_50]: { id: ACH.healed_natural_50, name: 'Knits Back Together', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 50 },
+      [ACH.healed_natural_500]: { id: ACH.healed_natural_500, name: 'Walks It Off', level: 'i', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 500, after: ACH.healed_natural_50 },
+      [ACH.healed_natural_2500]: { id: ACH.healed_natural_2500, name: 'The Body Remembers', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.passive, tags: ['survival'], count: 2500, after: ACH.healed_natural_500 },
+      [ACH.healed_perk_50]: { id: ACH.healed_perk_50, name: 'Borrowed Strength', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 50 },
+      [ACH.healed_perk_500]: { id: ACH.healed_perk_500, name: 'Tricks of the Flesh', level: 'i', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 500, after: ACH.healed_perk_50 },
+      [ACH.healed_perk_2500]: { id: ACH.healed_perk_2500, name: 'Unkillable by Habit', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 2500, after: ACH.healed_perk_500 },
       [ACH.total_10]: { id: ACH.total_10, name: 'A Few Threads', level: 'i', rule: 'achievements', tags: ['progression'], count: 10 },
       [ACH.total_25]: { id: ACH.total_25, name: 'Woven In', level: 'ii', rule: 'achievements', tags: ['progression'], count: 25, after: ACH.total_10 },
       [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25 },

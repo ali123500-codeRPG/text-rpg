@@ -88,11 +88,14 @@ const DEFAULTS = {
   HEAVY_VS_BLOCK_GAP: -1, // a heavy melee blow is harder to stop: gap shift against Block and Parry
   PARRY_STRIKE_GAP: 3, // PA3/PA4: a parry at this gap or better stops the blow fully and earns a free strike back
   ANSWER_THE_BLOW_DROP: 2, // PA7: Answer the Blow lowers the strike's gap by this much when parrying with a medium weapon
+  // the ladder runs GAP_MIN..GAP_MAX; a gap past either end uses the end row. −6..−10 are placeholders (+0.5 a step)
+  GAP_MIN: -10,
+  GAP_MAX: 5,
   GAP_LADDER: {
-    dodge: { [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
-    block: { [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.75, 2: 0.5, 3: 0.25, 4: 0.2, 5: 0.15 },
+    dodge: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1.25, [-2]: 1.175, [-1]: 1.1, 0: 1, 1: 0.8, 2: 0, 3: 0, 4: 0, 5: 0 },
+    block: { [-10]: 4.5, [-9]: 4, [-8]: 3.5, [-7]: 3, [-6]: 2.5, [-5]: 2, [-4]: 1.5, [-3]: 1, [-2]: 1, [-1]: 1, 0: 1, 1: 0.75, 2: 0.5, 3: 0.25, 4: 0.2, 5: 0.15 },
     // PA3 (placeholders): cuts less than Block at small gaps, stops the blow fully from +3; a failed parry punishes harder
-    parry: { [-5]: 2.5, [-4]: 2, [-3]: 1.5, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.85, 2: 0.65, 3: 0, 4: 0, 5: 0 },
+    parry: { [-10]: 5, [-9]: 4.5, [-8]: 4, [-7]: 3.5, [-6]: 3, [-5]: 2.5, [-4]: 2, [-3]: 1.5, [-2]: 1.25, [-1]: 1.1, 0: 1, 1: 0.85, 2: 0.65, 3: 0, 4: 0, 5: 0 },
   } as Record<DefenseKind, Record<number, number>>,
   DODGE_VS_MISSILE: 10,
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
@@ -245,6 +248,8 @@ const DEFAULTS = {
   IRON_KNUCKLES_MULT: 1.1, // All-50 Iron Knuckles: unarmed hits deal a tenth more (placeholder)
   BARE_HANDED_GUARD: 5,
   STEADY_GUARD: 5, // All-50 Steady Guard: Parry effective skill with a medium melee weapon (placeholder)
+  IRON_RIM_MULT: 0.75, // All-50 Iron Rim (Block's part): damage the owner's shield pool takes (placeholder)
+  GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
   REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000 } as Record<string, number>,
@@ -277,7 +282,7 @@ const DEFAULTS = {
   SHOW_MECHANICS: true,
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
-  MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex' } as Record<string, 'quick' | 'default' | 'complex'>,
+  MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,
   STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // (flavor voice V5)
     length: '2 to 4 short paragraphs' },
 };

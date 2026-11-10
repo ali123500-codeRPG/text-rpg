@@ -88,7 +88,7 @@ function mustActor(state: GameState, id: string): Actor {
 
 /** gap ladder (Part 3, Defense); a gap past ±5 uses the ±5 entry */
 export function ladder(type: DefenseKind, gap: number): number {
-  return CONFIG.GAP_LADDER[type][Math.max(-5, Math.min(5, gap))];
+  return CONFIG.GAP_LADDER[type][Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap))];
 }
 type LocRule = 'any' | 'no_essential' | 'non_essential_only';
 function locRule(type: DefenseKind, g: number): LocRule {
@@ -96,7 +96,7 @@ function locRule(type: DefenseKind, g: number): LocRule {
   return g >= 0 ? 'non_essential_only' : g === -1 ? 'no_essential' : 'any'; // GAP: block and parry +1..+5 off-shield keep the gap-0 limit
 }
 function rowKey(type: DefenseKind, gap: number, shield: boolean): string {
-  const g = Math.max(-5, Math.min(5, gap));
+  const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
   return [ladder(type, g), locRule(type, g), g <= -3 ? 'anywhere' : g === -2 ? 'adjacent' : '', shield && g >= 0].join('|');
 }
 
@@ -213,10 +213,12 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const type = usableDefense(state, D, ranged);
   const blocker = defenseItem(state, D, type); // the shield that blocks or the weapon that parries
   const openArm = type === 'parry' && !blocker ? openHandArm(state, D) : null; // A7 Open-Hand Guard (PA10): a barehanded parry
-  const mediumParry = type === 'parry' && !!blocker && !!itemDef(state, blocker.itemId).weapon?.modes.some((x) => x.tree === 'melee' && x.class === 'medium');
+  const parryClass = (c: string) => type === 'parry' && !!blocker && !!itemDef(state, blocker.itemId).weapon?.modes.some((x) => x.tree === 'melee' && x.class === c);
+  const mediumParry = parryClass('medium');
+  const bladeParry = mediumParry || parryClass('heavy'); // B19 Blade Wall: a medium or heavy blade
   const dm: Mod[] = [];
-  // never outnumbered: B19 Blade Wall (Parry 60, a medium weapon), B9 Shield Wall (Block 60), B8 Slip the Crowd (Dodge 60)
-  const noCrowd = (mediumParry && hasPerk(D, PK.blade_wall)) || (type === 'block' && hasPerk(D, PK.shield_wall)) || (type === 'dodge' && hasPerk(D, PK.slip_the_crowd));
+  // never outnumbered: B19 Blade Wall (Parry 60, a medium or heavy weapon), B9 Shield Wall (Block 60), B8 Slip the Crowd (Dodge 60)
+  const noCrowd = (bladeParry && hasPerk(D, PK.blade_wall)) || (type === 'block' && hasPerk(D, PK.shield_wall)) || (type === 'dodge' && hasPerk(D, PK.slip_the_crowd));
   if ((req.context?.defensesThisTurn ?? 0) >= 1 && !noCrowd) dm.push({ source: 'outnumbered', type: 'situational', value: CONFIG.OUTNUMBERED_MOD });
   if (req.context?.defenderUnaware) dm.push({ source: 'unaware', type: 'situational', value: CONFIG.UNAWARE_MOD });
   if (ranged && type === 'dodge') dm.push({ source: 'dodge vs missile', type: 'situational', value: CONFIG.DODGE_VS_MISSILE });
@@ -236,7 +238,8 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
 
   // 4. gap
   const gapShifts: TierShift[] = [];
-  if (mode.class === 'heavy' && type !== 'dodge') gapShifts.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP }); // PA11: Parry too
+  // PA11: Parry too; All-50 Against the Grain (Parry's part) takes it off the owner's parries
+  if (mode.class === 'heavy' && type !== 'dodge' && !(type === 'parry' && hasPerk(D, PK.against_the_grain))) gapShifts.push({ source: `heavy vs ${type}`, value: CONFIG.HEAVY_VS_BLOCK_GAP }); // PA11: Parry too
   // ST21: cover by tag (ranged): it hurts the attack, so it shifts the gap toward the defender
   const coverKey = zoneD && ranged && hasPerk(A, PK.past_the_cover) ? COVER.at(COVER.pos(zoneD.cover) - 1) : zoneD?.cover; // All-50: Past the Cover
   const coverGap = zoneD ? -tagSign('cover', rollTags(skill)) * (CONFIG.COVER_GAP[coverKey!] ?? 0) : 0;
@@ -248,7 +251,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     gapShifts.push({ source: 'Slip the Blow', value: 1 });
   }
   const gap = tierLevel(def) - tierLevel(atk) + sumShifts(gapShifts);
-  const g = Math.max(-5, Math.min(5, gap));
+  const g = Math.max(CONFIG.GAP_MIN, Math.min(CONFIG.GAP_MAX, gap));
   let multiplier = ladder(type, g);
   const shield = type === 'block';
   const deciding = {
@@ -342,7 +345,8 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     const inst = T.core.inventory.find((i) => i.id === result.shieldItemId);
     if (!inst) return [];
     const before = inst.pools?.shield ?? 100;
-    const after = before - ((dmg * (result.shieldMult ?? 1)) / itemDef(state, inst.itemId).shield!.pool) * 100; // A3 Shield Breaker
+    const rim = hasPerk(T, PK.iron_rim) ? CONFIG.IRON_RIM_MULT : 1; // All-50 Iron Rim (Block's part)
+    const after = before - ((dmg * (result.shieldMult ?? 1) * rim) / itemDef(state, inst.itemId).shield!.pool) * 100; // A3 Shield Breaker
     inst.pools = { ...inst.pools, shield: after };
     changed('shield', poolState(before), poolState(after), { itemId: inst.id });
     if (poolState(after) === 'Destroyed') T.core.inventory = T.core.inventory.filter((i) => i !== inst); // a Destroyed shield is lost

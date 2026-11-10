@@ -166,7 +166,7 @@ function openEveryClass(state: GameState): void {
 }
 
 /** Classes the player doesn't have unlock once every skill in ClassDef.unlock reaches its true skill and, when
- * ClassDef.unlockAny is listed, at least one of those does, and when ClassDef.unlockPerk is listed, the player has that perk (for example Swordsman at Medium Weapons 40 and Block 40;
+ * ClassDef.unlockAny is listed, at least one of those does, and when ClassDef.unlockPerk is listed, the player has that perk (for example Swordsman at Parry 40 and Medium or Heavy Weapons 40;
  * Sword-dancer at Dodge 40 and Light or Medium Weapons 40). An unlocked class sits at level 0 until a level goes into it (X9). */
 export function unlockClasses(state: GameState): void {
   const p = state.player;
@@ -282,6 +282,7 @@ export function tally(state: GameState, rule: AchievementRule, o: { by?: Achieve
   t[k] = o.to === undefined ? (t[k] ?? 0) + (o.add ?? 1) : Math.max(t[k] ?? 0, o.to);
   for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
     if (d.rule !== rule || d.by !== o.by || d.count === undefined || t[k] < d.count) continue;
+    if (d.only && d.only !== o.of) continue; // a row for one kind only (healing from one source)
     if (d.every) for (let n = d.count; n <= t[k]; n += d.every) grantAchievement(state, key, String(n)); // earned at every multiple
     else grantAchievement(state, key, o.of);
   }

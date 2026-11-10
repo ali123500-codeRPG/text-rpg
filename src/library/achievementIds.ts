@@ -46,6 +46,9 @@ export const ACH = {
   spar_losses_1: 'AC132', defeated_5: 'AC133', defeated_25: 'AC134', defeated_100: 'AC135',
   won_panicking_1: 'AC138', won_panicking_10: 'AC139', won_panicking_25: 'AC140',
   morale_breaks_1: 'AC141', morale_breaks_5: 'AC142', morale_breaks_25: 'AC143',
+  healed_rest_100: 'AC150', healed_rest_1000: 'AC151', healed_rest_10000: 'AC152',
+  healed_natural_50: 'AC153', healed_natural_500: 'AC154', healed_natural_2500: 'AC155',
+  healed_perk_50: 'AC156', healed_perk_500: 'AC157', healed_perk_2500: 'AC158',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -75,7 +78,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   char_level: 'character levels, again at every multiple',
   spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
   won_panicking: 'fights won while your morale is Panicking', morale_breaks: 'times your morale broke',
-  healed: 'health % healed from one source (a healing-table row: Rest, Natural recovery, Perks…)',
+  healed: 'HP healed from one source (a healing-table row: Rest, Natural recovery, Perks…)',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
 /** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,

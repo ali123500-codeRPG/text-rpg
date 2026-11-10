@@ -13,6 +13,7 @@ import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
+import { autopilotBar } from './autopilot';
 import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -181,13 +182,25 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const body = h('div', { class: 'play' }, story, h('div', { class: 'sec col' }, notices, helpPanel, bar));
   const title = h('div', { class: 'head' });
   const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
-  let folded = true; // layout A: the status strip by default; the full sheet opens on a click
+  // layout A: the status strip by default; on a wide screen the full sheet is open by default, so the space beside the story
+  // is used. Each width keeps its own choice (the player can still fold or open it).
+  const WIDE = '(min-width: 1280px)';
+  const wide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matches;
+  const foldKey = () => (wide() ? 'sheetFoldedWide' : 'sheetFolded');
+  const readFolded = () => { try { const v = localStorage.getItem(foldKey()); return v === null ? !wide() : v === '1'; } catch { return !wide(); } };
+  let folded = readFolded();
+  if (typeof matchMedia === 'function') matchMedia(WIDE).addEventListener?.('change', () => { folded = readFolded(); if (el.isConnected) update(); });
   let dealsOpen = false;
   document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
-  try { folded = localStorage.getItem('sheetFolded') !== '0'; } catch { /* storage blocked: start with the strip */ }
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
   const wrap = h('div', { class: 'play-wrap' }, body, sheet);
-  const el = h('main', { class: 'playmain' }, title, who, wrap, fell);
+  // Watch an agent play: it types each command into the box, then sends it like Send
+  const auto = autopilotBar(api, async (text) => {
+    input.value = '';
+    for (const ch of text) { input.value += ch; await new Promise((r) => setTimeout(r, Math.min(35, 1500 / text.length))); }
+    await submit(true);
+  }, () => update());
+  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell);
 
   // Escape closes whatever is open; PageUp/PageDown scroll the story while the box has focus; Tab takes the suggestion
   document.addEventListener('keydown', (e) => {
@@ -207,9 +220,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   let offered: LogLine | null = null;
 
-  async function submit() {
+  async function submit(byAgent = false) {
     const text = input.value.trim();
-    if (!text || api.busy()) return;
+    if (!text || api.busy() || (auto.playing() && !byAgent)) return;
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
     if (NAV_COMMANDS[cmd] && text === cmd) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
@@ -366,7 +379,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the header names the last turn played, the one the last results row shows
     const lastTurn = [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
     title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), rollsBtn ?? '');
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), h('div', { class: 'title-tools' }, s ? auto.opener : '', rollsBtn ?? ''));
     story.classList.toggle('no-rolls', !show);
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
@@ -419,8 +432,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     notices.replaceChildren(...ns.map((n) => h('div', { class: 'hs-hl ' + (n.kind === 'stop_play' || n.kind === 'save_failed' ? 'bad' : 'ask'), role: 'status' },
       h('span', { class: 'hs-hl-b', 'data-kind': NOTICE_KIND[n.kind] }, n.text))));
     const stopped = ns.some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
-    input.disabled = stopped || busy;
-    send.disabled = stopped || busy;
+    input.disabled = stopped || busy || auto.playing(); // the autopilot has the box while it plays
+    send.disabled = stopped || busy || auto.playing();
+    auto.update();
     aimBtn.disabled = stopped;
     st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
@@ -441,7 +455,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
 
     // layout A: the status strip, or the full sheet as a 420px side panel that pushes the story narrower
-    const setFolded = (f: boolean) => { folded = f; try { localStorage.setItem('sheetFolded', f ? '1' : '0'); } catch { /* not saved */ } update(); };
+    const setFolded = (f: boolean) => { folded = f; try { localStorage.setItem(foldKey(), f ? '1' : '0'); } catch { /* not saved */ } update(); };
     sheet.classList.toggle('folded', folded);
     wrap.classList.toggle('sheet-open', !folded);
     if (s && folded) sheet.replaceChildren(h('button', { type: 'button', class: 'cs-strip', 'aria-expanded': 'false', title: 'Open your full sheet', onclick: () => setFolded(false) },

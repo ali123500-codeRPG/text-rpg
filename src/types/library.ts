@@ -158,6 +158,8 @@ export type PerkDef = {
   improveRolls?: { below: number; rolls: number };
   freeLevels?: number; // free levels: this many level-ups that cost no XP, given while the perk is owned and active
   bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
+  /** while owned, skill `from` augments `skill` as a SkillDef.augments entry would (true skill × share × tier; its tree open) */
+  augments?: { from: string; skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
@@ -249,6 +251,8 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
   /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
   levelUp?: Partial<Record<string, number>>;
+  /** with `by`: counts only this kind (e.g. one healing row), instead of each kind on its own */
+  only?: string;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number;
   /** a name of its own for each earning, by what it is earned for (an every-N row: the level); others use `name` */
