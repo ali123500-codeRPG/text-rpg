@@ -22,7 +22,7 @@ const ROWS: Row[] = [
   { id: PK.keen_edge, ref: 'P1', skill: SK.melee_light, group: GR.melee, name: 'Keen Edge', effect: 'attack',
     extra: { story: 'Your blade has learned where flesh is softest: +10 to hit with light weapons.', rule: `+10 on attack rolls with skill ${skillName(SK.melee_light)}.`, numbers: { hitAdd: 10 } } },
   { id: PK.guard_drill, ref: 'P2', skill: SK.melee_medium, group: GR.melee, name: 'Guard Drill', effect: 'defense',
-    extra: { story: 'Every guard you hold makes the next one harder to break: +10 Block.', rule: `+10 true skill in ${skillName(SK.block)}.`, trueSkillTo: { [SK.block]: 10 } } },
+    extra: { story: 'Every guard you hold makes the next one harder to break: +10 Parry.', rule: `+10 true skill in ${skillName(SK.parry)}.`, trueSkillTo: { [SK.parry]: 10 } } },
   { id: PK.heavy_hand, ref: 'P3', skill: SK.melee_heavy, group: GR.melee, name: 'Heavy Hand', effect: 'attack',
     extra: { story: 'Armor dents, bones give: your heavy weapons hit 20% harder.', rule: `Damage of an attack with skill ${skillName(SK.melee_heavy)} is ×1.2, before armor.`, numbers: { damageMult: 1.2 } } },
   { id: PK.sharp_eyes, ref: 'P4', skill: SK.ranged_light, group: GR.ranged, name: 'Sharp Eyes', effect: 'senses',

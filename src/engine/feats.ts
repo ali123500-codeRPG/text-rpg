@@ -35,9 +35,9 @@ function eventFeats(state: GameState, events: GameEvent[]): void {
   const p = state.player;
   for (const ev of events) {
     const a = ev.attack;
-    if (a?.defense && a.targetId === p.id && (a.outcome === 'dodged' || a.outcome === 'blocked') && a.damage === 0) tally(state, 'clean_defense');
+    if (a?.defense && a.targetId === p.id && (a.outcome === 'dodged' || a.outcome === 'blocked' || a.outcome === 'parried') && a.damage === 0) tally(state, 'clean_defense');
     if (a?.defense && (a.attackerId === p.id || a.targetId === p.id)) // an attack against a defense is a contest
-      contestFeat(state, { a: a.attack, b: a.defense, gap: 0, winner: HITS.has(a.outcome) ? 'a' : a.outcome === 'dodged' || a.outcome === 'blocked' ? 'b' : 'tie' });
+      contestFeat(state, { a: a.attack, b: a.defense, gap: 0, winner: HITS.has(a.outcome) ? 'a' : a.outcome === 'dodged' || a.outcome === 'blocked' || a.outcome === 'parried' ? 'b' : 'tie' });
     if (a && a.attackerId === p.id && a.locationHow === 'aimed' && HITS.has(a.outcome) && a.location) {
       const t = actorById(state, a.targetId);
       const size = t && actorBody(state, t).parts.find((x) => x.id === a.location)?.size;

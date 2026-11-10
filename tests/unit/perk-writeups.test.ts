@@ -25,7 +25,7 @@ describe('perk write-ups (story and rules views)', () => {
     for (const p of twenties) expect(L[p.id]).toMatchObject({ ladder: { skill: p.skill, milestone: 20 }, built: BUILT_PERKS.has(p.id), story: p.story });
     for (const id of BUILT_PERKS) expect(L[id]).toBeDefined(); // no stale ids
     const a = { core: { perks: [], skills: { [SK.melee_medium]: { raw: 40 } } }, progression: { unspentPerkPoints: 1 } } as never;
-    expect(canTake(a, PK.answer_the_blow)).toBe('not in the game yet');
+    expect(canTake(a, PK.step_and_cut)).toBe('not in the game yet');
     expect(canTake(a, PK.haggler)).toBe('milestone not reached'); // built, but Barter is under 20
   });
   it('every write-up with no ladder yet says what it is banked as, with a fitting suggested milestone', () => {

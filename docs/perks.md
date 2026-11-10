@@ -24,11 +24,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Turn the Blade (Medium weapons) · A2
 
-*Story:* Their steel meets yours and slides away, and for one heartbeat they are wide open. When you block a melee attack cleanly with any melee weapon, the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
+*Story:* Their steel meets yours and slides away, and for one heartbeat they are wide open. When you parry a melee attack cleanly with any melee weapon, the attacker is left open: your next melee attack on it lands one outcome better, any time before the fight ends.
 
 - **Kind:** Always on
-- **Trigger:** The owner blocks a melee attack.
-- **Conditions:** The owner blocks with any melee weapon held in a working Grip arm. The gap is +2 or better for the owner.
+- **Trigger:** The owner parries a melee attack.
+- **Conditions:** The owner parries with any melee weapon held in a working Grip arm (not barehanded). The gap is +2 or better for the owner.
 - **Effect:** The attacker is marked as open to the owner. The owner's next melee attack on that attacker gets tier shift +1, and the mark clears.
 - **Lasts:** Until it is used or the engagement ends.
 
@@ -74,12 +74,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Open-Hand Guard (Strike) · A7
 
-*Story:* Who said you need a weapon to stop one? You catch and turn blows on bare hands and forearms. With empty hands and no weapon or shield, you can still block. A blow that gets through lands half on your arm and half on your body.
+*Story:* Who said you need a weapon to stop one? You catch and turn blows on bare hands and forearms. With empty hands and no weapon or shield, you can still parry. A blow that gets through lands half on your arm and half on your body.
 
 - **Kind:** Always on
-- **Trigger:** The owner defends with block.
+- **Trigger:** The owner defends with parry.
 - **Conditions:** The owner holds no shield or weapon, and has at least one working Grip arm with an empty hand.
-- **Effect:** The owner may block (block normally needs a held shield or weapon). The block uses the block column of the gap ladder. A hit that gets through is split: 0.5× of its damage goes to the blocking arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test.
+- **Effect:** The owner may parry (parry normally needs a held melee weapon). The parry uses the parry column of the gap ladder, and a parry that earns the free strike back strikes with a fist. A hit that gets through is split: 0.5× of its damage goes to the parrying arm (a working Grip arm with an empty hand) and 0.5× to the general area; both count on the health track. The 0.5 shares are placeholders to test.
 - **Lasts:** Each defense.
 
 ### Don't Let Go (Grapple) · A8
@@ -119,7 +119,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on; can be switched off per character (on by default)
 - **Trigger:** A ranged attack targets an actor friendly to the owner in the owner's zone.
-- **Conditions:** The owner's standing defense is block and the owner can block (working Grip arm with a shield or weapon). The owner is active. The owner's block value is higher than the value of the ally's own standing defense. Cover Ally is switched on for the owner (a per-character switch, on by default).
+- **Conditions:** The owner's standing defense is block and the owner can block (a shield held in a working Grip arm). The owner is active. The owner's block value is higher than the value of the ally's own standing defense. Cover Ally is switched on for the owner (a per-character switch, on by default).
 - **Effect:** The owner defends in the ally's place with the owner's own block roll. A hit that gets through lands on the owner, who stepped into its path. It counts as one of the owner's defenses this turn (outnumbered).
 - **Lasts:** Each attack.
 
@@ -265,11 +265,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Guard Drill (Medium weapons) · P2
 
-*Story:* +5 Medium weapons, +1 Melee. Every guard you hold makes the next one harder to break: +10 Block.
+*Story:* +5 Medium weapons, +1 Melee. Every guard you hold makes the next one harder to break: +10 Parry.
 
 - **Kind:** Always on
 - **Trigger:** Always.
-- **Effect:** +5 true skill in Medium weapons. +1 true skill in every skill of group Melee. +10 true skill in Block.
+- **Effect:** +5 true skill in Medium weapons. +1 true skill in every skill of group Melee. +10 true skill in Parry.
 - **Lasts:** Always.
 
 ### Heavy Hand (Heavy weapons) · P3
@@ -457,7 +457,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner dodges.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
-- **Banked as:** a later Dodge perk, suggested for the 60 perk
 
 ### Shield Wall (Block) · B9
 
@@ -468,7 +467,6 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The owner blocks with a shield.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
-- **Banked as:** a later Block perk, suggested for the 100 perk
 
 ### Refuse to Fall (Endurance) · B10
 
@@ -560,15 +558,14 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Answer the Blow (Riposte) · B18
 
-*Story:* A clean parry is half a cut. When you turn a blow aside cleanly with a medium weapon, you strike back at once.
+*Story:* A clean parry is half a cut. With a medium weapon you answer sooner: a parry that only turns the blow partly aside already earns your strike back.
 
 - **Kind:** Always on
-- **Trigger:** The owner blocks a melee attack with a medium melee weapon.
-- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack. Once per turn.
-- **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
-- **Lasts:** That attack.
+- **Trigger:** The owner parries a melee attack with a medium melee weapon.
+- **Effect:** The parry's free strike back comes at a gap 2 lower (ANSWER_THE_BLOW_DROP): +1 instead of +3. The damage the parry lets through is unchanged. The strike is still once per turn.
+- **Lasts:** Each parry.
 
-### Step and Cut (Slip Counter) · B18b
+### Step and Cut (Blade Dance) · B18b
 
 *Story:* The blade passes where you were a moment ago. When you slip a blow cleanly with a light or medium weapon in hand, you cut back at once.
 
@@ -578,13 +575,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
 - **Lasts:** That attack.
 
-### Blade Wall (Block) · B19
+### Blade Wall (Parry) · B19
 
-*Story:* Let them all come. Your sword turns one blow after another. When you block with a medium weapon, being outnumbered doesn't hurt your guard.
+*Story:* Let them all come. Your sword turns one blow after another. When you parry with a medium weapon, being outnumbered doesn't hurt your guard.
 
 - **Kind:** Always on
-- **Trigger:** The owner blocks.
-- **Conditions:** The owner blocks with a medium melee weapon, not a shield.
+- **Trigger:** The owner parries.
+- **Conditions:** The owner parries with a medium melee weapon.
 - **Effect:** The outnumbered modifier is not applied.
 - **Lasts:** Always.
 
@@ -811,12 +808,12 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 
 ### Steady Guard (Combat – Arms, Medium weapons) · T1e
 
-*Story:* Your blade knows where the blow will land. Your Block is 5 higher, and 5 higher again when you block with a melee weapon.
+*Story:* Your blade knows where the blow will land. Your Parry is 5 higher, and 5 higher again when you parry with a medium weapon.
 
 - **Kind:** Always on
-- **Trigger:** Always; and the owner makes a Block roll.
-- **Conditions:** The extra +5 needs the block to be made with a melee weapon, not a shield.
-- **Effect:** +5 true skill in Block. Block rolls made with a melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).
+- **Trigger:** Always; and the owner makes a Parry roll.
+- **Conditions:** The extra +5 needs the parry to be made with a medium melee weapon.
+- **Effect:** +5 true skill in Parry. Parry rolls made with a medium melee weapon also get +5 effective skill (CONFIG.STEADY_GUARD, placeholder).
 - **Lasts:** Always.
 - **Built:** yes
 

@@ -39,7 +39,8 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], [RL.grip]), // fighting with whatever is at hand
   sk(SK.unarmed_natural, TR.natural, [FN.unarmed], [RL.strike]), // its own tree, open to slime and dragon bodies (TA5)
   { ...sk(SK.dodge, TR.defense, [FN.defense], [RL.move]), groups: [GR.speed] }, // Defense and Speed groups; no Initiative function, so it doesn't add to initiative
-  sk(SK.block, TR.defense, [FN.defense], [RL.grip]),
+  sk(SK.block, TR.defense, [FN.defense], [RL.grip]), // shields only: a held weapon parries instead
+  sk(SK.parry, TR.defense, [FN.defense], [RL.grip]), // turn a melee blow aside with a held melee weapon; a full stop earns a free strike back
   // Fortitude (MB5, MB32): body and mind. Endurance sets total HP; Resolve sets max morale and rolls the morale roll
   sk(SK.endurance, TR.fortitude, [FN.health], []),
   sk(SK.resolve, TR.fortitude, [FN.morale], []),
@@ -62,8 +63,8 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.intimidation, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.barter, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.lying, TR.trickery, [FN.influence], [RL.speech]), // NT16: deceive rolls Lying
-  { ...sk(SK.riposte, TR.swordsman, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // strike back off a block
-  { ...sk(SK.slip_counter, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // Riposte's mirror: strike back off a dodge
+  { ...sk(SK.riposte, TR.swordsman, [], [RL.grip]), groups: [GR.melee, GR.defense], augments: [{ skill: SK.parry }] }, // adds its full value to every Parry roll
+  { ...sk(SK.blade_dance, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee, GR.defense], augments: [{ skill: SK.dodge }] }, // Riposte's mirror: adds its full value to every Dodge roll
   // Merchant's advanced barter: augments Barter, adding its effective value to every roll that asks for Barter
   { ...sk(SK.shrewd_dealing, TR.merchant, [], [RL.speech]), groups: [GR.influence], augments: [{ skill: SK.barter }] },
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
@@ -77,7 +78,7 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
   [SK.melee_light]: ['sight'], [SK.melee_medium]: ['sight'], [SK.melee_heavy]: ['sight'],
   [SK.ranged_light]: ['sight', 'ranged'], [SK.ranged_medium]: ['sight', 'ranged'], [SK.ranged_heavy]: ['sight', 'ranged'],
   [SK.unarmed_strike]: ['sight'], [SK.unarmed_grapple]: ['sight'], [SK.unarmed_improvised]: ['sight'], [SK.unarmed_natural]: ['sight'],
-  [SK.dodge]: ['sight'], [SK.block]: ['sight'], [SK.eyesight]: ['sight'], [SK.earshot]: ['hearing'], [SK.tremor]: ['hearing'], // hearing: no table reads it yet
+  [SK.dodge]: ['sight'], [SK.block]: ['sight'], [SK.parry]: ['sight'], [SK.eyesight]: ['sight'], [SK.earshot]: ['hearing'], [SK.tremor]: ['hearing'], // hearing: no table reads it yet
   [SK.sneaking]: ['stealth'], [SK.combat_stealth]: ['stealth'], [SK.vanishing]: ['stealth', 'hide'],
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
@@ -158,9 +159,9 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reach: 4, hands: 2 })] } },
   { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
-  // SL12 test piece: a medium weapon whose basket hilt gives +5 Block while held, apart from its requirement's skill
+  // SL12 test piece: a medium weapon whose basket hilt gives +5 Parry while held, apart from its requirement's skill
   { id: IT.basket_hilt_sword, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, hands: 1,
-    effects: [KIT(), { kind: 'skill', skill: SK.block, value: 5, active: 'held', scope: 'any' }],
+    effects: [KIT(), { kind: 'skill', skill: SK.parry, value: 5, active: 'held', scope: 'any' }],
     weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
   { id: IT.hidden_blade, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
@@ -283,10 +284,10 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   },
   [TP.guard]: {
     id: TP.guard, raceId: RC.human, generation: 'copy',
-    minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.block]: 30, [SK.dodge]: 20, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements
+    minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.parry]: 30, [SK.dodge]: 20, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
-    focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.block }, { treeId: TR.perception, skill: SK.eyesight }],
+    focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.parry }, { treeId: TR.perception, skill: SK.eyesight }],
     personality: 'steady', loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
   },
   [TP.trader]: {
@@ -385,7 +386,7 @@ export function prototypeLibrary(): Library {
       [TR.ranged]: { id: TR.ranged, name: 'Combat – Ranged', skills: [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], access: { blockedBy: [AMORPHOUS] } },
       [TR.unarmed]: { id: TR.unarmed, name: 'Combat – Unarmed', skills: [SK.unarmed_strike, SK.unarmed_grapple, SK.unarmed_improvised], access: { blockedBy: [AMORPHOUS] } },
       [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: RC.dragon }] } /* the shape's slam; the dragon's own attacks */ },
-      [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block] },
+      [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.parry] },
       [TR.fortitude]: { id: TR.fortitude, name: 'Fortitude', skills: [SK.endurance, SK.resolve] }, // third slot open (MB32)
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
       [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
@@ -394,14 +395,14 @@ export function prototypeLibrary(): Library {
       [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying], access: { blockedBy: [AMORPHOUS] } },
       [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
       [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
-      [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.slip_counter], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
+      [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', rating: 'inferior', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Medium Weapons 40 and Block 40 unlock the class, and are its creation floors
-      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade and shield, drilled until the guard comes up before the thought does.', floors: { [SK.melee_medium]: 40, [SK.block]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.block]: 40 } },
+      [CL.swordsman]: { id: CL.swordsman, name: 'Swordsman', tier: 'tier_1', label: 'a swordsman', story: 'Blade against blade, drilled until the parry comes before the thought does.', floors: { [SK.melee_medium]: 40, [SK.parry]: 40 }, unlock: { [SK.melee_medium]: 40, [SK.parry]: 40 } },
       // The late bloomer's creation option: 50 points, level 1, a unique class with a level 1 perk
       [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
@@ -418,7 +419,7 @@ export function prototypeLibrary(): Library {
       // any weapon, any armor and any defense skill, and a perk that adds a hearing link (Keen Ear, which patrol templates have)
       [CL.guard]: { id: CL.guard, name: 'Guard', tier: 'tier_1', label: 'a guard', story: 'Stand at the gate and listen for trouble.', floors: {},
         unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40, [SK.ranged_light]: 40, [SK.ranged_medium]: 40, [SK.ranged_heavy]: 40 },
-          { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30 }] as Record<string, number>[],
+          { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30, [SK.parry]: 30 }] as Record<string, number>[],
         unlockPerkWith: { hearingReach: 1 } },
       [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
       [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone

@@ -10,7 +10,7 @@ import { PK } from '../library/perkIds';
 import { contestFeat } from './feats';
 
 const GRAPPLE = SK.unarmed_grapple;
-const MISSES = new Set(['missed', 'dodged']);
+const MISSES = new Set(['missed', 'dodged', 'parried']);
 
 /** after a grapple attack: lock on if the attacker has Hold and the roll was a Great Success or better that hit */
 export function applyHold(A: Actor, D: Actor, r: AttackResult, modeSkill: string): Effect | null {

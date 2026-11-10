@@ -228,17 +228,20 @@ describe('125 All-50 parts', () => {
     expect(mate.mind!.knowledge.player.status).toBe('suspicious');
     expect(mate.mind!.knowledge.player.source).toBe('told');
   });
-  it('Steady Guard: +5 true Block always, +5 effective on Block rolls made with a melee weapon', () => {
+  it('Steady Guard: +5 true Parry always, +5 effective on Parry rolls made with a medium weapon', () => {
     const s = makeVillage();
     place(s, 'patron_1', s.player.zone);
     arm(s, 'patron_1');
-    arm(s, 'player');
-    set(s.player, [SK.block], 30);
+    arm(s, 'player', IT.arming_sword);
+    set(s.player, [SK.parry], 30);
     give(s.player, PK.steady_guard);
-    expect(trueSkill(s.player, SK.block)).toBe(35);
-    s.player.core.standingDefense = 'block';
-    const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]));
-    expect(r.defense!.modifiers.filter((m) => m.source === 'Steady Guard')).toEqual([{ source: 'Steady Guard', type: 'roll_perk', value: 2.5 }]);
+    expect(trueSkill(s.player, SK.parry)).toBe(35);
+    s.player.core.standingDefense = 'parry';
+    const guard = () => ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false }, s, forcedRng([90, 50, 50, 50]))
+      .defense!.modifiers.filter((m) => m.source === 'Steady Guard');
+    expect(guard()).toEqual([{ source: 'Steady Guard', type: 'roll_perk', value: 2.5 }]);
+    arm(s, 'player'); // a dagger is light: no extra
+    expect(guard()).toEqual([]);
   });
   it('Thick Hide: a hit on the owner is ×0.95 before armor', () => {
     const dmg = (perk: boolean) => {
