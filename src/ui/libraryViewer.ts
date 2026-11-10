@@ -20,7 +20,10 @@ import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
-import { xpGroupFactor } from '../engine/xp';
+import { earnedAtText, xpGroupFactor } from '../engine/xp';
+import type { GameState } from '../types/state';
+/** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
+const NO_STATE = {} as GameState;
 import { itemLevel, requirement } from '../ruleset/requirements';
 import { fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
@@ -433,9 +436,10 @@ function achievements(): HTMLElement[] {
         return all.length ? all.join('; ') : none('none, XP only'); })()),
       d.levelUp ? row('Pays more', Object.entries(d.levelUp).map(([k, n]) => `${k.replace("_", " ")}: +${n} reward level${n === 1 ? '' : 's'}`).join('; ')) : null,
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
-      // `only` pins a by-kind row to one healing row: name that source instead of "one source … once per heal source"
-      d.only ? row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule].replace(/ \(.*\)$/, '').replace(/\bone source$/, '')}`, link('healing', d.only, lib.healing?.[d.only]?.name ?? d.only))
-        : row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
+      // the engine's one "what it asks for" text (earnedAtText); the viewer only links the healing row and names the per-kind split
+      (() => { const at = earnedAtText(NO_STATE, d), heal = d.only ? lib.healing?.[d.only]?.name ?? d.only : '';
+        return heal && at.endsWith(heal) ? row('Earned at', at.slice(0, -heal.length), link('healing', d.only!, heal))
+          : row('Earned at', `${at}${d.by && !d.only ? `, once per ${d.by.replace('_', ' ')}` : ''}`); })(),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
   };
   const section = (title: string, list: [string, AchievementDef][]) =>
