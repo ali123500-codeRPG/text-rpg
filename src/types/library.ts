@@ -146,8 +146,8 @@ export type PerkDef = {
   built?: boolean;
   /** a quirk: a perk that is negative in nature */
   quirk?: boolean;
-  /** an All-XXX part (src/library/allPerks.ts): granted when every skill of the tree reaches `step` true skill */
-  allStep?: { treeId: string; step: 50 | 100 | 150 };
+  /** an All-XXX part (src/library/allPerks.ts): `skill` is the tree skill it belongs to; none = the tree's passive */
+  allStep?: { treeId: string; step: 50 | 100 | 150; skill?: string };
   /** true skill added to every skill with this function (Hunter's Eye: +10 to the sight function) */
   fnSkill?: { fn: SkillFunction; add: number };
   /** a class-level perk (ClassDef.levelPerks): the class and level that grant it */
