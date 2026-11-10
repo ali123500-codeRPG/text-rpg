@@ -391,13 +391,18 @@ function achievements(): HTMLElement[] {
     const bane = isBane(d) ? baneSkill(key) : 0; // D-111: the same function the rolls use
     const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
     // {level} on an every-N row reads as the levels it is earned at: 10, 20, 30…
-    const title = d.every && d.name.includes('{level}') ? d.name.replace('{level}', `${[0, 1, 2].map((i) => (d.count ?? d.every!) + i * d.every!).join(', ')}…`) : d.name;
+    // a row with its own name per earning (names) reads by its first name; the Names row lists them all
+    const named = d.names ? Object.entries(d.names).sort(([a], [b]) => Number(a) - Number(b)) : [];
+    const after = named.length && d.every ? Number(named[named.length - 1][0]) + d.every : 0;
+    const title = named.length ? named[0][1]
+      : d.every && d.name.includes('{level}') ? d.name.replace('{level}', `${[0, 1, 2].map((i) => (d.count ?? d.every!) + i * d.every!).join(', ')}…`) : d.name;
     return card('achievements', key, d, title, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, toneFor('Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`)), chip(`${achXp(d)} XP`),
       bane ? chip(`+${bane} skill vs that ${kind}`) : null, total ? chip(`+${total} combat rolls`) : null,
       rewardLines(d).length ? chip('reward') : null,
       d.scar ? chip('scar', toneFor('Kind', 'scar')) : null, ...tags.map((t) => chip(achTagName(t), toneFor('Tag', achTagName(t))))],
       row('Name', name(title)),
-      d.names ? row('Names', Object.entries(d.names).map(([k, n]) => `${k}: ${n}`).join(' · ') + (d.every ? `; after that, ${d.name}` : '')) : null,
+      named.length ? row('Names', h('ul', { class: 'lv-names' }, ...named.map(([k, n]) => h('li', {}, `Level ${k}: ${n}`)),
+        after ? h('li', {}, `Levels ${after}, ${after + d.every!}…: ${d.name.replace('{level}', String(after))}, and so on`) : null)) : null,
       row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
         ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),
