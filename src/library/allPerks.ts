@@ -1,7 +1,7 @@
 // All-50 perks (All-50 doc https://claude.ai/artifact/R5CirgnTX2vwoG4tPp8oxR). Each skill has its own All-50 part
-// (SKILL_PARTS), and each tree has one passive that fits it (ALL_BUNDLES). Once any CONFIG.ALL_STEP_SKILLS (3) skills of a
-// tree reach 50 true skill, the tree's passive and those skills' parts are granted free; each further skill of the tree that
-// reaches 50 then adds its own part. A skill's part belongs to the skill, not the tree, so a skill that moves to another tree
+// (SKILL_PARTS), and each tree has one passive that fits it (ALL_BUNDLES). Once enough skills of a tree reach 50 true
+// skill (CONFIG.ALL_STEP_SKILLS by the tree's rating: never, 3, 2 or 1), the tree's passive and those skills' parts
+// are granted free; each further skill of the tree that reaches 50 then adds its own part. A skill's part belongs to the skill, not the tree, so a skill that moves to another tree
 // takes its part along. A tree with fewer skills than that never earns its All-50. Each part is its own perk
 // (so code checks hasPerk on the part) with a Story and an exact Rules view, like the ladder perks. A part is granted
 // only once it is built (BUILT_PERKS). Names: "<tree> All-50: <name>" (G5); All-50 and 100+ names may be dramatic.

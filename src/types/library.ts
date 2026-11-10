@@ -41,7 +41,9 @@ export type AccessCond = { kind: 'race' | 'raceTag' | 'body' | 'class' | 'perk' 
 /** TA1/TA2: a tree opens when every `must` holds and, if `either` is listed, at least one of those; any `blockedBy`
  * closes it, and a block always wins. No access rule: open to everyone. */
 export type TreeAccess = { must?: AccessCond[]; either?: AccessCond[]; blockedBy?: AccessCond[] };
-export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess };
+export type TreeDef = { id: string; name: string; skills: string[]; access?: TreeAccess;
+  /** TREE_RATINGS key (default normal): how many skills at a step earn the tree's All-XXX (CONFIG.ALL_STEP_SKILLS) */
+  rating?: import('../scales').TreeRatingKey };
 /** PY3: a service a seller can offer; heals names the healing row it pays for */
 export type ServiceDef = { id: string; name: string; price: number; heals?: string };
 export type ClassDef = {

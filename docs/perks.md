@@ -714,7 +714,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ## All-50 parts
 
-Granted free once three skills of the tree reach 50 true skill: the tree's passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Fortitude All-50: Hard to Kill; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
+Granted free once enough skills of the tree reach 50 true skill, by the tree's rating (inferior never, normal 3, superior 2, legendary 1): the tree's passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Fortitude All-50: Hard to Kill; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
 
 ### Opening Strike (Combat – Arms, Light weapons) · T1a
 

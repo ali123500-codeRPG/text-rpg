@@ -8,8 +8,9 @@ import { SK } from './library/skillIds';
 
 const DEFAULTS = {
   // ---- Part 1 ----
-  /** a tree's All-XXX (and its mastery achievement) is earned once this many of its skills reach the step */
-  ALL_STEP_SKILLS: 3,
+  /** a tree's All-XXX passive (and its mastery achievement) is earned once this many of its skills reach the step, by the
+   * tree's rating (TREE_RATINGS; a tree with no rating is normal); null = never */
+  ALL_STEP_SKILLS: { inferior: null, normal: 3, superior: 2, legendary: 1 } as Record<string, number | null>,
   SUBSTITUTE_EFFICIENCY: 0.3, // F4: was 0.5; perks can change it (PerkDef.standIn)
   /** Skill tiers: the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder (Ali gave 0 and 2). */
   SKILL_TIER_MULT: { tier_0: 0.5, tier_1: 0.75, tier_2: 1 } as Record<string, number>,

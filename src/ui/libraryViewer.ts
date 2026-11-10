@@ -309,7 +309,7 @@ function perks(): HTMLElement[] {
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By skill and milestone'), grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))]))),
         cardsOf('Built', ladder.filter((d) => d.built), 'None built yet.')] },
       { key: 'all', title: 'All-XX perks', short: 'All-XX', n: allParts.length, content: [
-        h('p', { class: 'hs-note' }, 'Granted when three skills of a tree reach the step: the tree\'s passive plus each of those skills\' part; a further skill at the step adds its part (allStep in src/library/allPerks.ts).'),
+        h('p', { class: 'hs-note' }, 'Granted when enough skills of a tree reach the step, by the tree\'s rating (inferior never, normal 3, superior 2, legendary 1): the tree\'s passive plus each of those skills\' part; a further skill at the step adds its part (allStep in src/library/allPerks.ts).'),
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By tree and step'), grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))]))),
         cardsOf('Built', allParts.filter((d) => d.built), 'None built yet.')] },
       { key: 'unused', title: 'Not in use', n: unused.length, content: [
