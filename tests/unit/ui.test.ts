@@ -100,3 +100,11 @@ describe('body figure data', () => {
     expect(BODY_TYPES[BT.humanoid].figure).toBeTruthy();
   });
 });
+
+describe('idea labels fill the box in the first person', () => {
+  it('asI turns a short label into an "I" line', async () => {
+    const { asI } = await import('../../src/ui/play');
+    expect(asI('Talk to a lanky youth')).toBe('I talk to a lanky youth');
+    expect(asI('Look around')).toBe('I look around');
+  });
+});

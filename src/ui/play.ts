@@ -91,6 +91,9 @@ const PERK_SOLO_IDEA: Record<string, { text: string; note: string }> = {
   [PK.battle_cry]: { text: 'Let out a battle cry', note: 'Battle Cry · your action, once a fight' },
 };
 
+/** an idea's short label as the player would type it: "Talk to Tam" fills the box as "I talk to Tam" (ideas start with a verb) */
+export const asI = (label: string) => `I ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+
 /** the same name twice in one list reads as "the other …" from its second time on */
 function apart(names: string[]): string[] {
   const seen = new Set<string>();
@@ -469,7 +472,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'));
     else if (open === 'ideas') helpPanel.replaceChildren(head('Ideas · from what you can see now'),
       h('div', { class: 'idea-groups' }, (pv ? ideas(pv) : []).map((g) => h('div', {}, h('p', { class: 'hs-label' }, g.group),
-        g.items.length ? h('ul', {}, g.items.map((it) => h('li', {}, h('button', { type: 'button', onclick: () => pick(it.text) }, it.text, it.note ? h('span', {}, it.note) : null))))
+        g.items.length ? h('ul', {}, g.items.map((it) => h('li', {}, h('button', { type: 'button', onclick: () => pick(asI(it.text)) }, it.text, it.note ? h('span', {}, it.note) : null))))
           : h('p', { class: 'hs-note' }, 'Nothing right now')))),
       h('p', { class: 'hs-note' }, 'Built by code from what your character can see and carries, refreshed every turn. Picking one fills the box; nothing is sent until you press Send.'));
     if (stick || busy) story.scrollTop = story.scrollHeight;
