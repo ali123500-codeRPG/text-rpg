@@ -15,7 +15,7 @@ import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel
 import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
-import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
+import { fightingWith, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
@@ -173,7 +173,9 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
  * morale check did. `seen` = who perceived the event, for the bandmates a break frightens (MB23). */
 function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean } = {}, seen: Record<string, unknown> = {}): void {
   const { state } = ctx;
-  if (getLibrary().fears?.[id]?.rolled && !isEngaged(state, a)) return;
+  // rolled fears count only in a fight; isEngaged is an NPC's view, so the player is in one when someone is fighting them (MB11)
+  const inFight = a.kind === 'player' ? allActors(state).some((o) => o !== a && fightingWith(state, o, a)) : isEngaged(state, a);
+  if (getLibrary().fears?.[id]?.rolled && !inFight) return;
   const r = payFear(state, ctx.rng, a, id, o);
   if (!r) return;
   // SP5: in a spar with no real foe, a surrender or a break just yields the spar
