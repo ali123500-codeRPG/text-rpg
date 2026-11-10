@@ -64,6 +64,8 @@ export type RollResult = {
   asked?: string;
   /** a combined roll: the skills that rolled each part (after stand-ins); each learns */
   parts?: string[];
+  /** the roll's kind, when it had one: augments limited to roll kinds learn only from their own kinds */
+  rollKind?: import('./items').RollKind;
   d100: number;
   margin: number;
   tier: Tier; // clamped to the TIERS table
