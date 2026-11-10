@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
-import { achievementName, charLevel, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
+import { achievementName, charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
@@ -113,7 +113,7 @@ function xpTrack(s: GameState, p: Actor): HTMLElement | null {
   const el: HTMLElement = h('div', { class: 'cs-track' },
     h('div', { class: 'cs-row' }, h('span', {}, `Level ${charLevel(p)}`), h('b', {}, `${+pr.xp.toFixed(6)} / ${need} XP`)),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (pr.xp / need) * 100)}%` })),
-    !target ? h('small', {}, 'Your class is at its top level. XP is banked until you pick a class for the next level.') : null,
+    !target ? h('small', {}, `Your class is at its top level. XP${freeLevelsOwed(p) ? ` and ${freeLevelsOwed(p)} free level${freeLevelsOwed(p) === 1 ? '' : 's'} are` : ' is'} banked until you pick a class for the next level.`) : null,
     open.length > 1 || !target
       ? h('label', { class: 'cs-row' }, h('span', {}, 'Next level goes to'),
         h('select', { onchange: (e: Event) => { pr.nextClass = (e.target as HTMLSelectElement).value; spendXp(s); el.replaceWith(xpTrack(s, p) ?? ''); } },
