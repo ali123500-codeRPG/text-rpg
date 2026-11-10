@@ -125,7 +125,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
     modifiers.push(...boostRollMods(actor, req.skill, req.rollKind === 'hit')); // 40/80/120 perks: Keen Edge, Steady Draw, Iron Grip
     modifiers.push(...baneMods(state, actor, req.against)); // D-111 Bane bonuses
     modifiers.push(...defeatsMods(actor, req.rollKind)); // D-119 total-defeats achievements
-    modifiers.push(...pressureMods(actor, req.against, req.skill)); // OQ-29 Shaken and Swayed
+    modifiers.push(...pressureMods(actor, req.against)); // OQ-29 Shaken and Swayed
     modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
   }
   const d = rng.d100();

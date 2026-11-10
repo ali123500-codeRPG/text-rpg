@@ -9,6 +9,7 @@ import { achievementName, charLevel, freeLevelsOwed, keepCapstone, levelTarget, 
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
 import { h } from './kit';
+import { callName } from '../views';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS } from '../scales';
@@ -241,6 +242,15 @@ export function partChips(s: GameState, p: Actor): HTMLElement {
   return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st.toLowerCase()}` }, `${partName(x.id)} ${x.st.toLowerCase()}`)));
 }
 
+/** NT20: Shaken and Swayed as chips with the roll penalty; the title names who caused it and how long it lasts */
+export function pressureChips(s: GameState, p: Actor): HTMLElement {
+  const rows = Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => {
+    const who = callName(s, p.id, id);
+    return h('span', { class: 'cs-pchip ps-pressure', title: `${cap(k)} by ${who}: −${x[k]} on every roll against them, until this encounter ends` }, `${cap(k)} −${x[k]}`);
+  }));
+  return h('p', { class: 'cs-pchips', hidden: !rows.length }, rows);
+}
+
 /** what the character holds and wears, by item name: "arming sword · round shield" */
 export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string[] } {
   const on = p.core.inventory.filter((i) => i.equippedIn?.length);
@@ -257,6 +267,7 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
     h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, level)),
     h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
+    pressureChips(s, p),
     h('span', { class: 'cs-held' }, h('span', { class: 'hs-label' }, 'Held'), hw.held.length ? hw.held.map(cap).join(' · ') : 'Nothing'),
   ];
 }
@@ -270,6 +281,7 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
   const hw = heldWorn(s, p);
   return [
     ...healthBar(s, p, healed, last?.turn ?? -1, changed),
+    pressureChips(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),

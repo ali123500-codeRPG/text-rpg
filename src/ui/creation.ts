@@ -20,7 +20,7 @@ export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [S
 export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] = [
   { id: TR.melee, c: 'c10' }, { id: TR.defense, c: 'c1' }, { id: TR.armor, c: 'c15' }, { id: TR.swordsman, c: 'c5' },
   { id: TR.perception, c: 'c12', locked: ['Not chosen yet', 'Locked'] }, { id: TR.ranged, c: 'c7' }, { id: TR.unarmed, c: 'c14' },
-  { id: TR.stealth, c: 'c3' }, { id: TR.speech, c: 'c4' },
+  { id: TR.stealth, c: 'c3' }, { id: TR.speech, c: 'c4' }, { id: TR.trickery, c: 'c9' },
 ];
 
 const STEP = 5;
