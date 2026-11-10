@@ -10,8 +10,8 @@ import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'situation'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'situation', 'freeLevels'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -106,6 +106,15 @@ export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean
   return [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }];
 }
 
+/** free levels earned: every current achievement's freeLevels along its chain, plus every active owned perk's */
+export function freeLevelsEarned(a: Actor): number {
+  const perks = getLibrary().perks ?? {};
+  return currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, 'freeLevels'), 0)
+    + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + (perks[p.perkId]?.freeLevels ?? 0), 0);
+}
+/** free levels earned and not yet taken */
+export const freeLevelsOwed = (a: Actor) => Math.max(0, freeLevelsEarned(a) - (a.progression?.freeLevelsTaken ?? 0));
+
 /** the display lines of one reward written on a row */
 function linesOf(d: AchievementDef, f: AchievementReward): string[] {
   const steps = (n: number, what: string) => `${n} ${what}${n === 1 ? '' : 's'}`;
@@ -126,6 +135,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'rally': return [`allies fighting beside you get +${d.rally} on their morale checks`];
     case 'restPct': return [`+${d.restPct}% healing on each rest`];
     case 'situation': return [`+${d.situation} on your situation rolls`];
+    case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
   }
 }

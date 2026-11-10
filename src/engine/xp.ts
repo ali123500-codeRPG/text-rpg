@@ -13,8 +13,8 @@ import { functionName, groupName, groupsOf } from '../library/functionNames';
 import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
-import { achLevel, achXp } from '../ruleset/achRewards';
-export { achLevel, achXp };
+import { achLevel, achXp, freeLevelsOwed } from '../ruleset/achRewards';
+export { achLevel, achXp, freeLevelsOwed };
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
 export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
@@ -39,15 +39,17 @@ export function levelTarget(p: Actor) {
   return pick && !capped(pick) ? pick : undefined;
 }
 
-/** Level up as often as the XP allows. With no class to level (the target is at its top level, classMaxLevel) the XP stays
- * banked; picking a class with room (the sheet's picker) calls this again and every banked level is taken. */
+/** Level up as often as free levels and XP allow: free levels first (they cost no XP), then XP. With no class to level
+ * (the target is at its top level, classMaxLevel) both stay banked; picking a class with room (the sheet's picker) calls
+ * this again and every banked level is taken. */
 export function spendXp(state: GameState): void {
   const p = state.player, pr = p.progression;
   if (!pr) return;
-  while (pr.xp >= xpToNext(p) && levelTarget(p)) {
-    pr.xp -= xpToNext(p);
+  for (let free = freeLevelsOwed(p) > 0; (free || pr.xp >= xpToNext(p)) && levelTarget(p); free = freeLevelsOwed(p) > 0) {
+    if (free) pr.freeLevelsTaken = (pr.freeLevelsTaken ?? 0) + 1;
+    else pr.xp -= xpToNext(p);
     const up = levelUp(p, state.turn);
-    (pr.xpLog ??= []).push({ source: 'level', amount: 0, turn: state.turn, levelUp: up });
+    (pr.xpLog ??= []).push({ source: free ? 'free level' : 'level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
   classFeats(state);
@@ -263,6 +265,7 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   const xp = achXp(d, of);
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
+  if (d.freeLevels) spendXp(state); // free levels need no XP to arrive
   // achievements for the total earned: every other achievement counts, replaced levels too; scars and these totals do not
   if (!d.scar && d.rule !== 'achievements')
     tally(state, 'achievements', { to: pr.achievements!.filter((x) => { const k = lib[x.key ?? '']; return k && !k.scar && k.rule !== 'achievements'; }).length });
