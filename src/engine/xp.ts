@@ -20,7 +20,11 @@ export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 /** character level: every class's level, plus bonus levels (levels no class gets) */
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0) + (a.progression?.bonusLevelsTaken ?? 0);
 /** XP for the next level: free levels don't count, so they never make the next level dearer (D-153) */
-export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0));
+export const xpToNext = (a: Actor) => levelCost(charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0));
+/** the XP curve: what the step from level n to n + 1 costs. xpToNext and xpToReach both ask it, so changing it changes both. */
+export const levelCost = (n: number) => CONFIG.LEVEL_XP * Math.max(1, n);
+/** the XP the curve asks to reach level L from 0: the sum of every step on the way */
+export const xpToReach = (l: number) => { let n = 0; for (let i = 0; i < l; i++) n += levelCost(i); return n; };
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
@@ -221,13 +225,10 @@ export function rating(a: Actor): number {
     n + (CONFIG.XP_GROUP_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
 }
 
-/** the levels an actor paid XP for: its class and bonus levels less its free and bonus levels (as xpToNext counts them),
- * else an NPC's template level */
-export const actorLevel = (a: Actor): number => charLevel(a)
-  ? Math.max(0, charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0))
-  : (a.core.templateId ? npcTemplate(null, a.core.templateId)?.level ?? 0 : 0);
-/** levels in the rating (the thread the foe wove): LEVEL_RATING_SHARE × the XP its levels cost, LEVEL_XP × L(L−1)/2 */
-export const levelRating = (a: Actor): number => { const l = actorLevel(a); return CONFIG.LEVEL_RATING_SHARE * CONFIG.LEVEL_XP * l * (l - 1) / 2; };
+/** an actor's level: its full character level (free and bonus levels count), else an NPC's template level */
+export const actorLevel = (a: Actor): number => charLevel(a) || (a.core.templateId ? npcTemplate(null, a.core.templateId)?.level ?? 0 : 0);
+/** levels in the rating (the thread the foe wove): LEVEL_RATING_SHARE × what the XP curve asks to reach that level */
+export const levelRating = (a: Actor): number => CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(a));
 
 /** a foe's gear in its rating: GEAR_RATING_FACTOR × the coin value of what it holds and wears (gear coin is priced at
  * about one coin per skill point of power). Carried spares and coin don't count. */
