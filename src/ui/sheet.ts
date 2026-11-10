@@ -26,7 +26,7 @@ function duelState(build: CreationBuild): GameState {
 
 function duelBase(build: CreationBuild): GameState {
   const zone = { id: 'duel', placeId: 'duel', name: 'field', look: 'open grass', links: [], cover: 'none' as const, light: 'bright' as const, groundItems: [] };
-  const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_MECHANICS, tone: CONFIG.STYLE.tone };
+  const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone };
   return {
     storyId: 'preview', turn: 0, mode: 'tactical', zones: [zone], player: playerFromBuild(build),
     actors: [spawnNpc(null, TP.slime, { id: 'slime', zone: 'duel', placeId: 'duel', bandId: 'slimes', storyId: 'preview' })],
