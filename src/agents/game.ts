@@ -952,7 +952,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
 // Player creation and build checks live in src/library/spawn.ts (createPlayer, validateBuild), shared with the creation preview.
 
 function newState(storyId: string, seed: number, player: Actor, createdAt: string): GameState {
-  const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_MECHANICS, tone: CONFIG.STYLE.tone };
+  const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone };
   return {
     storyId, turn: 0, mode: 'explore', zones: [], player, actors: [],
     bands: [{ id: 'player_band', name: 'the player', goals: '', temperament: '', tactics: 'simple', lethal: true, relations: {} }],
