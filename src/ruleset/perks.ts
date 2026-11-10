@@ -8,6 +8,8 @@ import { skillOpen } from './access';
 import { groupsOf } from '../library/functionNames';
 import { COVER, LIGHT } from '../scales';
 import { PK } from '../library/perkIds';
+import { AURA_SKILLS } from '../library/auras';
+import { syncPerkLinks } from './perkLinks';
 
 export const MILESTONES = [20, 40, 60, 80, 100, 120, 140] as const;
 /** all-XXX perks (formerly mastery perks; save key 'mastery'): granted when all three skills of a tree reach 50/100/150 */
@@ -44,6 +46,7 @@ export function trueSkill(a: Actor, skill: string): number {
     if (!d) return n;
     let v = d.trueSkill && own === skill ? d.trueSkill : 0;
     v += d.trueSkillTo?.[skill] ?? 0; // 40/80/120 perks: true skill spent on skills that work well with the ladder skill
+    if (d.auraSkill && AURA_SKILLS.includes(skill)) v += d.auraSkill; // linked perk Crushing Presence
     if (d.fnSkill && (skills[skill]?.functions as string[] | undefined)?.includes(d.fnSkill.fn)) v += d.fnSkill.add; // Hunter's Eye
     // 40/80/120 perks: +functionBoost to the ladder skill itself and every other skill sharing a group with it
     // (docs/skill-tags.md: "+1 function (including itself)"; F1: the broad group)
@@ -110,6 +113,7 @@ export function takePerk(s: GameState, a: Actor, perkId: string): void {
   if (why) throw new Error(`cannot take ${perkId}: ${why}`);
   a.progression!.unspentPerkPoints -= 1;
   a.core.perks.push({ perkId, source: 'level', gainedTurn: s.turn });
+  syncPerkLinks(a, s.turn); // linked perks
 }
 
 /** undo is open until the next turn is played (K3): the perk was gained on the current, unplayed turn */
@@ -120,6 +124,7 @@ export function undoPerk(s: GameState, a: Actor, perkId: string): void {
   if (!canUndo(s, a, perkId)) throw new Error(`cannot undo ${perkId}`);
   a.core.perks = a.core.perks.filter((p) => p.perkId !== perkId);
   a.progression!.unspentPerkPoints += 1;
+  syncPerkLinks(a, s.turn);
 }
 
 /** A19 Melt Away: a zone with some cover or more, or light dim or darker, lets the owner vanish in place */

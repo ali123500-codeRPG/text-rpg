@@ -655,6 +655,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement. It is the owner's main action.
 
+### Overwhelm (Resolve) · MR2
+
+*Story:* Some wills simply give way before yours. A foe who loses badly to any of your auras, and whose nerve is not half of yours, doesn't just waver: it breaks on the spot and gives up.
+
+- **Kind:** Always on (upgrades the owner's auras)
+- **Trigger:** Any of the owner's auras (Dread Presence, Battle Cry and any later aura) wins its roll against a target.
+- **Conditions:** The owner wins by 3 tiers or more. The target's max morale is at most 50% of the owner's.
+- **Effect:** Instead of the aura's normal morale cost, the target loses all its morale: it is Broken at once and surrenders. A player who is overwhelmed is Broken (cannot attack) but keeps control.
+- **Lasts:** As any surrender.
+
 ### Buy Them Off (Barter) · C3
 
 *Story:* Everyone has a price, even mid-swing. In the middle of a fight you offer coin, as much as you choose; a bigger offer is harder to refuse. Win a barter contest and the foe takes the coin and stops attacking you for the rest of the fight.
@@ -1103,3 +1113,14 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Effect:** +5 true skill in Persuasion, Intimidation and Barter.
 - **Lasts:** Always.
 - **Built:** yes
+
+## Linked perks
+
+### Crushing Presence (Intimidation) · L1
+
+*Story:* Your presence and your will have become one thing. Every aura you carry presses harder.
+
+- **Kind:** Always on (linked perk)
+- **Trigger:** The owner has both Dread Presence and Overwhelm.
+- **Effect:** +5 true skill to every aura skill (the skills the game's auras roll: today Intimidation).
+- **Lasts:** While the owner has both perks.
