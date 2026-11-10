@@ -282,6 +282,9 @@ const DEFAULTS = {
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
   SHOW_MECHANICS: true, // master switch: false removes Show rolls everywhere
   SHOW_ROLLS_DEFAULT: false,
+  /** M-33: reaching this health level or worse pulses the play screen's edge red once; from MOTION_EDGE_STEADY on the edge keeps a steady tint */
+  MOTION_EDGE_FROM: 'Wounded',
+  MOTION_EDGE_STEADY: 'Critical',
   TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder) // a new story starts with Show rolls off; the player turns it on from the play header
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',

@@ -42,6 +42,12 @@ export function healCard(n: HealNote): HTMLElement {
     h('div', {}, TITLE[n.source] ?? 'Patched up', h('p', { class: 'hl' }, bits)), trackBar(n));
 }
 
+/** M-30: a red card naming a body part that became Crippled or Destroyed this turn, the mirror of "Patched up" */
+export function woundCard(w: { id: string; from: string; to: string }): HTMLElement {
+  return h('div', { class: 'hcard wcard', 'data-part': w.id }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✖'),
+    h('div', {}, `${partName(w.id)} ${w.to.toLowerCase()}`, h('p', { class: 'hl' }, psTag(w.from), arrow(), psTag(w.to))));
+}
+
 // ---------------- quick slot (H3) ----------------
 
 export type HealItem = { itemId: string; name: string; count: number; row: HealingDef };
