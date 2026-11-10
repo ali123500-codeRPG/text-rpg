@@ -103,7 +103,7 @@ describe('body', () => {
     expect(woundsMods(s, s.player, SK.persuasion)).toContainEqual({ source: 'speech wounds', type: 'wounds', value: -10 });
     expect(woundsMods(s, s.player, SK.dodge).map((m) => m.value)).toEqual([-5]);
     s.player.core.condition.parts.head = -10; // Sense Crippled: every roll, plus speech on speech rolls
-    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5, -20, -20]);
+    expect(woundsMods(s, s.player, SK.persuasion).map((m) => m.value)).toEqual([-5, CONFIG.ESSENTIAL_CRIPPLED_PENALTY, -20, -20]); // a crippled head is an essential part too
   });
 });
 

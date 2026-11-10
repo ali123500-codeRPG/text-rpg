@@ -133,7 +133,7 @@ Modifier types (each type diminishes within itself; values per type are deferred
 - Gear and situational skill perks: inside effective skill; flat skill perks: inside true skill (§3).
 - Roll perks: flat roll points.
 - Gear roll modifiers: rare noted modifiers from items, such as the weapon hit adjustment, at full value (Part 5 §3).
-- Wounds: health-track level plus body-part role penalties, in roll points.
+- Wounds: health-track level plus body-part role penalties, plus −5 while an essential part is Crippled or worse, in roll points.
 - Situational: flanking, outnumbered, unaware, terrain, range, light, dodge vs missiles.
 - Aim: its own type, so it never diminishes with situational modifiers.
 
@@ -1644,6 +1644,8 @@ Code fires one event per change, `threshold_crossed {who, from, to}`; perks, AI 
 Every part carries a size, an impact and one or more roles, all stored in code. Each part's pool is a share of total HP set by its size: Extra small 15%, Small 20%, Normal 30%, Big 50% (placeholders; Tiny is not in use). Its state is measured as % of its own pool. The general area has no pool and no state.
 
 Role penalties (Damaged and Crippled columns of the role table) are roll modifiers of type wounds.
+
+An essential part (head, neck; the impact column) that is Crippled or worse adds a further wounds modifier of −5 (CONFIG.ESSENTIAL_CRIPPLED_PENALTY) to every roll the character makes, once however many essential parts are crippled. Tough It Out counts the part one step milder, as for role penalties. The D-54 survival roll stays modifier-free.
 
 At reference HP 100: head 20, each arm 30, each leg 30, neck 15. A medium blow (25) Cripples a head and a second Destroys it; a limb goes Damaged, Crippled, Destroyed over three blows.
 
