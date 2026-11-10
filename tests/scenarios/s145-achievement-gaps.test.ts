@@ -17,12 +17,12 @@ const strike = (s: GameState): GameEvent =>
   ({ id: 'e', turn: s.turn, actorId: 'player', kind: 'attack', zone: s.player.zone, effects: [], attack: { attackerId: 'player', targetId: 'slime_1', damage: 0, outcome: 'miss' } } as unknown as GameEvent);
 
 describe('145 achievement gaps', () => {
-  it('a tree with no All-50 bundle earns Adept, and every tree climbs to Ascendant and Transcendent', () => {
+  it('a tree with no All-50 bundle earns Adept, and every tree climbs to Master and Grandmaster', () => {
     for (const [treeId, raw] of [[TR.armor, 50], [TR.melee, 150]] as const) {
       const s = makeVillage();
       for (const sk of getLibrary().trees[treeId].skills) s.player.core.skills[sk] = { raw, state: 'normal' };
       grantAllSteps(s, s.player);
-      const steps = Object.entries(MASTERY_ACH).filter(([n]) => Number(n) <= raw).map(([, k]) => k);
+      const steps = Object.entries(MASTERY_ACH.normal!).filter(([n]) => Number(n) <= raw).map(([, k]) => k);
       for (const k of steps) expect(held(s, k).map((a) => a.of), `${treeId} ${k}`).toEqual([treeId]);
       if (raw === 150) { // only the top level is current
         expect(held(s, ACH.mastery_50)[0].replacedBy).toBeDefined();

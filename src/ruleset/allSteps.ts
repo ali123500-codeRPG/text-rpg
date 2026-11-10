@@ -2,7 +2,8 @@
 // tree's rating: never for inferior, 3 for normal, 2 for superior, 1 for legendary), the actor
 // gets the tree's passive and the parts of the skills at 50 (SKILL_PARTS, so a part follows its skill), each once built, for free (OwnedPerk source 'mastery'); a
 // further skill reaching 50 adds its part. Every tree, with a bundle or without, earns the player its mastery achievements at
-// 50, 100 and 150 (Adept, Ascendant, Transcendent Sovereign of {tree}) on the same rule.
+// 50, 100 and 150 on the same rule, from its rating's line (MASTERY_ACH: normal Adept/Master/Grandmaster, superior
+// Paragon/Ascendant/Transcendent Sovereign, legendary Heir to the Lost Art/Incarnate/The Heavens Kneel).
 // Checked at the end of every turn, so raises, perks and spawns all count.
 // Also the rolls that read All-50 parts on the other side (Dodgy) or after the dice (Curiouser and Curiouser).
 import { TR } from '../library/treeIds';
@@ -39,8 +40,9 @@ export function treeAt(a: Actor, treeId: string, step: number): boolean {
 
 export function grantAllSteps(state: GameState, a: Actor): void {
   const lib = getLibrary(), perks = lib.perks;
-  if (a.id === state.player.id) for (const treeId of Object.keys(lib.trees)) for (const [step, key] of Object.entries(MASTERY_ACH))
-    if (treeAt(a, treeId, Number(step))) grantAchievement(state, key, treeId); // once only (B4)
+  if (a.id === state.player.id) for (const treeId of Object.keys(lib.trees)) // each rating has its own line (MASTERY_ACH)
+    for (const [step, key] of Object.entries(MASTERY_ACH[lib.trees[treeId].rating ?? 'normal'] ?? {}))
+      if (treeAt(a, treeId, Number(step))) grantAchievement(state, key, treeId); // once only (B4)
   const step = 50; // the All-50 (All-100 and All-150 are designed later, G8)
   for (const treeId of Object.keys(lib.trees)) {
     if (!treeAt(a, treeId, step)) continue;
