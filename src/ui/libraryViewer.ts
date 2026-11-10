@@ -834,6 +834,9 @@ function filter(): void {
   const q = search.value.trim().toLowerCase();
   const allOn = allBox.checked && !!q;
   document.body.classList.toggle('lv-allmode', allOn);
+  // while a search is typed every section shows unfolded; the folds themselves are untouched, so clearing restores them
+  document.body.classList.toggle('lv-searching', !!q);
+  body.querySelectorAll('.lv-foldbtn').forEach((fb) => fb.setAttribute('aria-expanded', String(!!q || !fb.closest('.lv-group, .lv-foldcard')?.classList.contains('lv-folded'))));
   if (allOn) {
     const n = searchAll(q);
     if (allRes.parentNode !== body) body.prepend(allRes);
@@ -1059,7 +1062,7 @@ function foldable(): void {
     btn.setAttribute('aria-expanded', String(!box(h2).classList.contains('lv-folded')));
   });
 }
-body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
+body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2 && !document.body.classList.contains('lv-searching')) fold(h2); });
 
 // Table view (VR1, VR2): flat tables read as one row per entry. The cards stay in the page (hidden), so search,
 // filters, colour and pins keep working on them; each row mirrors its card.
