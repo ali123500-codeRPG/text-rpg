@@ -683,6 +683,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-link.hot { stroke: var(--scene-mark); stroke-width: 3; }
 .map-stub { stroke: color-mix(in srgb, var(--faint) 45%, transparent); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
 .map-stub.hot { stroke: var(--scene-mark); }
+.map-stub.away { stroke: var(--accent); stroke-dasharray: 8 6; cursor: pointer; }
+.map-pill.away { cursor: pointer; pointer-events: auto; }
+.map-pill.away rect { stroke: var(--accent); }
 .map-arrowhead { fill: color-mix(in srgb, var(--faint) 70%, transparent); }
 .map-pill rect { fill: var(--bg); stroke: color-mix(in srgb, var(--scene-mark) 60%, transparent); }
 .map-pill.unknown rect { stroke: var(--rule); stroke-dasharray: 3 3; }
@@ -758,6 +761,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-line { width: 20px; height: 0; border-top: 2.5px solid color-mix(in srgb, var(--faint) 70%, transparent); }
 .k-line.dashed { border-top-style: dashed; }
 .k-line.stub { border-top: 2px dotted color-mix(in srgb, var(--faint) 60%, transparent); }
+.k-line.away { border-top: 2px dashed var(--accent); }
 .k-pin { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 4px solid var(--scene-mark); }
 .k-area { width: 20px; height: 12px; border-radius: 4px; border: 1.5px dashed color-mix(in srgb, var(--c15) 60%, transparent); }
 .k-who { width: 12px; height: 12px; border-radius: 50%; background: var(--c4); }

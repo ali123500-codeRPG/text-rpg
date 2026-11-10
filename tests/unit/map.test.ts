@@ -50,6 +50,16 @@ describe('map', () => {
     for (const z of sightLinks) expect(seen).toContain(z);
   });
 
+  it('a road to another village is a known link to another top-level place, which gets its own map', async () => {
+    const s = await game();
+    const m = knownMap(s);
+    const ash = m.places.find((p) => p.id === 'ashford')!;
+    expect(ash.parentId).toBeNull();
+    const road = m.places.flatMap((p) => p.zones).find((z) => z.id === 'v_square')!.links.find((l) => l.to === 'ash_gate')!;
+    expect(road.known).toBe(true);
+    expect(road.otherPlace).toBe('Ashford');
+  });
+
   it('places a zone on the side its exit names', async () => {
     const s = await game();
     const tav = knownMap(s).places.find((p) => p.id === 'tavern')!;

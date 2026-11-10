@@ -70,7 +70,10 @@ const FP = (id: string, kind: string, parentId: string | null, name: string, zon
   ({ id, storyId: 'fake', kind, parentId, names: { current: name, past: [] }, zones, state: {}, headlines: [] });
 const FAKE_PLACES = (): GameState['places'] => [
   FP('village', 'village', null, 'Millbrook', [
-    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['f_west', 'the west road', true, true]], { outdoor: true, light: 'bright', cover: 'none' }),
+    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['ash_gate', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none' }),
+  ]),
+  FP('ashford', 'village', null, 'Ashford', [
+    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['v_square', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none' }),
   ]),
   FP('tavern', 'tavern', 'village', 'the Crooked Kettle', [
     FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]]),
@@ -97,7 +100,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
 
   function start(b: CreationBuild) {
     const player = playerFromBuild(b, 'fake', 'tav_common', 'tavern');
-    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], clearSight: { slime_1: 'field_mid' } };
+    player.journal = { ...(player.journal ?? { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] }), zonesSeen: ['ash_gate', 'v_square', 'field_edge', 'field_mid', 'tav_common', 'tav_kitchen', 'tav_yard', 'tav_upstairs'], clearSight: { slime_1: 'field_mid' } };
     const settings = { difficulty: 'normal', showMechanics: CONFIG.SHOW_ROLLS_DEFAULT, tone: CONFIG.STYLE.tone };
     const slime = spawnNpc(null, TP.slime, { id: 'slime_1', zone: 'field_mid', placeId: 'field', bandId: 'slimes', storyId: 'fake', name: 'slime' });
     slime.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'field_edge', lastSeenTurn: 2, source: 'seen', revealed: [] } };
