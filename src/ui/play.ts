@@ -63,6 +63,7 @@ const outcomeOf = (result: string): AttackOutcome | null =>
 /** a health level's place on the shown track (Unhurt 0 … Incapacitated last) */
 const levelAt = (l: string) => SHOWN_LEVELS().findIndex(([x]) => x === l);
 const levelOfPart = (st: string) => PART_STATES.indexOf(st as PartState);
+type Around = { who: Record<string, string>; head: Record<string, string>; heal: string };
 
 const SLOW_AFTER_S = 90; // past this the waiting line gets a "taking longer than usual" note
 const secs = (since: number) => Math.max(0, Math.round((Date.now() - since) / 1000));
@@ -277,7 +278,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let changedParts = new Set<string>(); // parts whose state the last turn changed: the body figure opens once
   // motion: the values the screen showed after the last turn landed, and a narration line that just arrived live
   let shownBefore: ShownValues | null = null, fresh: LogLine | null = null, firstLine: LogLine | undefined;
-  let sheetHtml = '', whoHtml = '';
+  let sheetHtml = '', whoHtml = '', titleHtml = '';
+  // what Who's here, the header and the quick slot showed after the last turn, for their beats (M-36)
+  let shownAround: Around | null = null;
   let limit = TURNS_SHOWN;
   const undoneOpen = new Set<number>(); // undone blocks the player unfolded, by the undo line's index
   const markers = new Map<number, HTMLElement>();
@@ -424,13 +427,17 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       onclick: () => { setMotion(!mOn); update(); } }, mOn ? '✓ Motion' : 'Motion');
     // the header names the last turn played, the one the last results row shows
     const lastTurn = [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
-    if (!frozen) title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), h('div', { class: 'title-tools' }, s ? auto.opener : '', rollsBtn ?? '', motionBtn));
+    // data-mh names the header pieces that get a beat when they change (M-36); the place line changes quietly (M-41)
+    const mh = <T extends Element | null>(key: string, x: T): T => { x?.setAttribute('data-mh', key); return x; };
+    const titleKids = [h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, s ? auto.opener : '', rollsBtn ?? '', motionBtn)];
+    const titleNow = titleKids.map((k) => k.outerHTML).join('');
+    if (!frozen && titleNow !== titleHtml) { title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
-    const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp' }, h('b', {}, cap(a.name ?? a.label)),
+    const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label) }, h('b', {}, cap(a.name ?? a.label)),
       a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, isDownLevel(a.health) ? 'Down' : a.health)
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
       // MB16: others' morale, only from Afraid down
@@ -552,8 +559,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       const after = shownValues(s, s.player);
       if (lines[0] !== firstLine) { if (firstLine !== undefined) shownBefore = null; firstLine = lines[0]; } // a new story: no "before"
       const readOnly = ns.some((n) => n.kind === 'read_only');
-      if (fresh && !fallen && !readOnly) animateTurn(entries.get(fresh), shownBefore, after);
-      shownBefore = after;
+      const around = aroundNow();
+      if (fresh && !fallen && !readOnly) animateTurn(entries.get(fresh), shownBefore, after, shownAround, around);
+      shownBefore = after; shownAround = around;
       el.classList.toggle('crit', levelAt(after.level) >= levelAt(CONFIG.MOTION_EDGE_STEADY) && !fallen);
     }
     fresh = null;
@@ -561,7 +569,17 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   /** M-10–M-38: one live turn's motion, all on top of the final state. Prose sentence by sentence, then its results row by
    * row, then the sheet in the order health, body parts, morale, skills, XP and level, coin, then gold cards. */
-  function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues) {
+  /** Who's here (by the name shown, with its status words), the header's marked pieces and the quick slot, as shown now */
+  function aroundNow(): Around {
+    const text = (x: Element) => (x.textContent ?? '').trim();
+    return {
+      who: Object.fromEntries(Array.from(who.querySelectorAll('[data-who]')).map((x) => [x.getAttribute('data-who')!, text(x)])),
+      head: Object.fromEntries(Array.from(title.querySelectorAll('[data-mh]')).map((x) => [x.getAttribute('data-mh')!, x.getAttribute('data-mh') === 'tod' ? x.outerHTML : text(x)])),
+      heal: healBtn.hidden ? '' : text(healBtn),
+    };
+  }
+
+  function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around) {
     finishAll();
     if (!e || !motionOn()) return;
     let t = 0;
@@ -598,6 +616,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       if (r.classList.contains('wcard')) pulse(r, d + fade, 2);
     }
     if (b) sheetBeats(b, a, at, stagger);
+    if (ab) aroundBeats(ab, aa, Math.min(t, end));
     for (const g of gold) { const d = at(stagger); arrive(g, d, 6); pulse(g.querySelector('.st'), d + fade, 2); }
   }
 
@@ -634,12 +653,34 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         play(q(`path[data-part="${k}"]`), [{ opacity: 1 }, { opacity: 0.25, offset: 0.4 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });
       }
     }
+    // gear lines (M-35, M-32): a shield's state or a pool's points land; an item that is gone fades out of its line
+    const gearChanged = Object.keys({ ...a.gear, ...b.gear }).filter((k) => JSON.stringify(a.gear[k]) !== JSON.stringify(b.gear[k]));
+    if (gearChanged.length) {
+      const d = at(stagger);
+      for (const k of gearChanged) {
+        const line = q(`[data-gear="${CSS.escape(k)}"]`);
+        if (!b.gear[k]) arrive(line, d);
+        else if (!a.gear[k]) {
+          const host = q('.cs-hw') ?? q('.cs-held');
+          if (!host) continue;
+          const g = h('span', { class: 'cs-gi m-ghost', 'aria-hidden': 'true' }, ' · ', b.gear[k].name);
+          host.append(g);
+          play(g, [{ opacity: 1 }, { opacity: 1, offset: 0.4 }, { opacity: 0 }], { dur: ms('--m-trail'), delay: d, exit: true, done: () => g.remove() });
+        } else { stamp(q('[data-m="gear-note"]', line ?? sheet), d, b.gear[k].note); pulse(line, d); }
+      }
+    }
     // morale: like health, without the edge
     if (a.morale !== b.morale || a.moraleLeft !== b.moraleLeft) {
       const d = at(stagger);
       count(q('[data-m="morale-left"]'), b.moraleLeft, a.moraleLeft, (n) => String(Math.round(n)), d);
       barMove(q('[data-m="morale-track"]'), q('[data-m="morale-track"] > b'), b.moraleFill, a.moraleFill, d);
       if (a.morale !== b.morale) stamp(q('[data-m="morale-level"]'), d, b.morale);
+    }
+    // Shaken, Swayed and the yield box arrive when they first show (M-36)
+    if (a.chips.length > b.chips.length || (a.yielded && !b.yielded)) {
+      const d = at(stagger);
+      Array.from(sheet.querySelectorAll('.ps-pressure')).slice(b.chips.length).forEach((x) => arrive(x, d));
+      if (a.yielded && !b.yielded) arrive(q('.cs-yield'), d);
     }
     // skills: each gain counts up with a gold "+n", its bar grows, its row pulses once
     const up = Object.keys(a.skills).filter((k) => a.skills[k] !== (b.skills[k] ?? 0));
@@ -670,6 +711,28 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       stamp(q('[data-m="coin"]'), d, coinWords(b.coin));
       delta(q('[data-m="coin"]'), (a.coin > b.coin ? '+' : '−') + coinWords(Math.abs(a.coin - b.coin)), a.coin > b.coin ? 'scene-mark' : 'danger', d);
     }
+  }
+  /** M-36: arrivals in Who's here fade in, departures fade out, a changed status lands; header pieces that changed land;
+   * the quick slot's count lands. All together, at one time: they are the world around the sheet, not its values. */
+  function aroundBeats(b: Around, a: Around, d: number) {
+    for (const [name, txt] of Object.entries(a.who)) {
+      const chip = who.querySelector<HTMLElement>(`[data-who="${CSS.escape(name)}"]`);
+      if (!(name in b.who)) arrive(chip, d);
+      else if (b.who[name] !== txt) pulse(chip, d);
+    }
+    for (const [name, txt] of Object.entries(b.who)) {
+      if (name in a.who) continue;
+      // someone who left: a ghost of their chip fades out where the row ends (M-51: exits are quicker)
+      const g = h('span', { class: 'pp m-ghost', 'aria-hidden': 'true' }, h('b', {}, txt));
+      who.append(g);
+      play(g, [{ opacity: 1 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }], { dur: ms('--m-state') * 2, delay: d, exit: true, done: () => g.remove() });
+    }
+    for (const [key, txt] of Object.entries(a.head)) {
+      const x = title.querySelector<HTMLElement>(`[data-mh="${key}"]`);
+      if (!(key in b.head)) arrive(x, d);
+      else if (b.head[key] !== txt) play(x, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state'), delay: d });
+    }
+    if (a.heal && b.heal && a.heal !== b.heal) stamp(healBtn.querySelector('b'), d, b.heal.replace(/^.*?(×\d+)$/, '$1'));
   }
   aimBtn.onclick = () => { aimed = !aimed; update(); };
   // tick the seconds on the waiting line without rebuilding the page

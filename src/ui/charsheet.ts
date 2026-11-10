@@ -291,6 +291,31 @@ export function pressureChips(s: GameState, p: Actor): HTMLElement {
   return h('p', { class: 'cs-pchips', hidden: !rows.length }, rows);
 }
 
+/** M-35 (Q2): what a gear line says about an item's own pools: a shield's state (its words are the part states), an
+ * armor pool's points left ("head 12 of 20", "head empty"); null for items with neither */
+export function gearNote(s: GameState, i: Actor['core']['inventory'][number]): { text: string; cls: string } | null {
+  const d = safe(() => itemDef(s, i.itemId));
+  if (!d) return null;
+  if (d.shield) { const st = poolState(i.pools?.shield ?? 100); return { text: st, cls: `ps-${st.toLowerCase()}` }; }
+  const pools = Object.entries(d.armor?.pools ?? {});
+  if (!pools.length) return null;
+  const bits = pools.map(([part, pts]) => {
+    const left = Math.max(0, ((i.pools?.[part] ?? 100) / 100) * pts);
+    return left <= 0 ? `${part.replace(/_/g, ' ')} empty` : `${part.replace(/_/g, ' ')} ${whole(left)} of ${whole(pts)}`;
+  });
+  return { text: bits.join(', '), cls: bits.some((b) => b.endsWith('empty')) ? 'ps-destroyed' : 'ps-pool' };
+}
+
+/** the gear lines on the play sheet: each held or worn item by name, with its gearNote (M-35) */
+function gearLine(s: GameState, p: Actor, held: boolean): HTMLElement[] {
+  const on = p.core.inventory.filter((i) => i.equippedIn?.length && i.equippedIn.some((x) => x.startsWith('hand:')) === held);
+  return on.map((i, k) => {
+    const n = gearNote(s, i);
+    return h('span', { class: 'cs-gi', 'data-gear': i.id }, k ? ' · ' : '', cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId),
+      n ? h('span', { class: `cs-gn ${n.cls}`, 'data-m': 'gear-note' }, n.text) : null);
+  });
+}
+
 /** what the character holds and wears, by item name: "arming sword · round shield" */
 export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string[] } {
   const on = p.core.inventory.filter((i) => i.equippedIn?.length);
@@ -310,7 +335,7 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
     ...moraleBar(p, false),
     ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x),
     pressureChips(s, p),
-    h('span', { class: 'cs-held' }, h('span', { class: 'hs-label' }, 'Held'), hw.held.length ? hw.held.map(cap).join(' · ') : 'Nothing'),
+    h('span', { class: 'cs-held' }, h('span', { class: 'hs-label' }, 'Held'), hw.held.length ? gearLine(s, p, true) : 'Nothing'),
   ];
 }
 
@@ -318,13 +343,12 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
 export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<string>): HTMLElement[] {
   const gains = last?.gains ?? {}; // V1b: skill gains from the last played turn
   const healed = new Set((last?.heals ?? []).flatMap((x) => x.parts.filter((pt) => pt.to !== pt.from).map((pt) => pt.id))); // H2 a
-  const hw = heldWorn(s, p);
   return [
     // health and its part chips, then morale, then the body figure (when open)
     ...((hb) => [hb[0], hb[1], h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x), ...hb.slice(2)])(healthBar(s, p, healed, last?.turn ?? -1, changed)),
     pressureChips(s, p),
-    h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
-    h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', { 'data-m': 'coin' }, coinWords(coins(p)))),
+    h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, ...((g) => g.length ? g.map((x, k) => (k && !x.textContent?.startsWith(' · ') ? [' · ', x] : x)) : ['Nothing'])([...gearLine(s, p, true), ...gearLine(s, p, false)]))),
+    h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', {}, h('span', { 'data-m': 'coin' }, coinWords(coins(p))))),
     ...[xpLine(p)].filter((x): x is HTMLElement => !!x),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
@@ -355,6 +379,7 @@ export type ShownValues = {
   morale: string; moraleLeft: number; moraleFill: number;
   parts: Record<string, string>; skills: Record<string, number>;
   lvl: number | null; xp: number | null; xpPct: number | null; coin: number;
+  gear: Record<string, { name: string; note: string }>; chips: string[]; yielded: boolean;
 };
 export function shownValues(s: GameState, p: Actor): ShownValues {
   const level = shownLevel(healthLevel(p));
@@ -368,5 +393,8 @@ export function shownValues(s: GameState, p: Actor): ShownValues {
     parts: Object.fromEntries((safe(() => actorBody(s, p).parts) ?? []).map((d) => [d.id, poolState(p.core.condition.parts[d.id] ?? 100)])),
     skills: Object.fromEntries(trees(s, p, false).flatMap((t) => t.rows.map((r) => [r.id, r.raw]))),
     lvl: xp?.level ?? null, xp: xp?.xp ?? null, xpPct: xp?.pct ?? null, coin: coins(p),
+    gear: Object.fromEntries(p.core.inventory.filter((i) => i.equippedIn?.length).map((i) => [i.id, { name: cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId), note: gearNote(s, i)?.text ?? '' }])),
+    chips: Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => `${id}:${k}`)),
+    yielded: !!s.yielding,
   };
 }

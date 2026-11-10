@@ -8,7 +8,8 @@ import { makeVillage } from '../harness';
 import { partsWorse } from '../../src/agents/game';
 import { partStates } from '../../src/ruleset';
 import { sentences } from '../../src/ui/motion';
-import { shownValues } from '../../src/ui/charsheet';
+import { gearNote, shownValues } from '../../src/ui/charsheet';
+import { getLibrary } from '../../src/library';
 
 describe('play screen motion', () => {
   it('a turn line names only the parts that got worse', () => {
@@ -44,6 +45,26 @@ describe('play screen motion', () => {
     expect(b.level).not.toBe(a.level);
     expect(b.hpFill).toBeLessThan(a.hpFill);
     expect(b.parts.right_arm).toBe('Crippled');
+  });
+
+  it('a shield shows its state and armor its pool points on the gear lines, and a change shows in the shown values (Q2)', () => {
+    const s = makeVillage();
+    const items = getLibrary().items;
+    const shieldId = Object.keys(items).find((k) => items[k].shield)!;
+    const armorId = Object.keys(items).find((k) => Object.keys(items[k].armor?.pools ?? {}).length)!;
+    s.player.core.inventory.push({ id: 'sh', itemId: shieldId, qty: 1, equippedIn: ['hand:left'] }, { id: 'ar', itemId: armorId, qty: 1, equippedIn: ['body'] });
+    const sh = s.player.core.inventory.find((i) => i.id === 'sh')!;
+    expect(gearNote(s, sh)).toEqual({ text: 'Healthy', cls: 'ps-healthy' });
+    const before = shownValues(s, s.player);
+    sh.pools = { shield: -20 };
+    expect(gearNote(s, sh)).toEqual({ text: 'Crippled', cls: 'ps-crippled' });
+    expect(shownValues(s, s.player).gear.sh.note).not.toBe(before.gear.sh.note);
+    const ar = s.player.core.inventory.find((i) => i.id === 'ar')!;
+    const [part] = Object.keys(items[armorId].armor!.pools!);
+    expect(gearNote(s, ar)!.text).toContain(`${part.replace(/_/g, ' ')} `);
+    ar.pools = { [part]: 0 };
+    expect(gearNote(s, ar)!.text).toContain('empty');
+    expect(gearNote(s, ar)!.cls).toBe('ps-destroyed');
   });
 
   it('durations are --m-* tokens and nothing animates a glow or a shadow', () => {
