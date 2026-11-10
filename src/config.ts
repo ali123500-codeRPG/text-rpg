@@ -125,6 +125,10 @@ const DEFAULTS = {
   HAGGLE_BAD_LOSS: 1.2, // lost by HAGGLE_BAD_GAP tiers or more
   HAGGLE_BAD_GAP: 2,
   HARD_BARGAIN_BUY: 0.9,
+  HARD_BARGAIN_SELL: 1.1,
+  SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
+  TRADER_PURSE: 50, // SL3: coin every Trader carries when the Weaver places it
+  QUALITY_PRICE_FACTOR: 2, // SL8: a minted item's value is its base value × this × its quality (1–4)
   TRADE_SELLER_LINKS: 1, // S1: buy from a seller up to this many zone links away (across the counter); farther trades are parked
   TRADE_GIFT_LINKS: 2, // S2: buy for someone up to this many zone links from the buyer
   WARES_CAP: 8, // goods lines plus services per seller

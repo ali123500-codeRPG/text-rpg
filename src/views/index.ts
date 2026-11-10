@@ -15,7 +15,7 @@ import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routin
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
-import { coinWords, isSeller, wareList } from '../engine/trade';
+import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
@@ -138,7 +138,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
-      ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a) } : {}),
+      ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
     });
   }
   return out;
@@ -314,7 +314,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(lastHitBy ? { lastHitBy } : {}),
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
-      ...(isSeller(a) ? { wares: wareList(state, state.player, a) } : {}),
+      ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),

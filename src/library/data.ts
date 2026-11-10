@@ -398,7 +398,7 @@ export function prototypeLibrary(): Library {
     durations: {
       [DU.fight_turn]: { id: DU.fight_turn, name: 'Fight turn', minutes: 0.1 },
       [DU.action]: { id: DU.action, name: 'Move, talk or other action', minutes: 1 },
-      [DU.trade]: { id: DU.trade, name: 'Trade', minutes: 10, orders: ['barter', 'buy'] },
+      [DU.trade]: { id: DU.trade, name: 'Trade', minutes: 10, orders: ['barter', 'buy', 'sell'] },
       [DU.rest]: { id: DU.rest, name: 'Rest', minutes: 60, orders: ['rest'] },
       [DU.sleep]: { id: DU.sleep, name: 'Sleep', minutes: 480 },
     },

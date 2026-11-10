@@ -9,7 +9,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
   | 'attack' | 'hide' | 'sneak' | 'vanish' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
-  | 'use_item' | 'equip' | 'give' | 'buy' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
+  | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
