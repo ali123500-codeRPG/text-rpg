@@ -20,20 +20,20 @@ export const ALL_BUNDLES: AllBundle[] = [
   { treeId: TR.unarmed, step: 50, name: 'Open Hand', passive: PK.bare_handed_guard },
   // Defense (Dodge, Block) and Fortitude (Endurance, Resolve) have two skills each, so neither earns its All-50 for now
   { treeId: TR.defense, step: 50, name: 'The Unbroken', passive: PK.thick_hide },
-  { treeId: TR.fortitude, step: 50, name: 'Hard to Kill' },
+  { treeId: TR.fortitude, step: 50, name: 'Hard to Kill', passive: PK.last_to_fall },
   { treeId: TR.perception, step: 50, name: 'Nothing Escapes', passive: PK.curiouser }, // Light Sleeper parked
   { treeId: TR.stealth, step: 50, name: 'One with the Dark', passive: PK.child_of_night },
   { treeId: TR.speech, step: 50, name: 'Silver Voice', passive: PK.silver_words }, // Read Them parked
 ];
 
 /** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
- * No part yet: Improvisation, Block, Earshot, Resolve, Insight, Vanishing, Intimidation and the one-skill trees. */
+ * No part yet: Block, Parry, Resolve, Insight, Vanishing, Intimidation and the one-skill trees. */
 export const SKILL_PARTS: Record<string, string> = {
   [SK.melee_light]: PK.counter, [SK.melee_medium]: PK.steady_guard, [SK.melee_heavy]: PK.opening_strike,
   [SK.ranged_light]: PK.unerring, [SK.ranged_medium]: PK.volley, [SK.ranged_heavy]: PK.past_the_cover,
-  [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold,
+  [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold, [SK.unarmed_improvised]: PK.junk_arsenal,
   [SK.dodge]: PK.dodgy, [SK.endurance]: PK.second_wind,
-  [SK.eyesight]: PK.night_eyes, // Earshot: none (Spotter parked)
+  [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.know_the_step, // Spotter parked
   [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade,
   [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
 };
@@ -90,6 +90,10 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'Your hands are weapons now. Your unarmed hits deal a tenth more damage.',
     rules: { kind: 'Always on', trigger: 'The owner hits with an unarmed mode (punch, grapple, slam and the rest).', conditions: [],
       effect: 'The hit\'s damage before armor is ×1.1 (CONFIG.IRON_KNUCKLES_MULT, placeholder).', lasts: 'Always.' } }),
+  part(TR.unarmed, { id: PK.junk_arsenal, ref: 'T3e', name: 'Junk Arsenal', effect: 'attack',
+    story: 'A chair leg, a bottle, a tankard: in your hands they all hurt. Your improvised weapons hit a fifth harder.',
+    rules: { kind: 'Always on', trigger: 'The owner hits with an improvised weapon (an attack that rolls Improvisation, or a throw that blends it in).', conditions: [],
+      effect: 'The hit\'s damage before armor is ×1.2 (CONFIG.JUNK_ARSENAL_MULT, placeholder).', lasts: 'Always.' } }),
   part(TR.unarmed, { id: PK.bare_handed_guard, ref: 'T3d2', name: 'Bare-Handed Guard', effect: 'defense',
     story: 'With nothing in your hands, nothing slows you. Your Dodge is 5 higher, and 5 higher again while you hold no weapon.',
     rules: { kind: 'Always on', trigger: 'Always; and the owner makes a Dodge roll.', conditions: ['The extra +5 needs the owner to hold no item with a weapon mode.'],
@@ -100,6 +104,10 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'When the blood starts to run, you find more in you. Once a fight, at your first serious wound, you shake one off.',
     rules: { kind: 'Automatic', trigger: 'An attack leaves the owner at Wounded or worse on the health track.', conditions: ['Once per engagement.', 'The owner is not down (Incapacitated or worse).'],
       effect: 'The owner\'s health lost drops to the top of the level one better (Wounded to Injured: 45% lost). Body parts are unchanged.', lasts: 'Permanent (it is healing).', cooldown: 'Once per engagement.' } }),
+  part(TR.fortitude, { id: PK.last_to_fall, ref: 'T4f', name: 'Last to Fall', effect: 'health',
+    story: 'The worse it gets, the steadier you are. Once you are badly hurt, fear takes a quarter less out of you.',
+    rules: { kind: 'Always on', trigger: 'The owner loses morale.', conditions: ['The owner is at Wounded or worse on the health track.'],
+      effect: 'The morale lost is ×0.75 (CONFIG.LAST_TO_FALL_MULT, placeholder).', lasts: 'Always.' } }),
   part(TR.defense, { id: PK.dodgy, ref: 'T4d', name: 'Dodgy', effect: 'defense',
     story: 'You are never quite where they aim. Attacks on you lose 10 skill.',
     rules: { kind: 'Always on', trigger: 'An attack roll is made against the owner.', conditions: [],
@@ -118,6 +126,10 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.',
     rules: { kind: 'Always on', trigger: 'The owner makes a sight or hearing roll (any skill with that function, Tremor included).', conditions: ['The roll ends in Success or better.'],
       effect: 'Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.', lasts: 'That roll.' } }),
+  part(TR.perception, { id: PK.know_the_step, ref: 'T5f', name: 'Know the Step', effect: 'senses',
+    story: 'A cough, a gait, the way a voice drops. You know the people you have met by sound alone.',
+    rules: { kind: 'Always on', trigger: 'The owner hears someone it can\'t see (sound only).', conditions: ['The owner knows that someone\'s name.'],
+      effect: 'The owner learns who it is: the heard event and any words spoken name them, as if seen.', lasts: 'That event.' } }),
   part(TR.perception, { id: PK.night_eyes, ref: 'T5e', name: 'Night Eyes', effect: 'senses',
     story: 'The dark hides little from you. Light counts one step brighter when you look.',
     rules: { kind: 'Always on', trigger: 'The owner makes an Eyesight roll.', conditions: [],

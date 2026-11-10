@@ -240,6 +240,8 @@ const DEFAULTS = {
   /** All-50 part numbers (src/library/allPerks.ts; placeholders) */
   FIGHTERS_FRAME_MULT: 0.9,
   DODGY_SKILL: 10,
+  JUNK_ARSENAL_MULT: 1.2, // All-50 Junk Arsenal: improvised hits deal a fifth more (placeholder)
+  LAST_TO_FALL_MULT: 0.75, // All-50 Last to Fall: morale losses at Wounded or worse (placeholder)
   IRON_KNUCKLES_MULT: 1.1, // All-50 Iron Knuckles: unarmed hits deal a tenth more (placeholder)
   BARE_HANDED_GUARD: 5,
   STEADY_GUARD: 5, // All-50 Steady Guard: Parry effective skill with a medium melee weapon (placeholder)

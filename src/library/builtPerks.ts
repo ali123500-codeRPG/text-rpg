@@ -13,6 +13,8 @@ export const BUILT_PERKS = new Set<string>([
   PK.hunters_eye, // T2d: src/ruleset/perks.ts trueSkill() fnSkill
   PK.opening_strike, PK.unerring, // T1a, T2a: src/engine/resolve.ts openingShifts()
   PK.hard_to_hold, // T3a: src/engine/held.ts breakFree()
+  PK.junk_arsenal, PK.last_to_fall, // T3e: attack() in src/ruleset/index.ts; T4f: src/engine/morale.ts payFear()
+  PK.know_the_step, // T5f: src/views/index.ts knowsStep()
   PK.iron_knuckles, PK.bare_handed_guard, // T3d, T3d2: attack() in src/ruleset/index.ts; trueSkillTo
   PK.spotter, // T5b: src/ruleset/allSteps.ts shareSpotted()
   PK.steady_guard, PK.thick_hide, // T1e, T4e: attack() in src/ruleset/index.ts; trueSkillTo

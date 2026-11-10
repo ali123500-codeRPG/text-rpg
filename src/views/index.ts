@@ -179,12 +179,20 @@ function sparView(state: GameState, viewer: Actor, name: (id: string) => string)
   };
 }
 
+/** All-50 Know the Step: a viewer with the perk who only hears someone whose name it knows learns who it is */
+function knowsStep(state: GameState, viewer: Actor, e: GameEvent): boolean {
+  const p = e.perception[viewer.id];
+  const a = actorById(state, e.actorId);
+  if (!p || p.level === 'full' || p.cue !== 'sound' || !a || a === viewer || !hasPerk(viewer, PK.know_the_step)) return false;
+  return viewer.id === state.player.id ? nameKnown(state, a) : !!viewer.bandId && viewer.bandId === a.bandId;
+}
+
 function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
   const p = e.perception[viewer.id];
   const full = p.level === 'full';
   return {
     id: e.id, turn: e.turn, kind: e.kind, zone: e.zone,
-    ...(full ? { actorId: e.actorId } : {}),
+    ...(full || knowsStep(state, viewer, e) ? { actorId: e.actorId } : {}),
     ...(full && e.target ? { target: e.target } : {}),
     ...(full && e.tier !== undefined && e.actorId === viewer.id ? { tier: tierName(e.tier) } : {}),
     level: p.level, cue: p.cue,
@@ -410,7 +418,7 @@ function agreementViews(state: GameState, viewerId: string): AgreementView[] {
 export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): string | null {
   if (['hold', 'idle', 'wait', 'rest', 'sleep', 'presence'].includes(e.kind)) return null;
   const v = eventView(state, viewer, e);
-  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} something${v.where ? ` ${v.where}` : ''}`;
+  if (v.level !== 'full') return `${v.cue === 'sound' ? 'heard' : 'glimpsed'} ${v.actorId ? callName(state, viewer.id, v.actorId) : 'something'}${v.where ? ` ${v.where}` : ''}`;
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
   const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
@@ -474,7 +482,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const full = per.level === 'full';
     const changes = visibleChanges(state, e.effects, me);
     if ((e.kind === 'threshold_crossed' || e.kind === 'part_state_changed') && !changes.length) continue; // hidden change
-    const speaker = full ? callName(state, me, e.actorId) : undefined;
+    const speaker = full || knowsStep(state, p, e) ? callName(state, me, e.actorId) : undefined;
     const hears = !!e.line && (full || per.cue === 'sound');
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;

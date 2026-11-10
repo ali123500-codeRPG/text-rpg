@@ -637,11 +637,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar tells every foe close by exactly how this ends. Once per fight, every hostile in your zone that hears it makes a morale check.
+*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, every foe that hears it, however far, makes a morale check against you, and every ally that hears it takes heart and shakes off its fear.
 
 - **Kind:** Move (offensive aura)
-- **Trigger:** The owner uses the move.
-- **Effect:** Every foe hostile to the owner in the owner's zone that hears it makes a morale check.
+- **Trigger:** The owner uses the move. The roar is a Loud noise.
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar gets 10 morale back and loses any Shaken.
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement.
 - **Needs first:** Moves.
@@ -881,6 +881,16 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Lasts:** Always.
 - **Built:** yes
 
+### Junk Arsenal (Combat – Unarmed, Improvisation) · T3e
+
+*Story:* A chair leg, a bottle, a tankard: in your hands they all hurt. Your improvised weapons hit a fifth harder.
+
+- **Kind:** Always on
+- **Trigger:** The owner hits with an improvised weapon (an attack that rolls Improvisation, or a throw that blends it in).
+- **Effect:** The hit's damage before armor is ×1.2 (CONFIG.JUNK_ARSENAL_MULT, placeholder).
+- **Lasts:** Always.
+- **Built:** yes
+
 ### Bare-Handed Guard (Combat – Unarmed, passive) · T3d2
 
 *Story:* With nothing in your hands, nothing slows you. Your Dodge is 5 higher, and 5 higher again while you hold no weapon.
@@ -902,6 +912,17 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Effect:** The owner's health lost drops to the top of the level one better (Wounded to Injured: 45% lost). Body parts are unchanged.
 - **Lasts:** Permanent (it is healing).
 - **Cooldown:** Once per engagement.
+- **Built:** yes
+
+### Last to Fall (Fortitude, passive) · T4f
+
+*Story:* The worse it gets, the steadier you are. Once you are badly hurt, fear takes a quarter less out of you.
+
+- **Kind:** Always on
+- **Trigger:** The owner loses morale.
+- **Conditions:** The owner is at Wounded or worse on the health track.
+- **Effect:** The morale lost is ×0.75 (CONFIG.LAST_TO_FALL_MULT, placeholder).
+- **Lasts:** Always.
 - **Built:** yes
 
 ### Dodgy (Combat – Defense, Dodge) · T4d
@@ -944,6 +965,17 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Conditions:** The roll ends in Success or better.
 - **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
 - **Lasts:** That roll.
+- **Built:** yes
+
+### Know the Step (Perception, Earshot) · T5f
+
+*Story:* A cough, a gait, the way a voice drops. You know the people you have met by sound alone.
+
+- **Kind:** Always on
+- **Trigger:** The owner hears someone it can't see (sound only).
+- **Conditions:** The owner knows that someone's name.
+- **Effect:** The owner learns who it is: the heard event and any words spoken name them, as if seen.
+- **Lasts:** That event.
 - **Built:** yes
 
 ### Night Eyes (Perception, Eyesight) · T5e
