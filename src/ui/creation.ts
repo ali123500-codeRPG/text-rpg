@@ -165,6 +165,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,
     h('div', { class: 'head' },
       h('div', {}, h('h1', {}, `Create your ${cls?.name ?? 'character'}`), starts,
+        cls?.story ? h('p', { class: 'story-line' }, cls.story) : null,
         perkNames(classId).length ? h('p', {}, `Class perk at level 1: ${perkNames(classId).join(', ')}.`) : null,
         h('p', {}, 'Spend ', h('b', {}, String(total())), ` points. Your class sets floors, no skill starts above ${cap()}, and you tag ${maxTags()} skills.`)),
       h('div', { class: 'actions' },
