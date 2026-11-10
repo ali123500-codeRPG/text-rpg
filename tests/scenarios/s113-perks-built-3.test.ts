@@ -60,6 +60,7 @@ describe('113 coded perks, batch 3', () => {
     const plain = talk(s, 'persuade', [50, 50]).contest.a;
     expect(plain.skill).toBe(SK.intimidation); // stand-in at 0.3 (18) beats persuasion 10
     give(s.player, PK.threaten_for_answers);
+    delete s.player.speechTries; // a fresh try, not a repeat (NT3)
     const full = talk(s, 'persuade', [50, 50]).contest.a;
     expect(full.skill).toBe(SK.intimidation);
     expect(full.margin - plain.margin).toBeCloseTo(CONFIG.SKILL_WEIGHT * 60 * (1 - CONFIG.SUBSTITUTE_EFFICIENCY));

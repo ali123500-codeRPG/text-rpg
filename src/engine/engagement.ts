@@ -63,6 +63,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
       delete a.engagement;
       delete a.haggle; // PY6: haggled prices last until the engagement ends
       delete a.pressure; // OQ-29: Shaken and Swayed last until the engagement ends
+      delete a.speechTries; // NT3: repeat tries count within one engagement
       logCode(state, 'engagement_ended', { actorId: a.id, start: e.start, kinds: e.kinds });
       if (a === state.player) playerEnded = true;
     }

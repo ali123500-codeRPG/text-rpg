@@ -12,10 +12,13 @@ import { PK } from '../library/perkIds';
 import { tally } from './xp';
 import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
+import { countTry, repeatTryMods } from '../ruleset/pressure';
 
 export const SPEECH_SKILL: Record<string, string> = {
-  talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.persuasion, intimidate: SK.intimidation, barter: SK.barter,
+  talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.lying, intimidate: SK.intimidation, barter: SK.barter,
 };
+/** what the listener answers with: the speaker's skill, except a lie, which Insight answers (NT17) */
+export const answerSkill = (type: string): string => type === 'deceive' ? SK.insight : SPEECH_SKILL[type] ?? SK.persuasion;
 
 // Dialogue input table (wording is a placeholder), keyed by tier; a roll past either end uses the end's words.
 const CONVINCING: Record<Tier, string> = {
@@ -127,8 +130,9 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   const type = isSpeech(intent.action?.type) ? intent.action!.type : 'talk'; // A15 Quick Word: the line is talk
   const named = SPEECH_SKILL[type] ?? SK.persuasion;
   // one player roll for every spokesperson: per-listener modifiers (Bane, Shaken, Swayed) count when there is one listener
-  const req = (actorId: string) => ({ actorId, skill: named, modifiers: [], tierShifts: [], ...(actorId === state.player.id && spokespeople.length === 1 ? { against: spokespeople[0] } : {}) });
   const p = state.player;
+  const tries = repeatTryMods(p, spokespeople, type); // NT3
+  const req = (actorId: string) => ({ actorId, skill: named, modifiers: tries, tierShifts: [], ...(actorId === state.player.id && spokespeople.length === 1 ? { against: spokespeople[0] } : {}) });
   // A16 Threaten for Answers: against an opposed or hostile listener, intimidation counts as the named skill
   const threat = (sp: string) => {
     const b = state.actors.find((x) => x.id === sp);
@@ -144,7 +148,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     const t = aT && threat(sp);
     const mine = t ? aT : a;
     if (t && spokespeople.every(threat)) shown = aT;
-    const b = answerRoll(state, state.actors.find((x) => x.id === sp)!, named, p.id, rng);
+    const b = answerRoll(state, state.actors.find((x) => x.id === sp)!, answerSkill(type), p.id, rng);
     const contest = toContest(mine, b);
     const skills = [named, mine.skill, ...(t && mine.skill === SK.intimidation ? INFLUENCE() : [])];
     perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, skills, contest), ...(type === 'deceive' && contest.winner === 'b' ? { tell: true as const } : {}) };
@@ -152,6 +156,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     if (contest.winner === 'a' && INFLUENCE().includes(mine.skill)) tally(state, 'speech_won', { by: 'skill', of: mine.skill });
     contestFeat(state, contest);
     markUse(state, p, mine.skill, contest); // SP2: talking to someone near your level marks the skill
+    countTry(p, sp, type);
   }
   return { skill: shown.skill, playerTier: shown.tier, impression: impressionWords(type, shown.tier) ?? null, perSpokesperson };
 }
@@ -169,16 +174,17 @@ export const PUSH_TYPES = ['persuade', 'deceive', 'intimidate', 'barter'];
 /** added to a listener's impression when it saw through a lie */
 export const TELL = 'something about it does not sit right';
 
-/** a listener's answering roll: the same speech skill, against the speaker; All-50 Easy Speaker answers one outcome better */
+/** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better */
 export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng): RollResult {
   return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId }, state, rng);
 }
 
-/** OQ-29: an NPC's speech roll at the player; the player answers with the same skill (the speaker is side a) */
+/** OQ-29: an NPC's speech roll at the player; the player answers (answerSkill; the speaker is side a) */
 export function pushContest(state: GameState, speaker: Actor, type: string, rng: Rng): ContestResult {
   const skill = SPEECH_SKILL[type] ?? SK.persuasion;
   const p = state.player;
-  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: [], tierShifts: [], against: p.id }, state, rng), answerRoll(state, p, skill, speaker.id, rng));
+  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: repeatTryMods(speaker, [p.id], type), tierShifts: [], against: p.id }, state, rng), answerRoll(state, p, answerSkill(type), speaker.id, rng));
+  countTry(speaker, p.id, type);
   contestFeat(state, contest);
   markUse(state, p, contest.b.skill, contest);
   return contest;

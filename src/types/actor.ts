@@ -33,6 +33,8 @@ export type Actor = {
   haggle?: Record<ActorId, number>;
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
   pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
+  /** NT3: speech tries this engagement, by listener and speech kind */
+  speechTries?: Record<ActorId, Record<string, number>>;
   /** PY8: healing rows (the clinic's) this actor has paid for and not used yet */
   paid?: string[];
 };

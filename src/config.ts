@@ -133,6 +133,8 @@ const DEFAULTS = {
   // its engagement ends: a roll modifier of −(this × the tier gap) (placeholders)
   SHAKEN_PER_TIER: 5,
   SWAYED_PER_TIER: 5,
+  /** NT3: each earlier try of the same speech kind at the same listener this engagement, on the speaker's roll */
+  REPEAT_TRY: 15,
   HARD_BARGAIN_BUY: 0.9,
   HARD_BARGAIN_SELL: 1.1,
   SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
