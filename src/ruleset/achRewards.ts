@@ -148,24 +148,16 @@ export function rewardLines(d: AchievementDef): string[] {
   return chainRewards(d).flatMap((e) => linesOf(e.from, e.field).map((l) => e.from === d ? l : `${l} (from ${e.from.name})`));
 }
 
-/** Reward levels never cap: past the last row of REWARD_LEVELS (VI) come VII, VIII and on, keyed `beyond_<n>`, each paying
- * REWARD_XP_BEYOND_MULT × the level before. These helpers are the one way to read a reward level's position, name and XP. */
+/** Reward levels are the rows of REWARD_LEVELS (−1 to XV); a level past the top stays at the top. These helpers are the
+ * one way to read a reward level's position, name and XP. */
 const TOP = () => REWARD_LEVELS.keys.length - 1;
-export const rewardPos = (key: string): number =>
-  REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : key.startsWith('beyond_') ? TOP() + Number(key.slice(7)) : -1;
-export const rewardKeyAt = (pos: number): string => (pos <= TOP() ? REWARD_LEVELS.at(Math.max(0, pos)) : `beyond_${pos - TOP()}`);
-const ROMAN: [number, string][] = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
-const roman = (n: number) => ROMAN.reduce((out, [v, r]) => { while (n >= v) { out += r; n -= v; } return out; }, '');
-/** a reward level's display name: the table's name, else the next roman numerals past the top (VII, VIII…) */
-export const rewardName = (key: string): string => REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : roman(rewardPos(key) - REWARD_LEVELS.pos('zero'));
-/** a reward level's XP: CONFIG.REWARD_XP, and past the top REWARD_XP_BEYOND_MULT × the level before */
-export const rewardXp = (key: string): number => {
-  const p = rewardPos(key);
-  return p <= TOP() ? CONFIG.REWARD_XP[key] ?? 0 : (CONFIG.REWARD_XP[REWARD_LEVELS.at(TOP())] ?? 0) * CONFIG.REWARD_XP_BEYOND_MULT ** (p - TOP());
-};
+export const rewardPos = (key: string): number => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : -1);
+export const rewardKeyAt = (pos: number): string => REWARD_LEVELS.at(Math.min(TOP(), Math.max(0, pos)));
+export const rewardName = (key: string): string => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : key);
+export const rewardXp = (key: string): number => CONFIG.REWARD_XP[key] ?? 0;
 
 /** an achievement's reward level for one earning: its row's level, + levelUp for that kind, + levelStep for each `every`
- * step past its first count (an every-N row climbs as it is earned again). No cap: past VI it keeps climbing. */
+ * step past its first count (an every-N row climbs as it is earned again), capped at the top level (XV). */
 export function achLevel(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number }, of?: string): string {
   const steps = d.every && d.levelStep && of && Number.isFinite(+of) ? Math.max(0, Math.floor((+of - (d.count ?? d.every)) / d.every)) * d.levelStep : 0;
   const up = ((of && d.levelUp?.[of]) || 0) + steps;

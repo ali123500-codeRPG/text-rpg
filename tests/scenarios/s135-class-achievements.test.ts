@@ -65,10 +65,10 @@ describe('135 class and level achievements', () => {
     expect([10, 20, 30, 40, 50, 60, 70, 80].map((n) => achLevel(d, String(n)))).toEqual(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'v', 'vi']);
     expect(achXp(d, '10')).toBe(CONFIG.REWARD_XP.minus_1);
     expect(achXp(d, '30')).toBe(CONFIG.REWARD_XP.i);
-    // no cap: past VI come VII, VIII…, each paying REWARD_XP_BEYOND_MULT × the level before
-    expect([90, 100, 150].map((n) => rewardName(achLevel(d, String(n))))).toEqual(['VII', 'VIII', 'XIII']);
-    expect(achXp(d, '90')).toBe(CONFIG.REWARD_XP.vi * CONFIG.REWARD_XP_BEYOND_MULT);
-    expect(achXp(d, '100')).toBe(CONFIG.REWARD_XP.vi * CONFIG.REWARD_XP_BEYOND_MULT ** 2);
+    // past VI the table goes on to XV, and stays there
+    expect([90, 100, 150, 160, 300].map((n) => rewardName(achLevel(d, String(n))))).toEqual(['VII', 'VIII', 'XIII', 'XIV', 'XV']);
+    expect(achXp(d, '90')).toBe(CONFIG.REWARD_XP.vii);
+    expect(achXp(d, '300')).toBe(CONFIG.REWARD_XP.xv);
     if (want.length) expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === want[0])!)).toBe('No Longer Green');
   });
 });
