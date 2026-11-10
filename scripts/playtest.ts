@@ -16,10 +16,10 @@ import { validateStagePlan } from '../src/scene';
 import { ensurePlace } from '../src/scene/apply';
 import { isSeller } from '../src/engine/trade';
 import type { GameState, StagePlan } from '../src/types';
-import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../src/ruleset/perks';
 import type { SceneDirector } from '../src/agents';
 import { recommendedBuild } from '../src/library/spawn';
 import { CL } from '../src/library/classIds';
+import { PERSONAS, autoPerk } from '../src/agents/autopilot';
 
 // Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scene-start wait is widened here.
 // The game's own WEAVER_TIMEOUT_MS is not changed.
@@ -73,28 +73,6 @@ const PLAYER_BRIEF = `You are playtesting a text RPG as its player: ${arg('class
 talk to people, explore, take on any trouble you find, fight if it comes to that, and sometimes try unusual things to test
 the game. Reply with ONLY what you type next, one short line in plain words (no quotes). Now and then use a command:
 /stats, /inv, /quests, /help or /aim <text>.`;
-/** --persona eager: an over-enthusiastic adventurer who drives the story forward on their own (P7 pacing test) */
-const PERSONAS: Record<string, string> = {
-  eager: `You are an over-enthusiastic adventurer. Never wait for the story to come to you: chase every lead, follow anyone
-who leaves, go through every door, ask about rumours and jobs, pick fights you think are just, and when a place goes quiet,
-move on to somewhere new at once.`,
-  bloodthirsty: `You are a violent, bloodthirsty brute (a test of combat, XP and level-ups). You settle everything with your sword:
-insult people, threaten them, and attack anyone who looks at you wrong, starting within your first few turns. Keep fighting
-until your foes are down or flee, then look for the next fight. Use /aim now and then. Never talk your way out of a fight.`,
-  rester: `You are a weary, patient traveller (a test of the game clock, waiting, sleeping, resting, healing, story beats
-and the endurance skill). You cannot hurt yourself in this game, so to get wounds: early on, pick a real fight with the toughest-looking
-person (punch them or draw on them, not just a shove), keep your shield down and let them land several hits until you
-are clearly hurt, then fight back properly until they stop or flee.
-Once nobody is threatening you: rest, use a bandage, wait until a later time of day (e.g. "I wait until dusk"), and sleep
-through the night now and then. Try resting twice in a row, and try resting or waiting once while someone is still
-threatening you, then defend yourself. When your wounds have healed, pick another small scrap and repeat. Do not chase
-leads or start conversations yourself; answer briefly if spoken to, and see what the story does on its own.`,
-  shopper: `You are a thrifty traveller with a little coin (a test of buying, paying and haggling). Find whoever sells things
-and spend your money: ask what they have and what it costs, buy a drink, then a meal, and a bed for the night. Haggle at
-least twice ("that's too much, how about less?"), once politely and once rudely. Buy a drink for someone else. Pay someone
-an exact small amount for help or a tip ("I hand her two coppers"). Try to buy something they do not sell, try to buy
-more than you can afford, and try to buy from someone who is not a seller. Check /inv now and then to see your coin.`,
-};
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
 
 /** --near-seller: start the player one zone from the first seller on the stage (across its counter), else in its zone */
@@ -185,11 +163,10 @@ function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
   for (const x of ups.slice(levelUpsSeen)) progress.push(`turn ${turn}: level up to ${x.levelUp!.level} (${x.levelUp!.classId})`);
   levelUpsSeen = ups.length;
   while (p.progression.unspentPerkPoints > 0) {
-    const open = Object.keys(p.core.skills).flatMap((sk) => MILESTONES.filter((m) => milestoneState(p, sk, m) === 'open' && !canTake(p, milestonePerk(sk, m)!.id)).map((m) => ({ id: milestonePerk(sk, m)!.id, sk, m })))
-      .sort((a, b) => trueSkill(p, b.sk) - trueSkill(p, a.sk) || a.m - b.m);
-    if (!open.length) { progress.push(`turn ${turn}: ${p.progression.unspentPerkPoints} perk point(s) unspent, no perk it can take yet`); break; }
-    game.takePerk(open[0].id);
-    progress.push(`turn ${turn}: took perk ${open[0].id} (${open[0].sk} ${open[0].m})`);
+    const id = autoPerk(p);
+    if (!id) { progress.push(`turn ${turn}: ${p.progression.unspentPerkPoints} perk point(s) unspent, no perk it can take yet`); break; }
+    game.takePerk(id);
+    progress.push(`turn ${turn}: took perk ${id}`);
   }
 }
 

@@ -282,6 +282,7 @@ export function tally(state: GameState, rule: AchievementRule, o: { by?: Achieve
   t[k] = o.to === undefined ? (t[k] ?? 0) + (o.add ?? 1) : Math.max(t[k] ?? 0, o.to);
   for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
     if (d.rule !== rule || d.by !== o.by || d.count === undefined || t[k] < d.count) continue;
+    if (d.only && d.only !== o.of) continue; // a row for one kind only (healing from one source)
     if (d.every) for (let n = d.count; n <= t[k]; n += d.every) grantAchievement(state, key, String(n)); // earned at every multiple
     else grantAchievement(state, key, o.of);
   }

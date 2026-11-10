@@ -469,10 +469,10 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 
 /* Play screen, layout A "Book with a status strip": fixed rows (header, who's here, story and input), one reading column
    of 68ch on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
-.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) minmax(0, 1fr); padding-bottom: 0; }
+.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) auto minmax(0, 1fr); padding-bottom: 0; }
 /* the bottom gap sits inside the columns, so the sheet's divider runs to the foot of the screen */
 .playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
-.playmain > .fell { grid-row: 3; }
+.playmain > .fell { grid-row: 4; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
 .play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
 .play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
@@ -558,3 +558,12 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .quest-line .ok { color: var(--ok); font-weight: 600; }
 .quest-line .warn { color: var(--warn); }
 .quest-line .more { color: var(--faint); }
+/* Watch an agent play: the autopilot bar under who's here */
+.auto { display: grid; gap: var(--space-2); }
+.auto:empty { display: none; }
+.auto-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.auto-row.end { justify-content: flex-end; }
+.auto-row select { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); height: var(--control-h); padding: 0 var(--space-2); }
+.auto-say { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: var(--r-md); font-family: var(--font-story); }
+.auto-own { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-md); }
+

@@ -7,7 +7,7 @@ import { ALL_STEPS, MILESTONES, canUndo, milestonePerk, milestoneState, trueSkil
 import { h } from './kit';
 import { skillName, TREE_VIEW } from './creation';
 import { PK } from '../library/perkIds';
-import { allStepNeed } from '../ruleset/allSteps';
+import { allStepNeed, skillsAt } from '../ruleset/allSteps';
 
 const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defense'], ['health', 'Health'], ['speed', 'Speed'], ['senses', 'Senses'], ['speech', 'Speech'], ['stealth', 'Stealth']];
 const TOP = 150;
@@ -33,11 +33,15 @@ function node(skill: string, milestone: number, st: Show, label: boolean) {
   }, h('span', {}, String(milestone)), label && d ? h('em', {}, d.name) : null);
 }
 
+/** the All-XXX marker: tree skills at the step, of the count the tree's rating needs (allStepNeed); an inferior tree never earns one */
+function allStepCount(p: Actor, treeId: string, step: number): string {
+  const need = allStepNeed(treeId);
+  return need === null ? 'never' : `${Math.min(skillsAt(p, treeId, step).length, need)} of ${need}`;
+}
+
 function ladders(p: Actor, treeId: string, skills: string[]) {
-  const need = allStepNeed(treeId); // the tree's rating sets how many skills at a step earn its All-XXX
-  const done = (m: number) => skills.filter((k) => trueSkill(p, k) >= m).length;
   return h('div', { class: 'pk-lad' },
-    ALL_STEPS.map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / TOP} * var(--rh))` }, h('b', {}, `All-${m}`), h('small', {}, need === null ? 'never' : `${Math.min(done(m), need)} of ${need}`))),
+    ALL_STEPS.map((m) => h('div', { class: 'pk-mb', style: `bottom:calc(${m / TOP} * var(--rh))` }, h('b', {}, `All-${m}`), h('small', {}, allStepCount(p, treeId, m)))),
     skills.map((k) => {
       const v = trueSkill(p, k);
       return h('div', { class: 'pk-col' },
