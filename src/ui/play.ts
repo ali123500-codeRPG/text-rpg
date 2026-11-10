@@ -269,7 +269,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   /** opens the Character page at its Perks section */
   const seePerks = () => { nav('stats'); setTimeout(() => document.querySelector('.pk')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
-  const goldCard = (title: string, sub: string, action?: [string, () => void]) => h('div', { class: 'perk-new' }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
+  const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
     h('div', {}, title, h('small', {}, sub)), action ? h('button', { type: 'button', class: 'hs-btn-text', onclick: action[1] }, action[0]) : null);
 
   // ---- the story list: one cached entry per line, so redraws never rebuild it or close an opened fold
@@ -311,7 +311,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       xp ? row('XP', `+${xp}`) : null,
       ...(l.heals ?? []).map(healCard),
       ...(l.wounds ?? []).filter((w) => !working(w.to as PartState)).map(woundCard),
-      ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks])),
+      ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks], true)),
       ...(l.achievements ?? []).map((a) => goldCard('Achievement', a.name, ['See achievements', () => nav('achievements')])),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
       ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks])),
@@ -617,7 +617,21 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     if (b) sheetBeats(b, a, at, stagger);
     if (ab) aroundBeats(ab, aa, Math.min(t, end));
-    for (const g of gold) { const d = at(stagger); arrive(g, d, 6); pulse(g.querySelector('.st'), d + fade, 2); }
+    let pointsAt: number | null = null;
+    for (const g of gold) {
+      const d = at(stagger); arrive(g, d, 6); pulse(g.querySelector('.st'), d + fade, 2);
+      if (pointsAt === null && g.hasAttribute('data-levelup')) pointsAt = d + fade;
+    }
+    // M-38: the rail's perk-point badge lands with the level-up card that gave the point, never before it
+    if (b && a.points !== b.points) pointsBeat(b.points, a.points, pointsAt ?? at(stagger));
+  }
+
+  /** the rail's ✦n badge (it lives outside the Play screen): a new badge fades in, a changed count swaps at its beat */
+  function pointsBeat(from: number, to: number, d: number) {
+    const badge = document.querySelector<HTMLElement>('.game-rail [data-m="points"]');
+    if (!badge || to <= 0) return;
+    if (from > 0) { stamp(badge, d, `✦${from}`); pulse(badge, d + ms('--m-beat')); }
+    else { arrive(badge, d, 0); pulse(badge, d + ms('--m-state'), 2); }
   }
 
   /** M-30–M-38: the sheet's beats, each on its own element; a value animates only if it changed */
@@ -698,8 +712,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     // XP and level: a level-up fills the bar, then it starts again from empty (M-38, the Thread weaves)
     if (a.xp !== null && b.xp !== null && (a.xp !== b.xp || a.lvl !== b.lvl)) {
-      const d = at(stagger);
       const levelled = a.lvl !== b.lvl;
+      // a level-up holds the next step until the bar has wrapped and the new level word has landed, so the gold cards
+      // (and the perk badge with them) come after it (M-38)
+      const d = at(levelled ? ms('--m-trail') * 2 : stagger);
       count(q('[data-m="xp"]'), levelled ? 0 : b.xp, a.xp, whole, d + (levelled ? ms('--m-trail') : 0));
       if (a.xp > b.xp && !levelled) delta(q('[data-m="xp"]'), sign(a.xp - b.xp), 'scene-mark', d);
       barMove(q('[data-m="xp-track"]'), q('[data-m="xp-track"] > b'), b.xpPct ?? 0, a.xpPct ?? 0, d, levelled);

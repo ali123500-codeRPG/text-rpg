@@ -41,6 +41,15 @@ function fightTurn(st: GameState): Partial<LogLine> {
   };
 }
 
+function levelTurn(st: GameState): Partial<LogLine> {
+  const p = st.player, c = p.core.classes[0];
+  if (!c || !p.progression) return {};
+  c.level += 1;
+  p.progression.xp = 20;
+  p.progression.unspentPerkPoints += 1;
+  return { levelUps: [{ classId: c.classId, level: c.level }] };
+}
+
 export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);
 
 export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
@@ -125,8 +134,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (drop) fell = true;
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
       const hurt = /^attack\b/i.test(text) ? fightTurn(state) : null;
+      // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
+      const lvl = /^train\b/i.test(text) ? levelTurn(state) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}) }];
+        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },

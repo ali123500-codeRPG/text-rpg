@@ -1465,7 +1465,7 @@ Decided by Ali, 10/11/2026 (Motion Rules Review, answers Q1–Q4; it replaces th
 
 - **M-36** Every other value that changes on the play screen gets one feedback beat on its own element. A number counts to its new value with a small "+n" or "−n" beside it; a bar moves to its new length with a fading trail of the part lost; a word swaps with a short cross-fade; a chip or line (Shaken, Swayed, Stealthy, the yield box, a quest step, the deals chip) fades in or out. This covers skills, XP and level, coin, the quick-heal count, morale, time of day, and arrivals and departures in Who's here.
 - **M-37** Motion never shows more than the screen shows: no direction, size or timing that PlayerView doesn't already give. Another actor's level word only animates when PlayerView shows that word.
-- **M-38** Gold cards land last in a turn's results, one at a time. A level-up also fills the XP bar, then starts it again from empty, as one short moment (the Thread weaves).
+- **M-38** Gold cards land last in a turn's results, one at a time. A level-up also fills the XP bar, then starts it again from empty, as one short moment (the Thread weaves). The perk-point badge on the rail's Character item is held back until then: it lands with the level-up card that gave the point, never before it (src/ui/play.ts pointsBeat).
 
 **Scenes**
 
