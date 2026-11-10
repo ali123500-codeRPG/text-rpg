@@ -138,8 +138,9 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
-    i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => parts(modeName(m), [`${m.tree} ${m.class}`, `reach ${m.reach}`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
-      m.skill && skillName(m.skill), m.thrown && 'thrown', m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null])))) : null,
+    i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
+      `reach ${m.reach}${row?.reachBonus ? ` + ${row.reachBonus} (${row.name})` : ''}`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
         row('Covers', val(i.armor.covers.map(label))), i.armor.pools ? row('Pools', val(i.armor.pools)) : null)) : null,
@@ -220,19 +221,25 @@ const keep = (key: string, value: unknown): void => { try { localStorage.setItem
 // older keys carried the sub-tab (tab|pane|title); a fold now covers every sub-tab, so keep tab|title
 const foldedSet = new Set<string>(remember<string[]>('lv-folded', []).map((k) => { const p = k.split('|'); return p.length > 2 ? `${p[0]}|${p.slice(2).join('|')}` : k; }));
 const paneOf: Record<string, string> = remember<Record<string, string>>('lv-pane', {});
+// every sub-tab row starts with All (every sub-tab at once, for searching across them), unless the table's own
+// first sub-tab already lists everything (gear, achievements)
+const ALL_PANES = '*';
+const showsPane = (key: string) => pane === ALL_PANES || pane === key;
 function panes(list: Pane[]): HTMLElement[] {
-  if (!list.some((p) => p.key === pane)) pane = list[0].key;
-  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, list.map((p) => h('button', {
+  const tabs: Pane[] = list[0].title === 'All' || list[0].title.startsWith('All ') ? list
+    : [{ key: ALL_PANES, title: 'All', n: list.reduce((n, p) => n + p.n, 0), content: [] }, ...list];
+  if (!tabs.some((p) => p.key === pane)) pane = tabs[0].key;
+  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, tabs.map((p) => h('button', {
     type: 'button', role: 'tab', 'data-pane': p.key, 'aria-selected': String(p.key === pane), onclick: () => showPane(p.key),
     ...(p.short ? { title: p.title, 'aria-label': `${p.title}, ${p.n}` } : {}),
   }, p.short ?? p.title, h('small', {}, String(p.n)))));
-  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: p.key !== pane }, ...(p.content.filter(Boolean) as HTMLElement[])))];
+  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: !showsPane(p.key) }, ...(p.content.filter(Boolean) as HTMLElement[])))];
 }
 function showPane(key: string): void {
   pane = key;
   paneOf[shown] = key; keep('lv-pane', paneOf);
   document.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
-  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
+  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = !showsPane(p.dataset.pane!); });
   drawBar(); paint(); filter();
 }
 
@@ -322,14 +329,13 @@ const perkList = (ids: string[] | undefined) => links('perks', (ids ?? []).map((
 // ---------- Gear classes ----------
 // a class sets WHICH skill its items ask for; the item's level sets HOW MUCH (EQUIP_NEED)
 const itemsOfClass = (gc: string) => Object.values(lib.items).filter((i) => i.gearClass === gc);
-const kindOfClass = (gc: string) => [...new Set(itemsOfClass(gc).map((i) => i.kind))].join(', ') || undefined;
 function gearClasses(): HTMLElement[] {
   return [h('p', { class: 'hs-note' }, 'A gear class sets which skill its items ask for. The item\'s level sets how much: ',
       EQUIP_LEVELS.keys.map((l) => `${EQUIP_LEVELS.name(l)} ${CONFIG.EQUIP_NEED[l] ?? 0}`).join(', '), ' true skill.'),
     h('div', { class: 'lv-grid' }, Object.values(lib.gearClasses ?? {}).map((g) => {
-      const items = itemsOfClass(g.id), kind = kindOfClass(g.id);
-      return card('gearClasses', g.id, g, g.name, [kind ? chip(kind, toneFor('Kind', kind)) : null],
-        row('Skill', link('skills', g.skill, skillName(g.skill))),
+      const items = itemsOfClass(g.id);
+      return card('gearClasses', g.id, g, g.name, [chip(g.use, toneFor('Use', g.use))],
+        row('Use', g.use), row('Skill', link('skills', g.skill, skillName(g.skill))),
         row('Items', items.length ? h('span', {}, ...items.flatMap((i, n) => [n ? ', ' : '', link('gear', i.id, `${label(i.name)} (${EQUIP_LEVELS.name(itemLevel(i) ?? 'crude')}${items.filter((o) => o.name === i.name).length > 1 ? `, bulk ${i.bulk}` : ''})`)])) : none('none yet')));
     }))];
 }
@@ -610,7 +616,7 @@ const CUSTOM: Section[] = [
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
-  gearClasses: (g: { id?: string }) => [['Kind', g.id ? kindOfClass(g.id) : undefined]],
+  gearClasses: (g: { use?: string }) => [['Use', g.use]],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
   stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],

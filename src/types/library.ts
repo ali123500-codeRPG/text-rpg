@@ -104,8 +104,8 @@ export type Library = {
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
-  gearClasses?: Record<string, { id: string; name: string; skill: string }>; // GC…: the skill an item of the class asks for
-  attackModes?: Record<string, { id: string; name: string }>; // attack modes by fixed ID (AM…); AttackMode.id names one
+  gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' }>; // GC…: the skill an item of the class asks for
+  attackModes?: Record<string, { id: string; name: string; reachBonus?: number; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
 /** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
@@ -117,6 +117,8 @@ export type ZoneKind = { id: string; name: string; outdoor: boolean; cover: impo
 export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
+  /** zones added to the throw action's reach (on top of THROWN_REACH_BONUS) */
+  throwReach?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
@@ -140,6 +142,7 @@ export type PerkDef = {
   classLevel?: { classId: string; level: number };
   /** improvement rolls a marked skill gets while its raw value is below `below` (Quick Study: 2 below 15) */
   improveRolls?: { below: number; rolls: number };
+  freeLevels?: number; // free levels: this many level-ups that cost no XP, given while the perk is owned and active
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
@@ -197,7 +200,7 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
-  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation';
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -215,6 +218,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   rally?: number; // allies fighting beside the owner get + this on their morale checks
   restPct?: number; // + this % HP and part healing on each rest
   situation?: number; // + this on the owner's situation rolls
+  freeLevels?: number; // free levels: this many level-ups that cost no XP (taken like any level, src/engine/xp.ts spendXp)
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
   /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
   levelUp?: Partial<Record<string, number>>;

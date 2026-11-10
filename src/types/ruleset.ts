@@ -16,7 +16,7 @@ export interface Rng {
   d100(): number;
 }
 
-export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk';
+export type ModType = 'roll_perk' | 'wounds' | 'situational' | 'aim' | 'gear' | 'achievement' | 'foe_perk' | 'status';
 export type Mod = { source: string; type: ModType; value: number };
 export type TierShift = { source: string; value: number };
 
@@ -48,6 +48,8 @@ export type RollRequest = {
   fn?: SkillFunction;
   /** extra functions whose skills may stand in here (an attack mode's standInFns) */
   standInFns?: SkillFunction[];
+  /** a combined roll (an attack mode's blend): each skill × its share, summed */
+  blend?: { skill: string; share: number }[];
   /** body-part roles whose wounds count, instead of the skill's own (ST10: hiding is stealth without the move role) */
   roles?: import('./library').RoleId[];
   /** the opposing actor (attacks, defenses, contests): Bane bonuses read its race and body type (D-111) */
@@ -60,6 +62,8 @@ export type RollResult = {
   skill: string;
   /** the skill the action asked for, when a stand-in made the roll (both learn) */
   asked?: string;
+  /** a combined roll: the skills that rolled each part (after stand-ins); each learns */
+  parts?: string[];
   d100: number;
   margin: number;
   tier: Tier; // clamped to the TIERS table

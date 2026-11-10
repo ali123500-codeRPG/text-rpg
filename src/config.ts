@@ -129,6 +129,10 @@ const DEFAULTS = {
   HAGGLE_WIN: 0.8, // a won barter contest against a seller, until the engagement ends
   HAGGLE_BAD_LOSS: 1.2, // lost by HAGGLE_BAD_GAP tiers or more
   HAGGLE_BAD_GAP: 2,
+  // OQ-29: losing a speech contest leaves the listener Shaken (intimidation) or Swayed (persuasion) toward the speaker until
+  // its engagement ends: a roll modifier of −(this × the tier gap) (placeholders)
+  SHAKEN_PER_TIER: 5,
+  SWAYED_PER_TIER: 5,
   HARD_BARGAIN_BUY: 0.9,
   HARD_BARGAIN_SELL: 1.1,
   SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
@@ -167,8 +171,11 @@ const DEFAULTS = {
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10,
-  /** a thrown mode reaches its item's melee reach plus this many zones */
+  /** the throw action adds this many zones to the weapon's own reach; perks add more (PerkDef.throwReach) */
   THROWN_REACH_BONUS: 2, // placeholder (loot L3)
+  /** the throw action is a combined roll: the weapon's own skill (a melee weapon's melee skill) and the ranged skill of
+   * the same class, each with its own stand-ins, at these shares */
+  THROW_BLEND: { weapon: 0.75, ranged: 0.25 },
   // Boon (loot V8): a reward's worth to the player. Placeholders, tune after playtests (V8c).
   BOON_COIN: 20, // coin value per Boon, unless the item sets its own boon
   BOON_QUALITY: [1, 2, 3, 5, 8], // multiplier by minted quality (index 0 = not minted)
@@ -201,7 +208,7 @@ const DEFAULTS = {
   STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
-  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000 } as Record<string, number>,
+  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000 } as Record<string, number>,
   /** a scar pays the XP of the reward level one step below its own; below level 0 it pays this */
   SCAR_XP_BELOW_ZERO: 25,
   /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */

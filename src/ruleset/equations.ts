@@ -3,7 +3,7 @@
 // (band, naturalEdge, ladder, stackType …), so the page follows the code.
 import type { Library } from '../types';
 import { CONFIG } from '../config';
-import { TIERS } from '../scales';
+import { CLASS_TIERS, TIERS } from '../scales';
 import { MARGIN_BANDS, SITUATION_BANDS, band, ladder, naturalEdge, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
@@ -83,6 +83,24 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['Modifiers add in full here, with no stacking.'] },
       { name: 'Contest', at: 'contested · src/ruleset/index.ts',
         formula: 'gap = tier of B − tier of A; the side with the higher tier wins, equal tiers tie' },
+      { name: 'Speech contest', at: 'resolveSpeech · pushContest · applySpeech · src/engine/speech.ts',
+        formula: 'the speaker rolls the speech skill; the listener rolls the same skill back, whoever speaks',
+        terms: [['Shaken', `the listener lost to intimidation: −${CONFIG.SHAKEN_PER_TIER} × tiers lost by, on every roll against the speaker until its engagement ends`],
+          ['Swayed', `the listener lost to persuasion: −${CONFIG.SWAYED_PER_TIER} × tiers lost by, on speech rolls against the speaker until its engagement ends`],
+          ['a lie', 'a listener that beats a deceive roll sees through it'], ['Easy Speaker', 'the listener answers one tier higher']],
+        notes: ['NPCs roll speech at the player only with persuade, deceive, intimidate or barter; their plain talk does not roll. A second Shaken or Swayed from the same speaker keeps the bigger one.'] },
+      { name: 'Morale check', at: 'moraleCheck · src/ruleset/index.ts; morale · src/engine/resolve.ts',
+        formula: `margin = d100 + ${n(W())} × morale + modifiers − ${n(NEED())}; below Failure: surrenders · Failure: breaks · Near Miss or better: holds`,
+        terms: [['morale', `by personality: ${Object.entries(CONFIG.PERSONALITY_MORALE).map(([k, v]) => `${k} ${v ?? 'never checks'}`).join(', ')}; otherwise ${CONFIG.MORALE_DEFAULT} (CONFIG.MORALE_DEFAULT)`],
+          ['modifiers', 'wounds for its health level; the player\'s renown (off a foe\'s first check against the player); the player\'s rally (on allies fighting beside the player)']],
+        table: { head: ['Morale', 'Surrenders', 'Breaks', 'Holds'], rows: [30, 50, 70].map((m) => {
+          const lv = D100.map((d) => rollLevel(d, m));
+          const k = (f: (l: number) => boolean) => pct(lv.filter(f).length);
+          return [String(m), k((l) => l < TIERS.pos('failure')), k((l) => l === TIERS.pos('failure')), k((l) => l >= TIERS.pos('near_miss'))];
+        }) },
+        notes: ['Only NPCs in an engagement check (fearless ones never do). Broken or surrendered lasts until the scene ends; an NPC that holds can be asked to check again.',
+          'A check comes when the NPC reaches a new health level from Injured on, when it perceives a bandmate go down, or from perks that force one. At Critical it breaks without rolling.',
+          'Chances in the table are unhurt with no modifiers.'] },
       { name: 'Situation roll (no skill)', at: 'situation · src/ruleset/index.ts',
         formula: `margin = d100 ${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.SITUATION_BASE - 100)} + modifiers`,
         terms: [[`${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.SITUATION_BASE - 100)}`, `situation base ${CONFIG.SITUATION_BASE} (CONFIG.SITUATION_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
@@ -100,6 +118,10 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Attack and defense', at: 'attack · src/ruleset/index.ts',
         formula: 'attack roll (skill roll); below Near Miss it misses. Otherwise the defender makes a dodge or block roll',
         terms: [['attack modifiers', 'weapon class hit + mode hitAdj, range, aim, light, perks'], ['defense modifiers', 'outnumbered, unaware (not with Never Surprised when the attack\'s noise reaches the defender), dodge vs missile, light, perks']] },
+      { name: 'Throw (combined roll)', at: 'withRow · blendedSkill · src/ruleset/gear.ts',
+        formula: `throw skill = ${n(CONFIG.THROW_BLEND.weapon)} × the weapon's own effective skill + ${n(CONFIG.THROW_BLEND.ranged)} × the effective ranged skill of the same class; reach = the weapon's own reach + ${CONFIG.THROWN_REACH_BONUS} (THROWN_REACH_BONUS) + perks' throwReach`,
+        terms: [["weapon's own skill", "the skill its gear class asks for (a dagger: Light weapons; an improvised weapon: Improvisation)"], ['ranged skill', 'Light, Medium or Heavy ranged, by the throw mode\'s class'], ['shares', 'CONFIG.THROW_BLEND, set on the Throw attack mode row']],
+        notes: ['Each part is its own effective skill: it takes its own stand-ins and only the gear that boosts it (the weapon\'s kit bonus goes to its own skill). Both skills that rolled can learn. The thrown item lands on the ground of the target\'s zone, hit or miss.'] },
       { name: 'Gap', at: 'attack · src/ruleset/index.ts',
         formula: 'gap = defense tier − attack tier + gap shifts, kept between −5 and +5',
         terms: [['gap shifts', `heavy weapon vs block ${sg(CONFIG.HEAVY_VS_BLOCK_GAP)}, cover (ranged), Slip the Blow +1 on a tie`]] },
@@ -128,6 +150,23 @@ export function equations(lib: Library): EquationGroup[] {
           ['rolls', `1 per marked skill${quick.length ? `; ${quick.map((p) => `${p.name}: ${p.improveRolls!.rolls} rolls while raw is below ${p.improveRolls!.below}`).join('; ')}` : ''}`]],
         table: { head: ['Target', 'Chance', 'Flawed'], rows: [0, 20, 40, 60, 80, 95].map((t) => [String(t), pct(improveChance(t, false)), pct(improveChance(t, true))]) },
         notes: [`Crossing a milestone (${MILESTONES.join(', ')}) on true skill is logged with the gain.`] },
+    ] },
+    { key: 'levels', title: 'Levels', about: 'How XP turns into levels.', equations: [
+      { name: 'XP to the next level', at: 'xpToNext · spendXp · src/engine/xp.ts',
+        formula: `XP to go from level n to n + 1 = ${CONFIG.LEVEL_XP} × n`,
+        terms: [[String(CONFIG.LEVEL_XP), 'CONFIG.LEVEL_XP'], ['n', 'character level: the sum of every class\'s level (at least 1)']],
+        table: { head: ['From level', 'To level', 'XP needed', 'Total from level 1'], rows: [1, 2, 3, 4, 5, 10, 15, 19].map((l) => [String(l), String(l + 1), String(CONFIG.LEVEL_XP * l), String(CONFIG.LEVEL_XP * l * (l + 1) / 2)]) },
+        notes: [`The XP is spent and the level goes into the current class, or the class picked for the next level. The player starts at level ${CONFIG.START_LEVEL}.`,
+          'One gain can take several levels in a row. When the class has no room left (at its top level), the XP stays banked until a class with room is picked.',
+          'Free levels (from achievements or perks with free levels) are taken first and cost no XP; they bank the same way when no class has room.'] },
+      { name: 'Class top level', at: 'classMaxLevel · src/library/spawn.ts',
+        formula: `top level = min(${CONFIG.CLASS_MAX_LEVEL}, ${CONFIG.CLASS_TIER0_MAX_LEVEL} + ${CONFIG.CLASS_LEVELS_PER_TIER} × class tier)`,
+        terms: [[String(CONFIG.CLASS_TIER0_MAX_LEVEL), 'CONFIG.CLASS_TIER0_MAX_LEVEL'], [String(CONFIG.CLASS_LEVELS_PER_TIER), 'CONFIG.CLASS_LEVELS_PER_TIER'], [String(CONFIG.CLASS_MAX_LEVEL), 'CONFIG.CLASS_MAX_LEVEL']],
+        table: { head: ['Class tier', 'Top level'], rows: CLASS_TIERS.keys.map((k) => [CLASS_TIERS.name(k), String(Math.min(CONFIG.CLASS_MAX_LEVEL, CONFIG.CLASS_TIER0_MAX_LEVEL + CONFIG.CLASS_LEVELS_PER_TIER * CLASS_TIERS.pos(k)))]) },
+        notes: ['Reaching the top level grants the class capstone.'] },
+      { name: 'What a level gives', at: 'levelUp · src/engine/xp.ts',
+        formula: 'each level: +1 level in the class, plus that class\'s perks for the level; on every even character level, +1 perk point',
+        notes: ['Levels give no skill points: skills grow only through improvement rolls.'] },
     ] },
     { key: 'marking', title: 'Marking', about: 'What marks a skill so it can improve.', equations: [
       { name: 'Learning window', at: 'markIfClose · src/ruleset/improve.ts',

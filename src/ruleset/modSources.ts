@@ -94,6 +94,11 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
   { type: 'situational', roll: 'skill', source: 'Scene difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scene\'s difficulty.',
     value: list(Object.fromEntries(Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => [k, CONFIG.DIFFICULTY.moderate - v]))) },
+  // status
+  { type: 'status', roll: 'skill', source: 'Shaken', at: 'src/ruleset/pressure.ts',
+    when: 'Every roll against someone whose intimidation beat you, until your engagement ends.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },
+  { type: 'status', roll: 'skill', source: 'Swayed', at: 'src/ruleset/pressure.ts',
+    when: 'Speech rolls against someone whose persuasion beat you, until your engagement ends.', value: `−${CONFIG.SWAYED_PER_TIER} × tiers lost by` },
   // aim
   { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at.',
     value: list(CONFIG.AIM_PENALTY) },

@@ -10,7 +10,7 @@ import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
-import { requirement } from './requirements';
+import { requirement, requiredSkill } from './requirements';
 import { PK } from '../library/perkIds';
 import { AM } from '../library/tableIds';
 
@@ -50,6 +50,25 @@ export function kitBonus(def: ItemDef, e: ItemEffect): number {
   return r ? CONFIG.EQUIP_FACTOR * r.need : e.value;
 }
 
+/** zones the throw action adds on top of the Throw row's reachBonus: perks' throwReach */
+export const perkThrowReach = (actor: Actor) => actor.core.perks.reduce((n, p) => n + (p.dormant ? 0 : getLibrary().perks[p.perkId]?.throwReach ?? 0), 0);
+
+/** an item's mode with its attack mode row's rules applied. Throw: reach + reachBonus (+ perks), and a combined roll of
+ * the weapon's own skill and the same class's ranged skill at the row's blend shares. */
+export function withRow(actor: Actor, def: ItemDef, mode: AttackMode): AttackMode {
+  const row = getLibrary().attackModes?.[mode.id];
+  if (!row?.reachBonus && !row?.blend) return mode;
+  const own = requiredSkill(def) ?? modeSkill(mode), ranged = CLASS_SKILL.ranged[mode.class];
+  return { ...mode, reach: mode.reach + (row.reachBonus ?? 0) + (mode.thrown ? perkThrowReach(actor) : 0),
+    ...(row.blend && ranged ? { skill: own, blend: [{ skill: own, share: row.blend.weapon }, { skill: ranged, share: row.blend.ranged }] } : {}) };
+}
+
+/** a combined roll's effective skill: each part's effectiveSkill (its own stand-ins and gear) × its share, summed */
+export function blendedSkill(state: GameState, actor: Actor, blend: { skill: string; share: number }[], ctx: Parameters<typeof effectiveSkill>[3] = {}) {
+  const parts = blend.map((b) => ({ ...effectiveSkill(state, actor, b.skill, ctx), share: b.share }));
+  return { skill: parts[0].skill, value: parts.reduce((n, p) => n + p.value * p.share, 0), gear: parts.flatMap((p) => p.gear.map((g) => ({ ...g, value: g.value * p.share }))), parts: parts.map((p) => p.skill) };
+}
+
 /** gear skill bonuses for one skill; all kit effects share one bonus, the best of them */
 function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string }) {
   const out: { source: string; value: number }[] = [];
@@ -57,7 +76,7 @@ function gearFor(state: GameState, actor: Actor, skill: string, ctx: { itemId?: 
   for (const { def, e, source } of activeEffects(state, actor, ctx.itemId)) {
     if (e.kind !== 'skill') continue;
     const fits = e.skill === skill ||
-      (e.skill === '$mode' && (def.weapon?.modes ?? []).some((m) => (!ctx.modeId || m.id === ctx.modeId) && modeSkill(m) === skill));
+      (e.skill === '$mode' && (def.weapon?.modes ?? []).some((m) => (!ctx.modeId || m.id === ctx.modeId) && modeSkill(withRow(actor, def, m)) === skill));
     if (!fits) continue;
     if (e.kit) { const v = kitBonus(def, e); if (!kit || v > kit.value) kit = { source, value: v }; }
     else out.push({ source, value: e.value });
@@ -193,7 +212,8 @@ export function usableModes(state: GameState, actor: Actor): { itemId: string; m
   const out: { itemId: string; mode: AttackMode }[] = [];
   for (const inst of actor.core.inventory) {
     if (!isHeld(inst) || !handsOf(inst).every((h) => grips.includes(h))) continue;
-    for (const mode of itemDef(state, inst.itemId).weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode });
+    const def = itemDef(state, inst.itemId);
+    for (const mode of def.weapon?.modes ?? []) if (mode.hands <= maxHands) out.push({ itemId: inst.id, mode: withRow(actor, def, mode) });
   }
   const ct = actorBody(state, actor);
   for (const mode of ct.naturalAttacks) {
@@ -220,7 +240,7 @@ export function resolveMode(state: GameState, actor: Actor, weaponId: string, mo
   const inst = actor.core.inventory.find((i) => i.id === weaponId);
   if (!inst) throw new Error(`${actor.id} has no item ${weaponId}`);
   const def = itemDef(state, inst.itemId);
-  const modes = def.weapon?.modes ?? [];
+  const modes = (def.weapon?.modes ?? []).map((m) => withRow(actor, def, m));
   const mode = modeId ? modes.find((m) => m.id === modeId) : modes.find((m) => m.reach >= distance) ?? modes[0];
   if (!mode) throw new Error(`no attack mode ${modeId ?? ''} on ${weaponId}`);
   return { mode, name: def.name };

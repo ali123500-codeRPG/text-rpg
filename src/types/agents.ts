@@ -46,7 +46,7 @@ export type Intent = {
 // ---- Agent Planner / Responder / Voice ----
 export type NpcActionType =
   | 'attack' | 'move' | 'search' | 'hide' | 'sneak' | 'vanish' | 'hold' | 'call_help' | 'flee'
-  | 'talk' | 'use_item' | 'equip' | 'give' | 'other';
+  | 'talk' | 'persuade' | 'deceive' | 'intimidate' | 'barter' | 'use_item' | 'equip' | 'give' | 'other';
 export type NpcAction = {
   type: NpcActionType;
   target: string | null;

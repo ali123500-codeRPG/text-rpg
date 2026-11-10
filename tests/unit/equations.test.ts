@@ -3,16 +3,43 @@ import { describe, expect, it } from 'vitest';
 import { EFF_EX, effExample, equations } from '../../src/ruleset/equations';
 import { effectiveSkill } from '../../src/ruleset/gear';
 import { getLibrary } from '../../src/library';
-import { makeVillage } from '../harness';
+import { actor, forcedRng, makeVillage } from '../harness';
+import { moraleCheck } from '../../src/ruleset';
 import { prototypeLibrary } from '../../src/library/data';
+import { xpToNext } from '../../src/engine/xp';
+import { classMaxLevel } from '../../src/library/spawn';
+import { CLASS_TIERS } from '../../src/scales';
 
 describe('equations for the library viewer', () => {
   it('builds every group with numbers from CONFIG', () => {
     const groups = equations(prototypeLibrary());
-    expect(groups.map((g) => g.key)).toEqual(['rolls', 'attacks', 'gain', 'marking']);
+    expect(groups.map((g) => g.key)).toEqual(['rolls', 'attacks', 'gain', 'levels', 'marking']);
     for (const g of groups) for (const e of g.equations) {
       expect(e.formula).not.toMatch(/undefined|NaN/);
       for (const r of e.table?.rows ?? []) expect(r.join(' ')).not.toMatch(/undefined|NaN/);
+    }
+  });
+
+  it('the level tables match xpToNext and classMaxLevel', () => {
+    const lv = equations(prototypeLibrary()).find((g) => g.key === 'levels')!.equations;
+    const p = makeVillage().player;
+    for (const [from, , need] of lv[0].table!.rows) {
+      p.core.classes = [{ classId: p.core.classes[0].classId, state: 'current', level: Number(from) }];
+      expect(xpToNext(p)).toBe(Number(need));
+    }
+    for (const c of Object.values(prototypeLibrary().classes)) {
+      expect(lv[1].table!.rows.find(([t]) => t === CLASS_TIERS.name(c.tier))?.[1]).toBe(String(classMaxLevel(c.id)));
+    }
+  });
+
+  it('the morale table matches moraleCheck', () => {
+    const eq = equations(prototypeLibrary()).find((g) => g.key === 'rolls')!.equations.find((e) => e.name === 'Morale check')!;
+    for (const [m, sur, brk, hold] of eq.table!.rows) {
+      const s = makeVillage(), a = actor(s, 'patron_1');
+      a.mind!.morale = Number(m);
+      const out = { surrendered: 0, broken: 0, steady: 0 };
+      for (let d = 1; d <= 100; d++) { a.mind!.renownFelt = true; out[moraleCheck(s, a, forcedRng([d]), 'level')]++; }
+      expect([`${out.surrendered}%`, `${out.broken}%`, `${out.steady}%`]).toEqual([sur, brk, hold]);
     }
   });
 
