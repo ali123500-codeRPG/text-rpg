@@ -12,7 +12,6 @@ import type { PartStateKey, SkillTierKey } from '../scales';
 export type SkillFunction = (typeof FN)[keyof typeof FN]; // fixed IDs: src/library/functionIds.ts
 export type SkillGroup = (typeof GR)[keyof typeof GR];
 /** XP rating category of a skill (X18–X23). Set per skill: one tree may mix categories. */
-export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
@@ -24,9 +23,11 @@ export type SkillDef = {
   treeId: string;
   functions: SkillFunction[];
   groups?: SkillGroup[]; // groups the skill joins directly, without that group's function (Dodge: Speed)
+  /** skills this skill augments: its effective value × share is added to every roll that asks for that skill,
+   * or only rolls of the listed kinds (none listed: every roll and check of that skill) */
+  augments?: { skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
-  xpCategory: XpCategory;
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
   tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
   access?: TreeAccess; // a skill's own rule on top of its tree's (SR1: persuasion and barter need a speaking race)
@@ -59,6 +60,8 @@ export type ClassDef = {
   unlock?: Record<string, number>;
   /** either-of unlock: at least one of these skills must also reach its true skill */
   unlockAny?: Record<string, number>;
+  /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for D-159) */
+  unlockClass?: Record<string, number | 'max'>;
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
   fallback?: true;
   /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */
@@ -143,6 +146,7 @@ export type PerkDef = {
   /** improvement rolls a marked skill gets while its raw value is below `below` (Quick Study: 2 below 15) */
   improveRolls?: { below: number; rolls: number };
   freeLevels?: number; // free levels: this many level-ups that cost no XP, given while the perk is owned and active
+  bonusLevels?: number; // bonus levels: this many character levels outside every class, given while the perk is owned and active
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
@@ -200,7 +204,7 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
-  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels';
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels' | 'bonusLevels';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -219,6 +223,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   restPct?: number; // + this % HP and part healing on each rest
   situation?: number; // + this on the owner's situation rolls
   freeLevels?: number; // free levels: this many level-ups that cost no XP (taken like any level, src/engine/xp.ts spendXp)
+  bonusLevels?: number; // bonus levels: this many character levels that no class gets (perk points on even levels; no class perks)
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
   /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
   levelUp?: Partial<Record<string, number>>;

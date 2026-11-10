@@ -33,6 +33,8 @@ export type Actor = {
   haggle?: Record<ActorId, number>;
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
   pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
+  /** NT3: speech tries this engagement, by listener and speech kind */
+  speechTries?: Record<ActorId, Record<string, number>>;
   /** PY8: healing rows (the clinic's) this actor has paid for and not used yet */
   paid?: string[];
 };
@@ -110,7 +112,8 @@ export type Progression = {
   /** alternate capstones the player may swap in for a class's default, by class id; set when the class reaches
    * its top level with those alternates' conditions met, and cleared by a swap */
   capstoneOptions?: Record<LibraryRef, LibraryRef[]>;
-  freeLevelsTaken?: number; // free levels already taken (owed = freeLevelsEarned − this)
+  freeLevelsTaken?: number; // free levels already taken (owed = levelsEarned(a, 'freeLevels') − this)
+  bonusLevelsTaken?: number; // bonus levels already taken: character levels outside every class (owed = levelsEarned(a, 'bonusLevels') − this)
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
   quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
 };

@@ -7,7 +7,7 @@ import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import type { ArmorWeightKey } from '../scales';
 import { CLASS_TIERS } from '../scales';
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef, SkillGroup, XpCategory } from '../types';
+import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -21,15 +21,11 @@ import { SV } from './serviceIds';
 import { PK } from './perkIds';
 import { IT } from './itemIds';
 
-/** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 /** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 const SMALLER_PAYS_MORE = { small: 1, extra_small: 1, tiny: 2 };
 
-const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
-  [GR.melee]: 'offensive', [GR.ranged]: 'offensive', [GR.defense]: 'defensive', [GR.health]: 'endurance', [GR.notice]: 'notice', [GR.influence]: 'influence',
-};
-const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', xpCategory?: XpCategory, tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
-  ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[FUNCTION_GROUP[functions[0]]] ?? 'misc', tier });
+const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
+  ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.melee_light, TR.melee, [FN.arms], [RL.grip]),
@@ -52,20 +48,24 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.heavy_armor, TR.armor, [FN.armor], []),
   sk(SK.eyesight, TR.perception, [FN.sight], [RL.sense], 'sight'),
   sk(SK.earshot, TR.perception, [FN.hearing], [RL.sense], 'sound'),
+  // NT17: what a listener rolls against a lie. No function, so nothing stands in for it; it sits in the Notice group
+  { ...sk(SK.insight, TR.perception, [], [RL.sense]), groups: [GR.notice] },
   // Stealth (ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
-  sk(SK.sneaking, TR.stealth, [FN.stealth], [RL.move], undefined, 'notice'),
-  sk(SK.combat_stealth, TR.stealth, [FN.stealth], [RL.move], undefined, 'offensive'),
-  sk(SK.vanishing, TR.stealth, [FN.stealth], [RL.move], undefined, 'offensive'), // ST11/ST18: breaks established sight
+  sk(SK.sneaking, TR.stealth, [FN.stealth], [RL.move]),
+  sk(SK.combat_stealth, TR.stealth, [FN.stealth], [RL.move]),
+  sk(SK.vanishing, TR.stealth, [FN.stealth], [RL.move]), // ST11/ST18: breaks established sight
   // speech role: head wounds reduce speech rolls
   sk(SK.persuasion, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.intimidation, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.barter, TR.speech, [FN.influence], [RL.speech]),
-  sk(SK.feint, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
-  sk(SK.riposte, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
-  sk(SK.disarm, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
+  sk(SK.lying, TR.trickery, [FN.influence], [RL.speech]), // NT16: deceive rolls Lying
+  { ...sk(SK.riposte, TR.swordsman, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // strike back off a block
+  { ...sk(SK.slip_counter, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // Riposte's mirror: strike back off a dodge
+  // Merchant's advanced barter: augments Barter, adding its effective value to every roll that asks for Barter
+  { ...sk(SK.shrewd_dealing, TR.merchant, [], [RL.speech]), groups: [GR.influence], augments: [{ skill: SK.barter }] },
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
-  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', undefined, 'tier_0'),
+  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk(SK.lockpicking, TR.tools, [], [RL.grip]),
 ].map((s) => [s.id, s]));
@@ -80,7 +80,7 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
-for (const id of [SK.persuasion, SK.barter]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
+for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
@@ -108,6 +108,11 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     id: PK.nobody_special, name: 'Nobody Special', built: true, classLevel: { classId: CL.commoner, level: 5 },
     story: 'Five seasons of ordinary work, and nobody noticed you. That can be a start.',
     rules: { kind: 'passive', trigger: 'the owner gains this perk at Commoner class level 5', conditions: ['the owner does not have the A Nobody class'], effect: 'the A Nobody class unlocks at class level 0', lasts: 'always' },
+  },
+  [PK.known_at_every_stall]: {
+    id: PK.known_at_every_stall, name: 'Known at Every Stall', built: true, classLevel: { classId: CL.trader, level: 5 },
+    story: 'Every stallholder knows your face and your prices. Time for a shop of your own.',
+    rules: { kind: 'passive', trigger: 'the owner gains this perk at Trader class level 5', conditions: ['the owner does not have the Merchant class'], effect: 'the Merchant class unlocks at class level 0', lasts: 'always' },
   },
   [PK.every_fall_a_lesson]: {
     id: PK.every_fall_a_lesson, name: 'Every Fall a Lesson', built: true, classLevel: { classId: CL.a_nobody, level: 15 },
@@ -291,7 +296,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   // NS7: a village thief, the first stealthy NPC
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
-    minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
+    minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
     focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
     personality: 'timid', loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
   },
@@ -380,10 +385,13 @@ export function prototypeLibrary(): Library {
       [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: RC.dragon }] } /* the shape's slam; the dragon's own attacks */ },
       [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.endurance] },
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
-      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
+      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
-      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying], access: { blockedBy: [AMORPHOUS] } },
+      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
+      [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.slip_counter], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
@@ -404,7 +412,8 @@ export function prototypeLibrary(): Library {
       [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
-      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_1', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 } },
+      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
+      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)

@@ -1,6 +1,6 @@
 import type { SkillFunction } from './types';
 import type { QuestRewardLevel } from './scales';
-import { FN } from './library/functionIds';
+import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
@@ -133,6 +133,8 @@ const DEFAULTS = {
   // its engagement ends: a roll modifier of −(this × the tier gap) (placeholders)
   SHAKEN_PER_TIER: 5,
   SWAYED_PER_TIER: 5,
+  /** NT3: each earlier try of the same speech kind at the same listener this engagement, on the speaker's roll */
+  REPEAT_TRY: 15,
   HARD_BARGAIN_BUY: 0.9,
   HARD_BARGAIN_SELL: 1.1,
   SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
@@ -190,8 +192,16 @@ const DEFAULTS = {
   CLASS_LEVELS_PER_TIER: 5,
   // Kill XP from stats (X18–X23): rating = per category, skills' training effort ranked high to low at 1, ½, ¼…,
   // × the category weight; kill XP = rating × taper × KILL_XP_MULT. Placeholders, tuned later (X19).
-  XP_CATEGORY_WEIGHT: { offensive: 1, defensive: 1, endurance: 1, notice: 0.5, influence: 0.25, misc: 0 } as Record<string, number>,
+  /** a foe's rating: one pool per skill group (a skill counts in its first group), × this weight; a skill with no group counts 0 */
+  /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
+  XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
+  /** each skill group's XP factor level in the defeat-XP rating */
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none' } as Record<string, string>,
   KILL_XP_MULT: 1, // X20: ×1 for now
+  /** a foe's held and worn gear adds this × its coin value to the foe's rating (foe side only) */
+  GEAR_RATING_FACTOR: 0.25,
+  /** levels in the rating, both sides: this share of the XP the actor's levels cost (LEVEL_XP × L(L−1)/2) */
+  LEVEL_RATING_SHARE: 0.02,
   KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */

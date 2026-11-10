@@ -558,6 +558,16 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
 - **Lasts:** That attack.
 
+### Step and Cut (Slip Counter) · B18b
+
+*Story:* The blade passes where you were a moment ago. When you slip a blow cleanly with a light or medium weapon in hand, you cut back at once.
+
+- **Kind:** Always on
+- **Trigger:** The owner dodges a melee attack while holding a light or medium melee weapon.
+- **Conditions:** The gap is +2 or better for the owner. The attack was not itself a free attack. Once per turn.
+- **Effect:** The owner makes one melee attack at the attacker at once, with that weapon. It does not use the owner's action.
+- **Lasts:** That attack.
+
 ### Blade Wall (Block) · B19
 
 *Story:* Let them all come. Your sword turns one blow after another. When you block with a medium weapon, being outnumbered doesn't hurt your guard.

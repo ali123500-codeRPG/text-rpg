@@ -6,12 +6,13 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, effort, killXp, payDefeats, rating, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, effort, killXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
 import type { GameEvent } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { GR } from '../../src/library/functionIds';
 import { CL } from '../../src/library/classIds';
 
 const hit = (target: string): GameEvent => ({ id: 'e1', turn: 1, actorId: 'player', kind: 'attack', zone: 'field_mid', effects: [], noise: 'quiet', visibility: 'low', perception: {},
@@ -22,7 +23,7 @@ describe('106 XP and levels', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
     // one offensive skill, plus tremor (50, tier 0 so read as 25) at the notice weight (Taste removed)
-    expect(rating(slime)).toBeCloseTo(effort(30) + CONFIG.XP_CATEGORY_WEIGHT.notice * effort(25), 5);
+    expect(rating(slime)).toBeCloseTo(effort(30) + xpGroupFactor(GR.notice) * effort(25), 5);
     const g = actor(s, 'guard_1');
     expect(rating(g)).toBeGreaterThan(rating(slime));
     const t = Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / rating(s.player));

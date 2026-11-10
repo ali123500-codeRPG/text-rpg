@@ -9,8 +9,9 @@ export const SK = {
   unarmed_strike: 'SK7', unarmed_grapple: 'SK8', unarmed_improvised: 'SK9', unarmed_natural: 'SK10',
   dodge: 'SK11', block: 'SK12', endurance: 'SK13', eyesight: 'SK14', earshot: 'SK15',
   sneaking: 'SK16', combat_stealth: 'SK17', vanishing: 'SK18',
-  persuasion: 'SK19', intimidation: 'SK20', barter: 'SK21', feint: 'SK22', riposte: 'SK23', disarm: 'SK24',
-  light_armor: 'SK25', medium_armor: 'SK26', heavy_armor: 'SK27', tremor: 'SK28', lockpicking: 'SK29',
+  persuasion: 'SK19', intimidation: 'SK20', barter: 'SK21', riposte: 'SK23', // SK22 (Feint) and SK24 (Disarm) are retired, not reused
+  light_armor: 'SK25', medium_armor: 'SK26', heavy_armor: 'SK27', tremor: 'SK28', lockpicking: 'SK29', slip_counter: 'SK30',
+  lying: 'SK31', insight: 'SK32', shrewd_dealing: 'SK33',
 } as const;
 export type SkillId = (typeof SK)[keyof typeof SK];
 /** a standing defense (dodge or block, a choice, not a skill) and the skill it rolls */

@@ -17,7 +17,7 @@ describe('128 Late bloomer and class-level perks', () => {
     const b = recommendedBuild(CL.late_bloomer);
     expect(validateBuild(b)).toEqual([]);
     expect(validateBuild({ ...b, skills: { ...b.skills, [SK.dodge]: 10 } })).toEqual(['Spend exactly 50 points (55 spent)']);
-    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.feint]: 5, [SK.dodge]: 0 } })).toEqual(['Feint is not open to the point-buy']);
+    expect(validateBuild({ ...b, skills: { ...b.skills, [SK.riposte]: 5, [SK.dodge]: 0 } })).toEqual(['Riposte is not open to the point-buy']);
     const p = createPlayer(b, 's1');
     expect(p.core.classes).toEqual([{ classId: CL.late_bloomer, state: 'current', level: 1 }]);
     expect(getLibrary().classes[CL.late_bloomer].name).toBe('Unwritten Legend');

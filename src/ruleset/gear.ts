@@ -12,6 +12,7 @@ import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL } from '../library/skillIds';
 import { requirement, requiredSkill } from './requirements';
 import { PK } from '../library/perkIds';
+import { skillName } from '../library/skillNames';
 import { AM } from '../library/tableIds';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
@@ -128,7 +129,7 @@ export const fnSkills = (fn: string): string[] => Object.values(getLibrary().ski
 export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: fnSkills(fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
-export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[] } = {}) {
+export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[]; rollKind?: RollKind } = {}) {
   const skills = getLibrary().skills;
   const table = standInTable(skill, actor, ctx.standInFns);
   const share = (id: string) => standInShare(skill, id, table, ctx.fullValue);
@@ -144,7 +145,22 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     for (const g of gear) g.value *= tier;
     if (!best || value > best.value) best = { skill: id, value, gear };
   }
+  for (const a of augmentsOf(actor, skill, ctx.rollKind)) { best!.value += a.value; best!.gear.push(a); } // skills that augment this one
   return best!; // GAP: hard cap (D-3) and condition effects not designed yet
+}
+
+/** skills augmenting `skill` on this roll (SkillDef.augments): each adds true skill × share × its tier, when its tree is
+ * open and the roll kind fits (no kinds listed: every roll and check of the skill) */
+export function augmentsOf(actor: Actor, skill: string, rollKind?: RollKind): { source: string; value: number }[] {
+  const skills = getLibrary().skills, out: { source: string; value: number }[] = [];
+  for (const id of Object.keys(actor.core.skills)) {
+    for (const g of skills[id]?.augments ?? []) {
+      if (g.skill !== skill || (g.rollKinds && (!rollKind || !g.rollKinds.includes(rollKind))) || !skillOpen(actor, id) || actor.core.skills[id].dormant) continue;
+      const value = trueSkill(actor, id) * (g.share ?? 1) * tierMult(id);
+      if (value) out.push({ source: `${skillName(id)} (augments)`, value });
+    }
+  }
+  return out;
 }
 
 /** noted roll modifiers (type gear) for one roll kind */

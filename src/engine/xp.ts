@@ -1,23 +1,30 @@
 // XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
 import type { Actor, AchievementBy, AchievementRule, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
-import { bodyType, getLibrary } from '../library';
+import { bodyType, getLibrary, itemDef, npcTemplate } from '../library';
 import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
 import { isActive, stance } from './relations';
 import { logCode } from './effects';
-import { tierMult } from '../ruleset/gear';
+import { isHeld, isWorn, tierMult } from '../ruleset/gear';
+import { itemValue } from '../ruleset/value';
 import { ruleMet, skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { functionName, groupName, groupsOf } from '../library/functionNames';
 import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
-import { achLevel, achXp, freeLevelsOwed } from '../ruleset/achRewards';
-export { achLevel, achXp, freeLevelsOwed };
+import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed } from '../ruleset/achRewards';
+export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
-export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
-export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
+/** character level: every class's level, plus bonus levels (levels no class gets) */
+export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0) + (a.progression?.bonusLevelsTaken ?? 0);
+/** XP for the next level: free levels don't count, so they never make the next level dearer (D-153) */
+export const xpToNext = (a: Actor) => levelCost(charLevel(a) - (a.progression?.freeLevelsTaken ?? 0) - (a.progression?.bonusLevelsTaken ?? 0));
+/** the XP curve: what the step from level n to n + 1 costs. xpToNext and xpToReach both ask it, so changing it changes both. */
+export const levelCost = (n: number) => CONFIG.LEVEL_XP * Math.max(1, n);
+/** the XP the curve asks to reach level L from 0: the sum of every step on the way */
+export const xpToReach = (l: number) => { let n = 0; for (let i = 0; i < l; i++) n += levelCost(i); return n; };
 /** Part 1 §6 Total: raw skills, Tagged excluded. */
 export const skillTotal = (a: Actor) => Object.values(a.core.skills).reduce((n, s) => n + (s.state === 'tagged' ? 0 : s.raw), 0);
 
@@ -45,6 +52,7 @@ export function levelTarget(p: Actor) {
 export function spendXp(state: GameState): void {
   const p = state.player, pr = p.progression;
   if (!pr) return;
+  takeBonusLevels(state);
   for (let free = freeLevelsOwed(p) > 0; (free || pr.xp >= xpToNext(p)) && levelTarget(p); free = freeLevelsOwed(p) > 0) {
     if (free) pr.freeLevelsTaken = (pr.freeLevelsTaken ?? 0) + 1;
     else pr.xp -= xpToNext(p);
@@ -52,12 +60,26 @@ export function spendXp(state: GameState): void {
     (pr.xpLog ??= []).push({ source: free ? 'free level' : 'level', amount: 0, turn: state.turn, levelUp: up });
     logCode(state, 'level_up', up);
   }
+  takeBonusLevels(state); // a class perk can give bonus levels too
   classFeats(state);
   unlockClasses(state); // a class-level perk can unlock a class (Commoner 5 opens A Nobody)
   const cur = p.core.classes.find((c) => c.state === 'current');
   if (cur && capped(cur)) for (const c of Object.values(getLibrary().classes)) { // the default class opens at the top level
     if (!c.fallback || p.core.classes.some((x) => x.classId === c.id)) continue;
     openClass(state, c.id);
+  }
+}
+
+/** bonus levels: character levels no class gets, taken at once (they never wait for a class). Each gives the perk point
+ * of an even character level like any level, but no class perks, and none of them raise XP costs. */
+function takeBonusLevels(state: GameState): void {
+  const p = state.player, pr = p.progression!;
+  while (bonusLevelsOwed(p) > 0) {
+    pr.bonusLevelsTaken = (pr.bonusLevelsTaken ?? 0) + 1;
+    if (charLevel(p) % 2 === 0) pr.unspentPerkPoints += 1; // Part 1 §5: a perk point on every even level
+    const up = { classId: '', level: charLevel(p) };
+    (pr.xpLog ??= []).push({ source: 'bonus level', amount: 0, turn: state.turn, levelUp: up });
+    logCode(state, 'level_up', up);
   }
 }
 
@@ -150,11 +172,12 @@ export function unlockClasses(state: GameState): void {
   const p = state.player;
   openEveryClass(state);
   for (const c of Object.values(getLibrary().classes)) {
-    if (!(c.unlock || c.unlockAny || c.unlockPerk) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockClass) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     if (!Object.entries(c.unlock ?? {}).every(met)) continue;
     if (c.unlockAny && !Object.entries(c.unlockAny).some(met)) continue;
+    if (!Object.entries(c.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= (lv === 'max' ? classMaxLevel(id) : lv))) continue;
     openClass(state, c.id);
   }
 }
@@ -191,21 +214,36 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
  * the roll ≥ 99 rule keeps the chance at 2% or more). */
 export const effort = (s: number) => (100 / 3) * Math.log(100 / Math.max(100 - Math.max(0, s), 2));
 
-/** X18–X23: a foe's stat rating. Per category the skills' efforts, highest first, count at 1, ½, ¼…, × the category weight. */
+/** a skill group's XP factor: its level on the XP_FACTORS scale (CONFIG.XP_GROUP_FACTOR) × CONFIG.XP_FACTOR_MULT; no level counts 0 */
+export const xpGroupFactor = (group: string): number => CONFIG.XP_FACTOR_MULT[CONFIG.XP_GROUP_FACTOR[group]] ?? 0;
+
+/** X18–X23: a foe's stat rating. Per skill group (a skill's first group) the skills' efforts, highest first, count at 1, ½, ¼…, × the group's XP factor. */
 export function rating(a: Actor): number {
   const lib = getLibrary();
   const by: Record<string, number[]> = {};
   for (const [id, e] of Object.entries(a.core.skills)) {
-    const cat = lib.skills[id]?.xpCategory ?? 'misc';
+    const cat = groupsOf(lib.skills[id])[0] ?? ''; // the skill's first group; no group counts 0
     (by[cat] ??= []).push(effort(skillOpen(a, id) ? e.raw * tierMult(id) : 0)); // the tier counts in the rating
   }
-  return Object.entries(by).reduce((n, [cat, es]) =>
-    n + (CONFIG.XP_CATEGORY_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
+  return levelRating(a) + Object.entries(by).reduce((n, [cat, es]) =>
+    n + xpGroupFactor(cat) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
 }
 
-/** Kill XP = rating × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13). */
+/** an actor's level: its full character level (free and bonus levels count), else an NPC's template level */
+export const actorLevel = (a: Actor): number => charLevel(a) || (a.core.templateId ? npcTemplate(null, a.core.templateId)?.level ?? 0 : 0);
+/** levels in the rating (the thread the foe wove): LEVEL_RATING_SHARE × what the XP curve asks to reach that level */
+export const levelRating = (a: Actor): number => CONFIG.LEVEL_RATING_SHARE * xpToReach(actorLevel(a));
+
+/** a foe's gear in its rating: GEAR_RATING_FACTOR × the coin value of what it holds and wears (gear coin is priced at
+ * about one coin per skill point of power). Carried spares and coin don't count. */
+export function gearRating(state: GameState, a: Actor): number {
+  return CONFIG.GEAR_RATING_FACTOR * a.core.inventory.filter((i) => isHeld(i) || isWorn(i)).reduce((n, i) => n + itemValue(state, itemDef(state, i.itemId)), 0);
+}
+
+/** Kill XP = (rating + gear rating) × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
+ * Gear counts on the foe's side only: the player's own gear never shrinks the taper. */
 export function killXp(state: GameState, t: Actor): number {
-  const theirs = rating(t), mine = rating(state.player);
+  const theirs = rating(t) + gearRating(state, t), mine = rating(state.player);
   const taper = mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1;
   return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
 }
@@ -265,7 +303,7 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   const xp = achXp(d, of);
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
-  if (d.freeLevels) spendXp(state); // free levels need no XP to arrive
+  if (d.freeLevels || d.bonusLevels) spendXp(state); // free and bonus levels need no XP to arrive
   // achievements for the total earned: every other achievement counts, replaced levels too; scars and these totals do not
   if (!d.scar && d.rule !== 'achievements')
     tally(state, 'achievements', { to: pr.achievements!.filter((x) => { const k = lib[x.key ?? '']; return k && !k.scar && k.rule !== 'achievements'; }).length });
