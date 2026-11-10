@@ -90,7 +90,7 @@ const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25,
  * Ranged skills for the throw. */
 const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
   mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reach: 0, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
-  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reach: 1, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
+  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reach: CONFIG.THROWN_REACH_BONUS, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
 /** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
@@ -138,13 +138,13 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.dagger, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reach: 0, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reach: 1, hands: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reach: 0, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reach: 0 + CONFIG.THROWN_REACH_BONUS, hands: 1, thrown: true })] } },
   { id: IT.arming_sword, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
   { id: IT.greataxe, level: 'superior', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
   { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reach: 1, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reach: 1, hands: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reach: 1, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reach: 1 + CONFIG.THROWN_REACH_BONUS, hands: 1, thrown: true })] } },
   { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reach: 3, hands: 2 })] } },
   { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],

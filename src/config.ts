@@ -166,7 +166,9 @@ const DEFAULTS = {
     tool: [5, 10, 15, 20],
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
-  IMPROVISED_HIT_ADJ: -10, // placeholder (loot L3)
+  IMPROVISED_HIT_ADJ: -10,
+  /** a thrown mode reaches its item's melee reach plus this many zones */
+  THROWN_REACH_BONUS: 2, // placeholder (loot L3)
   // Boon (loot V8): a reward's worth to the player. Placeholders, tune after playtests (V8c).
   BOON_COIN: 20, // coin value per Boon, unless the item sets its own boon
   BOON_QUALITY: [1, 2, 3, 5, 8], // multiplier by minted quality (index 0 = not minted)
