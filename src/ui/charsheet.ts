@@ -40,7 +40,8 @@ function attackOf(s: GameState, p: Actor): { name: string; value: number | null 
   const m = safe(() => defaultMode(s, p, 0));
   if (!m) return null;
   const inst = p.core.inventory.find((i) => i.id === m.itemId);
-  return { name: safe(() => itemDef(s, inst!.itemId).name) ?? m.itemId, value: safe(() => effectiveSkill(s, p, modeSkill(m.mode), { itemId: m.itemId, modeId: m.mode.id }).value) };
+  const natural = m.itemId.startsWith('natural:') ? getLibrary().attackModes?.[m.mode.id]?.name?.toLowerCase() ?? m.mode.id : undefined; // a body attack has no item: name its mode (fists)
+  return { name: natural ?? safe(() => itemDef(s, inst!.itemId).name) ?? m.itemId, value: safe(() => effectiveSkill(s, p, modeSkill(m.mode), { itemId: m.itemId, modeId: m.mode.id }).value) };
 }
 
 /** Trees the player has points in, each with its open skills. */
@@ -313,12 +314,10 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   ];
 }
 
-/** Compact sheet beside the story: health, standing defense and skills above 0. */
+/** Compact sheet beside the story: health, morale, gear, coin and skills above 0 (standing attack and defense live on the Character page). */
 export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<string>): HTMLElement[] {
-  const def = standing(s, p);
   const gains = last?.gains ?? {}; // V1b: skill gains from the last played turn
   const healed = new Set((last?.heals ?? []).flatMap((x) => x.parts.filter((pt) => pt.to !== pt.from).map((pt) => pt.id))); // H2 a
-  const atk = attackOf(s, p);
   const hw = heldWorn(s, p);
   return [
     // health and its part chips, then morale, then the body figure (when open)
@@ -326,8 +325,6 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
     pressureChips(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
     h('div', { class: 'cs-row' }, h('span', {}, 'Coin'), h('b', { 'data-m': 'coin' }, coinWords(coins(p)))),
-    h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
-    h('div', { class: 'cs-row' }, h('span', {}, `Standing defense · ${def.kind}`), h('b', {}, whole(def.value))),
     ...[xpLine(p)].filter((x): x is HTMLElement => !!x),
     ...trees(s, p, false).map((t) => h('div', { class: 'cs-mini', style: `--t:var(--${t.c})` },
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
