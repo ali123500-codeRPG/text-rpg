@@ -52,9 +52,9 @@ describe('125 All-50 parts', () => {
     set(p, [SK.eyesight, SK.earshot], 50);
     grantAllSteps(s, p);
     expect(p.core.perks.some((x) => x.source === 'mastery')).toBe(false); // two of three
-    set(p, [SK.insight], 50); // Insight and Earshot have no part yet (Spotter parked): the passive and Night Eyes come
+    set(p, [SK.insight], 50); // Insight has no part yet: the passive, Night Eyes and Know the Step come
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes, PK.know_the_step]);
     const q = makeVillage().player;
     q.core.perks = [];
     set(q, [SK.melee_light, SK.melee_heavy, SK.melee_medium], 0);
@@ -63,7 +63,7 @@ describe('125 All-50 parts', () => {
     const s2 = makeVillage(); s2.player = q;
     grantAllSteps(s2, q);
     expect(q.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.hunters_eye, PK.unerring, PK.volley, PK.past_the_cover]);
-    set(q, [SK.dodge, SK.block], 60); // Defense has two skills now
+    set(q, [SK.dodge, SK.block], 60); // two of Defense's three skills
     grantAllSteps(s2, q);
     expect(q.core.perks.some((x) => x.perkId === PK.dodgy || x.perkId === PK.thick_hide)).toBe(false);
     set(q, [SK.melee_medium], 50); // the third Arms skill: passive + all three parts
@@ -79,12 +79,12 @@ describe('125 All-50 parts', () => {
     set(p, [SK.eyesight, SK.earshot], 50);
     lib.trees[TR.perception].rating = 'superior';
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId)).toEqual([PK.curiouser, PK.night_eyes, PK.know_the_step]);
     set(p, [SK.melee_medium, SK.melee_heavy], 0);
     set(p, [SK.melee_light], 50);
     lib.trees[TR.melee].rating = 'legendary';
     grantAllSteps(s, p);
-    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(2)).toEqual([PK.fighters_frame, PK.counter]);
+    expect(p.core.perks.filter((x) => x.source === 'mastery').map((x) => x.perkId).slice(3)).toEqual([PK.fighters_frame, PK.counter]);
     set(p, [SK.ranged_light, SK.ranged_medium, SK.ranged_heavy], 50);
     lib.trees[TR.ranged].rating = 'inferior';
     grantAllSteps(s, p);

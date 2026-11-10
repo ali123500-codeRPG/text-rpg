@@ -315,7 +315,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   };
   const frame = !ranged && hasPerk(D, PK.fighters_frame) ? CONFIG.FIGHTERS_FRAME_MULT : 1; // All-50: Fighter's Frame, on health lost (after armor)
   const knuckles = mode.tree === 'unarmed' && hasPerk(A, PK.iron_knuckles) ? CONFIG.IRON_KNUCKLES_MULT : 1; // All-50: Iron Knuckles
-  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * knuckles; // 40/80/120 perk: Heavy Hand
+  const improvised = skill === SK.unarmed_improvised || !!mode.blend?.some((b) => b.skill === SK.unarmed_improvised);
+  const junk = improvised && hasPerk(A, PK.junk_arsenal) ? CONFIG.JUNK_ARSENAL_MULT : 1; // All-50: Junk Arsenal
+  const raw = (cls.damage + (mode.damageAdj ?? 0)) * multiplier * boostMult(A, skill, 'damageMult') * knuckles * junk; // 40/80/120 perk: Heavy Hand
   const hide = location !== 'shield' && hasPerk(D, PK.thick_hide) ? CONFIG.THICK_HIDE_MULT : 1; // All-50: Thick Hide, on the body hit before armor
   const body = raw * hide;
   const generalShare = openArm ? afterArmor(body * (1 - CONFIG.OPEN_HAND_ARM_SHARE), 'general') * frame : 0;
