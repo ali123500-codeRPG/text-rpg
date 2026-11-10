@@ -682,7 +682,7 @@ export function prototypeLibrary(): Library {
       [ACH.class_tiers_4]: { id: ACH.class_tiers_4, name: 'Across Four Heights', level: 'iv', rule: 'class_max_tiers', tags: ['progression'], count: 4, after: ACH.class_tiers_3, freeLevels: 3 },
       [ACH.class_tiers_5]: { id: ACH.class_tiers_5, name: 'Across Five Heights', level: 'v', rule: 'class_max_tiers', tags: ['progression'], count: 5, after: ACH.class_tiers_4, freeLevels: 4 },
       [ACH.class_tiers_all]: { id: ACH.class_tiers_all, name: 'Every Height Climbed', level: 'vi', rule: 'class_max_tiers', tags: ['progression'], count: CLASS_TIERS.keys.length, after: ACH.class_tiers_5, freeLevels: 5 },
-      [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Woven Past Counting ({level})', level: 'zero', rule: 'char_level', tags: ['progression'], count: 10, every: 10,
+      [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Woven Past Counting ({level})', level: 'minus_1', rule: 'char_level', tags: ['progression'], count: 10, every: 10, levelStep: 1,
         names: { 10: 'No Longer Green', 20: 'Steady Hand', 30: 'Battle-Tested', 40: 'A Name Worth Knowing', 50: 'Half a Hundred Roads',
           60: 'Something Tugs at the Edges', 70: 'The Pattern Takes Notice', 80: 'Caught in the Weave', 90: 'A Thread That Will Not Fray', 100: 'One Who Pulls the Threads' } },
     },

@@ -10,6 +10,8 @@ import { spawnNpc, validateBuild } from '../library/spawn';
 import { playerFromBuild } from './sheet';
 import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
+import { ACH } from '../library/achievementIds';
+import { achievementInfo, grantAchievement } from '../engine/xp';
 import { placeName } from '../agents/game';
 
 const NARRATION = [
@@ -17,6 +19,46 @@ const NARRATION = [
   'You step out past the gate. The field is streaked with silver trails, and something low and glistening shifts in the long grass by the trees.',
   'The slime lurches at you. You bring the round shield across, and the blow slaps wetly against the boards; your counter cuts a long furrow through its body.',
 ];
+
+/** a canned exchange of blows on the fake page: the player loses health and the right arm, and gains Block, XP and coin */
+function fightTurn(st: GameState): Partial<LogLine> {
+  const p = st.player;
+  p.core.condition.hpLostPct = Math.min(99, p.core.condition.hpLostPct + 35);
+  p.core.condition.parts.right_arm = -10;
+  const blk = p.core.skills[SK.block];
+  if (blk) blk.raw += 2; else p.core.skills[SK.block] = { raw: 2, state: 'normal' } as typeof p.core.skills[string];
+  if (p.progression) p.progression.xp += 40;
+  const purse = p.core.inventory.find((i) => i.itemId === IT.coin);
+  if (purse) purse.qty = (purse.qty ?? 1) + 15; else p.core.inventory.push({ id: 'player_coin', itemId: IT.coin, qty: 15 });
+  // the late block cost the shield too, so its state on the gear line lands (Q2)
+  const lib = getLibrary();
+  const shield = p.core.inventory.find((i) => i.equippedIn?.length && lib.items[i.itemId]?.shield);
+  if (shield) shield.pools = { ...shield.pools, shield: Math.min(40, (shield.pools?.shield ?? 100) - 60) };
+  return {
+    text: 'The slime rears and lashes down. You get the shield up late; the blow tears past it and something in your right arm gives with a wet crack. You answer anyway, a heavy cut that opens its side. It sags, steaming, and coins spill from its gut into the grass.',
+    check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: 'heavy hit, body' },
+    incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'critical_success', against: { what: 'your block', tier: 'near_miss' }, result: 'crushing hit, right arm', by: 'the slime' }],
+    changes: [{ kind: 'combat', text: 'Slime → you · crushing hit, right arm' }, { kind: 'combat', text: 'You → slime · heavy hit, body' }, { kind: 'condition', text: 'Your right arm is crippled' }],
+    wounds: [{ id: 'right_arm', from: 'Healthy', to: 'Crippled' }], gains: { [SK.block]: 2 },
+  };
+}
+
+function levelTurn(st: GameState): Partial<LogLine> {
+  const p = st.player, c = p.core.classes[0];
+  if (!c || !p.progression) return {};
+  c.level += 1;
+  p.progression.xp = 20;
+  p.progression.unspentPerkPoints += 1;
+  return { levelUps: [{ classId: c.classId, level: c.level }] };
+}
+
+/** grants achievements through the engine and returns them as the turn line carries them */
+function earnTurn(st: GameState, keys: string[]): Partial<LogLine> {
+  const pr = st.player.progression;
+  const had = new Set((pr?.achievements ?? []).map((a) => a.id));
+  for (const k of keys) grantAchievement(st, k, undefined, 1);
+  return { achievements: (pr?.achievements ?? []).filter((a) => !had.has(a.id)).map((a) => achievementInfo(st, a)) };
+}
 
 export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);
 
@@ -51,7 +93,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
-    player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 });
+    player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
+      { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['hand:left'], pools: { shield: 70 } }); // the shield the story says you raise
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scene: 1 },
@@ -99,8 +142,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
       if (drop) fell = true;
+      // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
+      const hurt = /^attack\b/i.test(text) ? fightTurn(state) : null;
+      // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
+      const lvl = /^train\b/i.test(text) ? levelTurn(state) : null;
+      // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
+      const earned = hurt || /^spar\b/i.test(text) ? earnTurn(state, hurt ? [ACH.crippled_1] : [ACH.spar_losses_1]) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}) }];
+        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },

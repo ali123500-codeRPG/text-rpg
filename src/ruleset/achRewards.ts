@@ -148,16 +148,26 @@ export function rewardLines(d: AchievementDef): string[] {
   return chainRewards(d).flatMap((e) => linesOf(e.from, e.field).map((l) => e.from === d ? l : `${l} (from ${e.from.name})`));
 }
 
-/** the reward level an achievement pays for `of`: its own level, raised by levelUp for that kind (capped at the top) */
-export function achLevel(d: { level: string; levelUp?: Partial<Record<string, number>> }, of?: string): string {
-  const up = (of && d.levelUp?.[of]) || 0;
-  return up && REWARD_LEVELS.has(d.level) ? REWARD_LEVELS.at(Math.min(REWARD_LEVELS.keys.length - 1, REWARD_LEVELS.pos(d.level as 'i') + up)) : d.level;
+/** Reward levels are the rows of REWARD_LEVELS (−1 to XV); a level past the top stays at the top. These helpers are the
+ * one way to read a reward level's position, name and XP. */
+const TOP = () => REWARD_LEVELS.keys.length - 1;
+export const rewardPos = (key: string): number => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.pos(key as 'i') : -1);
+export const rewardKeyAt = (pos: number): string => REWARD_LEVELS.at(Math.min(TOP(), Math.max(0, pos)));
+export const rewardName = (key: string): string => (REWARD_LEVELS.has(key) ? REWARD_LEVELS.name(key as 'i') : key);
+export const rewardXp = (key: string): number => CONFIG.REWARD_XP[key] ?? 0;
+
+/** an achievement's reward level for one earning: its row's level, + levelUp for that kind, + levelStep for each `every`
+ * step past its first count (an every-N row climbs as it is earned again), capped at the top level (XV). */
+export function achLevel(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number }, of?: string): string {
+  const steps = d.every && d.levelStep && of && Number.isFinite(+of) ? Math.max(0, Math.floor((+of - (d.count ?? d.every)) / d.every)) * d.levelStep : 0;
+  const up = ((of && d.levelUp?.[of]) || 0) + steps;
+  return up && rewardPos(d.level) >= 0 ? rewardKeyAt(rewardPos(d.level) + up) : d.level;
 }
 
-/** the XP an achievement pays: its reward level's XP; a scar pays the level one step below (below 0: SCAR_XP_BELOW_ZERO) */
-export function achXp(d: { level: string; levelUp?: Partial<Record<string, number>>; scar?: true }, of?: string): number {
+/** the XP an achievement pays: its reward level's XP; a scar pays the level one step below (none below the lowest) */
+export function achXp(d: { level: string; levelUp?: Partial<Record<string, number>>; count?: number; every?: number; levelStep?: number; scar?: true }, of?: string): number {
   const lv = achLevel(d, of);
-  if (!d.scar) return CONFIG.REWARD_XP[lv] ?? 0;
-  const i = REWARD_LEVELS.has(lv) ? REWARD_LEVELS.pos(lv) : -1;
-  return i > 0 ? CONFIG.REWARD_XP[REWARD_LEVELS.at(i - 1)] ?? 0 : CONFIG.SCAR_XP_BELOW_ZERO;
+  if (!d.scar) return rewardXp(lv);
+  const i = rewardPos(lv);
+  return i > 0 ? rewardXp(rewardKeyAt(i - 1)) : 0;
 }

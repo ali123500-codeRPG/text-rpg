@@ -3,7 +3,7 @@
 // status strip that opens the full sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
-import type { Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
+import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
@@ -19,9 +19,14 @@ import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
-import { sideSheet, statusStrip } from './charsheet';
+import { shownValues, sideSheet, statusStrip, type ShownValues } from './charsheet';
 import { skillName } from './creation';
-import { healCard, healIcon, partName, quickHeal } from './healing';
+import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
+import { applyMotion, arrive, bar as barMove, count, delta, finishAll, motionOn, moving, ms, play, pulse, sentences, setMotion, slam, stamp } from './motion';
+import { coinWords } from '../engine/trade';
+import { closePop, openPop } from './pop';
+import { PART_STATES, SHOWN_LEVELS, working } from '../ruleset/body';
+import type { AttackOutcome, PartState } from '../types';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scene_fallback: 'Scene planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -50,6 +55,17 @@ function checkIcon(kind: 'attack' | 'contest' | 'roll'): SVGSVGElement {
 }
 const tierChip = (t: TierRoll) => h('span', { class: 'tier ' + (tierAtLeast(t, 'great_success') ? 'great' : tierAtLeast(t, 'success') ? 'ok' : tierAtLeast(t, 'near_miss') ? 'near' : 'bad') }, tierName(t));
 
+/** M-20: how hard each outcome label lands, 0 (no motion) to 4; hits are coloured by whose loss they are */
+const OUTCOME_BEAT: Record<AttackOutcome, number> = { missed: 0, dodged: 0, parried: 1, blocked: 1, grazed: 1, full_hit: 2, heavy_hit: 3, crushing_hit: 4 };
+const OUTCOME_HIT = new Set<AttackOutcome>(['grazed', 'full_hit', 'heavy_hit', 'crushing_hit']);
+/** the outcome label a check line's result starts with ("heavy hit, head" → heavy_hit), if any */
+const outcomeOf = (result: string): AttackOutcome | null =>
+  (Object.keys(OUTCOME_BEAT) as AttackOutcome[]).find((k) => result.startsWith(k.replace(/_/g, ' '))) ?? null;
+/** a health level's place on the shown track (Unhurt 0 … Incapacitated last) */
+const levelAt = (l: string) => SHOWN_LEVELS().findIndex(([x]) => x === l);
+const levelOfPart = (st: string) => PART_STATES.indexOf(st as PartState);
+type Around = { who: Record<string, string>; head: Record<string, string>; heal: string };
+
 const SLOW_AFTER_S = 90; // past this the waiting line gets a "taking longer than usual" note
 const secs = (since: number) => Math.max(0, Math.round((Date.now() - since) / 1000));
 
@@ -76,6 +92,9 @@ const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }>
 const PERK_SOLO_IDEA: Record<string, { text: string; note: string }> = {
   [PK.battle_cry]: { text: 'Let out a battle cry', note: 'Battle Cry · your action, once a fight' },
 };
+
+/** an idea's short label as the player would type it: "Talk to Tam" fills the box as "I talk to Tam" (ideas start with a verb) */
+export const asI = (label: string) => `I ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
 
 /** the same name twice in one list reads as "the other …" from its second time on */
 function apart(names: string[]): string[] {
@@ -165,7 +184,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let confirmReset = false;
   // the fall: the story shakes and drains for a moment before "You fell" slams in (only when it happens in play, not on load)
   let wasFallen: boolean | null = null, dyingUntil = 0, fellKey = '';
-  const FALL_MS = 1400;
+  const FALL_MS = () => ms('--m-fall') || 1400;
   // the story: an append-only list (role=log announces each new entry once); the waiting line sits outside it
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
@@ -187,6 +206,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn), h('div', { class: 'hs-picker' }, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, tools);
   const fell = h('div', { class: 'fell', hidden: true });
+  const edge = h('div', { class: 'm-edge', 'aria-hidden': 'true' }); // M-33: the red edge when hurt badly
   const body = h('div', { class: 'play' }, story, h('div', { class: 'sec col' }, notices, helpPanel, bar));
   const title = h('div', { class: 'head' });
   const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
@@ -208,11 +228,16 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     for (const ch of text) { input.value += ch; await new Promise((r) => setTimeout(r, Math.min(35, 1500 / text.length))); }
     await submit(true);
   }, () => update());
-  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell);
+  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell, edge);
+  applyMotion();
+  if (typeof matchMedia === 'function') matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', () => { applyMotion(); if (el.isConnected) update(); });
+  // M-12: a click on the story finishes everything still moving
+  story.addEventListener('click', () => { if (moving()) finishAll(); });
 
   // Escape closes whatever is open; PageUp/PageDown scroll the story while the box has focus; Tab takes the suggestion
   document.addEventListener('keydown', (e) => {
     if (!el.isConnected || el.hidden) return;
+    if (e.key === 'Escape' && moving()) { finishAll(); return; } // M-12: while something moves, Esc only skips
     if (e.key === 'Escape') {
       if (dealsOpen || open) { dealsOpen = false; open = null; update(); }
       else if (suggestion && document.activeElement === input && !input.value) { suggestion = ''; update(); }
@@ -231,6 +256,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   async function submit(byAgent = false) {
     const text = input.value.trim();
     if (!text || api.busy() || (auto.playing() && !byAgent)) return;
+    finishAll(); // M-12: sending finishes everything still moving
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
     if (NAV_COMMANDS[cmd] && text === cmd) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
@@ -244,13 +270,45 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   /** opens the Character page at its Perks section */
   const seePerks = () => { nav('stats'); setTimeout(() => document.querySelector('.pk')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
-  const goldCard = (title: string, sub: string, action?: [string, () => void]) => h('div', { class: 'perk-new' }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
+  const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
     h('div', {}, title, h('small', {}, sub)), action ? h('button', { type: 'button', class: 'hs-btn-text', onclick: action[1] }, action[0]) : null);
+
+  /** an achievement or scar earned this turn: its name, reward level and what it asks for; a click shows why it was
+   * earned, its XP and its rewards in a details pop-up. Scars carry the danger colour and a different mark. */
+  const achCard = (a: AchievementNote) => {
+    const kind = a.scar ? 'Scar' : 'Achievement';
+    const card = h('div', { class: `perk-new ach${a.scar ? ' scar' : ''}`, role: 'button', tabindex: '0', 'data-ach': a.id,
+      'aria-label': `${kind}: ${a.name}${a.levelName ? `, tier ${a.levelName}` : ''}. Show why you earned it` },
+      h('span', { class: 'st', 'aria-hidden': 'true' }, a.scar ? '✶' : '✦'),
+      h('div', { class: 'ach-txt' }, h('span', { class: 'ach-k' }, kind, a.levelName ? h('span', { class: 'ach-lv', title: 'Reward tier: it sets the XP and grows with how hard it is to earn' }, `Tier ${a.levelName}`) : null),
+        h('b', { class: 'ach-n' }, a.name), a.earnedAt ? h('small', {}, cap(a.earnedAt)) : null),
+      h('span', { class: 'hs-btn-text ach-why', 'aria-hidden': 'true' }, 'Why?'));
+    const show = () => {
+      if (moving()) return; // M-12: a click while it still arrives only skips (the story's click handler)
+      openPop({ title: kind, opener: card, tone: a.scar ? 'danger' : 'scene-mark', cls: 'ach-pop', body: [
+        h('p', { class: 'ach-pop-n' }, h('b', {}, a.name), a.levelName ? h('span', { class: 'ach-lv' }, `Tier ${a.levelName}`) : null),
+        a.why ? h('p', { class: 'ach-pop-why' }, a.why) : null,
+        h('dl', { class: 'ach-pop-dl' },
+          a.earnedAt ? [h('dt', {}, 'Earned at'), h('dd', {}, cap(a.earnedAt))] : null,
+          a.xp ? [h('dt', {}, 'XP'), h('dd', {}, `+${a.xp}`)] : null,
+          a.rewards?.length ? [h('dt', {}, 'Rewards'), h('dd', {}, h('ul', {}, a.rewards.map((r) => h('li', {}, r))))] : null),
+        h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { closePop(); nav('achievements'); } }, a.scar ? 'See all scars' : 'See all achievements'),
+      ] });
+    };
+    card.addEventListener('click', show);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); } });
+    return card;
+  };
 
   // ---- the story list: one cached entry per line, so redraws never rebuild it or close an opened fold
   const entries = new WeakMap<LogLine, HTMLElement>();
   let snap: Record<string, string> | null = null, snapLine: LogLine | null | undefined;
   let changedParts = new Set<string>(); // parts whose state the last turn changed: the body figure opens once
+  // motion: the values the screen showed after the last turn landed, and a narration line that just arrived live
+  let shownBefore: ShownValues | null = null, fresh: LogLine | null = null, firstLine: LogLine | undefined;
+  let sheetHtml = '', whoHtml = '', titleHtml = '';
+  // what Who's here, the header and the quick slot showed after the last turn, for their beats (M-36)
+  let shownAround: Around | null = null;
   let limit = TURNS_SHOWN;
   const undoneOpen = new Set<number>(); // undone blocks the player unfolded, by the undo line's index
   const markers = new Map<number, HTMLElement>();
@@ -260,7 +318,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const checkLine = (c: NonNullable<LogLine['check']>, by?: string) => h('p', { class: 'check' + (by ? ' in' : '') }, checkIcon(c.kind),
     h('span', { class: 'sk' }, by ? cap(by) : skillName(c.skill)), tierChip(c),
     c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against), h('span', { class: 'gap' }, tierGap(c, c.against))] : null,
-    h('span', { class: 'res' }, '→ ', h('b', {}, c.result)));
+    h('span', { class: 'res' }, '→ ', ((o) => h('b', { class: o && OUTCOME_HIT.has(o) ? 'hit' : '', 'data-o': o ? String(OUTCOME_BEAT[o]) : '0' }, c.result))(outcomeOf(c.result))));
 
   function results(l: LogLine, s: GameState | null): HTMLElement | null {
     const lib = getLibrary();
@@ -280,8 +338,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       gains.length ? row('Skills', gains.map(([k, n]) => `${skillName(k)} +${n}`).join(' · ')) : null,
       xp ? row('XP', `+${xp}`) : null,
       ...(l.heals ?? []).map(healCard),
-      ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks])),
-      ...(l.achievements ?? []).map((a) => goldCard('Achievement', a.name, ['See achievements', () => nav('achievements')])),
+      ...(l.wounds ?? []).filter((w) => !working(w.to as PartState)).map(woundCard),
+      ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks], true)),
+      ...(l.achievements ?? []).map(achCard),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
       ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks])),
       l.mechanics?.length ? h('details', { class: 'rolls' }, h('summary', {}, h('span', { class: 'hs-label' }, 'Rolls')),
@@ -305,7 +364,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
       ((b) => b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scene') }, b))(breakFor(l, prev)),
-      h('p', { class: 'ln-narration' }, l.text),
+      // M-10: each sentence its own span, so the reveal can pace them; the text is unchanged
+      h('p', { class: 'ln-narration' }, sentences(l.text).flatMap((t, i) => [i ? ' ' : '', h('span', { class: 'sn' }, t)])),
       l.speech?.length ? h('div', { class: 'speech' }, l.speech.flatMap((sp) => [
         h('p', { class: 'who2', style: `color:var(--${colourOf(sp.speaker)})` }, sp.speaker.toLowerCase() === 'player' ? 'You' : cap(sp.speaker),
           VOLUME_WORD[sp.volume] ? h('span', { class: 'how' }, VOLUME_WORD[sp.volume]) : null),
@@ -323,8 +383,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const lastNarr = [...lines].reverse().find((l) => l.kind === 'narration') ?? null;
     if (s && !api.busy()) {
       const cur = partsOf(s, s.player);
-      if (snap && snapLine !== undefined && lastNarr && lastNarr !== snapLine && !entries.has(lastNarr))
+      if (snap && snapLine !== undefined && lastNarr && lastNarr !== snapLine) {
         changedParts = new Set(Object.keys(cur).filter((k) => snap![k] && snap![k] !== cur[k]));
+        fresh = lastNarr; // M-61: only this newest live turn animates
+      }
       snap = cur; snapLine = lastNarr;
     }
     // undone turns: the lines of turn N before each "Turn undone." line, folded under one "Undone · turn N" row
@@ -366,6 +428,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   function update() {
     const s = api.state();
+    // M-06: while a turn runs, the header, Who's here and the sheet keep showing what they showed before it
+    const frozen = api.busy() && title.childElementCount > 0;
     const pv = s ? safe(() => buildPlayerView(s)) : null;
     const stealthy = s?.player.posture === 'stealthy';
     bar.classList.toggle('stealthy', stealthy);
@@ -384,21 +448,33 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const rollsBtn = s && CONFIG.SHOW_MECHANICS ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(show),
       title: show ? 'Rolls show under each turn. Click to hide them' : 'Click to show the dice and modifiers under each turn',
       onclick: () => { s.settings.showMechanics = !show; update(); } }, show ? '✓ Show rolls' : 'Show rolls') : null;
+    // M-72: the Motion switch, kept per viewer; it starts from the system's reduced-motion setting
+    const mOn = motionOn();
+    const motionBtn = h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(mOn),
+      title: mOn ? 'Values animate when they change. Click to turn motion off' : 'Values change without moving. Click to turn motion on',
+      onclick: () => { setMotion(!mOn); update(); } }, mOn ? '✓ Motion' : 'Motion');
     // the header names the last turn played, the one the last results row shows
     const lastTurn = [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
-    title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), h('div', { class: 'title-tools' }, s ? auto.opener : '', rollsBtn ?? ''));
+    // data-mh names the header pieces that get a beat when they change (M-36); the place line changes quietly (M-41)
+    const mh = <T extends Element | null>(key: string, x: T): T => { x?.setAttribute('data-mh', key); return x; };
+    const titleKids = [h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, s ? auto.opener : '', rollsBtn ?? '', motionBtn)];
+    const titleNow = titleKids.map((k) => k.outerHTML).join('');
+    if (!frozen && titleNow !== titleHtml) { title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
-    who.replaceChildren(h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp' }, h('b', {}, cap(a.name ?? a.label)),
+    const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label) }, h('b', {}, cap(a.name ?? a.label)),
       a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, isDownLevel(a.health) ? 'Down' : a.health)
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
       // MB16: others' morale, only from Afraid down
       a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
       // A13 Read Wounds: a foe's Damaged parts
-      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`)))) : [h('span', { class: 'hs-note' }, 'Nobody in view')]));
+      ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`)))) : [h('span', { class: 'hs-note' }, 'Nobody in view')])];
+    // a redraw that changes nothing keeps the old elements, so nothing restarts (M-74)
+    const whoNow = whoKids.map((k) => k.outerHTML).join('');
+    if (!frozen && whoNow !== whoHtml) { who.replaceChildren(...whoKids); whoHtml = whoNow; }
 
     // Q16: what the player put off last turn is offered as a dimmed suggestion; nothing is typed or sent until they take it
     const nextLine = lines.at(-1);
@@ -431,7 +507,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'));
     else if (open === 'ideas') helpPanel.replaceChildren(head('Ideas · from what you can see now'),
       h('div', { class: 'idea-groups' }, (pv ? ideas(pv) : []).map((g) => h('div', {}, h('p', { class: 'hs-label' }, g.group),
-        g.items.length ? h('ul', {}, g.items.map((it) => h('li', {}, h('button', { type: 'button', onclick: () => pick(it.text) }, it.text, it.note ? h('span', {}, it.note) : null))))
+        g.items.length ? h('ul', {}, g.items.map((it) => h('li', {}, h('button', { type: 'button', onclick: () => pick(asI(it.text)) }, it.text, it.note ? h('span', {}, it.note) : null))))
           : h('p', { class: 'hs-note' }, 'Nothing right now')))),
       h('p', { class: 'hs-note' }, 'Built by code from what your character can see and carries, refreshed every turn. Picking one fills the box; nothing is sent until you press Send.'));
     if (stick || busy) story.scrollTop = story.scrollHeight;
@@ -466,15 +542,18 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const setFolded = (f: boolean) => { folded = f; try { localStorage.setItem(foldKey(), f ? '1' : '0'); } catch { /* not saved */ } update(); };
     sheet.classList.toggle('folded', folded);
     wrap.classList.toggle('sheet-open', !folded);
-    if (s && folded) sheet.replaceChildren(h('button', { type: 'button', class: 'cs-strip', 'aria-expanded': 'false', title: 'Open your full sheet', onclick: () => setFolded(false) },
+    const sheetKids: HTMLElement[] = [];
+    if (s && folded) sheetKids.push(h('button', { type: 'button', class: 'cs-strip', 'aria-expanded': 'false', title: 'Open your full sheet', onclick: () => setFolded(false) },
       h('span', { class: 'hs-label' }, 'Your sheet ›'), ...statusStrip(s, s.player), stealthy ? h('span', { class: 'cs-stl' }, 'Stealthy') : null));
-    else sheet.replaceChildren(h('div', { class: 'cs-side-h' }, h('p', { class: 'hs-section' }, 'Your sheet'),
+    else sheetKids.push(h('div', { class: 'cs-side-h' }, h('p', { class: 'hs-section' }, 'Your sheet'),
       h('button', { class: 'hs-btn-text', type: 'button', 'aria-expanded': 'true', onclick: () => setFolded(true) }, 'Close ×')),
       ...(s ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration'), changedParts) : []));
+    const sheetNow = sheetKids.map((k) => k.outerHTML).join('');
+    if (!frozen && sheetNow !== sheetHtml) { sheet.replaceChildren(...sheetKids); sheetHtml = sheetNow; }
 
     const fallen = api.fell();
-    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (wasFallen === false && fallen && !calm) { dyingUntil = Date.now() + FALL_MS; setTimeout(update, FALL_MS + 20); }
+    const calm = !motionOn();
+    if (wasFallen === false && fallen && !calm) { finishAll(); dyingUntil = Date.now() + FALL_MS(); setTimeout(update, FALL_MS() + 20); }
     wasFallen = fallen;
     const dying = fallen && Date.now() < dyingUntil;
     el.classList.toggle('dying', dying);
@@ -503,6 +582,221 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
               : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset')));
       }
     }
+    // motion: the newest live turn animates from what the screen showed before it (M-61, M-74); everything else lands as is
+    if (s && !api.busy()) {
+      const after = shownValues(s, s.player);
+      if (lines[0] !== firstLine) { if (firstLine !== undefined) shownBefore = null; firstLine = lines[0]; } // a new story: no "before"
+      const readOnly = ns.some((n) => n.kind === 'read_only');
+      const around = aroundNow();
+      if (fresh && !fallen && !readOnly) animateTurn(entries.get(fresh), shownBefore, after, shownAround, around);
+      shownBefore = after; shownAround = around;
+      el.classList.toggle('crit', levelAt(after.level) >= levelAt(CONFIG.MOTION_EDGE_STEADY) && !fallen);
+    }
+    fresh = null;
+  }
+
+  /** M-10–M-38: one live turn's motion, all on top of the final state. Prose sentence by sentence, then its results row by
+   * row, then the sheet in the order health, body parts, morale, skills, XP and level, coin, then gold cards. */
+  /** Who's here (by the name shown, with its status words), the header's marked pieces and the quick slot, as shown now */
+  function aroundNow(): Around {
+    const text = (x: Element) => (x.textContent ?? '').trim();
+    return {
+      who: Object.fromEntries(Array.from(who.querySelectorAll('[data-who]')).map((x) => [x.getAttribute('data-who')!, text(x)])),
+      head: Object.fromEntries(Array.from(title.querySelectorAll('[data-mh]')).map((x) => [x.getAttribute('data-mh')!, x.getAttribute('data-mh') === 'tod' ? x.outerHTML : text(x)])),
+      heal: healBtn.hidden ? '' : text(healBtn),
+    };
+  }
+
+  function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around) {
+    finishAll();
+    if (!e || !motionOn()) return;
+    let t = 0;
+    // M-40/M-42: a scene or place break draws across first, outward from its name
+    const brk = e.querySelector('.pbreak');
+    if (brk) {
+      const d = ms('--m-scene');
+      play(brk, [{ opacity: 0 }, { opacity: 1 }], { dur: d / 2 });
+      play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'right' }, { transform: 'scaleX(1)', transformOrigin: 'right' }], { dur: d, pseudo: '::before' });
+      play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'left' }, { transform: 'scaleX(1)', transformOrigin: 'left' }], { dur: d, pseudo: '::after' });
+      t += d * 0.6;
+    }
+    // M-10/M-11: the prose, sentence by sentence (opacity only: a sentence is inline text), then what was said and the time row
+    const gap = ms('--m-sentence'), fade = ms('--m-state');
+    const parts = Array.from(e.querySelectorAll('.ln-narration .sn'));
+    const extra = Array.from(e.querySelectorAll(':scope > .speech, :scope > .tpass, :scope > .time-passed'));
+    const span = Math.max(0, Math.min(gap * (parts.length + extra.length - 1), ms('--m-reveal-cap') - fade));
+    const each = parts.length + extra.length > 1 ? span / (parts.length + extra.length - 1) : 0;
+    parts.forEach((x, i) => play(x, [{ opacity: 0 }, { opacity: 1 }], { dur: fade, delay: t + each * i }));
+    extra.forEach((x, i) => arrive(x, t + each * (parts.length + i)));
+    t += span + fade;
+    // M-21: the results under the prose, top to bottom, then the sheet, then gold cards; past the cap the rest lands at once
+    const stagger = ms('--m-stagger'), end = t + ms('--m-results-cap');
+    const at = (step: number) => { const now = Math.min(t, end); t += step; return now; };
+    const rows = Array.from(e.querySelectorAll(':scope > .results > *'));
+    const gold = rows.filter((x) => x.classList.contains('perk-new'));
+    for (const r of rows.filter((x) => !gold.includes(x))) {
+      const d = at(stagger / 2);
+      arrive(r, d);
+      // M-20: the outcome word's beat, by severity
+      const w = r.querySelector('.res b'), o = Number(w?.getAttribute('data-o') ?? 0);
+      if (w && o === 1) play(w, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-beat'), delay: d + fade });
+      else if (w && o > 1) pulse(w, d + fade, o - 1, o > 2);
+      if (r.classList.contains('wcard')) pulse(r, d + fade, 2);
+    }
+    if (b) sheetBeats(b, a, at, stagger);
+    if (ab) aroundBeats(ab, aa, Math.min(t, end));
+    let pointsAt: number | null = null;
+    for (const g of gold) {
+      const d = at(stagger);
+      if (g.classList.contains('ach')) { const n = honor(g as HTMLElement, d); t += n; continue; }
+      arrive(g, d, 6); pulse(g.querySelector('.st'), d + fade, 2);
+      if (pointsAt === null && g.hasAttribute('data-levelup')) pointsAt = d + fade;
+    }
+    // M-38: the rail's perk-point badge lands with the level-up card that gave the point, never before it
+    if (b && a.points !== b.points) pointsBeat(b.points, a.points, pointsAt ?? at(stagger));
+  }
+
+  /** M-38: an achievement is the turn's special moment, so it gets its own beat: the card rises in, a band of light
+   * sweeps across it once, then its reward level lands. A scar comes in heavier and darker, with no light. Returns
+   * how long it holds the cards after it. */
+  function honor(g: HTMLElement, d: number): number {
+    const dur = ms('--m-honor'), beat = ms('--m-beat');
+    if (g.classList.contains('scar')) {
+      play(g, [{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'none' }], { dur: beat, delay: d });
+      pulse(g.querySelector('.st'), d + beat, 3, true);
+      stamp(g.querySelector<HTMLElement>('.ach-lv'), d + beat);
+      return beat;
+    }
+    play(g, [{ opacity: 0, transform: 'translateY(8px) scale(.97)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') * 2, delay: d });
+    play(g, [{ transform: 'translateX(-100%)' }, { transform: 'translateX(100%)' }], { dur, delay: d + ms('--m-state'), pseudo: '::after' });
+    pulse(g.querySelector('.st'), d + ms('--m-state'), 3);
+    stamp(g.querySelector<HTMLElement>('.ach-lv'), d + dur / 2);
+    return dur / 2;
+  }
+
+  /** the rail's ✦n badge (it lives outside the Play screen): a new badge fades in, a changed count swaps at its beat */
+  function pointsBeat(from: number, to: number, d: number) {
+    const badge = document.querySelector<HTMLElement>('.game-rail [data-m="points"]');
+    if (!badge || to <= 0) return;
+    if (from > 0) { stamp(badge, d, `✦${from}`); pulse(badge, d + ms('--m-beat')); }
+    else { arrive(badge, d, 0); pulse(badge, d + ms('--m-state'), 2); }
+  }
+
+  /** M-30–M-38: the sheet's beats, each on its own element; a value animates only if it changed */
+  function sheetBeats(b: ShownValues, a: ShownValues, at: (step: number) => number, stagger: number) {
+    const q = (sel: string, root: ParentNode = sheet) => root.querySelector<HTMLElement>(sel);
+    const num = (n: number) => String(+n.toFixed(2));
+    const whole = (n: number) => String(Math.round(n)); // while counting; the final text keeps its fractions
+    const sign = (n: number, f: (x: number) => string = num) => (n > 0 ? '+' : '−') + f(Math.abs(n));
+    // health: the number counts, the bar leaves a trail, a new level word lands; Wounded or worse pulses the edge once
+    if (a.hp !== b.hp || a.level !== b.level || a.hpFill !== b.hpFill) {
+      const d = at(stagger);
+      if (a.hp !== null && b.hp !== null && a.hp !== b.hp) {
+        count(q('[data-m="hp"]'), b.hp, a.hp, whole, d);
+        delta(q('[data-m="hp"]'), sign(a.hp - b.hp), a.hp < b.hp ? 'danger' : 'ok', d);
+      }
+      barMove(q('[data-m="hp-track"]'), q('[data-m="hp-track"] > b'), b.hpFill, a.hpFill, d);
+      if (a.level !== b.level) {
+        stamp(q('[data-m="hp-level"]'), d, b.level);
+        if (levelAt(a.level) > levelAt(b.level) && levelAt(a.level) >= levelAt(CONFIG.MOTION_EDGE_FROM)) {
+          const steady = levelAt(a.level) >= levelAt(CONFIG.MOTION_EDGE_STEADY);
+          play(edge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: steady ? 0.45 : 0 }], { dur: ms('--m-scene'), delay: d });
+        }
+      }
+    }
+    // body parts: the chip lands (hard when worse), the figure's part and the turn's card pulse once
+    const changed = Object.keys(a.parts).filter((k) => b.parts[k] !== undefined && a.parts[k] !== b.parts[k]);
+    if (changed.length) {
+      const d = at(stagger);
+      for (const k of changed) {
+        const worse = levelOfPart(a.parts[k]) > levelOfPart(b.parts[k]);
+        const chip = q(`.cs-pchip[data-part="${k}"]`);
+        if (worse) slam(chip, d); else pulse(chip, d);
+        play(q(`path[data-part="${k}"]`), [{ opacity: 1 }, { opacity: 0.25, offset: 0.4 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });
+      }
+    }
+    // gear lines (M-35, M-32): a shield's state or a pool's points land; an item that is gone fades out of its line
+    const gearChanged = Object.keys({ ...a.gear, ...b.gear }).filter((k) => JSON.stringify(a.gear[k]) !== JSON.stringify(b.gear[k]));
+    if (gearChanged.length) {
+      const d = at(stagger);
+      for (const k of gearChanged) {
+        const line = q(`[data-gear="${CSS.escape(k)}"]`);
+        if (!b.gear[k]) arrive(line, d);
+        else if (!a.gear[k]) {
+          const host = q('.cs-hw') ?? q('.cs-held');
+          if (!host) continue;
+          const g = h('span', { class: 'cs-gi m-ghost', 'aria-hidden': 'true' }, ' · ', b.gear[k].name);
+          host.append(g);
+          play(g, [{ opacity: 1 }, { opacity: 1, offset: 0.4 }, { opacity: 0 }], { dur: ms('--m-trail'), delay: d, exit: true, done: () => g.remove() });
+        } else { stamp(q('[data-m="gear-note"]', line ?? sheet), d, b.gear[k].note); pulse(line, d); }
+      }
+    }
+    // morale: like health, without the edge
+    if (a.morale !== b.morale || a.moraleLeft !== b.moraleLeft) {
+      const d = at(stagger);
+      count(q('[data-m="morale-left"]'), b.moraleLeft, a.moraleLeft, (n) => String(Math.round(n)), d);
+      barMove(q('[data-m="morale-track"]'), q('[data-m="morale-track"] > b'), b.moraleFill, a.moraleFill, d);
+      if (a.morale !== b.morale) stamp(q('[data-m="morale-level"]'), d, b.morale);
+    }
+    // Shaken, Swayed and the yield box arrive when they first show (M-36)
+    if (a.chips.length > b.chips.length || (a.yielded && !b.yielded)) {
+      const d = at(stagger);
+      Array.from(sheet.querySelectorAll('.ps-pressure')).slice(b.chips.length).forEach((x) => arrive(x, d));
+      if (a.yielded && !b.yielded) arrive(q('.cs-yield'), d);
+    }
+    // skills: each gain counts up with a gold "+n", its bar grows, its row pulses once
+    const up = Object.keys(a.skills).filter((k) => a.skills[k] !== (b.skills[k] ?? 0));
+    if (up.length) {
+      const d = at(stagger);
+      for (const k of up) {
+        const row = q(`[data-skill="${k}"]`);
+        if (!row) continue;
+        const from = b.skills[k] ?? 0, to = a.skills[k];
+        count(q('[data-m="skill"]', row), from, to, (n) => String(Math.round(n)), d);
+        // the row's ▲ gain mark already says how much; no floating number here
+        barMove(q('.cs-bar', row), q('.cs-bar > b', row), Math.min(100, from), Math.min(100, to), d);
+        pulse(row, d);
+      }
+    }
+    // XP and level: a level-up fills the bar, then it starts again from empty (M-38, the Thread weaves)
+    if (a.xp !== null && b.xp !== null && (a.xp !== b.xp || a.lvl !== b.lvl)) {
+      const levelled = a.lvl !== b.lvl;
+      // a level-up holds the next step until the bar has wrapped and the new level word has landed, so the gold cards
+      // (and the perk badge with them) come after it (M-38)
+      const d = at(levelled ? ms('--m-trail') * 2 : stagger);
+      count(q('[data-m="xp"]'), levelled ? 0 : b.xp, a.xp, whole, d + (levelled ? ms('--m-trail') : 0));
+      if (a.xp > b.xp && !levelled) delta(q('[data-m="xp"]'), sign(a.xp - b.xp), 'scene-mark', d);
+      barMove(q('[data-m="xp-track"]'), q('[data-m="xp-track"] > b'), b.xpPct ?? 0, a.xpPct ?? 0, d, levelled);
+      if (levelled) stamp(q('[data-m="lvl"]'), d + ms('--m-trail'), `Level ${b.lvl}`);
+    }
+    // coin: the words change, with the difference in coin words
+    if (a.coin !== b.coin) {
+      const d = at(stagger);
+      stamp(q('[data-m="coin"]'), d, coinWords(b.coin));
+      delta(q('[data-m="coin"]'), (a.coin > b.coin ? '+' : '−') + coinWords(Math.abs(a.coin - b.coin)), a.coin > b.coin ? 'scene-mark' : 'danger', d);
+    }
+  }
+  /** M-36: arrivals in Who's here fade in, departures fade out, a changed status lands; header pieces that changed land;
+   * the quick slot's count lands. All together, at one time: they are the world around the sheet, not its values. */
+  function aroundBeats(b: Around, a: Around, d: number) {
+    for (const [name, txt] of Object.entries(a.who)) {
+      const chip = who.querySelector<HTMLElement>(`[data-who="${CSS.escape(name)}"]`);
+      if (!(name in b.who)) arrive(chip, d);
+      else if (b.who[name] !== txt) pulse(chip, d);
+    }
+    for (const [name, txt] of Object.entries(b.who)) {
+      if (name in a.who) continue;
+      // someone who left: a ghost of their chip fades out where the row ends (M-51: exits are quicker)
+      const g = h('span', { class: 'pp m-ghost', 'aria-hidden': 'true' }, h('b', {}, txt));
+      who.append(g);
+      play(g, [{ opacity: 1 }, { opacity: 1, offset: 0.3 }, { opacity: 0 }], { dur: ms('--m-state') * 2, delay: d, exit: true, done: () => g.remove() });
+    }
+    for (const [key, txt] of Object.entries(a.head)) {
+      const x = title.querySelector<HTMLElement>(`[data-mh="${key}"]`);
+      if (!(key in b.head)) arrive(x, d);
+      else if (b.head[key] !== txt) play(x, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state'), delay: d });
+    }
+    if (a.heal && b.heal && a.heal !== b.heal) stamp(healBtn.querySelector('b'), d, b.heal.replace(/^.*?(×\d+)$/, '$1'));
   }
   aimBtn.onclick = () => { aimed = !aimed; update(); };
   // tick the seconds on the waiting line without rebuilding the page

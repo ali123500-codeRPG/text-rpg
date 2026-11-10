@@ -122,6 +122,8 @@ describe('pipeline timing', () => {
     state.actors.push(...clones);
     state.pending = { turn: 1, mode: 'tactical', engaged: ['guard_4', 'guard_1', 'guard_3', 'guard_2', 'slime_1'], fired: [] };
     game.adopt(state);
+    // Q4: background calls keep a call slot free for the turn, so they start one after another, nearest first
+    await game.settle();
     expect(claude.calls.map((c) => c.actorId)).toEqual(['guard_2', 'guard_3', 'guard_1']);
   });
 });

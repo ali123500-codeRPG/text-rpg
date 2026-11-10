@@ -24,9 +24,12 @@ export type LogLine = {
   gains?: Record<string, number>; // V1b: skill points gained this turn, by skill
   timePassed?: { minutes: number; day: number; timeOfDay: string }; // T2 b: a wait or sleep; timeOfDay is a TIME_OF_DAY key
   levelUps?: { classId: string; level: number }[]; // X9: levels the player reached this turn, by class (library classes id)
-  achievements?: { id: string; name: string }[]; // achievements and scars earned this turn (progression.achievements id, its name now)
+  /** achievements and scars earned this turn (progression.achievements id, its name now), with what the play screen shows:
+   * reward level (REWARD_LEVELS key and name), XP, what it asks for (earnedAt), why it was earned, and its rewards (engine achievementInfo) */
+  achievements?: AchievementNote[];
   incomingChecks?: (LineCheck & { by: string })[]; // rolls others made against the player this turn; by = how the player knows them
   downedBy?: DownedBy; // the turn left the player down: the last blow that hurt them, as they knew it ("You fell" screen)
+  wounds?: { id: string; from: string; to: string }[]; // M-30: the player's body parts whose state got worse this turn (part state names)
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
   place?: { id: string; name: string }; // where the player ended the turn; name like "River path · the Riverside"
   scene?: number; // stage.sceneNumber when the turn ended
@@ -40,6 +43,7 @@ export type DownedBy = { by: string; weapon: string | null; part: string | null;
 
 /** one healing of the player: the health level and each body part that changed state */
 /** better: health went up without changing level or any part state (a bandage on a light wound) */
+export type AchievementNote = { id: string; name: string; level?: string; levelName?: string; xp?: number; scar?: boolean; earnedAt?: string; why?: string; rewards?: string[] };
 export type HealNote = { source: string; from: string; to: string; parts: { id: string; from: string; to: string }[]; better?: boolean };
 
 export type LineCheck = {

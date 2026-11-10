@@ -1,5 +1,5 @@
 // XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
-import type { Actor, AchievementBy, AchievementRule, GameEvent, GameState, XpAward } from '../types';
+import type { Actor, AchievementBy, AchievementDef, AchievementRule, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, getLibrary, itemDef, npcTemplate } from '../library';
 import { classMaxLevel, classPerks } from '../library/spawn';
@@ -14,7 +14,8 @@ import { functionName, groupName, groupsOf } from '../library/functionNames';
 import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
-import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed } from '../ruleset/achRewards';
+import { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed, rewardLines, rewardName } from '../ruleset/achRewards';
+import { ACH_RULE_TEXT } from '../library/achievementIds';
 export { achLevel, achXp, bonusLevelsOwed, freeLevelsOwed };
 
 /** character level: every class's level, plus bonus levels (levels no class gets) */
@@ -245,11 +246,14 @@ export function gearRating(state: GameState, a: Actor): number {
  * the stronger-foe achievements, so a change here changes both. */
 export const power = (state: GameState, a: Actor): number => rating(a) + gearRating(state, a);
 
+/** XP shrinks for foes much weaker than the player: min(1, TAPER × theirs ÷ mine) (X19). Defeat XP and defeat quests (QX2) share it. */
+export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1);
+
 /** Kill XP = foe power × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
  * Power counts gear on both sides. */
 export function killXp(state: GameState, t: Actor): number {
   const theirs = power(state, t), mine = power(state, state.player);
-  const taper = mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1;
+  const taper = weakFoeTaper(theirs, mine);
   return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
 }
 
@@ -287,14 +291,15 @@ export function tally(state: GameState, rule: AchievementRule, o: { by?: Achieve
   for (const [key, d] of Object.entries(getLibrary().achievements ?? {})) {
     if (d.rule !== rule || d.by !== o.by || d.count === undefined || t[k] < d.count) continue;
     if (d.only && d.only !== o.of) continue; // a row for one kind only (healing from one source)
-    if (d.every) for (let n = d.count; n <= t[k]; n += d.every) grantAchievement(state, key, String(n)); // earned at every multiple
-    else grantAchievement(state, key, o.of);
+    if (d.every) for (let n = d.count; n <= t[k]; n += d.every) grantAchievement(state, key, String(n), n); // earned at every multiple
+    else grantAchievement(state, key, o.of, t[k]);
   }
 }
 
 /** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names.
  * Saves keep only key and of, so renaming a row or moving its reward level edits only the table. */
-export function grantAchievement(state: GameState, key: string, of?: string): void {
+/** `reached`: the tally that earned it (shown as why it was earned) */
+export function grantAchievement(state: GameState, key: string, of?: string, reached?: number): void {
   const pr = state.player.progression;
   const d = getLibrary().achievements?.[key];
   if (!pr || !d) return;
@@ -304,7 +309,7 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
   const lib = getLibrary().achievements ?? {};
   for (let k = d.after, i = 0; k && i < 20; k = lib[k]?.after, i++)
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
-  (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), turn: state.turn });
+  (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}), turn: state.turn });
   if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
   const xp = achXp(d, of);
   logCode(state, 'achievement', { id, xp });
@@ -336,6 +341,12 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   const d = a.key ? lib.achievements?.[a.key] : undefined;
   if (!d) return a.name ?? a.id;
   if (a.of && d.names?.[a.of]) return d.names[a.of]; // a name of its own for this earning
+  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source)\}/g, title(kindName(state, d, a.of)));
+}
+
+/** what a per-kind achievement was earned for, by name (a body type, race, tree, group, class, tier, skill, giver…) */
+export function kindName(state: GameState, d: AchievementDef, of?: string): string {
+  const lib = getLibrary(), a = { of };
   let what = a.of ?? '';
   if (d.by === 'body_type' && a.of) try { what = (bodyType(state, a.of) as { name?: string }).name ?? a.of; } catch { /* keep the id */ }
   if (d.by === 'race' && a.of) what = lib.races?.[a.of]?.name ?? a.of;
@@ -350,5 +361,32 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
     const g = state.actors.find((x) => x.id === a.of);
     what = !g ? 'someone' : g.knownOnSight || state.player.journal?.namesKnown.includes(g.id) ? g.names.current : g.label;
   }
-  return d.name.replace(/\{(body_type|race|tree|group|class|tier|level|function|skill|size|giver|source)\}/g, title(what));
+  return what;
 }
+
+const fmtCount = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+/** what an achievement asks for, in words: its count and what it counts (ACH_RULE_TEXT), for one earning. The one text
+ * every screen shows for "earned at" (a row pinned to one healing source names it; an every-N row names its level). */
+export function earnedAtText(state: GameState, d: AchievementDef, of?: string): string {
+  let what = ACH_RULE_TEXT[d.rule] ?? d.rule;
+  if (d.only) what = what.replace(/ \(.*\)$/, '').replace(/\bone source$/, getLibrary().healing?.[d.only]?.name ?? d.only);
+  if (d.every) what = what.replace(/, again at every multiple$/, '');
+  const n = d.every && of && Number.isFinite(+of) ? +of : d.count;
+  const kind = d.by && !d.only && of ? ` (${title(kindName(state, d, of))})` : d.rule === 'mastery' && of ? ` (${kindName(state, d, of)})` : '';
+  return `${n !== undefined ? `${fmtCount(n)} ` : ''}${what}${kind}`;
+}
+
+/** An earned achievement for display: its name, reward level (key and name), XP, whether it is a scar, what it asks for,
+ * why it was earned (the count reached, when the tally is known) and its rewards. Play and the achievements page read this. */
+export function achievementInfo(state: GameState, a: { id: string; key?: string; of?: string; name?: string; turn: number; reached?: number }) {
+  const d = a.key ? getLibrary().achievements?.[a.key] : undefined;
+  const name = achievementName(state, a);
+  if (!d) return { id: a.id, name, level: '', levelName: '', xp: 0, scar: false, earnedAt: '', why: '', rewards: [] as string[] };
+  const level = achLevel(d, a.of), earnedAt = earnedAtText(state, d, a.of);
+  const why = a.reached !== undefined && !d.every
+    ? `Turn ${a.turn}: you reached ${fmtCount(Math.round(a.reached * 10) / 10)}; this needs ${earnedAt}.`
+    : `Turn ${a.turn}: you reached ${earnedAt}.`;
+  return { id: a.id, name, level, levelName: rewardName(level), xp: achXp(d, a.of), scar: !!d.scar, earnedAt, why, rewards: rewardLines(d) };
+}
+export type AchievementInfo = ReturnType<typeof achievementInfo>;

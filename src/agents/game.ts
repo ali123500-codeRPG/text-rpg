@@ -3,7 +3,7 @@
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
-  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PlannerOutput, Rng, TurnRecord, Actor,
+  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, PlannerOutput, Rng, TurnRecord, Actor,
 } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
@@ -17,12 +17,13 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { actorBody, getLibrary, itemDef } from '../library';
+import { PART_STATES } from '../ruleset/body';
 import { actorById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
-import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
-import { StopPlay, modelFor, type AgentCtx, type RunResult } from './call';
+import { defaultStandingDefense, healthLevel, isDownLevel, partStates, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
+import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { fameEntry } from './fame';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
@@ -90,6 +91,7 @@ export function createGame(deps: GameDeps): Game {
   // calls in flight, so the Play screen can show that Claude is working and on what
   const running = new Map<number, { agent: AgentName; since: number }>();
   let callId = 0;
+  const gate = callGate(); // Q4: the turn's own calls go ahead of background calls in the viewer's call slots
   const counted: ClaudeClient = {
     call: async (req) => {
       calls++;
@@ -110,7 +112,7 @@ export function createGame(deps: GameDeps): Game {
     notice({ kind: 'stop_play', text: `Claude can't be used in this view (${code}). Allow Claude for this page or sign in again, then reload.` });
   };
   const ctxFor = (turn: number, sink: AgentTurnLog[]): AgentCtx => ({
-    client: counted, clock, turn,
+    client: counted, clock, turn, gate,
     log: (e) => sink.push(e),
     onError: (code) => {
       if (code === 'rate_limited') {
@@ -133,7 +135,7 @@ export function createGame(deps: GameDeps): Game {
       const bg: Background = { actorId, controller, view, startedAt: clock.now(), done: false, collected: false, promise: Promise.resolve() };
       bg.promise = (async () => {
         try {
-          bg.run = await callPlanner(view, { ...ctx, log: () => {} }, { signal: controller.signal, world });
+          bg.run = await callPlanner(view, { ...ctx, log: () => {}, background: true }, { signal: controller.signal, world });
         } catch (e) {
           if (e instanceof StopPlay) stop(e.code);
         } finally {
@@ -199,7 +201,7 @@ export function createGame(deps: GameDeps): Game {
     turnLog = [];
     abortBackground();
     startBackground();
-    if (director && !rateLimited && !stopped) director.afterSave(s, ctxFor(s.turn, turnLog));
+    if (director && !rateLimited && !stopped) director.afterSave(s, { ...ctxFor(s.turn, turnLog), background: true });
   }
 
   /** COMMITTED: the fired trigger's bound order, as its type and target label (hidden-side, so names are fine) */
@@ -245,6 +247,7 @@ export function createGame(deps: GameDeps): Game {
     const submitAt = clock.now();
     lines.push({ turn: s.turn, kind: 'player', text, ...(aimed ? { aimed: true } : {}) });
     const gearBefore = gearSnap(s, s.player);
+    const partsBefore = partStates(s, s.player);
     emit();
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
       notice({ kind: 'read_only', text: 'This story is open in another window; this one is read-only.' });
@@ -302,11 +305,11 @@ export function createGame(deps: GameDeps): Game {
     }
     aimNext = false;
     yieldNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore }, spokespeople.length ? submitAt : null);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, partsBefore }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; partsBefore?: { id: string; state: PartState }[] }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -350,7 +353,9 @@ export function createGame(deps: GameDeps): Game {
     const notes = turnNotes(s);
     // shown again after a reload: what the turn changed in the gear, and where the player ended it
     const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
-    const where = { ...(gear.length ? { gear } : {}), place: { id: s.player.placeId, name: placeName(s) }, scene: s.stage.sceneNumber };
+    // M-30: the player's body parts that got worse this turn, so the play screen can name them (shown again after a reload)
+    const wounds = rec.partsBefore ? partsWorse(rec.partsBefore, partStates(s, s.player)) : [];
+    const where = { ...(gear.length ? { gear } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s) }, scene: s.stage.sceneNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
@@ -747,9 +752,16 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
   const timePassed = minutes > 0 ? { minutes: Math.round(minutes), day: timeView(s).day, timeOfDay: timeOfDay(now(s)) } : undefined;
   const pr = s.player.progression;
   const levelUps = (pr?.xpLog ?? []).filter((x) => x.turn === s.turn && x.levelUp).map((x) => ({ ...x.levelUp! }));
-  const achievements = (pr?.achievements ?? []).filter((a) => a.turn === s.turn).map((a) => ({ id: a.id, name: engine.achievementName(s, a) }));
+  const achievements = (pr?.achievements ?? []).filter((a) => a.turn === s.turn).map((a) => engine.achievementInfo(s, a));
   return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}),
     ...(levelUps.length ? { levelUps } : {}), ...(achievements.length ? { achievements } : {}) };
+}
+
+/** body parts whose state got worse between two snapshots, worst first in body order (M-30) */
+export function partsWorse(before: { id: string; state: PartState }[], after: { id: string; state: PartState }[]): { id: string; from: string; to: string }[] {
+  const was = new Map(before.map((p) => [p.id, p.state]));
+  return after.filter((p) => was.has(p.id) && PART_STATES.indexOf(p.state) > PART_STATES.indexOf(was.get(p.id)!))
+    .map((p) => ({ id: p.id, from: was.get(p.id)!, to: p.state }));
 }
 
 /** the player's gear as code saw it: item id → name, where it sits ("held:right hand", "worn", "pack") and how many */

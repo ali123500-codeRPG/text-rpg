@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { achievementName, awardXp, charLevel } from '../../src/engine/xp';
+import { achLevel, achXp, rewardName } from '../../src/ruleset/achRewards';
 import { classMaxLevel } from '../../src/library/spawn';
 import { getLibrary } from '../../src/library';
 import { ACH } from '../../src/library/achievementIds';
@@ -48,7 +49,7 @@ describe('135 class and level achievements', () => {
     expect(names[9]).toBe(d.names![100]);
     expect(achievementName(s, { id: `${ACH.char_level_10}:110`, key: ACH.char_level_10, of: '110' })).toBe('Woven Past Counting (110)');
   });
-  it('every 10 character levels pays a level 0 achievement, once per multiple', () => {
+  it('every 10 character levels pays an achievement, once per multiple, one reward level higher each time from −1', () => {
     const s = makeVillage();
     const cur = s.player.core.classes.find((c) => c.state === 'current')!;
     cur.level = 0;
@@ -60,7 +61,14 @@ describe('135 class and level achievements', () => {
     const lv = charLevel(s.player);
     const want = Array.from({ length: Math.floor(lv / 10) }, (_, i) => `${ACH.char_level_10}:${(i + 1) * 10}`);
     expect(earned(s).filter((x) => x.startsWith(`${ACH.char_level_10}:`))).toEqual(want);
-    expect(CONFIG.REWARD_XP[getLibrary().achievements![ACH.char_level_10].level]).toBe(50);
+    const d = getLibrary().achievements![ACH.char_level_10];
+    expect([10, 20, 30, 40, 50, 60, 70, 80].map((n) => achLevel(d, String(n)))).toEqual(['minus_1', 'zero', 'i', 'ii', 'iii', 'iv', 'v', 'vi']);
+    expect(achXp(d, '10')).toBe(CONFIG.REWARD_XP.minus_1);
+    expect(achXp(d, '30')).toBe(CONFIG.REWARD_XP.i);
+    // past VI the table goes on to XV, and stays there
+    expect([90, 100, 150, 160, 300].map((n) => rewardName(achLevel(d, String(n))))).toEqual(['VII', 'VIII', 'XIII', 'XIV', 'XV']);
+    expect(achXp(d, '90')).toBe(CONFIG.REWARD_XP.vii);
+    expect(achXp(d, '300')).toBe(CONFIG.REWARD_XP.xv);
     if (want.length) expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === want[0])!)).toBe('No Longer Green');
   });
 });

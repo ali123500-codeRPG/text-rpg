@@ -37,6 +37,8 @@ export type QuestGoal =
 export type Quest = {
   id: string; state: QuestState; text: string;
   giver: string; dealId: string; goal: QuestGoal; progress: number;
+  /** defeat goals: summed power of the counted foes, each taken when it fell (QX2/QX4) */
+  foePower?: number;
   level: QuestRewardLevel; // QT9/QT28: from the scene's gain grade when accepted
   startTurn: number; endTurn?: number;
   startAt?: number; // game clock minutes when it was given (set with `due`: the 'quests_early' achievement)

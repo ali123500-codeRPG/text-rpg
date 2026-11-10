@@ -253,9 +253,8 @@ const DEFAULTS = {
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
-  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000 } as Record<string, number>,
-  /** a scar pays the XP of the reward level one step below its own; below level 0 it pays this */
-  SCAR_XP_BELOW_ZERO: 25,
+  REWARD_XP: { minus_1: 25, zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000,
+    vii: 20000, viii: 40000, ix: 80000, x: 160000, xi: 320000, xii: 640000, xiii: 1280000, xiv: 2560000, xv: 5120000 } as Record<string, number>, // VII–XV placeholders
   /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
   QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   /** QT9: a quest's reward level from the scene's gain grade when it is accepted (iv is kept for later story quests) */
@@ -264,6 +263,8 @@ const DEFAULTS = {
   // ---- Part 2 engine ----
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)
   MAX_PLANNER_CALLS: 3, // Q2 (D-18)
+  /** Claude calls the viewer runs at once (unconfirmed, the spec's "a couple"); background calls keep one free for the turn's own (Q4) */
+  CALL_SLOTS: 2,
   MAX_SPOKESPEOPLE: 2, // Q2
   BACKGROUND_WINDOW_MS: 8_000, // Q2 (D-39)
   DIALOGUE_WINDOW_MS: 10_000, // Q2
@@ -282,6 +283,9 @@ const DEFAULTS = {
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
   SHOW_MECHANICS: true, // master switch: false removes Show rolls everywhere
   SHOW_ROLLS_DEFAULT: false,
+  /** M-33: reaching this health level or worse pulses the play screen's edge red once; from MOTION_EDGE_STEADY on the edge keeps a steady tint */
+  MOTION_EDGE_FROM: 'Wounded',
+  MOTION_EDGE_STEADY: 'Critical',
   TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder) // a new story starts with Show rolls off; the player turns it on from the play header
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
