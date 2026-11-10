@@ -131,6 +131,7 @@ export function mapPage(api: GameApi) {
   const placeOf = (id: string) => cur?.places.find((p) => p.id === id);
   const rootOf = (id: string) => { let p = placeOf(id); for (let n = 0; p?.parentId && placeOf(p.parentId) && n < 20; n++) p = placeOf(p.parentId); return p?.id ?? id; };
   const inside = (id: string, anc: string) => { for (let p = placeOf(id), n = 0; p && n < 20; p = p.parentId ? placeOf(p.parentId) : undefined, n++) if (p.id === anc) return true; return false; };
+  const allZones = () => (cur?.places ?? []).flatMap((p) => p.zones);
   const worldZones = () => (cur?.places ?? []).filter((p) => rootOf(p.id) === world).flatMap((p) => p.zones);
 
   // ---------- pan and zoom
@@ -156,7 +157,7 @@ export function mapPage(api: GameApi) {
     const b = bounds(placeId), r = svg.getBoundingClientRect();
     if (!b || !r.width) return;
     const top = 60, pad = 24; // the crumbs sit over the top edge
-    const k = Math.max(0.2, Math.min(1.6, Math.min((r.width - 2 * pad) / (b.x1 - b.x0), (r.height - top - 70) / (b.y1 - b.y0))));
+    const k = Math.max(0.2, Math.min(1.1, Math.min((r.width - 2 * pad) / (b.x1 - b.x0), (r.height - top - 70) / (b.y1 - b.y0))));
     // a narrow screen keeps tiles readable: a floor on the scale, centred on you when you are in this place
     const me = cur ? spots.get(world)?.get(cur.zoneId) : undefined;
     if (k < NARROW_MIN_K && r.width < NARROW_W) {
@@ -187,8 +188,9 @@ export function mapPage(api: GameApi) {
   svg.addEventListener('pointercancel', endDrag);
   svg.addEventListener('wheel', (e) => { e.preventDefault(); const r = svg.getBoundingClientRect(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12, { x: e.clientX - r.left, y: e.clientY - r.top }); }, { passive: false });
   const pick = (t: Element | null) => {
-    const z = t?.closest('[data-zone]'), a = t?.closest('[data-area]');
-    if (z) { selected = z.getAttribute('data-zone')!; focus = worldZones().find((x) => x.id === selected)?.placeId ?? focus; draw(); }
+    const z = t?.closest('[data-zone]'), a = t?.closest('[data-area]'), g = t?.closest('[data-goto]');
+    if (g) goTo(g.getAttribute('data-goto')!);
+    else if (z) { selected = z.getAttribute('data-zone')!; focus = worldZones().find((x) => x.id === selected)?.placeId ?? focus; draw(); }
     else if (a) { focus = a.getAttribute('data-area')!; draw(); }
   };
   svg.addEventListener('click', (e) => { if (!drag?.moved) pick(e.target as Element); });
@@ -246,9 +248,13 @@ export function mapPage(api: GameApi) {
         const n = Math.hypot(dx, dy), ang = Math.atan2(dy / n, dx / n) + (dir ? 0 : (i % 3 - 1) * 0.35);
         const far = { x: a.x + Math.cos(ang) * (tileW(z) / 2 + STUB), y: a.y + Math.sin(ang) * (tileH(z) / 2 + STUB) };
         const p1 = edgeOf(a, tileW(z), tileH(z), far);
-        links.append(s('line', { x1: p1.x, y1: p1.y, x2: far.x, y2: far.y, class: `map-stub${hot ? ' hot' : ''}`, 'marker-end': 'url(#map-arrow)' },
-          s('title', {}, `${l.label}: unexplored`)));
-        if (hot) labels.append(pill(far.x + Math.cos(ang) * 14, far.y + Math.sin(ang) * 14, `${l.label} · unexplored`, 'unknown', Math.cos(ang)));
+        // a known zone on another map (another village, say): the stub says where it goes and clicking it opens that map
+        const away = l.known ? allZones().find((x) => x.id === l.to) : undefined;
+        const awayName = away ? placeOf(rootOf(away.placeId))?.name ?? away.name : '';
+        const text = away ? `${l.label} · to ${awayName}` : `${l.label} · unexplored`;
+        links.append(s('line', { x1: p1.x, y1: p1.y, x2: far.x, y2: far.y, class: `map-stub${away ? ' away' : ''}${hot ? ' hot' : ''}`, 'marker-end': 'url(#map-arrow)', ...(away ? { 'data-goto': away.id } : {}) },
+          s('title', {}, away ? `${l.label}: to ${away.name} (${awayName}) · click to open that map` : `${l.label}: unexplored`)));
+        if (hot || away) { const pl = pill(far.x + Math.cos(ang) * 14, far.y + Math.sin(ang) * 14, text, away ? 'away' : 'unknown', Math.cos(ang)); if (away) pl.setAttribute('data-goto', away.id); labels.append(pl); }
       });
     }
     for (const z of zones) tiles.append(tile(z, sp.get(z.id)!));
@@ -320,7 +326,7 @@ export function mapPage(api: GameApi) {
         h('li', {}, h('i', { class: 'k-tile outdoor' }), 'Outdoors'), h('li', {}, h('i', { class: 'k-tile indoor' }), 'Indoors'),
         h('li', {}, h('i', { class: 'k-tile remembered' }), 'Out of sight now'), h('li', {}, h('i', { class: 'k-pin' }), 'You'),
         h('li', {}, h('i', { class: 'k-line' }), 'You can see across'), h('li', {}, h('i', { class: 'k-line dashed' }), 'The far side is hidden'),
-        h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'),
+        h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'), h('li', {}, h('i', { class: 'k-line away' }), 'Road to another map'),
         h('li', {}, h('i', { class: 'k-who' }), 'Someone there now'), h('li', {}, h('i', { class: 'k-who last' }), 'Last seen there')));
     side.replaceChildren(card, facts, placeList, legend);
   }
