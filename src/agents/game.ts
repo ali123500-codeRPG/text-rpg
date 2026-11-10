@@ -280,7 +280,9 @@ export function createGame(deps: GameDeps): Game {
       exchange = engine.resolveSpeech(s, intent, spokespeople, rng);
       const input: DialogueInput = [{ spoken: intent.spoken ?? '', impression: exchange.impression }];
       const world = worldIds(s);
-      agentOutputs.push(...(await Promise.all(spokespeople.map((id) => dialogueCall(s, id, input, exchange!, agenda.get(id)!, ctx, world)))));
+      // NT7: a listener that saw through a lie hears the impression with a tell
+      const inputFor = (id: string): DialogueInput => (exchange!.perSpokesperson[id]?.tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.TELL}` }] : input);
+      agentOutputs.push(...(await Promise.all(spokespeople.map((id) => dialogueCall(s, id, inputFor(id), exchange!, agenda.get(id)!, ctx, world)))));
     }
     // timing rule: resolution never before the previous display plus BACKGROUND_WINDOW, in every mode
     await clock.sleep(lastDisplayAt + CONFIG.BACKGROUND_WINDOW_MS - clock.now());
@@ -884,7 +886,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
   const ach = s.player.progression?.achievements ?? [];
   for (const x of s.player.progression?.xpLog ?? []) {
     if (x.turn !== turn) continue;
-    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${getLibrary().classes[x.levelUp.classId]?.name ?? x.levelUp.classId})`); continue; }
+    if (x.levelUp) { out.push(`Level ${x.levelUp.level}! (${x.levelUp.classId ? getLibrary().classes[x.levelUp.classId]?.name ?? x.levelUp.classId : 'bonus level'})`); continue; }
     const [kind, id] = x.source.split(/:(.*)/);
     const what = kind === 'defeat' ? name(id) : kind === 'achievement' ? `achievement: ${engine.achievementName(s, ach.find((a) => a.id === id) ?? { id })}` : x.source;
     out.push(`+${num(x.amount)} XP (${what})`);

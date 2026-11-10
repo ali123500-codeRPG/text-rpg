@@ -17,7 +17,7 @@ import { fnSkills, kitBonus, modeName, standInShare, standInTable } from '../rul
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
-import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupsOf, functionName } from '../library/functionNames';
+import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS } from '../scales';
 import { itemLevel, requirement } from '../ruleset/requirements';
@@ -54,7 +54,7 @@ function card(sec: string, id: string, entry: unknown, title: string, chips: (HT
 
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
 /** a field key as words: raceId → Race, focusTreeId → Focus tree, hpMultiplier → Hp multiplier */
-const humanKey = (k: string): string => { if (!/^[a-z][A-Za-z0-9_]*$/.test(k)) return k; const w = k.replace(/Ids?$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase(); return w.charAt(0).toUpperCase() + w.slice(1); };
+const humanKey = (k: string): string => { if (!/^[a-z][A-Za-z0-9_]*$/.test(k)) return k; const w = k.replace(/Ids?$/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/_/g, ' ').toLowerCase().replace(/^fn\b/, 'function'); return w.charAt(0).toUpperCase() + w.slice(1); };
 /** typed ids (RC1, CL6, IT2, SK1 …) shown as their entry's name, linked to its pop-up; the raw id stays in the Code view */
 let idIndex: Map<string, [string | null, string]> | undefined;
 function typedId(v: string): Node | null {
@@ -67,7 +67,10 @@ function typedId(v: string): Node | null {
     for (const [id, t] of Object.entries(lib.trees)) if (!idIndex.has(id)) idIndex.set(id, [null, (t as { name?: string }).name ?? id]);
   }
   const hit = idIndex.get(v);
-  if (!hit) return null;
+  if (!hit) { // functions and groups are not tables; show their names, linked to the stand-in check where one exists
+    const name = v.startsWith('FN') ? functionName(v) : v.startsWith('GR') ? groupName(v) : undefined;
+    return name && name !== v ? (v.startsWith('FN') ? link('standIns', `fn-${v}`, name) : h('span', { title: v }, name)) : null;
+  }
   return hit[0] ? link(hit[0], v, hit[1]) : h('span', { title: v }, hit[1]);
 }
 function val(v: unknown, depth = 0): Node | string {
@@ -221,19 +224,25 @@ const keep = (key: string, value: unknown): void => { try { localStorage.setItem
 // older keys carried the sub-tab (tab|pane|title); a fold now covers every sub-tab, so keep tab|title
 const foldedSet = new Set<string>(remember<string[]>('lv-folded', []).map((k) => { const p = k.split('|'); return p.length > 2 ? `${p[0]}|${p.slice(2).join('|')}` : k; }));
 const paneOf: Record<string, string> = remember<Record<string, string>>('lv-pane', {});
+// every sub-tab row starts with All (every sub-tab at once, for searching across them), unless the table's own
+// first sub-tab already lists everything (gear, achievements)
+const ALL_PANES = '*';
+const showsPane = (key: string) => pane === ALL_PANES || pane === key;
 function panes(list: Pane[]): HTMLElement[] {
-  if (!list.some((p) => p.key === pane)) pane = list[0].key;
-  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, list.map((p) => h('button', {
+  const tabs: Pane[] = list[0].title === 'All' || list[0].title.startsWith('All ') ? list
+    : [{ key: ALL_PANES, title: 'All', n: list.reduce((n, p) => n + p.n, 0), content: [] }, ...list];
+  if (!tabs.some((p) => p.key === pane)) pane = tabs[0].key;
+  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, tabs.map((p) => h('button', {
     type: 'button', role: 'tab', 'data-pane': p.key, 'aria-selected': String(p.key === pane), onclick: () => showPane(p.key),
     ...(p.short ? { title: p.title, 'aria-label': `${p.title}, ${p.n}` } : {}),
   }, p.short ?? p.title, h('small', {}, String(p.n)))));
-  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: p.key !== pane }, ...(p.content.filter(Boolean) as HTMLElement[])))];
+  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: !showsPane(p.key) }, ...(p.content.filter(Boolean) as HTMLElement[])))];
 }
 function showPane(key: string): void {
   pane = key;
   paneOf[shown] = key; keep('lv-pane', paneOf);
   document.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
-  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
+  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = !showsPane(p.dataset.pane!); });
   drawBar(); paint(); filter();
 }
 

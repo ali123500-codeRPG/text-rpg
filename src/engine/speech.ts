@@ -1,6 +1,6 @@
 // Dialogue turns: spokespeople, the player's speech check, impressions (Dialogue input table), SLIPS.
 import { FN } from '../library/functionIds';
-import type { Actor, ContestResult, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
+import type { Actor, ContestResult, GameEvent, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
@@ -11,10 +11,14 @@ import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { tally } from './xp';
 import { contestFeat } from './feats';
+import { applyHaggle, isSeller } from './trade';
+import { countTry, repeatTryMods } from '../ruleset/pressure';
 
 export const SPEECH_SKILL: Record<string, string> = {
-  talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.persuasion, intimidate: SK.intimidation, barter: SK.barter,
+  talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.lying, intimidate: SK.intimidation, barter: SK.barter,
 };
+/** what the listener answers with: the speaker's skill, except a lie, which Insight answers (NT17) */
+export const answerSkill = (type: string): string => type === 'deceive' ? SK.insight : SPEECH_SKILL[type] ?? SK.persuasion;
 
 // Dialogue input table (wording is a placeholder), keyed by tier; a roll past either end uses the end's words.
 const CONVINCING: Record<Tier, string> = {
@@ -125,8 +129,10 @@ export function slipsFor(state: GameState, sp: string, skills: string[], contest
 export function resolveSpeech(state: GameState, intent: Intent, spokespeople: string[], rng: Rng): ExchangeSpeech {
   const type = isSpeech(intent.action?.type) ? intent.action!.type : 'talk'; // A15 Quick Word: the line is talk
   const named = SPEECH_SKILL[type] ?? SK.persuasion;
-  const req = (actorId: string) => ({ actorId, skill: named, modifiers: [], tierShifts: [] });
+  // one player roll for every spokesperson: per-listener modifiers (Bane, Shaken, Swayed) count when there is one listener
   const p = state.player;
+  const tries = repeatTryMods(p, spokespeople, type); // NT3
+  const req = (actorId: string) => ({ actorId, skill: named, modifiers: tries, tierShifts: [], ...(actorId === state.player.id && spokespeople.length === 1 ? { against: spokespeople[0] } : {}) });
   // A16 Threaten for Answers: against an opposed or hostile listener, intimidation counts as the named skill
   const threat = (sp: string) => {
     const b = state.actors.find((x) => x.id === sp);
@@ -142,20 +148,80 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
     const t = aT && threat(sp);
     const mine = t ? aT : a;
     if (t && spokespeople.every(threat)) shown = aT;
-    // All-50 Easy Speaker (option a): a listener who owns it answers one outcome better
-    const listener = state.actors.find((x) => x.id === sp);
-    const b = ruleset.roll({ ...req(sp), tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [] }, state, rng);
-    const gap = tierLevel(b) - tierLevel(mine);
-    const contest: ContestResult = { a: mine, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
+    const b = answerRoll(state, state.actors.find((x) => x.id === sp)!, answerSkill(type), p.id, rng);
+    const contest = toContest(mine, b);
     const skills = [named, mine.skill, ...(t && mine.skill === SK.intimidation ? INFLUENCE() : [])];
-    perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, skills, contest) };
+    perSpokesperson[sp] = { contest, slips: slipsFor(state, sp, skills, contest), ...(type === 'deceive' && contest.winner === 'b' ? { tell: true as const } : {}) };
     // N4a/N4c: a speech contest won counts for the influence skill used, and against a better speaker
     if (contest.winner === 'a' && INFLUENCE().includes(mine.skill)) tally(state, 'speech_won', { by: 'skill', of: mine.skill });
     contestFeat(state, contest);
     markUse(state, p, mine.skill, contest); // SP2: talking to someone near your level marks the skill
+    countTry(p, sp, type);
   }
   return { skill: shown.skill, playerTier: shown.tier, impression: impressionWords(type, shown.tier) ?? null, perSpokesperson };
 }
 
 /** skills tagged influence (persuasion, intimidation, barter) */
 const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes(FN.influence)).map(([id]) => id);
+
+const toContest = (a: RollResult, b: RollResult): ContestResult => {
+  const gap = tierLevel(b) - tierLevel(a);
+  return { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
+};
+
+/** OQ-29: the speech types that roll when an NPC aims them at the player; plain talk does not */
+export const PUSH_TYPES = ['persuade', 'deceive', 'intimidate', 'barter'];
+/** added to a listener's impression when it saw through a lie */
+export const TELL = 'something about it does not sit right';
+
+/** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better */
+export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng): RollResult {
+  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId }, state, rng);
+}
+
+/** OQ-29: an NPC's speech roll at the player; the player answers (answerSkill; the speaker is side a) */
+export function pushContest(state: GameState, speaker: Actor, type: string, rng: Rng): ContestResult {
+  const skill = SPEECH_SKILL[type] ?? SK.persuasion;
+  const p = state.player;
+  const contest = toContest(ruleset.roll({ actorId: speaker.id, skill, modifiers: repeatTryMods(speaker, [p.id], type), tierShifts: [], against: p.id }, state, rng), answerRoll(state, p, answerSkill(type), speaker.id, rng));
+  countTry(speaker, p.id, type);
+  contestFeat(state, contest);
+  markUse(state, p, contest.b.skill, contest);
+  return contest;
+}
+
+/** OQ-29: what a speech contest leaves, whoever spoke (the speaker is side a). A lost intimidation leaves the listener
+ * Shaken toward the speaker, a lost persuasion Swayed, by CONFIG.SHAKEN_PER_TIER / SWAYED_PER_TIER × the tier gap; the
+ * bigger penalty stands. Barter with a Trader sets prices (PY6). A listener that beats a lie sees through it. */
+export function applySpeech(speaker: Actor, listener: Actor, type: string, contest: ContestResult): { status?: 'shaken' | 'swayed'; tell?: true } {
+  if (type === 'barter') {
+    if (isSeller(listener)) applyHaggle(speaker, listener, contest);
+    else if (isSeller(speaker)) applyHaggle(listener, speaker, { a: contest.b, b: contest.a, gap: -contest.gap, winner: contest.winner === 'a' ? 'b' : contest.winner === 'b' ? 'a' : 'tie' });
+    return {};
+  }
+  if (type === 'deceive') return contest.winner === 'b' ? { tell: true } : {};
+  const status = type === 'intimidate' ? 'shaken' : type === 'persuade' ? 'swayed' : undefined;
+  if (!status || contest.winner !== 'a') return {};
+  const value = -contest.gap * (status === 'shaken' ? CONFIG.SHAKEN_PER_TIER : CONFIG.SWAYED_PER_TIER);
+  const p = ((listener.pressure ??= {})[speaker.id] ??= {});
+  p[status] = Math.max(p[status] ?? 0, value);
+  return { status };
+}
+
+/** OQ-29: an NPC's speech roll at the player, in words for the Narrator: how it strikes the player (from the speaker's
+ * tier), and how the player takes it. A lie the player did not see through gets no hint. */
+export function pressedWords(e: GameEvent): { how: string; took?: string } | undefined {
+  const p = e.push, c = e.contest;
+  if (!p || !c) return undefined;
+  const took = p.status === 'shaken' ? 'it shakes you' : p.status === 'swayed' ? 'you find yourself swayed'
+    : p.tell ? TELL : p.type === 'deceive' ? undefined : p.landed ? 'the haggling goes their way' : 'you hold firm';
+  return { how: impressionWords(p.type, c.a.tier), ...(took ? { took } : {}) };
+}
+
+/** NT10: how the speaker saw the player take its speech roll; nothing when it could not see them */
+export function tookWords(e: GameEvent): string | undefined {
+  const p = e.push;
+  if (!p?.seen) return undefined;
+  if (p.type === 'deceive') return p.tell ? 'they seem doubtful' : 'they seem to believe you';
+  return p.status === 'shaken' ? 'they look shaken' : p.status === 'swayed' ? 'they seem swayed' : p.landed ? 'they give ground' : 'they seem unmoved';
+}

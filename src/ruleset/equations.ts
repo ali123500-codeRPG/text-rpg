@@ -83,6 +83,24 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['Modifiers add in full here, with no stacking.'] },
       { name: 'Contest', at: 'contested · src/ruleset/index.ts',
         formula: 'gap = tier of B − tier of A; the side with the higher tier wins, equal tiers tie' },
+      { name: 'Speech contest', at: 'resolveSpeech · pushContest · applySpeech · src/engine/speech.ts',
+        formula: `the speaker rolls the speech skill (Lying for a lie) − ${CONFIG.REPEAT_TRY} × earlier tries; the listener rolls the same skill back (Insight against a lie), whoever speaks`,
+        terms: [['Shaken', `the listener lost to intimidation: −${CONFIG.SHAKEN_PER_TIER} × tiers lost by, on every roll against the speaker until its engagement ends`],
+          ['Swayed', `the listener lost to persuasion: −${CONFIG.SWAYED_PER_TIER} × tiers lost by, on every roll against the speaker until its engagement ends`],
+          ['a lie', 'a listener whose Insight beats the Lying roll sees through it'], ['earlier tries', 'tries of the same kind (persuade, deceive, intimidate, barter) at the same listener this engagement; plain talk never counts'], ['Easy Speaker', 'the listener answers one tier higher']],
+        notes: ['NPCs roll speech at the player only with persuade, deceive, intimidate or barter; their plain talk does not roll. A second Shaken or Swayed from the same speaker keeps the bigger one.'] },
+      { name: 'Morale check', at: 'moraleCheck · src/ruleset/index.ts; morale · src/engine/resolve.ts',
+        formula: `margin = d100 + ${n(W())} × morale + modifiers − ${n(NEED())}; below Failure: surrenders · Failure: breaks · Near Miss or better: holds`,
+        terms: [['morale', `by personality: ${Object.entries(CONFIG.PERSONALITY_MORALE).map(([k, v]) => `${k} ${v ?? 'never checks'}`).join(', ')}; otherwise ${CONFIG.MORALE_DEFAULT} (CONFIG.MORALE_DEFAULT)`],
+          ['modifiers', 'wounds for its health level; the player\'s renown (off a foe\'s first check against the player); the player\'s rally (on allies fighting beside the player)']],
+        table: { head: ['Morale', 'Surrenders', 'Breaks', 'Holds'], rows: [30, 50, 70].map((m) => {
+          const lv = D100.map((d) => rollLevel(d, m));
+          const k = (f: (l: number) => boolean) => pct(lv.filter(f).length);
+          return [String(m), k((l) => l < TIERS.pos('failure')), k((l) => l === TIERS.pos('failure')), k((l) => l >= TIERS.pos('near_miss'))];
+        }) },
+        notes: ['Only NPCs in an engagement check (fearless ones never do). Broken or surrendered lasts until the scene ends; an NPC that holds can be asked to check again.',
+          'A check comes when the NPC reaches a new health level from Injured on, when it perceives a bandmate go down, or from perks that force one. At Critical it breaks without rolling.',
+          'Chances in the table are unhurt with no modifiers.'] },
       { name: 'Situation roll (no skill)', at: 'situation · src/ruleset/index.ts',
         formula: `margin = d100 ${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.SITUATION_BASE - 100)} + modifiers`,
         terms: [[`${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.SITUATION_BASE - 100)}`, `situation base ${CONFIG.SITUATION_BASE} (CONFIG.SITUATION_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
@@ -136,7 +154,7 @@ export function equations(lib: Library): EquationGroup[] {
     { key: 'levels', title: 'Levels', about: 'How XP turns into levels.', equations: [
       { name: 'XP to the next level', at: 'xpToNext · spendXp · src/engine/xp.ts',
         formula: `XP to go from level n to n + 1 = ${CONFIG.LEVEL_XP} × n`,
-        terms: [[String(CONFIG.LEVEL_XP), 'CONFIG.LEVEL_XP'], ['n', 'character level: the sum of every class\'s level (at least 1)']],
+        terms: [[String(CONFIG.LEVEL_XP), 'CONFIG.LEVEL_XP'], ['n', 'character level: the sum of every class\'s level, plus bonus levels, less the free and bonus levels taken (at least 1); free and bonus levels never make the next level dearer']],
         table: { head: ['From level', 'To level', 'XP needed', 'Total from level 1'], rows: [1, 2, 3, 4, 5, 10, 15, 19].map((l) => [String(l), String(l + 1), String(CONFIG.LEVEL_XP * l), String(CONFIG.LEVEL_XP * l * (l + 1) / 2)]) },
         notes: [`The XP is spent and the level goes into the current class, or the class picked for the next level. The player starts at level ${CONFIG.START_LEVEL}.`,
           'One gain can take several levels in a row. When the class has no room left (at its top level), the XP stays banked until a class with room is picked.',

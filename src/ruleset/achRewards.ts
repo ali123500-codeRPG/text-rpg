@@ -10,8 +10,8 @@ import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'situation', 'freeLevels'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels' | 'bonusLevels';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'situation', 'freeLevels', 'bonusLevels'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -106,14 +106,18 @@ export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean
   return [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }];
 }
 
-/** free levels earned: every current achievement's freeLevels along its chain, plus every active owned perk's */
-export function freeLevelsEarned(a: Actor): number {
+/** free or bonus levels earned: every current achievement's along its chain, plus every active owned perk's.
+ * Free levels are level-ups that cost no XP (into a class); bonus levels are character levels no class gets. */
+export function levelsEarned(a: Actor, f: 'freeLevels' | 'bonusLevels'): number {
   const perks = getLibrary().perks ?? {};
-  return currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, 'freeLevels'), 0)
-    + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + (perks[p.perkId]?.freeLevels ?? 0), 0);
+  return currentAchievements(a).reduce((n, x) => n + rewardOf(x.d, f), 0)
+    + a.core.perks.filter((p) => !p.dormant).reduce((n, p) => n + (perks[p.perkId]?.[f] ?? 0), 0);
 }
+export const freeLevelsEarned = (a: Actor) => levelsEarned(a, 'freeLevels');
 /** free levels earned and not yet taken */
-export const freeLevelsOwed = (a: Actor) => Math.max(0, freeLevelsEarned(a) - (a.progression?.freeLevelsTaken ?? 0));
+export const freeLevelsOwed = (a: Actor) => Math.max(0, levelsEarned(a, 'freeLevels') - (a.progression?.freeLevelsTaken ?? 0));
+/** bonus levels earned and not yet taken */
+export const bonusLevelsOwed = (a: Actor) => Math.max(0, levelsEarned(a, 'bonusLevels') - (a.progression?.bonusLevelsTaken ?? 0));
 
 /** the display lines of one reward written on a row */
 function linesOf(d: AchievementDef, f: AchievementReward): string[] {
@@ -136,6 +140,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'restPct': return [`+${d.restPct}% healing on each rest`];
     case 'situation': return [`+${d.situation} on your situation rolls`];
     case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
+    case 'bonusLevels': return [`+${steps(d.bonusLevels!, 'bonus level')} (character levels no class gets: perk points, no class perks)`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
   }
 }

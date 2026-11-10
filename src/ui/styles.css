@@ -529,7 +529,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-hw { text-align: right; font-weight: 600; }
 .cs-pchips { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; }
 .cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
-.ps-damaged { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
+.ps-damaged, .ps-pressure { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
 .rolls-sw[aria-pressed="true"] { color: var(--text); }
 
 /* QT15: the quest line under the place line on the Play screen; only the quest text shrinks */

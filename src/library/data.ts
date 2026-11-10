@@ -48,6 +48,8 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.heavy_armor, TR.armor, [FN.armor], []),
   sk(SK.eyesight, TR.perception, [FN.sight], [RL.sense], 'sight'),
   sk(SK.earshot, TR.perception, [FN.hearing], [RL.sense], 'sound'),
+  // NT17: what a listener rolls against a lie. No function, so nothing stands in for it; it sits in the Notice group
+  { ...sk(SK.insight, TR.perception, [], [RL.sense]), groups: [GR.notice] },
   // Stealth (ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
   sk(SK.sneaking, TR.stealth, [FN.stealth], [RL.move]),
@@ -57,8 +59,9 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.persuasion, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.intimidation, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.barter, TR.speech, [FN.influence], [RL.speech]),
-  { ...sk(SK.riposte, TR.swordsman, [], [RL.grip]), groups: [GR.melee] }, // strike back off a block
-  { ...sk(SK.slip_counter, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee] }, // Riposte's mirror: strike back off a dodge
+  sk(SK.lying, TR.trickery, [FN.influence], [RL.speech]), // NT16: deceive rolls Lying
+  { ...sk(SK.riposte, TR.swordsman, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // strike back off a block
+  { ...sk(SK.slip_counter, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // Riposte's mirror: strike back off a dodge
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
   sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
@@ -75,7 +78,7 @@ const SITUATION_TAGS_OF: Record<string, SituationTag[]> = {
 };
 for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = tags;
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
-for (const id of [SK.persuasion, SK.barter]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
+for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
 const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
@@ -286,7 +289,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   // NS7: a village thief, the first stealthy NPC
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
-    minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
+    minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
     focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
     personality: 'timid', loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
   },
@@ -375,9 +378,10 @@ export function prototypeLibrary(): Library {
       [TR.natural]: { id: TR.natural, name: 'Natural weapons', skills: [SK.unarmed_natural], access: { either: [AMORPHOUS, { kind: 'race', id: RC.dragon }] } /* the shape's slam; the dragon's own attacks */ },
       [TR.defense]: { id: TR.defense, name: 'Combat – Defense', skills: [SK.dodge, SK.block, SK.endurance] },
       [TR.armor]: { id: TR.armor, name: 'Armor – Conventional', skills: [SK.light_armor, SK.medium_armor, SK.heavy_armor], access: { blockedBy: [AMORPHOUS] } }, // AR6
-      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
+      [TR.perception]: { id: TR.perception, name: 'Perception', skills: [SK.eyesight, SK.earshot, SK.insight], access: { blockedBy: [AMORPHOUS] } }, // no eyes or ears (TA6)
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
+      [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying], access: { blockedBy: [AMORPHOUS] } },
       [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.slip_counter], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class

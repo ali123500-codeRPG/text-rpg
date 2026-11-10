@@ -36,7 +36,7 @@ describe('skill tree access', () => {
 
   it('a new swordsman gets every general tree and Swordsman; a slime gets its own trees only', () => {
     const p = createPlayer(recommendedBuild(), 's1');
-    expect(open(p)).toEqual([TR.armor, TR.defense, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.unarmed].sort());
+    expect(open(p)).toEqual([TR.armor, TR.defense, TR.melee, TR.perception, TR.ranged, TR.speech, TR.stealth, TR.swordsman, TR.tools, TR.trickery, TR.unarmed].sort());
     expect(treeBlock(p, TR.natural)).toBe('Needs one of: Amorphous, Dragon');
     const slime = spawnNpc(null, TP.slime, opts);
     expect(open(slime)).toEqual([TR.defense, TR.natural, TR.slime_senses, TR.stealth].sort());
