@@ -13,6 +13,7 @@ import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
+import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
 import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
@@ -158,6 +159,9 @@ export const NAV_COMMANDS: Record<string, string> = { '/stats': 'stats', '/inv':
 export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let aimed = false;
   let confirmReset = false;
+  // the fall: the story shakes and drains for a moment before "You fell" slams in (only when it happens in play, not on load)
+  let wasFallen: boolean | null = null, dyingUntil = 0, fellKey = '';
+  const FALL_MS = 1400;
   // the story: an append-only list (role=log announces each new entry once); the waiting line sits outside it
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
@@ -372,7 +376,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         h('p', { class: 'hs-section' }, 'Your deals'),
         deals.map((d) => h('div', { class: 'dl-row' }, h('b', {}, cap(d.with)), h('span', {}, d.text), h('small', {}, `Made turn ${d.madeTurn}`)))) : null) : null;
     // UI6: "Show rolls" sets the story's own showMechanics; the game records rolls only while it is on
-    const show = !!(s?.settings.showMechanics ?? CONFIG.SHOW_MECHANICS);
+    const show = !!(s?.settings.showMechanics ?? CONFIG.SHOW_ROLLS_DEFAULT);
     const rollsBtn = s && CONFIG.SHOW_MECHANICS ? h('button', { type: 'button', class: 'hs-btn-text rolls-sw', 'aria-pressed': String(show),
       title: show ? 'Rolls show under each turn. Click to hide them' : 'Click to show the dice and modifiers under each turn',
       onclick: () => { s.settings.showMechanics = !show; update(); } }, show ? '✓ Show rolls' : 'Show rolls') : null;
@@ -465,20 +469,35 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(s ? sideSheet(s, s.player, [...lines].reverse().find((l) => l.kind === 'narration'), changedParts) : []));
 
     const fallen = api.fell();
-    wrap.hidden = fallen;
-    who.hidden = fallen;
-    fell.hidden = !fallen;
-    if (fallen) {
-      fell.replaceChildren(
-        h('h2', {}, 'You fell'),
-        h('p', { class: 'hs-note' }, 'The fight left you incapacitated. Rewind one turn, or start a new story.'),
-        h('div', { class: 'confirm' },
-          h('button', { class: 'hs-btn-main', type: 'button', onclick: () => api.submit('/undo', { aimed: false }) }, 'Undo one turn'),
-          confirmReset
-            ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and a new swordsman is made.'),
-               h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirmReset = false; await api.reset(); } }, 'Reset the story'),
-               h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirmReset = false; update(); } }, 'Keep it')]
-            : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset')));
+    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (wasFallen === false && fallen && !calm) { dyingUntil = Date.now() + FALL_MS; setTimeout(update, FALL_MS + 20); }
+    wasFallen = fallen;
+    const dying = fallen && Date.now() < dyingUntil;
+    el.classList.toggle('dying', dying);
+    wrap.hidden = fallen && !dying;
+    who.hidden = fallen && !dying;
+    fell.hidden = !fallen || dying;
+    if (!fallen) fellKey = '';
+    else if (!dying) {
+      const last = [...lines].reverse().find((l) => l.kind === 'narration');
+      const downed = [...lines].reverse().find((l) => l.downedBy)?.downedBy;
+      const key = `${last?.turn ?? 0}|${confirmReset}`;
+      if (key !== fellKey) {
+        fell.classList.toggle('enter', !fellKey); // the entrance plays once, not again when Reset asks to confirm
+        fellKey = key;
+        fell.replaceChildren(
+          h('h2', {}, 'You fell'),
+          h('p', { class: 'fell-cause' }, fellLine(downed, last?.turn ?? 0)),
+          fellFacts(downed) ? h('p', { class: 'hs-note fell-facts' }, fellFacts(downed)) : '',
+          h('p', { class: 'hs-note fell-how' }, 'Rewind one turn, or start a new story.'),
+          h('div', { class: 'confirm' },
+            h('button', { class: 'hs-btn-main', type: 'button', onclick: () => api.submit('/undo', { aimed: false }) }, 'Undo one turn'),
+            confirmReset
+              ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and a new swordsman is made.'),
+                 h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirmReset = false; await api.reset(); } }, 'Reset the story'),
+                 h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirmReset = false; update(); } }, 'Keep it')]
+              : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset')));
+      }
     }
   }
   aimBtn.onclick = () => { aimed = !aimed; update(); };

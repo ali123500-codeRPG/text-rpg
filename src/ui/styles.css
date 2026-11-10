@@ -9,6 +9,7 @@
 @font-face { font-family: "Literata"; font-weight: 700; font-style: normal; font-display: block; src: url(./assets/Literata-Bold.woff2) format("woff2"); }
 
 :root {
+  --fall-edge: rgba(120, 0, 0, .65); --fall-flash: rgba(200, 0, 0, .35); /* the fall's red edge and its first flash */
   --font-round: "HISAB Round", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   --font-story: "Literata", Georgia, serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -233,6 +234,23 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .notices { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .fell { display: grid; gap: var(--space-4); align-content: start; padding-top: var(--space-9); }
 .fell h2 { font-size: 34px; font-weight: 800; margin: 0; }
+.fell-cause { font: italic 19px/1.5 var(--font-story); max-width: 52ch; margin: 0; }
+.fell-facts, .fell-how { margin: 0; }
+/* the fall: the story shakes, drains of colour and sinks under a red edge; then "You fell" slams in and the rest follows */
+.playmain.dying .play-wrap, .playmain.dying .who { animation: fall-hit 0.45s cubic-bezier(.36,.07,.19,.97), fall-drain 1.4s ease-in forwards; pointer-events: none; }
+.playmain.dying::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  background: radial-gradient(ellipse at center, transparent 30%, var(--fall-edge) 100%); animation: fall-veil 1.4s ease-out forwards; }
+@keyframes fall-hit { 0%, 100% { transform: none; } 15% { transform: translate(-9px, 4px) rotate(-.6deg); } 35% { transform: translate(8px, -5px) rotate(.5deg); }
+  55% { transform: translate(-6px, 3px); } 75% { transform: translate(4px, -2px); } }
+@keyframes fall-drain { 0% { filter: none; opacity: 1; } 30% { filter: saturate(.4) brightness(1.15); } 100% { filter: grayscale(1) blur(3px) brightness(.35); opacity: .25; transform: translateY(28px) scale(.97); } }
+@keyframes fall-veil { 0% { opacity: 0; } 12% { opacity: 1; background-color: var(--fall-flash); } 40% { background-color: transparent; } 100% { opacity: .8; } }
+.fell.enter h2 { animation: fell-slam .75s cubic-bezier(.2,.9,.25,1) both; }
+.fell.enter .fell-cause { animation: fell-rise .7s .7s ease-out both; }
+.fell.enter .fell-facts { animation: fell-rise .6s 1.3s ease-out both; }
+.fell.enter .fell-how, .fell.enter .confirm { animation: fell-rise .6s 1.8s ease-out both; }
+@keyframes fell-slam { 0% { opacity: 0; transform: scale(2.4); letter-spacing: .5em; filter: blur(10px); }
+  60% { opacity: 1; transform: scale(.94); letter-spacing: 0; filter: none; } 100% { transform: none; } }
+@keyframes fell-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .confirm { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
 
 /* GM debug */
