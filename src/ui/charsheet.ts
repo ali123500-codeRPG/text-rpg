@@ -378,7 +378,7 @@ export type ShownValues = {
   hp: number | null; level: string; hpFill: number;
   morale: string; moraleLeft: number; moraleFill: number;
   parts: Record<string, string>; skills: Record<string, number>;
-  lvl: number | null; xp: number | null; xpPct: number | null; coin: number;
+  lvl: number | null; xp: number | null; xpPct: number | null; coin: number; points: number;
   gear: Record<string, { name: string; note: string }>; chips: string[]; yielded: boolean;
 };
 export function shownValues(s: GameState, p: Actor): ShownValues {
@@ -396,5 +396,6 @@ export function shownValues(s: GameState, p: Actor): ShownValues {
     gear: Object.fromEntries(p.core.inventory.filter((i) => i.equippedIn?.length).map((i) => [i.id, { name: cap(safe(() => itemDef(s, i.itemId).name) ?? i.itemId), note: gearNote(s, i)?.text ?? '' }])),
     chips: Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => `${id}:${k}`)),
     yielded: !!s.yielding,
+    points: p.progression?.unspentPerkPoints ?? 0,
   };
 }
