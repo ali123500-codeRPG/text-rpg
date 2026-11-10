@@ -6,7 +6,7 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, effort, killXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, effort, gearRating, killXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
@@ -26,7 +26,7 @@ describe('106 XP and levels', () => {
     expect(rating(slime)).toBeCloseTo(effort(30) + xpGroupFactor(GR.notice) * effort(25) + xpGroupFactor(GR.will) * effort(50), 5);
     const g = actor(s, 'guard_1');
     expect(rating(g)).toBeGreaterThan(rating(slime));
-    const t = Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / rating(s.player));
+    const t = Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / (rating(s.player) + gearRating(s, s.player))); // the player's gear counts too
     expect(killXp(s, slime)).toBeCloseTo(rating(slime) * t * CONFIG.KILL_XP_MULT, 1);
     s.player.core.skills[SK.barter] = { raw: 90, state: 'normal' }; // influence counts at 0.25×
     const before = rating(s.player);

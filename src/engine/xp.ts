@@ -242,9 +242,9 @@ export function gearRating(state: GameState, a: Actor): number {
 }
 
 /** Kill XP = (rating + gear rating) × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
- * Gear counts on the foe's side only: the player's own gear never shrinks the taper. */
+ * Gear counts on both sides: the player's own gear is part of the player's rating in the taper. */
 export function killXp(state: GameState, t: Actor): number {
-  const theirs = rating(t) + gearRating(state, t), mine = rating(state.player);
+  const theirs = rating(t) + gearRating(state, t), mine = rating(state.player) + gearRating(state, state.player);
   const taper = mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1;
   return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
 }
