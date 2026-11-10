@@ -221,19 +221,25 @@ const keep = (key: string, value: unknown): void => { try { localStorage.setItem
 // older keys carried the sub-tab (tab|pane|title); a fold now covers every sub-tab, so keep tab|title
 const foldedSet = new Set<string>(remember<string[]>('lv-folded', []).map((k) => { const p = k.split('|'); return p.length > 2 ? `${p[0]}|${p.slice(2).join('|')}` : k; }));
 const paneOf: Record<string, string> = remember<Record<string, string>>('lv-pane', {});
+// every sub-tab row starts with All (every sub-tab at once, for searching across them), unless the table's own
+// first sub-tab already lists everything (gear, achievements)
+const ALL_PANES = '*';
+const showsPane = (key: string) => pane === ALL_PANES || pane === key;
 function panes(list: Pane[]): HTMLElement[] {
-  if (!list.some((p) => p.key === pane)) pane = list[0].key;
-  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, list.map((p) => h('button', {
+  const tabs: Pane[] = list[0].title === 'All' || list[0].title.startsWith('All ') ? list
+    : [{ key: ALL_PANES, title: 'All', n: list.reduce((n, p) => n + p.n, 0), content: [] }, ...list];
+  if (!tabs.some((p) => p.key === pane)) pane = tabs[0].key;
+  const bar = h('div', { class: 'lv-tabs', role: 'tablist' }, tabs.map((p) => h('button', {
     type: 'button', role: 'tab', 'data-pane': p.key, 'aria-selected': String(p.key === pane), onclick: () => showPane(p.key),
     ...(p.short ? { title: p.title, 'aria-label': `${p.title}, ${p.n}` } : {}),
   }, p.short ?? p.title, h('small', {}, String(p.n)))));
-  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: p.key !== pane }, ...(p.content.filter(Boolean) as HTMLElement[])))];
+  return [bar, ...list.map((p) => h('div', { class: 'lv-pane', 'data-pane': p.key, hidden: !showsPane(p.key) }, ...(p.content.filter(Boolean) as HTMLElement[])))];
 }
 function showPane(key: string): void {
   pane = key;
   paneOf[shown] = key; keep('lv-pane', paneOf);
   document.querySelectorAll<HTMLElement>('.lv-tabs [data-pane]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.pane === key)));
-  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = p.dataset.pane !== key; });
+  body.querySelectorAll<HTMLElement>('.lv-pane').forEach((p) => { p.hidden = !showsPane(p.dataset.pane!); });
   drawBar(); paint(); filter();
 }
 
