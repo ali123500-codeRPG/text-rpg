@@ -215,7 +215,10 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
  * the roll ≥ 99 rule keeps the chance at 2% or more). */
 export const effort = (s: number) => (100 / 3) * Math.log(100 / Math.max(100 - Math.max(0, s), 2));
 
-/** X18–X23: a foe's stat rating. Per skill group (a skill's first group) the skills' efforts, highest first, count at 1, ½, ¼…, × XP_GROUP_WEIGHT. */
+/** a skill group's XP factor: its level on the XP_FACTORS scale (CONFIG.XP_GROUP_FACTOR) × CONFIG.XP_FACTOR_MULT; no level counts 0 */
+export const xpGroupFactor = (group: string): number => CONFIG.XP_FACTOR_MULT[CONFIG.XP_GROUP_FACTOR[group]] ?? 0;
+
+/** X18–X23: a foe's stat rating. Per skill group (a skill's first group) the skills' efforts, highest first, count at 1, ½, ¼…, × the group's XP factor. */
 export function rating(a: Actor): number {
   const lib = getLibrary();
   const by: Record<string, number[]> = {};
@@ -224,7 +227,7 @@ export function rating(a: Actor): number {
     (by[cat] ??= []).push(effort(skillOpen(a, id) ? e.raw * tierMult(id) : 0)); // the tier counts in the rating
   }
   return levelRating(a) + Object.entries(by).reduce((n, [cat, es]) =>
-    n + (CONFIG.XP_GROUP_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
+    n + xpGroupFactor(cat) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
 }
 
 /** an actor's level: its full character level (free and bonus levels count), else an NPC's template level */
