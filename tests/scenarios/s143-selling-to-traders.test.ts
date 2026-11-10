@@ -67,6 +67,5 @@ it('143c a stack sells in part; haggling and Hard Bargain raise the price', () =
 it('143d a minted item is worth its base value × 2 × quality', () => {
   const s = shop();
   s.blueprints.push({ storyId: s.storyId, id: 'fine_dagger', kind: 'item', data: { id: 'fine_dagger', kind: 'weapon', name: 'fine dagger', look: 'a fine dagger', bulk: 1, value: 5, base: { itemId: IT.dagger, quality: 3, boosts: 'hitAdj' } } });
-  expect(itemValue(s, 'fine_dagger')).toBe(5 * CONFIG.QUALITY_PRICE_FACTOR * 3);
-  expect(itemValue(s, IT.dagger)).toBe(5);
+  expect(itemValue(s, 'fine_dagger')).toBe(itemValue(s, IT.dagger) * CONFIG.QUALITY_PRICE_FACTOR * 3);
 });
