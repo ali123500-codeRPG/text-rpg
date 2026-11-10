@@ -594,3 +594,15 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .auto-own { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-md); }
 .title-tools { display: flex; align-items: center; gap: var(--space-3); align-self: start; }
 
+/* creation: name and gender above the class picker */
+.who-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin: var(--space-3) 0; }
+.who-row .hs-input { margin-left: var(--space-2); width: 16ch; }
+/* hall of fame (fame.ts) */
+.fame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-6); }
+.fame-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 20px; display: grid; gap: var(--space-3); align-content: start; }
+.fame-card p { margin: 0; }
+.fame-h { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.fame-h h2 { margin: 0; font-size: 22px; }
+.fame-h small { font-weight: 400; color: var(--muted); }
+.fame-cause { font: italic 16px/1.5 var(--font-story); }
+.fame-list p:last-child { display: flex; flex-wrap: wrap; gap: 4px; }

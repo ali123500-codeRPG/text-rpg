@@ -258,7 +258,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
   const skills = Object.fromEntries(Object.entries(build.skills).filter(([k, v]) => v > 0 || build.tagged.includes(k))
     .map(([k, v]) => [k, { raw: v, state: build.tagged.includes(k) ? 'tagged' as const : 'normal' as const }]));
   const p: Actor = {
-    id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] },
+    id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, ...(build.pronouns ? { pronouns: build.pronouns } : {}),
     label: getLibrary().classes[build.classId ?? PLAYER_CLASS]?.label ?? 'a stranger', // the starting class's stranger label
     placeId: '', zone: '', // GAP: set by story-start scene setup (the village tavern, Part 2 Scene setup)
     posture: 'open', bandId: 'player_band',
