@@ -704,6 +704,18 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Needs first:** Moves; reactions.
 - **Banked as:** a later Medium ranged perk, suggested for the 60 perk
 
+### Gut Feeling (Insight) · LI5b
+
+*Story:* You can feel ill will on the back of your neck. When someone who means you harm watches you from hiding, you may get a hunch of where they are, though never who.
+
+- **Kind:** Always on
+- **Trigger:** The start of each turn.
+- **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and in the owner's zone or one sight link away. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scene.
+- **Effect:** The owner's Insight against the watcher's stealth (Combat Stealth in a fight, Sneaking otherwise). If the owner wins, it gets a hunch of being watched from the watcher's zone, never who, and turns suspicious of the watcher there. It can then look or listen for them as usual.
+- **Lasts:** Until the owner's belief changes on its own.
+- **Open:** Its place on the Insight ladder waits for Ali (LI7: 20 beside Overheard).
+- **Banked as:** a later Insight perk
+
 ### Not Born Yesterday (Insight) · LI2c
 
 *Story:* Sweet words, and you hear every hook in them. When someone persuades you, you answer with the better of Persuasion and Insight.
