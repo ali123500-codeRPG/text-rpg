@@ -36,6 +36,15 @@ const DEFAULTS = {
   QUALITY_HIT_FACTOR: 0.04,
   /** the balance lever for all equipment: a standard-kit piece's bonus = EQUIP_FACTOR × its need (EQUIP_NEED) */
   EQUIP_FACTOR: 0.4,
+  /** the armor lever (QE4): the damage armor stops = ARMOR_FACTOR × its need; the multiplier stays with its weight */
+  ARMOR_FACTOR: 0.08,
+  /** QE6: a minted armor piece stops ARMOR_QUALITY_FACTOR × its need × its quality more */
+  ARMOR_QUALITY_FACTOR: 0.01,
+  /** the shield pool levers (QE5): pool = POOL_BASE + POOL_FACTOR × its need */
+  POOL_BASE: 20,
+  POOL_FACTOR: 0.8,
+  /** QE6: a minted shield's pool grows by POOL_QUALITY_FACTOR × its need × its quality */
+  POOL_QUALITY_FACTOR: 0.1,
   POTENTIAL: 300,
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
@@ -129,7 +138,8 @@ const DEFAULTS = {
   SCHEMA_VERSION: 7, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
-  ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
+  /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
+  ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
   /** EQ9: true skill each equipment level needs, Masterwork ending at 100 (even steps, placeholders) */
   EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100 } as Record<string, number>,
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
@@ -139,7 +149,7 @@ const DEFAULTS = {
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
-    damageAdj: [1, 2, 3, 4], reduction: [1, 1, 2, 2], tool: [5, 10, 15, 20],
+    damageAdj: [1, 2, 3, 4], tool: [5, 10, 15, 20],
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10, // placeholder (loot L3)

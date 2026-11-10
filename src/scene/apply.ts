@@ -83,7 +83,7 @@ function idleHere(a: Actor, here: string, turn: number): void {
   m.routine = { id: 'idle_here', anchorTurn: turn };
 }
 
-function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'], string>, n: number): string {
+export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'], string>, n: number): string {
   const base = itemDef(state, m.base);
   const q = m.quality;
   const T = CONFIG.QUALITY_TABLE;
@@ -94,7 +94,9 @@ function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'],
       else mode.hitAdj = (mode.hitAdj ?? 0) + Math.round(CONFIG.QUALITY_HIT_FACTOR * (requirement(def)?.need ?? 0) * q); // gear stats scale with need
     }
   }
-  if (def.armor) def.armor.reduction += T.reduction[q - 1];
+  const need = requirement(def)?.need ?? 0; // the minted level's need (quality 3 and 4 move it up a level)
+  if (def.armor) def.armor.reduction = CONFIG.ARMOR_FACTOR * need + Math.round(CONFIG.ARMOR_QUALITY_FACTOR * need * q); // QE4, QE6
+  if (def.shield) def.shield.pool = CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * need + Math.round(CONFIG.POOL_QUALITY_FACTOR * need * q); // QE5, QE6
   if (def.kind === 'tool') for (const e of def.effects ?? []) if (e.kind === 'skill') e.value += T.tool[q - 1];
   state.blueprints.push({ storyId: state.storyId, id: def.id, kind: 'item', data: def as unknown as Record<string, unknown> });
   state.sceneCaps.minted += 1;
