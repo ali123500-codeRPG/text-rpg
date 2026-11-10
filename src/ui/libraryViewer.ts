@@ -636,6 +636,8 @@ const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('d
     return list.length ? [h('div', { class: 'lv-railgroup', 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
   }));
 const picks = new Map<string, 'shown' | 'out'>();
+// each table keeps its own filter picks, remembered across visits and reloads (this browser only)
+const picksBy = remember<Record<string, [string, 'shown' | 'out'][]>>('lv-picks', {});
 const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
 const titleEl = h('h1', {});
@@ -778,6 +780,7 @@ function pickWords(): string {
   return [...by].map(([g, vs]) => `${g}: ${vs.join(', ')}`).join('; ');
 }
 function filter(): void {
+  if (shown) { if (picks.size) picksBy[shown] = [...picks]; else delete picksBy[shown]; keep('lv-picks', picksBy); }
   const q = search.value.trim().toLowerCase();
   const allOn = allBox.checked && !!q;
   document.body.classList.toggle('lv-allmode', allOn);
@@ -980,8 +983,8 @@ function fold(head: Element, open?: boolean, save = true): void {
   const folded = box(head).classList.toggle('lv-folded', open === undefined ? undefined : !open);
   if (save) {
     const k = foldKey(head);
-    if (folded) foldedSet.add(k); else foldedSet.delete(k);
-    keep('lv-folded', [...foldedSet]);
+    if (FOLDED_FIRST.has(shown)) { if (folded) openedSet.delete(k); else openedSet.add(k); keep('lv-opened', [...openedSet]); }
+    else { if (folded) foldedSet.add(k); else foldedSet.delete(k); keep('lv-folded', [...foldedSet]); }
     // the same section in the other sub-tabs follows
     body.querySelectorAll<HTMLElement>(HEAD).forEach((o) => {
       if (o === head || foldKey(o) !== k) return;
@@ -991,11 +994,15 @@ function fold(head: Element, open?: boolean, save = true): void {
   }
   head.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
 }
+// tables whose sections start folded until opened; for them the remembered choice is which sections are open
+const FOLDED_FIRST = new Set(['achievements']);
+const openedSet = new Set<string>(remember<string[]>('lv-opened', []));
+const savedFolded = (k: string): boolean => (FOLDED_FIRST.has(shown) ? !openedSet.has(k) : foldedSet.has(k));
 // keyed by tab and title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new
 // build, and a section folded in one sub-tab is folded in every sub-tab that shows it
 const foldKey = (head: Element): string => `${shown}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
 function foldable(): void {
-  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) box(h2).classList.add('lv-folded'); });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (savedFolded(foldKey(h2))) box(h2).classList.add('lv-folded'); });
   // the heading stays a heading; a button inside it does the folding
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => {
     const btn = h2.querySelector(':scope > .lv-foldbtn') ?? h('button', { type: 'button', class: 'lv-foldbtn', title: 'Fold or unfold' }, ...Array.from(h2.childNodes));
@@ -1102,6 +1109,9 @@ function route(): void {
     subRail.replaceChildren(...(tabs ? [tabs] : []));
     document.body.classList.toggle('lv-has-sub', !!tabs);
     foldable();
+    // bring back this table's remembered filters, leaving out values no entry has any more
+    const present = new Set(cards().flatMap((c) => facetsOf(c)));
+    for (const [f, st] of picksBy[sec.key] ?? []) if (present.has(f)) picks.set(f, st);
     tablify();
     drawSwitch();
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
@@ -1117,6 +1127,7 @@ function route(): void {
     const shutBox = el?.closest('.lv-folded');
     const shut = shutBox?.querySelector(':scope > h2.hs-section, :scope > header > h3');
     if (shut) fold(shut, true, false);
+    if (el?.hidden) { picks.clear(); search.value = ''; filter(); } // a remembered filter hides the entry linked to: drop it
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
     el?.scrollIntoView({ block: 'center' });
