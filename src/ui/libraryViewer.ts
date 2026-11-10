@@ -346,6 +346,7 @@ function gearClasses(): HTMLElement[] {
 
 // Healing: what each source restores in words, morale included, so the table view shows it too (the raw % fields stay in Code)
 function restores(d: HealingDef): string {
+  if (d.countOnly) return 'nothing itself: it only tallies healing from perks, for achievements that count healing by source';
   if (d.hourly) {
     const at50 = +(d.hourly.pctPerPoint * 50).toFixed(2);
     return `every hour, ${d.hourly.pctPerPoint} % of max ${d.hourly.morale ? 'morale' : 'health'} per ${skillName(d.hourly.skill)} point (${at50} % at 50)`;
@@ -355,8 +356,8 @@ function restores(d: HealingDef): string {
 }
 function healing(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.healing ?? {}).map((d) => card('healing', d.id, d, d.name,
-    [d.hourly?.morale || d.moralePct ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
-    row('Restores', restores(d)), ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'moralePct', 'hourly']))))];
+    [d.countOnly ? chip('tally only') : null, d.hourly?.morale || d.moralePct ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
+    row('Restores', restores(d)), ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'moralePct', 'hourly', 'countOnly']))))];
 }
 
 function races(): HTMLElement[] {
