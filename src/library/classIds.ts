@@ -2,6 +2,6 @@
 // name in the library. Code refers to classes through CL; data and saves store the ID.
 // Never reuse or renumber an ID; a new class takes the next free number.
 export const CL = {
-  swordsman: 'CL1', late_bloomer: 'CL2', sword_dancer: 'CL3', commoner: 'CL4', a_nobody: 'CL5', trader: 'CL6', merchant: 'CL7',
+  swordsman: 'CL1', late_bloomer: 'CL2', sword_dancer: 'CL3', commoner: 'CL4', a_nobody: 'CL5', trader: 'CL6', merchant: 'CL7', guard: 'CL8',
 } as const;
 export type ClassId = (typeof CL)[keyof typeof CL];

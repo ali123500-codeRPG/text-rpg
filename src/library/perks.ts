@@ -114,7 +114,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
       effect: "The foe's Damaged body parts are shown to the owner (foes' part states are otherwise never shown). The foe's health level also shows one step earlier on the health track: the level where it starts to show moves one position milder in the health-track names table (from Wounded to Injured today).",
       lasts: "While the owner sees it." } },
   { id: PK.keen_ear, ref: "A14", name: "Keen Ear", skill: SK.earshot, place: "20",
-    ladder: { skill: SK.earshot, milestone: 20 }, effect: "senses",
+    ladder: { skill: SK.earshot, milestone: 20 }, effect: "senses", hearingReach: 1,
     story: "A whisper two rooms away might as well be a shout. Your hearing reaches one zone link further.",
     rules: { kind: "Always on",
       trigger: "A perception check for the owner by sound.",

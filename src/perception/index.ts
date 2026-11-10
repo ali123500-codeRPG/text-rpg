@@ -5,7 +5,7 @@ import { AWARENESS } from '../scales';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
-import { hasPerk } from '../ruleset/perks';
+import { hasPerk, perkSum } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 
 export type BeliefUpdate =
@@ -38,9 +38,9 @@ function reach([full, partial]: [number, number], d: number | null): Perception 
 }
 
 /** how well a sound of this noise made in that zone reaches the observer (null: not heard).
- * A14 Keen Ear: +1 link on both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed. */
+ * Perks with hearingReach (A14 Keen Ear: 1) add links to both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed. */
 function soundReach(state: GameState, observer: Actor, zone: string, noise: GameEvent['noise']): Perception | null {
-  const up = hasPerk(observer, PK.keen_ear) ? 1 : 0;
+  const up = perkSum(observer, 'hearingReach');
   const [full, heard] = CONFIG.NOISE_REACH[noise];
   return reach([full + up, heard + up], dist(state, observer.zone, zone, false));
 }

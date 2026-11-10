@@ -405,15 +405,20 @@ export function prototypeLibrary(): Library {
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
-      [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does. You are not there when the blow lands.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: { [SK.melee_light]: 40, [SK.melee_medium]: 40 } },
+      [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', story: "Blade and footwork, drilled until the step comes before the thought does. You are not there when the blow lands.", floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
       // the default class: opens when the current class is at its top level; its capstone (at 5, tier 0) unlocks A Nobody
       [CL.commoner]: { id: CL.commoner, name: 'Commoner', tier: 'tier_0', story: 'Plain work and plain days. Most people live their whole lives here.', floors: {}, fallback: true, capstone: [PK.nobody_special] },
       // a starting class (50 points, level 1, like the Unwritten Legend); others unlock it through Commoner 5's perk
       [CL.a_nobody]: { id: CL.a_nobody, name: 'A Nobody', tier: 'tier_2', label: 'a nobody', story: 'Nobody watches a nobody, and you have learned to use that. Every fall and every quiet year taught you something the noticed never learn.', floors: {}, creation: { points: 50, level: 1 }, unlockPerk: PK.nobody_special,
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
-      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher, and remember who still owes you.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
-      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'Known at every stall, and now trusted with more than one. Your word moves goods two towns away.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
+      // any weapon, any armor and any defense skill, and a perk that adds a hearing link (Keen Ear, which patrol templates have)
+      [CL.guard]: { id: CL.guard, name: 'Guard', tier: 'tier_1', label: 'a guard', story: "You walk the same wall every night until you know its sounds by heart. Whatever doesn't belong, you hear first.", floors: {},
+        unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40, [SK.ranged_light]: 40, [SK.ranged_medium]: 40, [SK.ranged_heavy]: 40 },
+          { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30 }] as Record<string, number>[],
+        unlockPerkWith: { hearingReach: 1 } },
+      [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', story: "Buy low, sell higher, and remember who still owes you.", floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
+      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: "Known at every stall, and now trusted with more than one. Your word moves goods two towns away.", floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)

@@ -17,6 +17,8 @@ export const PERKS_NEEDED: Record<number, number> = { 20: 0, 40: 0, 60: 1, 80: 1
 
 const owned = (a: Actor) => a.core.perks.filter((p) => !p.dormant);
 /** the actor owns this perk and it is not dormant: every coded perk checks this */
+/** the sum of one perk number over an actor's active perks */
+export const perkSum = (a: Actor, key: 'hearingReach' | 'throwReach') => a.core.perks.reduce((n, p) => n + (p.dormant ? 0 : getLibrary().perks[p.perkId]?.[key] ?? 0), 0);
 export const hasPerk = (a: Actor | undefined, perkId: string) => !!a?.core.perks.some((p) => p.perkId === perkId && !p.dormant);
 
 /** AE5/AE8: perk moves code can resolve (engine/perkMoves.ts): whether each is free and how often an engagement allows it */
