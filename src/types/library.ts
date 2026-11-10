@@ -58,8 +58,10 @@ export type ClassDef = {
   capstone?: string[];
   /** true skill each skill needs before a character without this class unlocks it */
   unlock?: Record<string, number>;
-  /** either-of unlock: at least one of these skills must also reach its true skill */
-  unlockAny?: Record<string, number>;
+  /** either-of unlocks: in each group, at least one of the skills must also reach its true skill */
+  unlockAny?: Record<string, number>[];
+  /** unlocks only for a character with an active perk whose listed numbers reach these (Guard: hearingReach 1) */
+  unlockPerkWith?: { hearingReach?: number };
   /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for D-159) */
   unlockClass?: Record<string, number | 'max'>;
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
@@ -122,6 +124,8 @@ export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
   /** zones added to the throw action's reach (on top of THROWN_REACH_BONUS) */
   throwReach?: number;
+  /** zone links added to how far the owner hears (Keen Ear 1) */
+  hearingReach?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
