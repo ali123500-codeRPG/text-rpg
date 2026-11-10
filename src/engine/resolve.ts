@@ -1,4 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { DU, HL, RL } from '../library/tableIds';
 import { bestReward } from '../ruleset/achRewards';
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
@@ -6,7 +7,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { applyHealing, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
-import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, markEndurance, modeSkill, moraleCheck, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
@@ -15,12 +16,13 @@ import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, isActive, isEngaged, hostile, shortestPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, bandById, foe, isActive, isEngaged, hostile, shortestPath, sparBetween, zoneById } from './relations';
+import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
-import { applyHaggle, buy } from './trade';
+import { applyHaggle, buy, sell } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
@@ -116,7 +118,7 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   updateBeliefs(state, { kind: 'event', event: ev, result });
   if (ev.actorId === state.player.id && isMajorAction(ev)) detectPlayer(state, ev, rng);
   else if (isMajorAction(ev) && actorById(state, ev.actorId)?.posture === 'stealthy') stealthDetect(state, ev, rng); // NS2
-  if (ev.kind === 'attack' && ev.target) setAttackOverrides(state, ev);
+  if (ev.kind === 'attack' && ev.target && !ev.spar) setAttackOverrides(state, ev); // SP1: a sparring blow changes no stance
   ctx.events.push(ev);
   if (ev.kind === 'speak' && !ev.bark && ev.line?.introduces && ev.perception[state.player.id]?.level === 'full') {
     applyIntroduces(state, actorById(state, ev.actorId)!, ev.line.introduces);
@@ -164,6 +166,8 @@ function morale(ctx: Ctx, a: Actor, reason: 'level' | 'bandmate_down'): void {
   const r = moraleCheck(state, a, ctx.rng, reason);
   logCode(state, 'morale_check', { actorId: a.id, reason, result: r });
   if (r === 'steady') return;
+  // SP5: in a spar with no real foe, a surrender or a break just yields the spar
+  if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && hostile(state, a, x))) { yieldSpar(state, a); return; }
   if (hostile(state, a, state.player)) tally(state, 'yielded');
   a.mind!.moraleState = r;
   // Q1/Q4: a surrender, or a break, replaces hostile with yielded toward everyone it was fighting
@@ -247,6 +251,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   let t = o.target ? actorById(state, o.target) : undefined;
   const wasted = () => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
   if (!t || t === a || !isActive(t)) return wasted();
+  if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted(); }
   const dist = shortestPath(state, a.zone, t.zone, true)?.length ?? Infinity;
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
   // a named skill picks the mode that uses it ("I grab him" names unarmed_grapple, not the sword in hand)
@@ -276,6 +281,10 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     t = cover;
     surprised = false;
   }
+  // SP1/SP7: a blow between sides of a live spar is a sparring blow; any other attack on or by a fighter ends its spar
+  const spar = sparBetween(state, a, t);
+  if (spar) ev.spar = true;
+  else endSparsOf(state, [a.id, t.id]);
   const before = { level: healthLevel(t), parts: partStates(state, t), lost: t.core.condition.hpLostPct };
   const opening = openingShifts(ctx, a, t, m.mode.tree);
   const res = ruleset.attack(
@@ -290,6 +299,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   if (hold) ev.effects.push(hold);
   ruleset.recordUse(a, res.attack.skill, res, state);
   markEndurance(state, t, t.core.condition.hpLostPct - before.lost);
+  if (spar) checkOut(state, spar); // SP4: at the limit, the fighter is out: a later blow on it is a real attack (SP7)
   ev.tier = res.attack.tier;
   ev.attack = res;
   if (m.mode.thrown && dropToGround(state, a, m.itemId, t.zone)) {
@@ -363,10 +373,10 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
       doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id }, true);
     }
   }
-  // T2b Volley: once per engagement, after a ranged hit, a free shot at a foe already hostile to the owner that it sees
+  // T2b Volley: once per engagement, after a ranged hit, a free shot at a foe already fighting the owner (hostile, or sparring) that it sees
   if (ranged && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, PK.volley) && isActive(a) && readyThisEngagement(state, a, PK.volley)) {
     const mode = usableModes(state, a).find((x) => x.itemId === itemId && x.mode.tree === 'ranged');
-    const foes = allActors(state).filter((x) => x !== a && isActive(x) && hostile(state, x, a) && atLeast(beliefStatus(state, a, x), 'aware')
+    const foes = allActors(state).filter((x) => x !== a && isActive(x) && foe(state, x, a) && atLeast(beliefStatus(state, a, x), 'aware')
       && (shortestPath(state, a.zone, x.zone, true)?.length ?? Infinity) <= (mode?.mode.reach ?? -1));
     if (mode && foes.length) {
       useThisEngagement(a, PK.volley);
@@ -397,7 +407,7 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
     // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, once paid for (PY8), else the rest row
     const row = restRow(state, a);
     applyHealing(state, a, row);
-    if (row !== 'rest') a.paid = a.paid?.filter((x) => x !== row);
+    if (row !== HL.rest) a.paid = a.paid?.filter((x) => x !== row);
     state.clocks[key] = now(state);
     ev.effects.push({ kind: 'rested', actorId: a.id, data: {} });
   }
@@ -407,11 +417,11 @@ function doRest(ctx: Ctx, a: Actor, o: Order): void {
 /** H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row when the actor paid for it (PY8), else the rest row */
 function restRow(state: GameState, a: Actor): string {
   const kind = state.places.find((p) => p.id === a.placeId)?.kind ?? '';
-  return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? 'rest';
+  return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? HL.rest;
 }
 
 const threatHere = (state: GameState, a: Actor): boolean =>
-  allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (hostile(state, a, x) || hostile(state, x, a)));
+  allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
 
 /** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
  * Blocked like rest when a hostile is in the zone; otherwise the clock moves on and the scene breaks (time skip, D-30). */
@@ -430,7 +440,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       return emit(ctx, ev);
     }
     const until = named ?? nextTimeOfDay(timeOfDay(t));
-    const minutes = o.type === 'sleep' ? getLibrary().durations?.sleep?.minutes ?? 0 : minutesUntil(t, until);
+    const minutes = o.type === 'sleep' ? getLibrary().durations?.[DU.sleep]?.minutes ?? 0 : minutesUntil(t, until);
     passTime(state, minutes);
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     if (o.type === 'sleep') {
@@ -450,11 +460,11 @@ function passTime(state: GameState, minutes: number): void {
   passiveHealing(state, minutes);
 }
 
-/** T1: a fight turn, else the durations row naming the order type, else the default 'action' row */
+/** T1: a fight turn, else the durations row naming the order type, else the default action row (DU) */
 function turnMinutes(state: GameState, o: Order): number {
   const rows = getLibrary().durations ?? {};
-  if (state.mode === 'tactical') return rows.fight_turn?.minutes ?? 0;
-  return (Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows.action)?.minutes ?? 0;
+  if (state.mode === 'tactical') return rows[DU.fight_turn]?.minutes ?? 0;
+  return (Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows[DU.action])?.minutes ?? 0;
 }
 
 /** H2/H3: using a carried item that names a healing source applies that row and uses one up; works in a fight only
@@ -466,7 +476,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   const row = def?.heal ? getLibrary().healing?.[def.heal] : undefined;
   if (!inst || !row) return false;
   const ev = bark(mk(ctx, a, 'use_item', { itemId: inst.itemId }), o);
-  const fight = allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (hostile(state, a, x) || hostile(state, x, a)));
+  const fight = allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
   if (fight && !row.inFight) {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'hostile_in_zone' });
   } else if (!wouldHeal(state, a, row.id)) {
@@ -544,6 +554,14 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
         ...(r.itemInst ? { itemId: r.itemInst } : {}), ...(r.service ? { service: r.service } : {}), ...(r.to !== a ? { for: r.to.id } : {}),
       }), o));
     }
+    case 'sell': {
+      const r = sell(state, a, o.target ? actorById(state, o.target) : undefined, o.item, o.qty);
+      if (!r.ok) {
+        logCode(state, 'sell_refused', { actorId: a.id, buyer: o.target, item: o.item, reason: r.reason });
+        return emit(ctx, bark(mk(ctx, a, 'sell_refused', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), reason: r.reason }), o));
+      }
+      return emit(ctx, bark(mk(ctx, a, 'sell', { target: o.target ?? undefined, qty: r.qty, price: r.price, itemId: r.itemInst }), o));
+    }
     case 'equip': {
       if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted'), o));
       return emit(ctx, bark(mk(ctx, a, 'equip', { itemId: o.item ?? undefined }), o));
@@ -615,7 +633,7 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 const lame = (state: GameState, a: Actor) => {
   if (slowed(state, a)) return true;
   const parts = new Map(partStates(state, a).map((p) => [p.id, p.state]));
-  return actorBody(state, a).parts.some((p) => p.roles.includes('move') && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
+  return actorBody(state, a).parts.some((p) => p.roles.includes(RL.move) && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
 };
 
 /** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a
@@ -649,6 +667,7 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
   const learnedBefore = learned(state);
+  const playerUp = isActive(state.player);
   const active = state.actors.filter(isActive);
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
@@ -715,11 +734,14 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     heardExchange: (id) => ctx.exchangeEvents.some((e) => !!e.perception[id]),
     heardNow: (listener, speaker) => ctx.events.some((e) => e.actorId === speaker && !!e.line && !!e.perception[listener]),
   });
+  if (input.intent?.yields && isActive(state.player)) yieldSpar(state, state.player); // SP5: "I yield", after the turn's blows
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   const defeated = payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   updateQuests(state, ctx.events, defeated);
+  if (playerUp && !isActive(state.player)) playerDown(state, rng);
+  updateSpars(state, ctx.events); // after the scene-break checks, so a break ends the spar this turn
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
@@ -733,6 +755,23 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   releaseHolds(state, allActors(state));
   state.events.push(...ctx.events);
   return ctx.events;
+}
+
+/** D-54: the player went down this turn. The fight is lethal when an active actor hostile to the player belongs to a band
+ * marked lethal (the default): the story ends on the "You fell" screen. Otherwise (a band marked not lethal, a spar, or no
+ * one left to finish the job) one survival roll: Near Miss or better wakes somewhere safe at Critical (the next scene). */
+function playerDown(state: GameState, rng: Rng): void {
+  const p = state.player;
+  if (healthLevel(p) === 'Dead') return;
+  if (state.actors.some((x) => isActive(x) && hostile(state, x, p) && bandById(state, x.bandId)?.lethal !== false)) {
+    logCode(state, 'player_fell', { lethal: true });
+    return;
+  }
+  const r = survivalRoll(rng);
+  logCode(state, 'survival_roll', { d100: r.d100, tier: r.tier, survived: r.survived });
+  if (!r.survived) return;
+  p.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'Critical')![1] as number;
+  state.stage.breakCause = 'knocked_out';
 }
 
 // ---------- pacing (P7) ----------

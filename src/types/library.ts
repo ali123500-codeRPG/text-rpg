@@ -15,7 +15,7 @@ export type SkillGroup = (typeof GR)[keyof typeof GR];
 export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
-export type RoleId = 'sense' | 'grip' | 'move' | 'fly' | 'strike' | 'speech';
+export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
 export type SizeId = 'tiny' | 'extra_small' | 'small' | 'normal' | 'big';
 export type ImpactId = 'non_essential' | 'normal' | 'essential';
 
@@ -90,7 +90,7 @@ export type Library = {
   skills: Record<string, SkillDef>;
   trees: Record<string, TreeDef>;
   classes: Record<string, ClassDef>;
-  roles: Record<RoleId, { shared: boolean }>;
+  roles: Record<RoleId, { name: string; shared: boolean }>;
   bodyTypes: Record<string, BodyType>;
   items: Record<string, ItemDef>;
   templates: Record<string, NpcTemplate>;
@@ -104,6 +104,7 @@ export type Library = {
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
+  attackModes?: Record<string, { id: string; name: string }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
 /** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
@@ -154,7 +155,7 @@ export type PerkWriteup = PerkDef & { ref: string; skill: string; place: '20' | 
  * <id>:<type or race> and {body_type}/{race} in the name become what was defeated. 'mastery' once per tree when all three
  * of its skills reach `count` (50/100/150), id <id>:<tree>. */
 /** How long an action takes on the game clock (T1). `orders` lists the order types the row covers;
- * the row with no `orders` named 'action' is the default; 'fight_turn' is every turn of a fight; 'sleep' is one sleep. */
+ * the action row (DU in src/library/tableIds.ts) is the default; the fight turn row is every turn of a fight; the sleep row is one sleep. */
 export type DurationDef = { id: string; name: string; minutes: number; orders?: string[] };
 
 /** A healing source (H1/H12): what it restores, the worst part state it can heal (`reach`, a
@@ -184,9 +185,12 @@ export type RaceDef = {
  * and its Bane bonus is the lower level's bonus plus its own. */
 /** what an achievement counts (unordered: names are the ids); its text lives in ACH_RULE_TEXT (achievementIds.ts) */
 export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yielded' | 'crits' | 'beyond_crit' | 'crippled_defeats' | 'zones' | 'deals' | 'days'
-  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned';
+  | 'class_unlock' | 'flawless' | 'outnumbered' | 'brink' | 'class_max' | 'class_max_tiers' | 'char_level' | 'held_line' | 'quests_done' | 'quests_abandoned'
+  | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
+  | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
+  | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
-export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier';
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
 /** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
@@ -211,5 +215,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   restPct?: number; // + this % HP and part healing on each rest
   situation?: number; // + this on the owner's situation rolls
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile
+  /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
+  levelUp?: Partial<Record<string, number>>;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
   every?: number };

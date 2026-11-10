@@ -58,7 +58,7 @@ describe('106 XP and levels', () => {
   it('every achievement pays the XP of its reward level', () => {
     const lib = getLibrary().achievements!;
     for (const d of Object.values(lib)) expect(REWARD_LEVELS.has(d.level)).toBe(true);
-    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([50, 100, 250, 1000, 2000]);
+    expect(REWARD_LEVELS.keys.map((k) => CONFIG.REWARD_XP[k])).toEqual([50, 100, 250, 1000, 2000, 5000]);
     expect(CONFIG.REWARD_XP[lib[ACH.mastery_150].level]).toBe(2000);
   });
   it('a foe with a race also earns the first race defeat', () => {
@@ -110,12 +110,12 @@ describe('106 XP and levels', () => {
     const s = makeVillage();
     const p = s.player, pr = p.progression!;
     expect(xpToNext(p)).toBe(CONFIG.LEVEL_XP);
-    p.core.classes.push({ classId: 'slime', state: 'unlocked', level: 0 });
-    pr.nextClass = 'slime';
+    p.core.classes.push({ classId: CL.trader, state: 'unlocked', level: 0 });
+    pr.nextClass = CL.trader;
     awardXp(s, CONFIG.LEVEL_XP + 5, 'test');
     expect(pr.xp).toBe(5);
-    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 1], ['slime', 'current', 1]]);
+    expect(p.core.classes.map((c) => [c.classId, c.state, c.level])).toEqual([[CL.swordsman, 'previous', 1], [CL.trader, 'current', 1]]);
     expect(pr.unspentPerkPoints).toBe(1); // level 2 is even
-    expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: 'slime', level: 2 });
+    expect(pr.xpLog!.at(-1)!.levelUp).toEqual({ classId: CL.trader, level: 2 });
   });
 });

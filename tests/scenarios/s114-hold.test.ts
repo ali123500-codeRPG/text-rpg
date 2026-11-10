@@ -1,6 +1,7 @@
 // 114 Hold (A8; rules in src/library/perks.ts). Anyone can grapple (a humanoid natural attack on
 // unarmed_grapple). With Hold, a grapple that lands with a Great Success or better holds the target: it can't leave the
 // zone or use a two-handed mode, and trying to leave is a break-free contest it wins on a tie or better.
+import { AM } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset, usableModes } from '../../src/ruleset';
@@ -15,7 +16,7 @@ import { IT } from '../../src/library/itemIds';
 
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
-const grab = { attackerId: 'player', targetId: 'patron_1', weaponId: 'natural:grapple', modeId: 'grapple', targetPart: null, aimed: false };
+const grab = { attackerId: 'player', targetId: 'patron_1', weaponId: `natural:${AM.grapple}`, modeId: AM.grapple, targetPart: null, aimed: false };
 
 describe('114 Hold', () => {
   it('a grapple is a natural attack on unarmed_grapple; with Hold a Great Success that hits holds the target', () => {
@@ -85,6 +86,6 @@ describe('114 Hold', () => {
     wim.zone = s.player.zone;
     const ev = play(s, { intent: intent({ action: { type: 'attack', skill: SK.unarmed_grapple, target: 'patron_1' } }) });
     const atk = ev.find((e) => e.kind === 'attack' && e.actorId === 'player');
-    expect(atk?.itemId).toBe('natural:grapple');
+    expect(atk?.itemId).toBe(`natural:${AM.grapple}`);
   });
 });

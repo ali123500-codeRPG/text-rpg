@@ -379,7 +379,7 @@ export function createGame(deps: GameDeps): Game {
       case 'stats': {
         const p = s.player;
         const skills = Object.entries(p.core.skills).map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? '+' : v.state === 'flawed' ? '−' : ''}`);
-        return say(`${p.names.current}, ${p.core.classes.map((c) => `${c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`);
+        return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`);
       }
       case 'inv':
         return say(s.player.core.inventory.map((i) => `${nameOf(s, i.itemId)}${i.qty ? ` ×${i.qty}` : ''}${i.equippedIn?.length ? ` (${i.equippedIn.join(', ')})` : ''}`).join('; ') || 'You carry nothing.');

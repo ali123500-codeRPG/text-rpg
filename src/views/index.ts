@@ -1,24 +1,27 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import type { Tier, TierRoll,
-  Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState,
+  Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  WeaverView, Zone, ZoneView,
+  SparView, WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
-import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, stance, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
+import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
-import { coinWords, isSeller, wareList } from '../engine/trade';
+import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
+import { modeName } from '../ruleset/gear';
+import { itemValue } from '../ruleset/value';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -71,7 +74,7 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
     const classes = [...new Set((d.weapon?.modes ?? []).map((m) => m.class))];
     return {
       id: i.id, itemId: i.itemId, name: d.name, kind: d.kind, equippedIn: [...(i.equippedIn ?? [])],
-      modes: (d.weapon?.modes ?? []).map((m) => m.id),
+      modes: (d.weapon?.modes ?? []).map((m) => ({ id: m.id, name: modeName(m) })),
       ...(classes.length ? { classLabel: classes.join('/') } : {}),
       ...(d.armor ? { weightLabel: d.armor.weight } : {}),
       ...(d.stackable ? { qty: i.qty ?? 1 } : {}),
@@ -136,13 +139,24 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
-      ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a) } : {}),
+      ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
     });
   }
   return out;
 }
 
 const outcomeLabel = (o: string) => o.replaceAll('_', ' ');
+
+/** SP1/SP4: the spar `viewer` fights in; name turns an actor id into what the viewer shows (an id, or the player's name for it) */
+function sparView(state: GameState, viewer: Actor, name: (id: string) => string): SparView | undefined {
+  const sp = sparOf(state, viewer.id);
+  if (!sp) return undefined;
+  const mine = sp.sides.find((s) => s.includes(viewer.id))!;
+  return {
+    opponents: sp.sides.filter((s) => s !== mine).flat().map(name), allies: mine.filter((id) => id !== viewer.id).map(name),
+    limit: sparLimit(sp) as HealthLevel, cruel: !!sp.cruel, out: viewer.id in sp.out,
+  };
+}
 
 function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
   const p = e.perception[viewer.id];
@@ -156,6 +170,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(!full ? { where: whereLabel(state, viewer.zone, e.zone) } : {}),
     ...(e.line && (full || p.cue === 'sound') ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
+    ...(full && e.spar ? { spar: true as const } : {}),
   };
 }
 
@@ -226,7 +241,7 @@ export function buildPlayerView(state: GameState): PlayerView {
     turn: state.turn,
     player: {
       id: 'player', name: p.names.current,
-      classes: p.core.classes.map((c) => c.classId),
+      classes: p.core.classes.map((c) => ({ id: c.classId, name: getLibrary().classes[c.classId]?.name ?? c.classId })),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id })) } : {}),
@@ -235,6 +250,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       posture: p.posture ?? 'open',
       standingDefense: p.core.standingDefense,
       ...(heldBy(state, p) ? { heldBy: callName(state, p.id, heldBy(state, p)!.id) } : {}),
+      ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
     },
     zone: zoneView(state, zoneById(state, p.zone)!),
     zones: perceivedZones(state, p.zone),
@@ -273,7 +289,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(b.lastKnownZone !== undefined ? { lastKnownZone: b.lastKnownZone } : {}),
       ...(b.lastSeenTurn !== undefined ? { lastSeenTurn: b.lastSeenTurn } : {}),
       source: b.source, revealed: [...b.revealed],
-      stance: stance(state, a, other), hostile: hostile(state, a, other),
+      stance: stance(state, a, other), hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
       active: isActive(other), label: callName(state, a.id, about),
       // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
       ...(about === state.player.id && b.source === 'seen' && atLeast(b.status, 'aware') && wornTitle(state) ? { title: wornTitle(state) } : {}),
@@ -298,7 +314,8 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(m.alarm ? { alarm: { armed: m.alarm.armed, ...(m.alarm.lastAlarmTurn !== undefined ? { lastAlarmTurn: m.alarm.lastAlarmTurn } : {}), ...(m.alarm.returnTo ? { returnTo: { id: m.alarm.returnTo.id, anchorTurn: m.alarm.returnTo.anchorTurn } } : {}) } } : {}),
       ...(lastHitBy ? { lastHitBy } : {}),
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
-      ...(isSeller(a) ? { wares: wareList(state, state.player, a) } : {}),
+      ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
+      ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
@@ -447,6 +464,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(hears ? { line: { text: e.line!.text, volume: e.line!.volume, ...(speaker ? { speaker } : {}) } } : {}),
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
+      ...(full && e.spar ? { spar: true as const } : {}),
       ...(item ? { item } : {}),
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(forWhom ? { for: forWhom } : {}),
@@ -490,14 +508,14 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);
   const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string }>(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}) }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
-  const worth = (i: { boon?: number; value: number }) => i.boon ?? i.value / CONFIG.BOON_COIN; // loot V8
+  const worth = (i: ItemDef) => i.boon ?? itemValue(state, i) / CONFIG.BOON_COIN; // loot V8
   const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });
   return {
     tier: tierName(state.stage.tier),
     time: clockSet(state) ? timeView(state) : null,
     stakes: STAKES[state.stage.tier] ?? '',
-    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}) },
+    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     stage: stageZones(state).map((z) => zoneView(state, z)),
     actors: onStage.map((a) => {
@@ -512,12 +530,14 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations } })),
-    player: { level: state.player.core.classes.reduce((n, c) => n + c.level, 0), currentClass: cur?.classId ?? null, health: healthLevel(state.player) },
+    player: { level: state.player.core.classes.reduce((n, c) => n + c.level, 0), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player) },
     previousNote: state.hidden.weaverNote,
     catalogs: {
       templates: [...templates.values()],
       services: Object.values(lib.services ?? {}).map((s) => ({ id: s.id, name: s.name, price: s.price })),
       bodyTypes: [...Object.values(lib.bodyTypes).map((b) => ({ id: b.id, name: b.name })), ...bp('body_type').filter((b) => !lib.bodyTypes[b.id]).map((b) => ({ id: b.id, name: String(b.data.name ?? b.id) }))],
+      races: Object.values(lib.races ?? {}).map((r) => ({ id: r.id, name: r.name })),
+      classes: Object.values(lib.classes).map((c) => ({ id: c.id, name: c.name })),
       routineSets: Object.values(lib.routineSets).map((s) => ({
         id: s.id, brief: s.brief, tags: structuredClone(s.tags),
         slots: Object.fromEntries(Object.entries(s.slots).map(([k, v]) => [k, { kind: v.kind, hint: v.hint }])),

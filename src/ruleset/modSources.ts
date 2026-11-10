@@ -1,6 +1,7 @@
 // Every place a roll modifier comes from, by modifier type, so the library viewer's Stacking tab can show what feeds
 // each type. Values are read from CONFIG and the library, so they follow the code. tests/unit/mod-sources.test.ts
 // checks that each place in src that makes a typed modifier has exactly one entry here (same file, same type).
+import { modeName } from './gear';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
 import { baneSkill, defeatsRoll, isBane } from './bane';
@@ -70,7 +71,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'gear', roll: 'skill', source: 'Weapon class hit', at: 'src/ruleset/index.ts', when: 'Attack rolls: the class hit plus the mode\'s hitAdj, as one entry.',
     value: `${list(Object.fromEntries(Object.entries(CONFIG.WEAPON_CLASSES).map(([k, c]) => [k, c.hit])), false)} · unarmed ${sg(CONFIG.UNARMED_PROFILE.hit)}`,
     feeds: (lib) => Object.values(lib.items).flatMap((i) => (i.weapon?.modes ?? []).filter((m) => m.hitAdj).map((m) => ({ table: 'items' as const, id: i.id, name: i.name,
-      value: `${m.id}: ${sg((CONFIG.WEAPON_CLASSES[m.class] ?? CONFIG.UNARMED_PROFILE).hit + (m.hitAdj ?? 0))} (class ${sg((CONFIG.WEAPON_CLASSES[m.class] ?? CONFIG.UNARMED_PROFILE).hit)}, hitAdj ${sg(m.hitAdj ?? 0)})` }))) },
+      value: `${modeName(m)}: ${sg((CONFIG.WEAPON_CLASSES[m.class] ?? CONFIG.UNARMED_PROFILE).hit + (m.hitAdj ?? 0))} (class ${sg((CONFIG.WEAPON_CLASSES[m.class] ?? CONFIG.UNARMED_PROFILE).hit)}, hitAdj ${sg(m.hitAdj ?? 0)})` }))) },
   { type: 'gear', roll: 'skill', source: 'Item roll effects', at: 'src/ruleset/gear.ts', when: 'Rolls of the kind the effect names, while the item is worn, held, in use or carried.',
     value: 'the effect\'s value', feeds: (lib) => itemRollMods(lib, false) },
   // wounds

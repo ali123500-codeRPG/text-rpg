@@ -1,4 +1,5 @@
 // Part 3: total HP, health track, body parts, roles, hit table.
+import { RL } from '../library/tableIds';
 import type { Actor, GameState, HealthLevel, Mod, PartState, RoleId } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
@@ -40,14 +41,14 @@ export function partStates(state: GameState, actor: Actor): { id: string; state:
 /** Grip parts that can still use a hand (Healthy or Damaged). */
 export function usableGrips(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts
-    .filter((p) => p.roles.includes('grip') && working(poolState(partPct(actor, p.id))))
+    .filter((p) => p.roles.includes(RL.grip) && working(poolState(partPct(actor, p.id))))
     .map((p) => p.id);
 }
 
 /** part states in order, mildest first (the part-state names table; code compares positions) */
 export const PART_STATES: PartState[] = ['Healthy', 'Damaged', 'Crippled', 'Destroyed'];
 /** a part's state for its penalties: Tough It Out counts each one step milder (D6) */
-export const effectiveState = (a: Actor, s: PartState): PartState => PART_STATES[Math.max(0, PART_STATES.indexOf(s) - (hasPerk(a, 'tough_it_out') ? 1 : 0))];
+export const effectiveState = (a: Actor, s: PartState): PartState => PART_STATES[Math.max(0, PART_STATES.indexOf(s) - (hasPerk(a, PK.tough_it_out) ? 1 : 0))];
 const rolePenaltyOf = (s: PartState) =>
   s === 'Healthy' ? 0 : s === 'Damaged' ? CONFIG.ROLE_PENALTY.damaged : CONFIG.ROLE_PENALTY.crippled; // GAP: Destroyed counts as Crippled
 /** Iron Frame (A12): an effective state at the Damaged position or milder gives no role penalty */
@@ -82,19 +83,19 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
       for (const p of parts) {
         const s = st(p.id);
         // Sense Crippled applies to every check, not only Sense-tagged ones
-        if (uses.includes(role) || (role === 'sense' && !working(s))) v += pen(p.id) / parts.length;
+        if (uses.includes(role) || (role === RL.sense && !working(s))) v += pen(p.id) / parts.length;
       }
     } else if (uses.includes(role)) {
-      if (role === 'grip') {
+      if (role === RL.grip) {
         const hands = inst?.equippedIn?.filter((h) => h.startsWith('hand:')).map((h) => h.slice(5)) ?? [];
         const pens = (hands.length ? hands : parts.map((p) => p.id)).map((id) => pen(id));
         v = hands.length ? Math.min(...pens) : Math.max(...pens);
-      } else if (role === 'strike' && ctx.itemId?.startsWith('natural:')) {
+      } else if (role === RL.strike && ctx.itemId?.startsWith('natural:')) {
         const partId = ct.naturalAttacks.find((m) => m.id === ctx.itemId!.slice(8))?.partId;
         if (partId) v = pen(partId);
       }
     }
-    if (v) out.push({ source: `${role} wounds`, type: 'wounds', value: v });
+    if (v) out.push({ source: `${getLibrary().roles[role]?.name ?? role} wounds`, type: 'wounds', value: v });
   }
   // a Damaged shield: −10 to block (wounds type)
   if (inst && skill === SK.block && itemDef(state, inst.itemId).shield && poolState(inst.pools?.shield ?? 100) === 'Damaged') {

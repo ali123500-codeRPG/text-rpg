@@ -90,8 +90,9 @@ export function routineOrder(view: ActorView): Order {
   return order(view, 'move', 'routine', `walk toward ${d.zone}`, { target: path[0], activity: d.activity });
 }
 
+/** those it fights: hostile, or a spar opponent (SP1) */
 function hostileBeliefs(view: ActorView) {
-  return view.beliefs.filter((b) => b.hostile && b.active && b.status !== 'unaware');
+  return view.beliefs.filter((b) => (b.hostile || b.sparring) && b.active && b.status !== 'unaware');
 }
 /** whom a broken actor runs from: those it is hostile to, and those it yielded to (Q4) */
 const fleeFrom = (view: ActorView) => view.beliefs.filter((b) => (b.hostile || b.stance === 'yielded') && b.active && b.status !== 'unaware');
@@ -134,7 +135,7 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
   if ((s.broken || s.surrendered) && !s.fearless) return flee(view, 'fallback');
   // 2. Attack
   const here = view.beliefs
-    .filter((b) => b.hostile && b.active && (b.status === 'aware' || b.status === 'tracking') && b.lastKnownZone === s.zone)
+    .filter((b) => (b.hostile || b.sparring) && b.active && (b.status === 'aware' || b.status === 'tracking') && b.lastKnownZone === s.zone)
     .map((b) => b.about)
     .sort();
   if (here.length) {

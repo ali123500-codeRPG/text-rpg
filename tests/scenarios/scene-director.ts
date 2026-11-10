@@ -1,5 +1,6 @@
 // Shared by tests 44 and 45: scene setup inside a triggering turn, live (one Weaver call through Claude) and replayed
 // (the logged Weaver outputs, no call). Mirrors what the pipeline does: each Weaver call is one agent-log entry.
+import { ZK } from '../../src/library/tableIds';
 import type { AgentTurnLog, ClaudeClient, GameEvent, GameState, Rng, SituationResult, StagePlan, TurnRecord } from '../../src/types';
 import { SceneDirector, replaySceneStart } from '../../src/scene/director';
 import { openingEvents } from '../../src/scene';
@@ -43,9 +44,9 @@ export const MILL_PLAN: StagePlan = {
   event: { summary: 'slime tracks lead toward the old mill', challenge: 'moderate', gain: 'moderate' },
   places: [{ key: 'mill', name: 'the old mill', kind: 'place', parent: 'village' }],
   zones: [
-    { key: 'mill_yard', place: 'mill', kind: 'yard', name: 'mill yard', look: 'a weedy yard before a sagging mill', cover: 'some', light: 'bright',
+    { key: 'mill_yard', place: 'mill', kind: ZK.yard, name: 'mill yard', look: 'a weedy yard before a sagging mill', cover: 'some', light: 'bright',
       links: [{ to: 'field_edge', label: 'back to the field', sight: true }, { to: 'mill_race', label: 'down to the race', sight: false }] },
-    { key: 'mill_race', place: 'mill', kind: 'yard', name: 'mill race', look: 'a choked stone channel', cover: 'some', light: 'dim',
+    { key: 'mill_race', place: 'mill', kind: ZK.yard, name: 'mill race', look: 'a choked stone channel', cover: 'some', light: 'dim',
       links: [{ to: 'mill_yard', label: 'up to the yard', sight: false }, { to: 'mill_pond', label: 'along the race', sight: false }] },
   ],
   frontiers: [{ key: 'mill_pond', label: 'along the race' }],

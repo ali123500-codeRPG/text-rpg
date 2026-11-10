@@ -110,7 +110,9 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Damage', at: 'attack · src/ruleset/index.ts',
         formula: 'damage = (class damage + mode damageAdj) × multiplier × perk damage multipliers, then armor: (damage − max(0, reduction − pierce)) × armor multiplier',
         table: { head: ['Class', 'Damage', 'Hit'], rows: [...Object.entries(CONFIG.WEAPON_CLASSES), ['unarmed (no class)', CONFIG.UNARMED_PROFILE] as const].map(([k, c]) => [k, String(c.damage), sg(c.hit)]) },
-        notes: ['Worn armor and natural armor each apply if they cover the part hit. Damage never goes below 0, and fractions stay.'] },
+        notes: ['Worn armor and natural armor each apply if they cover the part hit. Damage never goes below 0, and fractions stay.',
+          `A worn armor's reduction is ARMOR_FACTOR (${n(CONFIG.ARMOR_FACTOR)}) × its need; its multiplier comes from its weight. A minted piece adds ARMOR_QUALITY_FACTOR (${n(CONFIG.ARMOR_QUALITY_FACTOR)}) × need × quality, rounded.`,
+          `A shield's pool is POOL_BASE (${n(CONFIG.POOL_BASE)}) + POOL_FACTOR (${n(CONFIG.POOL_FACTOR)}) × its need; a minted shield adds POOL_QUALITY_FACTOR (${n(CONFIG.POOL_QUALITY_FACTOR)}) × need × quality, rounded.`] },
     ] },
     { key: 'gain', title: 'Skill gain', about: 'How a marked skill improves.', equations: [
       { name: 'When skills roll to improve', at: 'improveMarked · src/ruleset/improve.ts (called in src/engine/resolve.ts)',

@@ -2,6 +2,7 @@
 // stand-ins in its group, Adept of {tree} lowers that tree's equip requirements (only the check), Silver Tongue takes
 // 5% off buying, Hold the Line steadies allies fighting beside you (a new chain), Seasoned adds 10% to each rest;
 // T18 a worn title reaches only people who have seen you.
+import { HL } from '../../src/library/tableIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
@@ -68,15 +69,15 @@ describe('137 achievement rewards, round 2', () => {
   it('T19 Seasoned: +10% healing on each rest, carried up to Old Blood', () => {
     const s = makeVillage();
     s.player.core.condition.hpLostPct = 60;
-    applyHealing(s, s.player, 'rest');
+    applyHealing(s, s.player, HL.rest);
     const plain = 60 - s.player.core.condition.hpLostPct;
     s.player.core.condition.hpLostPct = 60;
     grantAchievement(s, ACH.days_30);
-    applyHealing(s, s.player, 'rest');
+    applyHealing(s, s.player, HL.rest);
     expect(60 - s.player.core.condition.hpLostPct).toBe(plain + 10);
     s.player.core.condition.hpLostPct = 60;
     grantAchievement(s, ACH.days_100);
-    applyHealing(s, s.player, 'rest');
+    applyHealing(s, s.player, HL.rest);
     expect(60 - s.player.core.condition.hpLostPct).toBe(plain + 10);
   });
 

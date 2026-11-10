@@ -3,6 +3,7 @@
 // level it builds on (AchievementDef.after) plus CONFIG.BANE_SKILL_PER_LEVEL, so I = +5, II = +10, III = +15. Lower levels switched off by a higher one are skipped. The best
 // race one and the best body type one both count, as one modifier type, so the weaker is halved by type stacking.
 // D-119 total-defeats achievements (Blooded Fighter …) add +1 per tier to every attack and defense roll, as the same modifier type.
+import { achievementName } from '../engine/xp';
 import type { AchievementDef, Actor, GameState, Mod } from '../types';
 import { getLibrary } from '../library';
 import { CONFIG } from '../config';
@@ -28,7 +29,7 @@ export function defeatsMods(actor: Actor, rollKind: string | undefined): Mod[] {
   const lib = getLibrary().achievements ?? {};
   const best = (actor.progression?.achievements ?? []).filter((x) => x.key && !x.replacedBy && lib[x.key]?.rule === 'defeats' && !lib[x.key].by)
     .sort((x, y) => defeatsRoll(y.key!) - defeatsRoll(x.key!))[0];
-  return best ? [{ source: `achievement: ${best.id}`, type: 'achievement', value: defeatsRoll(best.key!) }] : [];
+  return best ? [{ source: `achievement: ${lib[best.key!]?.name ?? best.id}`, type: 'achievement', value: defeatsRoll(best.key!) }] : [];
 }
 
 export function baneMods(state: GameState, actor: Actor, againstId: string | undefined): Mod[] {
@@ -37,13 +38,13 @@ export function baneMods(state: GameState, actor: Actor, againstId: string | und
   const foe = [state.player, ...state.actors].find((a) => a.id === againstId);
   if (!foe) return [];
   const lib = getLibrary().achievements ?? {};
-  const best = new Map<string, { skill: number; id: string }>();
+  const best = new Map<string, { skill: number; rec: { id: string; key?: string; of?: string } }>();
   for (const a of earned) {
     const d = a.key ? lib[a.key] : undefined;
     if (!d || !isBane(d) || !a.of || a.replacedBy) continue;
     if (a.of !== (d.by === 'race' ? foe.core.raceId : foe.core.bodyTypeId)) continue;
     const skill = baneSkill(a.key!);
-    if (skill > (best.get(d.by!)?.skill ?? 0)) best.set(d.by!, { skill, id: a.id });
+    if (skill > (best.get(d.by!)?.skill ?? 0)) best.set(d.by!, { skill, rec: a });
   }
-  return [...best.values()].map((b) => ({ source: `bane: ${b.id}`, type: 'achievement' as const, value: CONFIG.SKILL_WEIGHT * b.skill }));
+  return [...best.values()].map((b) => ({ source: `bane: ${achievementName(state, b.rec)}`, type: 'achievement' as const, value: CONFIG.SKILL_WEIGHT * b.skill }));
 }

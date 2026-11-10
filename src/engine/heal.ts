@@ -1,5 +1,6 @@
 // Healing ("Healing: options" H1–H15). Every source is a row of the library healing table, applied by
 // this one rule, so amounts stay consistent (B5) and new sources or tiers are new rows (H1).
+import { HL } from '../library/tableIds';
 import type { Actor, GameState } from '../types';
 import { getLibrary } from '../library';
 import { PART_STATES } from '../scales';
@@ -22,7 +23,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   if (level === 'Dead' && !src.revivesDead) return false; // no row heals the dead for now
   const before = partStates(state, a);
   const lost = c.hpLostPct;
-  const extra = sourceId === 'rest' ? bestReward(a, 'restPct')?.value ?? 0 : 0; // an achievement reward: + % on each rest
+  const extra = sourceId === HL.rest ? bestReward(a, 'restPct')?.value ?? 0 : 0; // an achievement reward: + % on each rest
   c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct + extra));
   const reach = PART_STATES.pos(src.reach);
   const changed: { id: string; from: string; to: string }[] = [];

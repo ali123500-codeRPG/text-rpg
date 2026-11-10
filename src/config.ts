@@ -36,6 +36,15 @@ const DEFAULTS = {
   QUALITY_HIT_FACTOR: 0.04,
   /** the balance lever for all equipment: a standard-kit piece's bonus = EQUIP_FACTOR × its need (EQUIP_NEED) */
   EQUIP_FACTOR: 0.4,
+  /** the armor lever (QE4): the damage armor stops = ARMOR_FACTOR × its need; the multiplier stays with its weight */
+  ARMOR_FACTOR: 0.08,
+  /** QE6: a minted armor piece stops ARMOR_QUALITY_FACTOR × its need × its quality more */
+  ARMOR_QUALITY_FACTOR: 0.01,
+  /** the shield pool levers (QE5): pool = POOL_BASE + POOL_FACTOR × its need */
+  POOL_BASE: 20,
+  POOL_FACTOR: 0.8,
+  /** QE6: a minted shield's pool grows by POOL_QUALITY_FACTOR × its need × its quality */
+  POOL_QUALITY_FACTOR: 0.1,
   POTENTIAL: 300,
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
@@ -78,6 +87,7 @@ const DEFAULTS = {
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
   ENGAGEMENT_END_TURNS: 2, // E1: an engagement ends after this many turns with no one engaged with the actor
+  SPAR_LIMIT: 'Critical', // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
@@ -115,6 +125,15 @@ const DEFAULTS = {
   HAGGLE_BAD_LOSS: 1.2, // lost by HAGGLE_BAD_GAP tiers or more
   HAGGLE_BAD_GAP: 2,
   HARD_BARGAIN_BUY: 0.9,
+  HARD_BARGAIN_SELL: 1.1,
+  SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
+  TRADER_PURSE: 50, // SL3: coin every Trader carries when the Weaver places it
+  QUALITY_PRICE_FACTOR: 2, // SL8: a minted item's value is its base value × this × its quality (1–4)
+  /** SL12 b / SL14: the coin each benefit number is worth; an item's value is its benefits summed (src/ruleset/value.ts).
+   * skillPoint: per point of skill bonus (a roll bonus counts as the skill points that move a roll as much);
+   * reachZone: per zone of reach (its best attack mode); armorStop: per point of damage stopped, per part covered;
+   * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
+  ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
   TRADE_SELLER_LINKS: 1, // S1: buy from a seller up to this many zone links away (across the counter); farther trades are parked
   TRADE_GIFT_LINKS: 2, // S2: buy for someone up to this many zone links from the buyer
   WARES_CAP: 8, // goods lines plus services per seller
@@ -128,7 +147,8 @@ const DEFAULTS = {
   SCHEMA_VERSION: 7, // v2: tiers stored as IDs; v3: every ordered scale stored by key (src/scales.ts); v4: humanoids have two legs; v5: hostile split from opposed; v6: memory notes become memory lists (PM1); v7: event noise and visibility stored by key
   // ---- Part 5 ----
   ACCESSORY_SLOTS: 3,
-  ARMOR_PROTECTION: { light: [2, 0.8], medium: [4, 0.65], heavy: [6, 0.55] } as Record<string, [number, number]>,
+  /** armor multiplier by weight; the damage it stops comes from ARMOR_FACTOR × need (QE4) */
+  ARMOR_MULTIPLIER: { light: 0.8, medium: 0.65, heavy: 0.55 } as Record<string, number>,
   /** EQ9: true skill each equipment level needs, Masterwork ending at 100 (even steps, placeholders) */
   EQUIP_NEED: { crude: 0, common: 25, fine: 50, superior: 75, masterwork: 100 } as Record<string, number>,
   /** EQ12 c: every roll with an item you fall short on is one outcome step worse per this many points short (or part of it) */
@@ -138,7 +158,7 @@ const DEFAULTS = {
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
-    damageAdj: [1, 2, 3, 4], reduction: [1, 1, 2, 2], tool: [5, 10, 15, 20],
+    damageAdj: [1, 2, 3, 4], tool: [5, 10, 15, 20],
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10, // placeholder (loot L3)
@@ -174,7 +194,7 @@ const DEFAULTS = {
   STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
-  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
+  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000 } as Record<string, number>,
   /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
   QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   /** QT9: a quest's reward level from the scene's gain grade when it is accepted (iv is kept for later story quests) */

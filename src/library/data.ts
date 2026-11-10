@@ -1,5 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
+import { AM, DU, HL, RL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -21,6 +22,9 @@ import { PK } from './perkIds';
 import { IT } from './itemIds';
 
 /** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
+/** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
+const SMALLER_PAYS_MORE = { small: 1, extra_small: 1, tiny: 2 };
+
 const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
   [GR.melee]: 'offensive', [GR.ranged]: 'offensive', [GR.defense]: 'defensive', [GR.health]: 'endurance', [GR.notice]: 'notice', [GR.influence]: 'influence',
 };
@@ -28,42 +32,42 @@ const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles:
   ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[FUNCTION_GROUP[functions[0]]] ?? 'misc', tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
-  sk(SK.melee_light, TR.melee, [FN.arms], ['grip']),
-  sk(SK.melee_medium, TR.melee, [FN.arms], ['grip']),
-  sk(SK.melee_heavy, TR.melee, [FN.arms], ['grip']),
-  sk(SK.ranged_light, TR.ranged, [FN.ranged], ['grip']),
-  sk(SK.ranged_medium, TR.ranged, [FN.ranged], ['grip']),
-  sk(SK.ranged_heavy, TR.ranged, [FN.ranged], ['grip']),
-  sk(SK.unarmed_strike, TR.unarmed, [FN.unarmed], ['grip']),
-  sk(SK.unarmed_grapple, TR.unarmed, [FN.unarmed], ['grip']),
-  sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], ['grip']), // fighting with whatever is at hand
-  sk(SK.unarmed_natural, TR.natural, [FN.unarmed], ['strike']), // its own tree, open to slime and dragon bodies (TA5)
-  { ...sk(SK.dodge, TR.defense, [FN.defense], ['move']), groups: [GR.speed] }, // Defense and Speed groups; no Initiative function, so it doesn't add to initiative
-  sk(SK.block, TR.defense, [FN.defense], ['grip']),
+  sk(SK.melee_light, TR.melee, [FN.arms], [RL.grip]),
+  sk(SK.melee_medium, TR.melee, [FN.arms], [RL.grip]),
+  sk(SK.melee_heavy, TR.melee, [FN.arms], [RL.grip]),
+  sk(SK.ranged_light, TR.ranged, [FN.ranged], [RL.grip]),
+  sk(SK.ranged_medium, TR.ranged, [FN.ranged], [RL.grip]),
+  sk(SK.ranged_heavy, TR.ranged, [FN.ranged], [RL.grip]),
+  sk(SK.unarmed_strike, TR.unarmed, [FN.unarmed], [RL.grip]),
+  sk(SK.unarmed_grapple, TR.unarmed, [FN.unarmed], [RL.grip]),
+  sk(SK.unarmed_improvised, TR.unarmed, [FN.unarmed], [RL.grip]), // fighting with whatever is at hand
+  sk(SK.unarmed_natural, TR.natural, [FN.unarmed], [RL.strike]), // its own tree, open to slime and dragon bodies (TA5)
+  { ...sk(SK.dodge, TR.defense, [FN.defense], [RL.move]), groups: [GR.speed] }, // Defense and Speed groups; no Initiative function, so it doesn't add to initiative
+  sk(SK.block, TR.defense, [FN.defense], [RL.grip]),
   sk(SK.endurance, TR.defense, [FN.health], []), // endurance sets total HP
   // Armor – Conventional (AR1–AR3): one skill per armor weight, function armor in the Defense group.
   // What the skill does while worn (AR4) and how it improves (AR5) are parked; equip requirements will read it.
   sk(SK.light_armor, TR.armor, [FN.armor], []),
   sk(SK.medium_armor, TR.armor, [FN.armor], []),
   sk(SK.heavy_armor, TR.armor, [FN.armor], []),
-  sk(SK.eyesight, TR.perception, [FN.sight], ['sense'], 'sight'),
-  sk(SK.earshot, TR.perception, [FN.hearing], ['sense'], 'sound'),
+  sk(SK.eyesight, TR.perception, [FN.sight], [RL.sense], 'sight'),
+  sk(SK.earshot, TR.perception, [FN.hearing], [RL.sense], 'sound'),
   // Stealth (ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
-  sk(SK.sneaking, TR.stealth, [FN.stealth], ['move'], undefined, 'notice'),
-  sk(SK.combat_stealth, TR.stealth, [FN.stealth], ['move'], undefined, 'offensive'),
-  sk(SK.vanishing, TR.stealth, [FN.stealth], ['move'], undefined, 'offensive'), // ST11/ST18: breaks established sight
+  sk(SK.sneaking, TR.stealth, [FN.stealth], [RL.move], undefined, 'notice'),
+  sk(SK.combat_stealth, TR.stealth, [FN.stealth], [RL.move], undefined, 'offensive'),
+  sk(SK.vanishing, TR.stealth, [FN.stealth], [RL.move], undefined, 'offensive'), // ST11/ST18: breaks established sight
   // speech role: head wounds reduce speech rolls
-  sk(SK.persuasion, TR.speech, [FN.influence], ['speech']),
-  sk(SK.intimidation, TR.speech, [FN.influence], ['speech']),
-  sk(SK.barter, TR.speech, [FN.influence], ['speech']),
-  sk(SK.feint, TR.swordsman, [], ['grip'], undefined, 'offensive'),
-  sk(SK.riposte, TR.swordsman, [], ['grip'], undefined, 'offensive'),
-  sk(SK.disarm, TR.swordsman, [], ['grip'], undefined, 'offensive'),
+  sk(SK.persuasion, TR.speech, [FN.influence], [RL.speech]),
+  sk(SK.intimidation, TR.speech, [FN.influence], [RL.speech]),
+  sk(SK.barter, TR.speech, [FN.influence], [RL.speech]),
+  sk(SK.feint, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
+  sk(SK.riposte, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
+  sk(SK.disarm, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
-  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], ['sense'], 'sound', undefined, 'tier_0'),
+  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', undefined, 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
-  sk(SK.lockpicking, TR.tools, [], ['grip']),
+  sk(SK.lockpicking, TR.tools, [], [RL.grip]),
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -85,10 +89,12 @@ const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25,
  * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
  * Ranged skills for the throw. */
 const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
-  mode({ id: 'strike', tree: 'melee', class: cls, skill: SK.unarmed_improvised, reach: 0, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
-  mode({ id: 'throw', tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reach: 1, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
+  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reach: 0, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
+  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reach: 1, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
-const ARMOR = (w: ArmorWeightKey) => ({ reduction: CONFIG.ARMOR_PROTECTION[w][0], multiplier: CONFIG.ARMOR_PROTECTION[w][1], weight: w });
+/** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
+const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
+const POOL = (level: string) => ({ pool: CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * CONFIG.EQUIP_NEED[level] });
 const WEIGHT = (v: number): ItemEffect => ({ kind: 'skill', skill: SK.dodge, value: v, active: 'worn', scope: 'any' });
 
 /** class-level perks (ClassDef.levelPerks), granted by a class at a level */
@@ -132,36 +138,40 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.dagger, level: 'common', tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'slash', tree: 'melee', class: 'light', reach: 0, hands: 1 }), mode({ id: 'throw', tree: 'ranged', class: 'light', reach: 1, hands: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reach: 0, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reach: 1, hands: 1, thrown: true })] } },
   { id: IT.arming_sword, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'cut', tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
   { id: IT.greataxe, level: 'superior', tags: ['starter'], kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'chop', tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
   { id: IT.spear, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'thrust', tree: 'melee', class: 'medium', reach: 1, hands: 2 }), mode({ id: 'throw', tree: 'ranged', class: 'medium', reach: 1, hands: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reach: 1, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reach: 1, hands: 1, thrown: true })] } },
   { id: IT.shortbow, level: 'common', tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'light', reach: 3, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reach: 3, hands: 2 })] } },
   { id: IT.longbow, level: 'fine', tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'medium', reach: 4, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reach: 4, hands: 2 })] } },
   { id: IT.crossbow, level: 'superior', tags: ['starter'], kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'shoot', tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
+  // SL12 test piece: a medium weapon whose basket hilt gives +5 Block while held, apart from its requirement's skill
+  { id: IT.basket_hilt_sword, level: 'fine', kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, hands: 1,
+    effects: [KIT(), { kind: 'skill', skill: SK.block, value: 5, active: 'held', scope: 'any' }],
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
   { id: IT.hidden_blade, level: 'fine', kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'stab', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
   { id: IT.crude_clothes, level: 'crude', tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
     armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
   { id: IT.cudgel, level: 'crude', kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'club', tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
   { id: IT.rusty_knife, level: 'crude', kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: 'slash', tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
   { id: IT.gambeson, level: 'common', tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light') } },
+    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light', 'common') } },
   { id: IT.mail_hauberk, level: 'fine', tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
-    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium') } },
+    armor: { covers: ['general', 'left_arm', 'right_arm'], ...ARMOR('medium', 'fine') } },
   { id: IT.plate_harness, level: 'superior', tags: ['starter'], kind: 'armor', name: 'plate harness', look: 'a full plate harness', bulk: 3, value: 200, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
-    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy'), pools: { head: 20 } } },
-  { id: IT.round_shield, level: 'common', tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: { pool: 30 } },
+    armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg', 'head', 'neck'], ...ARMOR('heavy', 'superior'), pools: { head: 20 } } },
+  { id: IT.round_shield, level: 'common', tags: ['starter'], kind: 'shield', name: 'round shield', look: 'a painted round shield', bulk: 2, value: 10, hands: 1, effects: [KIT(SK.block)], shield: POOL('common') },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'situation', value: 5, active: 'carried', scope: 'any' }] },
@@ -176,21 +186,21 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.improvised_heavy, level: 'common', kind: 'weapon', name: 'improvised weapon', look: 'something heavy grabbed to fight with', bulk: 3, value: 0, hands: 2, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
   { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
-  { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: 'bandage' },
+  { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
   { id: IT.coin, kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
-    naturalAttacks: [{ id: 'punch', tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' },
-      { id: 'grapple', tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reach: 0, hands: 0, name: 'grapple' }],
+    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' },
+      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reach: 0, hands: 0, name: 'grapple' }],
     parts: [
-      { id: 'head', size: 'small', impact: 'essential', roles: ['sense', 'speech'], adjacent: ['general', 'neck'] },
-      { id: 'left_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
-      { id: 'right_arm', size: 'normal', impact: 'normal', roles: ['grip'] },
-      { id: 'left_leg', size: 'normal', impact: 'normal', roles: ['move'] },
-      { id: 'right_leg', size: 'normal', impact: 'normal', roles: ['move'] },
+      { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
+      { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
+      { id: 'right_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
+      { id: 'left_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
+      { id: 'right_leg', size: 'normal', impact: 'normal', roles: [RL.move] },
       { id: 'neck', size: 'extra_small', impact: 'essential', roles: [], adjacent: ['head', 'general'] },
     ],
     fallback: { attackSkill: SK.unarmed_strike },
@@ -212,7 +222,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // BR4: shape names, so later races can reuse them; Slime and Dragon are races
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
-    naturalAttacks: [{ id: 'slam', tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reach: 0, hands: 0, name: 'slam' }],
+    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reach: 0, hands: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.unarmed_natural },
   },
@@ -220,12 +230,12 @@ export const BODY_TYPES: Record<string, BodyType> = {
     id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
     naturalAttacks: [],
     parts: [
-      { id: 'head', size: 'normal', impact: 'essential', roles: ['sense', 'strike', 'speech'] },
-      { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: ['fly'] },
-      { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: ['fly'] },
-      { id: 'forelegs', size: 'normal', impact: 'normal', roles: ['move'] },
-      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: ['move'] },
-      { id: 'tail', size: 'small', impact: 'non_essential', roles: ['strike'] },
+      { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech] },
+      { id: 'left_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
+      { id: 'right_wing', size: 'normal', impact: 'non_essential', roles: [RL.fly] },
+      { id: 'forelegs', size: 'normal', impact: 'normal', roles: [RL.move] },
+      { id: 'hind_legs', size: 'normal', impact: 'normal', roles: [RL.move] },
+      { id: 'tail', size: 'small', impact: 'non_essential', roles: [RL.strike] },
     ],
     fallback: { attackSkill: SK.unarmed_natural },
   },
@@ -376,25 +386,25 @@ export function prototypeLibrary(): Library {
       [SV.meal]: { id: SV.meal, name: 'meal', price: 2 },
       [SV.bed]: { id: SV.bed, name: 'bed for the night', price: 5 },
       [SV.bath]: { id: SV.bath, name: 'bath', price: 2 },
-      [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: 'clinic' },
+      [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: HL.clinic },
     },
-    roles: { sense: { shared: true }, grip: { shared: false }, move: { shared: true }, fly: { shared: true }, strike: { shared: false }, speech: { shared: true } },
+    roles: { [RL.sense]: { name: 'sense', shared: true }, [RL.grip]: { name: 'grip', shared: false }, [RL.move]: { name: 'move', shared: true }, [RL.fly]: { name: 'fly', shared: true }, [RL.strike]: { name: 'strike', shared: false }, [RL.speech]: { name: 'speech', shared: true } },
     bodyTypes: BODY_TYPES,
     // Healing sources (H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
-      rest: { id: 'rest', name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, reach: 'damaged', revivesDead: false, inFight: false },
-      clinic: { id: 'clinic', name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
-      bandage: { id: 'bandage', name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false, inFight: true },
+      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, reach: 'damaged', revivesDead: false, inFight: false },
+      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
+      [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false, inFight: true },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
-      passive: { id: 'passive', name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
+      [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
     },
     // Game clock (T1): minutes per action; placeholders
     durations: {
-      fight_turn: { id: 'fight_turn', name: 'Fight turn', minutes: 0.1 },
-      action: { id: 'action', name: 'Move, talk or other action', minutes: 1 },
-      trade: { id: 'trade', name: 'Trade', minutes: 10, orders: ['barter', 'buy'] },
-      rest: { id: 'rest', name: 'Rest', minutes: 60, orders: ['rest'] },
-      sleep: { id: 'sleep', name: 'Sleep', minutes: 480 },
+      [DU.fight_turn]: { id: DU.fight_turn, name: 'Fight turn', minutes: 0.1 },
+      [DU.action]: { id: DU.action, name: 'Move, talk or other action', minutes: 1 },
+      [DU.trade]: { id: DU.trade, name: 'Trade', minutes: 10, orders: ['barter', 'buy', 'sell'] },
+      [DU.rest]: { id: DU.rest, name: 'Rest', minutes: 60, orders: ['rest'] },
+      [DU.sleep]: { id: DU.sleep, name: 'Sleep', minutes: 480 },
     },
     // Humans and elves for now, identical
     // innate perks and quirks per race: lists, empty until chosen
@@ -406,11 +416,13 @@ export function prototypeLibrary(): Library {
       [RC.dragon]: { id: RC.dragon, name: 'Dragon', bodyTypeId: BT.winged_quadruped, hpMultiplier: 3, innatePerks: [], innateQuirks: [], tags: [], intelligence: 'semi' },
     },
     // Z3. Outdoor zones' own light is lamps or fires only; the sky adds daylight (T3a).
+    // attack modes: what an attack does; weapon modes and natural attacks name one by id
+    attackModes: Object.fromEntries(Object.entries(AM).map(([w, id]) => [id, { id, name: w[0].toUpperCase() + w.slice(1) }])),
     zoneKinds: Object.fromEntries(([
-      ['room', 'Room', false, 'some', 'dim'], ['corridor', 'Corridor', false, 'none', 'dim'], ['stairs', 'Stairs', false, 'none', 'dim'],
-      ['cellar', 'Cellar or cave', false, 'some', 'dark'], ['street', 'Street', true, 'none', 'dark'], ['square', 'Square', true, 'none', 'dark'],
-      ['gate', 'Gate', true, 'none', 'dark'], ['yard', 'Yard', true, 'some', 'dark'], ['field', 'Field', true, 'none', 'dark'],
-      ['woods', 'Woods', true, 'heavy', 'dark'],
+      [ZK.room, 'Room', false, 'some', 'dim'], [ZK.corridor, 'Corridor', false, 'none', 'dim'], [ZK.stairs, 'Stairs', false, 'none', 'dim'],
+      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark'], [ZK.street, 'Street', true, 'none', 'dark'], [ZK.square, 'Square', true, 'none', 'dark'],
+      [ZK.gate, 'Gate', true, 'none', 'dark'], [ZK.yard, 'Yard', true, 'some', 'dark'], [ZK.field, 'Field', true, 'none', 'dark'],
+      [ZK.woods, 'Woods', true, 'heavy', 'dark'],
     ] as const).map(([id, name, outdoor, cover, light]) => [id, { id, name, outdoor, cover, light }])),
     items: ITEMS,
     templates: TEMPLATES,
@@ -474,6 +486,69 @@ export function prototypeLibrary(): Library {
       [ACH.quests_25]: { id: ACH.quests_25, name: 'Sought After', level: 'iii', rule: 'quests_done', tags: ['social'], count: 25, after: ACH.quests_10 },
       [ACH.quests_50]: { id: ACH.quests_50, name: 'The One They Send For', level: 'iv', rule: 'quests_done', tags: ['social'], count: 50, after: ACH.quests_25 },
       [ACH.quests_abandoned_5]: { id: ACH.quests_abandoned_5, name: 'Word Not Kept', level: 'i', rule: 'quests_abandoned', tags: ['social'], count: 5, scar: true },
+      [ACH.clean_10]: { id: ACH.clean_10, name: 'Not Here', level: 'i', rule: 'clean_defense', tags: ['combat'], count: 10 },
+      [ACH.clean_100]: { id: ACH.clean_100, name: 'Wall of Steel', level: 'ii', rule: 'clean_defense', tags: ['combat'], count: 100, after: ACH.clean_10 },
+      [ACH.clean_1000]: { id: ACH.clean_1000, name: 'Nothing Lands', level: 'iii', rule: 'clean_defense', tags: ['combat'], count: 1000, after: ACH.clean_100 },
+      [ACH.unseen_10]: { id: ACH.unseen_10, name: 'Under Their Noses', level: 'i', rule: 'unseen_moves', tags: ['stealth'], count: 10 },
+      [ACH.unseen_50]: { id: ACH.unseen_50, name: 'Slipped Past', level: 'ii', rule: 'unseen_moves', tags: ['stealth'], count: 50, after: ACH.unseen_10 },
+      [ACH.unseen_250]: { id: ACH.unseen_250, name: 'Never Was Here', level: 'iii', rule: 'unseen_moves', tags: ['stealth'], count: 250, after: ACH.unseen_50 },
+      [ACH.vanished_5]: { id: ACH.vanished_5, name: 'Now You Don\u2019t', level: 'i', rule: 'vanished', tags: ['stealth'], count: 5 },
+      [ACH.vanished_25]: { id: ACH.vanished_25, name: 'Smoke on the Wind', level: 'ii', rule: 'vanished', tags: ['stealth'], count: 25, after: ACH.vanished_5 },
+      [ACH.spotted_10]: { id: ACH.spotted_10, name: 'Nothing Gets Past', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10 },
+      [ACH.spotted_100]: { id: ACH.spotted_100, name: 'Eyes in the Back of Your Head', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_10 },
+      [ACH.spotted_fn_1]: { id: ACH.spotted_fn_1, name: 'Sharp {function}', level: 'zero', rule: 'spotted', tags: ['stealth'], count: 1, by: 'function' },
+      [ACH.spotted_fn_10]: { id: ACH.spotted_fn_10, name: '{function} That Never Sleeps', level: 'i', rule: 'spotted', tags: ['stealth'], count: 10, after: ACH.spotted_fn_1, by: 'function' },
+      [ACH.spotted_fn_100]: { id: ACH.spotted_fn_100, name: 'Nothing Hides from Your {function}', level: 'ii', rule: 'spotted', tags: ['stealth'], count: 100, after: ACH.spotted_fn_10, by: 'function' },
+      [ACH.speech_10]: { id: ACH.speech_10, name: 'Practised Speaker ({skill})', level: 'i', rule: 'speech_won', tags: ['social'], count: 10, by: 'skill' },
+      [ACH.speech_100]: { id: ACH.speech_100, name: 'Voice That Carries ({skill})', level: 'ii', rule: 'speech_won', tags: ['social'], count: 100, after: ACH.speech_10, by: 'skill' },
+      [ACH.speech_500]: { id: ACH.speech_500, name: 'Words That Move Crowds ({skill})', level: 'iii', rule: 'speech_won', tags: ['social'], count: 500, after: ACH.speech_100, by: 'skill' },
+      [ACH.talked_down_1]: { id: ACH.talked_down_1, name: 'Blood Unspilled', level: 'i', rule: 'talked_down', tags: ['social'], count: 1 },
+      [ACH.talked_down_10]: { id: ACH.talked_down_10, name: 'Peacemaker', level: 'ii', rule: 'talked_down', tags: ['social'], count: 10, after: ACH.talked_down_1 },
+      [ACH.talked_down_50]: { id: ACH.talked_down_50, name: 'Every Fight Ends in Talk', level: 'iii', rule: 'talked_down', tags: ['social'], count: 50, after: ACH.talked_down_10 },
+      [ACH.outmatched_1]: { id: ACH.outmatched_1, name: 'Against the Odds', level: 'i', rule: 'outmatched', tags: ['skill'], count: 1 },
+      [ACH.outmatched_10]: { id: ACH.outmatched_10, name: 'No Match for You', level: 'ii', rule: 'outmatched', tags: ['skill'], count: 10, after: ACH.outmatched_1 },
+      [ACH.outmatched_fn_1]: { id: ACH.outmatched_fn_1, name: 'Better {function}', level: 'zero', rule: 'outmatched', tags: ['skill'], count: 1, by: 'function' },
+      [ACH.outmatched_fn_10]: { id: ACH.outmatched_fn_10, name: '{function} Without Equal', level: 'i', rule: 'outmatched', tags: ['skill'], count: 10, after: ACH.outmatched_fn_1, by: 'function' },
+      [ACH.enemy_friend_1]: { id: ACH.enemy_friend_1, name: 'Enemy to Friend', level: 'i', rule: 'enemy_to_friend', tags: ['social'], count: 1 },
+      [ACH.enemy_friend_5]: { id: ACH.enemy_friend_5, name: 'Mender of Grudges', level: 'ii', rule: 'enemy_to_friend', tags: ['social'], count: 5, after: ACH.enemy_friend_1 },
+      [ACH.no_blow_1]: { id: ACH.no_blow_1, name: 'Won Without a Blow', level: 'i', rule: 'won_without_blow', tags: ['social', 'combat'], count: 1 },
+      [ACH.no_blow_10]: { id: ACH.no_blow_10, name: 'The Fight Is Already Over', level: 'ii', rule: 'won_without_blow', tags: ['social', 'combat'], count: 10, after: ACH.no_blow_1 },
+      [ACH.bought_100]: { id: ACH.bought_100, name: 'Good Custom', level: 'zero', rule: 'coin_spent', tags: ['social'], count: 100 },
+      [ACH.bought_1000]: { id: ACH.bought_1000, name: 'Regular', level: 'i', rule: 'coin_spent', tags: ['social'], count: 1000, after: ACH.bought_100 },
+      [ACH.bought_10000]: { id: ACH.bought_10000, name: 'Known at Every Counter', level: 'ii', rule: 'coin_spent', tags: ['social'], count: 10000, after: ACH.bought_1000 },
+      [ACH.sold_100]: { id: ACH.sold_100, name: 'Peddler', level: 'zero', rule: 'coin_earned', tags: ['social'], count: 100 },
+      [ACH.sold_1000]: { id: ACH.sold_1000, name: 'Merchant', level: 'i', rule: 'coin_earned', tags: ['social'], count: 1000, after: ACH.sold_100 },
+      [ACH.sold_10000]: { id: ACH.sold_10000, name: 'Has a Price for Everything', level: 'ii', rule: 'coin_earned', tags: ['social'], count: 10000, after: ACH.sold_1000 },
+      [ACH.mended_1]: { id: ACH.mended_1, name: 'Mended', level: 'zero', rule: 'mended', tags: ['survival'], count: 1 },
+      [ACH.mended_10]: { id: ACH.mended_10, name: 'Patched and Stitched', level: 'i', rule: 'mended', tags: ['survival'], count: 10, after: ACH.mended_1 },
+      [ACH.mended_50]: { id: ACH.mended_50, name: 'Hard to Keep Down', level: 'ii', rule: 'mended', tags: ['survival'], count: 50, after: ACH.mended_10 },
+      [ACH.back_from_down_1]: { id: ACH.back_from_down_1, name: 'Not Done Yet', level: 'i', rule: 'back_from_down', tags: ['survival'], count: 1 },
+      [ACH.holds_10]: { id: ACH.holds_10, name: 'Iron Grip', level: 'i', rule: 'holds', tags: ['combat', 'skill'], count: 10 },
+      [ACH.holds_100]: { id: ACH.holds_100, name: 'No Getting Loose', level: 'ii', rule: 'holds', tags: ['combat', 'skill'], count: 100, after: ACH.holds_10 },
+      [ACH.aimed_10]: { id: ACH.aimed_10, name: 'Called Shot', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10 },
+      [ACH.aimed_100]: { id: ACH.aimed_100, name: 'Where I Said', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_10 },
+      [ACH.aimed_1000]: { id: ACH.aimed_1000, name: 'Never Misses Its Mark', level: 'iii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 1000, after: ACH.aimed_100 },
+      [ACH.aimed_size_10]: { id: ACH.aimed_size_10, name: '{size} Target', level: 'i', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 10, by: 'size', levelUp: SMALLER_PAYS_MORE },
+      [ACH.aimed_size_100]: { id: ACH.aimed_size_100, name: 'Threads the Needle ({size})', level: 'ii', rule: 'aimed_hits', tags: ['combat', 'skill'], count: 100, after: ACH.aimed_size_10, by: 'size', levelUp: SMALLER_PAYS_MORE },
+      [ACH.quests_giver_5]: { id: ACH.quests_giver_5, name: 'Go-To for {giver}', level: 'i', rule: 'quests_for_giver', tags: ['social'], count: 5, by: 'giver' },
+      [ACH.quest_givers_10]: { id: ACH.quest_givers_10, name: 'Known in Every House', level: 'ii', rule: 'quest_givers', tags: ['social'], count: 10 },
+      [ACH.quest_chain_1]: { id: ACH.quest_chain_1, name: 'Saw It Through', level: 'i', rule: 'quest_chains', tags: ['social'], count: 1 },
+      [ACH.quests_early_1]: { id: ACH.quests_early_1, name: 'Early Every Time', level: 'i', rule: 'quests_early', tags: ['social'], count: 1 },
+      [ACH.quests_unpaid_1]: { id: ACH.quests_unpaid_1, name: 'For Nothing', level: 'i', rule: 'quests_unpaid', tags: ['social'], count: 1 },
+      [ACH.spar_1]: { id: ACH.spar_1, name: 'First Bout', level: 'zero', rule: 'spar_wins', tags: ['combat'], count: 1 },
+      [ACH.spar_10]: { id: ACH.spar_10, name: 'Sparring Partner', level: 'i', rule: 'spar_wins', tags: ['combat'], count: 10, after: ACH.spar_1 },
+      [ACH.spar_25]: { id: ACH.spar_25, name: 'Yard Veteran', level: 'i', rule: 'spar_wins', tags: ['combat'], count: 25, after: ACH.spar_10 },
+      [ACH.spar_50]: { id: ACH.spar_50, name: 'Regular at the Yard', level: 'ii', rule: 'spar_wins', tags: ['combat'], count: 50, after: ACH.spar_25 },
+      [ACH.spar_200]: { id: ACH.spar_200, name: 'Nobody Wants to Spar You', level: 'ii', rule: 'spar_wins', tags: ['combat'], count: 200, after: ACH.spar_50 },
+      [ACH.cruel_spar_1]: { id: ACH.cruel_spar_1, name: 'Blood on the Practice Sword', level: 'i', rule: 'cruel_spar_wins', tags: ['combat'], count: 1 },
+      [ACH.cruel_spar_10]: { id: ACH.cruel_spar_10, name: 'Cruel Teacher', level: 'ii', rule: 'cruel_spar_wins', tags: ['combat'], count: 10, after: ACH.cruel_spar_1 },
+      [ACH.cruel_spar_25]: { id: ACH.cruel_spar_25, name: 'No One Spars You Twice', level: 'ii', rule: 'cruel_spar_wins', tags: ['combat'], count: 25, after: ACH.cruel_spar_10 },
+      [ACH.spar_losses_10]: { id: ACH.spar_losses_10, name: 'Sparring Dummy', level: 'i', rule: 'spar_losses', tags: ['combat'], count: 10, scar: true },
+      [ACH.total_10]: { id: ACH.total_10, name: 'A Few Threads', level: 'i', rule: 'achievements', tags: ['progression'], count: 10 },
+      [ACH.total_25]: { id: ACH.total_25, name: 'Woven In', level: 'ii', rule: 'achievements', tags: ['progression'], count: 25, after: ACH.total_10 },
+      [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25 },
+      [ACH.total_100]: { id: ACH.total_100, name: 'Pattern in the Weave', level: 'iv', rule: 'achievements', tags: ['progression'], count: 100, after: ACH.total_50 },
+      [ACH.total_250]: { id: ACH.total_250, name: 'The Tapestry Remembers', level: 'v', rule: 'achievements', tags: ['progression'], count: 250, after: ACH.total_100 },
       [ACH.zones_50]: { id: ACH.zones_50, name: 'Wanderer', level: 'i', rule: 'zones', tags: ['exploration'], count: 50 },
       [ACH.zones_250]: { id: ACH.zones_250, name: 'Pathfinder', level: 'ii', rule: 'zones', tags: ['exploration'], count: 250, after: ACH.zones_50 },
       [ACH.zones_1000]: { id: ACH.zones_1000, name: 'Walker of Every Road', level: 'iii', rule: 'zones', tags: ['exploration'], count: 1000, after: ACH.zones_250 },

@@ -40,7 +40,7 @@ export type PerkMark = { perk: string; target?: string; until?: number };
 
 /** E1: one encounter from an actor's point of view, a fight, a negotiation or both. start/last are
  * turns; kinds are what it has held so far; uses counts once-per-engagement effects by id. */
-export type EngagementKind = 'talk' | 'fight';
+export type EngagementKind = 'talk' | 'fight' | 'spar';
 export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
@@ -102,6 +102,9 @@ export type Progression = {
   /** achievement charges: the game day each was last spent, by achievement key */
   charges?: Record<string, number>;
   zonesSeen?: string[]; // zones the player has entered
+  crippled?: string[]; // parts Crippled or worse, waiting to heal back to Healthy (the 'mended' achievements)
+  wasDown?: true; // went Down and is not yet back to Unhurt (the 'back_from_down' achievement)
+  grudges?: string[]; // people who have been hostile to the player and are not yet friendly (the 'enemy_to_friend' achievements)
   /** alternate capstones the player may swap in for a class's default, by class id; set when the class reaches
    * its top level with those alternates' conditions met, and cleared by a swap */
   capstoneOptions?: Record<LibraryRef, LibraryRef[]>;

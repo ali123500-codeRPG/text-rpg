@@ -49,11 +49,12 @@ export class SceneDirector {
     const situation = ruleset.situation(state.player, state, rng); // step 2
     this.lastSituation = situation;
     this.held.clear();
+    const wake = state.stage.breakCause === 'knocked_out'; // D-54
     beginScene(state, situation.tier);
-    const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId };
+    const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
     // GAP: WEAVER_TIMEOUT bounds the whole scene-start wait (first call and repair together).
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    const planned = await this.plan(state, ctx, { kind: 'scene', placeId }, deadline);
+    const planned = await this.plan(state, ctx, { kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) }, deadline);
     return { ...this.finish(state, ctx, planned, rng, entry), situation };
   }
 
@@ -160,8 +161,9 @@ export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | n
   const placeId = state.player.placeId;
   ensurePlace(state, placeId);
   const situation = ruleset.situation(state.player, state, rng);
+  const wake = state.stage.breakCause === 'knocked_out'; // D-54
   beginScene(state, situation.tier);
-  const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId };
+  const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
   const [first, second] = weaverOutputs;
   let planned: Planned;
   if (!first) planned = { plan: null, errors: [], reason: 'call_failed' };

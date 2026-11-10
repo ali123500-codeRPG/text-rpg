@@ -9,7 +9,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
   | 'attack' | 'hide' | 'sneak' | 'vanish' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
-  | 'use_item' | 'equip' | 'give' | 'buy' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
+  | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
@@ -40,6 +40,7 @@ export type Intent = {
   addressees: string[] | null; // actor ids, band ids or "everyone"
   deferred: string[];
   clarify: string | null;
+  yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
 };
 
 // ---- Agent Planner / Responder / Voice ----
@@ -75,6 +76,9 @@ export type AgreementMade = { with: string; text: string; job?: JobOffer | null 
 export type QuestEnd = { id: string; outcome: 'done' | 'abandoned' | 'called_off' };
 export type AgreementEnd = { id: string; outcome: 'done' | 'broken' };
 export type StanceStep = { toward: string; step: 'friendlier' | 'colder' };
+/** SP2/SP3: a spar agreed aloud this turn: each side's actor ids (the maker on one of them); cruel: fought until someone is
+ * Incapacitated, only when every fighter accepted that (SP4) */
+export type SparMade = { sides: string[][]; cruel?: boolean };
 
 export type PlannerOutput = {
   action: NpcAction;
@@ -86,6 +90,8 @@ export type PlannerOutput = {
   agreement?: AgreementMade | null;
   endAgreements?: AgreementEnd[];
   questEnd?: QuestEnd | null;
+  spar?: SparMade | null;
+  yields?: boolean; // SP5: gives up the spar it is in
 };
 export type ResponderOutput = PlannerOutput & { reveals: string[] };
 export type VoiceOutput = {
@@ -99,6 +105,8 @@ export type VoiceOutput = {
   routine: string | null;
   agreement?: AgreementMade | null; // PM3: a deal with the player struck in talk
   questEnd?: QuestEnd | null;
+  spar?: SparMade | null;
+  yields?: boolean;
 };
 
 // ---- Agent Narrator ----
@@ -144,6 +152,8 @@ export type StagePlan = {
     place: { carriedBy: string } | { groundIn: string };
   }[];
   hiddenTerms: string[];
+  /** SP2: spars under way or agreed when the scene opens (a training yard, a tournament): each side's cast keys or actor ids */
+  spars?: SparMade[];
   weaverNote: string;
 };
 

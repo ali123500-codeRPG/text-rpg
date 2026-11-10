@@ -12,7 +12,8 @@ import { ACH_RULE_TEXT, ACH_TAGS } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
-import { fnSkills, kitBonus, standInShare, standInTable } from '../ruleset/gear';
+import { benefits, itemValue } from '../ruleset/value';
+import { fnSkills, kitBonus, modeName, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
@@ -46,7 +47,9 @@ let facetOf: Facets = () => [];
 function card(sec: string, id: string, entry: unknown, title: string, chips: (HTMLElement | null)[], ...body: (Node | null)[]): HTMLElement {
   const f = facetOf(entry).filter(([, v]) => v !== undefined && v !== '').map(([g, v]) => `${g}\t${v}`);
   return h('article', { class: 'lv-card', id: `${sec}/${id}`, 'data-q': `${title} ${JSON.stringify(entry)}`.toLowerCase(), 'data-f': [...new Set(f)].join('\n') },
-    h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#${sec}/${id}` }, title)), h('code', { class: 'lv-id' }, id), ...chips), ...body, raw(entry));
+    h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#${sec}/${id}` }, title)), h('code', { class: 'lv-id' }, id), ...chips),
+    // the fields sit in one box, so cards side by side in a grid start their fields on the same line (subgrid)
+    h('div', { class: 'lv-cbody' }, ...body, raw(entry)));
 }
 
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
@@ -115,11 +118,14 @@ const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essentia
 
 // ---------- Gear ----------
 const ACTIVE: Record<ItemEffect['active'], string> = { worn: 'when worn', held: 'when held', inUse: 'while in use', carried: 'when carried' };
-function effectText(e: ItemEffect, def?: ItemDef): string {
+function effectParts(e: ItemEffect, def?: ItemDef): [string, string[]] {
   const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : skillName(String(e.skill))) : `${e.roll} rolls`;
   const v = e.kit && def ? kitBonus(def, e) : e.value; // a kit piece: EQUIP_FACTOR × its need, as the game reads it
-  return `${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what} · ${ACTIVE[e.active]}${e.scope === 'withItem' ? ' · with this item only' : ''}${e.kit ? ' · kit' : ''}`;
+  return [`${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what}`, [ACTIVE[e.active], ...(e.scope === 'withItem' ? ['with this item only'] : []), ...(e.kit ? ['kit'] : [])]];
 }
+/** a multi-part value as one line: the lead in full, the rest as quiet aligned bits (no " · " strings) */
+const parts = (lead: Node | string, bits: (string | null | false | undefined)[]) =>
+  h('div', { class: 'lv-part' }, h('b', {}, lead), h('span', { class: 'lv-bits' }, ...bits.filter((b): b is string => !!b).map((b) => h('span', {}, b))));
 function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const humanoid = lib.bodyTypes[BT.humanoid];
   const req = requirement(i);
@@ -128,16 +134,16 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
-    row('Bulk · value', `${i.bulk} · ${i.value} coin`),
+    row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
-    i.weapon ? row('Modes', h('div', { class: 'lv-sub' }, i.weapon.modes.map((m) => h('div', {}, h('b', {}, m.id), ` · ${m.tree} ${m.class} · reach ${m.reach} · ${m.hands} hand${m.hands === 1 ? '' : 's'}`,
-      m.skill ? ` · ${skillName(m.skill)}` : '', m.thrown ? ' · thrown' : '', m.hitAdj ? ` · hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : '')))) : null,
+    i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => parts(modeName(m), [`${m.tree} ${m.class}`, `reach ${m.reach}`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      m.skill && skillName(m.skill), m.thrown && 'thrown', m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null])))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
         row('Covers', val(i.armor.covers.map(label))), i.armor.pools ? row('Pools', val(i.armor.pools)) : null)) : null,
     i.shield ? row('Shield pool', String(i.shield.pool)) : null,
-    i.effects?.length ? row('Effects', h('div', { class: 'lv-sub' }, i.effects.map((e) => h('div', {}, effectText(e, i))))) : null,
+    i.effects?.length ? row('Effects', h('div', { class: 'lv-plist' }, i.effects.map((e) => { const [lead, bits] = effectParts(e, i); return parts(lead, bits); }))) : null,
     i.heal ? row('Heals as', link('healing', i.heal, lib.healing?.[i.heal]?.name ?? i.heal)) : null);
 }
 function gear(): HTMLElement[] {
@@ -339,7 +345,7 @@ function bodyTypes(): HTMLElement[] {
         row('NPC templates', usedBy((t) => lib.races?.[t.raceId as string]?.bodyTypeId === c.id)))),
       c.parts.length ? h('table', { class: 'hs-tbl lv-parts' }, h('thead', {}, h('tr', {}, ['Part', 'Size', 'Impact', 'Roles', 'Next to'].map((x) => h('th', {}, x)))),
         h('tbody', {}, c.parts.map((p) => h('tr', {}, h('td', {}, h('span', { class: `lv-key ${IMPACT_TONE[p.impact]}` }), label(p.id)), h('td', {}, p.size),
-          h('td', {}, label(p.impact)), h('td', {}, p.roles.join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
+          h('td', {}, label(p.impact)), h('td', {}, p.roles.map((r) => lib.roles[r]?.name ?? r).join(', ') || '—'), h('td', {}, (p.adjacent ?? []).map(label).join(', ') || '—'))))) : row('Parts', none('general area only'))))),
   ];
 }
 
@@ -366,6 +372,7 @@ function achievements(): HTMLElement[] {
       row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
         ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),
+      d.levelUp ? row('Pays more', Object.entries(d.levelUp).map(([k, n]) => `${k.replace("_", " ")}: +${n} reward level${n === 1 ? '' : 's'}`).join('; ')) : null,
       d.after ? row('Builds on', link('achievements', d.after, lib.achievements?.[d.after]?.name ?? d.after)) : null,
       row('Earned at', `${d.count} ${ACH_RULE_TEXT[d.rule]}${d.by ? `, once per ${d.by.replace('_', ' ')}` : ''}`),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
@@ -417,7 +424,7 @@ function skills(): HTMLElement[] {
     h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, ['Skill', 'Functions', 'Group', 'Roles', 'Tier', 'XP', 'Tags'].map((x) => h('th', {}, x)))),
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneFor('Function', functionName(f))))) : '—'),
-        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneFor('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.join(', ') || '—'),
+        h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneFor('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.map((r) => lib.roles[r as keyof typeof lib.roles]?.name ?? r).join(', ') || '—'),
         h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneFor('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP)
   const groupChips = (ids: string[]) => [...new Set(ids.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`${GROUP_NAMES[g]} group`, toneFor('Group', GROUP_NAMES[g])));
@@ -1038,7 +1045,7 @@ function tablify(): void {
   body.querySelectorAll<HTMLElement>('.lv-grid').forEach((grid) => {
     const list = Array.from(grid.querySelectorAll<HTMLElement>(':scope > .lv-card:not(.lv-fixed)'));
     if (!list.length) return;
-    const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
+    const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row, :scope > .lv-cbody > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
     const maps = list.map(rowsOf);
     // columns: fields every entry has, short enough for a cell; long ones stay in the pop-up
     const cols = [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60).slice(0, 6);

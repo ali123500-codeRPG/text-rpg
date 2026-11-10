@@ -1,4 +1,5 @@
 // W4 engine unit tests. Other workstreams' modules are replaced by small local fakes.
+import { AM } from '../../src/library/tableIds';
 import type { Tier } from '../../src/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Actor, AttackRequest, AttackResult, GameEvent, GameState, Intent, Order, RollRequest } from '../../src/types';
@@ -376,10 +377,10 @@ describe('gear and combat', () => {
     // tav_counter linked with sight; street_door linked without sight
     place(s, 'patron_1', 'tav_counter');
     place(s, 'trader', 'street_door');
-    const r1 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'draw', item: 'sp' }], action: { type: 'attack', target: 'patron_1', mode: 'thrust' } }) }), createRng(1));
+    const r1 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'draw', item: 'sp' }], action: { type: 'attack', target: 'patron_1', mode: AM.thrust } }) }), createRng(1));
     expect(r1.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'attack', target: 'patron_1' });
     s.turn = 2;
-    const r2 = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'trader', mode: 'thrust' } }) }), createRng(1));
+    const r2 = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'trader', mode: AM.thrust } }) }), createRng(1));
     expect(r2.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'wasted', target: 'trader' });
   });
   it('a thrown dagger lands on the target zone ground, hit or miss', () => {
@@ -387,7 +388,7 @@ describe('gear and combat', () => {
     s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
     place(s, 'patron_1', 'tav_counter');
     F.defended = false;
-    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: 'throw' } }) }), createRng(1));
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: AM.throw } }) }), createRng(1));
     expect(s.zones.find((z) => z.id === 'tav_counter')!.groundItems.map((i) => i.id)).toEqual(['dg']);
     expect(s.player.core.inventory.some((i) => i.id === 'dg')).toBe(false);
   });
@@ -462,7 +463,7 @@ describe('gear and combat', () => {
     p.mind!.knowledge = {};
     F.rollTier.player = 'critical_success'; // the player stays unseen
     F.rollTier.patron_1 = 'critical_failure';
-    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: 'throw' } }) }), createRng(1));
+    resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: AM.throw } }) }), createRng(1));
     expect(atLeastAware(p)).toBe(false);
     expect(p.mind!.overrides?.player).toBeUndefined();
     // seen: now it knows who it is, and a blow makes it hostile

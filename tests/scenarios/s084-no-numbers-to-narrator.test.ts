@@ -1,4 +1,5 @@
 // 84 No numbers to the Narrator: the combat packet in NarrationView holds no roll, margin, damage, pool or HP value (unit test).
+import { AM } from '../../src/library/tableIds';
 import { IT } from '../../src/library/itemIds';
 import type { Tier } from '../../src/types';
 import { expect, it } from 'vitest';
@@ -19,7 +20,7 @@ it('84 No numbers to the Narrator', () => {
     attack: roll('player', 'great_success', 87, 13.5), defense: roll('guard_1', 'near_miss', 61, -4.25), defenseType: 'block', gap: -2, gapShifts: [{ source: 'cover', value: 1 }],
     outcome: 'heavy_hit', location: 'general', locationHow: 'rolled', multiplier: 1.75, damage: 23,
     deciding: { attack: ['arming sword'], defense: ['round shield'], gap: [] },
-    attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: 'cut',
+    attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: AM.cut,
   };
   const e: GameEvent = { id: 'evt_hit', turn: 1, actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', tier: 'great_success', effects: [{ kind: 'damage', actorId: 'guard_1', data: { hp: 23, pool: 44 } }], noise: 'normal', visibility: 'normal', perception: {}, attack: result };
   e.perception = computePerception(e, s, createRng(1));

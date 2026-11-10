@@ -9,7 +9,7 @@ export type ItemDef = {
   name: string;
   look: string; // public text
   bulk: 0 | 1 | 2 | 3;
-  value: number;
+  value: number; // hand-set coin value, used only by consumables and items with no benefit numbers; other items are priced from their benefits (src/ruleset/value.ts)
   heal?: string; // a healing source id (H2): using the item applies that row and uses it up
   boon?: number; // hand-set Boon, overrides value ÷ BOON_COIN (loot V8b)
   stackable?: true;
@@ -46,7 +46,7 @@ export type ItemEffect = {
 };
 
 export type AttackMode = {
-  id: string;
+  id: string; // an attack mode ID (AM in src/library/tableIds.ts)
   tree: 'melee' | 'ranged' | 'unarmed';
   class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam' | 'grapple';
   skill?: LibraryRef; // unarmed only
@@ -59,7 +59,7 @@ export type AttackMode = {
    * an improvised melee strike takes Arms stand-ins, an improvised throw takes Ranged ones) */
   standInFns?: SkillFunction[];
   partId?: string; // natural attacks: the Strike part used
-  name?: string; // public name for natural modes (packet)
+  name?: string; // public name for natural modes (packet); else the attackModes row's name
 };
 
 export type ItemInstance = {
