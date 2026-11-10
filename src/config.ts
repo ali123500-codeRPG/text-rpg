@@ -264,6 +264,8 @@ const DEFAULTS = {
   // ---- Part 2 engine ----
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)
   MAX_PLANNER_CALLS: 3, // Q2 (D-18)
+  /** Claude calls the viewer runs at once (unconfirmed, the spec's "a couple"); background calls keep one free for the turn's own (Q4) */
+  CALL_SLOTS: 2,
   MAX_SPOKESPEOPLE: 2, // Q2
   BACKGROUND_WINDOW_MS: 8_000, // Q2 (D-39)
   DIALOGUE_WINDOW_MS: 10_000, // Q2

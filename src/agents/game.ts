@@ -23,7 +23,7 @@ import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
 import { defaultStandingDefense, healthLevel, isDownLevel, partStates, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
-import { StopPlay, modelFor, type AgentCtx, type RunResult } from './call';
+import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { fameEntry } from './fame';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
@@ -91,6 +91,7 @@ export function createGame(deps: GameDeps): Game {
   // calls in flight, so the Play screen can show that Claude is working and on what
   const running = new Map<number, { agent: AgentName; since: number }>();
   let callId = 0;
+  const gate = callGate(); // Q4: the turn's own calls go ahead of background calls in the viewer's call slots
   const counted: ClaudeClient = {
     call: async (req) => {
       calls++;
@@ -111,7 +112,7 @@ export function createGame(deps: GameDeps): Game {
     notice({ kind: 'stop_play', text: `Claude can't be used in this view (${code}). Allow Claude for this page or sign in again, then reload.` });
   };
   const ctxFor = (turn: number, sink: AgentTurnLog[]): AgentCtx => ({
-    client: counted, clock, turn,
+    client: counted, clock, turn, gate,
     log: (e) => sink.push(e),
     onError: (code) => {
       if (code === 'rate_limited') {
@@ -134,7 +135,7 @@ export function createGame(deps: GameDeps): Game {
       const bg: Background = { actorId, controller, view, startedAt: clock.now(), done: false, collected: false, promise: Promise.resolve() };
       bg.promise = (async () => {
         try {
-          bg.run = await callPlanner(view, { ...ctx, log: () => {} }, { signal: controller.signal, world });
+          bg.run = await callPlanner(view, { ...ctx, log: () => {}, background: true }, { signal: controller.signal, world });
         } catch (e) {
           if (e instanceof StopPlay) stop(e.code);
         } finally {
@@ -200,7 +201,7 @@ export function createGame(deps: GameDeps): Game {
     turnLog = [];
     abortBackground();
     startBackground();
-    if (director && !rateLimited && !stopped) director.afterSave(s, ctxFor(s.turn, turnLog));
+    if (director && !rateLimited && !stopped) director.afterSave(s, { ...ctxFor(s.turn, turnLog), background: true });
   }
 
   /** COMMITTED: the fired trigger's bound order, as its type and target label (hidden-side, so names are fine) */

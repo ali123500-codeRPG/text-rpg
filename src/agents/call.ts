@@ -11,7 +11,43 @@ export type AgentCtx = {
   log: (entry: AgentTurnLog) => void;
   /** told about every failed call code (rate_limited switches background calls off) */
   onError?: (code: ClaudeErrorCode, agent: AgentName) => void;
+  /** the viewer's call slots, shared by every call of one game (Q4) */
+  gate?: CallGate;
+  /** a background Planner or Weaver call: it waits behind the turn's own calls */
+  background?: boolean;
 };
+
+/**
+ * Q4 (Motion Rules Review): the turn's own calls (Parser, dialogue calls, Narrator, a scene-start Weaver) always
+ * go ahead of background Planner and Weaver calls in the viewer's call slots. Background calls start only while no
+ * turn call is waiting or running, and never take the last slot, so a turn call never queues behind them and a fight
+ * with more significant NPCs answers no slower (that would hint who is significant). A call already running is never
+ * cut off.
+ */
+/** enter hands back the release at once when the call may start now (so a free call starts in the same tick), else a promise of it */
+export type CallGate = { enter(background: boolean, signal?: AbortSignal): (() => void) | Promise<() => void> };
+export function callGate(slots: number = CONFIG.CALL_SLOTS): CallGate {
+  const bgMax = Math.max(1, slots - 1);
+  let fg = 0, bg = 0;
+  const waiting: { go: () => void }[] = [];
+  const pump = () => {
+    while (waiting.length && fg === 0 && bg < bgMax) { bg++; waiting.shift()!.go(); }
+  };
+  const once = (f: () => void) => { let done = false; return () => { if (!done) { done = true; f(); } }; };
+  return {
+    enter(background, signal) {
+      if (!background) { fg++; return once(() => { fg--; pump(); }); }
+      if (fg === 0 && bg < bgMax && !waiting.length) { bg++; return once(() => { bg--; pump(); }); }
+      return new Promise<() => void>((resolve) => {
+        const w = { go: () => { signal?.removeEventListener('abort', off); resolve(once(() => { bg--; pump(); })); } };
+        // a queued call that is aborted leaves the queue without taking a slot
+        const off = () => { const i = waiting.indexOf(w); if (i >= 0) waiting.splice(i, 1); resolve(() => {}); };
+        signal?.addEventListener('abort', off, { once: true });
+        waiting.push(w);
+      });
+    },
+  };
+}
 
 /** not_granted, sampling_disabled, session_expired: stop play, no fallback play */
 export class StopPlay extends Error {
@@ -76,10 +112,15 @@ export async function runAgent<T>(ctx: AgentCtx, spec: RunSpec<T>): Promise<RunR
     if (attempt === 0) log.input = req.input;
     if (spec.signal?.aborted) return done(null, 'cancelled', 'cancelled');
     let res;
+    const slot = ctx.gate ? ctx.gate.enter(!!ctx.background, spec.signal) : () => {};
+    const release = typeof slot === 'function' ? slot : await slot;
     try {
+      if (spec.signal?.aborted) return done(null, 'cancelled', 'cancelled');
       res = await ctx.client.call(req);
     } catch (e) {
       res = { ok: false as const, error: ((e as { code?: ClaudeErrorCode })?.code ?? 'upstream_error') as ClaudeErrorCode };
+    } finally {
+      release();
     }
     if (spec.signal?.aborted) return done(null, 'cancelled', 'cancelled');
     if (!res.ok) {
