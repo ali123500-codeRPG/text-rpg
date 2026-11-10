@@ -180,8 +180,8 @@ describe('ruleset methods', () => {
   });
   it('morale: Resolve from personality, max morale, levels, the roll scales a fear; fear feeds on itself', () => {
     const s = makeVillage();
-    const slime = actor(s, 'slime_1'), p = actor(s, 'patron_1'); // fearless 90, timid 30
-    expect(slime.core.skills[SK.resolve].raw).toBe(90);
+    const slime = actor(s, 'slime_1'), p = actor(s, 'patron_1'); // steady 50, timid 30
+    expect(slime.core.skills[SK.resolve].raw).toBe(50);
     expect(maxMorale(p)).toBe(CONFIG.MORALE_BASE + 30);
     expect(tierLevel(moraleRoll(s, p, forcedRng([90])))).toBe(TIERS.pos('great_success')); // 90 + 15 − 63.5
     expect([1, 0, 1, 2, 5].map((l) => tierCostMult(l))).toEqual([1.5, 2, 1.5, 1, 0]);
