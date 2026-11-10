@@ -97,6 +97,9 @@ export type GameEvent = {
   /** Q17: the player's look, a sight roll */
   roll?: import('./ruleset').RollResult;
   speech?: { skill: string; impression?: string; addressees: string[] }; // dialogue-turn speech
+  /** OQ-29: an NPC's speech roll at the player: the speech type, whether it landed, the penalty it left, a lie the player saw
+   * through, and whether the speaker saw how it was taken */
+  push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; seen?: true };
 };
 
 export type LogEntry = { turn: number; code: string; detail?: Record<string, unknown> };

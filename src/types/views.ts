@@ -37,6 +37,7 @@ export type EventView = {
   line?: { text: string; volume: Volume };
   outcome?: string; // attacks: packet outcome label
   spar?: true; // SP11: a sparring blow (seen fully)
+  took?: string; // OQ-29 (NT10): the speaker's own speech roll at the player, as it saw the player take it
 };
 
 /** SP1/SP4: the spar a viewer fights in: opponents and allies (ids in NPC views, names in the player's), the health level
@@ -171,6 +172,7 @@ export type NarrationEvent = {
   activityLook?: string; // presence events
   packet?: CombatPacket; // attacks
   spar?: true; // SP11: a sparring blow, not a real attack
+  pressed?: { how: string; took?: string }; // OQ-29: an NPC's speech roll at the player, in words
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words
   for?: string; // buy: who got it

@@ -19,7 +19,8 @@ describe('2 Simultaneous turns', () => {
     claude.push('voice', { action: npcAction('talk', 'player'), line: 'Floods every spring.', volume: 'normal', shares: [], gear: null, stance: null, routine: null }, { actorId: 'trader' });
     claude.pushResponse({ agent: 'narrator', response: narrateAll('The barkeep shrugs.') });
     await game.submit('Leaning on the bar, I ask: "Tell me about the flood, friend."', { aimed: false });
-    const voiceIn = JSON.stringify(game.gm().agentLog.find((l) => l.agent === 'voice')!.input);
+    // the turn's input (the fixed instructions name every NPC action type, persuade included)
+    const voiceIn = JSON.stringify((game.gm().agentLog.find((l) => l.agent === 'voice')!.input as { content: string }[]).slice(1));
     expect(voiceIn).toContain('Tell me about the flood, friend.');
     expect(voiceIn).toContain('IMPRESSION');
     for (const s of ['leaning on the bar', 'reckless', 'persuade', 'pumpernickel']) expect(voiceIn.toLowerCase()).not.toContain(s);

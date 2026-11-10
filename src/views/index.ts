@@ -17,6 +17,7 @@ import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
+import { pressedWords, tookWords } from '../engine/speech';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
@@ -171,6 +172,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(e.line && (full || p.cue === 'sound') ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
+    ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
   };
 }
 
@@ -465,6 +467,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
       ...(full && e.spar ? { spar: true as const } : {}),
+      ...(e.push?.listener === me && pressedWords(e) ? { pressed: pressedWords(e) } : {}),
       ...(item ? { item } : {}),
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(forWhom ? { for: forWhom } : {}),
