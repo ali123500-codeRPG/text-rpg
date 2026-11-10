@@ -4,7 +4,9 @@ import { EFF_EX, effExample, equations } from '../../src/ruleset/equations';
 import { effectiveSkill } from '../../src/ruleset/gear';
 import { getLibrary } from '../../src/library';
 import { actor, forcedRng, makeVillage } from '../harness';
-import { moraleCheck } from '../../src/ruleset';
+import { moraleRoll, tierLevel } from '../../src/ruleset';
+import { maxMorale, tierCostMult } from '../../src/ruleset/morale';
+import { SK } from '../../src/library/skillIds';
 import { prototypeLibrary } from '../../src/library/data';
 import { xpToNext } from '../../src/engine/xp';
 import { classMaxLevel } from '../../src/library/spawn';
@@ -32,14 +34,15 @@ describe('equations for the library viewer', () => {
     }
   });
 
-  it('the morale table matches moraleCheck', () => {
-    const eq = equations(prototypeLibrary()).find((g) => g.key === 'rolls')!.equations.find((e) => e.name === 'Morale check')!;
-    for (const [m, sur, brk, hold] of eq.table!.rows) {
+  it('the morale table matches moraleRoll and the tier multipliers', () => {
+    const eq = equations(prototypeLibrary()).find((g) => g.key === 'rolls')!.equations.find((e) => e.name === 'Morale roll')!;
+    for (const [r, max, share] of eq.table!.rows) {
       const s = makeVillage(), a = actor(s, 'patron_1');
-      a.mind!.morale = Number(m);
-      const out = { surrendered: 0, broken: 0, steady: 0 };
-      for (let d = 1; d <= 100; d++) { a.mind!.renownFelt = true; out[moraleCheck(s, a, forcedRng([d]), 'level')]++; }
-      expect([`${out.surrendered}%`, `${out.broken}%`, `${out.steady}%`]).toEqual([sur, brk, hold]);
+      a.core.skills[SK.resolve] = { raw: Number(r), state: 'normal' };
+      expect(String(maxMorale(a))).toBe(max);
+      let t = 0;
+      for (let d = 1; d <= 100; d++) t += tierCostMult(tierLevel(moraleRoll(s, a, forcedRng([d]))));
+      expect(`×${(t / 100).toFixed(2)}`).toBe(share);
     }
   });
 

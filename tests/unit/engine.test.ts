@@ -68,7 +68,8 @@ vi.mock('../../src/ruleset', async (orig) => {
       return p >= 100 ? 'Incapacitated' : p > 75 ? 'Critical' : p > 60 ? 'Mauled' : p > 45 ? 'Wounded' : p > 30 ? 'Injured' : p > 0 ? 'Hurt' : 'Unhurt';
     },
     partStates: (_s: GameState, a: Actor) => Object.entries(a.core.condition.parts).map(([id, v]) => ({ id, state: v <= 0 ? 'Destroyed' : 'Healthy' })),
-    moraleCheck: () => F.morale,
+    // the morale roll's tier: steady = Critical Success (pays nothing), broken = Failure, surrendered = Critical Failure
+    moraleRoll: () => ({ tier: F.morale === 'surrendered' ? 'critical_failure' : F.morale === 'broken' ? 'failure' : 'critical_success', beyond: 0 }),
     usableModes,
     defaultMode: (s: GameState, a: Actor, d: number) => usableModes(s, a).find((m) => m.mode.reach >= d) ?? usableModes(s, a).at(-1) ?? null,
   };
@@ -418,6 +419,7 @@ describe('gear and combat', () => {
     F.init = { player: 90, patron_1: 80, guard_1: 10 };
     F.damage = 20;
     F.morale = 'broken';
+    actor(s, 'guard_1').core.condition.moraleLost = 90; // near Broken: Injured's fear (25 × 1.5) breaks it
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }), agentOutputs: [planner('patron_1', npcAction('attack', 'guard_1'))] }), createRng(1));
     expect(F.attacks.map((a) => a.context?.defensesThisTurn)).toEqual([0, 1]);
     expect(actor(s, 'guard_1').mind!.moraleState).toBe('broken');
@@ -429,6 +431,7 @@ describe('gear and combat', () => {
     F.init = { player: 90, guard_1: 10 };
     F.damage = 45;
     F.morale = 'surrendered';
+    actor(s, 'guard_1').core.condition.moraleLost = 90; // Injured's fear at Critical Failure (25 × 2) breaks it: a surrender
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }) }), createRng(1));
     const g = actor(s, 'guard_1');
     expect(g.mind!.moraleState).toBe('surrendered');

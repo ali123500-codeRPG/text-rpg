@@ -8,6 +8,7 @@ import { boostMult, healthLevel, partStates, trueSkill } from '../ruleset';
 import { isActive } from './relations';
 import { logCode } from './effects';
 import { bestReward } from '../ruleset/achRewards';
+import { moraleLost, restoreMorale } from '../ruleset/morale';
 
 export const healingName = (id: string) => getLibrary().healing?.[id]?.name ?? id;
 
@@ -38,6 +39,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
     const was = before.find((b) => b.id === p.id)!.state;
     if (was !== p.state) changed.push({ id: p.id, from: was, to: p.state });
   }
+  if (src.moralePct) healed = restoreMorale(a, src.moralePct) !== 0 || healed; // MB8
   const to = healthLevel(a);
   if (!opts.quiet || to !== level || changed.length) logCode(state, 'healed', { actorId: a.id, source: sourceId, from: level, to, parts: changed, better: c.hpLostPct < lost || healed });
   return c.hpLostPct !== lost || healed;
@@ -50,6 +52,7 @@ export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean
   const c = a.core.condition;
   if (healthLevel(a) === 'Dead' && !src.revivesDead) return false;
   if (c.hpLostPct > 0 && src.hpPct > 0) return true;
+  if (moraleLost(a) > 0 && (src.moralePct ?? 0) > 0) return true;
   const reach = PART_STATES.pos(src.reach);
   return src.partPct > 0 && partStates(state, a).some((p) => p.id in c.parts && c.parts[p.id] < 100
     && PART_STATES.pos(PART_STATES.keyOf(p.state)!) <= reach);
@@ -64,6 +67,7 @@ export function passiveHealing(state: GameState, minutes: number): void {
   for (const a of [state.player, ...state.actors]) {
     if (!isActive(a) || (a !== state.player && !stage.has(a.zone))) continue;
     for (const h of rows) {
+      if (h.hourly!.morale) { restoreMorale(a, trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60)); continue; } // MB34
       const pct = trueSkill(a, h.hourly!.skill) * h.hourly!.pctPerPoint * (minutes / 60) * boostMult(a, h.hourly!.skill, 'recoveryMult'); // 40/80/120 perk: Quick Mend
       if (pct > 0) applyHealing(state, a, h.id, { pct, quiet: true });
     }

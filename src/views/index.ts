@@ -23,6 +23,10 @@ import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { modeName } from '../ruleset/gear';
 import { itemValue } from '../ruleset/value';
+import { moraleLevel, moraleShows } from '../ruleset/morale';
+import { MORALE_LEVELS } from '../scales';
+
+const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -137,6 +141,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
+      ...(moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
@@ -247,7 +252,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id })) } : {}),
-      health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })),
+      health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), morale: moraleWord(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
       standingDefense: p.core.standingDefense,
@@ -305,8 +310,8 @@ function baseView(state: GameState, actorId: string): BaseView {
     self: {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc',
       zone: a.zone, placeId: a.placeId, bandId: a.bandId,
-      health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })),
-      active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered', fearless: !!m.fearless,
+      health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), morale: moraleWord(a),
+      active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill,
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn } } : {}),
@@ -481,12 +486,12 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}),
+    player: { name: p.names.current, health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
   };

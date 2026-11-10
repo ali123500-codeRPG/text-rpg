@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, DU, GC, HL, RL, ZK } from './tableIds';
+import { AM, DU, FR, GC, HL, RL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -436,11 +436,22 @@ export function prototypeLibrary(): Library {
     bodyTypes: BODY_TYPES,
     // Healing sources (H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
-      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, reach: 'damaged', revivesDead: false, inFight: false },
-      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
+      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, moralePct: CONFIG.REST_MORALE_PCT, reach: 'damaged', revivesDead: false, inFight: false },
+      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, moralePct: CONFIG.CLINIC_HEAL_PCT, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
       [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false, inFight: true },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
       [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
+      // MB8/MB34: morale comes back from Resolve: 0.1 % of max morale per point an hour (5 % at 50), all the time
+      [HL.composure]: { id: HL.composure, name: 'Natural composure', hpPct: 0, partPct: 0, reach: 'healthy', revivesDead: false, inFight: true, hourly: { skill: SK.resolve, pctPerPoint: 0.1, morale: true } },
+    },
+    // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
+    fears: {
+      [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 25, rolled: true, health: { from: 'Injured', to: 'Mauled' } },
+      [FR.own_critical]: { id: FR.own_critical, name: 'Your health reaches Critical', cost: 50, rolled: true, health: { from: 'Critical', to: 'Critical' } },
+      [FR.bandmate_down]: { id: FR.bandmate_down, name: 'A bandmate goes down', cost: 25, rolled: true },
+      [FR.bandmate_broken]: { id: FR.bandmate_broken, name: 'A bandmate breaks', cost: 25, rolled: true }, // MB23
+      [FR.lost_intimidation]: { id: FR.lost_intimidation, name: 'You lose to intimidation', cost: 10, rolled: false, perTier: true }, // MB28, per tier of gap
+      [FR.foe_downed]: { id: FR.foe_downed, name: 'You down a foe', cost: -10, rolled: false }, // MB10
     },
     // Game clock (T1): minutes per action; placeholders
     durations: {

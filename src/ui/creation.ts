@@ -13,7 +13,7 @@ import { CL } from '../library/classIds';
 import { CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
-export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale (not built yet)', [SK.riposte]: 'effect not designed', [SK.slip_counter]: 'effect not designed' };
+export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.riposte]: 'effect not designed', [SK.slip_counter]: 'effect not designed' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 

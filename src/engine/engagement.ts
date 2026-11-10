@@ -7,6 +7,7 @@ import type { Actor, EngagementKind, GameEvent, GameState } from '../types';
 import { CONFIG } from '../config';
 import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring } from './relations';
 import { logCode } from './effects';
+import { restoreMorale } from '../ruleset/morale';
 
 /** a is engaged with b in a fight: a counts in a fight, is hostile to b and believes in b at suspicious or higher */
 export function fightingWith(state: GameState, a: Actor, b: Actor): boolean {
@@ -64,6 +65,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
       delete a.haggle; // PY6: haggled prices last until the engagement ends
       delete a.pressure; // OQ-29: Shaken and Swayed last until the engagement ends
       delete a.speechTries; // NT3: repeat tries count within one engagement
+      restoreMorale(a, CONFIG.MORALE_ENGAGEMENT_END_PCT); // MB9: some nerve comes back when the danger has passed
       logCode(state, 'engagement_ended', { actorId: a.id, start: e.start, kinds: e.kinds });
       if (a === state.player) playerEnded = true;
     }
