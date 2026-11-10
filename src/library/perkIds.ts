@@ -19,7 +19,7 @@ export const PK = {
   quick_study: 'PK71', past_the_pain: 'PK72', never_surprised: 'PK73',
   step_and_cut: 'PK98', known_at_every_stall: 'PK99',
   bluff: 'PK100', takes_one_to_know_one: 'PK101', plain_as_day: 'PK102', read_their_face: 'PK103', dread_presence: 'PK105',
-  junk_arsenal: 'PK106', know_the_step: 'PK107', last_to_fall: 'PK108',
+  junk_arsenal: 'PK106', know_the_step: 'PK107', last_to_fall: 'PK108', overheard: 'PK109',
   // banked write-ups (not yet milestone perks)
   precise: 'PK74', disarming_cut: 'PK75', cleave: 'PK76', shoot_and_move: 'PK77', human_shield: 'PK78', anything_goes: 'PK79', slip_the_crowd: 'PK80', shield_wall: 'PK81', refuse_to_fall: 'PK82', calm_words: 'PK83', plead: 'PK84', menace: 'PK85', out_of_nowhere: 'PK86', go_to_ground: 'PK87', held_shot: 'PK88', battle_cry: 'PK89', buy_them_off: 'PK90', crushing_blow: 'PK91', punch_through: 'PK92', staggering_bolt: 'PK93', flurry: 'PK94', roll_with_it: 'PK95', tough_it_out: 'PK96', night_eyes_full: 'PK97',
   not_born_yesterday: 'PK104',
