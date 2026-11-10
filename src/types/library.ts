@@ -23,6 +23,9 @@ export type SkillDef = {
   treeId: string;
   functions: SkillFunction[];
   groups?: SkillGroup[]; // groups the skill joins directly, without that group's function (Dodge: Speed)
+  /** skills this skill augments: its effective value × share is added to every roll that asks for that skill,
+   * or only rolls of the listed kinds (none listed: every roll and check of that skill) */
+  augments?: { skill: string; share?: number; rollKinds?: import('./items').RollKind[] }[];
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
@@ -57,6 +60,8 @@ export type ClassDef = {
   unlock?: Record<string, number>;
   /** either-of unlock: at least one of these skills must also reach its true skill */
   unlockAny?: Record<string, number>;
+  /** class levels other classes must reach before this class unlocks (Merchant: Trader 10) */
+  unlockClass?: Record<string, number>;
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
   fallback?: true;
   /** a perk that unlocks the class for a character who has it (for example a class-level perk of another class) */

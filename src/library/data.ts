@@ -62,6 +62,8 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.lying, TR.trickery, [FN.influence], [RL.speech]), // NT16: deceive rolls Lying
   { ...sk(SK.riposte, TR.swordsman, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // strike back off a block
   { ...sk(SK.slip_counter, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // Riposte's mirror: strike back off a dodge
+  // Merchant's advanced barter: augments Barter, adding its effective value to every roll that asks for Barter
+  { ...sk(SK.shrewd_dealing, TR.merchant, [], [RL.speech]), groups: [GR.influence], augments: [{ skill: SK.barter }] },
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
   sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
@@ -383,6 +385,7 @@ export function prototypeLibrary(): Library {
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
       [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying], access: { blockedBy: [AMORPHOUS] } },
       [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.merchant]: { id: TR.merchant, name: 'Merchant', skills: [SK.shrewd_dealing], access: { must: [{ kind: 'class', id: CL.merchant }] } },
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.slip_counter], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
@@ -405,6 +408,7 @@ export function prototypeLibrary(): Library {
         levelPerks: { 1: [PK.quick_study] }, capstone: [PK.every_fall_a_lesson] },
       // PY2: every NPC that sells has this class; Barter 20 unlocks it
       [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_1', label: 'a trader', floors: {}, unlock: { [SK.barter]: 20 } },
+      [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_2', label: 'a merchant', floors: {}, unlockClass: { [CL.trader]: 10 } }, // Trader at its top level
     },
     // PY3: what sellers can offer besides goods; prices are base prices before the markup (placeholders).
     // heals: a healing row the service pays for (PY8: the clinic's care is bought, then used by resting there)

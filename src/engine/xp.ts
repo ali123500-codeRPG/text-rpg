@@ -172,11 +172,12 @@ export function unlockClasses(state: GameState): void {
   const p = state.player;
   openEveryClass(state);
   for (const c of Object.values(getLibrary().classes)) {
-    if (!(c.unlock || c.unlockAny || c.unlockPerk) || p.core.classes.some((x) => x.classId === c.id)) continue;
+    if (!(c.unlock || c.unlockAny || c.unlockPerk || c.unlockClass) || p.core.classes.some((x) => x.classId === c.id)) continue;
     if (c.unlockPerk && !p.core.perks.some((x) => x.perkId === c.unlockPerk && !x.dormant)) continue;
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     if (!Object.entries(c.unlock ?? {}).every(met)) continue;
     if (c.unlockAny && !Object.entries(c.unlockAny).some(met)) continue;
+    if (!Object.entries(c.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= lv)) continue;
     openClass(state, c.id);
   }
 }

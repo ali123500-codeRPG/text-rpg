@@ -30,7 +30,7 @@ export { improveMarked, markEndurance, markUse } from './improve';
 export { meltAwayHere } from './perks';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
-export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, perkThrowReach } from './gear';
+export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, perkThrowReach, augmentsOf } from './gear';
 
 // Tiers are keys of the TIERS table (src/scales.ts). Arithmetic (shifts, gaps) works on a tier's level: its row
 // position plus `beyond`, the steps a shifted roll went past either end (Part 1 §4: shifted tiers are not clamped).
@@ -116,7 +116,7 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
 
 function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const actor = mustActor(state, req.actorId);
-  const ctx = { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? fnSkills(req.fn) : [])], standInFns: req.standInFns };
+  const ctx = { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? fnSkills(req.fn) : [])], standInFns: req.standInFns, rollKind: req.rollKind };
   const eff: { skill: string; value: number; parts?: string[] } = req.blend ? blendedSkill(state, actor, req.blend, ctx) : effectiveSkill(state, actor, req.skill, ctx); // a combined roll (Throw)
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
