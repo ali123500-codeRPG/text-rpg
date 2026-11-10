@@ -3,7 +3,7 @@
 // Critical Success achievements count in every player roll (rollFeats in xp.ts).
 import { yieldTaken } from './yield';
 import { moraleLevel } from '../ruleset/morale';
-import type { ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
+import type { AchievementRule, Actor, ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
 import { CONFIG } from '../config';
 import { healthLevel, partStates, working } from '../ruleset/body';
 import { trueSkill } from '../ruleset/perks';
@@ -11,7 +11,7 @@ import { actorBody, getLibrary } from '../library';
 import { dayOf, now } from '../time';
 import { actorById, allActors, atLeast, hostile, isActive, stance, warm } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
-import { tally } from './xp';
+import { gearRating, rating, tally } from './xp';
 
 const atLeastCritical = () => CONFIG.HEALTH_TRACK.findIndex(([l]) => l === 'Critical');
 
@@ -103,6 +103,23 @@ function logFight(state: GameState, events: GameEvent[]): void {
   if (allies.length && foes.length > allies.length + 1) f.heldLine = true; // the foes outnumber your whole side
   if (CONFIG.HEALTH_TRACK.findIndex(([l]) => l === healthLevel(p)) >= atLeastCritical()) f.brink = true;
   if (moraleLevel(p) === 'broken') f.broke = true;
+  // D-177: the strongest hostile foe, against the player's own power (both sides count their gear)
+  const mine = power(state, p);
+  for (const x of foes.filter((y) => hostile(state, y, p))) {
+    const gap = power(state, x) - mine;
+    f.above = Math.max(f.above ?? gap, gap);
+    if (mine > 0) f.abovePct = Math.max(f.abovePct ?? -100, (gap / mine) * 100);
+  }
+}
+
+/** an actor's fighting power for the stronger-foe achievements: its rating plus its gear rating */
+const power = (state: GameState, a: Actor) => rating(a) + gearRating(state, a);
+
+/** D-177: a fight against a stronger hostile foe ended with the player up (survived), or won: the gap is a high-water mark */
+function strongerFoe(state: GameState, f: FightLog, won: boolean): void {
+  if (!isActive(state.player)) return; // still Down at the end: not survived
+  for (const [rule, gap] of [['survived_above', f.above], ['survived_above_pct', f.abovePct], ...(won ? [['won_above', f.above], ['won_above_pct', f.abovePct]] : [])] as [AchievementRule, number | undefined][])
+    if (gap !== undefined && gap > 0) tally(state, rule, { to: gap });
 }
 
 /** the turn's blows: the player hurt, the player defending, the player attacking (hit or miss) */
@@ -118,9 +135,11 @@ export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = 
   noteBlows(state, f, events);
   // a lost fight (the Loser scars): you went Down, or it ended with a foe still up and fighting you (you got away).
   // a morale break counts too (MB12), and a yield a foe took (MB42)
+  const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !isActive(x) || !!x.mind?.moraleState; });
+  const lost = !!(f.down || f.broke || yieldTaken(state) || !isActive(state.player));
+  strongerFoe(state, f, won && !lost);
   if (f.down || f.broke || yieldTaken(state) || !isActive(state.player)) return tally(state, 'defeated');
   if (f.brink) tally(state, 'brink');
-  const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !isActive(x) || !!x.mind?.moraleState; });
   if (!won) {
     if (f.foes.some((id) => { const x = actorById(state, id); return !!x && isActive(x) && !x.mind?.moraleState && hostile(state, x, state.player); })) tally(state, 'defeated');
     return;
