@@ -373,7 +373,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the header names the last turn played, the one the last results row shows
     const lastTurn = [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
     title.replaceChildren(h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null, stealthy ? stealthBadge() : null, dealChip),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), rollsBtn ?? '');
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null), h('div', { class: 'title-tools' }, s ? auto.opener : '', rollsBtn ?? ''));
     story.classList.toggle('no-rolls', !show);
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down

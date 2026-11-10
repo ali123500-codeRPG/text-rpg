@@ -3,7 +3,7 @@
 // level (augments included) is inside it, or on a tie. Augments off the sheet learn once their tree opens.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { markUse } from '../../src/ruleset/improve';
+import { augmentWindow, markUse } from '../../src/ruleset/improve';
 import { getLibrary } from '../../src/library';
 import { SK } from '../../src/library/skillIds';
 import { CL } from '../../src/library/classIds';
@@ -58,5 +58,11 @@ describe('157 augment learning', () => {
     sheet(o, { [SK.barter]: 75 }); // window without Persuasion: 60 to 80
     expect(contest(s, p, o, 2)).toEqual([SK.shrewd_dealing]);
     delete persuasion.augments;
+  });
+  it('the sheet shows an augmenting skill the window of the roll it adds to (augmentWindow)', () => {
+    const { p } = setup();
+    sheet(p, { [SK.barter]: 30, [SK.shrewd_dealing]: 40 });
+    expect(augmentWindow(p, SK.shrewd_dealing)).toEqual({ via: SK.barter, window: [60, 80] });
+    expect(augmentWindow(p, SK.barter)).toBeNull();
   });
 });

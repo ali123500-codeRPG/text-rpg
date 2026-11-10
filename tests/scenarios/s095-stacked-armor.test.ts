@@ -1,3 +1,4 @@
+import { CONFIG } from '../../src/config';
 import { BT } from '../../src/library/raceIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng, fit } from '../harness';
@@ -19,7 +20,7 @@ describe('95 Stacked armor', () => {
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false };
     const r = ruleset.attack(req, s, forcedRng([50, 30, 80]));
     expect(r.location).toBe('general');
-    expect(r.damage).toBeCloseTo(((25 - 2) * 0.8 - 2) * 0.5, 9); // 8.2, fractions allowed (OQ-25)
+    expect(r.damage).toBeCloseTo(((25 * CONFIG.GAP_LADDER.dodge[-2] - 2) * 0.8 - 2) * 0.5, 9); // fractions allowed (OQ-25)
     scaled.naturalArmor.reduction = 50;
     expect(ruleset.attack(req, s, forcedRng([50, 30, 80])).damage).toBe(0);
     delete getLibrary().races!.scaled_man;
