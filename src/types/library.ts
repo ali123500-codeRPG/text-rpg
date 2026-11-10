@@ -12,7 +12,6 @@ import type { PartStateKey, SkillTierKey } from '../scales';
 export type SkillFunction = (typeof FN)[keyof typeof FN]; // fixed IDs: src/library/functionIds.ts
 export type SkillGroup = (typeof GR)[keyof typeof GR];
 /** XP rating category of a skill (X18–X23). Set per skill: one tree may mix categories. */
-export type XpCategory = 'offensive' | 'defensive' | 'endurance' | 'notice' | 'influence' | 'misc';
 /** Situation tags (ST21): a situational table (CONFIG.SITUATION_TAGS) affects a roll whose skill has its tag. */
 export type SituationTag = 'sight' | 'hearing' | 'stealth' | 'hide' | 'ranged';
 export type RoleId = (typeof import('../library/tableIds').RL)[keyof typeof import('../library/tableIds').RL];
@@ -26,7 +25,6 @@ export type SkillDef = {
   groups?: SkillGroup[]; // groups the skill joins directly, without that group's function (Dodge: Speed)
   roles: RoleId[]; // body-part roles the skill uses (wounds reach a roll through these)
   cue?: 'sight' | 'sound'; // Notice skills: which cue they read
-  xpCategory: XpCategory;
   tier: SkillTierKey; // final efficiency multiplier (CONFIG.SKILL_TIER_MULT)
   tags?: SituationTag[]; // situation tags (ST21): which situational tables reach its rolls
   access?: TreeAccess; // a skill's own rule on top of its tree's (SR1: persuasion and barter need a speaking race)

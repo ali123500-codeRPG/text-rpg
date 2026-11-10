@@ -7,7 +7,7 @@ import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import type { ArmorWeightKey } from '../scales';
 import { CLASS_TIERS } from '../scales';
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef, SkillGroup, XpCategory } from '../types';
+import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -21,15 +21,11 @@ import { SV } from './serviceIds';
 import { PK } from './perkIds';
 import { IT } from './itemIds';
 
-/** XP category from the skill's group (X21, F8); a skill with no deciding group names its own. */
 /** aimed hits per part size: smaller parts are harder to hit, so their levels pay this many reward levels more */
 const SMALLER_PAYS_MORE = { small: 1, extra_small: 1, tiny: 2 };
 
-const CATEGORY_OF: Partial<Record<SkillGroup, XpCategory>> = {
-  [GR.melee]: 'offensive', [GR.ranged]: 'offensive', [GR.defense]: 'defensive', [GR.health]: 'endurance', [GR.notice]: 'notice', [GR.influence]: 'influence',
-};
-const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', xpCategory?: XpCategory, tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
-  ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), xpCategory: xpCategory ?? CATEGORY_OF[FUNCTION_GROUP[functions[0]]] ?? 'misc', tier });
+const sk = (id: string, treeId: string, functions: SkillDef['functions'], roles: SkillDef['roles'], cue?: 'sight' | 'sound', tier: SkillDef['tier'] = 'tier_2'): SkillDef =>
+  ({ id, treeId, functions, roles, ...(cue ? { cue } : {}), tier });
 
 export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.melee_light, TR.melee, [FN.arms], [RL.grip]),
@@ -53,22 +49,21 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   sk(SK.eyesight, TR.perception, [FN.sight], [RL.sense], 'sight'),
   sk(SK.earshot, TR.perception, [FN.hearing], [RL.sense], 'sound'),
   // NT17: what a listener rolls against a lie. No function, so nothing stands in for it; it sits in the Notice group
-  { ...sk(SK.insight, TR.perception, [], [RL.sense], undefined, 'notice'), groups: [GR.notice] },
+  { ...sk(SK.insight, TR.perception, [], [RL.sense]), groups: [GR.notice] },
   // Stealth (ST1–ST10): one function, two skills; code picks Combat Stealth in an engagement, Sneaking
   // otherwise. Stealth is movement (the move role), so leg wounds count, except when hiding. Rating: notice / offensive.
-  sk(SK.sneaking, TR.stealth, [FN.stealth], [RL.move], undefined, 'notice'),
-  sk(SK.combat_stealth, TR.stealth, [FN.stealth], [RL.move], undefined, 'offensive'),
-  sk(SK.vanishing, TR.stealth, [FN.stealth], [RL.move], undefined, 'offensive'), // ST11/ST18: breaks established sight
+  sk(SK.sneaking, TR.stealth, [FN.stealth], [RL.move]),
+  sk(SK.combat_stealth, TR.stealth, [FN.stealth], [RL.move]),
+  sk(SK.vanishing, TR.stealth, [FN.stealth], [RL.move]), // ST11/ST18: breaks established sight
   // speech role: head wounds reduce speech rolls
   sk(SK.persuasion, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.intimidation, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.barter, TR.speech, [FN.influence], [RL.speech]),
   sk(SK.lying, TR.trickery, [FN.influence], [RL.speech]), // NT16: deceive rolls Lying
-  sk(SK.feint, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
-  sk(SK.riposte, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
-  sk(SK.disarm, TR.swordsman, [], [RL.grip], undefined, 'offensive'),
+  { ...sk(SK.riposte, TR.swordsman, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // strike back off a block
+  { ...sk(SK.slip_counter, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee, GR.defense] }, // Riposte's mirror: strike back off a dodge
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
-  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', undefined, 'tier_0'),
+  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
   sk(SK.lockpicking, TR.tools, [], [RL.grip]),
 ].map((s) => [s.id, s]));
@@ -387,7 +382,8 @@ export function prototypeLibrary(): Library {
       [TR.stealth]: { id: TR.stealth, name: 'Stealth – Conventional', skills: [SK.sneaking, SK.combat_stealth, SK.vanishing] },
       [TR.speech]: { id: TR.speech, name: 'Speech', skills: [SK.persuasion, SK.intimidation, SK.barter], access: { blockedBy: [AMORPHOUS] } },
       [TR.trickery]: { id: TR.trickery, name: 'Trickery', skills: [SK.lying], access: { blockedBy: [AMORPHOUS] } },
-      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.feint, SK.riposte, SK.disarm], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.swordsman]: { id: TR.swordsman, name: 'Swordsman', skills: [SK.riposte], access: { must: [{ kind: 'class', id: CL.swordsman }] } },
+      [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.slip_counter], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
       [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
