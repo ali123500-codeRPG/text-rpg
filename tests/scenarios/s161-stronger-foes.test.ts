@@ -32,7 +32,7 @@ describe('161 stronger foes', () => {
     fightEnded(s, { hp: 0, foes: ['guard_1'], most: 1, above: 60, abovePct: 30 }); // the guard is still up: not won
     expect(earned(s)).toEqual(expect.arrayContaining([ACH.survived_above_50, ACH.survived_pct_25]));
     expect(earned(s)).not.toContain(ACH.survived_above_25); // replaced by the higher level
-    expect(earned(s).some((k) => [ACH.won_above_25, ACH.won_pct_25].includes(k))).toBe(false);
+    expect(earned(s).some((k) => k === ACH.won_above_25 || k === ACH.won_pct_25)).toBe(false);
     fightEnded(s, { hp: 0, foes: [], most: 1, above: 120, abovePct: 110 }); // won
     expect(earned(s)).toEqual(expect.arrayContaining([ACH.survived_above_100, ACH.survived_pct_100, ACH.won_above_100, ACH.won_pct_100]));
   });
