@@ -429,7 +429,7 @@ function classes(): HTMLElement[] {
     h('div', { class: 'lv-grid' }, byTier().map((c) => card('classes', c.id, c, c.name,
       [chip(CLASS_TIERS.name(c.tier), toneFor('Tier', CLASS_TIERS.name(c.tier))), c.fallback ? chip('default class', toneFor('Kind', 'default class')) : null, c.creation ? chip('starting class', toneFor('Kind', 'starting class')) : null],
       row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
-      c.unlockClass ? row('Unlocks at', h('span', {}, ...Object.entries(c.unlockClass).flatMap(([id, lv], i) => [i ? ', or ' : '', link('classes', id, lib.classes[id]?.name ?? id), ` level ${lv}`]))) : null,
+      c.unlockClass ? row('Unlocks at', h('span', {}, ...Object.entries(c.unlockClass).flatMap(([id, lv], i) => [i ? ', or ' : '', link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` top level (${classMaxLevel(id)})` : ` level ${lv}`]))) : null,
       ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'capstone', 'capstones', 'unlockClass']),
       c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
         ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default'))),
