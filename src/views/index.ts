@@ -9,7 +9,7 @@ import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
-import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { PERK_MOVES, hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
@@ -54,11 +54,6 @@ export function zoneView(state: GameState, z: Zone): ZoneView {
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })),
     groundItems: z.groundItems.map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })),
   };
-}
-/** own zone plus zones linked to it with sight (no frontiers) */
-function perceivedZoneIds(state: GameState, zoneId: string): string[] {
-  const z = zoneById(state, zoneId);
-  return [zoneId, ...(z?.links ?? []).filter((l) => l.sight && !l.frontier && zoneById(state, l.to)).map((l) => l.to)];
 }
 const perceivedZones = (state: GameState, zoneId: string) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!));
 

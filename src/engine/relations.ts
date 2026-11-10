@@ -111,6 +111,12 @@ export function zoneById(state: GameState, id: string) {
   return undefined;
 }
 
+/** own zone plus zones linked to it with sight (no frontiers): what a viewer in `zoneId` perceives */
+export function perceivedZoneIds(state: GameState, zoneId: string): string[] {
+  const z = zoneById(state, zoneId);
+  return [zoneId, ...(z?.links ?? []).filter((l) => l.sight && !l.frontier && zoneById(state, l.to)).map((l) => l.to)];
+}
+
 /** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. */
 export function shortestPath(state: GameState, from: string, to: string, sightOnly = false): string[] | null {
   if (from === to) return [];

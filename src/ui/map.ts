@@ -1,0 +1,363 @@
+// Map page: the zones your character knows, drawn as a map of the place you pick. Zones are tiles joined by their
+// exits (solid: you can see across; dashed: a door or a turn hides the far side); exits you never took end in an
+// "unexplored" stub. Tiles are laid out by a small force layout that leans on compass words in exit names, and keep
+// their spots between turns. Drag to pan, wheel or the buttons to zoom. Clicking a zone shows it in the side column.
+import type { GameApi } from '../types';
+import { h } from './kit';
+import { compassOf, knownMap, type KnownMap, type MapPlace, type MapZone } from './mapData';
+
+const SVG = 'http://www.w3.org/2000/svg';
+const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (Node | string)[]) => {
+  const e = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+  e.append(...kids);
+  return e;
+};
+
+const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
+type Pt = { x: number; y: number };
+type Node2 = Pt & { id: string; w: number; h: number; vx: number; vy: number; pinned: boolean };
+const tileW = (z: MapZone) => Math.max(132, Math.min(260, z.name.length * 8.4 + 40));
+const tileH = (z: MapZone) => (z.people.length ? TILE_H_PEOPLE : TILE_H);
+
+/** deterministic force layout; zones laid out before keep their spots (they still settle a little) */
+export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): Map<string, Pt> {
+  const byPlace = new Map<string, string[]>(), place = new Map(zones.map((z) => [z.id, z.placeId]));
+  for (const z of zones) byPlace.set(z.placeId, [...(byPlace.get(z.placeId) ?? []), z.id]);
+  const ids = new Set(zones.map((z) => z.id));
+  const nodes = new Map<string, Node2>();
+  const edges: { a: string; b: string; dir: [number, number] | null }[] = [];
+  for (const z of zones) for (const l of z.links) if (ids.has(l.to) && z.id < l.to || (ids.has(l.to) && !zones.find((q) => q.id === l.to)?.links.some((m) => m.to === z.id)))
+    edges.push({ a: z.id, b: l.to, dir: compassOf(l.label) ?? (() => { const back = zones.find((q) => q.id === l.to)?.links.find((m) => m.to === z.id); const d = back ? compassOf(back.label) : null; return d ? [-d[0], -d[1]] as [number, number] : null; })() });
+  // first spots: old ones kept; new zones placed breadth-first from where you are, each beside a placed neighbour,
+  // on the side its exit's compass word names (else spread by the golden angle), so the forces start near the answer
+  const spot = new Map<string, Pt>(prev);
+  const taken = (p: Pt) => [...spot.values()].some((o) => Math.abs(o.x - p.x) < 150 && Math.abs(o.y - p.y) < 90);
+  const order = [ids.has(start) ? start : zones[0].id];
+  for (let i = 0; i < order.length; i++) for (const e of edges) { const o = e.a === order[i] ? e.b : e.b === order[i] ? e.a : null; if (o && !order.includes(o)) order.push(o); }
+  for (const z of zones) if (!order.includes(z.id)) order.push(z.id);
+  order.forEach((id, i) => {
+    if (spot.has(id)) return;
+    const e = edges.find((x) => (x.a === id && spot.has(x.b)) || (x.b === id && spot.has(x.a)));
+    if (!e) { spot.set(id, spot.size ? { x: (i % 4) * LINK_LEN * 1.4, y: (Math.floor(i / 4) + 1) * LINK_LEN * 1.4 } : { x: 0, y: 0 }); return; }
+    const from = spot.get(e.a === id ? e.b : e.a)!;
+    const dir = e.dir ? (e.a === id ? [-e.dir[0], -e.dir[1]] : e.dir) : null;
+    let p: Pt = { x: 0, y: 0 };
+    for (let k = 0; k < 12; k++) {
+      const ang = dir ? Math.atan2(dir[1], dir[0]) + (k ? (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.45 : 0) : i * 2.399963 + k * 0.7;
+      p = { x: from.x + Math.cos(ang) * LINK_LEN, y: from.y + Math.sin(ang) * LINK_LEN };
+      if (!taken(p)) break;
+    }
+    spot.set(id, p);
+  });
+  for (const z of zones) { const p = spot.get(z.id)!; nodes.set(z.id, { id: z.id, x: p.x, y: p.y, vx: 0, vy: 0, w: tileW(z), h: tileH(z), pinned: prev.has(z.id) }); }
+  const list = [...nodes.values()];
+  const steps = prev.size ? 160 : 420;
+  for (let it = 0; it < steps; it++) {
+    const cool = 1 - it / steps;
+    for (const n of list) { n.vx = 0; n.vy = 0; }
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = list[i], b = list[j];
+      let dx = b.x - a.x, dy = b.y - a.y;
+      if (!dx && !dy) { dx = 1; dy = 0.5; }
+      const d = Math.hypot(dx, dy);
+      const f = 52000 / (d * d) * (place.get(a.id) === place.get(b.id) ? 1 : 2.5); // different places push apart harder
+      a.vx -= dx / d * f; a.vy -= dy / d * f; b.vx += dx / d * f; b.vy += dy / d * f;
+      // tiles never overlap: push apart by the overlap of their boxes plus a margin
+      const ox = (a.w + b.w) / 2 + 36 - Math.abs(dx), oy = (a.h + b.h) / 2 + 36 - Math.abs(dy);
+      if (ox > 0 && oy > 0) { if (ox < oy) { const s2 = Math.sign(dx) * ox / 2; a.vx -= s2 * 4; b.vx += s2 * 4; } else { const s2 = Math.sign(dy) * oy / 2; a.vy -= s2 * 4; b.vy += s2 * 4; } }
+    }
+    for (const e of edges) {
+      const a = nodes.get(e.a)!, b = nodes.get(e.b)!;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
+      const f = (d - LINK_LEN) * 0.06;
+      a.vx += dx / d * f; a.vy += dy / d * f; b.vx -= dx / d * f; b.vy -= dy / d * f;
+      if (e.dir) { // "north gate": b sits north of a
+        const tx = a.x + e.dir[0] * LINK_LEN, ty = a.y + e.dir[1] * LINK_LEN;
+        b.vx += (tx - b.x) * 0.05; b.vy += (ty - b.y) * 0.05; a.vx -= (tx - b.x) * 0.05; a.vy -= (ty - b.y) * 0.05;
+      }
+    }
+    // a place's zones keep together, so each place reads as one area of the map
+    for (const ids2 of byPlace.values()) {
+      if (ids2.length < 2) continue;
+      const c = ids2.reduce((acc, id) => ({ x: acc.x + nodes.get(id)!.x / ids2.length, y: acc.y + nodes.get(id)!.y / ids2.length }), { x: 0, y: 0 });
+      for (const id of ids2) { const n = nodes.get(id)!; n.vx += (c.x - n.x) * 0.012; n.vy += (c.y - n.y) * 0.012; }
+    }
+    for (const n of list) {
+      const k = (n.pinned ? 0.15 : 1) * Math.max(0.05, cool);
+      n.x += Math.max(-40, Math.min(40, n.vx * k)); n.y += Math.max(-40, Math.min(40, n.vy * k));
+    }
+  }
+  return new Map(list.map((n) => [n.id, { x: Math.round(n.x), y: Math.round(n.y) }]));
+}
+
+/** where the segment from a box's centre toward `to` leaves the box */
+function edgeOf(c: Pt, w: number, hh: number, to: Pt): Pt {
+  const dx = to.x - c.x, dy = to.y - c.y;
+  if (!dx && !dy) return c;
+  const t = Math.min(Math.abs((w / 2 + 6) / (dx || 1e-9)), Math.abs((hh / 2 + 6) / (dy || 1e-9)));
+  return { x: c.x + dx * t, y: c.y + dy * t };
+}
+
+export function mapPage(api: GameApi) {
+  const el = h('main', { class: 'map-page' });
+  // one map per top-level place (a "world"): the village, the tavern in it and the field beside it share one layout,
+  // each inner place drawn as an outlined area. `focus` is the place picked in the list or the crumbs.
+  let focus = '', selected = '', lastHere = '';
+  const spots = new Map<string, Map<string, Pt>>(); // per world
+  const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
+  let cur: KnownMap | null = null, world = '';
+
+  const svg = s('svg', { class: 'map-svg', role: 'img' }) as SVGSVGElement;
+  const vp = s('g', { class: 'map-vp' }) as SVGGElement;
+  const defs = s('defs', {},
+    s('pattern', { id: 'map-dots', width: 28, height: 28, patternUnits: 'userSpaceOnUse' }, s('circle', { cx: 2, cy: 2, r: 1.2, class: 'map-dot' })),
+    s('marker', { id: 'map-arrow', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' })));
+  const bg = s('rect', { x: -6000, y: -6000, width: 12000, height: 12000, fill: 'url(#map-dots)', class: 'map-bg' });
+  svg.append(defs, vp);
+  const stage = h('div', { class: 'map-stage' });
+  const side = h('aside', { class: 'map-side', 'aria-label': 'Map details' });
+  const crumbs = h('nav', { class: 'map-crumbs', 'aria-label': 'Place' });
+  const compass = h('div', { class: 'map-compass', 'aria-hidden': 'true', title: 'North, from the exits’ compass words' }, 'N');
+  const empty = h('p', { class: 'map-empty' });
+  const zoomBtn = (label: string, title: string, f: () => void) => h('button', { type: 'button', class: 'map-btn', title, 'aria-label': title, onclick: f }, label);
+  const tools = h('div', { class: 'map-tools' },
+    zoomBtn('+', 'Zoom in', () => zoomBy(1.25)), zoomBtn('−', 'Zoom out', () => zoomBy(0.8)),
+    zoomBtn('◎', 'Find me', () => findMe()), zoomBtn('⤢', 'Show the whole map', () => fit(world)));
+  stage.append(svg, crumbs, compass, tools, empty);
+
+  const placeOf = (id: string) => cur?.places.find((p) => p.id === id);
+  const rootOf = (id: string) => { let p = placeOf(id); for (let n = 0; p?.parentId && placeOf(p.parentId) && n < 20; n++) p = placeOf(p.parentId); return p?.id ?? id; };
+  const inside = (id: string, anc: string) => { for (let p = placeOf(id), n = 0; p && n < 20; p = p.parentId ? placeOf(p.parentId) : undefined, n++) if (p.id === anc) return true; return false; };
+  const worldZones = () => (cur?.places ?? []).filter((p) => rootOf(p.id) === world).flatMap((p) => p.zones);
+
+  // ---------- pan and zoom
+  const view = () => views.get(world) ?? { x: 0, y: 0, k: 1 };
+  const apply = () => { const v = view(); vp.setAttribute('transform', `translate(${v.x} ${v.y}) scale(${v.k})`); };
+  const setView = (v: { x: number; y: number; k: number }) => { views.set(world, v); apply(); };
+  function zoomBy(f: number, at?: Pt) {
+    const v = view(), r = svg.getBoundingClientRect();
+    const c = at ?? { x: r.width / 2, y: r.height / 2 };
+    const k = Math.max(0.2, Math.min(2.5, v.k * f));
+    setView({ k, x: c.x - (c.x - v.x) * (k / v.k), y: c.y - (c.y - v.y) * (k / v.k) });
+  }
+  /** the box around a place's zones (and the places inside it), stubs included */
+  function bounds(placeId: string): { x0: number; y0: number; x1: number; y1: number } | null {
+    const sp = spots.get(world);
+    const zs = worldZones().filter((z) => inside(z.placeId, placeId));
+    if (!zs.length || !sp) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const z of zs) { const p = sp.get(z.id); if (!p) continue; const w = tileW(z) / 2 + STUB, hh = tileH(z) / 2 + STUB; x0 = Math.min(x0, p.x - w); x1 = Math.max(x1, p.x + w); y0 = Math.min(y0, p.y - hh); y1 = Math.max(y1, p.y + hh); }
+    return { x0, y0, x1, y1 };
+  }
+  function fit(placeId: string) {
+    const b = bounds(placeId), r = svg.getBoundingClientRect();
+    if (!b || !r.width) return;
+    const top = 60, pad = 24; // the crumbs sit over the top edge
+    const k = Math.max(0.2, Math.min(1.6, Math.min((r.width - 2 * pad) / (b.x1 - b.x0), (r.height - top - 70) / (b.y1 - b.y0))));
+    setView({ k, x: r.width / 2 - (b.x0 + b.x1) / 2 * k, y: top + (r.height - top - 70) / 2 - (b.y0 + b.y1) / 2 * k });
+  }
+  function centre(zoneId: string) {
+    const p = spots.get(world)?.get(zoneId), r = svg.getBoundingClientRect();
+    if (!p || !r.width) return;
+    const k = view().k;
+    setView({ k, x: r.width / 2 - p.x * k, y: r.height / 2 - p.y * k });
+  }
+  function findMe() { if (!cur) return; focus = cur.placeId; selected = cur.zoneId; draw(); centre(cur.zoneId); }
+  let drag: { x: number; y: number; vx: number; vy: number; moved: boolean } | null = null;
+  svg.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; const v = view(); drag = { x: e.clientX, y: e.clientY, vx: v.x, vy: v.y, moved: false }; });
+  svg.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+    if (!drag.moved) { drag.moved = true; svg.setPointerCapture(e.pointerId); svg.classList.add('grabbing'); }
+    setView({ ...view(), x: drag.vx + dx, y: drag.vy + dy });
+  });
+  const endDrag = () => { svg.classList.remove('grabbing'); setTimeout(() => { drag = null; }); };
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+  svg.addEventListener('wheel', (e) => { e.preventDefault(); const r = svg.getBoundingClientRect(); zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12, { x: e.clientX - r.left, y: e.clientY - r.top }); }, { passive: false });
+  const pick = (t: Element | null) => {
+    const z = t?.closest('[data-zone]'), a = t?.closest('[data-area]');
+    if (z) { selected = z.getAttribute('data-zone')!; focus = worldZones().find((x) => x.id === selected)?.placeId ?? focus; draw(); }
+    else if (a) { focus = a.getAttribute('data-area')!; draw(); }
+  };
+  svg.addEventListener('click', (e) => { if (!drag?.moved) pick(e.target as Element); });
+  svg.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e.target as Element); } });
+
+  // ---------- drawing
+  function drawMap() {
+    const zones = worldZones();
+    const prev = spots.get(world) ?? new Map<string, Pt>();
+    let sp = prev;
+    if ([...prev.keys()].sort().join('|') !== zones.map((z) => z.id).sort().join('|')) { sp = layout(zones, cur!.zoneId, prev); spots.set(world, sp); }
+    const byId = new Map(zones.map((z) => [z.id, z]));
+    const centroid = zones.reduce((a, z) => ({ x: a.x + sp.get(z.id)!.x / zones.length, y: a.y + sp.get(z.id)!.y / zones.length }), { x: 0, y: 0 });
+    const areas = s('g', { class: 'map-areas' }), links = s('g', { class: 'map-links' }), tiles = s('g', { class: 'map-tiles' }), labels = s('g', { class: 'map-labels' });
+    // areas: every inner place with known zones, outer places first so inner ones sit on top
+    const inner = (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world).sort((a, b) => a.depth - b.depth);
+    const maxDepth = Math.max(0, ...inner.map((p) => p.depth));
+    for (const p of inner) {
+      const zs = zones.filter((z) => inside(z.placeId, p.id));
+      if (!zs.length) continue;
+      const pad = 30 + (maxDepth - p.depth) * 18;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const z of zs) { const c = sp.get(z.id)!; x0 = Math.min(x0, c.x - tileW(z) / 2); x1 = Math.max(x1, c.x + tileW(z) / 2); y0 = Math.min(y0, c.y - tileH(z) / 2); y1 = Math.max(y1, c.y + tileH(z) / 2); }
+      const on = p.id === focus, mine = inside(cur!.placeId, p.id);
+      areas.append(s('g', { class: `map-area${on ? ' on' : ''}${mine ? ' mine' : ''}`, 'data-area': p.id, tabindex: 0, role: 'button', 'aria-label': `${p.name}, ${zs.length} zones known` },
+        s('rect', { x: x0 - pad, y: y0 - pad - 22, width: x1 - x0 + 2 * pad, height: y1 - y0 + 2 * pad + 22, rx: 18 }),
+        s('text', { x: x0 - pad + 16, y: y0 - pad - 2, class: 'map-area-name' }, p.name)));
+    }
+    const done = new Set<string>();
+    let compassUsed = false;
+    for (const z of zones) {
+      const a = sp.get(z.id)!;
+      z.links.forEach((l, i) => {
+        if (compassOf(l.label)) compassUsed = true;
+        const hot = z.id === selected || l.to === selected;
+        const to = byId.get(l.to);
+        if (to) { // both ends on this map
+          const key = [z.id, l.to].sort().join('>');
+          if (done.has(key)) return;
+          done.add(key);
+          const b = sp.get(l.to)!;
+          const p1 = edgeOf(a, tileW(z), tileH(z), b), p2 = edgeOf(b, tileW(to), tileH(to), a);
+          links.append(s('line', { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: `map-link${l.sight ? '' : ' hidden-view'}${hot ? ' hot' : ''}` },
+            s('title', {}, `${l.label}: ${z.name} ↔ ${to.name}${l.sight ? ' · you can see across' : ' · the far side is out of sight'}`)));
+          const lab = z.id === selected ? l.label : to.links.find((m) => m.to === z.id)?.label ?? l.label;
+          // the exit's name sits on the line only where the line is long enough to hold it; its tooltip always has it
+          if (hot && Math.hypot(p2.x - p1.x, p2.y - p1.y) > Math.min(lab.length * 6.6 + 18, Math.abs(p2.y - p1.y) > Math.abs(p2.x - p1.x) ? 60 : lab.length * 6.6 + 40)) labels.append(pill((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, lab));
+          return;
+        }
+        // an exit to a zone you don't know: a short stub with an arrow
+        let dx = a.x - centroid.x, dy = a.y - centroid.y;
+        const dir = compassOf(l.label);
+        if (dir) [dx, dy] = dir;
+        if (!dx && !dy) { dx = Math.cos(i * 2.4); dy = Math.sin(i * 2.4); }
+        const n = Math.hypot(dx, dy), ang = Math.atan2(dy / n, dx / n) + (dir ? 0 : (i % 3 - 1) * 0.35);
+        const far = { x: a.x + Math.cos(ang) * (tileW(z) / 2 + STUB), y: a.y + Math.sin(ang) * (tileH(z) / 2 + STUB) };
+        const p1 = edgeOf(a, tileW(z), tileH(z), far);
+        links.append(s('line', { x1: p1.x, y1: p1.y, x2: far.x, y2: far.y, class: `map-stub${hot ? ' hot' : ''}`, 'marker-end': 'url(#map-arrow)' },
+          s('title', {}, `${l.label}: unexplored`)));
+        if (hot) labels.append(pill(far.x + Math.cos(ang) * 14, far.y + Math.sin(ang) * 14, `${l.label} · unexplored`, 'unknown', Math.cos(ang)));
+      });
+    }
+    for (const z of zones) tiles.append(tile(z, sp.get(z.id)!));
+    compass.hidden = !compassUsed;
+    vp.replaceChildren(bg, areas, links, tiles, labels);
+    svg.setAttribute('aria-label', `Map of ${placeOf(world)?.name ?? 'this place'}: ${zones.length} zone${zones.length === 1 ? '' : 's'} known`);
+  }
+  function pill(x: number, y: number, text: string, tone = '', lean = 0) {
+    const w = text.length * 6.6 + 18;
+    const x0 = lean > 0.3 ? x : lean < -0.3 ? x - w : x - w / 2;
+    return s('g', { class: `map-pill ${tone}` }, s('rect', { x: x0, y: y - 11, width: w, height: 22, rx: 11 }), s('text', { x: x0 + w / 2, y: y + 4, 'text-anchor': 'middle' }, text));
+  }
+  function tile(z: MapZone, p: Pt) {
+    const w = tileW(z), hh = tileH(z), x = p.x - w / 2, y = p.y - hh / 2;
+    const cls = ['map-tile', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
+    const status = z.here ? 'You are here' : z.inView ? `In view${z.light ? ' · ' + z.light : ''}` : 'Remembered';
+    const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${status}` },
+      s('rect', { x, y, width: w, height: hh, rx: 10, class: 'map-tile-box' }),
+      s('text', { x: p.x, y: y + 24, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
+      s('text', { x: p.x, y: y + 42, 'text-anchor': 'middle', class: 'map-tile-sub' }, status));
+    if (z.people.length) {
+      const shown = z.people.slice(0, 6), r = 10, gap = 6, total = shown.length * (2 * r) + (shown.length - 1) * gap + (z.people.length > 6 ? 30 : 0);
+      let cx = p.x - total / 2 + r;
+      for (const who of shown) {
+        g.append(s('g', { class: `map-who${who.now ? '' : ' last'}` }, s('circle', { cx, cy: y + 64, r }),
+          s('text', { x: cx, y: y + 68, 'text-anchor': 'middle' }, (who.name.replace(/^(a|an|the)\s+/i, '')[0] ?? '?').toUpperCase()),
+          s('title', {}, who.now ? `${who.name} · here now` : `${who.name} · last seen here`)));
+        cx += 2 * r + gap;
+      }
+      if (z.people.length > 6) g.append(s('text', { x: cx + 4, y: y + 68, class: 'map-tile-sub' }, `+${z.people.length - 6}`));
+    }
+    if (z.here) g.append(s('g', { class: 'map-pin' }, s('circle', { cx: x + w - 2, cy: y + 2, r: 9 }), s('circle', { cx: x + w - 2, cy: y + 2, r: 3.5, class: 'core' })));
+    return g;
+  }
+
+  function drawCrumbs() {
+    const chain: MapPlace[] = [];
+    for (let q = placeOf(focus); q && chain.length < 20; q = q.parentId ? placeOf(q.parentId) : undefined) chain.unshift(q);
+    crumbs.replaceChildren(...chain.flatMap((q, i) => [i ? h('span', { class: 'sep', 'aria-hidden': 'true' }, '›') : '',
+      h('button', { type: 'button', class: 'crumb' + (q.id === focus ? ' on' : ''), onclick: () => show(q.id) }, q.name)]));
+  }
+
+  function drawSide() {
+    const z = worldZones().find((x) => x.id === selected);
+    const all = cur!.places.flatMap((p) => p.zones);
+    const zoneName = (id: string) => all.find((x) => x.id === id)?.name;
+    const pl = placeOf(focus)!;
+    const card = z ? h('section', { class: 'map-card' },
+      h('div', { class: 'map-card-h' }, h('h2', {}, z.name), h('span', { class: `hs-tg ${z.here ? 'cap' : ''}` }, z.here ? 'You are here' : z.inView ? 'In view' : 'Remembered')),
+      h('p', { class: 'hs-note' }, placeOf(z.placeId)?.name ?? ''),
+      h('p', { class: 'map-look' }, z.look || 'You have no picture of it.'),
+      z.inView ? h('p', { class: 'hs-note' }, [z.outdoor ? 'Outdoors' : 'Indoors', z.light ? `${z.light} light` : '', z.cover ? `${z.cover} cover` : ''].filter(Boolean).join(' · ')) : h('p', { class: 'hs-note' }, 'Out of sight now, so light, people and things on the ground may have changed.'),
+      h('p', { class: 'hs-label' }, 'Exits'),
+      h('ul', { class: 'map-exits' }, z.links.map((l) => h('li', {},
+        h('span', {}, l.label),
+        h('span', { class: 'to' }, l.known ? `to ${zoneName(l.to) ?? 'a known zone'}${l.otherPlace ? ` (${l.otherPlace})` : ''}` : 'unexplored'),
+        l.known ? h('button', { type: 'button', class: 'map-go', title: 'Show this zone', 'aria-label': `Show ${zoneName(l.to) ?? 'this zone'}`, onclick: () => goTo(l.to) }, '›') : ''))),
+      z.people.length ? h('div', {}, h('p', { class: 'hs-label' }, 'People'), h('p', {}, ...z.people.map((p) => h('span', { class: 'hs-tg' + (p.now ? '' : ' faded') }, p.now ? p.name : `${p.name} (last seen)`)))) : '',
+      z.items.length ? h('div', {}, h('p', { class: 'hs-label' }, 'On the ground'), h('p', {}, ...z.items.map((x) => h('span', { class: 'hs-tg' }, x)))) : '')
+      : h('section', { class: 'map-card' }, h('p', { class: 'hs-note' }, 'Click a zone on the map to see what you know about it.'));
+    const count = (p: MapPlace) => cur!.places.filter((q) => inside(q.id, p.id)).reduce((n, q) => n + q.zones.length, 0);
+    const placeList = h('section', { class: 'map-places' }, h('p', { class: 'hs-label' }, 'Places you know'),
+      h('ul', {}, cur!.places.map((p) => h('li', { style: `--d:${p.depth}` }, h('button', { type: 'button', class: 'map-place' + (p.id === focus ? ' on' : ''), onclick: () => show(p.id), 'aria-current': p.id === focus ? 'true' : undefined },
+        h('span', { class: 'n' }, p.name, inside(cur!.placeId, p.id) ? h('span', { class: 'you' }, p.id === cur!.placeId ? ' · you' : '') : ''),
+        h('span', { class: 'c' }, count(p) ? `${count(p)} zone${count(p) === 1 ? '' : 's'}` : 'no zones known'))))));
+    const facts = pl?.facts.length ? h('section', {}, h('p', { class: 'hs-label' }, `What you know about ${pl.name}`), h('ul', { class: 'map-facts' }, pl.facts.map((f) => h('li', {}, f)))) : '';
+    const legend = h('section', { class: 'map-legend' }, h('p', { class: 'hs-label' }, 'Key'),
+      h('ul', {},
+        h('li', {}, h('i', { class: 'k-tile outdoor' }), 'Outdoors'), h('li', {}, h('i', { class: 'k-tile indoor' }), 'Indoors'),
+        h('li', {}, h('i', { class: 'k-tile remembered' }), 'Out of sight now'), h('li', {}, h('i', { class: 'k-pin' }), 'You'),
+        h('li', {}, h('i', { class: 'k-line' }), 'You can see across'), h('li', {}, h('i', { class: 'k-line dashed' }), 'The far side is hidden'),
+        h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'),
+        h('li', {}, h('i', { class: 'k-who' }), 'Someone there now'), h('li', {}, h('i', { class: 'k-who last' }), 'Last seen there')));
+    side.replaceChildren(card, facts, placeList, legend);
+  }
+
+  function goTo(zoneId: string) {
+    const z = cur!.places.flatMap((p) => p.zones).find((x) => x.id === zoneId);
+    if (!z) return;
+    const w = rootOf(z.placeId);
+    selected = zoneId; focus = z.placeId;
+    if (w !== world) { world = w; draw(); requestAnimationFrame(() => fit(w)); } else { draw(); centre(zoneId); }
+  }
+  function show(id: string) {
+    const w = rootOf(id);
+    focus = id;
+    const here = worldZones().find((z) => z.here && inside(z.placeId, id));
+    selected = here?.id ?? (selected && inside(worldZones().find((z) => z.id === selected)?.placeId ?? '', id) ? selected : '');
+    world = w; draw();
+    requestAnimationFrame(() => fit(id));
+  }
+
+  function draw() {
+    if (!cur) return;
+    if (!placeOf(world)) world = rootOf(cur.placeId);
+    if (!placeOf(focus)) focus = cur.placeId;
+    if (!placeOf(world)) { empty.hidden = false; empty.textContent = 'You know no places yet.'; vp.replaceChildren(bg); return; }
+    drawCrumbs();
+    drawSide();
+    if (!worldZones().length) { vp.replaceChildren(bg); empty.hidden = false; empty.textContent = `You know of ${placeOf(world)!.name}, but none of its zones yet.`; compass.hidden = true; return; }
+    empty.hidden = true;
+    drawMap();
+    apply();
+  }
+
+  function update() {
+    const st = api.state();
+    if (!st) { el.replaceChildren(h('h1', {}, 'Map'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); cur = null; return; }
+    cur = knownMap(st);
+    if (!el.contains(stage)) el.replaceChildren(
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Map'), h('p', {}, 'Every zone you have stood in or seen, with the places inside places outlined. Only what your character knows.'))),
+      h('div', { class: 'map-body' }, stage, side));
+    const moved = cur.zoneId !== lastHere;
+    if (moved) { lastHere = cur.zoneId; world = rootOf(cur.placeId); focus = cur.placeId; selected = cur.zoneId; }
+    const fresh = !views.has(world);
+    draw();
+    if (fresh) requestAnimationFrame(() => fit(focus));
+    else if (moved) requestAnimationFrame(() => centre(cur!.zoneId));
+  }
+  return { el, update };
+}
