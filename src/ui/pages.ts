@@ -352,7 +352,7 @@ export function journalPage(api: GameApi) {
       sec('People', 'A label until you learn the name. Health shows only from Wounded down.',
         groupedTable({ cols: [{ key: 'name', title: 'Name' }, { key: 'label', title: 'Looks like' }, { key: 'where', title: 'Where' }, { key: 'health', title: 'Health' }],
           groups: pGroups, open: opened.people, sort: sorts.people, onField: field('Person'), redraw: update, emptyText: 'Nobody yet.' })),
-      sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The game draws no maps.',
+      sec('Places', 'Places you have been in or heard facts about, folded under the place they belong to. The Map page draws their zones.',
         groupedTable({ cols: [{ key: 'name', title: 'Place' }, { key: 'parent', title: 'Part of' }, { key: 'facts', title: 'What you know' }],
           groups: plGroups, open: opened.places, sort: sorts.places, onField: field('Place'), redraw: update, emptyText: 'No places yet.' })),
       sec('Timeline', 'Turns played since this page was opened, oldest first.',

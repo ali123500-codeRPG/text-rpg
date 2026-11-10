@@ -1,5 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
-import { noteLeft } from './trail';
+import { noteLeft, noteZonesSeen } from './trail';
 import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel } from '../ruleset/morale';
@@ -727,6 +727,7 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 // ---------- the turn ----------
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
+  noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
   const learnedBefore = learned(state);
   const playerUp = isActive(state.player);
   // MB41: foes asked by the player's yield answer in this turn's output, before anyone acts
@@ -816,6 +817,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   updateQuests(state, ctx.events, defeated);
+  noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
   updateSpars(state, ctx.events); // after the scene-break checks, so a break ends the spar this turn
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks

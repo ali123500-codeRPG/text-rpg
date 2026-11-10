@@ -177,6 +177,8 @@ export type Journal = {
   stealthSeen?: Record<ActorId, BeliefStatus>;
   /** the places the player last left, newest first, with the turn it left each (CONFIG.TRAIL_ZONES long): "go back" reads it */
   trail?: { zone: string; left: Turn }[];
+  /** the Map page: every zone the player has stood in or seen across a sight link, oldest first */
+  zonesSeen?: string[];
 };
 
 export type { PlaceId };
