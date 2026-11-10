@@ -441,7 +441,7 @@ function skills(): HTMLElement[] {
       h('tbody', {}, ids.map((s) => lib.skills[s]).filter(Boolean).map((s) => h('tr', { id: `skills/${s.id}` },
         h('td', {}, h('b', {}, skillName(s.id)), s.cue ? ` · ${s.cue} cue` : '', ...(s.access ? access(s.access) : [])), h('td', {}, s.functions.length ? h('span', { class: 'lv-chips' }, s.functions.map((f) => chip(functionName(f), toneFor('Function', functionName(f))))) : '—'),
         h('td', {}, groupsOf(s).length ? h('span', { class: 'lv-chips' }, groupsOf(s).map((g) => chip(GROUP_NAMES[g], toneFor('Group', GROUP_NAMES[g])))) : '—'), h('td', {}, s.roles.map((r) => lib.roles[r as keyof typeof lib.roles]?.name ?? r).join(', ') || '—'),
-        h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, chip(s.xpCategory, toneFor('XP', s.xpCategory))), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
+        h('td', {}, chip(`${SKILL_TIERS.name(s.tier)} · ×${CONFIG.SKILL_TIER_MULT[s.tier]}`, TIER_TONE[s.tier])), h('td', {}, groupsOf(s)[0] ? chip(`${GROUP_NAMES[groupsOf(s)[0]]} ×${CONFIG.XP_GROUP_WEIGHT[groupsOf(s)[0]] ?? 0}`, toneFor('Group', GROUP_NAMES[groupsOf(s)[0]])) : '—'), h('td', {}, (s.tags ?? []).join(', ') || '—'))))));
   // the header says which group(s) the code puts the tree's skills in (FUNCTION_GROUP)
   const groupChips = (ids: string[]) => [...new Set(ids.flatMap((s) => groupsOf(lib.skills[s])))].map((g) => chip(`${GROUP_NAMES[g]} group`, toneFor('Group', GROUP_NAMES[g])));
   const treeCard = (id: string, title: string, ids: string[], entry: unknown, chips: HTMLElement[]) => {
@@ -844,7 +844,6 @@ TONES = (() => {
     occ.set(sec.key, groups);
   }
   facetOf = () => [];
-  occ.set('skill XP', new Map([['XP', new Set(Object.values(lib.skills).map((s) => s.xpCategory))]])); // a chip, not a filter
   return toneTable(occ, TONE_ORDER);
 })();
 

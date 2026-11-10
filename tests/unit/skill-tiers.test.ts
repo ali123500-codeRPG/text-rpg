@@ -6,6 +6,7 @@ import { effort, rating } from '../../src/engine/xp';
 import { getLibrary } from '../../src/library';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
+import { GR } from '../../src/library/functionIds';
 
 describe('skill tiers', () => {
   it('every skill is tier 2 (1×) except the slime class skills (tier 0, 0.5×)', () => {
@@ -23,6 +24,6 @@ describe('skill tiers', () => {
     const before = rating(slime);
     slime.core.skills[SK.tremor] = { raw: 0, state: 'normal' };
     // tremor 60 rates as a 30 (slimes can't use Perception, TA6, so a tier 2 notice skill can't stand in)
-    expect(before - rating(slime)).toBeCloseTo(CONFIG.XP_CATEGORY_WEIGHT.notice * effort(30));
+    expect(before - rating(slime)).toBeCloseTo(CONFIG.XP_GROUP_WEIGHT[GR.notice] * effort(30));
   });
 });

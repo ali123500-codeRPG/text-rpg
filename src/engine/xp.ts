@@ -189,16 +189,16 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
  * the roll ≥ 99 rule keeps the chance at 2% or more). */
 export const effort = (s: number) => (100 / 3) * Math.log(100 / Math.max(100 - Math.max(0, s), 2));
 
-/** X18–X23: a foe's stat rating. Per category the skills' efforts, highest first, count at 1, ½, ¼…, × the category weight. */
+/** X18–X23: a foe's stat rating. Per skill group (a skill's first group) the skills' efforts, highest first, count at 1, ½, ¼…, × XP_GROUP_WEIGHT. */
 export function rating(a: Actor): number {
   const lib = getLibrary();
   const by: Record<string, number[]> = {};
   for (const [id, e] of Object.entries(a.core.skills)) {
-    const cat = lib.skills[id]?.xpCategory ?? 'misc';
+    const cat = groupsOf(lib.skills[id])[0] ?? ''; // the skill's first group; no group counts 0
     (by[cat] ??= []).push(effort(skillOpen(a, id) ? e.raw * tierMult(id) : 0)); // the tier counts in the rating
   }
   return Object.entries(by).reduce((n, [cat, es]) =>
-    n + (CONFIG.XP_CATEGORY_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
+    n + (CONFIG.XP_GROUP_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
 }
 
 /** Kill XP = rating × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13). */
