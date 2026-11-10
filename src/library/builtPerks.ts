@@ -3,6 +3,10 @@ import { PK } from './perkIds';
 // A perk listed here can be taken; the rest show on the Perks screen but can't be taken yet.
 export const BUILT_PERKS = new Set<string>([
   PK.hidden_strike, // A1: src/ruleset/index.ts attack()
+  PK.bluff, // LI1c (Lying 20): src/engine/perkMoves.ts, the Parser's perkMove; acts last in resolve.ts initiativeOrder()
+  PK.takes_one_to_know_one, // LI1a (Lying 60): src/engine/speech.ts answerRoll()
+  PK.plain_as_day, // LI2a (Insight 60): src/engine/speech.ts pressedWords() and src/agents/game.ts
+  PK.read_their_face, // LI2b (Insight 100): src/views/index.ts seenActors()
   PK.never_surprised, // C1 (Earshot 100): src/engine/resolve.ts initiativeOrder() and doAttack(), via hears() in src/perception
   // All-50 parts (src/library/allPerks.ts), granted by src/ruleset/allSteps.ts
   PK.hunters_eye, // T2d: src/ruleset/perks.ts trueSkill() fnSkill

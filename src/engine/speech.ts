@@ -164,7 +164,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
 /** skills tagged influence (persuasion, intimidation, barter) */
 const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes(FN.influence)).map(([id]) => id);
 
-const toContest = (a: RollResult, b: RollResult): ContestResult => {
+export const toContest = (a: RollResult, b: RollResult): ContestResult => {
   const gap = tierLevel(b) - tierLevel(a);
   return { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
 };
@@ -173,10 +173,16 @@ const toContest = (a: RollResult, b: RollResult): ContestResult => {
 export const PUSH_TYPES = ['persuade', 'deceive', 'intimidate', 'barter'];
 /** added to a listener's impression when it saw through a lie */
 export const TELL = 'something about it does not sit right';
+/** LI2a Plain as Day: a lie the listener saw through, said plainly */
+export const PLAIN = 'it is a lie';
+/** what a listener that saw through a lie is told: the hint, or plainly with Plain as Day */
+export const tellFor = (listener: Actor | undefined): string => hasPerk(listener, PK.plain_as_day) ? PLAIN : TELL;
 
-/** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better */
+/** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better;
+ * Takes One to Know One (LI1a) answers a lie with the better of Insight and Lying */
 export function answerRoll(state: GameState, listener: Actor, skill: string, speakerId: string, rng: Rng): RollResult {
-  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId }, state, rng);
+  const knows = skill === SK.insight && hasPerk(listener, PK.takes_one_to_know_one);
+  return ruleset.roll({ actorId: listener.id, skill, modifiers: [], tierShifts: hasPerk(listener, PK.easy_speaker) ? [{ source: 'Easy Speaker', value: 1 }] : [], against: speakerId, ...(knows ? { fullValue: [SK.lying] } : {}) }, state, rng);
 }
 
 /** OQ-29: an NPC's speech roll at the player; the player answers (answerSkill; the speaker is side a) */
@@ -210,11 +216,11 @@ export function applySpeech(speaker: Actor, listener: Actor, type: string, conte
 
 /** OQ-29: an NPC's speech roll at the player, in words for the Narrator: how it strikes the player (from the speaker's
  * tier), and how the player takes it. A lie the player did not see through gets no hint. */
-export function pressedWords(e: GameEvent): { how: string; took?: string } | undefined {
+export function pressedWords(e: GameEvent, listener?: Actor): { how: string; took?: string } | undefined {
   const p = e.push, c = e.contest;
   if (!p || !c) return undefined;
   const took = p.status === 'shaken' ? 'it shakes you' : p.status === 'swayed' ? 'you find yourself swayed'
-    : p.tell ? TELL : p.type === 'deceive' ? undefined : p.landed ? 'the haggling goes their way' : 'you hold firm';
+    : p.tell ? tellFor(listener) : p.type === 'deceive' ? undefined : p.landed ? 'the haggling goes their way' : 'you hold firm';
   return { how: impressionWords(p.type, c.a.tier), ...(took ? { took } : {}) };
 }
 

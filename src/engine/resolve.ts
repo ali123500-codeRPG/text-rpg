@@ -14,7 +14,7 @@ import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, n
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
-import { afterAttack, coverFor, expireMarks, slowed } from './perkMarks';
+import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
@@ -106,7 +106,7 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
     const a = actorById(state, id)!;
     const roll = ruleset.initiative(a, state, rng);
     const caught = attackers(id).some((x) => beliefStatus(state, a, x) === 'unaware' && !hearsItComing(state, a, x.zone, armorNoise(state, x, 'attack', SENSE.attack[0])));
-    return { id, init: caught ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() };
+    return { id, init: caught || bluffed(state, a) ? CONFIG.INIT_UNAWARE : roll, tie: rng.next() }; // LI1c: a believed Bluff acts last too
   });
   rows.sort((x, y) => y.init - x.init || y.tie - x.tie);
   return rows.map((r) => r.id);
