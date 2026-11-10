@@ -94,6 +94,7 @@ const DEFAULTS = {
   OUTNUMBERED_MOD: -5, // Q2 (D-76)
   UNAWARE_MOD: -10, // Q2 (D-76)
   INIT_UNAWARE: 0, // Q2: unaware actors act last
+  AURA_REACH: 1, // I3: an engagement aura reaches the owner's zone and zones one link away (a further reach factor is parked)
   ENGAGEMENT_END_TURNS: 2, // E1: an engagement ends after this many turns with no one engaged with the actor
   SPAR_LIMIT: 'Critical', // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
