@@ -36,6 +36,7 @@ export type Actor = {
   haggle?: Record<ActorId, number>;
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
   pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
+  hunches?: { scene: number; ids: string[] }; // LI5b Gut Feeling: watchers that set off the owner's hunch this scene (sceneStartTurn)
   auraChecks?: string[]; // NT14/I4: the auras (perk:owner) this actor has already checked against this engagement
   /** NT3: speech tries this engagement, by listener and speech kind */
   speechTries?: Record<ActorId, Record<string, number>>;
