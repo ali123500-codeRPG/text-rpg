@@ -219,7 +219,7 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
   | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated'
-  | 'won_panicking' | 'morale_breaks' | 'healed';
+  | 'won_panicking' | 'morale_breaks' | 'healed' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
