@@ -84,7 +84,9 @@ export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): bo
 /** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to
  * or sparring with (SP1). */
 export function isEngaged(state: GameState, actor: Actor): boolean {
-  if (actor.kind === 'player' || !countsInFight(actor)) return false;
+  if (!countsInFight(actor)) return false;
+  // the player has no beliefs: it is in a fight while someone who counts in one is fighting it, for real or in a spar
+  if (actor.kind === 'player') return allActors(state).some((o) => o !== actor && countsInFight(o) && foe(state, o, actor) && atLeast(o.mind?.knowledge?.[actor.id]?.status, 'suspicious'));
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
     if (!atLeast(b.status, 'suspicious')) return false;

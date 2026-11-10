@@ -15,7 +15,7 @@ import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel
 import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
-import { fightingWith, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
+import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
@@ -173,13 +173,11 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
  * morale check did. `seen` = who perceived the event, for the bandmates a break frightens (MB23). */
 function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean } = {}, seen: Record<string, unknown> = {}): void {
   const { state } = ctx;
-  // rolled fears count only in a fight; isEngaged is an NPC's view, so the player is in one when someone is fighting them (MB11)
-  const inFight = a.kind === 'player' ? allActors(state).some((o) => o !== a && fightingWith(state, o, a)) : isEngaged(state, a);
-  if (getLibrary().fears?.[id]?.rolled && !inFight) return;
+  if (getLibrary().fears?.[id]?.rolled && !isEngaged(state, a)) return; // the player too (MB11): isEngaged reads who is fighting them
   const r = payFear(state, ctx.rng, a, id, o);
   if (!r) return;
   // SP5: in a spar with no real foe, a surrender or a break just yields the spar
-  if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && hostile(state, a, x))) { yieldSpar(state, a); return; }
+  if (sparOf(state, a.id) && !allActors(state).some((x) => x !== a && isActive(x) && (hostile(state, a, x) || hostile(state, x, a)))) { yieldSpar(state, a); return; }
   if (a === state.player) { tally(state, 'morale_breaks'); return; } // MB12: you keep control but cannot attack (doAttack)
   if (hostile(state, a, state.player)) tally(state, 'yielded');
   a.mind!.moraleState = r;

@@ -2,10 +2,13 @@
 // is fighting them. isEngaged is an NPC's view (always false for the player), so before this the player never paid a
 // health fear.
 import { expect, it } from 'vitest';
-import { createRng, makeVillage } from '../harness';
+import { createRng, forcedRng, makeVillage } from '../harness';
+import { startSpar } from '../../src/engine/spar';
+import { isEngaged } from '../../src/engine/relations';
+import { IT } from '../../src/library/itemIds';
 import { act, intent, plannerOut } from './w4-kit';
 import { resolveTurn } from '../../src/engine';
-import { healthLevel, partStates } from '../../src/ruleset';
+import { healthLevel, partStates, ruleset } from '../../src/ruleset';
 import { partFears } from '../../src/ruleset/morale';
 import { isActive } from '../../src/engine/relations';
 import { FR } from '../../src/library/tableIds';
@@ -45,4 +48,21 @@ it('167b a hit that cripples a part rolls the part fear, once per hit', () => {
   }
   expect(checked).toBe(5);
   expect(paid).toBeGreaterThan(0); // a Critical Success costs nothing, so not every crippling logs
+});
+
+it('167c the player is in a fight in a spar too, and a foe in the zone crowds the player\'s shot whichever side holds the stance', () => {
+  const s = makeVillage({ playerZone: 'tav_common' });
+  const wim = s.actors.find((a) => a.id === 'patron_1')!;
+  expect(isEngaged(s, s.player)).toBe(false);
+  startSpar(s, [['player'], ['patron_1']], false, 'test');
+  wim.mind!.knowledge.player = { ...(wim.mind!.knowledge.player ?? { source: 'seen', revealed: [] }), status: 'aware', lastKnownZone: s.player.zone } as never;
+  expect(isEngaged(s, s.player)).toBe(true);
+  // the player's own band holds no stance toward Wim's: only Wim is hostile, and the shot is still crowded
+  const t = makeVillage({ playerZone: 'tav_common' });
+  t.bands.find((b) => b.id === t.player.bandId)!.relations = {};
+  t.actors.find((a) => a.id === 'patron_1')!.mind!.overrides = { player: 'hostile' };
+  for (const i of t.player.core.inventory) delete i.equippedIn;
+  t.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'bow', targetPart: null, aimed: false }, t, forcedRng([50, 50, 50]));
+  expect(r.attack.modifiers.some((m) => m.source === 'hostile in zone')).toBe(true);
 });
