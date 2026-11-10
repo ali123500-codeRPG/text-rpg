@@ -3,6 +3,7 @@
 import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, Tier, TierName, Grade, Fact } from './core';
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
+import type { DefenseKind } from './actor';
 
 export type HealthLevel = 'Unhurt' | 'Bruised' | 'Hurt' | 'Injured' | 'Wounded' | 'Mauled' | 'Critical' | 'Incapacitated' | 'Dead';
 export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
@@ -78,7 +79,7 @@ export type PlayerView = {
     morale: string; // the morale bar's level (MB11)
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
-    standingDefense: 'dodge' | 'block';
+    standingDefense: DefenseKind;
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
     spar?: SparView; // SP1: the spar the player fights in
     yielded?: YieldView; // MB40: the player yielded in a real fight this scene
@@ -113,7 +114,7 @@ export type ActorView = {
     morale: string; // the morale bar's level
     active: boolean; broken: boolean; surrendered: boolean;
     control: 'agent' | 'code';
-    standingDefense: 'dodge' | 'block';
+    standingDefense: DefenseKind;
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
     attackSkill: string; // fallback.attackSkill (template, else body type)
@@ -164,8 +165,8 @@ export type CombatPacket = {
   action: string; // 'melee attack' | 'aimed melee attack' | 'ranged attack' ...
   weapon: string | null; armor: string | null; shield: string | null;
   attack: { tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] };
-  defense: { type: 'dodge' | 'block'; tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
-  outcome: string; // missed, dodged, grazed, blocked, full hit, heavy hit, crushing hit
+  defense: { type: DefenseKind; tier: TierName; natural: 'lucky' | 'fumble' | null; deciding: string[] } | null;
+  outcome: string; // missed, dodged, grazed, blocked, parried, full hit, heavy hit, crushing hit
   location: { part: string; how: string } | null;
   changes: string[];
   events: string[];

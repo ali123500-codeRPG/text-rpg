@@ -17,15 +17,14 @@ const result = (over: Partial<AttackResult>): AttackResult => ({
 });
 
 describe('112 coded perks, batch 2', () => {
-  it('Turn the Blade: a clean weapon block opens the attacker; the next melee attack spends it', () => {
+  it('Turn the Blade: a clean parry opens the attacker; the next melee attack spends it', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    for (const i of s.player.core.inventory) if (i.itemId === IT.round_shield) delete i.equippedIn; // block with the sword
     give(s.player, PK.turn_the_blade);
     s.player.engagement = { start: 1, last: 1, kinds: ['fight'] };
-    afterAttack(s, wim, s.player, result({ defenseType: 'block', gap: 1 }), false);
+    afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 1 }), false);
     expect(s.player.perkMarks).toBeUndefined(); // not clean enough
-    afterAttack(s, wim, s.player, result({ defenseType: 'block', gap: 2 }), false);
+    afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 2 }), false);
     expect(s.player.perkMarks).toEqual([{ perk: PK.turn_the_blade, target: 'patron_1' }]);
     expect(markShifts(s, s.player, wim, false).attack).toEqual([{ source: 'Turn the Blade', value: 1 }]);
     expect(markShifts(s, s.player, wim, true).attack).toEqual([]); // melee only
@@ -34,14 +33,19 @@ describe('112 coded perks, batch 2', () => {
     afterAttack(s, s.player, wim, r, false);
     expect(s.player.perkMarks).toBeUndefined(); // spent
   });
-  it('Turn the Blade: a shield block does not count, and the opening ends with the engagement', () => {
+  it('Turn the Blade: a shield block or a barehanded parry does not count, and the opening ends with the engagement', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     give(s.player, PK.turn_the_blade);
     afterAttack(s, wim, s.player, result({ defenseType: 'block', gap: 3 }), false);
     expect(s.player.perkMarks).toBeUndefined(); // the round shield made the block
-    for (const i of s.player.core.inventory) if (i.itemId === IT.round_shield) delete i.equippedIn;
-    afterAttack(s, wim, s.player, result({ defenseType: 'block', gap: 3 }), false);
+    const sword = s.player.core.inventory.find((i) => i.itemId === IT.arming_sword)!;
+    const hand = sword.equippedIn;
+    delete sword.equippedIn;
+    afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 3 }), false);
+    expect(s.player.perkMarks).toBeUndefined(); // no weapon held
+    sword.equippedIn = hand;
+    afterAttack(s, wim, s.player, result({ defenseType: 'parry', gap: 3 }), false);
     expireMarks(s, s.player); // not engaged: gone
     expect(s.player.perkMarks).toBeUndefined();
   });

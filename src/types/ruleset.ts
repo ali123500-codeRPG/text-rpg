@@ -1,7 +1,7 @@
 // Part 2, Resolution engine: the Ruleset interface and its request/result types.
 import type { SkillFunction } from './library';
 import type { Effect, GameEvent, Tier } from './core';
-import type { Actor } from './actor';
+import type { Actor, DefenseKind } from './actor';
 import type { GameState } from './state';
 import type { GearOp } from './items';
 
@@ -98,12 +98,12 @@ export type AttackRequest = {
     defenderShifts?: TierShift[]; // engine-side shifts on the defense roll (All-50 Unerring)
   };
 };
-export type AttackOutcome = 'missed' | 'dodged' | 'grazed' | 'blocked' | 'full_hit' | 'heavy_hit' | 'crushing_hit';
+export type AttackOutcome = 'missed' | 'dodged' | 'grazed' | 'blocked' | 'parried' | 'full_hit' | 'heavy_hit' | 'crushing_hit';
 export type AttackResult = {
   attack: RollResult;
   unaware?: true; // the target was unaware of the attacker
   defense: RollResult | null;
-  defenseType: 'dodge' | 'block' | null;
+  defenseType: DefenseKind | null;
   gap: number | null;
   gapShifts: TierShift[];
   outcome: AttackOutcome;
@@ -120,7 +120,8 @@ export type AttackResult = {
   shieldItemId?: string;
   shieldMult?: number; // A3 Shield Breaker: the shield pool takes this multiple of the damage
   legBolt?: boolean; // A6 Leg Bolt: the leg's pool takes CONFIG.LEG_BOLT_PART_MULT× the damage, and the target is slowed
-  /** A7 Open-Hand Guard: of `damage`, this much goes to the general area; the rest lands on the blocking arm (location) */
+  strikeBack?: true; // PA4: a parry at the strike gap or better; the engine gives the defender one free melee attack back
+  /** A7 Open-Hand Guard: of `damage`, this much goes to the general area; the rest lands on the parrying arm (location) */
   generalShare?: number;
 };
 
@@ -153,7 +154,7 @@ export type Order = {
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;
   aimed?: boolean;
-  defense?: 'dodge' | 'block' | null;
+  defense?: DefenseKind | null;
   item?: string | null;
   qty?: number | null; // give, buy: how many (give null: the whole stack; buy null: one)
   for?: string | null; // buy: who gets it (null: the buyer)

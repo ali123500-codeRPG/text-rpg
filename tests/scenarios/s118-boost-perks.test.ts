@@ -47,13 +47,13 @@ describe('118 40/80/120 perks', () => {
   it('true skill: +5 in the skill, +1 in it and in skills sharing its function, and the synergic pick', () => {
     const s = makeVillage();
     const p = s.player;
-    for (const k of [SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.block, SK.dodge, SK.eyesight]) p.core.skills[k] = { ...p.core.skills[k], raw: 30, state: p.core.skills[k]?.state ?? 'normal' };
-    const before = Object.fromEntries([SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.block, SK.dodge, SK.eyesight].map((k) => [k, trueSkill(p, k)]));
+    for (const k of [SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.parry, SK.dodge, SK.eyesight]) p.core.skills[k] = { ...p.core.skills[k], raw: 30, state: p.core.skills[k]?.state ?? 'normal' };
+    const before = Object.fromEntries([SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.parry, SK.dodge, SK.eyesight].map((k) => [k, trueSkill(p, k)]));
     give(p, PK.guard_drill);
     expect(trueSkill(p, SK.melee_medium)).toBe(before[SK.melee_medium] + 6); // +5, and +1 for its function (including itself)
     expect(trueSkill(p, SK.melee_light)).toBe(before[SK.melee_light] + 1);
     expect(trueSkill(p, SK.melee_heavy)).toBe(before[SK.melee_heavy] + 1);
-    expect(trueSkill(p, SK.block)).toBe(before[SK.block] + 10);
+    expect(trueSkill(p, SK.parry)).toBe(before[SK.parry] + 10);
     expect(trueSkill(p, SK.dodge)).toBe(before[SK.dodge]);
     expect(trueSkill(p, SK.eyesight)).toBe(before[SK.eyesight]);
   });

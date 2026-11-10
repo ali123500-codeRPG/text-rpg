@@ -86,7 +86,7 @@ const npcAction = obj<PlannerOutput['action']>({
   skill: nul(skillStr),
   targetPart: nul(str),
   aimed: (v, p, e) => (v === undefined || v === null ? false : bool(v, p, e)),
-  defense: nul(oneOf(['dodge', 'block'] as const)),
+  defense: nul(oneOf(['dodge', 'block', 'parry'] as const)),
   item: nul(str),
   qty: num,
   mode: nul(str),

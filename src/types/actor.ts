@@ -2,6 +2,9 @@
 import type { ActorId, Belief, BeliefStatus, Fact, FactId, LibraryRef, PlaceId, SlotKey, StoryId, Turn, Stance } from './core';
 import type { ItemInstance } from './items';
 
+/** a standing defense: a choice, not a skill; DEFENSE_SKILL names the skill each one rolls */
+export type DefenseKind = 'dodge' | 'block' | 'parry';
+
 export const PRONOUNS = ['he', 'she', 'they', 'it'] as const;
 export type Pronouns = (typeof PRONOUNS)[number];
 
@@ -64,7 +67,7 @@ export type Core = {
   perks: OwnedPerk[];
   condition: SavedCondition;
   inventory: ItemInstance[];
-  standingDefense: 'dodge' | 'block';
+  standingDefense: DefenseKind;
   perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
 };
 

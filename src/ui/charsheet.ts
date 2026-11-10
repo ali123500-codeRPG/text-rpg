@@ -5,6 +5,7 @@ import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, totalHp, trueSkill } from '../ruleset';
 import { poolState, SHOWN_LEVELS, shownLevel } from '../ruleset/body';
+import { defenseItem } from '../ruleset/gear';
 import { achievementName, charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
@@ -28,8 +29,7 @@ export function hpLeft(s: GameState, p: Actor): { hp: number | null; total: numb
 
 function standing(s: GameState, p: Actor): { kind: string; value: number | null } {
   const kind = p.core.standingDefense;
-  const shield = p.core.inventory.find((i) => safe(() => itemDef(s, i.itemId).kind) === 'shield' && i.equippedIn?.length);
-  const value = safe(() => effectiveSkill(s, p, DEFENSE_SKILL[kind], kind === 'block' && shield ? { itemId: shield.id } : {}).value);
+  const value = safe(() => effectiveSkill(s, p, DEFENSE_SKILL[kind], { itemId: defenseItem(s, p, kind)?.id }).value);
   return { kind, value };
 }
 

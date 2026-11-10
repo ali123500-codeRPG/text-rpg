@@ -25,7 +25,7 @@ describe('124 skill groups and functions', () => {
     const k = getLibrary().skills;
     expect(k[SK.tremor].functions).toEqual([FN.sight, FN.hearing]);
     // XP reads the skill's first group (no separate XP category)
-    expect([k[SK.melee_light], k[SK.unarmed_strike], k[SK.ranged_heavy], k[SK.riposte], k[SK.slip_counter]].map((s) => groupsOf(s)[0])).toEqual([GR.melee, GR.melee, GR.ranged, GR.melee, GR.melee]);
+    expect([k[SK.melee_light], k[SK.unarmed_strike], k[SK.ranged_heavy], k[SK.riposte], k[SK.blade_dance]].map((s) => groupsOf(s)[0])).toEqual([GR.melee, GR.melee, GR.ranged, GR.melee, GR.melee]);
     expect([k[SK.dodge], k[SK.endurance], k[SK.eyesight], k[SK.tremor], k[SK.barter], k[SK.lockpicking]].map((s) => groupsOf(s)[0])).toEqual([GR.defense, GR.health, GR.notice, GR.notice, GR.influence, undefined]);
     expect(getLibrary().trees[TR.melee].name).toBe('Combat – Arms'); // F7
   });

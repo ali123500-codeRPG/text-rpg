@@ -20,7 +20,7 @@ export const isBane = (d: AchievementDef | undefined): boolean => d?.rule === 'd
 /** skill bonus of one achievement level: +BANE_SKILL_PER_LEVEL for it and for every lower level of its chain */
 export const baneSkill = (key: string): number => chainTier(key) * CONFIG.BANE_SKILL_PER_LEVEL;
 
-const COMBAT_ROLLS = new Set(['hit', 'dodge', 'block']);
+const COMBAT_ROLLS = new Set(['hit', 'dodge', 'block', 'parry']);
 /** roll bonus of one total-defeats achievement: +DEFEATS_ROLL_PER_TIER for each tier (I = +1, II = +2, III = +3, IV = +4) */
 export const defeatsRoll = (key: string): number => chainTier(key) * CONFIG.DEFEATS_ROLL_PER_TIER;
 /** total-defeats achievements (defeats with no `by`): the highest earned one adds its roll bonus to every attack and defense roll */

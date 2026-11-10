@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ruleset } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
+import { SK } from '../../src/library/skillIds';
 
 describe('96 Armor pool', () => {
   it('a head hit drains the helm pool before the head pool; the health track ignores the helm pool', () => {
@@ -9,8 +10,9 @@ describe('96 Armor pool', () => {
     const g = place(s, 'guard_1', 'tav_common');
     g.core.inventory = g.core.inventory.filter((i) => i.itemId !== IT.mail_hauberk);
     g.core.inventory.push({ id: 'plate', itemId: IT.plate_harness, equippedIn: ['armor'], pools: { head: 100 } });
-    // aimed head: 100 → Great Success + 2 = 3; guard block 10 + 15 − 63.5 → Failure (-2): gap −5, 2×
-    const r = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: 'head', aimed: true }, s, forcedRng([100, 10]));
+    g.core.skills[SK.parry] = { raw: 30, state: 'normal' };
+    // aimed head: 100 → Great Success + 2 = 3; guard parry 40 + 15 − 63.5 → Near Miss (-1): gap −4, 2×
+    const r = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: 'head', aimed: true }, s, forcedRng([100, 40]));
     expect(r.location).toBe('head');
     expect(r.damage).toBeCloseTo((50 - 6) * 0.55, 9); // 24.2, not rounded (OQ-25)
     ruleset.applyEffects(r, s);

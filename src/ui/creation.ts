@@ -13,7 +13,7 @@ import { CL } from '../library/classIds';
 import { CLASS_TIERS } from '../scales';
 
 export { SKILL_NAMES, skillName };
-export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.riposte]: 'effect not designed', [SK.slip_counter]: 'effect not designed' };
+export const SKILL_SUB: Record<string, string> = { [SK.endurance]: 'sets HP', [SK.resolve]: 'sets morale', [SK.riposte]: 'adds to Parry', [SK.blade_dance]: 'adds to Dodge' };
 
 // Layout B's tree order and colours. Locked rows are placeholders the spec leaves out of the first build.
 
@@ -109,8 +109,8 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       { label: 'Attack', value: dash(p.attack), unit: 'skill', sub: p.weapon ? `${p.weapon.skill} · ${p.weapon.name}` : '—',
         how: 'Effective skill of your starting attack: the first weapon in your starting kit, or bare hands when the kit has none (raw skill plus gear).' },
       { label: 'Standing defense', value: dash(p.defense?.value ?? null), unit: p.defense?.kind ?? 'skill',
-        sub: p.defense ? (p.defense.kind === 'block' ? (p.shield ? `block + ${p.shield}` : 'block, no shield') : 'dodge (higher than block)') : 'block or dodge, the higher',
-        how: 'The higher of effective block (with your starting shield, if any) and effective dodge.' },
+        sub: p.defense ? (p.guard ? `${p.defense.kind} + ${p.guard}` : p.defense.kind) : 'block, parry or dodge, the highest',
+        how: 'The highest of effective block (needs a starting shield), parry (needs a starting melee weapon) and dodge.' },
       { label: 'Vs one slime', value: p.swingsToKill === null ? '—' : '≈ ' + dash(p.swingsToKill, 1), unit: 'swings to kill',
         sub: p.slamsToDown === null ? 'Its slams to down you: —' : `It downs you in about ${Math.round(p.slamsToDown)} slams`,
         how: `Estimated: the slime’s HP (${dash(p.slimeHp)}) over your average damage per swing, from ${st.swings} practice swings with the game’s attack rules.` },
