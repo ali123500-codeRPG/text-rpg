@@ -78,6 +78,7 @@ const DEFAULTS = {
   GENERAL_BIG_WEIGHT: 4,
   IMPACT_MULT: { non_essential: 0, normal: 1, essential: 1.5 } as Record<string, number>,
   ROLE_PENALTY: { damaged: -10, crippled: -20 },
+  ESSENTIAL_CRIPPLED_PENALTY: -5, // wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
   SHARED_ROLE_OFF_PCT: 0.6,
   WEAPON_CLASSES: {
     light: { damage: 20, hit: 10 }, medium: { damage: 25, hit: 0 }, heavy: { damage: 30, hit: -10 },

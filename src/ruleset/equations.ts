@@ -96,7 +96,7 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [['max morale', `${CONFIG.MORALE_BASE} + ${CONFIG.MORALE_PER_RESOLVE} × Resolve; an NPC template's starting Resolve comes from its personality: ${Object.entries(CONFIG.PERSONALITY_RESOLVE).map(([k, v]) => `${k} ${v}`).join(', ')}`],
           ['tier multiplier', `${TIERS.keys.map((k) => `${TIERS.name(k)} ×${CONFIG.MORALE_TIER_MULT[k]}`).join(' · ')}; each step below Critical Failure +${CONFIG.MORALE_BEYOND_CF}`],
           ['levels', CONFIG.MORALE_TRACK.map(([k, max, v]) => `${MORALE_LEVELS.name(k as MoraleLevel)}${max === Infinity ? ' 100 %+' : ` ≤${Math.round(max)} %`}${v ? ` ${v}` : ''}`).join(' · ')],
-          ['modifiers', 'wounds: the health level and the morale level (fear feeds on itself); the player\'s renown on every morale roll of a foe fighting the player; the player\'s rally on allies fighting beside the player']],
+          ['modifiers', 'wounds: the health level, the morale level (fear feeds on itself) and a crippled essential part; the player\'s renown on every morale roll of a foe fighting the player; the player\'s rally on allies fighting beside the player']],
         table: { head: ['Resolve', 'Max morale', 'Share of a fear paid'], rows: [30, 50, 70, 90].map((m) => [String(m), String(CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * m),
           `×${(D100.reduce((t, d) => t + tierCostMult(rollLevel(d, m)), 0) / 100).toFixed(2)}`]) },
         notes: ['Fears are the library fears table: flat costs, a negative cost restores. Rolled fears count only while engaged. Reaching Broken breaks an NPC (it flees), or makes it surrender when the roll that broke it was a Critical Failure or worse. The player at Broken cannot attack.',
