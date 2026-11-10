@@ -13,7 +13,7 @@ import { buildLeakContext, leakScan } from '../agents/narration';
 import { actorById, allActors, zoneById } from './relations';
 import { applyMemoryOps } from './memory';
 import { logCode, stepStance } from './effects';
-import { awardXp, tally } from './xp';
+import { awardXp, power, tally, weakFoeTaper } from './xp';
 import { coinWords } from './trade';
 
 export const isOpen = (q: Quest) => q.state === 'active' || q.state === 'ready';
@@ -100,6 +100,14 @@ export function makeQuest(state: GameState, giver: Actor, dealId: string, job: J
 }
 
 /** code ends a quest and the deal that holds it; done pays XP and warms the giver, the player's failures cool it (QT13) */
+/** a done quest's XP: its reward level's amount; a defeat job is cut by the defeat-XP taper of its foes' average power
+ * (as each fell) against the player's power at hand-in (QX2, QX4) */
+export function questXp(state: GameState, q: Quest): number {
+  const xp = CONFIG.QUEST_REWARD_XP[q.level] ?? 0;
+  if (q.goal.kind !== 'defeat' || !q.progress || q.foePower === undefined) return xp;
+  return Math.round(xp * weakFoeTaper(q.foePower / q.progress, power(state, state.player)));
+}
+
 function endQuest(state: GameState, q: Quest, to: QuestState, why: string, colder = false): void {
   q.state = to;
   q.endTurn = state.turn;
@@ -107,7 +115,7 @@ function endQuest(state: GameState, q: Quest, to: QuestState, why: string, colde
   state.hidden.agreements = (state.hidden.agreements ?? []).filter((g) => g.id !== q.dealId);
   logCode(state, 'quest_ended', { id: q.id, state: to, why });
   const giver = actorById(state, q.giver);
-  if (to === 'done') { awardXp(state, CONFIG.QUEST_REWARD_XP[q.level] ?? 0, `quest:${q.id}`); tally(state, 'quests_done'); questFeats(state, q); }
+  if (to === 'done') { awardXp(state, questXp(state, q), `quest:${q.id}`); tally(state, 'quests_done'); questFeats(state, q); }
   if (giver && (to === 'done' || colder)) stepStance(state, giver, state.player, to === 'done' ? 'friendlier' : 'colder');
 }
 
@@ -177,7 +185,10 @@ export function updateQuests(state: GameState, events: GameEvent[], defeated: Ac
   const placesOf = (placeId: string) => { const out: string[] = []; for (let id: string | null = placeId; id && !out.includes(id); id = state.places.find((x) => x.id === id)?.parentId ?? null) out.push(id); return out; };
   for (const q of state.quests.filter((x) => x.state === 'active')) {
     const g = q.goal;
-    if (g.kind === 'defeat') q.progress += defeated.filter((t) => (g.by === 'actor' ? t.id : g.by === 'race' ? t.core.raceId : t.core.bodyTypeId) === g.of).length;
+    if (g.kind === 'defeat') for (const t of defeated.filter((x) => (g.by === 'actor' ? x.id : g.by === 'race' ? x.core.raceId : x.core.bodyTypeId) === g.of)) {
+      q.progress++;
+      q.foePower = (q.foePower ?? 0) + power(state, t); // QX4: each foe's power when it falls
+    }
     if (g.kind === 'deliver') for (const e of events) {
       if (e.kind !== 'give' || e.actorId !== p.id || e.target !== g.to) continue;
       const got = actorById(state, g.to)?.core.inventory.find((i) => i.id === e.itemId);

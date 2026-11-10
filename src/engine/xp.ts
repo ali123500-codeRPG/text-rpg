@@ -245,11 +245,14 @@ export function gearRating(state: GameState, a: Actor): number {
  * the stronger-foe achievements, so a change here changes both. */
 export const power = (state: GameState, a: Actor): number => rating(a) + gearRating(state, a);
 
+/** XP shrinks for foes much weaker than the player: min(1, TAPER × theirs ÷ mine) (X19). Defeat XP and defeat quests (QX2) share it. */
+export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1);
+
 /** Kill XP = foe power × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
  * Power counts gear on both sides. */
 export function killXp(state: GameState, t: Actor): number {
   const theirs = power(state, t), mine = power(state, state.player);
-  const taper = mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1;
+  const taper = weakFoeTaper(theirs, mine);
   return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
 }
 
