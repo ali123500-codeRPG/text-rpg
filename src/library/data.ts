@@ -458,6 +458,7 @@ export function prototypeLibrary(): Library {
       [FR.dread_presence]: { id: FR.dread_presence, name: 'An aura of dread gets to you', cost: 10, rolled: false, perTier: true }, // MB37: each failed aura check costs its own morale
       [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
       [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
+      [FR.own_part_crippled]: { id: FR.own_part_crippled, name: 'A part of yours is Crippled', cost: 25, rolled: true, part: 'crippled' }, // once per hit, however many parts
     },
     // Game clock (T1): minutes per action; placeholders
     durations: {

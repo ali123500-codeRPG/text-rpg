@@ -4,7 +4,7 @@ import type { Actor, FearDef, Mod } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
-import { MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
+import { MORALE_LEVELS, PART_STATES, TIERS, type MoraleLevel } from '../scales';
 import { skillOpen } from './access';
 import { currentAchievements } from './achRewards';
 
@@ -44,6 +44,17 @@ export function healthFear(a: Actor, level: string): FearDef | undefined {
   const at = CONFIG.HEALTH_TRACK.findIndex(([l]) => l === level);
   const to = (f: FearDef) => CONFIG.HEALTH_TRACK.findIndex(([l]) => l === f.health!.to);
   return Object.values(getLibrary().fears ?? {}).find((f) => f.health && at >= fearFrom(a, f) && at <= to(f));
+}
+
+/** the part fears a hit sets off: rows whose part state one of the actor's parts reached (or passed) from a better one.
+ * before and after are part states by display name, as partStates gives them. */
+export function partFears(before: { id: string; state: string }[], after: { id: string; state: string }[]): FearDef[] {
+  const pos = (name: string) => PART_STATES.pos(PART_STATES.keyOf(name as never)!);
+  const was = new Map(before.map((p) => [p.id, pos(p.state)]));
+  return Object.values(getLibrary().fears ?? {}).filter((f) => f.part && after.some((p) => {
+    const at = PART_STATES.pos(f.part as never), from = was.get(p.id);
+    return from !== undefined && from < at && pos(p.state) >= at;
+  }));
 }
 
 /** sets morale lost, kept between 0 and max morale (Broken is 100 %); returns the change */
