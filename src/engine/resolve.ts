@@ -2,7 +2,7 @@
 import { noteLeft, noteZonesSeen } from './trail';
 import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
-import { healthFear, moraleLevel } from '../ruleset/morale';
+import { healthFear, moraleLevel, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
 import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
@@ -346,6 +346,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const after = healthLevel(t);
   const hf = L.indexOf(after) > L.indexOf(before.level) ? healthFear(t, after) : undefined;
   if (hf) fear(ctx, t, hf.id, {}, ev.perception);
+  for (const f of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, {}, ev.perception); // a part Crippled (or worse) by this hit
   if (!isActive(t)) {
     fear(ctx, a, FR.foe_downed);
     for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
