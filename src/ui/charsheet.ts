@@ -9,6 +9,7 @@ import { defenseItem } from '../ruleset/gear';
 import { achievementName, charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
+import { learningWindow } from '../ruleset/improve';
 import { h } from './kit';
 import { callName } from '../views';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
@@ -55,7 +56,11 @@ const tag = () => h('span', { class: 'tag', title: 'Tagged skill' }, '✦');
 /** V3a: a skill marked for an improvement roll */
 const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to improve when this fight ends', 'aria-label': 'marked to improve' });
 const marked = (p: Actor, id: string) => !!p.progression?.marks.includes(id);
-const bar = (raw: number) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, (raw / BAR_SCALE) * 100)}%` }));
+const pct = (n: number) => Math.max(0, Math.min(100, (n / BAR_SCALE) * 100));
+/** the skill's learning window: the opposition range a use of it learns from (SP2) */
+const windowOf = (p: Actor, id: string) => learningWindow(p.core.skills[id]?.raw ?? 0, trueSkill(p, id)).map((n) => Math.max(0, n)) as [number, number];
+const bar = (raw: number, win?: [number, number]) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${pct(raw)}%` }),
+  win ? h('i', { class: 'lw', style: `left:${pct(win[0])}%;width:${pct(win[1]) - pct(win[0])}%`, title: `Learns from opposition ${win[0]} to ${win[1]}` }) : null);
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
 
@@ -152,7 +157,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
       t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
+        bar(r.raw, windowOf(p, r.id)), h('div', { class: 'lwn', title: 'Learning window: opposition in this range teaches the skill' }, windowOf(p, r.id).join('–')), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
 }
 
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
@@ -317,6 +322,6 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
       h('div', { class: 'th' }, h('span', {}, t.name.replace(/^Combat – /, '')), h('span', {}, String(t.sum))),
       t.rows.map((r) => h('div', { class: 'r' + (gains[r.id] ? ' up' : '') },
         h('span', {}, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, gains[r.id] ? h('span', { class: 'gain', title: 'Improved this turn' }, `▲${gains[r.id]}`) : null),
-        bar(r.raw), h('b', {}, String(r.raw)))))),
+        bar(r.raw, windowOf(p, r.id)), h('b', {}, String(r.raw)))))),
   ];
 }

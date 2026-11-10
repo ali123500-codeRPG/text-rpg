@@ -271,13 +271,15 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-tree-h b { font-size: 15px; }
 .cs-tree-h span { color: var(--muted); font-size: 13px; }
 .cs-tree-block { display: block; color: var(--muted); font-size: 13px; }
-.cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 40px; gap: var(--space-3); align-items: center; }
+.cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 52px 40px; gap: var(--space-3); align-items: center; }
 .cs-sk .n { font-weight: 600; }
 .cs-sk .n small { display: block; font-weight: 400; font-size: 12px; color: var(--faint); }
 .cs-sk .num { text-align: right; font-weight: 800; font-size: 16px; }
 .cs-sk.zero .n, .cs-sk.zero .num { color: var(--faint); }
 .cs-bar { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); }
 .cs-bar > b { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--t); }
+.cs-bar > .lw { position: absolute; top: -3px; bottom: -3px; border: 1.5px solid var(--text); border-radius: 6px; opacity: .5; }
+.cs-sk .lwn { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .cs-side-h { display: flex; justify-content: space-between; align-items: center; }
 /* Deals (PM5, K1 c): an "N deals" chip beside the scene title opens the player's deals, gold-edged and tinted as promises */
 .dl-wrap { position: relative; display: inline-block; margin-left: 14px; vertical-align: middle; font: 14px/1.4 var(--font-round); }
@@ -466,7 +468,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 
 /* Play screen, layout A "Book with a status strip": fixed rows (header, who's here, story and input), one reading column
    of 68ch on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
-.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) minmax(0, 1fr); }
+.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) minmax(0, 1fr); padding-bottom: 0; }
+/* the bottom gap sits inside the columns, so the sheet's divider runs to the foot of the screen */
+.playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
 .playmain > .fell { grid-row: 3; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
 .play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
