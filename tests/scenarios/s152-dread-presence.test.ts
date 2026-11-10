@@ -28,7 +28,7 @@ const setup = (zone?: string) => {
   const t = npc(s, 'patron_1');
   t.zone = zone ?? s.player.zone;
   t.mind!.overrides = { player: 'opposed' };
-  t.mind!.knowledge.player = { source: 'seen', revealed: [], ...(t.mind!.knowledge.player ?? {}), status: 'aware', lastKnownZone: s.player.zone };
+  t.mind!.knowledge.player = { ...({ source: 'seen', revealed: [] } as const), ...(t.mind!.knowledge.player ?? {}), status: 'aware', lastKnownZone: s.player.zone };
   return { s, t };
 };
 const run = (s: GameState, rolls: number[]) => engagementAuras(s, forcedRng(rolls), (a, id, gap) => payFear(s, forcedRng([50]), a, id, { gap }));
