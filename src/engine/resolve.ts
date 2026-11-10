@@ -642,8 +642,8 @@ function step(ctx: Ctx, id: string): void {
   };
   const from = a.zone;
   if (!o.moveAfter) move();
-  // AE2: dash: a player with no main action who moved and is still short of the move's zone spends the action on a second link
-  if (!o.moveAfter && o.move && a === state.player && o.type === 'hold' && a.zone !== from && a.zone !== o.move && !ctx.mainDone.has(id)) {
+  // AE2: dash: anyone (player or NPC) with no main action who moved and is still short of the move's zone spends the action on a second link
+  if (!o.moveAfter && o.move && o.type === 'hold' && a.zone !== from && a.zone !== o.move && !ctx.mainDone.has(id)) {
     ctx.mainDone.add(id);
     if (lame(state, a)) logCode(state, 'dash_blocked', { actorId: id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' });
     else if (!doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
@@ -787,7 +787,13 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
         doSpeak(ctx, a, { ...o, type: 'talk', target: state.player.id });
         o.line = null;
       } else {
-        ctx.acted.add(id);
+        // the reply is the main action; the actor still takes its turn in order for gear, defense and its move (Q2)
+        ctx.mainDone.add(id);
+        // move, then talk: the move comes first and the line is said from where it ends
+        if (o.move && !o.moveAfter) {
+          if (!doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+          o.move = null;
+        }
         doSpeak(ctx, a, o);
       }
       ctx.exchangeEvents.push(ctx.events[ctx.events.length - 1]);
