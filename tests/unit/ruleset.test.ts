@@ -120,9 +120,10 @@ describe('ruleset methods', () => {
     const p = actor(s, 'patron_1'); // 50 HP, arm pool 15
     expect(p.core.condition.parts.left_arm).toBeCloseTo(100 - (dmg / 15) * 100);
     expect(p.core.condition.hpLostPct).toBeCloseTo((dmg / 50) * 100);
+    // 31.25 (25 × the −2 dodge multiplier) wrecks a 15-point arm and takes 62.5% of 50 HP
     expect(fx).toEqual([
-      { kind: 'part_state_changed', actorId: 'patron_1', data: { part: 'left_arm', from: 'Healthy', to: 'Crippled' } },
-      { kind: 'threshold_crossed', actorId: 'patron_1', data: { who: 'patron_1', from: 'Unhurt', to: 'Wounded' } },
+      { kind: 'part_state_changed', actorId: 'patron_1', data: { part: 'left_arm', from: 'Healthy', to: 'Destroyed' } },
+      { kind: 'threshold_crossed', actorId: 'patron_1', data: { who: 'patron_1', from: 'Unhurt', to: 'Mauled' } },
     ]);
   });
   it('a Destroyed arm drops its item; a Destroyed essential part sets HP to 0', () => {
