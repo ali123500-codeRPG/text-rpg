@@ -511,10 +511,16 @@ export function prototypeLibrary(): Library {
       [ACH.defeats_100]: { id: ACH.defeats_100, name: 'Calamity of a Hundred Blades', level: 'ii', rule: 'defeats', tags: ['combat'], count: 100, after: ACH.defeats_10 },
       [ACH.defeats_250]: { id: ACH.defeats_250, name: 'Harvester of the Fallen', level: 'iii', rule: 'defeats', tags: ['combat'], count: 250, after: ACH.defeats_100 },
       [ACH.defeats_1000]: { id: ACH.defeats_1000, name: 'Thousand-Slayer, Herald of Ruin', level: 'iv', rule: 'defeats', tags: ['combat'], count: 1000, after: ACH.defeats_250 },
-      // one per tree and mastery step, id <id>:<tree>
+      // one per tree and mastery step, id <id>:<tree>; each tree rating has its own line (MASTERY_ACH), grander the higher the rating
       [ACH.mastery_50]: { id: ACH.mastery_50, name: 'Adept of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
-      [ACH.mastery_100]: { id: ACH.mastery_100, name: 'Ascendant of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_50 },
-      [ACH.mastery_150]: { id: ACH.mastery_150, name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_100 },
+      [ACH.mastery_100]: { id: ACH.mastery_100, name: 'Master of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_50 },
+      [ACH.mastery_150]: { id: ACH.mastery_150, name: 'Grandmaster of {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_100 },
+      [ACH.mastery_superior_50]: { id: ACH.mastery_superior_50, name: 'Paragon of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
+      [ACH.mastery_superior_100]: { id: ACH.mastery_superior_100, name: 'Ascendant of {tree}', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_superior_50 },
+      [ACH.mastery_superior_150]: { id: ACH.mastery_superior_150, name: 'Transcendent Sovereign of {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_superior_100 },
+      [ACH.mastery_legendary_50]: { id: ACH.mastery_legendary_50, name: 'Heir to the Lost Art of {tree}', level: 'ii', rule: 'mastery', tags: ['skill'], count: 50, reqLower: 5 },
+      [ACH.mastery_legendary_100]: { id: ACH.mastery_legendary_100, name: '{tree} Incarnate', level: 'iii', rule: 'mastery', tags: ['skill'], count: 100, after: ACH.mastery_legendary_50 },
+      [ACH.mastery_legendary_150]: { id: ACH.mastery_legendary_150, name: 'The Heavens Kneel to {tree}', level: 'iv', rule: 'mastery', tags: ['skill'], count: 150, after: ACH.mastery_legendary_100 },
       // deeds: the player's tallies (tally in src/engine/xp.ts, turnFeats in src/engine/feats.ts)
       [ACH.unaware_1]: { id: ACH.unaware_1, name: 'Never Saw It Coming', level: 'i', rule: 'unaware_defeats', tags: ['combat', 'stealth'], count: 1 },
       [ACH.unaware_10]: { id: ACH.unaware_10, name: 'Knife in the Dark', level: 'ii', rule: 'unaware_defeats', tags: ['combat', 'stealth'], count: 10, after: ACH.unaware_1 },

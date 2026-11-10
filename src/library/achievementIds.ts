@@ -9,6 +9,8 @@ export const ACH = {
   first_defeat_race: 'AC4', defeats_10_race: 'AC5', defeats_100_race: 'AC6',
   defeats_10: 'AC7', defeats_100: 'AC8', defeats_1000: 'AC9',
   mastery_50: 'AC10', mastery_100: 'AC11', mastery_150: 'AC12',
+  mastery_superior_50: 'AC144', mastery_superior_100: 'AC145', mastery_superior_150: 'AC146',
+  mastery_legendary_50: 'AC147', mastery_legendary_100: 'AC148', mastery_legendary_150: 'AC149',
   unaware_1: 'AC13', unaware_10: 'AC14', unaware_100: 'AC15',
   yielded_1: 'AC16', yielded_10: 'AC17', yielded_50: 'AC18',
   crits_10: 'AC19', crits_100: 'AC20', crits_1000: 'AC21',
@@ -75,5 +77,10 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   won_panicking: 'fights won while your morale is Panicking', morale_breaks: 'times your morale broke',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
-/** the tree mastery achievement for an All-XXX step */
-export const MASTERY_ACH: Record<number, string> = { 50: ACH.mastery_50, 100: ACH.mastery_100, 150: ACH.mastery_150 };
+/** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,
+ * grander the higher the rating; an inferior tree earns none */
+export const MASTERY_ACH: Partial<Record<string, Record<number, string>>> = {
+  normal: { 50: ACH.mastery_50, 100: ACH.mastery_100, 150: ACH.mastery_150 },
+  superior: { 50: ACH.mastery_superior_50, 100: ACH.mastery_superior_100, 150: ACH.mastery_superior_150 },
+  legendary: { 50: ACH.mastery_legendary_50, 100: ACH.mastery_legendary_100, 150: ACH.mastery_legendary_150 },
+};
