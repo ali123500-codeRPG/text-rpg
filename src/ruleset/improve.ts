@@ -53,10 +53,11 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
   // Every Fall a Lesson: losing by exactly one tier step marks too. The gap is B − A in a contest and defense − attack in
   // an attack, so side A (the attacker) loses by one at gap +1 and side B (the defender) at gap −1.
   const near = (who: Actor | undefined, side: 1 | -1) => 'gap' in result && result.gap === side && hasPerk(who, PK.every_fall_a_lesson);
-  const both = (who: Actor | undefined, r: { skill: string; asked?: string }, opp: number | undefined, side: 1 | -1) => {
+  const both = (who: Actor | undefined, r: { skill: string; asked?: string; parts?: string[] }, opp: number | undefined, side: 1 | -1) => {
     const force = tied || near(who, side);
     markIfClose(state, who, r.skill, opp, force);
     if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp, force);
+    for (const p of r.parts ?? []) if (p !== r.skill) markIfClose(state, who, p, opp, force); // a combined roll: every part learns
   };
   if ('target' in result) {
     for (const sk of new Set([skill, result.skill, ...(result.asked ? [result.asked] : [])])) markIfClose(state, actor, sk, result.target);

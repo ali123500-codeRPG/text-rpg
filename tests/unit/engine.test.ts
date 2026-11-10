@@ -29,7 +29,7 @@ vi.mock('../../src/ruleset', async (orig) => {
   };
   const usableModes = (_s: GameState, a: Actor) => {
     const held = a.core.inventory.filter((i) => i.equippedIn?.some((x) => x.startsWith('hand:')));
-    const modes = held.flatMap((i) => (itemDef(null, i.itemId).weapon?.modes ?? []).map((mode) => ({ itemId: i.id, mode })));
+    const modes = held.flatMap((i) => (itemDef(null, i.itemId).weapon?.modes ?? []).map((mode) => ({ itemId: i.id, mode: real.withRow(a, itemDef(null, i.itemId), mode) }))); // the Throw row adds its reach
     const nat = bodyType(null, a.core.bodyTypeId).naturalAttacks.map((mode) => ({ itemId: `natural:${mode.id}`, mode }));
     return [...modes, ...nat];
   };

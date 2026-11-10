@@ -3,7 +3,7 @@
 // don't come from its need is priced right too. Quality multiplies on top (SL8).
 import type { GameState, ItemDef } from '../types';
 import { CONFIG } from '../config';
-import { itemDef } from '../library';
+import { getLibrary, itemDef } from '../library';
 import { kitBonus } from './gear';
 
 const V = () => CONFIG.ITEM_VALUE;
@@ -19,7 +19,7 @@ export function benefits(def: ItemDef): { what: string; coin: number }[] {
       ? { what: `+${v} to ${e.roll} rolls`, coin: (v / CONFIG.SKILL_WEIGHT) * V().skillPoint }
       : { what: `+${v} ${e.kit ? 'kit bonus' : 'skill bonus'}`, coin: v * V().skillPoint });
   }
-  const reach = Math.max(0, ...(def.weapon?.modes ?? []).map((m) => m.reach));
+  const reach = Math.max(0, ...(def.weapon?.modes ?? []).map((m) => m.reach + (getLibrary().attackModes?.[m.id]?.reachBonus ?? 0))); // the Throw row adds its reach
   if (reach > 0) out.push({ what: `reach ${reach}`, coin: reach * V().reachZone });
   if (def.armor) {
     const parts = def.armor.covers.length;

@@ -167,8 +167,11 @@ const DEFAULTS = {
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10,
-  /** a thrown mode reaches its item's melee reach plus this many zones */
+  /** the throw action adds this many zones to the weapon's own reach; perks add more (PerkDef.throwReach) */
   THROWN_REACH_BONUS: 2, // placeholder (loot L3)
+  /** the throw action is a combined roll: the weapon's own skill (a melee weapon's melee skill) and the ranged skill of
+   * the same class, each with its own stand-ins, at these shares */
+  THROW_BLEND: { weapon: 0.75, ranged: 0.25 },
   // Boon (loot V8): a reward's worth to the player. Placeholders, tune after playtests (V8c).
   BOON_COIN: 20, // coin value per Boon, unless the item sets its own boon
   BOON_QUALITY: [1, 2, 3, 5, 8], // multiplier by minted quality (index 0 = not minted)
