@@ -59,6 +59,7 @@ describe('159 Battle Cry', () => {
     expect(['cry_took', 'cry_resisted']).toContain(onFoe.kind);
     if (onFoe.kind === 'cry_took') expect(moraleLost(foe)).toBeGreaterThan(before);
     expect(roar.effects.find((f) => f.actorId === 'trader')?.kind).toBe('rallied');
+    expect(roar.effects.find((f) => f.actorId === 'player')?.kind).toBe('rallied'); // the roarer takes heart too
     expect(friend.pressure?.guard_1?.shaken).toBeUndefined();
     expect(moraleLost(friend)).toBeCloseTo(20, 0); // 10 back, and a little natural recovery as the clock moves
     expect(ev.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(false); // the roar was the action
@@ -71,5 +72,13 @@ describe('159 Battle Cry', () => {
     const ev = play(s, { intent: cry });
     expect(ev.some((e) => e.kind === 'battle_cry')).toBe(false);
     expect(s.log.some((l) => l.code === 'perk_move_dropped')).toBe(true);
+  });
+  it('the roar rallies the one who roars: 10 morale back and any Shaken gone, untold in narration', () => {
+    const { s } = setup();
+    s.player.core.condition.moraleLost = 30;
+    s.player.pressure = { patron_1: { shaken: 10 } };
+    play(s, { intent: cry });
+    expect(moraleLost(s.player)).toBeCloseTo(20, 0);
+    expect(s.player.pressure?.patron_1?.shaken).toBeUndefined();
   });
 });
