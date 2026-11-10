@@ -48,9 +48,32 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
 
 export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string };
 
+/** A class's skill floors: its own floors plus its unlock conditions (a character of the class must meet what unlocks it).
+ * all = every skill must reach its value; any = either-of groups, one skill in each must reach its value. */
+export function classFloors(classId: string | undefined): { all: Record<string, number>; any: Record<string, number>[] } {
+  const c = classId ? getLibrary().classes[classId] : undefined;
+  const all: Record<string, number> = { ...(c?.floors ?? {}) };
+  for (const [id, v] of Object.entries(c?.unlock ?? {})) all[id] = Math.max(all[id] ?? 0, v);
+  return { all, any: c?.unlockAny ?? [] };
+}
+
+/** a template's minimums raised to its class floors; an unmet either-of group raises the skill the template has most of (first listed on a tie) */
+export function templateMinimums(t: NpcTemplate): Record<string, number> {
+  const min = { ...t.minimums };
+  const f = classFloors(t.classId);
+  for (const [id, v] of Object.entries(f.all)) min[id] = Math.max(min[id] ?? 0, v);
+  for (const g of f.any) {
+    const ids = Object.keys(g);
+    if (ids.some((id) => (min[id] ?? 0) >= g[id])) continue;
+    const best = ids.reduce((b, id) => ((min[id] ?? 0) > (min[b] ?? 0) ? id : b), ids[0]);
+    min[best] = g[best];
+  }
+  return min;
+}
+
 /** Unique generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
 export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
-  const raw: Record<string, number> = { [SK.resolve]: CONFIG.PERSONALITY_RESOLVE[t.personality] ?? 0, ...t.minimums }; // MB30: personality sets starting Resolve
+  const raw: Record<string, number> = { [SK.resolve]: CONFIG.PERSONALITY_RESOLVE[t.personality] ?? 0, ...templateMinimums(t) }; // class floors included // MB30: personality sets starting Resolve
   let points = t.level * CONFIG.POINTS_PER_LEVEL + t.bonusPoints;
   while (points > 0 && t.focus.length) {
     const chunk = Math.min(5, points); // GAP: a remainder under 5 goes out as the last, smaller chunk
@@ -211,8 +234,11 @@ export function validateBuild(build: CreationBuild): string[] {
     else if (v > CONFIG.CREATION_MAX_SKILL) errs.push(`${skillName(id)} is above ${CONFIG.CREATION_MAX_SKILL}`);
     spent += v;
   }
-  for (const [id, min] of Object.entries(lib.classes[cls]?.floors ?? {}))
+  const floors = classFloors(cls);
+  for (const [id, min] of Object.entries(floors.all))
     if ((build.skills[id] ?? 0) < min) errs.push(`${skillName(id)} must be at least ${min} (class floor)`);
+  for (const g of floors.any)
+    if (!Object.entries(g).some(([id, min]) => (build.skills[id] ?? 0) >= min)) errs.push(`One of ${Object.entries(g).map(([id, min]) => `${skillName(id)} ${min}`).join(', ')} (class floor)`);
   if (spent !== creationPoints(cls)) errs.push(`Spend exactly ${creationPoints(cls)} points (${spent} spent)`);
   const tags = new Set(build.tagged);
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
