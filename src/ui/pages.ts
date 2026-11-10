@@ -6,7 +6,7 @@ import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
 import { QUEST_REWARD_LEVELS, REWARD_LEVELS } from '../scales';
-import { achLevel, achievementName } from '../engine/xp';
+import { achLevel, achXp, achievementName } from '../engine/xp';
 import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
 import { kitBonus, modeName } from '../ruleset/gear';
@@ -274,13 +274,13 @@ export function achievementsPage(api: GameApi) {
           ...(a.replacedBy ? { tones: { state: 'muted' as const } } : {}) }));
         const title = `Level ${REWARD_LEVELS.name(lv)}`;
         return { id: lv, title, rows, value: String(rows.length), unit: unitOf(rows.length, scars ? 'scar' : 'achievement'),
-          sub: scars ? 'no XP' : `${CONFIG.REWARD_XP[lv] ?? 0} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
+          sub: `${achXp({ level: lv, ...(scars ? { scar: true as const } : {}) })} XP each`, how: `${scars ? 'Scars' : 'Achievements'} of reward ${title}.`, combined: {} };
       }).filter((g) => g.rows.length);
     },
     line: (s) => {
       const lib = getLibrary().achievements ?? {};
-      const xp = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + (CONFIG.REWARD_XP[achLevel(lib[a.key!], a.of)] ?? 0), 0);
-      return scars ? `${plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')}, no XP` : `${xp} XP earned this way`;
+      const xp = (s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar === scars).reduce((n, a) => n + achXp(lib[a.key!], a.of), 0);
+      return scars ? `${plural((s.player.progression?.achievements ?? []).filter((a) => !!lib[a.key ?? '']?.scar).length, 'scar', 'scars')}, ${xp} XP` : `${xp} XP earned this way`;
     },
   });
 }

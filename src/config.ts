@@ -202,6 +202,8 @@ const DEFAULTS = {
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
   REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000 } as Record<string, number>,
+  /** a scar pays the XP of the reward level one step below its own; below level 0 it pays this */
+  SCAR_XP_BELOW_ZERO: 25,
   /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
   QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   /** QT9: a quest's reward level from the scene's gain grade when it is accepted (iv is kept for later story quests) */

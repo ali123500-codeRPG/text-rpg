@@ -13,6 +13,8 @@ import { functionName, groupName, groupsOf } from '../library/functionNames';
 import { CLASS_TIERS, REWARD_LEVELS, TIERS } from '../scales';
 import { PK } from '../library/perkIds';
 import { skillName } from '../library/skillNames';
+import { achLevel, achXp } from '../ruleset/achRewards';
+export { achLevel, achXp };
 
 export const charLevel = (a: Actor) => a.core.classes.reduce((n, c) => n + c.level, 0);
 export const xpToNext = (a: Actor) => CONFIG.LEVEL_XP * Math.max(1, charLevel(a));
@@ -255,18 +257,12 @@ export function grantAchievement(state: GameState, key: string, of?: string): vo
     for (const x of pr.achievements ?? []) if (x.key === k && x.of === of && !x.replacedBy) x.replacedBy = id;
   (pr.achievements ??= []).push({ id, key, ...(of ? { of } : {}), turn: state.turn });
   if (d.perk && !state.player.core.perks.some((x) => x.perkId === d.perk)) state.player.core.perks.push({ perkId: d.perk, source: 'achievement', gainedTurn: state.turn });
-  const xp = d.scar ? 0 : CONFIG.REWARD_XP[achLevel(d, of)] ?? 0; // a scar pays no XP
+  const xp = achXp(d, of);
   logCode(state, 'achievement', { id, xp });
   awardXp(state, xp, `achievement:${id}`);
   // achievements for the total earned: every other achievement counts, replaced levels too; scars and these totals do not
   if (!d.scar && d.rule !== 'achievements')
     tally(state, 'achievements', { to: pr.achievements!.filter((x) => { const k = lib[x.key ?? '']; return k && !k.scar && k.rule !== 'achievements'; }).length });
-}
-
-/** the reward level an achievement pays for `of`: its own level, raised by levelUp for that kind (capped at the top) */
-export function achLevel(d: { level: string; levelUp?: Partial<Record<string, number>> }, of?: string): string {
-  const up = (of && d.levelUp?.[of]) || 0;
-  return up && REWARD_LEVELS.has(d.level) ? REWARD_LEVELS.at(Math.min(REWARD_LEVELS.keys.length - 1, REWARD_LEVELS.pos(d.level as 'i') + up)) : d.level;
 }
 
 /** Display name of an earned achievement, read from the library table now. */
