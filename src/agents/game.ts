@@ -752,7 +752,7 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
   const timePassed = minutes > 0 ? { minutes: Math.round(minutes), day: timeView(s).day, timeOfDay: timeOfDay(now(s)) } : undefined;
   const pr = s.player.progression;
   const levelUps = (pr?.xpLog ?? []).filter((x) => x.turn === s.turn && x.levelUp).map((x) => ({ ...x.levelUp! }));
-  const achievements = (pr?.achievements ?? []).filter((a) => a.turn === s.turn).map((a) => ({ id: a.id, name: engine.achievementName(s, a) }));
+  const achievements = (pr?.achievements ?? []).filter((a) => a.turn === s.turn).map((a) => engine.achievementInfo(s, a));
   return { ...(heals.length ? { heals } : {}), ...(unlocks.length ? { unlocks } : {}), ...(Object.keys(gains).length ? { gains } : {}), ...(timePassed ? { timePassed } : {}),
     ...(levelUps.length ? { levelUps } : {}), ...(achievements.length ? { achievements } : {}) };
 }

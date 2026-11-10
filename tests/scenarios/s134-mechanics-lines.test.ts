@@ -61,7 +61,10 @@ describe('134 mechanics lines', () => {
     const notes = turnNotes(s);
     expect(notes.levelUps).toEqual([{ classId: CL.swordsman, level: 2 }]);
     const got = s.player.progression!.achievements!.at(-1)!;
-    expect(notes.achievements).toEqual([{ id: got.id, name: achievementName(s, got) }]);
+    expect(notes.achievements).toEqual([expect.objectContaining({ id: got.id, name: achievementName(s, got) })]);
+    expect(notes.achievements![0].levelName).toBeTruthy(); // the play card shows the reward level, what it asks for and why
+    expect(notes.achievements![0].earnedAt).toBeTruthy();
+    expect(notes.achievements![0].why).toMatch(/^Turn /);
   });
   it('rolls others make against the player land on the story line as incomingChecks', () => {
     const s = makeVillage();
