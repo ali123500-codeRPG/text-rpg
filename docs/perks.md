@@ -772,7 +772,7 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Kind:** Always on
 - **Trigger:** The owner makes a melee attack.
 - **Conditions:** It is the owner's first melee attack on that foe in this engagement.
-- **Effect:** Tier shift +1 on the attack roll. The defense roll still happens.
+- **Effect:** Tier shift +1 on the attack roll.
 - **Lasts:** That attack.
 - **Cooldown:** Once per foe per engagement.
 - **Built:** yes
@@ -817,7 +817,7 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
 - **Conditions:** It is the owner's first ranged attack in this engagement. The target hasn't acted yet in its engagement (it has none, or it began this turn and the target hasn't had its action).
-- **Effect:** Tier shift −1 on the target's defense roll. No roll is skipped.
+- **Effect:** Tier shift −1 on the target's defense roll.
 - **Lasts:** That attack.
 - **Cooldown:** Once per engagement.
 - **Built:** yes
