@@ -25,6 +25,8 @@ import { itemLevel, requirement } from '../ruleset/requirements';
 import { fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
+import { ALL_BUNDLES } from '../library/allPerks';
+import { classFloors } from '../library/spawn';
 import { partName } from './healing';
 import { SENSE_SKILL, SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -196,10 +198,17 @@ function bankedText(d: PerkWriteup): string {
   if (d.bankedAs === 'allX') return `banked: ${d.aimAt ? `All-${d.aimAt}` : 'All-X'} candidate${treeOfSkill(d.skill) ? ` · ${treeOfSkill(d.skill)}` : ''}`;
   return 'banked: other';
 }
+/** who holds an All-X part: a skill's part names the skill, the tree's passive names the tree; a part no skill carries is parked */
+function allHolder(st: { treeId: string; step: number; skill?: string }, id: string): string {
+  const tree = lib.trees[st.treeId]?.name ?? st.treeId;
+  if (st.skill) return `All-${st.step} · ${skillName(st.skill)} (${tree})`;
+  if (ALL_BUNDLES.some((b) => b.passive === id)) return `All-${st.step} · ${tree} passive`;
+  return `All-${st.step} · ${tree} · parked: no skill holds it`;
+}
 function perkCard(sec: string, d: PerkDef | PerkWriteup): HTMLElement {
   const r = d.rules;
   return card(sec, d.id, d, d.name, [
-    d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`) : 'allStep' in d && d.allStep ? chip(`${ms(d)} · ${lib.trees[d.allStep.treeId]?.name ?? d.allStep.treeId}`)
+    d.ladder ? chip(`${ms(d)} · ${skillName(d.ladder.skill)}`) : 'allStep' in d && d.allStep ? chip(allHolder(d.allStep, d.id))
       : 'classLevel' in d && d.classLevel ? chip(`${ms(d)} · ${className(d.classLevel.classId)}`)
       : chip(('place' in d ? d.place : '') || 'no milestone'),
     'bankedAs' in d && d.bankedAs ? chip(bankedText(d)) : null,
@@ -466,6 +475,14 @@ function unlockRow(c: ClassDef): HTMLElement | null {
   ];
   return lines.length ? row(lines.length > 1 ? 'Unlocks when all hold' : 'Unlocks when', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
 }
+/** skill floors a character of the class always meets: its own floors plus its unlock skills (classFloors in src/library/spawn.ts) */
+function floorsRow(c: ClassDef): HTMLElement | null {
+  const f = classFloors(c.id);
+  const sk = ([id, n]: [string, number]) => [link('skills', id, skillName(id)), ` ${n}`];
+  const lines: (Node | string)[][] = [...Object.entries(f.all).map((e) => sk(e)),
+    ...f.any.map((g) => ['one of: ', ...Object.entries(g).flatMap((e, i) => [i ? ', ' : '', ...sk(e)])])];
+  return lines.length ? row('Skill floors', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
+}
 function classes(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, `Lowest tier first. Tiers (CLASS_TIERS in src/scales.ts): ${CLASS_TIERS.keys.map((k) => CLASS_TIERS.name(k)).join(', ')}.`),
@@ -473,8 +490,8 @@ function classes(): HTMLElement[] {
       [chip(CLASS_TIERS.name(c.tier), toneFor('Tier', CLASS_TIERS.name(c.tier))), c.fallback ? chip('default class', toneFor('Kind', 'default class')) : null, c.creation ? chip('starting class', toneFor('Kind', 'starting class')) : null],
       c.story ? h('p', { class: 'lv-story' }, c.story) : null,
       row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
-      unlockRow(c),
-      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'story', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerk', 'unlockPerkWith', 'unlockClass']),
+      unlockRow(c), floorsRow(c),
+      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'story', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerk', 'unlockPerkWith', 'unlockClass', 'floors']),
       c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
         ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default'))),
         ...(c.capstones ?? []).map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', chip('alternate'), ' ', ...access(x.needs))))) : null))),

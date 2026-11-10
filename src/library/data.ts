@@ -283,7 +283,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [TP.guard]: {
-    id: TP.guard, raceId: RC.human, generation: 'copy',
+    id: TP.guard, raceId: RC.human, classId: CL.guard, generation: 'copy', // its class floors (the Guard unlock) raise its minimums
     minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.parry]: 30, [SK.dodge]: 20, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
@@ -456,6 +456,8 @@ export function prototypeLibrary(): Library {
       [FR.lost_intimidation]: { id: FR.lost_intimidation, name: 'You lose to intimidation', cost: 10, rolled: false, perTier: true }, // MB28, per tier of gap
       [FR.foe_downed]: { id: FR.foe_downed, name: 'You down a foe', cost: -10, rolled: false }, // MB10
       [FR.dread_presence]: { id: FR.dread_presence, name: 'An aura of dread gets to you', cost: 10, rolled: false, perTier: true }, // MB37: each failed aura check costs its own morale
+      [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
+      [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
     },
     // Game clock (T1): minutes per action; placeholders
     durations: {
@@ -639,6 +641,19 @@ export function prototypeLibrary(): Library {
       [ACH.healed_perk_50]: { id: ACH.healed_perk_50, name: 'Borrowed Strength', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 50 },
       [ACH.healed_perk_500]: { id: ACH.healed_perk_500, name: 'Tricks of the Flesh', level: 'i', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 500, after: ACH.healed_perk_50 },
       [ACH.healed_perk_2500]: { id: ACH.healed_perk_2500, name: 'Unkillable by Habit', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 2500, after: ACH.healed_perk_500 },
+      // D-177: fights against a hostile foe stronger than you (power = rating + gear rating); gaps are placeholders
+      [ACH.survived_above_100]: { id: ACH.survived_above_100, name: 'Lived to Tell It', level: 'zero', rule: 'survived_above', tags: ['combat', 'survival'], count: 100 },
+      [ACH.survived_above_250]: { id: ACH.survived_above_250, name: 'Walked Away From That', level: 'i', rule: 'survived_above', tags: ['combat', 'survival'], count: 250, after: ACH.survived_above_100 },
+      [ACH.survived_above_500]: { id: ACH.survived_above_500, name: 'Should Have Died There', level: 'ii', rule: 'survived_above', tags: ['combat', 'survival'], count: 500, after: ACH.survived_above_250 },
+      [ACH.survived_pct_25]: { id: ACH.survived_pct_25, name: 'Outclassed, Not Outlived', level: 'zero', rule: 'survived_above_pct', tags: ['combat', 'survival'], count: 25 },
+      [ACH.survived_pct_50]: { id: ACH.survived_pct_50, name: 'Too Stubborn to Die', level: 'i', rule: 'survived_above_pct', tags: ['combat', 'survival'], count: 50, after: ACH.survived_pct_25 },
+      [ACH.survived_pct_100]: { id: ACH.survived_pct_100, name: 'Death Looked Away', level: 'ii', rule: 'survived_above_pct', tags: ['combat', 'survival'], count: 100, after: ACH.survived_pct_50 },
+      [ACH.won_above_100]: { id: ACH.won_above_100, name: 'Punching Up', level: 'i', rule: 'won_above', tags: ['combat'], count: 100 },
+      [ACH.won_above_250]: { id: ACH.won_above_250, name: 'The Bigger They Are', level: 'ii', rule: 'won_above', tags: ['combat'], count: 250, after: ACH.won_above_100 },
+      [ACH.won_above_500]: { id: ACH.won_above_500, name: 'Giantkiller', level: 'iii', rule: 'won_above', tags: ['combat'], count: 500, after: ACH.won_above_250 },
+      [ACH.won_pct_25]: { id: ACH.won_pct_25, name: 'Long Odds', level: 'i', rule: 'won_above_pct', tags: ['combat'], count: 25 },
+      [ACH.won_pct_50]: { id: ACH.won_pct_50, name: 'Against All Odds', level: 'ii', rule: 'won_above_pct', tags: ['combat'], count: 50, after: ACH.won_pct_25 },
+      [ACH.won_pct_100]: { id: ACH.won_pct_100, name: 'Nobody Bet on You', level: 'iii', rule: 'won_above_pct', tags: ['combat'], count: 100, after: ACH.won_pct_50 },
       [ACH.total_10]: { id: ACH.total_10, name: 'A Few Threads', level: 'i', rule: 'achievements', tags: ['progression'], count: 10 },
       [ACH.total_25]: { id: ACH.total_25, name: 'Woven In', level: 'ii', rule: 'achievements', tags: ['progression'], count: 25, after: ACH.total_10 },
       [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25 },

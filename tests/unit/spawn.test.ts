@@ -45,7 +45,7 @@ describe('player creation', () => {
 });
 
 describe('unique generation', () => {
-  const bandit = { ...npcTemplate(null, TP.guard), id: 'bandit', generation: 'unique' as const };
+  const bandit = { ...npcTemplate(null, TP.guard), id: 'bandit', classId: undefined, generation: 'unique' as const };
   // MB30: Resolve from personality comes on top of the minimums and level points
   const sum = (s: Record<string, { raw: number }>) => Object.entries(s).reduce((n, [k, e]) => n + (k === SK.resolve ? 0 : e.raw), 0);
 

@@ -80,6 +80,12 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     validateBuild: validateBuildLocal,
     async newStory(b) { start(b); emit(); },
     async resume() { return state !== null; },
+    async hallOfFame() {
+      return [{ name: 'Aldric', pronouns: 'he', title: 'Slime-Bane', classes: [{ name: 'Swordsman', level: 6 }], level: 6, owner: 'player' as const, storyId: 'story_fake',
+        skills: [{ name: 'Medium weapons', value: 58 }, { name: 'Parry', value: 47 }, { name: 'Endurance', value: 50 }, { name: 'Dodge', value: 31 }],
+        perks: ['Keen Ear', 'Turn the Blade'], achievements: ['First Blood', 'Slime-Bane'], scars: ['First Crack'], defeats: 12, turn: 48, day: 3,
+        place: 'The back yard · The Lantern & Ladle', downedBy: { by: 'a lanky youth', weapon: 'dagger', part: 'neck', outcome: 'crushing hit' }, fellAt: '2026-11-10T21:00:00.000Z' }];
+    },
     async agentMove() { return { command: 'I look around.', say: 'Getting my bearings first.' }; },
     async submit(text, o) {
       if (busy || !state) return;
@@ -91,8 +97,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       await new Promise((r) => setTimeout(r, 600));
       state.turn = t + 1;
       if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
+      const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
+      if (drop) fell = true;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scene: state.stage.sceneNumber }];
+        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },

@@ -23,6 +23,7 @@ import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
 import { defaultStandingDefense, healthLevel, isDownLevel, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
 import { StopPlay, modelFor, type AgentCtx, type RunResult } from './call';
+import { fameEntry } from './fame';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
@@ -553,6 +554,7 @@ export function createGame(deps: GameDeps): Game {
     validateBuild,
     newStory,
     resume,
+    hallOfFame: () => save.listFallen(store),
     async agentMove(persona = '') {
       const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona) }], json: true, ...modelFor('autopilot') });
       return r.ok ? readMove(r.value) : null;
@@ -562,7 +564,9 @@ export function createGame(deps: GameDeps): Game {
       abortBackground();
       if (state) {
         // D-73: archive, so a reload starts fresh instead of loading the old story again
-        await save.archiveStory(store, state.storyId, new Date(clock.now()).toISOString());
+        const at = new Date(clock.now()).toISOString();
+        // hall of fame: a character archived while down is kept as they fell
+        await save.archiveStory(store, state.storyId, at, isDownLevel(safeHealth(state.player)) ? fameEntry(state, lines, placeName(state), at) : undefined);
         await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
       }
       state = null;
@@ -785,8 +789,8 @@ export function placeName(s: GameState): string {
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> {
-  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks'> = {};
+export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView, narration: string): Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> {
+  const out: Pick<LogLine, 'check' | 'speech' | 'changes' | 'incomingChecks' | 'downedBy'> = {};
   const who = (n: string, start: boolean) => (n === 'player' ? (start ? 'You' : 'you') : start ? n.charAt(0).toUpperCase() + n.slice(1) : n);
   const words = (x: string) => x.replace(/_/g, ' ');
   let check: LineCheck | undefined, checkEv: string | undefined;
@@ -832,6 +836,18 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
     }
   }
   if (incoming.length) out.incomingChecks = incoming;
+  // the turn left the player down: name the last blow that hurt them (only hits lower health), as they perceived it
+  if (s.player.id === 'player' && isDownLevel(safeHealth(s.player))) {
+    const hit = [...events].reverse().find((e) => e.attack && e.attack.targetId === 'player' && e.attack.damage > 0);
+    if (hit?.attack) {
+      const pk = nv.events.find((x) => x.id === hit.id)?.packet;
+      const by = pk?.actor && pk.actor !== 'player' ? pk.actor : 'someone';
+      const loc = hit.attack.location; // an unseen blow is still felt where it lands
+      out.downedBy = { by, weapon: pk ? pk.weapon : null, part: pk?.location?.part ?? (loc && loc !== 'general' && loc !== 'shield' ? words(loc) : null),
+        outcome: pk?.outcome ?? words(hit.attack.outcome),
+        ...(by === 'someone' ? { unseen: true as const } : {}) };
+    }
+  }
   const speech = nv.heard.filter((l) => !narration.includes(l.text)).map((l) => ({ speaker: l.speaker, volume: l.volume, text: l.text }));
   if (speech.length) out.speech = speech;
   const changes: NonNullable<LogLine['changes']> = [];

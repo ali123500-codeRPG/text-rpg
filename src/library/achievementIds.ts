@@ -49,6 +49,10 @@ export const ACH = {
   healed_rest_100: 'AC150', healed_rest_1000: 'AC151', healed_rest_10000: 'AC152',
   healed_natural_50: 'AC153', healed_natural_500: 'AC154', healed_natural_2500: 'AC155',
   healed_perk_50: 'AC156', healed_perk_500: 'AC157', healed_perk_2500: 'AC158',
+  survived_above_100: 'AC159', survived_above_250: 'AC160', survived_above_500: 'AC161',
+  survived_pct_25: 'AC162', survived_pct_50: 'AC163', survived_pct_100: 'AC164',
+  won_above_100: 'AC165', won_above_250: 'AC166', won_above_500: 'AC167',
+  won_pct_25: 'AC168', won_pct_50: 'AC169', won_pct_100: 'AC170',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -79,6 +83,10 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
   won_panicking: 'fights won while your morale is Panicking', morale_breaks: 'times your morale broke',
   healed: 'HP healed from one source (a healing-table row: Rest, Natural recovery, Perks…)',
+  survived_above: 'points a hostile foe\'s power (rating + gear) was above yours, in a fight you came out of on your feet',
+  survived_above_pct: '% a hostile foe\'s power (rating + gear) was above yours, in a fight you came out of on your feet',
+  won_above: 'points a hostile foe\'s power (rating + gear) was above yours, in a fight you won',
+  won_above_pct: '% a hostile foe\'s power (rating + gear) was above yours, in a fight you won',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
 /** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,

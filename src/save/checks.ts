@@ -265,6 +265,12 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       p.headlines = keep(k, p.headlines, (f) => factIds.has(f), 'headlines');
       // an item the library no longer has would make every zone view throw: drop it, as for inventories
       for (const z of p.zones) z.groundItems = keep(k, z.groundItems ?? [], (it) => L.hasItem(it.itemId), `unknown ground items in ${z.id}`);
+      // every link runs both ways (scenes planned before the fix kept one-way links among their new zones)
+      for (const z of p.zones) for (const l of z.links) {
+        if (l.frontier) continue;
+        const ok = keys.filter((x) => x.startsWith('place.')).map((x) => [x, (pages[x] as Place).zones.find((zz) => zz.id === l.to)] as const).find(([, zz]) => zz);
+        if (ok && !ok[1]!.links.some((b) => b.to === z.id)) { ok[1]!.links.push({ to: z.id, label: z.name, sight: l.sight }); fix(ok[0], `added the way back from ${l.to} to ${z.id}`); }
+      }
     } else if (k.startsWith('facts.')) {
       for (const f of (page as FactsPage).facts) f.promotedTo = keep(k, f.promotedTo, (p) => placeIds.has(p), `promotions of ${f.id}`);
     } else if (k.startsWith('actor.')) {

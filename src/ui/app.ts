@@ -5,6 +5,7 @@ import { creationScreen } from './creation';
 import { playScreen } from './play';
 import { achievementsPage, characterPage, inventoryPage, journalPage, questsPage } from './pages';
 import { gmPage } from './gm';
+import { famePage } from './fame';
 
 const ICON: Record<string, string> = {
   create: 'M4 20 15 9m2-5 3 3-4 4-3-3zM6 14l4 4',
@@ -14,6 +15,7 @@ const ICON: Record<string, string> = {
   quests: 'M6 3v18M6 4h11l-2 4 2 4H6',
   achievements: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6',
   gm: 'M4 6h16M4 12h16M4 18h10M18 16l2 2-2 2',
+  fame: 'M7 21V10a5 5 0 0 1 10 0v11M5 21h14M12 11v6M9.5 13.5h5',
   journal: 'M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6',
 };
 const icon = (k: string) => {
@@ -24,7 +26,7 @@ const icon = (k: string) => {
   return s;
 };
 
-const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['achievements', 'Achievements'], ['journal', 'Journal']] as const;
+const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['achievements', 'Achievements'], ['journal', 'Journal'], ['fame', 'Hall of fame']] as const;
 const GM_KEY = 'rpg.gmDebug';
 const readGm = () => { try { return localStorage.getItem(GM_KEY) === '1'; } catch { return false; } };
 const writeGm = (on: boolean) => { try { localStorage.setItem(GM_KEY, on ? '1' : '0'); } catch { /* per-PC convenience only */ } };
@@ -42,7 +44,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
 
   const play = playScreen(api, (p) => go(p));
   const pages: Record<string, { el: HTMLElement; update: () => void }> = {
-    play, stats: characterPage(api), inv: inventoryPage(api), quests: questsPage(api), achievements: achievementsPage(api), journal: journalPage(api), gm: gmPage(api),
+    play, stats: characterPage(api), inv: inventoryPage(api), quests: questsPage(api), achievements: achievementsPage(api), journal: journalPage(api), fame: famePage(api), gm: gmPage(api),
   };
   let creation: HTMLElement | null = null;
 
@@ -50,6 +52,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   let resuming = true;
   const current = () => {
     const p = location.hash.slice(1);
+    if (p === 'fame' && !resuming) return 'fame'; // the hall of fame opens with no story too (right after a reset)
     if (!api.state()) return resuming ? 'loading' : 'create';
     if (p === 'gm' && !gmOn) return 'play';
     return pages[p] ? p : 'play';
@@ -70,7 +73,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     rail.replaceChildren(
       h('div', { class: 'hs-brand' }, 'RPG', h('span', { class: 'ar' }, 'v0')),
       started ? '' : item('create', 'Create', true),
-      ...PAGES.map(([id, label]) => item(id, label, started)),
+      ...PAGES.map(([id, label]) => item(id, label, started || id === 'fame')),
       gmOn ? item('gm', 'GM', started) : '',
       h('button', { class: 'foot', type: 'button', 'aria-pressed': String(gmOn), title: gmOn ? 'Turn the GM debug view off' : 'Turn the GM debug view on',
         onclick: () => { gmOn = !gmOn; writeGm(gmOn); if (!gmOn && current() === 'play' && location.hash === '#gm') go('play'); render(); } },

@@ -78,6 +78,7 @@ const DEFAULTS = {
   GENERAL_BIG_WEIGHT: 4,
   IMPACT_MULT: { non_essential: 0, normal: 1, essential: 1.5 } as Record<string, number>,
   ROLE_PENALTY: { damaged: -10, crippled: -20 },
+  ESSENTIAL_CRIPPLED_PENALTY: -5, // wounds on every roll while any essential part (head, neck …) is Crippled or worse; once, however many
   SHARED_ROLE_OFF_PCT: 0.6,
   WEAPON_CLASSES: {
     light: { damage: 20, hit: 10 }, medium: { damage: 25, hit: 0 }, heavy: { damage: 30, hit: -10 },
@@ -228,7 +229,7 @@ const DEFAULTS = {
   /** each skill group's XP factor level in the defeat-XP rating */
   XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full' } as Record<string, string>,
   KILL_XP_MULT: 1, // X20: ×1 for now
-  /** a foe's held and worn gear adds this × its coin value to the foe's rating (foe side only) */
+  /** held and worn gear adds this × its coin value to the rating, on both sides (the foe's and the player's) */
   GEAR_RATING_FACTOR: 0.25,
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (LEVEL_XP × L(L−1)/2) */
   LEVEL_RATING_SHARE: 0.02,

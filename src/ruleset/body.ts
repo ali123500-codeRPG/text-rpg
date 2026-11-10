@@ -73,6 +73,9 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
   const ct = actorBody(state, actor);
   const uses = ctx.roles ?? lib.skills[skill]?.roles ?? [];
   const st = (id: string) => poolState(partPct(actor, id));
+  // any essential part Crippled or worse: one flat penalty on every roll (Tough It Out counts the part one step milder)
+  const crip = ct.parts.find((p) => p.impact === 'essential' && PART_STATES.indexOf(effectiveState(actor, st(p.id))) >= PART_STATES.indexOf('Crippled'));
+  if (crip) out.push({ source: `essential part crippled: ${crip.id.replace(/_/g, ' ')}`, type: 'wounds', value: CONFIG.ESSENTIAL_CRIPPLED_PENALTY });
   // Past the Pain: the first Crippled part in body order gives no role penalty
   const spared = hasPerk(actor, PK.past_the_pain) ? ct.parts.find((p) => st(p.id) === 'Crippled')?.id : undefined;
   const pen = (id: string) => (id === spared ? 0 : rolePenalty(actor, st(id)));
