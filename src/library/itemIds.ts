@@ -8,4 +8,8 @@ export const IT = {
   signet_ring: 'IT16', lucky_charm: 'IT17', lockpicks: 'IT18', healing_draught: 'IT19', improvised_light: 'IT20',
   improvised_medium: 'IT21', improvised_heavy: 'IT22', curio: 'IT23', bandage: 'IT24', coin: 'IT25',
   basket_hilt_sword: 'IT26',
+  // starter pairs: a Common (25) and a Fine (50) piece for every gear class
+  short_sword: 'IT27', hand_axe: 'IT28', woodsman_axe: 'IT29', greatsword: 'IT30', recurve_bow: 'IT31', flatbow: 'IT32',
+  light_crossbow: 'IT33', stirrup_crossbow: 'IT34', boiled_leather: 'IT35', brigandine: 'IT36', lamellar_coat: 'IT37',
+  half_plate: 'IT38', kite_shield: 'IT39',
 } as const;

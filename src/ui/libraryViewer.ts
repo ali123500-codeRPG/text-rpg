@@ -155,7 +155,7 @@ function gear(): HTMLElement[] {
   const kit = Object.values(lib.items).filter((i) => i.tags?.includes('starter'));
   const rule = h('article', { class: 'lv-card lv-fixed' }, h('header', {}, h('h3', {}, 'How the starter kit is given'), chip('starterKit · src/library/spawn.ts')),
     h('ol', { class: 'lv-steps' },
-      h('li', {}, 'After creation the player gets every item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share).'),
+      h('li', {}, 'After creation the player gets, for each gear class, the highest-level item tagged starter whose equip requirement the build meets (shortBy = 0; a stand-in skill counts at its share). Every class has a 25 and a 50 piece.'),
       h('li', {}, 'Held: the met weapon whose required skill is highest, then the higher item level. A met shield goes in the other hand unless that weapon takes two hands.'),
       h('li', {}, 'Worn: the highest-level armor met.'),
       h('li', {}, 'Everything else met is carried in the pack.')));
