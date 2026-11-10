@@ -364,15 +364,16 @@ function restores(d: HealingDef): string {
   if (d.countOnly) return 'nothing itself: it only tallies healing from perks, for achievements that count healing by source';
   if (d.hourly) {
     const at50 = +(d.hourly.pctPerPoint * 50).toFixed(2);
-    return `every hour, ${d.hourly.pctPerPoint} % of max ${d.hourly.morale ? 'morale' : 'health'} per ${skillName(d.hourly.skill)} point (${at50} % at 50)`;
+    return `every hour, ${d.hourly.pctPerPoint} % of max health per ${skillName(d.hourly.skill)} point (${at50} % at 50)`;
   }
-  const parts = [d.hpPct ? `${d.hpPct} % health` : '', d.partPct ? `${d.partPct} % to body parts` : '', d.moralePct ? `${d.moralePct} % morale` : ''].filter(Boolean);
+  const calm = d.composure ? lib.composure?.[d.composure] : undefined; // morale comes from the composure table's row
+  const parts = [d.hpPct ? `${d.hpPct} % health` : '', d.partPct ? `${d.partPct} % to body parts` : '', calm?.pct ? `${calm.pct} % morale (composure row ${calm.name})` : ''].filter(Boolean);
   return parts.length ? parts.join(', ') : 'nothing';
 }
 function healing(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.healing ?? {}).map((d) => card('healing', d.id, d, d.name,
-    [d.countOnly ? chip('tally only') : null, d.hourly?.morale || d.moralePct ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
-    row('Restores', restores(d)), ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'moralePct', 'hourly', 'countOnly']))))];
+    [d.countOnly ? chip('tally only') : null, d.composure ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
+    row('Restores', restores(d)), ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'composure', 'hourly', 'countOnly']))))];
 }
 
 /** Fears: a part fear's cost comes from per-part impact costs (partCost, or another row's × mult), so its card shows
@@ -778,8 +779,8 @@ const perkSkills = (d: PerkDef & { skill?: string }): string[] => [...new Set([d
 const FACETS: Record<string, Facets> = {
   fears: (f: FearDef) => [['Roll', f.rolled ? 'rolled' : 'flat'], ['Cost', f.partCost || f.partCostOf ? 'by part' : f.perTier ? 'per tier' : f.cost < 0 ? 'restores' : 'flat cost'], ['Part', f.part && PART_STATES.name(f.part as PartStateKey)]],
   gearClasses: (g: { use?: string }) => [['Use', g.use]],
-  healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? (d.hourly.morale ? 'morale' : 'health') + ' hourly' : undefined],
-    ...(['hpPct', 'partPct', 'moralePct'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', moralePct: 'morale' }[k]])],
+  healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? 'health hourly' : undefined],
+    ...(['hpPct', 'partPct', 'composure'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', composure: 'morale' }[k]])],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
   stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],

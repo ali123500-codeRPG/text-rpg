@@ -149,7 +149,8 @@ const DEFAULTS = {
   REST_HEAL_PCT: 25,
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
-  REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale
+  REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale (composure table, CP.rest)
+  CLINIC_MORALE_PCT: 100, // clinic care restores this share of max morale (composure table, CP.clinic)
   // ---- Part 4 ----
   POINTS_PER_LEVEL: 10, // 10 × level (was 3)
   CREATION_POINTS: 250,
