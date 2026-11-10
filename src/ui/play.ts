@@ -31,7 +31,7 @@ const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
-  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/aim ', 'this turn’s attack is aimed'], ['/undo', 'rewind one turn (dice are not rolled back)'],
+  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/yield', 'give up the fight you are in'], ['/aim ', 'this turn’s attack is aimed'], ['/undo', 'rewind one turn (dice are not rolled back)'],
   ['/difficulty ', 'show or change the difficulty'],
 ];
 const UNDONE = 'Turn undone.'; // the game's line after /undo
@@ -68,6 +68,7 @@ const spoken = (t: string, volume: string) => t.split(/\*([^*]+)\*/).map((x, i) 
 // AE8: how Ideas offers each perk move against someone in view
 const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }> = {
   [PK.dirt_in_the_eyes]: { text: (who) => `Throw dirt in ${who}'s eyes`, note: 'Dirt in the Eyes · free, once a fight' },
+  [PK.bluff]: { text: (who) => `Bluff ${who}: "Behind you!"`, note: 'Bluff · free, once per foe a fight' },
 };
 
 /** the same name twice in one list reads as "the other …" from its second time on */
@@ -373,6 +374,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     who.replaceChildren(h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp' }, h('b', {}, cap(a.name ?? a.label)),
       a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, isDownLevel(a.health) ? 'Down' : a.health)
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
+      // MB16: others' morale, only from Afraid down
+      a.morale ? h('span', { class: 'st fear' }, a.morale) : null,
       // A13 Read Wounds: a foe's Damaged parts
       ...(a.damaged ?? []).map((pt) => h('span', { class: 'st warn', title: 'Read Wounds' }, `${partName(pt).toLowerCase()} damaged`)))) : [h('span', { class: 'hs-note' }, 'Nobody in view')]));
 

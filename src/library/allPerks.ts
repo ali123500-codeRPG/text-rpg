@@ -1,5 +1,8 @@
-// All-50 perks (All-50 doc https://claude.ai/artifact/R5CirgnTX2vwoG4tPp8oxR). A tree's All-50 is a
-// bundle of parts, granted for free when every skill of the tree reaches 50 true skill (G1–G8). Each part is its own perk
+// All-50 perks (All-50 doc https://claude.ai/artifact/R5CirgnTX2vwoG4tPp8oxR). Each skill has its own All-50 part
+// (SKILL_PARTS), and each tree has one passive that fits it (ALL_BUNDLES). Once enough skills of a tree reach 50 true
+// skill (CONFIG.ALL_STEP_SKILLS by the tree's rating: never, 3, 2 or 1), the tree's passive and those skills' parts
+// are granted free; each further skill of the tree that reaches 50 then adds its own part. A skill's part belongs to the skill, not the tree, so a skill that moves to another tree
+// takes its part along. A tree with fewer skills than that never earns its All-50. Each part is its own perk
 // (so code checks hasPerk on the part) with a Story and an exact Rules view, like the ladder perks. A part is granted
 // only once it is built (BUILT_PERKS). Names: "<tree> All-50: <name>" (G5); All-50 and 100+ names may be dramatic.
 import { TR } from './treeIds';
@@ -8,18 +11,32 @@ import type { PerkWriteup } from '../types';
 import { SK } from './skillIds';
 import { PK } from './perkIds';
 
-/** a tree's All-50 bundle: its name and its parts, in the doc's order */
-export type AllBundle = { treeId: string; step: 50; name: string; parts: string[] };
+/** a tree's All-50: its name and its passive (the skills' parts are in SKILL_PARTS) */
+export type AllBundle = { treeId: string; step: 50; name: string; passive?: string };
 
 export const ALL_BUNDLES: AllBundle[] = [
-  { treeId: TR.melee, step: 50, name: 'Warborn', parts: [PK.opening_strike, PK.counter, PK.fighters_frame, PK.steady_guard] }, // Weapon Drill dropped (Round 3)
-  { treeId: TR.ranged, step: 50, name: 'Death from Afar', parts: [PK.unerring, PK.volley, PK.past_the_cover, PK.hunters_eye] },
-  { treeId: TR.unarmed, step: 50, name: 'Open Hand', parts: [PK.hard_to_hold, PK.iron_knuckles, PK.bare_handed_guard] },
-  { treeId: TR.defense, step: 50, name: 'The Unbroken', parts: [PK.second_wind, PK.dodgy, PK.thick_hide] },
-  { treeId: TR.perception, step: 50, name: 'Nothing Escapes', parts: [PK.spotter, PK.curiouser, PK.night_eyes] }, // Light Sleeper parked
-  { treeId: TR.stealth, step: 50, name: 'One with the Dark', parts: [PK.strike_and_fade, PK.child_of_night, PK.hushed_steps] },
-  { treeId: TR.speech, step: 50, name: 'Silver Voice', parts: [PK.soft_landing, PK.easy_speaker, PK.silver_words] }, // Read Them parked; Silver Words picked in Round 4
+  { treeId: TR.melee, step: 50, name: 'Warborn', passive: PK.fighters_frame }, // Weapon Drill dropped (Round 3)
+  { treeId: TR.ranged, step: 50, name: 'Death from Afar', passive: PK.hunters_eye },
+  { treeId: TR.unarmed, step: 50, name: 'Open Hand', passive: PK.bare_handed_guard },
+  // Defense (Dodge, Block) and Fortitude (Endurance, Resolve) have two skills each, so neither earns its All-50 for now
+  { treeId: TR.defense, step: 50, name: 'The Unbroken', passive: PK.thick_hide },
+  { treeId: TR.fortitude, step: 50, name: 'Hard to Kill' },
+  { treeId: TR.perception, step: 50, name: 'Nothing Escapes', passive: PK.curiouser }, // Light Sleeper parked
+  { treeId: TR.stealth, step: 50, name: 'One with the Dark', passive: PK.child_of_night },
+  { treeId: TR.speech, step: 50, name: 'Silver Voice', passive: PK.silver_words }, // Read Them parked
 ];
+
+/** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
+ * No part yet: Improvisation, Block, Resolve, Insight, Vanishing, Intimidation and the one-skill trees. */
+export const SKILL_PARTS: Record<string, string> = {
+  [SK.melee_light]: PK.opening_strike, [SK.melee_medium]: PK.steady_guard, [SK.melee_heavy]: PK.counter,
+  [SK.ranged_light]: PK.unerring, [SK.ranged_medium]: PK.volley, [SK.ranged_heavy]: PK.past_the_cover,
+  [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold,
+  [SK.dodge]: PK.dodgy, [SK.endurance]: PK.second_wind,
+  [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.spotter,
+  [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade,
+  [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
+};
 
 const part = (treeId: string, p: Omit<PerkWriteup, 'skill' | 'place' | 'allStep'>): PerkWriteup =>
   ({ ...p, skill: treeId, place: 'all50', allStep: { treeId, step: 50 } });
@@ -134,3 +151,11 @@ export const ALL_PARTS: PerkWriteup[] = [
       effect: '+5 true skill in Persuasion, Intimidation and Barter.', lasts: 'Always.' },
     trueSkillTo: { [SK.persuasion]: 5, [SK.intimidation]: 5, [SK.barter]: 5 } }),
 ];
+
+// a passive carries its tree; a skill's part carries its skill (src/library/data.ts fills in the skill's current tree)
+for (const p of ALL_PARTS) {
+  const b = ALL_BUNDLES.find((x) => x.passive === p.id);
+  const skill = Object.keys(SKILL_PARTS).find((k) => SKILL_PARTS[k] === p.id);
+  if (b) Object.assign(p, { skill: b.treeId, allStep: { treeId: b.treeId, step: b.step } });
+  else if (skill) Object.assign(p, { allStep: { treeId: p.allStep!.treeId, step: 50, skill } });
+}

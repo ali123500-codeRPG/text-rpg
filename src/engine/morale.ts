@@ -1,0 +1,34 @@
+// Paying a fear (MB21–MB28): one rule for every source of the library fears table, the player included (MB11).
+// A rolled fear's cost is scaled by the morale roll's tier (MB6); reaching Broken breaks the actor (MB1), or makes it
+// surrender when the roll that broke it was a Critical Failure or worse (MB7). The caller applies what a break does.
+import type { Actor, GameState, Rng } from '../types';
+import { getLibrary } from '../library';
+import { TIERS } from '../scales';
+import { moraleRoll, tierLevel } from '../ruleset';
+import { markResolve } from '../ruleset/improve';
+import { maxMorale, moraleLevel, moraleLost, setMoraleLost, tierCostMult } from '../ruleset/morale';
+import { isActive } from './relations';
+import { logCode } from './effects';
+
+
+/** pays fear `id`: gap = the contest's tier gap (perTier rows), mult and shift = a perk's extra (Make an Example, MB26).
+ * Returns 'broken' or 'surrendered' when this pushed the actor to Broken. */
+export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number } = {}): 'broken' | 'surrendered' | undefined {
+  const f = getLibrary().fears?.[id];
+  if (!f || !isActive(a) || a.mind?.moraleState) return undefined;
+  let cost = f.cost * (f.perTier ? Math.abs(o.gap ?? 1) : 1) * (o.mult ?? 1);
+  let level: number | undefined;
+  if (f.rolled && cost > 0) {
+    const r = moraleRoll(state, a, rng, o.shift);
+    level = tierLevel(r);
+    cost *= tierCostMult(level);
+  }
+  const from = moraleLevel(a);
+  const paid = setMoraleLost(a, moraleLost(a) + cost);
+  if (!paid) return undefined;
+  const to = moraleLevel(a);
+  markResolve(state, a, (100 * paid) / maxMorale(a));
+  logCode(state, 'morale', { actorId: a.id, fear: id, paid, ...(level === undefined ? {} : { tier: level }), from, to });
+  if (to !== 'broken' || from === 'broken') return undefined;
+  return level !== undefined && level <= TIERS.pos('critical_failure') ? 'surrendered' : 'broken';
+}

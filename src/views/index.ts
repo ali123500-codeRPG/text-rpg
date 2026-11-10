@@ -1,7 +1,7 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
-  AgreementView, HealthLevel, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, HealthLevel, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -12,7 +12,7 @@ import { wornTitle } from '../engine/xp';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
+import { PERK_MOVES, hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
@@ -23,6 +23,17 @@ import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { modeName } from '../ruleset/gear';
 import { itemValue } from '../ruleset/value';
+import { moraleLevel, moraleShows } from '../ruleset/morale';
+import { MORALE_LEVELS } from '../scales';
+
+const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
+/** MB40: the player's yield this scene, in the player's names for each foe */
+function yieldView(state: GameState): YieldView | undefined {
+  const y = state.yielding;
+  if (!y) return undefined;
+  const names = (ids: string[]) => ids.map((id) => callName(state, state.player.id, id));
+  return { took: names(y.accepted), waiting: names(y.pending), refused: names(y.refused) };
+}
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -104,6 +115,13 @@ function lookOf(events: GameEvent[], viewerId: string, actorId: string): string 
 }
 
 /** the viewer fully perceived an event by `aboutId` since the scene began (recent history included) */
+/** LI2b Read Their Face: the viewer sees the stance toward it of anyone who spoke to it this scene */
+function readsFace(state: GameState, viewer: Actor, a: Actor): boolean {
+  return hasPerk(viewer, PK.read_their_face) && !!a.mind && [...(state.recentEvents ?? []), ...state.events].some((e) =>
+    e.kind === 'speak' && !e.bark && e.actorId === a.id && e.turn >= state.stage.sceneStartTurn
+    && (e.target === viewer.id || !!e.speech?.addressees?.includes(viewer.id)));
+}
+
 function seenClearly(state: GameState, viewerId: string, aboutId: string): boolean {
   return [...(state.recentEvents ?? []), ...state.events].some((e) =>
     e.actorId === aboutId && e.turn >= state.stage.sceneStartTurn && e.perception[viewerId]?.level === 'full');
@@ -137,6 +155,8 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
+      ...(moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
+      ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
@@ -191,6 +211,8 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'still_held') out.push(`${who} fails to break free of ${by}`);
     if (f.kind === 'dirt_in_eyes') out.push(`${by} throws dirt in ${who}'s eyes`); // A9 Dirt in the Eyes
     if (f.kind === 'dirt_dodged') out.push(`${who} turns away from ${by}'s thrown dirt`);
+    if (f.kind === 'bluff_believed') out.push(`${who} falls for ${by}'s bluff and hesitates`); // LI1c Bluff
+    if (f.kind === 'bluff_seen_through') out.push(`${who} doesn't fall for ${by}'s bluff`);
     if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
@@ -246,13 +268,14 @@ export function buildPlayerView(state: GameState): PlayerView {
       classes: p.core.classes.map((c) => ({ id: c.classId, name: getLibrary().classes[c.classId]?.name ?? c.classId })),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
-      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id })) } : {}),
-      health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })),
+      ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does })) } : {}),
+      health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), morale: moraleWord(p),
       inventory: ownGear(state, p),
       posture: p.posture ?? 'open',
       standingDefense: p.core.standingDefense,
       ...(heldBy(state, p) ? { heldBy: callName(state, p.id, heldBy(state, p)!.id) } : {}),
       ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
+      ...(yieldView(state) ? { yielded: yieldView(state) } : {}),
     },
     zone: zoneView(state, zoneById(state, p.zone)!),
     zones: perceivedZones(state, p.zone),
@@ -305,8 +328,8 @@ function baseView(state: GameState, actorId: string): BaseView {
     self: {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc',
       zone: a.zone, placeId: a.placeId, bandId: a.bandId,
-      health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })),
-      active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered', fearless: !!m.fearless,
+      health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), morale: moraleWord(a),
+      active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill,
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn } } : {}),
@@ -317,6 +340,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(lastHitBy ? { lastHitBy } : {}),
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
+      ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
     },
     beliefs, perceived, told, said,
@@ -467,7 +491,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(look ? { activityLook: look } : {}),
       ...(full && e.kind === 'attack' && e.attack ? { packet: buildCombatPacket(state, e, me) } : {}),
       ...(full && e.spar ? { spar: true as const } : {}),
-      ...(e.push?.listener === me && pressedWords(e) ? { pressed: pressedWords(e) } : {}),
+      ...(e.push?.listener === me && pressedWords(e, p) ? { pressed: pressedWords(e, p) } : {}),
       ...(item ? { item } : {}),
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(forWhom ? { for: forWhom } : {}),
@@ -481,12 +505,12 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}),
+    player: { name: p.names.current, health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
   };

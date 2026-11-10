@@ -18,7 +18,7 @@ import { modeSkill } from '../../src/ruleset/gear';
 import { ARMOR_SKILL } from '../../src/library/skillIds';
 import { modeIdOf } from '../../src/ruleset/gear';
 import { BUILT_PERKS } from '../../src/library/builtPerks';
-import { ALL_BUNDLES } from '../../src/library/allPerks';
+import { ALL_BUNDLES, SKILL_PARTS } from '../../src/library/allPerks';
 import { MARK_SOURCE } from '../../src/engine/perkMarks';
 import { PERK_MOVES } from '../../src/ruleset/perks';
 
@@ -61,7 +61,8 @@ describe('typed IDs', () => {
     }
     for (const r of Object.values(L.races ?? {})) for (const id of [...(r.innatePerks ?? []), ...(r.innateQuirks ?? [])]) known(id, `race ${r.id}`);
     for (const t of Object.values(L.templates)) for (const id of t.perks ?? []) known(id, `template ${t.id}`);
-    for (const b of ALL_BUNDLES) for (const id of b.parts) known(id, `bundle ${b.name}`);
+    for (const b of ALL_BUNDLES) if (b.passive) known(b.passive, `bundle ${b.name}`);
+    for (const [sk, id] of Object.entries(SKILL_PARTS)) { known(id, `skill part ${sk}`); expect(L.skills[sk], `skill part ${sk}`).toBeDefined(); }
     for (const id of BUILT_PERKS) known(id, 'BUILT_PERKS');
     for (const id of Object.keys(MARK_SOURCE)) known(id, 'MARK_SOURCE');
     for (const id of Object.keys(PERK_MOVES)) known(id, 'PERK_MOVES');

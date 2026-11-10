@@ -48,7 +48,7 @@ export type EngagementKind = 'talk' | 'fight' | 'spar';
 export type Engagement = { start: number; last: number; kinds: EngagementKind[]; uses?: Record<string, number>; fight?: FightLog };
 /** the player's fight so far, for the fight achievements: hp = HP lost % last checked; foes = everyone who fought the player;
  * most = the most foes at once; hurt = lost HP; defended = made a defense roll; helped = someone fought a foe of the player's; brink = reached Critical */
-export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true };
+export type FightLog = { hp: number; foes: string[]; most: number; hurt?: true; defended?: true; helped?: true; brink?: true; heldLine?: true; down?: true; struck?: true; broke?: true };
 
 export type SkillState = 'tagged' | 'normal' | 'flawed';
 export type SkillEntry = { raw: number; state: SkillState; dormant?: boolean };
@@ -88,6 +88,7 @@ export type SavedCondition = {
   parts: Record<string, number>; // body-part id -> pool % left (100 = full), state derived
   destroyed?: string[]; // reserved
   status: string[];
+  moraleLost?: number; // MB5: flat morale points lost; the level is derived from this and max morale
 };
 
 export type Progression = {
@@ -125,9 +126,6 @@ export type Mind = {
   /** PM6: code-made lines about perceived events that fell out of its recent window; upTo = last summarized event id */
   earlier?: { upTo: string; lines: string[] };
   behavior: string;
-  morale?: number;
-  fearless?: boolean; // from the template's personality
-  renownFelt?: true; // this actor has made its first morale check against a player with renown
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware

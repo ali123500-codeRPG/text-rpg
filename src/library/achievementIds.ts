@@ -9,6 +9,8 @@ export const ACH = {
   first_defeat_race: 'AC4', defeats_10_race: 'AC5', defeats_100_race: 'AC6',
   defeats_10: 'AC7', defeats_100: 'AC8', defeats_1000: 'AC9',
   mastery_50: 'AC10', mastery_100: 'AC11', mastery_150: 'AC12',
+  mastery_superior_50: 'AC144', mastery_superior_100: 'AC145', mastery_superior_150: 'AC146',
+  mastery_legendary_50: 'AC147', mastery_legendary_100: 'AC148', mastery_legendary_150: 'AC149',
   unaware_1: 'AC13', unaware_10: 'AC14', unaware_100: 'AC15',
   yielded_1: 'AC16', yielded_10: 'AC17', yielded_50: 'AC18',
   crits_10: 'AC19', crits_100: 'AC20', crits_1000: 'AC21',
@@ -42,6 +44,8 @@ export const ACH = {
   cruel_spar_1: 'AC123', cruel_spar_10: 'AC124', cruel_spar_25: 'AC125', spar_losses_10: 'AC126',
   total_10: 'AC127', total_25: 'AC128', total_50: 'AC129', total_100: 'AC130', total_250: 'AC131',
   spar_losses_1: 'AC132', defeated_5: 'AC133', defeated_25: 'AC134', defeated_100: 'AC135',
+  won_panicking_1: 'AC138', won_panicking_10: 'AC139', won_panicking_25: 'AC140',
+  morale_breaks_1: 'AC141', morale_breaks_5: 'AC142', morale_breaks_25: 'AC143',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -49,7 +53,7 @@ export const ACH_TAGS: Record<AchievementTag, string> = {
 };
 /** what each achievement rule counts, for display; the count is AchievementDef.count */
 export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
-  defeats: 'defeats', mastery: 'true skill in all three skills of a tree', unaware_defeats: 'foes defeated while unaware of you',
+  defeats: 'defeats', mastery: 'true skill in enough skills of a tree (by its rating)', unaware_defeats: 'foes defeated while unaware of you',
   yielded: 'foes who surrendered or broke while fighting you', crits: 'rolls at Critical Success or better with a skill of the group',
   beyond_crit: 'step(s) past Critical Success on a roll', crippled_defeats: 'foes defeated while one of your parts is Crippled',
   zones: 'different zones entered', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',
@@ -70,7 +74,13 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   class_max: 'classes at their top level', class_max_tiers: 'class tiers with a class at its top level',
   char_level: 'character levels, again at every multiple',
   spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
+  won_panicking: 'fights won while your morale is Panicking', morale_breaks: 'times your morale broke',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
-/** the tree mastery achievement for an All-XXX step */
-export const MASTERY_ACH: Record<number, string> = { 50: ACH.mastery_50, 100: ACH.mastery_100, 150: ACH.mastery_150 };
+/** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,
+ * grander the higher the rating; an inferior tree earns none */
+export const MASTERY_ACH: Partial<Record<string, Record<number, string>>> = {
+  normal: { 50: ACH.mastery_50, 100: ACH.mastery_100, 150: ACH.mastery_150 },
+  superior: { 50: ACH.mastery_superior_50, 100: ACH.mastery_superior_100, 150: ACH.mastery_superior_150 },
+  legendary: { 50: ACH.mastery_legendary_50, 100: ACH.mastery_legendary_100, 150: ACH.mastery_legendary_150 },
+};

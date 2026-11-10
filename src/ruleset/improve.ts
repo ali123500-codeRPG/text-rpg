@@ -82,6 +82,11 @@ export function markEndurance(state: GameState, actor: Actor, lostPct: number): 
   if (actor.id === state.player.id && lostPct >= CONFIG.ENDURANCE_MARK_PCT) mark(actor, SK.endurance);
 }
 
+/** a single morale loss of RESOLVE_MARK_PCT % of max morale or more marks the player's Resolve (like Endurance) */
+export function markResolve(state: GameState, actor: Actor, lostPct: number): void {
+  if (actor.id === state.player.id && lostPct >= CONFIG.RESOLVE_MARK_PCT) mark(actor, SK.resolve);
+}
+
 /** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit */
 function improveRolls(a: Actor, raw: number): number {
   const perks = getLibrary().perks;

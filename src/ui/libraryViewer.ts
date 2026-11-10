@@ -309,7 +309,7 @@ function perks(): HTMLElement[] {
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By skill and milestone'), grid('Skill', steps.map((m) => `${m} perk`), ladderRows.map(([n, at]) => [n, (c: string) => at(c.replace(' perk', ''))]))),
         cardsOf('Built', ladder.filter((d) => d.built), 'None built yet.')] },
       { key: 'all', title: 'All-XX perks', short: 'All-XX', n: allParts.length, content: [
-        h('p', { class: 'hs-note' }, 'Granted when every skill of a tree reaches the step (allStep in src/library/allPerks.ts).'),
+        h('p', { class: 'hs-note' }, 'Granted when enough skills of a tree reach the step, by the tree\'s rating (inferior never, normal 3, superior 2, legendary 1): the tree\'s passive plus each of those skills\' part; a further skill at the step adds its part (allStep in src/library/allPerks.ts).'),
         h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'By tree and step'), grid('Tree', allSteps.map((m) => `All-${m}`), allRows.map(([n, at]) => [n, (c: string) => at(c.replace('All-', ''))]))),
         cardsOf('Built', allParts.filter((d) => d.built), 'None built yet.')] },
       { key: 'unused', title: 'Not in use', n: unused.length, content: [
@@ -390,11 +390,14 @@ function achievements(): HTMLElement[] {
     const kind = d.by === 'body_type' ? 'body type' : 'race';
     const bane = isBane(d) ? baneSkill(key) : 0; // D-111: the same function the rolls use
     const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
-    return card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, toneFor('Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`)), chip(`${achXp(d)} XP`),
+    // {level} on an every-N row reads as the levels it is earned at: 10, 20, 30…
+    const title = d.every && d.name.includes('{level}') ? d.name.replace('{level}', `${[0, 1, 2].map((i) => (d.count ?? d.every!) + i * d.every!).join(', ')}…`) : d.name;
+    return card('achievements', key, d, title, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, toneFor('Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`)), chip(`${achXp(d)} XP`),
       bane ? chip(`+${bane} skill vs that ${kind}`) : null, total ? chip(`+${total} combat rolls`) : null,
       rewardLines(d).length ? chip('reward') : null,
       d.scar ? chip('scar', toneFor('Kind', 'scar')) : null, ...tags.map((t) => chip(achTagName(t), toneFor('Tag', achTagName(t))))],
-      row('Name', name(d.name)),
+      row('Name', name(title)),
+      d.names ? row('Names', Object.entries(d.names).map(([k, n]) => `${k}: ${n}`).join(' · ') + (d.every ? `; after that, ${d.name}` : '')) : null,
       row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
         ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),
@@ -424,14 +427,31 @@ function achievements(): HTMLElement[] {
 // ---------- Classes ----------
 /** classes, lowest tier first (CLASS_TIERS order), then by name */
 const byTier = (): ClassDef[] => Object.values(lib.classes ?? {}).sort((a, b) => CLASS_TIERS.pos(a.tier) - CLASS_TIERS.pos(b.tier) || a.name.localeCompare(b.name));
+/** every condition a class unlocks on, as one list (all must hold; an either-of group needs one of its skills) */
+const PERK_NUMBERS: Record<string, string> = { hearingReach: 'hearing reach' };
+function unlockRow(c: ClassDef): HTMLElement | null {
+  const sk = ([id, n]: [string, number]) => [link('skills', id, skillName(id)), ` ${n}`];
+  const lines: (Node | string)[][] = [
+    ...Object.entries(c.unlock ?? {}).map((e) => sk(e)),
+    ...(c.unlockAny ?? []).map((g) => ['one of: ', ...Object.entries(g).flatMap((e, i) => [i ? ', ' : '', ...sk(e)])]),
+    ...(c.unlockPerk ? [['the perk ', link('perks', c.unlockPerk, lib.perks[c.unlockPerk]?.name ?? c.unlockPerk)]] : []),
+    ...Object.entries(c.unlockPerkWith ?? {}).map(([k, n]) => {
+      const has = Object.values(lib.perks).filter((d) => ((d as unknown as Record<string, number>)[k] ?? 0) >= (n as number));
+      return [`an active perk with ${PERK_NUMBERS[k] ?? humanKey(k).toLowerCase()} ${n}`, ...(has.length ? [' (', ...has.flatMap((d, i) => [i ? ', ' : '', link('perks', d.id, d.name)]), ')'] : [])];
+    }),
+    ...Object.entries(c.unlockClass ?? {}).map(([id, lv]) => [link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` at its top level (${classMaxLevel(id)})` : ` level ${lv}`]),
+  ];
+  return lines.length ? row(lines.length > 1 ? 'Unlocks when all hold' : 'Unlocks when', h('div', { class: 'lv-sub' }, lines.map((l) => h('div', {}, ...l)))) : null;
+}
 function classes(): HTMLElement[] {
   return [
     h('p', { class: 'hs-note' }, `Lowest tier first. Tiers (CLASS_TIERS in src/scales.ts): ${CLASS_TIERS.keys.map((k) => CLASS_TIERS.name(k)).join(', ')}.`),
     h('div', { class: 'lv-grid' }, byTier().map((c) => card('classes', c.id, c, c.name,
       [chip(CLASS_TIERS.name(c.tier), toneFor('Tier', CLASS_TIERS.name(c.tier))), c.fallback ? chip('default class', toneFor('Kind', 'default class')) : null, c.creation ? chip('starting class', toneFor('Kind', 'starting class')) : null],
+      c.story ? h('p', { class: 'lv-story' }, c.story) : null,
       row('Top level', `${classMaxLevel(c.id)} (from its tier)`),
-      c.unlockClass ? row('Unlocks at', h('span', {}, ...Object.entries(c.unlockClass).flatMap(([id, lv], i) => [i ? ', or ' : '', link('classes', id, lib.classes[id]?.name ?? id), lv === 'max' ? ` top level (${classMaxLevel(id)})` : ` level ${lv}`]))) : null,
-      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'capstone', 'capstones', 'unlockClass']),
+      unlockRow(c),
+      ...fields(c as unknown as Entry, ['id', 'name', 'tier', 'story', 'capstone', 'capstones', 'unlock', 'unlockAny', 'unlockPerk', 'unlockPerkWith', 'unlockClass']),
       c.capstone?.length || c.capstones?.length ? row('Capstones', h('div', { class: 'lv-sub' },
         ...(c.capstone ?? []).map((id) => h('div', {}, link('perks', id, lib.perks[id]?.name ?? id), ' ', chip('default'))),
         ...(c.capstones ?? []).map((x) => h('div', {}, link('perks', x.perk, lib.perks[x.perk]?.name ?? x.perk), ' ', chip('alternate'), ' ', ...access(x.needs))))) : null))),
@@ -657,7 +677,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
   ['Library', ['gear', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'status']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'fears', 'status']],
   ['World', null],
 ];
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
@@ -815,6 +835,9 @@ function filter(): void {
   const q = search.value.trim().toLowerCase();
   const allOn = allBox.checked && !!q;
   document.body.classList.toggle('lv-allmode', allOn);
+  // while a search is typed every section shows unfolded; the folds themselves are untouched, so clearing restores them
+  document.body.classList.toggle('lv-searching', !!q);
+  body.querySelectorAll('.lv-foldbtn').forEach((fb) => fb.setAttribute('aria-expanded', String(!!q || !fb.closest('.lv-group, .lv-foldcard')?.classList.contains('lv-folded'))));
   if (allOn) {
     const n = searchAll(q);
     if (allRes.parentNode !== body) body.prepend(allRes);
@@ -1040,7 +1063,7 @@ function foldable(): void {
     btn.setAttribute('aria-expanded', String(!box(h2).classList.contains('lv-folded')));
   });
 }
-body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2) fold(h2); });
+body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest(HEAD); if (h2 && !document.body.classList.contains('lv-searching')) fold(h2); });
 
 // Table view (VR1, VR2): flat tables read as one row per entry. The cards stay in the page (hidden), so search,
 // filters, colour and pins keep working on them; each row mirrors its card.
@@ -1074,23 +1097,32 @@ function drawSwitch(): void {
     onclick: () => { viewOfTable[shown] = m; keep('lv-view', viewOfTable); tablify(); drawSwitch(); } }, m === 'cards' ? 'Cards' : 'Table')));
 }
 const cellText = (n: Element | null | undefined) => (n?.textContent ?? '').replace(/\s+/g, ' ').trim();
+const ALWAYS_COLS = new Set(['Reward', 'Effect']);
 function tablify(): void {
   body.querySelectorAll('.lv-table').forEach((t) => t.remove());
   body.querySelectorAll('.lv-tabled').forEach((g) => g.classList.remove('lv-tabled'));
   if (modeOf(shown) !== 'table') return;
-  body.querySelectorAll<HTMLElement>('.lv-grid').forEach((grid) => {
+  // each section picks the fields all its entries share and that fit a cell; when the sections' picks together
+  // are few enough, every section uses them all, so the tables of one tab read the same way
+  const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row, :scope > .lv-cbody > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
+  const grids = Array.from(body.querySelectorAll<HTMLElement>('.lv-grid')).map((grid) => {
     const list = Array.from(grid.querySelectorAll<HTMLElement>(':scope > .lv-card:not(.lv-fixed)'));
-    if (!list.length) return;
-    const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row, :scope > .lv-cbody > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
     const maps = list.map(rowsOf);
-    // columns: fields every entry has, short enough for a cell; long ones stay in the pop-up
-    const cols = [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60).slice(0, 6);
+    // a column that only repeats the entry's name or a raw id says nothing new; what an entry gives (Reward, Effect) always shows
+    const echoes = (k: string) => maps.every((m, i) => { const v = cellText(m.get(k)); return v === cellText(list[i].querySelector(':scope > header > h3')) || v === list[i].id.split('/').pop() || /^[A-Z]{2,3}\d+\b/.test(v); });
+    const own = list.length ? [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && !echoes(k)
+      && (ALWAYS_COLS.has(k) || maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60)) : [];
+    return { grid, list, maps, own };
+  }).filter((g) => g.list.length);
+  const union = [...new Set(grids.flatMap((g) => g.own))];
+  grids.forEach(({ grid, list, maps, own }) => {
+    const cols = (union.length <= 6 ? union : own).slice(0, 6);
     const sort = { col: -1, dir: 1 };
     const tbody = h('tbody', {});
     const rows = list.map((c, i) => {
       const t = c.querySelector(':scope > header > h3');
       const tr = h('tr', { 'data-ref': c.id }, h('th', { scope: 'row' }, h('a', { class: 'lv-link', href: `#${c.id}` }, cellText(t))),
-        ...cols.map((k) => h('td', {}, ...Array.from(maps[i].get(k)!.cloneNode(true).childNodes))));
+        ...cols.map((k) => h('td', {}, ...(maps[i].has(k) ? Array.from(maps[i].get(k)!.cloneNode(true).childNodes) : ['—']))));
       return { tr, card: c, keys: [cellText(t), ...cols.map((k) => cellText(maps[i].get(k)))] };
     });
     const heads = ['Name', ...cols].map((k, ci) => h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'lv-sort', onclick: () => {
