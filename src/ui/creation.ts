@@ -3,7 +3,7 @@ import { TR } from '../library/treeIds';
 import type { Actor, CreationBuild, GameApi } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
+import { classFloors, creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
@@ -40,7 +40,7 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId: str
 function classScreen(api: GameApi, onStarted: () => void, classId: string, switchTo: (id: string) => void): HTMLElement {
   const lib = getLibrary();
   const cls = lib.classes[classId];
-  const floors = cls?.floors ?? {};
+  const floors = classFloors(classId).all; // the class floors plus its unlock conditions
   const who = { core: newPlayer(classId) } as Actor;
   const view = TREE_VIEW.filter((t) => !lib.trees[t.id] || treeOpen(who, t.id)); // TA10: trees a new player can't access are hidden
   const open = view.flatMap((t) => lib.trees[t.id]?.skills ?? []).filter((k) => skillOpen(who, k));
