@@ -390,11 +390,13 @@ function achievements(): HTMLElement[] {
     const kind = d.by === 'body_type' ? 'body type' : 'race';
     const bane = isBane(d) ? baneSkill(key) : 0; // D-111: the same function the rolls use
     const total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0; // D-119
-    return card('achievements', key, d, d.name, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, toneFor('Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`)), chip(`${achXp(d)} XP`),
+    // {level} on an every-N row reads as the levels it is earned at: 10, 20, 30…
+    const title = d.every && d.name.includes('{level}') ? d.name.replace('{level}', `${[0, 1, 2].map((i) => (d.count ?? d.every!) + i * d.every!).join(', ')}…`) : d.name;
+    return card('achievements', key, d, title, [chip(`Level ${REWARD_LEVELS.name(d.level as 'i')}`, toneFor('Level', `Level ${REWARD_LEVELS.name(d.level as 'i')}`)), chip(`${achXp(d)} XP`),
       bane ? chip(`+${bane} skill vs that ${kind}`) : null, total ? chip(`+${total} combat rolls`) : null,
       rewardLines(d).length ? chip('reward') : null,
       d.scar ? chip('scar', toneFor('Kind', 'scar')) : null, ...tags.map((t) => chip(achTagName(t), toneFor('Tag', achTagName(t))))],
-      row('Name', name(d.name)),
+      row('Name', name(title)),
       row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
         ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),
@@ -1096,23 +1098,27 @@ function tablify(): void {
   body.querySelectorAll('.lv-table').forEach((t) => t.remove());
   body.querySelectorAll('.lv-tabled').forEach((g) => g.classList.remove('lv-tabled'));
   if (modeOf(shown) !== 'table') return;
-  body.querySelectorAll<HTMLElement>('.lv-grid').forEach((grid) => {
+  // each section picks the fields all its entries share and that fit a cell; when the sections' picks together
+  // are few enough, every section uses them all, so the tables of one tab read the same way
+  const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row, :scope > .lv-cbody > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
+  const grids = Array.from(body.querySelectorAll<HTMLElement>('.lv-grid')).map((grid) => {
     const list = Array.from(grid.querySelectorAll<HTMLElement>(':scope > .lv-card:not(.lv-fixed)'));
-    if (!list.length) return;
-    const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row, :scope > .lv-cbody > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
     const maps = list.map(rowsOf);
-    // columns: fields every entry has, short enough for a cell; long ones stay in the pop-up
-    // a column that only repeats the entry's name or its raw id says nothing new; what an entry gives (Reward, Effect) always shows
-    const titles = list.map((c) => cellText(c.querySelector(':scope > header > h3'))), ids = list.map((c) => c.id.split('/').pop() ?? '');
-    const echoes = (k: string) => maps.every((m, i) => [titles[i], ids[i]].includes(cellText(m.get(k))));
-    const cols = [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && !echoes(k)
-      && (ALWAYS_COLS.has(k) || maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60)).slice(0, 6);
+    // a column that only repeats the entry's name or a raw id says nothing new; what an entry gives (Reward, Effect) always shows
+    const echoes = (k: string) => maps.every((m, i) => { const v = cellText(m.get(k)); return v === cellText(list[i].querySelector(':scope > header > h3')) || v === list[i].id.split('/').pop() || /^[A-Z]{2,3}\d+\b/.test(v); });
+    const own = list.length ? [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && !echoes(k)
+      && (ALWAYS_COLS.has(k) || maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60)) : [];
+    return { grid, list, maps, own };
+  }).filter((g) => g.list.length);
+  const union = [...new Set(grids.flatMap((g) => g.own))];
+  grids.forEach(({ grid, list, maps, own }) => {
+    const cols = (union.length <= 6 ? union : own).slice(0, 6);
     const sort = { col: -1, dir: 1 };
     const tbody = h('tbody', {});
     const rows = list.map((c, i) => {
       const t = c.querySelector(':scope > header > h3');
       const tr = h('tr', { 'data-ref': c.id }, h('th', { scope: 'row' }, h('a', { class: 'lv-link', href: `#${c.id}` }, cellText(t))),
-        ...cols.map((k) => h('td', {}, ...Array.from(maps[i].get(k)!.cloneNode(true).childNodes))));
+        ...cols.map((k) => h('td', {}, ...(maps[i].has(k) ? Array.from(maps[i].get(k)!.cloneNode(true).childNodes) : ['—']))));
       return { tr, card: c, keys: [cellText(t), ...cols.map((k) => cellText(maps[i].get(k)))] };
     });
     const heads = ['Name', ...cols].map((k, ci) => h('th', { scope: 'col', 'aria-sort': 'none' }, h('button', { type: 'button', class: 'lv-sort', onclick: () => {
