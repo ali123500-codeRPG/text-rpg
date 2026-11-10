@@ -33,6 +33,9 @@ export function impressionWords(actionType: string, tier: Tier): string {
   return (actionType === 'intimidate' ? THREATENING : CONVINCING)[tier];
 }
 
+/** what the listener hears for a talk action that has no words: only that the player wants a word with them */
+export const NO_WORDS = '(no words yet: they only catch your eye to talk)';
+
 export function isSpeech(type: string | undefined | null): boolean {
   return !!type && (SPEECH_ACTIONS as readonly string[]).includes(type);
 }
@@ -44,7 +47,8 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
   const a = intent.action;
   if (!a || !isSpeech(a.type)) return intent;
   const out = { ...intent };
-  if (!out.spoken?.trim()) out.spoken = text.trim();
+  // a plain "talk to someone" with no words of its own is an opening, not a line: the command text is never spoken
+  if (!out.spoken?.trim()) out.spoken = a.type === 'talk' ? null : text.trim();
   if (!out.addressees?.length && a.target && state.actors.some((x) => x.id === a.target)) out.addressees = [a.target];
   return out;
 }

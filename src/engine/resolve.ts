@@ -765,7 +765,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const ex = input.exchange;
   if (ex && isActive(state.player) && (isSpeech(playerOrder.type) || input.quickWord)) {
     const ev = mk(ctx, state.player, 'speak', {
-      line: { text: input.intent?.spoken ?? '', volume: 'normal' }, tier: ex.playerTier,
+      // a wordless opening (talk with no line) has no line to show or remember
+      ...(input.intent?.spoken?.trim() ? { line: { text: input.intent.spoken, volume: 'normal' as const } } : {}), tier: ex.playerTier,
       speech: { skill: ex.skill, impression: ex.impression ?? undefined, addressees: input.spokespeople },
     });
     emit(ctx, ev);
