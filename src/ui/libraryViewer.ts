@@ -20,7 +20,7 @@ import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS } from '../scales';
-import { requirement } from '../ruleset/requirements';
+import { itemLevel, requirement } from '../ruleset/requirements';
 import { fmtDate, h } from './kit';
 import { toneTable } from './libraryTones';
 import { skillName } from './creation';
@@ -133,6 +133,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const covers = new Set(i.armor?.covers ?? []);
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
+    i.gearClass ? row('Gear class', typedId(i.gearClass) ?? i.gearClass) : null,
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
     row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
@@ -318,6 +319,21 @@ function perks(): HTMLElement[] {
 const links = (sec: string, pairs: [string, string][]) => (pairs.length ? h('span', {}, ...pairs.flatMap(([id, t], i) => [i ? ', ' : '', link(sec, id, t)])) : none());
 const usedBy = (pred: (t: Entry) => boolean) => links('templates', Object.values(lib.templates).filter((x) => pred(x as unknown as Entry)).map((x) => [x.id, x.label]));
 const perkList = (ids: string[] | undefined) => links('perks', (ids ?? []).map((id) => [id, lib.perks[id]?.name ?? id]));
+// ---------- Gear classes ----------
+// a class sets WHICH skill its items ask for; the item's level sets HOW MUCH (EQUIP_NEED)
+const itemsOfClass = (gc: string) => Object.values(lib.items).filter((i) => i.gearClass === gc);
+const kindOfClass = (gc: string) => [...new Set(itemsOfClass(gc).map((i) => i.kind))].join(', ') || undefined;
+function gearClasses(): HTMLElement[] {
+  return [h('p', { class: 'hs-note' }, 'A gear class sets which skill its items ask for. The item\'s level sets how much: ',
+      EQUIP_LEVELS.keys.map((l) => `${EQUIP_LEVELS.name(l)} ${CONFIG.EQUIP_NEED[l] ?? 0}`).join(', '), ' true skill.'),
+    h('div', { class: 'lv-grid' }, Object.values(lib.gearClasses ?? {}).map((g) => {
+      const items = itemsOfClass(g.id), kind = kindOfClass(g.id);
+      return card('gearClasses', g.id, g, g.name, [kind ? chip(kind, toneFor('Kind', kind)) : null],
+        row('Skill', link('skills', g.skill, skillName(g.skill))),
+        row('Items', items.length ? h('span', {}, ...items.flatMap((i, n) => [n ? ', ' : '', link('gear', i.id, `${label(i.name)} (${EQUIP_LEVELS.name(itemLevel(i) ?? 'crude')}${items.filter((o) => o.name === i.name).length > 1 ? `, bulk ${i.bulk}` : ''})`)])) : none('none yet')));
+    }))];
+}
+
 function races(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.races ?? {}).map((r) => {
     const ct = lib.bodyTypes[r.bodyTypeId];
@@ -581,6 +597,7 @@ function equationsView(): HTMLElement[] {
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
+  { key: 'gearClasses', title: 'Gear classes', table: 'gearClasses', view: gearClasses },
   { key: 'perks', title: 'Perks', table: 'perks', view: perks },
   { key: 'races', title: 'Races', table: 'races', view: races },
   { key: 'bodyTypes', title: 'Body types', table: 'bodyTypes', view: bodyTypes },
@@ -593,13 +610,14 @@ const CUSTOM: Section[] = [
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
+  gearClasses: (g: { id?: string }) => [['Kind', g.id ? kindOfClass(g.id) : undefined]],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
   stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],
     ['Fed by', e.type ? (e.feeds ? 'library entries' : 'a fixed number') : undefined]],
   standIns: (e: { id?: string; functions?: string[]; own?: boolean }) => [['Rule', e.id ? (e.own ? 'own table' : 'flat share') : undefined], ['Tree', treeOf(e.id)],
     ...(e.functions ?? []).map((f): [string, string] => ['Function', functionName(f)])],
-  gear: (i: ItemDef) => [['Kind', i.kind], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
+  gear: (i: ItemDef) => [['Kind', i.kind], ['Gear class', i.gearClass && lib.gearClasses?.[i.gearClass]?.name], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
     ...[...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]), ...(i.tags ?? [])].filter((f) => f !== i.kind).map((f): [string, string] => ['Flag', f])], // a flag that repeats the kind says nothing new
   perks: (d: PerkDef & { place?: string; skill?: string; bankedAs?: string }) => [['Banked as', d.bankedAs && ({ milestone: 'milestone perk', allX: 'All-X candidate', other: 'other' } as Record<string, string>)[d.bankedAs]], ['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)]],
@@ -626,7 +644,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
-  ['Library', ['gear', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
+  ['Library', ['gear', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
   ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'status']],
   ['World', null],
 ];
