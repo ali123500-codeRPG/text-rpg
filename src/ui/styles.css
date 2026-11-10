@@ -476,7 +476,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
 .play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) clamp(var(--panel-w), 30vw, 600px); } /* the open sheet grows with the screen */
 .play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
-/* the story fills all the space beside the sheet at every width (Ali: always fit the screen, no empty spaces); its type
+/* the story fills all the space beside the sheet at every width (always fit the screen, no empty spaces); its type
    grows a little with the screen so wide lines stay readable */
 .play { --story-size: clamp(17px, 0.45vw + 11px, 21px); }
 .col { font: var(--story-size)/1.6 var(--font-story); width: 100%; box-sizing: border-box; }
