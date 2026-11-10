@@ -3,7 +3,7 @@
 // status strip that opens the full sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
-import type { Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
+import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
@@ -24,6 +24,7 @@ import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, motionOn, moving, ms, play, pulse, sentences, setMotion, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
+import { closePop, openPop } from './pop';
 import { PART_STATES, SHOWN_LEVELS, working } from '../ruleset/body';
 import type { AttackOutcome, PartState } from '../types';
 
@@ -272,6 +273,33 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
     h('div', {}, title, h('small', {}, sub)), action ? h('button', { type: 'button', class: 'hs-btn-text', onclick: action[1] }, action[0]) : null);
 
+  /** an achievement or scar earned this turn: its name, reward level and what it asks for; a click shows why it was
+   * earned, its XP and its rewards in a details pop-up. Scars carry the danger colour and a different mark. */
+  const achCard = (a: AchievementNote) => {
+    const kind = a.scar ? 'Scar' : 'Achievement';
+    const card = h('div', { class: `perk-new ach${a.scar ? ' scar' : ''}`, role: 'button', tabindex: '0', 'data-ach': a.id,
+      'aria-label': `${kind}: ${a.name}${a.levelName ? `, tier ${a.levelName}` : ''}. Show why you earned it` },
+      h('span', { class: 'st', 'aria-hidden': 'true' }, a.scar ? '✶' : '✦'),
+      h('div', { class: 'ach-txt' }, h('span', { class: 'ach-k' }, kind, a.levelName ? h('span', { class: 'ach-lv', title: 'Reward tier: it sets the XP and grows with how hard it is to earn' }, `Tier ${a.levelName}`) : null),
+        h('b', { class: 'ach-n' }, a.name), a.earnedAt ? h('small', {}, cap(a.earnedAt)) : null),
+      h('span', { class: 'hs-btn-text ach-why', 'aria-hidden': 'true' }, 'Why?'));
+    const show = () => {
+      if (moving()) return; // M-12: a click while it still arrives only skips (the story's click handler)
+      openPop({ title: kind, opener: card, tone: a.scar ? 'danger' : 'scene-mark', cls: 'ach-pop', body: [
+        h('p', { class: 'ach-pop-n' }, h('b', {}, a.name), a.levelName ? h('span', { class: 'ach-lv' }, `Tier ${a.levelName}`) : null),
+        a.why ? h('p', { class: 'ach-pop-why' }, a.why) : null,
+        h('dl', { class: 'ach-pop-dl' },
+          a.earnedAt ? [h('dt', {}, 'Earned at'), h('dd', {}, cap(a.earnedAt))] : null,
+          a.xp ? [h('dt', {}, 'XP'), h('dd', {}, `+${a.xp}`)] : null,
+          a.rewards?.length ? [h('dt', {}, 'Rewards'), h('dd', {}, h('ul', {}, a.rewards.map((r) => h('li', {}, r))))] : null),
+        h('button', { type: 'button', class: 'hs-btn-text', onclick: () => { closePop(); nav('achievements'); } }, a.scar ? 'See all scars' : 'See all achievements'),
+      ] });
+    };
+    card.addEventListener('click', show);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(); } });
+    return card;
+  };
+
   // ---- the story list: one cached entry per line, so redraws never rebuild it or close an opened fold
   const entries = new WeakMap<LogLine, HTMLElement>();
   let snap: Record<string, string> | null = null, snapLine: LogLine | null | undefined;
@@ -312,7 +340,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.heals ?? []).map(healCard),
       ...(l.wounds ?? []).filter((w) => !working(w.to as PartState)).map(woundCard),
       ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks], true)),
-      ...(l.achievements ?? []).map((a) => goldCard('Achievement', a.name, ['See achievements', () => nav('achievements')])),
+      ...(l.achievements ?? []).map(achCard),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
       ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks])),
       l.mechanics?.length ? h('details', { class: 'rolls' }, h('summary', {}, h('span', { class: 'hs-label' }, 'Rolls')),
@@ -619,11 +647,31 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (ab) aroundBeats(ab, aa, Math.min(t, end));
     let pointsAt: number | null = null;
     for (const g of gold) {
-      const d = at(stagger); arrive(g, d, 6); pulse(g.querySelector('.st'), d + fade, 2);
+      const d = at(stagger);
+      if (g.classList.contains('ach')) { const n = honor(g as HTMLElement, d); t += n; continue; }
+      arrive(g, d, 6); pulse(g.querySelector('.st'), d + fade, 2);
       if (pointsAt === null && g.hasAttribute('data-levelup')) pointsAt = d + fade;
     }
     // M-38: the rail's perk-point badge lands with the level-up card that gave the point, never before it
     if (b && a.points !== b.points) pointsBeat(b.points, a.points, pointsAt ?? at(stagger));
+  }
+
+  /** M-38: an achievement is the turn's special moment, so it gets its own beat: the card rises in, a band of light
+   * sweeps across it once, then its reward level lands. A scar comes in heavier and darker, with no light. Returns
+   * how long it holds the cards after it. */
+  function honor(g: HTMLElement, d: number): number {
+    const dur = ms('--m-honor'), beat = ms('--m-beat');
+    if (g.classList.contains('scar')) {
+      play(g, [{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'none' }], { dur: beat, delay: d });
+      pulse(g.querySelector('.st'), d + beat, 3, true);
+      stamp(g.querySelector<HTMLElement>('.ach-lv'), d + beat);
+      return beat;
+    }
+    play(g, [{ opacity: 0, transform: 'translateY(8px) scale(.97)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') * 2, delay: d });
+    play(g, [{ transform: 'translateX(-100%)' }, { transform: 'translateX(100%)' }], { dur, delay: d + ms('--m-state'), pseudo: '::after' });
+    pulse(g.querySelector('.st'), d + ms('--m-state'), 3);
+    stamp(g.querySelector<HTMLElement>('.ach-lv'), d + dur / 2);
+    return dur / 2;
   }
 
   /** the rail's ✦n badge (it lives outside the Play screen): a new badge fades in, a changed count swaps at its beat */
