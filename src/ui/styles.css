@@ -546,7 +546,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-pchips { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; }
 .cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
 .ps-damaged, .ps-pressure { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
-.rolls-sw[aria-pressed="true"] { color: var(--text); }
+.rolls-sw[aria-pressed="true"], .auto-open[aria-pressed="true"] { color: var(--text); }
 
 /* QT15: the quest line under the place line on the Play screen; only the quest text shrinks */
 .quest-line { display: flex; align-items: center; gap: var(--space-2); width: fit-content; max-width: 100%; min-height: 24px; padding: 0; margin-top: var(--space-1);
@@ -561,9 +561,18 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* Watch an agent play: the autopilot bar under who's here */
 .auto { display: grid; gap: var(--space-2); }
 .auto:empty { display: none; }
-.auto-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
-.auto-row.end { justify-content: flex-end; }
-.auto-row select { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); height: var(--control-h); padding: 0 var(--space-2); }
-.auto-say { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: var(--r-md); font-family: var(--font-story); }
+/* the agent bar: one quiet panel under Who's here; settings on the left, the go controls pushed right */
+.auto-panel { display: grid; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: var(--r-lg);
+  background: color-mix(in oklch, var(--surface) 82%, transparent); }
+.auto-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+.auto-field { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: 13px; }
+.auto-field select { font: 14px/1 var(--font-round); color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-md);
+  height: var(--control-h); padding: 0 var(--space-2); }
+.auto-go { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
+.auto-x { font-size: 20px; line-height: 1; min-width: var(--control-h); color: var(--muted); }
+.auto-say { margin: 0; display: flex; gap: var(--space-3); align-items: baseline; font: italic 15px/1.5 var(--font-story); }
+.auto-who { flex: none; font: 600 11px/1 var(--font-round); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-style: normal; }
+.auto-panel .hs-note { margin: 0; }
 .auto-own { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-md); }
+.title-tools { display: flex; align-items: center; gap: var(--space-3); align-self: start; }
 

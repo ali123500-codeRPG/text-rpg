@@ -15,7 +15,8 @@ function readPrefs(): Prefs {
 const writePrefs = (p: Prefs) => { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* per-PC convenience only */ } };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export type Autopilot = { el: HTMLElement; update: () => void; playing: () => boolean };
+/** el: the bar under Who's here (empty while closed); opener: the header switch beside Show rolls */
+export type Autopilot = { el: HTMLElement; opener: HTMLElement; update: () => void; playing: () => boolean };
 
 /** `typeAndSend` types the command into the action box, then sends it like the Send button (resolves when the turn is done) */
 export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promise<void>, redraw: () => void): Autopilot {
@@ -23,6 +24,8 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   let open = false, playing = false, stepping = false, switching = false;
   let status = '', said = '';
   const el = h('section', { class: 'auto', 'aria-label': 'Watch an agent play' });
+  const opener = h('button', { type: 'button', class: 'hs-btn-text auto-open', title: 'An agent plays while you watch, with spoken commentary',
+    onclick: () => { if (open) pause(''); open = !open; update(); } });
   const agentStory = () => api.state()?.meta.owner === 'agent';
   const stopped = () => api.notices().some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
 
@@ -84,26 +87,29 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     const mine = agentStory() ? null : h('p', { class: 'hs-note' }, 'The agent’s turns are saved to your story like your own. Undo works one turn back.');
     const banner = agentStory() ? h('div', { class: 'auto-own' }, h('span', {}, 'You’re watching the agent’s own story. Your story is kept as it is.'),
       btn('Back to my story', () => void useSave('player'), { disabled: switching })) : null;
-    if (!open) {
-      el.replaceChildren(banner ?? '', h('div', { class: 'auto-row end' }, btn('Watch an agent play', () => { open = true; update(); }, { title: 'An agent plays while you watch, with spoken commentary' })));
-      return;
-    }
+    opener.textContent = open ? '✓ Watch an agent play' : 'Watch an agent play';
+    opener.setAttribute('aria-pressed', String(open));
+    if (!open) { el.replaceChildren(banner ?? ''); return; }
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       PERSONA_NAMES.map(([id, name]) => h('option', { value: id, selected: prefs.persona === id }, name)));
     const wait = h('select', { 'aria-label': 'Wait between turns', onchange: (e: Event) => { prefs.waitS = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
-      WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s between turns`)));
-    el.replaceChildren(banner ?? '', h('div', { class: 'auto-row' },
-      h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' },
-        btn('On my story', () => void useSave('player'), { pressed: !agentStory(), disabled: switching }),
-        btn('Its own story', () => void useSave('agent'), { pressed: agentStory(), disabled: switching })),
-      h('label', { class: 'hs-label' }, 'Playstyle ', persona), wait,
-      btn(prefs.voice ? 'Voice on' : 'Voice off', () => { prefs.voice = !prefs.voice; writePrefs(prefs); if (!prefs.voice && typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); update(); }, { pressed: prefs.voice }),
-      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }),
-      btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
-      btn('Close ×', () => { pause(''); open = false; update(); })),
-    said ? h('p', { class: 'auto-say' }, h('b', {}, 'Agent: '), `“${said}”`) : '',
-    status ? h('p', { class: 'hs-note', role: 'status' }, status) : '', playing ? '' : mine ?? '');
+      WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s a turn`)));
+    el.replaceChildren(banner ?? '', h('div', { class: 'auto-panel' },
+      h('div', { class: 'auto-row' },
+        h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' },
+          btn('On my story', () => void useSave('player'), { pressed: !agentStory(), disabled: switching }),
+          btn('Its own story', () => void useSave('agent'), { pressed: agentStory(), disabled: switching })),
+        h('label', { class: 'auto-field' }, 'Playstyle', persona),
+        h('label', { class: 'auto-field' }, 'Pace', wait),
+        btn(prefs.voice ? '✓ Voice' : 'Voice', () => { prefs.voice = !prefs.voice; writePrefs(prefs); if (!prefs.voice && typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); update(); },
+          { pressed: prefs.voice, title: prefs.voice ? 'The agent’s commentary is read aloud. Click to mute it' : 'Click to read the agent’s commentary aloud' }),
+        h('div', { class: 'auto-go' },
+          btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
+          playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }),
+          h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'))),
+      said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), `“${said}”`) : '',
+      status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status || mine!.textContent) : ''));
   }
   update();
-  return { el, update, playing: () => playing };
+  return { el, opener, update, playing: () => playing };
 }
