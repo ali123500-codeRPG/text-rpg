@@ -397,6 +397,7 @@ function achievements(): HTMLElement[] {
       rewardLines(d).length ? chip('reward') : null,
       d.scar ? chip('scar', toneFor('Kind', 'scar')) : null, ...tags.map((t) => chip(achTagName(t), toneFor('Tag', achTagName(t))))],
       row('Name', name(title)),
+      d.names ? row('Names', Object.entries(d.names).map(([k, n]) => `${k}: ${n}`).join(' · ') + (d.every ? `; after that, ${d.name}` : '')) : null,
       row('Reward', (() => { const all = [...(bane ? [`+${bane} skill on every roll against that ${kind}`] : []),
         ...(total ? [`+${total} on every attack and defense roll`] : []), ...rewardLines(d)];
         return all.length ? all.join('; ') : none('none, XP only'); })()),

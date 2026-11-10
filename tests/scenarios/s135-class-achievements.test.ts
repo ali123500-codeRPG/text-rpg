@@ -40,6 +40,14 @@ describe('135 class and level achievements', () => {
     expect(chain.slice(1).map((id) => a[id].after)).toEqual(chain.slice(0, -1));
     expect(CONFIG.REWARD_XP.vi).toBe(10000);
   });
+  it('each 10 levels has a name of its own, and past 100 the row falls back to its template', () => {
+    const s = makeVillage();
+    const d = getLibrary().achievements![ACH.char_level_10];
+    const names = Array.from({ length: 10 }, (_, i) => achievementName(s, { id: `${ACH.char_level_10}:${(i + 1) * 10}`, key: ACH.char_level_10, of: String((i + 1) * 10) }));
+    expect(new Set(names).size).toBe(10);
+    expect(names[9]).toBe(d.names![100]);
+    expect(achievementName(s, { id: `${ACH.char_level_10}:110`, key: ACH.char_level_10, of: '110' })).toBe('Woven Past Counting (110)');
+  });
   it('every 10 character levels pays a level 0 achievement, once per multiple', () => {
     const s = makeVillage();
     const cur = s.player.core.classes.find((c) => c.state === 'current')!;
@@ -53,6 +61,6 @@ describe('135 class and level achievements', () => {
     const want = Array.from({ length: Math.floor(lv / 10) }, (_, i) => `${ACH.char_level_10}:${(i + 1) * 10}`);
     expect(earned(s).filter((x) => x.startsWith(`${ACH.char_level_10}:`))).toEqual(want);
     expect(CONFIG.REWARD_XP[getLibrary().achievements![ACH.char_level_10].level]).toBe(50);
-    if (want.length) expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === want[0])!)).toBe('Knotted at 10');
+    if (want.length) expect(achievementName(s, s.player.progression!.achievements!.find((a) => a.id === want[0])!)).toBe('No Longer Green');
   });
 });

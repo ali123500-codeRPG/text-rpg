@@ -330,6 +330,7 @@ export function achievementName(state: GameState, a: { id: string; key?: string;
   const lib = getLibrary();
   const d = a.key ? lib.achievements?.[a.key] : undefined;
   if (!d) return a.name ?? a.id;
+  if (a.of && d.names?.[a.of]) return d.names[a.of]; // a name of its own for this earning
   let what = a.of ?? '';
   if (d.by === 'body_type' && a.of) try { what = (bodyType(state, a.of) as { name?: string }).name ?? a.of; } catch { /* keep the id */ }
   if (d.by === 'race' && a.of) what = lib.races?.[a.of]?.name ?? a.of;
