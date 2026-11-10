@@ -356,12 +356,18 @@ export function kindName(state: GameState, d: AchievementDef, of?: string): stri
   if (d.by === 'class_tier' && a.of && CLASS_TIERS.has(a.of)) what = CLASS_TIERS.name(a.of);
   if (d.by === 'function' && a.of) what = functionName(a.of);
   if (d.by === 'skill' && a.of) what = skillName(a.of);
-  if (d.by === 'heal_source' && a.of) what = lib.healing?.[a.of]?.name ?? a.of;
+  if ((d.by === 'heal_source' || d.by === 'morale_source') && a.of) what = sourceRowName(d, a.of);
   if (d.by === 'giver' && a.of) { // the giver's name once the player knows it, else how the player sees them
     const g = state.actors.find((x) => x.id === a.of);
     what = !g ? 'someone' : g.knownOnSight || state.player.journal?.namesKnown.includes(g.id) ? g.names.current : g.label;
   }
   return what;
+}
+
+/** the name of a source row a by-source achievement counts under: a healing row (heal_source) or a composure row (morale_source) */
+export function sourceRowName(d: AchievementDef, id: string): string {
+  const lib = getLibrary();
+  return (d.by === 'morale_source' ? lib.composure?.[id]?.name : lib.healing?.[id]?.name) ?? id;
 }
 
 const fmtCount = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -371,7 +377,7 @@ const fmtCount = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
 export function earnedAtText(state: GameState, d: AchievementDef, of?: string): string {
   const n = d.every && of && Number.isFinite(+of) ? +of : d.count;
   let what = (n === 1 ? ACH_RULE_ONE[d.rule] : undefined) ?? ACH_RULE_TEXT[d.rule] ?? d.rule;
-  if (d.only) what = what.replace(/ \(.*\)$/, '').replace(/\bone source$/, getLibrary().healing?.[d.only]?.name ?? d.only);
+  if (d.only) what = what.replace(/ \(.*\)$/, '').replace(/\bone source$/, sourceRowName(d, d.only));
   if (d.every) what = what.replace(/, again at every multiple$/, '');
   const kind = d.by && !d.only && of ? ` (${title(kindName(state, d, of))})` : d.rule === 'mastery' && of ? ` (${kindName(state, d, of)})` : '';
   return `${n !== undefined ? `${fmtCount(n)} ` : ''}${what}${kind}`;

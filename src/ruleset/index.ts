@@ -18,7 +18,7 @@ import { bestReward, deathsDoor, rallyMods, renownMods } from './achRewards';
 import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
-import { rollFeats } from '../engine/xp';
+import { rollFeats, tally } from '../engine/xp';
 import { shortShifts } from './requirements';
 import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
@@ -391,9 +391,12 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     }
   }
   const counted = dmg * CONFIG.IMPACT_MULT[part?.impact ?? 'normal'] + general * CONFIG.IMPACT_MULT.normal;
-  const add = T.core.condition.hpLostPct + (counted / hp) * 100;
+  const lostBefore = T.core.condition.hpLostPct;
+  const add = lostBefore + (counted / hp) * 100;
   const lost = destroyedEssential ? CONFIG.HP_LOST_MAX : deathsDoor(state, T, T.core.condition.hpLostPct, add); // a destroyed essential part kills
   T.core.condition.hpLostPct = Math.min(CONFIG.HP_LOST_MAX, lost);
+  // achievements count the player's HP lost as a flat number (the health % lost of total HP)
+  if (T === state.player && T.core.condition.hpLostPct > lostBefore) tally(state, 'hp_lost', { add: ((T.core.condition.hpLostPct - lostBefore) / 100) * hp });
   const levelAfter = healthLevel(T);
   if (levelAfter !== levelBefore) out.push({ kind: 'threshold_crossed', actorId: T.id, data: { who: T.id, from: levelBefore, to: levelAfter } });
   return out;

@@ -42,7 +42,7 @@ describe('163 achievement info', () => {
   });
   it('every plural rule text has a singular form', () => {
     for (const [rule, text] of Object.entries(ACH_RULE_TEXT)) {
-      if (/^(copper|HP|points|%|true skill|class unlocked)/.test(text)) continue;
+      if (/^(copper|HP|morale|points|%|true skill|class unlocked)/.test(text)) continue;
       expect(ACH_RULE_ONE[rule as keyof typeof ACH_RULE_ONE], rule).toBeTruthy();
     }
   });
