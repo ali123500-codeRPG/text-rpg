@@ -19,9 +19,11 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, xpGroupFactor } from '../engine/xp';
-import type { GameState } from '../types/state';
+import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
+import { QUEST_STATE_NAME } from '../engine/quests';
+import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
 import { itemLevel, requirement } from '../ruleset/requirements';
@@ -52,7 +54,7 @@ type Facets = (e: any) => [string, string | number | boolean | undefined][];
 let facetOf: Facets = () => [];
 function card(sec: string, id: string, entry: unknown, title: string, chips: (HTMLElement | null)[], ...body: (Node | null)[]): HTMLElement {
   const f = facetOf(entry).filter(([, v]) => v !== undefined && v !== '').map(([g, v]) => `${g}\t${v}`);
-  return h('article', { class: 'lv-card', id: `${sec}/${id}`, 'data-q': `${title} ${JSON.stringify(entry)}`.toLowerCase(), 'data-f': [...new Set(f)].join('\n') },
+  return h('article', { class: 'lv-card', id: `${sec}/${id}`, 'data-q': `${title} ${f.map((x) => x.split('\t')[1]).join(' ')} ${JSON.stringify(entry)}`.toLowerCase(), 'data-f': [...new Set(f)].join('\n') },
     h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#${sec}/${id}` }, title)), h('code', { class: 'lv-id' }, id), ...chips),
     // the fields sit in one box, so cards side by side in a grid start their fields on the same line (subgrid)
     h('div', { class: 'lv-cbody' }, ...body, raw(entry)));
@@ -670,6 +672,57 @@ function equationsView(): HTMLElement[] {
   ];
 }
 
+/** Quest rules: quests are made in play (no library table), so this page shows the rules that shape every one,
+ * read from CONFIG, the quest scales and engine/quests.ts */
+const QUEST_STATE_TEXT: Record<QuestState, string> = {
+  active: 'Taken on; the goal is not met yet.',
+  ready: 'The goal is met. Talk to the giver in person to hand it in (a delivery to the giver finishes at once).',
+  done: 'Handed in: pays its XP, counts for quest achievements and warms the giver one stance step.',
+  failed: 'Can no longer be done: the giver or the target died, the item is gone, or the deadline passed (only a missed deadline cools the giver).',
+  abandoned: 'You gave it up, on the Quests page or by telling the giver. Cools the giver, who remembers it, and counts toward the scar Word Not Kept.',
+  called_off: 'The giver called it off, in words you heard. No XP, no stance change.',
+};
+const GOAL_TEXT: Record<(typeof GOAL_KINDS)[number], string> = {
+  defeat: 'Defeat a number of foes of one body type, one race, or one named person. Counted by code as each falls.',
+  deliver: 'Give a number of an item (or one particular item) to someone. Counted by code from what you hand over.',
+  reach: 'Get to a zone or place (a place counts from any zone inside it).',
+  find: 'Get a clear sight of one person.',
+  other: 'Anything code cannot check. The giver judges it when you report back.',
+};
+function questsView(): HTMLElement[] {
+  const fixed = (c: HTMLElement) => { c.querySelector('.lv-id')?.remove(); c.querySelector('.lv-raw')?.remove(); return c; };
+  const gainsFor = (lv: string) => GRADES.filter((g) => CONFIG.QUEST_GAIN_LEVEL[g] === lv);
+  const tbl = (head: string[], rows: (string | Node)[][]) => h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, head.map((x) => h('th', {}, x)))),
+    h('tbody', {}, rows.map((r) => h('tr', {}, r.map((x) => h('td', {}, x))))));
+  return [
+    h('p', { class: 'hs-note' }, 'Quests have no fixed list: each one is a job someone gives you in play, held in a deal, and kept in your save (see them on the Play screen\'s Quests page or with /quests). These are the rules every quest follows. Quest achievements are under Achievements.'),
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Rules'), h('div', { class: 'lv-grid wide' },
+      fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('QUEST_REWARD_XP · QUEST_GAIN_LEVEL')],
+        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scene stands to gain. Quests have their own XP table, apart from achievements.'),
+        tbl(['Level', 'XP', 'Scene gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
+          const g = gainsFor(lv);
+          return [QUEST_REWARD_LEVELS.name(lv), String(CONFIG.QUEST_REWARD_XP[lv] ?? 0), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
+        })))),
+      fixed(card('quests', 'defeat-xp', {}, 'Defeat jobs against weak foes', [chip('questXp · weakFoeTaper')],
+        h('p', { class: 'lv-formula' }, `XP × min(1, ${CONFIG.KILL_XP_TAPER} × average foe power ÷ your power)`),
+        h('p', { class: 'hs-note' }, 'A defeat job pays less when its foes were far weaker than you, using the same taper as defeat XP. Each foe\'s power is taken when it falls; yours is taken when you hand in.'))),
+      fixed(card('quests', 'pay', {}, 'Pay', [chip('payText')],
+        row('Promise', 'The giver may promise coin, an item, or both.'),
+        row('Owed', 'Anything the giver hands you counts toward what they promised, oldest job first.'),
+        row('Unpaid', 'Still owed when the talk you handed in during ends: a broken promise the giver remembers.'),
+        row('No pay', 'A job done with nothing promised counts for the achievement For Nothing.'))),
+      fixed(card('quests', 'more', {}, 'Deadlines, linked quests and limits', [],
+        row('Deadline', 'Due in a number of days, at the end of that day or by a time of day. Missing it fails the quest and cools the giver. Done before half the time ran out counts as early.'),
+        row('Linked', 'A quest can follow an earlier one. A run of follow-ups all done counts once for Saw It Through.'),
+        row('One each', 'One open quest per giver at a time.'),
+        row('Pinned', 'One quest can be pinned to the Play screen\'s quest line; otherwise it shows the newest open one.'))))),
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'States'), h('div', { class: 'lv-grid' },
+      QUEST_STATES.map((st) => fixed(card('quests', `state-${st}`, {}, QUEST_STATE_NAME[st], [], h('p', {}, QUEST_STATE_TEXT[st])))))),
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Goal kinds'), h('div', { class: 'lv-grid' },
+      GOAL_KINDS.map((k) => fixed(card('quests', `goal-${k}`, {}, label(k), [], h('p', {}, GOAL_TEXT[k])))))),
+  ];
+}
+
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
@@ -682,10 +735,16 @@ const CUSTOM: Section[] = [
   { key: 'standIns', title: 'Stand-ins', table: 'skills', view: standIns },
   { key: 'classes', title: 'Classes', table: 'classes', view: classes },
   { key: 'healing', title: 'Healing', table: 'healing', view: healing },
+  { key: 'quests', title: 'Quests', table: 'perks', view: questsView, count: 4 + QUEST_STATES.length + GOAL_KINDS.length },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
   { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
+/** every skill a perk belongs to or changes: its ladder or write-up skill, its All-XX part, skills it adds to,
+ * skills of the function it boosts, and both ends of an augment */
+const perkSkills = (d: PerkDef & { skill?: string }): string[] => [...new Set([d.ladder?.skill, d.skill, d.allStep?.skill,
+  ...Object.keys(d.trueSkillTo ?? {}), ...(d.fnSkill ? fnSkills(d.fnSkill.fn) : []), ...(d.augments ?? []).flatMap((a) => [a.from, a.skill])]
+  .filter((x): x is string => !!x && !!lib.skills[x]))];
 const FACETS: Record<string, Facets> = {
   gearClasses: (g: { use?: string }) => [['Use', g.use]],
   healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? (d.hourly.morale ? 'morale' : 'health') + ' hourly' : undefined],
@@ -699,7 +758,8 @@ const FACETS: Record<string, Facets> = {
   gear: (i: ItemDef) => [['Kind', i.kind], ['Gear class', i.gearClass && lib.gearClasses?.[i.gearClass]?.name], ...(i.weapon?.modes ?? []).flatMap((m): [string, string][] => [['Attack', m.tree], ['Class', m.class]]), ['Class', i.armor?.weight],
     ...[...(['concealed', 'stackable', 'consumable'] as const).filter((f) => i[f]), ...(i.tags ?? [])].filter((f) => f !== i.kind).map((f): [string, string] => ['Flag', f])], // a flag that repeats the kind says nothing new
   perks: (d: PerkDef & { place?: string; skill?: string; bankedAs?: string }) => [['Banked as', d.bankedAs && ({ milestone: 'milestone perk', allX: 'All-X candidate', other: 'other' } as Record<string, string>)[d.bankedAs]], ['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
-    ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)]],
+    ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)],
+    ...perkSkills(d).map((sk): [string, string] => ['Skill', skillName(sk)])],
   achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${rewardName(d.level)}`]],
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Access', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
@@ -724,7 +784,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
   ['Library', ['gear', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'fears', 'status']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'quests', 'fears', 'status']],
   ['World', null],
 ];
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
