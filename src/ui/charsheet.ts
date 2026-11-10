@@ -9,7 +9,7 @@ import { defenseItem } from '../ruleset/gear';
 import { achievementName, charLevel, freeLevelsOwed, keepCapstone, levelTarget, spendXp, swapCapstone, xpToNext } from '../engine/xp';
 import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
-import { learningWindow } from '../ruleset/improve';
+import { augmentWindow, learningWindow } from '../ruleset/improve';
 import { h } from './kit';
 import { callName } from '../views';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
@@ -58,9 +58,17 @@ const markDot = () => h('span', { class: 'mk-dot', title: 'Marked: rolls to impr
 const marked = (p: Actor, id: string) => !!p.progression?.marks.includes(id);
 const pct = (n: number) => Math.max(0, Math.min(100, (n / BAR_SCALE) * 100));
 /** the skill's learning window: the opposition range a use of it learns from (SP2) */
-const windowOf = (p: Actor, id: string) => learningWindow(p.core.skills[id]?.raw ?? 0, trueSkill(p, id)).map((n) => Math.max(0, n)) as [number, number];
-const bar = (raw: number, win?: [number, number]) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${pct(raw)}%` }),
-  win ? h('i', { class: 'lw', style: `left:${pct(win[0])}%;width:${pct(win[1]) - pct(win[0])}%`, title: `Learns from opposition ${win[0]} to ${win[1]}` }) : null);
+/** an augmenting skill learns only on the rolls it adds to, at that roll's level (AU1), so it shows that roll's window */
+type Win = { lo: number; hi: number; via?: string };
+const windowOf = (p: Actor, id: string): Win => {
+  const aug = augmentWindow(p, id);
+  const [lo, hi] = (aug?.window ?? learningWindow(p.core.skills[id]?.raw ?? 0, trueSkill(p, id))).map((n) => Math.max(0, Math.round(n)));
+  return { lo, hi, via: aug ? skillName(aug.via) : undefined };
+};
+const winText = (w: Win) => `${w.via ? `via ${w.via} ` : ''}${w.lo}–${w.hi}`;
+const winTitle = (w: Win) => `Learns from opposition ${w.lo} to ${w.hi}${w.via ? `, on ${w.via} rolls it adds to` : ''}`;
+const bar = (raw: number, win?: Win) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${pct(raw)}%` }),
+  win ? h('i', { class: 'lw' + (win.via ? ' via' : ''), style: `left:${pct(win.lo)}%;width:${pct(win.hi) - pct(win.lo)}%`, title: winTitle(win) }) : null);
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
 
@@ -157,7 +165,7 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
       t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw, windowOf(p, r.id)), h('div', { class: 'lwn', title: 'Learning window: opposition in this range teaches the skill' }, windowOf(p, r.id).join('–')), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
+        bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
 }
 
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
