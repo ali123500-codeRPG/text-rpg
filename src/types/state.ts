@@ -51,6 +51,8 @@ export type Quest = {
 /** SP1/SP3: a spar between sides (one actor each for one against one; every actor on its own side for a free-for-all).
  * out: who has yielded or reached the limit (SP4, SP5), with the turn; last: the turn of the latest blow between sides (or the start). */
 export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
+/** MB40–MB43: the player's yield this scene: foes yet to answer, those that took it (truce) and those that fought on */
+export type PlayerYield = { turn: number; pending: string[]; accepted: string[]; refused: string[] };
 
 // In-memory working state, built from Part 4's pages on load. Never saved as one document.
 export type GameState = {
@@ -77,6 +79,7 @@ export type GameState = {
   flags: Record<string, string | number | boolean>;
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
+  yielding?: PlayerYield; // MB40: cleared when the scene ends
   settings: Settings;
   libraryVersion: number;
   blueprints: BlueprintPage[]; // story blueprints (story first, then library)
@@ -128,6 +131,7 @@ export type EnginePage = {
   bands: Band[];
   quests: Quest[];
   spars?: Spar[];
+  yielding?: PlayerYield;
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */

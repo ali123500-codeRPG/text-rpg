@@ -1,7 +1,7 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
-  AgreementView, HealthLevel, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, HealthLevel, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WeaverView, Zone, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -27,6 +27,13 @@ import { moraleLevel, moraleShows } from '../ruleset/morale';
 import { MORALE_LEVELS } from '../scales';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
+/** MB40: the player's yield this scene, in the player's names for each foe */
+function yieldView(state: GameState): YieldView | undefined {
+  const y = state.yielding;
+  if (!y) return undefined;
+  const names = (ids: string[]) => ids.map((id) => callName(state, state.player.id, id));
+  return { took: names(y.accepted), waiting: names(y.pending), refused: names(y.refused) };
+}
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -258,6 +265,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       standingDefense: p.core.standingDefense,
       ...(heldBy(state, p) ? { heldBy: callName(state, p.id, heldBy(state, p)!.id) } : {}),
       ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
+      ...(yieldView(state) ? { yielded: yieldView(state) } : {}),
     },
     zone: zoneView(state, zoneById(state, p.zone)!),
     zones: perceivedZones(state, p.zone),
@@ -322,6 +330,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(lastHitBy ? { lastHitBy } : {}),
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
+      ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
     },
     beliefs, perceived, told, said,
@@ -486,7 +495,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}),
+    player: { name: p.names.current, health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone),

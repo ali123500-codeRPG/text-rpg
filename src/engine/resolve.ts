@@ -30,6 +30,7 @@ import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, pushContest } from './
 import { payDefeats, tally, unlockClasses } from './xp';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
+import { answerYield, playerYields, yieldBars } from './yield';
 import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
@@ -272,6 +273,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const wasted = () => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
   if (!t || t === a || !isActive(t)) return wasted();
   if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted(); } // MB12
+  if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted(); } // MB43
   if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted(); }
   const dist = shortestPath(state, a.zone, t.zone, true)?.length ?? Infinity;
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
@@ -691,6 +693,8 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
   const learnedBefore = learned(state);
   const playerUp = isActive(state.player);
+  // MB41: foes asked by the player's yield answer in this turn's output, before anyone acts
+  for (const o of usableAgentOutputs(input)) answerYield(state, actorById(state, o.actorId)!, o.output.acceptYield);
   const active = state.actors.filter(isActive);
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
@@ -757,7 +761,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     heardExchange: (id) => ctx.exchangeEvents.some((e) => !!e.perception[id]),
     heardNow: (listener, speaker) => ctx.events.some((e) => e.actorId === speaker && !!e.line && !!e.perception[listener]),
   });
-  if (input.intent?.yields && isActive(state.player)) yieldSpar(state, state.player); // SP5: "I yield", after the turn's blows
+  // SP5: "I yield" in a spar leaves it; MB40: in a real fight it yields to the foes fighting the player. After the turn's blows
+  if (input.intent?.yields && isActive(state.player)) (sparOf(state, state.player.id) ? yieldSpar(state, state.player) : playerYields(state));
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   const defeated = payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore, playerOrder);
