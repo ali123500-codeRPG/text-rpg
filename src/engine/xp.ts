@@ -1,12 +1,13 @@
 // XP and levels (XP proposal X1–X10). Code only: no agent sees or sends XP.
 import type { Actor, AchievementBy, AchievementRule, GameEvent, GameState, XpAward } from '../types';
 import { CONFIG } from '../config';
-import { bodyType, getLibrary } from '../library';
+import { bodyType, getLibrary, itemDef } from '../library';
 import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
 import { isActive, stance } from './relations';
 import { logCode } from './effects';
-import { tierMult } from '../ruleset/gear';
+import { isHeld, isWorn, tierMult } from '../ruleset/gear';
+import { itemValue } from '../ruleset/value';
 import { ruleMet, skillOpen } from '../ruleset/access';
 import { partStates, working } from '../ruleset/body';
 import { functionName, groupName, groupsOf } from '../library/functionNames';
@@ -220,9 +221,16 @@ export function rating(a: Actor): number {
     n + (CONFIG.XP_GROUP_WEIGHT[cat] ?? 0) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);
 }
 
-/** Kill XP = rating × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13). */
+/** a foe's gear in its rating: GEAR_RATING_FACTOR × the coin value of what it holds and wears (gear coin is priced at
+ * about one coin per skill point of power). Carried spares and coin don't count. */
+export function gearRating(state: GameState, a: Actor): number {
+  return CONFIG.GEAR_RATING_FACTOR * a.core.inventory.filter((i) => isHeld(i) || isWorn(i)).reduce((n, i) => n + itemValue(state, itemDef(state, i.itemId)), 0);
+}
+
+/** Kill XP = (rating + gear rating) × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
+ * Gear counts on the foe's side only: the player's own gear never shrinks the taper. */
 export function killXp(state: GameState, t: Actor): number {
-  const theirs = rating(t), mine = rating(state.player);
+  const theirs = rating(t) + gearRating(state, t), mine = rating(state.player);
   const taper = mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1;
   return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
 }

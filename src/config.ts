@@ -195,6 +195,8 @@ const DEFAULTS = {
   /** a foe's rating: one pool per skill group (a skill counts in its first group), × this weight; a skill with no group counts 0 */
   XP_GROUP_WEIGHT: { [GR.melee]: 1, [GR.ranged]: 1, [GR.defense]: 1, [GR.health]: 1, [GR.notice]: 0.5, [GR.stealth]: 1, [GR.influence]: 0.25, [GR.speed]: 0 } as Record<string, number>,
   KILL_XP_MULT: 1, // X20: ×1 for now
+  /** a foe's held and worn gear adds this × its coin value to the foe's rating (foe side only) */
+  GEAR_RATING_FACTOR: 0.25,
   KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
