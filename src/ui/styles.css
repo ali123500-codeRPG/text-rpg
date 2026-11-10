@@ -300,6 +300,13 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* MB11: the morale bar sits under health in its own colour */
 .cs-morale b { background: var(--c5); }
 .cs-mbar { display: grid; gap: var(--space-1); }
+/* MB40: after /yield: who took it, who is deciding, who fights on */
+.cs-yield { display: grid; gap: 2px; padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in oklch, var(--warn) 50%, transparent); border-radius: var(--r-md); background: var(--warn-soft); font-size: 13px; }
+.cs-yield .hs-label, .cs-strip .cs-yield .hs-label { color: var(--warn); }
+.cs-yield .yr b { text-align: right; }
+.cs-yield .yr { display: flex; justify-content: space-between; gap: var(--space-3); }
+.cs-yield .yr span { color: var(--muted); }
+.cs-yield .yr.refused b { color: var(--danger); }
 .cs-hpsteps { position: relative; display: block; height: 14px; font-size: 11px; color: var(--faint); }
 .cs-hpsteps span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
 .cs-hpsteps .now { color: var(--text); font-weight: 700; }

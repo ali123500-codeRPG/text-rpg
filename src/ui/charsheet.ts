@@ -258,6 +258,16 @@ export function moraleBar(p: Actor, full: boolean): HTMLElement[] {
   ];
 }
 
+/** MB40–MB43: after /yield, who took it, who is still deciding and who fights on; nothing when the player has not yielded */
+export function yieldBlock(s: GameState): HTMLElement | null {
+  const y = s.yielding;
+  if (!y) return null;
+  const names = (ids: string[]) => ids.map((id) => cap(callName(s, s.player.id, id))).join(', ');
+  const row = (k: string, ids: string[], cls: string) => ids.length ? h('span', { class: 'yr ' + cls }, h('span', {}, k), h('b', {}, names(ids))) : null;
+  return h('div', { class: 'cs-yield' }, h('span', { class: 'hs-label' }, 'You yielded'),
+    row('Took it', y.accepted, 'took'), row('Deciding', y.pending, 'wait'), row('Fight on', y.refused, 'refused'));
+}
+
 export function pressureChips(s: GameState, p: Actor): HTMLElement {
   const rows = Object.entries(p.pressure ?? {}).flatMap(([id, x]) => (['shaken', 'swayed'] as const).filter((k) => x[k]).map((k) => {
     const who = callName(s, p.id, id);
@@ -283,6 +293,7 @@ export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
     h('span', { class: 'cs-hptrack' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
     ...moraleBar(p, false),
+    ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x),
     pressureChips(s, p),
     h('span', { class: 'cs-held' }, h('span', { class: 'hs-label' }, 'Held'), hw.held.length ? hw.held.map(cap).join(' · ') : 'Nothing'),
   ];
@@ -297,7 +308,7 @@ export function sideSheet(s: GameState, p: Actor, last?: LogLine, changed?: Set<
   const hw = heldWorn(s, p);
   return [
     // health and its part chips, then morale, then the body figure (when open)
-    ...((hb) => [hb[0], hb[1], h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), ...hb.slice(2)])(healthBar(s, p, healed, last?.turn ?? -1, changed)),
+    ...((hb) => [hb[0], hb[1], h('div', { class: 'cs-mbar' }, ...moraleBar(p, true)), ...[yieldBlock(s)].filter((x): x is HTMLElement => !!x), ...hb.slice(2)])(healthBar(s, p, healed, last?.turn ?? -1, changed)),
     pressureChips(s, p),
     h('div', { class: 'cs-row' }, h('span', {}, 'Held / worn'), h('b', { class: 'cs-hw' }, [...hw.held, ...hw.worn].map(cap).join(' · ') || 'Nothing')),
     h('div', { class: 'cs-row' }, h('span', {}, `Standing attack · ${atk?.name ?? 'no weapon'}`), h('b', {}, whole(atk?.value ?? null))),
