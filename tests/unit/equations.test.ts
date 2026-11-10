@@ -5,14 +5,29 @@ import { effectiveSkill } from '../../src/ruleset/gear';
 import { getLibrary } from '../../src/library';
 import { makeVillage } from '../harness';
 import { prototypeLibrary } from '../../src/library/data';
+import { xpToNext } from '../../src/engine/xp';
+import { classMaxLevel } from '../../src/library/spawn';
+import { CLASS_TIERS } from '../../src/scales';
 
 describe('equations for the library viewer', () => {
   it('builds every group with numbers from CONFIG', () => {
     const groups = equations(prototypeLibrary());
-    expect(groups.map((g) => g.key)).toEqual(['rolls', 'attacks', 'gain', 'marking']);
+    expect(groups.map((g) => g.key)).toEqual(['rolls', 'attacks', 'gain', 'levels', 'marking']);
     for (const g of groups) for (const e of g.equations) {
       expect(e.formula).not.toMatch(/undefined|NaN/);
       for (const r of e.table?.rows ?? []) expect(r.join(' ')).not.toMatch(/undefined|NaN/);
+    }
+  });
+
+  it('the level tables match xpToNext and classMaxLevel', () => {
+    const lv = equations(prototypeLibrary()).find((g) => g.key === 'levels')!.equations;
+    const p = makeVillage().player;
+    for (const [from, , need] of lv[0].table!.rows) {
+      p.core.classes = [{ classId: p.core.classes[0].classId, state: 'current', level: Number(from) }];
+      expect(xpToNext(p)).toBe(Number(need));
+    }
+    for (const c of Object.values(prototypeLibrary().classes)) {
+      expect(lv[1].table!.rows.find(([t]) => t === CLASS_TIERS.name(c.tier))?.[1]).toBe(String(classMaxLevel(c.id)));
     }
   });
 

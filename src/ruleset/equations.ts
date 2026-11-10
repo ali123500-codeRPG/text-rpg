@@ -3,7 +3,7 @@
 // (band, naturalEdge, ladder, stackType …), so the page follows the code.
 import type { Library } from '../types';
 import { CONFIG } from '../config';
-import { TIERS } from '../scales';
+import { CLASS_TIERS, TIERS } from '../scales';
 import { MARGIN_BANDS, SITUATION_BANDS, band, ladder, naturalEdge, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
@@ -138,6 +138,23 @@ export function equations(lib: Library): EquationGroup[] {
           ['rolls', `1 per marked skill${quick.length ? `; ${quick.map((p) => `${p.name}: ${p.improveRolls!.rolls} rolls while raw is below ${p.improveRolls!.below}`).join('; ')}` : ''}`]],
         table: { head: ['Target', 'Chance', 'Flawed'], rows: [0, 20, 40, 60, 80, 95].map((t) => [String(t), pct(improveChance(t, false)), pct(improveChance(t, true))]) },
         notes: [`Crossing a milestone (${MILESTONES.join(', ')}) on true skill is logged with the gain.`] },
+    ] },
+    { key: 'levels', title: 'Levels', about: 'How XP turns into levels.', equations: [
+      { name: 'XP to the next level', at: 'xpToNext · spendXp · src/engine/xp.ts',
+        formula: `XP to go from level n to n + 1 = ${CONFIG.LEVEL_XP} × n`,
+        terms: [[String(CONFIG.LEVEL_XP), 'CONFIG.LEVEL_XP'], ['n', 'character level: the sum of every class\'s level (at least 1)']],
+        table: { head: ['From level', 'To level', 'XP needed', 'Total from level 1'], rows: [1, 2, 3, 4, 5, 10, 15, 19].map((l) => [String(l), String(l + 1), String(CONFIG.LEVEL_XP * l), String(CONFIG.LEVEL_XP * l * (l + 1) / 2)]) },
+        notes: [`The XP is spent and the level goes into the current class, or the class picked for the next level. The player starts at level ${CONFIG.START_LEVEL}.`,
+          'One gain can take several levels in a row. When the class has no room left (at its top level), the XP stays banked until a class with room is picked.',
+          'Free levels (from achievements or perks with free levels) are taken first and cost no XP; they bank the same way when no class has room.'] },
+      { name: 'Class top level', at: 'classMaxLevel · src/library/spawn.ts',
+        formula: `top level = min(${CONFIG.CLASS_MAX_LEVEL}, ${CONFIG.CLASS_TIER0_MAX_LEVEL} + ${CONFIG.CLASS_LEVELS_PER_TIER} × class tier)`,
+        terms: [[String(CONFIG.CLASS_TIER0_MAX_LEVEL), 'CONFIG.CLASS_TIER0_MAX_LEVEL'], [String(CONFIG.CLASS_LEVELS_PER_TIER), 'CONFIG.CLASS_LEVELS_PER_TIER'], [String(CONFIG.CLASS_MAX_LEVEL), 'CONFIG.CLASS_MAX_LEVEL']],
+        table: { head: ['Class tier', 'Top level'], rows: CLASS_TIERS.keys.map((k) => [CLASS_TIERS.name(k), String(Math.min(CONFIG.CLASS_MAX_LEVEL, CONFIG.CLASS_TIER0_MAX_LEVEL + CONFIG.CLASS_LEVELS_PER_TIER * CLASS_TIERS.pos(k)))]) },
+        notes: ['Reaching the top level grants the class capstone.'] },
+      { name: 'What a level gives', at: 'levelUp · src/engine/xp.ts',
+        formula: 'each level: +1 level in the class, plus that class\'s perks for the level; on every even character level, +1 perk point',
+        notes: ['Levels give no skill points: skills grow only through improvement rolls.'] },
     ] },
     { key: 'marking', title: 'Marking', about: 'What marks a skill so it can improve.', equations: [
       { name: 'Learning window', at: 'markIfClose · src/ruleset/improve.ts',

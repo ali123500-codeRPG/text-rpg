@@ -323,14 +323,13 @@ const perkList = (ids: string[] | undefined) => links('perks', (ids ?? []).map((
 // ---------- Gear classes ----------
 // a class sets WHICH skill its items ask for; the item's level sets HOW MUCH (EQUIP_NEED)
 const itemsOfClass = (gc: string) => Object.values(lib.items).filter((i) => i.gearClass === gc);
-const kindOfClass = (gc: string) => [...new Set(itemsOfClass(gc).map((i) => i.kind))].join(', ') || undefined;
 function gearClasses(): HTMLElement[] {
   return [h('p', { class: 'hs-note' }, 'A gear class sets which skill its items ask for. The item\'s level sets how much: ',
       EQUIP_LEVELS.keys.map((l) => `${EQUIP_LEVELS.name(l)} ${CONFIG.EQUIP_NEED[l] ?? 0}`).join(', '), ' true skill.'),
     h('div', { class: 'lv-grid' }, Object.values(lib.gearClasses ?? {}).map((g) => {
-      const items = itemsOfClass(g.id), kind = kindOfClass(g.id);
-      return card('gearClasses', g.id, g, g.name, [kind ? chip(kind, toneFor('Kind', kind)) : null],
-        row('Skill', link('skills', g.skill, skillName(g.skill))),
+      const items = itemsOfClass(g.id);
+      return card('gearClasses', g.id, g, g.name, [chip(g.use, toneFor('Use', g.use))],
+        row('Use', g.use), row('Skill', link('skills', g.skill, skillName(g.skill))),
         row('Items', items.length ? h('span', {}, ...items.flatMap((i, n) => [n ? ', ' : '', link('gear', i.id, `${label(i.name)} (${EQUIP_LEVELS.name(itemLevel(i) ?? 'crude')}${items.filter((o) => o.name === i.name).length > 1 ? `, bulk ${i.bulk}` : ''})`)])) : none('none yet')));
     }))];
 }
@@ -611,7 +610,7 @@ const CUSTOM: Section[] = [
 ];
 const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]?.name : undefined);
 const FACETS: Record<string, Facets> = {
-  gearClasses: (g: { id?: string }) => [['Kind', g.id ? kindOfClass(g.id) : undefined]],
+  gearClasses: (g: { use?: string }) => [['Use', g.use]],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
   stacking: (e: { type?: StackedType; roll?: string; feeds?: unknown[] }) => [['Type', e.type && MOD_TYPE_NAMES[e.type]], ['Roll', e.roll && `${e.roll} rolls`],
