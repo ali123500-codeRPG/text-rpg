@@ -23,7 +23,7 @@ import { MARK_SOURCE } from '../../src/engine/perkMarks';
 import { PERK_MOVES } from '../../src/ruleset/perks';
 
 /** banked perk write-ups have PK IDs but are not library perks until they get a milestone */
-const BANKED = new Set(PERK_WRITEUPS.filter((d) => !d.ladder && !d.allStep).map((d) => d.id));
+const BANKED = new Set(PERK_WRITEUPS.filter((d) => !d.ladder && !d.allStep && !d.linked).map((d) => d.id));
 const lib = () => getLibrary() as unknown as Record<string, Record<string, { id?: string }>>;
 
 /** a table: its library key, its prefix and its constants */

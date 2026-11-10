@@ -83,11 +83,13 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement'; // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
+  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link'; // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
   dormant?: boolean;
+  /** a linked perk of kind 'merge' replaced this one (it is dormant until the merge no longer holds) */
+  mergedInto?: LibraryRef;
 };
 
 export type SavedCondition = {
