@@ -1,5 +1,5 @@
 // 155 Healing by source: achievements count the HP the player gets back (a flat number), kept apart by where it came
-// from (a healing-table row). Rest, natural recovery and perks (Second Wind, Fast Healer's extra) each have their own
+// from (a healing-table row). Rest, natural recovery and perks (Second Wind; Fast Healer counts as natural recovery) each have their own
 // count and their own achievement chain (D-172, D-173).
 import { HL } from '../../src/library/tableIds';
 import { PK } from '../../src/library/perkIds';
@@ -29,7 +29,7 @@ describe('155 healing by source', () => {
     applyHealing(s, s.player, HL.rest); // nothing left to heal: nothing counted
     expect(healed(s, HL.rest)).toBeCloseTo(hp(s, Math.min(10, CONFIG.REST_HEAL_PCT)), 5);
   });
-  it('natural recovery counts under its own row; Fast Healer\'s extra counts as healing from perks', () => {
+  it('natural recovery counts under its own row, Fast Healer\'s doubled amount included: it is not perk healing', () => {
     const plain = makeVillage();
     plain.player.core.condition.hpLostPct = 30;
     passiveHealing(plain, 120);
@@ -41,8 +41,9 @@ describe('155 healing by source', () => {
     give(fast.player, PK.quick_mend);
     passiveHealing(fast, 120);
     const total = 30 - fast.player.core.condition.hpLostPct;
-    expect(healed(fast, HL.passive) + healed(fast, HL.perk)).toBeCloseTo(hp(fast, total), 5);
-    expect(healed(fast, HL.perk)).toBeCloseTo(healed(fast, HL.passive), 5); // ×2: half is the perk's
+    expect(healed(fast, HL.passive)).toBeCloseTo(hp(fast, total), 5);
+    expect(healed(fast, HL.passive)).toBeGreaterThan(base * 2 - 1e-9); // ×2 (its +5 true skill adds a little more)
+    expect(healed(fast, HL.perk)).toBe(0); // only perks that heal directly count as perk healing
   });
   it('a clinic and a bandage keep their own counts; healing an NPC counts nothing', () => {
     const s = makeVillage();
