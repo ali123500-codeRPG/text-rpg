@@ -1,6 +1,7 @@
 // Deed achievements checked every turn: zones walked, days survived, and the fight achievements (flawless,
 // outnumbered, back from the brink), judged when the player's fight ends from the FightLog kept on the engagement.
 // Critical Success achievements count in every player roll (rollFeats in xp.ts).
+import { moraleLevel } from '../ruleset/morale';
 import type { ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
 import { CONFIG } from '../config';
 import { healthLevel, partStates, working } from '../ruleset/body';
@@ -100,6 +101,7 @@ function logFight(state: GameState, events: GameEvent[]): void {
   if (allies.length) f.helped = true;
   if (allies.length && foes.length > allies.length + 1) f.heldLine = true; // the foes outnumber your whole side
   if (CONFIG.HEALTH_TRACK.findIndex(([l]) => l === healthLevel(p)) >= atLeastCritical()) f.brink = true;
+  if (moraleLevel(p) === 'broken') f.broke = true;
 }
 
 /** the turn's blows: the player hurt, the player defending, the player attacking (hit or miss) */
@@ -114,14 +116,15 @@ function noteBlows(state: GameState, f: FightLog, events: GameEvent[]): void {
 export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = []): void {
   noteBlows(state, f, events);
   // a lost fight (the Loser scars): you went Down, or it ended with a foe still up and fighting you (you got away).
-  // Yielding and morale breaks will count too once the player can do them (D-147).
-  if (f.down || !isActive(state.player)) return tally(state, 'defeated');
+  // a morale break counts too (MB12); yielding will once it is built (D-147)
+  if (f.down || f.broke || !isActive(state.player)) return tally(state, 'defeated');
   if (f.brink) tally(state, 'brink');
   const won = f.foes.every((id) => { const x = actorById(state, id); return !x || !isActive(x) || !!x.mind?.moraleState; });
   if (!won) {
     if (f.foes.some((id) => { const x = actorById(state, id); return !!x && isActive(x) && !x.mind?.moraleState && hostile(state, x, state.player); })) tally(state, 'defeated');
     return;
   }
+  if (moraleLevel(state.player) === 'panicking') tally(state, 'won_panicking'); // D-160
   if (!f.hurt && f.defended) tally(state, 'flawless');
   if (f.most >= CONFIG.OUTNUMBERED_FOES && !f.helped) tally(state, 'outnumbered');
   if (f.heldLine) tally(state, 'held_line');

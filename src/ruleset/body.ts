@@ -7,6 +7,7 @@ import { hasPerk } from './perks';
 import { skillOpen } from './access';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { moraleMods } from './morale';
 
 export function totalHp(state: GameState, actor: Actor): number {
   const end = actor.core.skills[SK.endurance];
@@ -67,6 +68,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
   const level = healthLevel(actor);
   const lv = woundsOfLevel(level);
   if (lv) out.push({ source: `health: ${level}`, type: 'wounds', value: lv });
+  out.push(...moraleMods(actor)); // MB3: the morale level's penalty is wounds too
   const lib = getLibrary();
   const ct = actorBody(state, actor);
   const uses = ctx.roles ?? lib.skills[skill]?.roles ?? [];

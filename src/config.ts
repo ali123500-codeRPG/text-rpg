@@ -107,8 +107,26 @@ const DEFAULTS = {
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
   SITUATION_TAGS: { light: { sight: 1, stealth: -1 }, cover: { hide: 1, ranged: -1 } } as Record<'light' | 'cover', Partial<Record<import('./types').SituationTag, number>>>,
-  MORALE_DEFAULT: 50,
-  PERSONALITY_MORALE: { fearless: null, bold: 70, steady: 50, timid: 30 } as Record<string, number | null>,
+  // ---- morale bar (MB1–MB43; placeholders) ----
+  /** max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (MB29), like HP from Endurance */
+  MORALE_BASE: 50,
+  MORALE_PER_RESOLVE: 1,
+  /** MB30: an NPC template's starting Resolve, by personality (MB4: fearless is 90, not immune) */
+  PERSONALITY_RESOLVE: { fearless: 90, bold: 70, steady: 50, timid: 30 } as Record<string, number>,
+  /** [MORALE_LEVELS key, max % of max morale lost, roll penalty (type wounds, MB3)]; broken = out of the fight */
+  MORALE_TRACK: [
+    ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -5], ['afraid', 60, -5],
+    ['terrified', 75, -10], ['panicking', 99.999, -15], ['broken', Infinity, 0],
+  ] as [string, number, number][],
+  /** MB6: a rolled fear's cost × this, by the morale roll's tier; each step below Critical Failure adds MORALE_BEYOND_CF */
+  MORALE_TIER_MULT: { critical_failure: 2, failure: 1.5, near_miss: 1, success: 0.5, great_success: 0.25, critical_success: 0 } as Record<string, number>,
+  MORALE_BEYOND_CF: 0.5,
+  /** MB9: share of max morale back when an actor's engagement ends */
+  MORALE_ENGAGEMENT_END_PCT: 25,
+  /** a single loss of this % of max morale or more marks the player's Resolve (like ENDURANCE_MARK_PCT) */
+  RESOLVE_MARK_PCT: 10,
+  /** others' morale shows (as words) from this level down (MB16), like HEALTH_SHOWN_FROM */
+  MORALE_SHOWN_FROM: 'afraid',
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
   // ---- game clock (T1-T8); durations per action are the library's durations table ----
   TIME_OF_DAY_FROM: { dawn: 5 * 60, day: 7 * 60, dusk: 18 * 60, night: 20 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
@@ -117,6 +135,7 @@ const DEFAULTS = {
   REST_HEAL_PCT: 25,
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,
+  REST_MORALE_PCT: 50, // MB8: rest restores this share of max morale
   // ---- Part 4 ----
   POINTS_PER_LEVEL: 10, // 10 × level (was 3)
   CREATION_POINTS: 250,

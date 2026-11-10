@@ -111,7 +111,7 @@ describe('fallback list', () => {
     sl.mind!.knowledge.player = belief('woods', 'suspicious');
     expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1)).type).toBe('hold');
   });
-  it('broken flees to exit and holds; fearless and surrendered hold', () => {
+  it('broken flees to exit and holds; surrendered holds; a broken slime flees too (fearless is Resolve 90, MB4)', () => {
     const s = makeVillage();
     const p = place(s, 'patron_1', 'tav_counter');
     p.mind!.moraleState = 'broken';
@@ -126,7 +126,7 @@ describe('fallback list', () => {
     sl.mind!.moraleState = 'broken';
     sl.mind!.knowledge.player = belief('field_mid');
     place(s, 'player', 'field_mid');
-    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1)).type).toBe('attack');
+    expect(fallbackOrder(fakeView(s, 'slime_1'), createRng(1)).type).toBe('flee');
   });
   it('broken with no exit or refuge moves away from the threat', () => {
     const s = makeVillage();

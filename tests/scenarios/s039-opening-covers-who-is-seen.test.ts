@@ -13,7 +13,7 @@ const opening: NarrationView = {
     { id: 'ev_p2', kind: 'presence', level: 'full', cue: 'sight', actor: 'the barkeep', activityLook: 'wiping the counter' },
     { id: 'ev_p3', kind: 'presence', level: 'partial', cue: 'sound', where: 'down the cellar steps' },
   ],
-  player: { name: 'Aldric', health: 'Unhurt', parts: [], zone: 'tav_common' },
+  player: { name: 'Aldric', health: 'Unhurt', morale: 'Calm', parts: [], zone: 'tav_common' },
   surroundings: [{ id: 'tav_common', name: 'common room', look: 'a low smoky room', cover: 'none', light: 'bright', links: [], groundItems: [] }],
   heard: [],
   actors: [{ label: 'a tavern patron', zone: 'tav_common', activityLook: 'nursing a mug' }, { label: 'the barkeep', zone: 'tav_counter', activityLook: 'wiping the counter' }],

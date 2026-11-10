@@ -70,6 +70,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   class_max: 'classes at their top level', class_max_tiers: 'class tiers with a class at its top level',
   char_level: 'character levels, again at every multiple',
   spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
+  won_panicking: 'fights won while your morale is Panicking', morale_breaks: 'times your morale broke',
   achievements: 'other achievements earned (scars and these totals do not count; a replaced level still does)',
 };
 /** the tree mastery achievement for an All-XXX step */

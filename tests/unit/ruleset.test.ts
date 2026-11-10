@@ -4,7 +4,7 @@ import { TIERS } from '../../src/scales';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, actor, forcedRng, createRng } from '../harness';
 import {
-  band, defaultMode, effectiveSkill, healthLevel, hitTable, moraleCheck, ruleset, stackType, totalHp, usableModes, woundsMods,
+  band, defaultMode, effectiveSkill, healthLevel, hitTable, moraleRoll, ruleset, stackType, totalHp, usableModes, woundsMods,
   tierLevel,
 } from '../../src/ruleset';
 import type { Actor } from '../../src/types';
@@ -12,6 +12,7 @@ import { SK } from '../../src/library/skillIds';
 import { FN, GR } from '../../src/library/functionIds';
 import { groupsOf } from '../../src/library/functionNames';
 import { kitBonus } from '../../src/ruleset/gear';
+import { maxMorale, moraleLevel, restoreMorale, tierCostMult } from '../../src/ruleset/morale';
 import { CONFIG } from '../../src/config';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
@@ -177,16 +178,23 @@ describe('ruleset methods', () => {
       context: { defensesThisTurn: 1, defenderUnaware: true } }, s, forcedRng([60, 50, 80]));
     expect(r.defense!.modifiers.map((m) => m.source)).toEqual(['outnumbered', 'unaware']);
   });
-  it('morale: fearless never checks, Critical always breaks, Critical Failure surrenders', () => {
+  it('morale: Resolve from personality, max morale, levels, the roll scales a fear; fear feeds on itself', () => {
     const s = makeVillage();
-    expect(moraleCheck(s, actor(s, 'slime_1'), forcedRng([1]), 'level')).toBe('steady');
-    const p = actor(s, 'patron_1'); // timid 30
-    expect(moraleCheck(s, p, forcedRng([90]), 'bandmate_down')).toBe('steady'); // 90 + 15 − 63.5 → Great Success
-    expect(moraleCheck(s, p, forcedRng([10]), 'bandmate_down')).toBe('broken'); // −38.5 → Failure
-    expect(moraleCheck(s, p, forcedRng([1]), 'bandmate_down')).toBe('surrendered'); // Failure, natural 01 → below Critical Failure
-    p.core.condition.hpLostPct = 80;
-    expect(moraleCheck(s, p, forcedRng([100]), 'level')).toBe('broken'); // reaching Critical always breaks
-    expect(moraleCheck(s, s.player, forcedRng([1]), 'level')).toBe('steady'); // the player never checks
+    const slime = actor(s, 'slime_1'), p = actor(s, 'patron_1'); // fearless 90, timid 30
+    expect(slime.core.skills[SK.resolve].raw).toBe(90);
+    expect(maxMorale(p)).toBe(CONFIG.MORALE_BASE + 30);
+    expect(tierLevel(moraleRoll(s, p, forcedRng([90])))).toBe(TIERS.pos('great_success')); // 90 + 15 − 63.5
+    expect([1, 0, 1, 2, 5].map((l) => tierCostMult(l))).toEqual([1.5, 2, 1.5, 1, 0]);
+    expect(tierCostMult(-2)).toBe(3); // two steps past Critical Failure
+    p.core.condition.moraleLost = 40; // 50 % of 80: Afraid
+    expect(moraleLevel(p)).toBe('afraid');
+    expect(woundsMods(s, p, SK.resolve).find((m) => m.source === 'morale: Afraid')?.value).toBe(-5);
+    p.core.condition.moraleLost = 80;
+    expect(moraleLevel(p)).toBe('broken');
+    restoreMorale(p, 25); // engagement end: back 20 of 80
+    expect(p.core.condition.moraleLost).toBe(60);
+    restoreMorale(p, 500);
+    expect(p.core.condition.moraleLost).toBe(0);
   });
   it('modes: held first, natural after; default by reach', () => {
     const s = makeVillage();

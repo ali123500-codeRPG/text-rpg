@@ -3,7 +3,8 @@
 // (band, naturalEdge, ladder, stackType …), so the page follows the code.
 import type { Library } from '../types';
 import { CONFIG } from '../config';
-import { CLASS_TIERS, TIERS } from '../scales';
+import { CLASS_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
+import { tierCostMult } from './morale';
 import { MARGIN_BANDS, SITUATION_BANDS, band, ladder, naturalEdge, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
@@ -90,18 +91,16 @@ export function equations(lib: Library): EquationGroup[] {
           ['Swayed', `the listener lost to persuasion: −${CONFIG.SWAYED_PER_TIER} × tiers lost by, on every roll against the speaker until its engagement ends`],
           ['a lie', 'a listener whose Insight beats the Lying roll sees through it'], ['earlier tries', 'tries of the same kind (persuade, deceive, intimidate, barter) at the same listener this engagement; plain talk never counts'], ['Easy Speaker', 'the listener answers one tier higher']],
         notes: ['NPCs roll speech at the player only with persuade, deceive, intimidate or barter; their plain talk does not roll. A second Shaken or Swayed from the same speaker keeps the bigger one.'] },
-      { name: 'Morale check', at: 'moraleCheck · src/ruleset/index.ts; morale · src/engine/resolve.ts',
-        formula: `margin = d100 + ${n(W())} × morale + modifiers − ${n(NEED())}; below Failure: surrenders · Failure: breaks · Near Miss or better: holds`,
-        terms: [['morale', `by personality: ${Object.entries(CONFIG.PERSONALITY_MORALE).map(([k, v]) => `${k} ${v ?? 'never checks'}`).join(', ')}; otherwise ${CONFIG.MORALE_DEFAULT} (CONFIG.MORALE_DEFAULT)`],
-          ['modifiers', 'wounds for its health level; the player\'s renown (off a foe\'s first check against the player); the player\'s rally (on allies fighting beside the player)']],
-        table: { head: ['Morale', 'Surrenders', 'Breaks', 'Holds'], rows: [30, 50, 70].map((m) => {
-          const lv = D100.map((d) => rollLevel(d, m));
-          const k = (f: (l: number) => boolean) => pct(lv.filter(f).length);
-          return [String(m), k((l) => l < TIERS.pos('failure')), k((l) => l === TIERS.pos('failure')), k((l) => l >= TIERS.pos('near_miss'))];
-        }) },
-        notes: ['Only NPCs in an engagement check (fearless ones never do). Broken or surrendered lasts until the scene ends; an NPC that holds can be asked to check again.',
-          'A check comes when the NPC reaches a new health level from Injured on, when it perceives a bandmate go down, or from perks that force one. At Critical it breaks without rolling.',
-          'Chances in the table are unhurt with no modifiers.'] },
+      { name: 'Morale roll', at: 'moraleRoll · src/ruleset/index.ts; payFear · src/engine/morale.ts; fear · src/engine/resolve.ts',
+        formula: `margin = d100 + ${n(W())} × Resolve + modifiers − ${n(NEED())}; morale lost = the fear's cost × the tier's multiplier`,
+        terms: [['max morale', `${CONFIG.MORALE_BASE} + ${CONFIG.MORALE_PER_RESOLVE} × Resolve; an NPC template's starting Resolve comes from its personality: ${Object.entries(CONFIG.PERSONALITY_RESOLVE).map(([k, v]) => `${k} ${v}`).join(', ')}`],
+          ['tier multiplier', `${TIERS.keys.map((k) => `${TIERS.name(k)} ×${CONFIG.MORALE_TIER_MULT[k]}`).join(' · ')}; each step below Critical Failure +${CONFIG.MORALE_BEYOND_CF}`],
+          ['levels', CONFIG.MORALE_TRACK.map(([k, max, v]) => `${MORALE_LEVELS.name(k as MoraleLevel)}${max === Infinity ? ' 100 %+' : ` ≤${Math.round(max)} %`}${v ? ` ${v}` : ''}`).join(' · ')],
+          ['modifiers', 'wounds: the health level and the morale level (fear feeds on itself); the player\'s renown on every morale roll of a foe fighting the player; the player\'s rally on allies fighting beside the player']],
+        table: { head: ['Resolve', 'Max morale', 'Share of a fear paid'], rows: [30, 50, 70, 90].map((m) => [String(m), String(CONFIG.MORALE_BASE + CONFIG.MORALE_PER_RESOLVE * m),
+          `×${(D100.reduce((t, d) => t + tierCostMult(rollLevel(d, m)), 0) / 100).toFixed(2)}`]) },
+        notes: ['Fears are the library fears table: flat costs, a negative cost restores. Rolled fears count only while engaged. Reaching Broken breaks an NPC (it flees), or makes it surrender when the roll that broke it was a Critical Failure or worse. The player at Broken cannot attack.',
+          'Shares in the table are calm and unhurt, with no modifiers.'] },
       { name: 'Situation roll (no skill)', at: 'situation · src/ruleset/index.ts',
         formula: `margin = d100 ${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.SITUATION_BASE - 100)} + modifiers`,
         terms: [[`${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.SITUATION_BASE - 100)}`, `situation base ${CONFIG.SITUATION_BASE} (CONFIG.SITUATION_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],

@@ -3,7 +3,7 @@ import { makeVillage, actor, place, createRng } from '../harness';
 import { brokenOrder, fallbackOrder } from '../../src/minds';
 import { buildActorView } from '../../src/views';
 
-it('103 Broken flees: toward the exit slot one link, holds once there; a slime never flees', () => {
+it('103 Broken flees: toward the exit slot one link, holds once there; a broken slime flees too (MB4)', () => {
   const s = makeVillage({ playerZone: 'tav_common' });
   const p = place(s, 'patron_1', 'tav_counter');
   p.mind!.overrides = { player: 'hostile' };
@@ -18,7 +18,6 @@ it('103 Broken flees: toward the exit slot one link, holds once there; a slime n
   const sl = actor(s, 'slime_1');
   place(s, 'player', 'field_mid');
   sl.mind!.knowledge.player = { status: 'aware', lastKnownZone: 'field_mid', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
-  sl.mind!.moraleState = 'broken'; // cannot happen through the morale check; a fearless slime still never flees
-  expect(fallbackOrder(buildActorView(s, 'slime_1'), createRng(1))).toMatchObject({ type: 'attack', target: 'player' });
-  expect(brokenOrder(buildActorView(s, 'slime_1')).type).toBe('hold');
+  sl.mind!.moraleState = 'broken'; // fearless is Resolve 90 now (MB4), so a slime can break
+  expect(fallbackOrder(buildActorView(s, 'slime_1'), createRng(1)).type).toBe('flee');
 });

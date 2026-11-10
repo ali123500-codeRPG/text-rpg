@@ -89,6 +89,9 @@ export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy
 /** Skill tiers: a skill's tier sets its final efficiency multiplier (CONFIG.SKILL_TIER_MULT). */
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
 export type SkillTierKey = (typeof SKILL_TIERS.keys)[number];
+/** morale levels, calmest first (MB2); bands and penalties per level are CONFIG.MORALE_TRACK */
+export const MORALE_LEVELS = scale([['calm', 'Calm'], ['uneasy', 'Uneasy'], ['tense', 'Tense'], ['rattled', 'Rattled'], ['afraid', 'Afraid'], ['terrified', 'Terrified'], ['panicking', 'Panicking'], ['broken', 'Broken']]);
+export type MoraleLevel = (typeof MORALE_LEVELS.keys)[number];
 /** how much a skill group counts in a foe's defeat-XP rating, least first; the factor per level is CONFIG.XP_FACTOR_MULT */
 export const XP_FACTORS = scale([['none', 'None'], ['quarter', 'Quarter'], ['half', 'Half'], ['three_quarters', 'Three quarters'], ['full', 'Full']]);
 export type XpFactorKey = (typeof XP_FACTORS.keys)[number];

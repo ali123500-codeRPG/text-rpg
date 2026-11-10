@@ -419,13 +419,9 @@ export function survivalRoll(rng: Rng): { d100: number; tier: string; survived: 
   return { d100: d, tier: tierName(tierAt(level).tier), survived: level >= TIERS.pos('near_miss') };
 }
 
-/** morale check (Part 3, Morale): roll() with Mind.morale. Fearless never checks; reaching Critical always breaks. */
-export function moraleCheck(state: GameState, actor: Actor, rng: Rng, reason: 'level' | 'bandmate_down'): 'steady' | 'broken' | 'surrendered' {
-  void reason;
-  if (actor.kind === 'player' || !actor.mind || actor.mind.fearless) return 'steady';
-  if (healthLevel(actor) === 'Critical') return 'broken';
-  const d = rng.d100();
-  const morale = actor.mind.morale ?? CONFIG.MORALE_DEFAULT;
-  const level = tierOf(d, morale, [...woundsMods(state, actor, 'morale'), ...renownMods(state, actor, hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor))], []);
-  return level < TIERS.pos('failure') ? 'surrendered' : level < TIERS.pos('near_miss') ? 'broken' : 'steady';
+/** the morale roll (MB4, MB30): the actor's Resolve (the Morale function), with wounds (health and morale, MB35),
+ * the player's renown on every morale roll of a foe fighting the player (MB24) and rally on allies beside the player */
+export function moraleRoll(state: GameState, actor: Actor, rng: Rng, shift = 0): RollResult {
+  const mods = [...renownMods(state, actor, actor !== state.player && hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor))];
+  return roll({ actorId: actor.id, skill: SK.resolve, modifiers: mods, tierShifts: shift ? [{ source: 'fear', value: shift }] : [] }, state, rng);
 }

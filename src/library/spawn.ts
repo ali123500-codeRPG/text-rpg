@@ -50,7 +50,7 @@ export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: str
 
 /** Unique generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
 export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
-  const raw: Record<string, number> = { ...t.minimums };
+  const raw: Record<string, number> = { [SK.resolve]: CONFIG.PERSONALITY_RESOLVE[t.personality] ?? 0, ...t.minimums }; // MB30: personality sets starting Resolve
   let points = t.level * CONFIG.POINTS_PER_LEVEL + t.bonusPoints;
   while (points > 0 && t.focus.length) {
     const chunk = Math.min(5, points); // GAP: a remainder under 5 goes out as the last, smaller chunk
@@ -84,7 +84,6 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     // Q3: copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
     : rollUniqueSkills(t, createRng(templateSeed(t.id)));
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
-  const morale = CONFIG.PERSONALITY_MORALE[t.personality];
   return {
     id: opts.id,
     storyId: opts.storyId ?? state?.storyId ?? 'story',
@@ -114,8 +113,6 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     mind: {
       control: t.control,
       behavior: t.personality,
-      morale: morale ?? CONFIG.MORALE_DEFAULT,
-      fearless: t.personality === 'fearless',
       knowledge: {},
       knows: [],
     },

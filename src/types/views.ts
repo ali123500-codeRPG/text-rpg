@@ -54,6 +54,7 @@ export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
   health?: HealthLevel; // others: only from Wounded down
+  morale?: string; // MB16: others' morale level, only from Afraid down
   crippled?: string[]; destroyed?: string[];
   damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
   gear: SeenGearView[];
@@ -70,6 +71,7 @@ export type PlayerView = {
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
     perkMoves?: { id: string; name: string }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id)
     health: HealthLevel; parts: { id: string; state: PartState }[];
+    morale: string; // the morale bar's level (MB11)
     inventory: OwnGearView[];
     posture: 'open' | 'stealthy';
     standingDefense: 'dodge' | 'block';
@@ -103,7 +105,8 @@ export type ActorView = {
     id: ActorId; label: string; name: string; kind: 'npc';
     zone: string; placeId: string; bandId: string;
     health: HealthLevel; parts: { id: string; state: PartState }[];
-    active: boolean; broken: boolean; surrendered: boolean; fearless: boolean;
+    morale: string; // the morale bar's level
+    active: boolean; broken: boolean; surrendered: boolean;
     control: 'agent' | 'code';
     standingDefense: 'dodge' | 'block';
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
@@ -185,10 +188,10 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string }; // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string }; // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; activityLook?: string }[]; // health: Wounded or worse, as the player sees it
+  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; morale?: string; activityLook?: string }[]; // health: Wounded or worse, morale: Afraid or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
