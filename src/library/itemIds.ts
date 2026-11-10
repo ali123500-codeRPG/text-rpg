@@ -7,4 +7,5 @@ export const IT = {
   rusty_knife: 'IT11', gambeson: 'IT12', mail_hauberk: 'IT13', plate_harness: 'IT14', round_shield: 'IT15',
   signet_ring: 'IT16', lucky_charm: 'IT17', lockpicks: 'IT18', healing_draught: 'IT19', improvised_light: 'IT20',
   improvised_medium: 'IT21', improvised_heavy: 'IT22', curio: 'IT23', bandage: 'IT24', coin: 'IT25',
+  basket_hilt_sword: 'IT26',
 } as const;

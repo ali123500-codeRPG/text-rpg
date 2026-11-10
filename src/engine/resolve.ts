@@ -22,7 +22,7 @@ import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
-import { applyHaggle, buy } from './trade';
+import { applyHaggle, buy, sell } from './trade';
 import { applyAgentEffects, applyIntroduces, logCode } from './effects';
 import { SPEECH_SKILL, isSpeech } from './speech';
 import { payDefeats, tally, unlockClasses } from './xp';
@@ -554,6 +554,14 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
         ...(r.itemInst ? { itemId: r.itemInst } : {}), ...(r.service ? { service: r.service } : {}), ...(r.to !== a ? { for: r.to.id } : {}),
       }), o));
     }
+    case 'sell': {
+      const r = sell(state, a, o.target ? actorById(state, o.target) : undefined, o.item, o.qty);
+      if (!r.ok) {
+        logCode(state, 'sell_refused', { actorId: a.id, buyer: o.target, item: o.item, reason: r.reason });
+        return emit(ctx, bark(mk(ctx, a, 'sell_refused', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), reason: r.reason }), o));
+      }
+      return emit(ctx, bark(mk(ctx, a, 'sell', { target: o.target ?? undefined, qty: r.qty, price: r.price, itemId: r.itemInst }), o));
+    }
     case 'equip': {
       if (!equipArmor(state, a, o.item)) return emit(ctx, bark(mk(ctx, a, 'wasted'), o));
       return emit(ctx, bark(mk(ctx, a, 'equip', { itemId: o.item ?? undefined }), o));
@@ -754,6 +762,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
  * one left to finish the job) one survival roll: Near Miss or better wakes somewhere safe at Critical (the next scene). */
 function playerDown(state: GameState, rng: Rng): void {
   const p = state.player;
+  if (p.engagement?.fight) p.engagement.fight.down = true; // a lost fight, even if the player wakes (the Loser scars)
   if (healthLevel(p) === 'Dead') return;
   if (state.actors.some((x) => isActive(x) && hostile(state, x, p) && bandById(state, x.bandId)?.lethal !== false)) {
     logCode(state, 'player_fell', { lethal: true });

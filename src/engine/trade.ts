@@ -11,6 +11,7 @@ import { isActive, shortestPath, wary } from './relations';
 import { PK } from '../library/perkIds';
 import { IT } from '../library/itemIds';
 import { tally } from './xp';
+import { itemValue as benefitValue } from '../ruleset/value';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -35,13 +36,16 @@ export const isSeller = (a: Actor): boolean => !!a.wares && a.core.classes.some(
 const stockOf = (a: Actor, itemId: string): ItemInstance[] => a.core.inventory.filter((i) => i.itemId === itemId && !i.equippedIn?.length);
 const count = (insts: ItemInstance[]) => insts.reduce((n, i) => n + (i.qty ?? 1), 0);
 
+/** an item's trade value: its benefits in coin, × QUALITY_PRICE_FACTOR × quality for a minted item (src/ruleset/value.ts) */
+export const itemValue = (state: GameState, itemId: string): number => benefitValue(state, itemDef(state, itemId));
+
 /** the price buyer pays seller for one of a ware, or null when the seller doesn't offer it */
 export function warePrice(state: GameState, buyer: Actor, seller: Actor, wareId: string): number | null {
   if (!isSeller(seller)) return null;
   let base: number | undefined;
   if (wareId.startsWith(GOODS)) {
     const id = wareId.slice(GOODS.length);
-    if (seller.wares!.items.includes(id)) base = itemDef(state, id).value;
+    if (seller.wares!.items.includes(id)) base = itemValue(state, id);
   } else if (wareId.startsWith(SERVICE)) {
     const id = wareId.slice(SERVICE.length);
     if (seller.wares!.services.includes(id)) base = getLibrary().services?.[id]?.price;
@@ -137,4 +141,63 @@ export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, w
     else to.core.inventory.push(inst = { id: `${g.id}_${to.id}_${state.turn}`, itemId, qty: take });
   }
   return { ok: true, price, qty, itemInst: inst?.id, to };
+}
+
+/** SL2: a Trader buys the kinds of item it sells */
+const buysKind = (state: GameState, seller: Actor, itemId: string): boolean =>
+  isSeller(seller) && seller.wares!.items.some((w) => itemDef(state, w).kind === itemDef(state, itemId).kind);
+
+/** SL7: worn armor and worn accessories must come off before they can be sold; held gear is stowed and sold */
+const worn = (inst: ItemInstance): boolean => !!inst.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
+
+/** SL1/SL5/SL8/SL10: what seller pays the owner for one of an item, or null when it won't buy it.
+ * value × SELL_SHARE, × the haggle turned round (a won haggle pays more), × Hard Bargain; rounded down, at least 1. */
+export function sellPrice(state: GameState, owner: Actor, seller: Actor, itemId: string): number | null {
+  if (itemId === IT.coin || !buysKind(state, seller, itemId)) return null;
+  const value = itemValue(state, itemId);
+  if (value <= 0) return null; // SL8: worthless items (improvised weapons) can't be sold
+  const h = owner.haggle?.[seller.id];
+  const mult = CONFIG.SELL_SHARE * (h === undefined ? 1 : 2 - h) * (hasPerk(owner, PK.haggler) ? CONFIG.HARD_BARGAIN_SELL : 1);
+  return Math.max(1, Math.floor(value * mult + 1e-9));
+}
+
+/** SL9: what seller would pay for each item the owner carries and could sell now */
+export function offerList(state: GameState, owner: Actor, seller: Actor): { id: string; name: string; price: string }[] {
+  if (!isSeller(seller)) return [];
+  return owner.core.inventory.flatMap((i) => {
+    const p = worn(i) ? null : sellPrice(state, owner, seller, i.itemId);
+    return p === null ? [] : [{ id: i.id, name: itemDef(state, i.itemId).name, price: coinWords(p) }];
+  });
+}
+
+export type SellResult =
+  | { ok: true; price: number; qty: number; itemInst: string }
+  | { ok: false; reason: 'not_here' | 'refuses' | 'not_bought' | 'worn' | 'not_enough_coin' };
+
+/** SL4/SL6: sell qty (default 1; stacks only) of one of the seller's own items to a Trader. All or nothing; no roll.
+ * The item joins the Trader's stock and wares; the Trader pays from its own purse. */
+export function sell(state: GameState, owner: Actor, seller: Actor | undefined, instId: string | null | undefined, qtyIn: number | null | undefined): SellResult {
+  if (!seller || seller === owner || !isActive(seller) || links(state, owner, seller) > CONFIG.TRADE_SELLER_LINKS) return { ok: false, reason: 'not_here' };
+  if (wary(state, seller, owner)) return { ok: false, reason: 'refuses' };
+  const inst = owner.core.inventory.find((i) => i.id === instId);
+  const each = inst ? sellPrice(state, owner, seller, inst.itemId) : null;
+  if (!inst || each === null) return { ok: false, reason: 'not_bought' };
+  if (worn(inst)) return { ok: false, reason: 'worn' };
+  const stackable = itemDef(state, inst.itemId).stackable;
+  const qty = stackable ? Math.max(1, Math.floor(qtyIn ?? 1)) : 1;
+  if (qty > (inst.qty ?? 1)) return { ok: false, reason: 'not_bought' };
+  const price = each * qty;
+  if (coins(seller) < price) return { ok: false, reason: 'not_enough_coin' };
+  payCoin(seller, owner, price);
+  let moved: ItemInstance = inst;
+  if (stackable && qty < (inst.qty ?? 1)) {
+    inst.qty = (inst.qty ?? 1) - qty;
+    moved = { id: `${inst.id}_${seller.id}_${state.turn}`, itemId: inst.itemId, qty };
+  } else owner.core.inventory.splice(owner.core.inventory.indexOf(inst), 1);
+  delete moved.equippedIn; // a held weapon or shield is stowed and sold
+  const stack = stackable ? seller.core.inventory.find((x) => x.itemId === moved.itemId && !x.equippedIn?.length) : undefined;
+  if (stack) stack.qty = (stack.qty ?? 1) + qty;
+  else seller.core.inventory.push(moved);
+  if (!seller.wares!.items.includes(moved.itemId)) seller.wares!.items.push(moved.itemId);
+  return { ok: true, price, qty, itemInst: stack?.id ?? moved.id };
 }

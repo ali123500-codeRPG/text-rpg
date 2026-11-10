@@ -12,6 +12,7 @@ import { ACH_RULE_TEXT, ACH_TAGS } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
+import { benefits, itemValue } from '../ruleset/value';
 import { fnSkills, kitBonus, modeName, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
@@ -46,7 +47,9 @@ let facetOf: Facets = () => [];
 function card(sec: string, id: string, entry: unknown, title: string, chips: (HTMLElement | null)[], ...body: (Node | null)[]): HTMLElement {
   const f = facetOf(entry).filter(([, v]) => v !== undefined && v !== '').map(([g, v]) => `${g}\t${v}`);
   return h('article', { class: 'lv-card', id: `${sec}/${id}`, 'data-q': `${title} ${JSON.stringify(entry)}`.toLowerCase(), 'data-f': [...new Set(f)].join('\n') },
-    h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#${sec}/${id}` }, title)), h('code', { class: 'lv-id' }, id), ...chips), ...body, raw(entry));
+    h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#${sec}/${id}` }, title)), h('code', { class: 'lv-id' }, id), ...chips),
+    // the fields sit in one box, so cards side by side in a grid start their fields on the same line (subgrid)
+    h('div', { class: 'lv-cbody' }, ...body, raw(entry)));
 }
 
 /** any value as code holds it: primitives as text, lists as chips, objects as nested rows */
@@ -115,11 +118,14 @@ const impactOf = (ct: BodyType, part: string) => (part === 'general' ? 'essentia
 
 // ---------- Gear ----------
 const ACTIVE: Record<ItemEffect['active'], string> = { worn: 'when worn', held: 'when held', inUse: 'while in use', carried: 'when carried' };
-function effectText(e: ItemEffect, def?: ItemDef): string {
+function effectParts(e: ItemEffect, def?: ItemDef): [string, string[]] {
   const what = e.kind === 'skill' ? (e.skill === '$mode' ? 'skill of the attack mode used' : skillName(String(e.skill))) : `${e.roll} rolls`;
   const v = e.kit && def ? kitBonus(def, e) : e.value; // a kit piece: EQUIP_FACTOR × its need, as the game reads it
-  return `${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what} · ${ACTIVE[e.active]}${e.scope === 'withItem' ? ' · with this item only' : ''}${e.kit ? ' · kit' : ''}`;
+  return [`${v > 0 ? '+' : ''}${+v.toFixed(2)} ${what}`, [ACTIVE[e.active], ...(e.scope === 'withItem' ? ['with this item only'] : []), ...(e.kit ? ['kit'] : [])]];
 }
+/** a multi-part value as one line: the lead in full, the rest as quiet aligned bits (no " · " strings) */
+const parts = (lead: Node | string, bits: (string | null | false | undefined)[]) =>
+  h('div', { class: 'lv-part' }, h('b', {}, lead), h('span', { class: 'lv-bits' }, ...bits.filter((b): b is string => !!b).map((b) => h('span', {}, b))));
 function gearCard(i: ItemDef, id = i.id): HTMLElement {
   const humanoid = lib.bodyTypes[BT.humanoid];
   const req = requirement(i);
@@ -128,16 +134,16 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
   return card('gear', id, i, label(i.name), [chip(i.kind, toneFor('Kind', i.kind)), ...flags, ...(i.tags ?? []).map((t) => chip(t, toneFor('Flag', t)))],
     h('p', { class: 'lv-look' }, i.look),
     req ? row('Needs', `${req.need} true skill in `, link('skills', req.skill, skillName(req.skill)), ` (${EQUIP_LEVELS.name(req.level)} item)`) : row('Needs', none('nothing')),
-    row('Bulk · value', `${i.bulk} · ${i.value} coin`),
+    row('Bulk', String(i.bulk)), row('Value', `${itemValue(null, i)} coin${benefits(i).length ? ` (${benefits(i).map((b) => `${b.what}: ${+b.coin.toFixed(2)}`).join(' · ')})` : ''}`),
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
-    i.weapon ? row('Modes', h('div', { class: 'lv-sub' }, i.weapon.modes.map((m) => h('div', {}, h('b', {}, modeName(m)), ` · ${m.tree} ${m.class} · reach ${m.reach} · ${m.hands} hand${m.hands === 1 ? '' : 's'}`,
-      m.skill ? ` · ${skillName(m.skill)}` : '', m.thrown ? ' · thrown' : '', m.hitAdj ? ` · hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : '')))) : null,
+    i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => parts(modeName(m), [`${m.tree} ${m.class}`, `reach ${m.reach}`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      m.skill && skillName(m.skill), m.thrown && 'thrown', m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null])))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
         row('Covers', val(i.armor.covers.map(label))), i.armor.pools ? row('Pools', val(i.armor.pools)) : null)) : null,
     i.shield ? row('Shield pool', String(i.shield.pool)) : null,
-    i.effects?.length ? row('Effects', h('div', { class: 'lv-sub' }, i.effects.map((e) => h('div', {}, effectText(e, i))))) : null,
+    i.effects?.length ? row('Effects', h('div', { class: 'lv-plist' }, i.effects.map((e) => { const [lead, bits] = effectParts(e, i); return parts(lead, bits); }))) : null,
     i.heal ? row('Heals as', link('healing', i.heal, lib.healing?.[i.heal]?.name ?? i.heal)) : null);
 }
 function gear(): HTMLElement[] {
@@ -631,6 +637,8 @@ const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('d
     return list.length ? [h('div', { class: 'lv-railgroup', 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
   }));
 const picks = new Map<string, 'shown' | 'out'>();
+// each table keeps its own filter picks, remembered across visits and reloads (this browser only)
+const picksBy = remember<Record<string, [string, 'shown' | 'out'][]>>('lv-picks', {});
 const bar = h('div', { class: 'lv-filters', 'aria-label': 'Filters' });
 const search = h('input', { class: 'hs-input lv-search', type: 'search', placeholder: 'Filter this table', 'aria-label': 'Filter this table', oninput: filter });
 const titleEl = h('h1', {});
@@ -773,6 +781,7 @@ function pickWords(): string {
   return [...by].map(([g, vs]) => `${g}: ${vs.join(', ')}`).join('; ');
 }
 function filter(): void {
+  if (shown) { if (picks.size) picksBy[shown] = [...picks]; else delete picksBy[shown]; keep('lv-picks', picksBy); }
   const q = search.value.trim().toLowerCase();
   const allOn = allBox.checked && !!q;
   document.body.classList.toggle('lv-allmode', allOn);
@@ -975,8 +984,8 @@ function fold(head: Element, open?: boolean, save = true): void {
   const folded = box(head).classList.toggle('lv-folded', open === undefined ? undefined : !open);
   if (save) {
     const k = foldKey(head);
-    if (folded) foldedSet.add(k); else foldedSet.delete(k);
-    keep('lv-folded', [...foldedSet]);
+    if (FOLDED_FIRST.has(shown)) { if (folded) openedSet.delete(k); else openedSet.add(k); keep('lv-opened', [...openedSet]); }
+    else { if (folded) foldedSet.add(k); else foldedSet.delete(k); keep('lv-folded', [...foldedSet]); }
     // the same section in the other sub-tabs follows
     body.querySelectorAll<HTMLElement>(HEAD).forEach((o) => {
       if (o === head || foldKey(o) !== k) return;
@@ -986,11 +995,15 @@ function fold(head: Element, open?: boolean, save = true): void {
   }
   head.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
 }
+// tables whose sections start folded until opened; for them the remembered choice is which sections are open
+const FOLDED_FIRST = new Set(['achievements']);
+const openedSet = new Set<string>(remember<string[]>('lv-opened', []));
+const savedFolded = (k: string): boolean => (FOLDED_FIRST.has(shown) ? !openedSet.has(k) : foldedSet.has(k));
 // keyed by tab and title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new
 // build, and a section folded in one sub-tab is folded in every sub-tab that shows it
 const foldKey = (head: Element): string => `${shown}|${(head.textContent ?? '').replace(/\s*\(\d[^)]*\)\s*$/, '')}`;
 function foldable(): void {
-  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (foldedSet.has(foldKey(h2))) box(h2).classList.add('lv-folded'); });
+  body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => { if (savedFolded(foldKey(h2))) box(h2).classList.add('lv-folded'); });
   // the heading stays a heading; a button inside it does the folding
   body.querySelectorAll<HTMLElement>(HEAD).forEach((h2) => {
     const btn = h2.querySelector(':scope > .lv-foldbtn') ?? h('button', { type: 'button', class: 'lv-foldbtn', title: 'Fold or unfold' }, ...Array.from(h2.childNodes));
@@ -1039,7 +1052,7 @@ function tablify(): void {
   body.querySelectorAll<HTMLElement>('.lv-grid').forEach((grid) => {
     const list = Array.from(grid.querySelectorAll<HTMLElement>(':scope > .lv-card:not(.lv-fixed)'));
     if (!list.length) return;
-    const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
+    const rowsOf = (c: HTMLElement) => new Map(Array.from(c.querySelectorAll(':scope > .lv-row, :scope > .lv-cbody > .lv-row')).map((r) => [cellText(r.querySelector(':scope > .lv-k')), r.querySelector(':scope > .lv-v')!] as const));
     const maps = list.map(rowsOf);
     // columns: fields every entry has, short enough for a cell; long ones stay in the pop-up
     const cols = [...maps[0].keys()].filter((k) => maps.every((m) => m.has(k)) && maps.reduce((n, m) => n + cellText(m.get(k)).length, 0) / maps.length <= 60).slice(0, 6);
@@ -1097,6 +1110,9 @@ function route(): void {
     subRail.replaceChildren(...(tabs ? [tabs] : []));
     document.body.classList.toggle('lv-has-sub', !!tabs);
     foldable();
+    // bring back this table's remembered filters, leaving out values no entry has any more
+    const present = new Set(cards().flatMap((c) => facetsOf(c)));
+    for (const [f, st] of picksBy[sec.key] ?? []) if (present.has(f)) picks.set(f, st);
     tablify();
     drawSwitch();
     rail.querySelectorAll('a').forEach((a) => (a.dataset.sec === sec.key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
@@ -1112,6 +1128,7 @@ function route(): void {
     const shutBox = el?.closest('.lv-folded');
     const shut = shutBox?.querySelector(':scope > h2.hs-section, :scope > header > h3');
     if (shut) fold(shut, true, false);
+    if (el?.hidden) { picks.clear(); search.value = ''; filter(); } // a remembered filter hides the entry linked to: drop it
     body.querySelectorAll('.lv-hit').forEach((x) => x.classList.remove('lv-hit'));
     el?.classList.add('lv-hit');
     el?.scrollIntoView({ block: 'center' });

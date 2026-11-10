@@ -1,6 +1,6 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
 import type { Tier, TierRoll,
-  Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState,
+  Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WeaverView, Zone, ZoneView,
 } from '../types';
@@ -15,12 +15,13 @@ import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routin
 import { hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
-import { coinWords, isSeller, wareList } from '../engine/trade';
+import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { modeName } from '../ruleset/gear';
+import { itemValue } from '../ruleset/value';
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
@@ -138,7 +139,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
       gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
-      ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a) } : {}),
+      ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
     });
   }
   return out;
@@ -314,7 +315,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(lastHitBy ? { lastHitBy } : {}),
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
-      ...(isSeller(a) ? { wares: wareList(state, state.player, a) } : {}),
+      ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
@@ -507,7 +508,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   const bp = (kind: string) => state.blueprints.filter((b) => b.kind === kind);
   const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string }>(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}) }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
-  const worth = (i: { boon?: number; value: number }) => i.boon ?? i.value / CONFIG.BOON_COIN; // loot V8
+  const worth = (i: ItemDef) => i.boon ?? itemValue(state, i) / CONFIG.BOON_COIN; // loot V8
   const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });
   return {

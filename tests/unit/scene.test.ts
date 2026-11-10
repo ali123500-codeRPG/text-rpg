@@ -251,7 +251,7 @@ describe('applyStagePlan', () => {
     expect(mags.knownOnSight).toBe(true);
     expect(mags.pronouns).toBe('she'); // run 14 Q3: pronouns are kept on the actor
     expect(mags.mind!.knows).toHaveLength(1);
-    expect(mags.core.inventory.find((i) => i.itemId === IT.coin)!.qty).toBe(5);
+    expect(mags.core.inventory.filter((i) => i.itemId === IT.coin).map((i) => i.qty)).toEqual([CONFIG.TRADER_PURSE, 5]); // SL3 purse, then the reward
     expect(s.hidden.stage).toEqual({ eventSummary: villageStagePlan().event.summary, challenge: 'moderate', gain: 'moderate', hiddenTerms: ['nest'] });
     expect(s.hidden.castNotes!.guard_1.motive).toContain('harvest');
     expect(s.hidden.memory).toEqual({});

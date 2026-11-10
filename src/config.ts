@@ -125,6 +125,15 @@ const DEFAULTS = {
   HAGGLE_BAD_LOSS: 1.2, // lost by HAGGLE_BAD_GAP tiers or more
   HAGGLE_BAD_GAP: 2,
   HARD_BARGAIN_BUY: 0.9,
+  HARD_BARGAIN_SELL: 1.1,
+  SELL_SHARE: 0.5, // SL1: a Trader pays this share of an item's value (rounded down, at least 1)
+  TRADER_PURSE: 50, // SL3: coin every Trader carries when the Weaver places it
+  QUALITY_PRICE_FACTOR: 2, // SL8: a minted item's value is its base value × this × its quality (1–4)
+  /** SL12 b / SL14: the coin each benefit number is worth; an item's value is its benefits summed (src/ruleset/value.ts).
+   * skillPoint: per point of skill bonus (a roll bonus counts as the skill points that move a roll as much);
+   * reachZone: per zone of reach (its best attack mode); armorStop: per point of damage stopped, per part covered;
+   * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
+  ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
   TRADE_SELLER_LINKS: 1, // S1: buy from a seller up to this many zone links away (across the counter); farther trades are parked
   TRADE_GIFT_LINKS: 2, // S2: buy for someone up to this many zone links from the buyer
   WARES_CAP: 8, // goods lines plus services per seller
@@ -185,7 +194,7 @@ const DEFAULTS = {
   STEADY_GUARD: 5, // All-50 Steady Guard: Block effective skill with a melee weapon (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
-  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
+  REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000 } as Record<string, number>,
   /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
   QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   /** QT9: a quest's reward level from the scene's gain grade when it is accepted (iv is kept for later story quests) */
