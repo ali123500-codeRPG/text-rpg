@@ -93,17 +93,26 @@ function logFight(state: GameState, events: GameEvent[]): void {
   const foes = allActors(state).filter((x) => x !== p && fightingWith(state, x, p));
   for (const x of foes) if (!f.foes.includes(x.id)) f.foes.push(x.id);
   f.most = Math.max(f.most, foes.length);
-  if (lost > f.hp || events.some((v) => v.attack?.targetId === p.id && v.attack.damage > 0)) f.hurt = true;
+  if (lost > f.hp) f.hurt = true;
   f.hp = lost;
-  if (events.some((v) => v.attack?.targetId === p.id && v.attack.defense)) f.defended = true;
+  noteBlows(state, f, events);
   const allies = allActors(state).filter((x) => besidePlayer(state, x));
   if (allies.length) f.helped = true;
   if (allies.length && foes.length > allies.length + 1) f.heldLine = true; // the foes outnumber your whole side
   if (CONFIG.HEALTH_TRACK.findIndex(([l]) => l === healthLevel(p)) >= atLeastCritical()) f.brink = true;
 }
 
-/** the player's fight has ended: won = every foe is down, fled or yielded */
-export function fightEnded(state: GameState, f: FightLog): void {
+/** the turn's blows: the player hurt, the player defending, the player attacking (hit or miss) */
+function noteBlows(state: GameState, f: FightLog, events: GameEvent[]): void {
+  const p = state.player;
+  if (events.some((v) => v.attack?.targetId === p.id && v.attack.damage > 0)) f.hurt = true;
+  if (events.some((v) => v.attack?.targetId === p.id && v.attack.defense)) f.defended = true;
+  if (events.some((v) => v.attack?.attackerId === p.id)) f.struck = true;
+}
+
+/** the player's fight has ended: won = every foe is down, fled or yielded. The last turn's blows count too. */
+export function fightEnded(state: GameState, f: FightLog, events: GameEvent[] = []): void {
+  noteBlows(state, f, events);
   // a lost fight (the Loser scars): you went Down, or it ended with a foe still up and fighting you (you got away).
   // Yielding and morale breaks will count too once the player can do them (D-147).
   if (f.down || !isActive(state.player)) return tally(state, 'defeated');
@@ -116,4 +125,5 @@ export function fightEnded(state: GameState, f: FightLog): void {
   if (!f.hurt && f.defended) tally(state, 'flawless');
   if (f.most >= CONFIG.OUTNUMBERED_FOES && !f.helped) tally(state, 'outnumbered');
   if (f.heldLine) tally(state, 'held_line');
+  if (!f.struck && f.foes.length) tally(state, 'won_without_blow'); // the fight was won without the player attacking
 }
