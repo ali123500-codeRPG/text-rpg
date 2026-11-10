@@ -1,9 +1,10 @@
 // 139 quest achievements (QT19): finished quests earn Job Done (1, level 0) up to The One They Send For (50); giving up
-// five quests earns the scar Word Not Kept, which pays no XP.
+// five quests earns the scar Word Not Kept, which pays the XP of one reward level lower.
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { abandonQuest, handInQuests } from '../../src/engine/quests';
 import { ACH } from '../../src/library/achievementIds';
+import { CONFIG } from '../../src/config';
 import type { GameState, Quest } from '../../src/types';
 
 const quest = (s: GameState, n: number, state: Quest['state']): Quest => {
@@ -24,13 +25,13 @@ describe('139 quest achievements', () => {
     expect(earned(s)).toContain(ACH.quests_5);
     expect(earned(s)).not.toContain(ACH.quests_1);
   });
-  it('giving up five quests leaves the scar Word Not Kept, with no XP', () => {
+  it('giving up five quests leaves the scar Word Not Kept, paying one reward level lower', () => {
     const s = makeVillage();
     for (let n = 1; n <= 4; n++) abandonQuest(s, quest(s, n, 'active').id);
     expect(earned(s)).not.toContain(ACH.quests_abandoned_5);
     const xp = s.player.progression!.xp;
     abandonQuest(s, quest(s, 5, 'active').id);
     expect(earned(s)).toContain(ACH.quests_abandoned_5);
-    expect(s.player.progression!.xp).toBe(xp);
+    expect(s.player.progression!.xp).toBe(xp + CONFIG.REWARD_XP.zero); // level I scar: level 0's XP
   });
 });
