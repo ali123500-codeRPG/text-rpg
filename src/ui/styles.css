@@ -29,7 +29,7 @@
   --vh: 100vh;
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
-  --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scene: 650ms; --m-fall: 1400ms;
+  --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scene: 650ms; --m-fall: 1400ms; --m-honor: 900ms;
   --m-ease: cubic-bezier(0.16, 1, 0.3, 1); --m-ease-exit: cubic-bezier(0.4, 0, 1, 1);
   color-scheme: dark;
 }
@@ -375,6 +375,33 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .perk-new .st { font-size: 18px; color: var(--scene-mark); }
 .perk-new small { display: block; font-weight: 400; font-size: 12px; color: var(--faint); }
 .perk-new button { margin-left: auto; }
+/* an achievement or scar earned this turn: name, reward level, what it asks for; a click opens why (M-38) */
+.perk-new.ach { position: relative; overflow: hidden; cursor: pointer; text-align: left; }
+.perk-new.ach:hover { background: color-mix(in oklch, var(--scene-mark) 16%, transparent); }
+.perk-new.ach:focus-visible { outline: 2px solid var(--scene-mark); outline-offset: 2px; }
+.perk-new.ach::after { content: ''; position: absolute; inset: 0; pointer-events: none; transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent 35%, color-mix(in oklch, var(--scene-mark) 28%, transparent) 50%, transparent 65%); }
+.ach-txt { display: grid; gap: 1px; min-width: 0; }
+.ach-k { display: flex; align-items: center; gap: var(--space-2); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.ach-n { font-size: 15px; color: var(--text); }
+.ach-lv { display: inline-block; padding: 0 6px; border-radius: var(--r-md); border: 1px solid currentColor; font-size: 11px; font-weight: 800; letter-spacing: .04em; line-height: 16px; }
+.perk-new.ach .ach-why { margin-left: auto; flex: none; }
+.perk-new.ach.scar { --scene-mark: var(--danger); background: color-mix(in oklch, var(--danger) 9%, transparent); }
+.perk-new.ach.scar::after { display: none; }
+/* details pop-ups on the game screens: movable by the head, never modal */
+.dpop { position: fixed; z-index: 50; width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 32px); display: grid; grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid color-mix(in oklch, var(--pc, var(--accent)) 55%, var(--border)); border-radius: var(--r-lg); background: var(--surface); color: var(--text); }
+.dpop-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); border-bottom: 1px solid var(--border); cursor: move; user-select: none; touch-action: none; }
+.dpop-head .hs-label { margin-right: auto; color: var(--pc, var(--accent)); }
+.dpop-body { overflow: auto; padding: var(--space-3) var(--space-4) var(--space-4); display: grid; gap: var(--space-3); justify-items: start; font-size: 14px; }
+.dpop-body p { margin: 0; }
+.ach-pop-n { display: flex; align-items: center; gap: var(--space-2); font-size: 16px; color: var(--pc); }
+.ach-pop-n b { color: var(--text); }
+.ach-pop-why { color: var(--text); }
+.ach-pop-dl { display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); margin: 0; font-size: 13px; }
+.ach-pop-dl dt { color: var(--muted); }
+.ach-pop-dl dd { margin: 0; }
+.ach-pop-dl ul { margin: 0; padding-left: 1.1em; }
 .pk { position: relative; margin-top: var(--space-8); padding: var(--space-4); border: 1px solid var(--border); border-radius: var(--r-lg);
   background: radial-gradient(120% 90% at 50% 0%, color-mix(in oklch, var(--surface) 80%, var(--deco-1)) 0%, var(--bg) 75%); }
 .pk-h { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
@@ -572,6 +599,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-pchips { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; }
 .cs-pchip { padding: 0 var(--space-2); border-radius: var(--r-md); font-size: 12px; font-weight: 700; color: var(--text); background: color-mix(in srgb, var(--pc) 30%, transparent); border: 1px solid color-mix(in srgb, var(--pc) 60%, transparent); }
 .ps-damaged, .ps-pressure { --pc: var(--warn); } .ps-crippled, .ps-destroyed { --pc: var(--danger); }
+/* Q2: a shield's state or an armor pool's points beside the item on the gear lines; colour carries the state (M-34) */
+.cs-gn { margin-left: .35em; font-weight: 500; font-size: 12px; color: var(--pc, var(--muted)); }
+.cs-gn.ps-pool { --pc: var(--muted); }
 .rolls-sw[aria-pressed="true"], .auto-open[aria-pressed="true"] { color: var(--text); }
 
 /* QT15: the quest line under the place line on the Play screen; only the quest text shrinks */
@@ -622,6 +652,8 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* ---- play screen motion (Motion Rules Review M-01–M-74); src/ui/motion.ts plays it, always on top of the final state */
 .cs-row [data-m] { display: inline-block; }
 .m-host { position: relative; }
+/* something that left (an item, someone in Who's here): struck through while it fades out (M-32) */
+.m-ghost { text-decoration: line-through; pointer-events: none; }
 .m-delta { position: absolute; right: 100%; top: 50%; margin: -6px 8px 0 0; font-size: 12px; font-weight: 800; line-height: 12px; white-space: nowrap; pointer-events: none; }
 .m-bar { position: absolute; top: 0; bottom: 0; transform-origin: left center; pointer-events: none; border-radius: inherit; }
 .m-bar.trail { background: color-mix(in srgb, var(--text) 70%, var(--danger)); }

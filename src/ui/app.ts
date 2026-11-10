@@ -59,20 +59,21 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   };
   function go(p: string) { if (location.hash.slice(1) === p) render(); else location.hash = p; }
 
+  // the rail is rebuilt only when what it shows changes, so a redraw never cuts short the perk badge's beat (M-74)
+  let railKey = '';
   function drawRail(page: string) {
     const started = !!api.state();
+    const key = [page, started, gmOn, api.state()?.player.progression?.unspentPerkPoints ?? 0].join('|');
+    if (key === railKey) return;
+    railKey = key;
     const item = (id: string, label: string, enabled: boolean) => h('a', {
       href: enabled ? '#' + id : undefined, 'aria-current': page === id ? 'page' : undefined, 'aria-disabled': enabled ? undefined : 'true',
       title: enabled ? label : 'Opens once your swordsman is made',
     }, icon(id), label, id === 'stats' ? pointsBadge() : null);
-    // V2b: perk points waiting to be spent
+    // V2b: perk points waiting to be spent; after a turn the Play screen holds a new count back until its level-up lands (M-38)
     function pointsBadge() {
       const n = api.state()?.player.progression?.unspentPerkPoints ?? 0;
-      if (n <= 0) return null;
-      // the same badge is kept across redraws, so a redraw mid-turn never cuts its motion short (M-73)
-      const was = rail.querySelector<HTMLElement>('.hs-badge');
-      if (was && was.textContent === `✦${n}`) return was;
-      return h('span', { class: 'hs-badge', title: `${n} perk point${n === 1 ? '' : 's'} to spend` }, `✦${n}`);
+      return n > 0 ? h('span', { class: 'hs-badge', 'data-m': 'points', title: `${n} perk point${n === 1 ? '' : 's'} to spend` }, `✦${n}`) : null;
     }
     rail.replaceChildren(
       h('div', { class: 'hs-brand' }, 'RPG', h('span', { class: 'ar' }, 'v0')),
