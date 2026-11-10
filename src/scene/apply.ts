@@ -403,5 +403,6 @@ function stockWares(state: GameState, a: Actor, w: NonNullable<StagePlan['cast']
     else if (!services.includes(s)) services.push(s);
   }
   a.wares = { items, services };
+  a.core.inventory.push({ id: `purse${turn}_${a.id}`, itemId: IT.coin, qty: CONFIG.TRADER_PURSE }); // SL3: the Trader's purse
   if (dropped.length) state.log.push({ turn, code: 'wares_dropped', detail: { actorId: a.id, dropped } });
 }

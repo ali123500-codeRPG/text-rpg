@@ -57,7 +57,7 @@ export function leakScan(text: string, allowedText: string, ctx: LeakContext): s
 }
 
 const POSITION = new Set(['move', 'arrival', 'flee', 'sneak']);
-const INVENTORY = new Set(['give', 'buy', 'buy_refused', 'pick_up', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen']);
+const INVENTORY = new Set(['give', 'buy', 'buy_refused', 'sell', 'sell_refused', 'pick_up', 'item_dropped', 'gear', 'equip', 'use_item', 'thrown', 'stolen']);
 
 /** full events that must be narrated: presence, and anything changing the player's condition, inventory or position */
 export function mustNarrate(e: NarrationEvent, view: NarrationView): boolean {

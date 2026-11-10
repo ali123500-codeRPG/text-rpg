@@ -46,6 +46,9 @@ export type SparView = { opponents: string[]; allies: string[]; limit: HealthLev
 /** PY2: one thing a seller offers: id goes in the buy's item; price in coin words, for the viewer; stock for goods */
 export type WareView = { id: string; name: string; price: string; stock?: number };
 
+/** SL9: what a Trader would pay for one of the player's items: id is the player's item, for a sell's item */
+export type OfferView = { id: string; name: string; price: string };
+
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
@@ -54,6 +57,7 @@ export type SeenActor = {
   damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts
   gear: SeenGearView[];
   wares?: WareView[]; // a seller the player sees, at the player's prices
+  offers?: OfferView[]; // SL9: what that Trader would pay for each item the player could sell it now
 };
 
 // ---------- PlayerView: Agent Parser ----------
@@ -113,6 +117,7 @@ export type ActorView = {
     stealthy?: true; // NS: moving unseen
     spar?: SparView; // SP1: the spar it is a fighter in
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
+    offers?: OfferView[]; // SL9: what it would pay for the player's items
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
