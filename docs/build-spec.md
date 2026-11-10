@@ -1339,9 +1339,9 @@ Without streaming, the player waits for the whole turn, so the parallel parts ma
 - **Call slots.** Only a couple of Claude calls run at once per viewer; a few more wait their turn and a flood is rejected (rate\_limited). Background Planner and Weaver calls share these slots with the turn's own calls, so parallel calls can queue and a queued Planner call is more likely to be late (planner\_late). Size MAX\_PLANNER\_CALLS and BACKGROUND\_WINDOW with that in mind. Abort a call (its signal) as soon as its output can no longer be used, so the viewer stops paying for it. The exact slot count is unconfirmed.
 - **Compact views.** Ids, short descriptions and the last few relevant events, not the full log.
 - **Prompt order.** Each agent's input starts with its fixed instructions (a leading user turn, since the capability has no system prompt) and ends with the per-turn data; nothing that changes per turn or per actor goes in the fixed part. If the platform caches prompt prefixes, this makes repeat calls faster; the runtime docs don't say it does (OQ-11), so estimates assume it doesn't. Pass cache:false on calls whose repeat must give a new answer.
-- **Waiting state.** Show the same short "…" indicator in every mode until the Narrator's checked text is ready.
+- **Waiting state.** Show the same waiting line in every mode until the Narrator's checked text is ready (Play screen motion, M-01).
 - **Streaming** is off for now; revisit after playtests (D-24).
-- **Timing rule.** Resolution never starts before the previous display plus BACKGROUND\_WINDOW (config), in every mode. In dialogue turns, results are also shown no earlier than DIALOGUE\_WINDOW (config) after submit, set at or above the Responder's usual latency, so guarded and ordinary NPCs answer in the same time. Known limit: retries still change timing (D-45). The call count is shown in the header on purpose.
+- **Timing rule.** Resolution never starts before the previous display plus BACKGROUND\_WINDOW (config), in every mode. In dialogue turns, results are also shown no earlier than DIALOGUE\_WINDOW (config) after submit, set at or above the Responder's usual latency, so guarded and ordinary NPCs answer in the same time. Known limit: retries still change timing (D-45). The call count and the running agents show only in the GM view (play screen review UI1, UI3).
 
 ### Leak prevention, validation and failure handling
 
@@ -1403,7 +1403,7 @@ Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns
 * **Turn changes:** one folded row per turn ("Turn 14 ↻3 You are Bruised", or "3 changes") that opens to one typed row per change: Combat, Condition, Health. Built by code from the combat packets the character perceived (Voyage U14 to U16).
 * **Commands and Ideas:** two buttons in the tool row under the input open a panel above it, at most 40% of the story's height; Escape, a pick or a send closes it. Commands lists the / commands (D-100). Ideas lists everyone in view for Fight and Talk and up to three actions each for Move, Stealth and Use, built by code from PlayerView (D-107); the same name twice reads "the other …". Picking one fills the box; nothing is sent until Send.
 * **Input:** one free-text box across the reading column with Send beside it; a line starting with / is a command (Part 1 §7). The tools (Commands, Ideas, Aim, Sneak, Hide, Vanish, the quick-heal slot) sit in one row under it. What the player put off last turn shows as a dimmed suggestion in the empty box ("From last turn · Tab to use, Esc to clear"); nothing is typed or sent until they take it. PageUp and PageDown scroll the story while the box has focus.
-* **Input keys:** the action box keeps focus; what it sends is trimmed, and an empty line sends nothing. If narration is ever paced (D-24), skipping uses a click on the narration or Esc, never a key that types (Voyage A7, decided by Ali 07/11/2026; was OQ-24).
+* **Input keys:** the action box keeps focus; what it sends is trimmed, and an empty line sends nothing. Narration is paced (Play screen motion, M-10); skipping uses a click on the story or Esc, never a key that types (Voyage A7, decided by Ali 07/11/2026; was OQ-24; M-12).
 * **Aim toggle:** marks this turn's attack as aimed (Part 1 §7); an aimed turn's player line ends with "· aimed" (from the line's saved `aimed`).
 * **Rolls:** while SHOW\_MECHANICS is on, each turn's dice, modifiers and damage fold under "Rolls" in that turn's results, wrapping. A "Show rolls" switch in the header sets the story's showMechanics (UI6).
 * **Undo:** after /undo the undone turn's lines fold under one "Undone · turn N" row (struck through when opened), and the note reads "Turn N undone. Dice are not rolled back."
@@ -1424,6 +1424,73 @@ Read HISAB's README, tokens.json, components/bundle.css, navigation.md, patterns
 * **Keyboard order:** Tab runs input, tool row, side sheet, then the rail (the rail is last in the page and placed in the first column by CSS). Rail labels use tighter tracking so "Achievements" fits the 84px rail.
 * **"You fell" screen:** shown when a lethal fight incapacitates the player, offering /undo or reset (D-54).
 * **GM debug view toggle** (Leak prevention, validation and failure handling).
+
+### Play screen motion
+
+Decided by Ali, 10/11/2026 (Motion Rules Review, answers Q1–Q4; it replaces the draft rpg-motion rules). Code resolves every number; the screen only animates what code already resolved. Built in src/ui/motion.ts (helpers), src/ui/play.ts (the turn's order) and the --m-\* tokens in styles.css. Q1: narration is paced sentence by sentence (this settles D-24's pacing; streaming stays off). Q2: the shield's state and an armor pool show on their gear lines. Q3: no minimum wait for scene-start turns (no false delays). Q4: the turn's own calls go ahead of background calls in the call slots (Latency and cost).
+
+**Timing leak**
+
+- **M-01** One pending state for every turn: the line "The story is moving… N s", kept apart from the story as a status. It looks the same in every mode and for every turn, and adds "Taking longer than usual" after 90 s. It never names an agent, an actor or a step, and has no progress bar or step counter.
+- **M-02** A turn shows only when the game hands over the whole finished turn: checked narration, outcome labels and state changes, after the BACKGROUND\_WINDOW and DIALOGUE\_WINDOW gates. Nothing of it shows while any of its calls is still out. Streaming stays off (D-24); if it is ever turned on, this rule is reviewed with it.
+- **M-03** After a turn lands, every animation's length comes from the motion tokens and from what is on screen (how many sentences, how many changes), never from response time, which agents ran, how many calls ran, retries or fallbacks. Two turns that show the same things animate for the same time.
+- **M-04** Background work is invisible. Background Planner calls, background Agent Weaver stage extensions, actors run by their type's combat list (minor, over MAX\_PLANNER\_CALLS, or after a late or failed call) and every fallback get no animation, indicator or layout shift of their own. A frontier turn that waits for a late Weaver shows only the normal pending line. The out-of-character notices (scene-planning failure marker, rate-limit notice, stop-play message) appear only when the turn shows, or when play stops, never while calls run.
+- **M-05** Nothing on screen shows who or what decided an NPC's words or deeds: Responder or Voice, Planner, combat list, routine, trigger, a reply or a bark, a fallback line. Their words reach the screen only inside the narration, so they share its container, reveal and timing.
+- **M-06** While a turn runs, nothing on the play screen changes except the pending line's seconds: no sheet value, Who's here entry, header line or chip updates until the turn shows.
+
+**Narration reveal**
+
+- **M-10** Each turn's narration appears sentence by sentence: each sentence fades in and rises at most 4 px. Never character by character.
+- **M-11** Paced narration uses one fixed gap per sentence (--m-sentence) and a cap on the whole reveal (--m-reveal-cap); past the cap the remaining sentences appear together.
+- **M-12** A click on the story, or Esc, finishes every running animation at once. Keys that type never skip. While something animates, Esc only skips; otherwise it does its usual job. Sending the next action also finishes everything still running.
+- **M-13** Input is never blocked or disabled by an animation.
+- **M-15** Screen readers hear each new turn once, through the story list (role=log), when the turn lands, never sentence by sentence. A value that counts up carries its final value in text from the start, so nothing is read half-way.
+
+**Outcome beats**
+
+- **M-20** Each outcome label the player perceived (their own check line and the rolls made against them) gets one beat on its result word, growing with severity: missed and dodged appear with no motion; grazed and blocked fade in; full hit gets one short pulse; heavy hit a pulse plus a shift of at most 3 px; crushing hit the strongest, still under 300 ms. The word's colour says whose loss it is: danger for a hit on the player, accent for the player's hit.
+- **M-21** A turn's results play after its narration, top to bottom as they sit under the prose: check lines in action order, the changes row, then sheet values in the order health, body parts, morale, skills, XP and level, coin, then gold cards. Each starts --m-stagger after the last, and past --m-results-cap the rest lands at once.
+- **M-22** Outcome beats carry no numbers. Numbers about other actors never show at all. The player's own numbers that the sheet already shows (skills, XP, coin, quick-heal count) may count to their new value. The Rolls fold (Show rolls) never animates.
+
+**Body parts, health and morale**
+
+- **M-30** A body-part state change animates once on that part: its colour and pattern change, then one short pulse. Worsening and recovery use the same motion; colour carries direction. When one of the player's parts becomes Crippled or Destroyed, or recovers from it, its state chip lands on the sheet ("Right arm · Crippled") and the turn's results get a card naming it. Only states the player is shown animate.
+- **M-31** Body-part changes play as one batch per turn, in their place in the M-21 order.
+- **M-32** Destroyed is the only part state with a second beat: the item the part held, or a destroyed shield, leaves its gear line. A destroyed head or neck (essential) is Dead for the player, so the fall sequence replaces every other beat that turn.
+- **M-33** Crossing a level on the health or morale track gets one beat on that track: the level word changes and the bar settles. Never a loop or a flash. Reaching Wounded or worse also gives one short red pulse at the screen edge; at Critical the edge keeps a steady tint. Reaching Incapacitated hands over to the fall sequence.
+- **M-34** State must be readable without motion: colour plus a text label or icon on every state.
+- **M-35** A held shield shows its state on its gear line (Healthy, Damaged, Crippled, Destroyed) and animates like a body part (M-30, M-32). An armor pool (a heavy helmet) has no states: its gear line shows how much is left, which drops with one short beat when it absorbs a blow and reads "empty" once spent.
+
+**Sheet values**
+
+- **M-36** Every other value that changes on the play screen gets one feedback beat on its own element. A number counts to its new value with a small "+n" or "−n" beside it; a bar moves to its new length with a fading trail of the part lost; a word swaps with a short cross-fade; a chip or line (Shaken, Swayed, Stealthy, the yield box, a quest step, the deals chip) fades in or out. This covers skills, XP and level, coin, the quick-heal count, morale, time of day, and arrivals and departures in Who's here.
+- **M-37** Motion never shows more than the screen shows: no direction, size or timing that PlayerView doesn't already give. Another actor's level word only animates when PlayerView shows that word.
+- **M-38** Gold cards land last in a turn's results, one at a time. A level-up also fills the XP bar, then starts it again from empty, as one short moment (the Thread weaves).
+
+**Scenes**
+
+- **M-40** A scene break (story start, rest, time skip or story beat) is the one transition between scenes, within --m-scene: the quiet rule draws across (with the place name if the place changed), then the opening narration appears as normal (M-10). Earlier lines stay as they are. The only other authored moments are the fall (the player is incapacitated) and the level-up (M-38).
+- **M-41** Moving between zones, crossing a frontier or reaching a new place in the same scene gets no transition: the header's place line changes quietly, and a new place gets its named rule in the story, drawn with no motion of its own.
+- **M-42** The opening narration at story start uses the scene-break transition once.
+
+**Motion tokens**
+
+- **M-50** All durations and easings are named CSS variables in :root; no literal durations in components. Starting values: --m-feedback 120ms, --m-state 200ms, --m-beat 220ms, --m-sentence 180ms, --m-reveal-cap 1500ms, --m-stagger 350ms, --m-results-cap 3500ms, --m-count 600ms, --m-trail 700ms, --m-scene 650ms, --m-fall 1400ms, --m-ease cubic-bezier(0.16, 1, 0.3, 1), --m-ease-exit cubic-bezier(0.4, 0, 1, 1).
+- **M-51** Exits are faster than entrances.
+
+**Replays, undo and loading**
+
+- **M-60** Loading or reloading, "Show earlier turns", opening any fold (Undone, a turn's changes, Rolls), restoring a backup, /undo, the GM view and a read-only second window all draw the final state with no animation. Turns that reach a read-only window from the other PC land with no animation too.
+- **M-61** Only the newest live turn ever animates.
+- **M-62** Turns played by "Watch an agent play" are live turns and animate like the player's. The agent's send follows M-12: anything still running finishes at once.
+
+**Always**
+
+- **M-70** Animate only transform, opacity and colour (colour for state changes). Never animate width, height, margins, positions or other layout properties; a bar moves by scaleX on its fill. No glows and no shadows, moving or still, except the toast shadow.
+- **M-71** No bounce or elastic easing.
+- **M-72** When prefers-reduced-motion is reduce, or the in-game Motion switch is off, nothing moves: reveals are instant, numbers jump to their final value, and each beat is a colour change only (no movement or scale). The fall and the scene break become a plain cut. The Motion switch sits in the header beside Show rolls, is kept per viewer, and starts from the system setting.
+- **M-73** Every animation must be interruptible and must end in exactly the state a skip would produce.
+- **M-74** Every element is set to its final state first, and the animation plays on top of it. A value animates only when it differs between the screen before and after the turn, never because the screen redrew, and a redraw never restarts or cuts short a running beat.
 
 ### Scenario tests
 
@@ -2599,7 +2666,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-21 | Player names something that doesn't exist | 2 | Parked | A clarify question can reveal what exists in the world. Voyage playtest (07/11/2026): F1, the player liked an impossible action failing inside the story instead of a clarify question |
 | D-22 | What code produces, agents see, player sees | 2 | Parked | Separate document; includes roll numbers for Agent Narrator, SHOW\_MECHANICS and on-screen panels. Part 3's roll packet specifies part of this; Agent Narrator never gets roll numbers (Part 3, The packet). Includes whether the player sees the situation roll. Voyage playtest (07/11/2026): A1 one-line check summary, A2 typed update cards, D9 speaker labels and plain text, E3 location header, G2 quest text, G3 player-facing wording for rules text. Decided by Ali (07/11/2026, Voyage C2): no enemy health bars, by design; characters only know what they perceive |
 | D-23 | Fallback narration form | 2 | Parked | Template text breaks immersion |
-| D-24 | Streaming | 2 | Provisional | Off for now; revisit after playtests. Voyage playtest (07/11/2026): A5, narration paced line by line |
+| D-24 | Streaming | 2 | Provisional | Off for now; revisit after playtests. Voyage playtest (07/11/2026): A5, narration paced line by line. Pacing settled 10/11/2026: sentence-by-sentence reveal after the turn lands (Play screen motion, M-10, M-11); streaming itself stays off |
 | D-25 | Improvement-roll timing | 2 | Settled | Settled 07/11/2026 (SP3, SP7): at the end of each engagement and at scene breaks; NPCs don't improve yet. Was: After each use, at scene end or at rest; whether NPCs improve. Part 1 §6 runs improvement at the end of a training action |
 | D-26 | Ruleset module | 2 | Partly settled | First build: TIERS, situation, roll, attack, check and contested are built (Part 2, Resolution engine, First-build ruleset); the rest stays stubbed |
 | D-27 | Body-part targeting | 2 | Settled | targetPart and aimed in the agent outputs (Part 2); aim penalty, gap ladder and location (Part 3) |

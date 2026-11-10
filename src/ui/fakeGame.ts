@@ -18,6 +18,25 @@ const NARRATION = [
   'The slime lurches at you. You bring the round shield across, and the blow slaps wetly against the boards; your counter cuts a long furrow through its body.',
 ];
 
+/** a canned exchange of blows on the fake page: the player loses health and the right arm, and gains Block, XP and coin */
+function fightTurn(st: GameState): Partial<LogLine> {
+  const p = st.player;
+  p.core.condition.hpLostPct = Math.min(99, p.core.condition.hpLostPct + 35);
+  p.core.condition.parts.right_arm = -10;
+  const blk = p.core.skills[SK.block];
+  if (blk) blk.raw += 2; else p.core.skills[SK.block] = { raw: 2, state: 'normal' } as typeof p.core.skills[string];
+  if (p.progression) p.progression.xp += 40;
+  const purse = p.core.inventory.find((i) => i.itemId === IT.coin);
+  if (purse) purse.qty = (purse.qty ?? 1) + 15; else p.core.inventory.push({ id: 'player_coin', itemId: IT.coin, qty: 15 });
+  return {
+    text: 'The slime rears and lashes down. You get the shield up late; the blow tears past it and something in your right arm gives with a wet crack. You answer anyway, a heavy cut that opens its side. It sags, steaming, and coins spill from its gut into the grass.',
+    check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: 'heavy hit, body' },
+    incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'critical_success', against: { what: 'your block', tier: 'near_miss' }, result: 'crushing hit, right arm', by: 'the slime' }],
+    changes: [{ kind: 'combat', text: 'Slime → you · crushing hit, right arm' }, { kind: 'combat', text: 'You → slime · heavy hit, body' }, { kind: 'condition', text: 'Your right arm is crippled' }],
+    wounds: [{ id: 'right_arm', from: 'Healthy', to: 'Crippled' }], gains: { [SK.block]: 2 },
+  };
+}
+
 export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);
 
 export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
@@ -99,8 +118,10 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
       if (drop) fell = true;
+      // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
+      const hurt = /^attack\b/i.test(text) ? fightTurn(state) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}) }];
+        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
