@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { startSpar, updateSpars } from '../../src/engine/spar';
 import { grantAchievement } from '../../src/engine/xp';
+import { fightEnded } from '../../src/engine/feats';
+import { actor } from '../harness/village';
 import { ACH } from '../../src/library/achievementIds';
 import type { GameState } from '../../src/types';
 
@@ -36,5 +38,33 @@ describe('141 spar achievements and achievement totals', () => {
     expect(keys(s)).not.toContain(ACH.total_10);
     grantAchievement(s, ACH.holds_10);
     expect(keys(s)).toContain(ACH.total_10);
+  });
+});
+
+describe('141 lost fights and the first spar lost', () => {
+  it('one spar lost leaves Flat on Your Back; ten replace it with Sparring Dummy', () => {
+    const s = makeVillage();
+    spar(s, false, false);
+    expect(keys(s)).toContain(ACH.spar_losses_1);
+    for (let i = 0; i < 9; i++) spar(s, false, false);
+    const sd = s.player.progression!.achievements!.find((a) => a.key === ACH.spar_losses_1)!;
+    expect(sd.replacedBy).toBe(ACH.spar_losses_10);
+  });
+
+  it('a fight lost by going Down, or by getting away from a foe still fighting you, counts toward Loser', () => {
+    const s = makeVillage();
+    const slime = actor(s, 'slime_1');
+    slime.mind!.overrides = { [s.player.id]: 'hostile' };
+    const xp = s.player.progression!.xp;
+    fightEnded(s, { hp: 0, foes: [slime.id], most: 1, down: true }); // went Down (and woke)
+    for (let i = 0; i < 3; i++) fightEnded(s, { hp: 0, foes: [slime.id], most: 1 }); // got away
+    expect(keys(s)).not.toContain(ACH.defeated_5);
+    slime.mind!.moraleState = 'broken';
+    fightEnded(s, { hp: 0, foes: [slime.id], most: 1 }); // won: the foe broke
+    expect(keys(s)).not.toContain(ACH.defeated_5);
+    delete slime.mind!.moraleState;
+    fightEnded(s, { hp: 0, foes: [slime.id], most: 1 });
+    expect(keys(s)).toContain(ACH.defeated_5);
+    expect(s.player.progression!.xp).toBe(xp); // scars pay no XP
   });
 });
