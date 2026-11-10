@@ -5,7 +5,7 @@ import type { DefenseKind } from './actor';
 import type { TimeOfDay } from '../scales';
 import type { Plan, Secret, Trigger } from './hidden';
 
-export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator' | 'weaver';
+export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator' | 'weaver' | 'autopilot';
 
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =

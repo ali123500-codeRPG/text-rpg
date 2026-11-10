@@ -80,6 +80,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     validateBuild: validateBuildLocal,
     async newStory(b) { start(b); emit(); },
     async resume() { return state !== null; },
+    async agentMove() { return { command: 'I look around.', say: 'Getting my bearings first.' }; },
     async submit(text, o) {
       if (busy || !state) return;
       // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one
