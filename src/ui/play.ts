@@ -182,10 +182,16 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const body = h('div', { class: 'play' }, story, h('div', { class: 'sec col' }, notices, helpPanel, bar));
   const title = h('div', { class: 'head' });
   const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
-  let folded = true; // layout A: the status strip by default; the full sheet opens on a click
+  // layout A: the status strip by default; on a wide screen the full sheet is open by default, so the space beside the story
+  // is used. Each width keeps its own choice (the player can still fold or open it).
+  const WIDE = '(min-width: 1280px)';
+  const wide = () => typeof matchMedia === 'function' && matchMedia(WIDE).matches;
+  const foldKey = () => (wide() ? 'sheetFoldedWide' : 'sheetFolded');
+  const readFolded = () => { try { const v = localStorage.getItem(foldKey()); return v === null ? !wide() : v === '1'; } catch { return !wide(); } };
+  let folded = readFolded();
+  if (typeof matchMedia === 'function') matchMedia(WIDE).addEventListener?.('change', () => { folded = readFolded(); if (el.isConnected) update(); });
   let dealsOpen = false;
   document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
-  try { folded = localStorage.getItem('sheetFolded') !== '0'; } catch { /* storage blocked: start with the strip */ }
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
   const wrap = h('div', { class: 'play-wrap' }, body, sheet);
   // Watch an agent play: it types each command into the box, then sends it like Send
@@ -449,7 +455,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
 
     // layout A: the status strip, or the full sheet as a 420px side panel that pushes the story narrower
-    const setFolded = (f: boolean) => { folded = f; try { localStorage.setItem('sheetFolded', f ? '1' : '0'); } catch { /* not saved */ } update(); };
+    const setFolded = (f: boolean) => { folded = f; try { localStorage.setItem(foldKey(), f ? '1' : '0'); } catch { /* not saved */ } update(); };
     sheet.classList.toggle('folded', folded);
     wrap.classList.toggle('sheet-open', !folded);
     if (s && folded) sheet.replaceChildren(h('button', { type: 'button', class: 'cs-strip', 'aria-expanded': 'false', title: 'Open your full sheet', onclick: () => setFolded(false) },

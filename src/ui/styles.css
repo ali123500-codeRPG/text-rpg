@@ -474,12 +474,15 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
 .playmain > .fell { grid-row: 4; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
-.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--panel-w); }
+.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) clamp(var(--panel-w), 30vw, 600px); } /* the open sheet grows with the screen */
 .play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
-/* the reading measure: about 70 characters a line of Literata 17px (58ch, as Literata's figures run wide); the free space
-   goes to the right margin */
+/* the reading measure: about 70 characters a line of Literata 17px (58ch, as Literata's figures run wide) */
+
 .play { --measure: 58ch; }
+@media (min-width: 1600px) { .play { --measure: 64ch; } }
 .col { font: 17px/1.6 var(--font-story); width: min(100%, var(--measure)); box-sizing: border-box; }
+/* the reading column sits centred in the space beside the sheet, so a wide screen has no empty half */
+.play .col { margin-inline: auto; }
 .col > * { font: 14px/1.4 var(--font-round); }
 .story { overflow-y: auto; min-height: 0; scrollbar-color: var(--rule) transparent;
   mask-image: linear-gradient(to bottom, transparent, black var(--space-4)); } /* lines leave softly under the who's-here row */
