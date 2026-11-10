@@ -68,7 +68,11 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     // V2b: perk points waiting to be spent
     function pointsBadge() {
       const n = api.state()?.player.progression?.unspentPerkPoints ?? 0;
-      return n > 0 ? h('span', { class: 'hs-badge', title: `${n} perk point${n === 1 ? '' : 's'} to spend` }, `✦${n}`) : null;
+      if (n <= 0) return null;
+      // the same badge is kept across redraws, so a redraw mid-turn never cuts its motion short (M-73)
+      const was = rail.querySelector<HTMLElement>('.hs-badge');
+      if (was && was.textContent === `✦${n}`) return was;
+      return h('span', { class: 'hs-badge', title: `${n} perk point${n === 1 ? '' : 's'} to spend` }, `✦${n}`);
     }
     rail.replaceChildren(
       h('div', { class: 'hs-brand' }, 'RPG', h('span', { class: 'ar' }, 'v0')),

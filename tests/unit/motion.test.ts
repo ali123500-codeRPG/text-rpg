@@ -44,6 +44,9 @@ describe('play screen motion', () => {
     expect(b.level).not.toBe(a.level);
     expect(b.hpFill).toBeLessThan(a.hpFill);
     expect(b.parts.right_arm).toBe('Crippled');
+    // the rail's perk-point badge is one of them, so it changes with the level-up beat, not before it
+    s.player.progression = { ...(s.player.progression ?? {}), unspentPerkPoints: 1 } as typeof s.player.progression;
+    expect(shownValues(s, s.player).points).toBe(1);
   });
 
   it('durations are --m-* tokens and nothing animates a glow or a shadow', () => {

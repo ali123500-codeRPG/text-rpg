@@ -355,6 +355,8 @@ export type ShownValues = {
   morale: string; moraleLeft: number; moraleFill: number;
   parts: Record<string, string>; skills: Record<string, number>;
   lvl: number | null; xp: number | null; xpPct: number | null; coin: number;
+  /** unspent perk points, shown on the rail's Character badge */
+  points: number;
 };
 export function shownValues(s: GameState, p: Actor): ShownValues {
   const level = shownLevel(healthLevel(p));
@@ -368,5 +370,6 @@ export function shownValues(s: GameState, p: Actor): ShownValues {
     parts: Object.fromEntries((safe(() => actorBody(s, p).parts) ?? []).map((d) => [d.id, poolState(p.core.condition.parts[d.id] ?? 100)])),
     skills: Object.fromEntries(trees(s, p, false).flatMap((t) => t.rows.map((r) => [r.id, r.raw]))),
     lvl: xp?.level ?? null, xp: xp?.xp ?? null, xpPct: xp?.pct ?? null, coin: coins(p),
+    points: p.progression?.unspentPerkPoints ?? 0,
   };
 }

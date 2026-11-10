@@ -656,13 +656,22 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       }
     }
     // XP and level: a level-up fills the bar, then it starts again from empty (M-38, the Thread weaves)
+    let lvlAt: number | null = null;
     if (a.xp !== null && b.xp !== null && (a.xp !== b.xp || a.lvl !== b.lvl)) {
       const d = at(stagger);
       const levelled = a.lvl !== b.lvl;
+      if (levelled) lvlAt = d + ms('--m-trail');
       count(q('[data-m="xp"]'), levelled ? 0 : b.xp, a.xp, whole, d + (levelled ? ms('--m-trail') : 0));
       if (a.xp > b.xp && !levelled) delta(q('[data-m="xp"]'), sign(a.xp - b.xp), 'scene-mark', d);
       barMove(q('[data-m="xp-track"]'), q('[data-m="xp-track"] > b'), b.xpPct ?? 0, a.xpPct ?? 0, d, levelled);
       if (levelled) stamp(q('[data-m="lvl"]'), d + ms('--m-trail'), `Level ${b.lvl}`);
+    }
+    // perk points: the rail badge changes only once the level word has landed (M-21), never before the level-up plays
+    if (a.points !== b.points) {
+      const d = lvlAt !== null ? lvlAt + ms('--m-beat') : at(stagger);
+      const badge = document.querySelector<HTMLElement>('.hs-rail .hs-badge');
+      if (b.points > 0) stamp(badge, d, `✦${b.points}`); else arrive(badge, d, 4);
+      if (a.points > b.points) pulse(badge, d + ms('--m-beat'), 2);
     }
     // coin: the words change, with the difference in coin words
     if (a.coin !== b.coin) {
