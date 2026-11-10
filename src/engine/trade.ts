@@ -189,6 +189,7 @@ export function sell(state: GameState, owner: Actor, seller: Actor | undefined, 
   const price = each * qty;
   if (coins(seller) < price) return { ok: false, reason: 'not_enough_coin' };
   payCoin(seller, owner, price);
+  if (owner === state.player) tally(state, 'coin_earned', { add: price }); // N5: copper earned selling
   let moved: ItemInstance = inst;
   if (stackable && qty < (inst.qty ?? 1)) {
     inst.qty = (inst.qty ?? 1) - qty;

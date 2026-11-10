@@ -69,3 +69,10 @@ it('143d a minted item is worth its base value × 2 × quality', () => {
   s.blueprints.push({ storyId: s.storyId, id: 'fine_dagger', kind: 'item', data: { id: 'fine_dagger', kind: 'weapon', name: 'fine dagger', look: 'a fine dagger', bulk: 1, value: 5, base: { itemId: IT.dagger, quality: 3, boosts: 'hitAdj' } } });
   expect(itemValue(s, 'fine_dagger')).toBe(itemValue(s, IT.dagger) * CONFIG.QUALITY_PRICE_FACTOR * 3);
 });
+
+it('143z selling counts the copper earned toward Peddler', () => {
+  const s = shop();
+  const r = sell(s, s.player, actorById(s, 'trader')!, SWORD, 1);
+  expect(r.ok).toBe(true);
+  expect(s.player.progression!.tally!.coin_earned).toBe(r.ok ? r.price : -1);
+});
