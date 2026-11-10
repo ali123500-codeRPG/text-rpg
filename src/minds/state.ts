@@ -3,7 +3,7 @@ import { FN } from '../library/functionIds';
 import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
 import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
-import { actorById, allActors, atLeast, isActive, isEngaged, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, isActive, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, fnRoller, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { hasPerk } from '../ruleset/perks';
@@ -247,6 +247,8 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
   if (!observers.length) return { surprised: false };
   const ambush: RollResult = ruleset.roll({ actorId: attackerId, skill: ambushSkill(state, attacker, attackEvent.itemId), modifiers: [], tierShifts: [], itemId: attackEvent.itemId }, state, rng);
   let surprised = false;
+  const target = actorById(state, targetId);
+  const spar = !!target && sparring(state, attacker, target); // SP11: a sparring blow from hiding raises no alarm
   for (const o of observers) {
     const skill = perception[o.id]?.cue === 'sound' ? FN.hearing : FN.sight;
     const p = ruleset.roll({ actorId: o.id, skill: SENSE_SKILL[skill], modifiers: [], tierShifts: [], rollKind: 'perception', fn: skill }, state, rng); // function roll
@@ -257,7 +259,7 @@ export function resolveAmbush(state: GameState, attackerId: string, targetId: st
     // ST7: a shot from stealth leaves noticing to the stealth contest (stealthDetect); a melee blow has already revealed
     if (gap > 0 && attacker.posture !== 'stealthy') {
       updateBeliefs(state, { kind: 'detection', observerId: o.id, aboutId: attackerId, status: 'aware', event: attackEvent });
-      if (o.kind !== 'player') raiseAlarm(state, o);
+      if (o.kind !== 'player' && !spar) raiseAlarm(state, o);
     }
   }
   return { surprised };
