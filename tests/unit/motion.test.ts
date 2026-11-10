@@ -69,7 +69,7 @@ describe('play screen motion', () => {
 
   it('durations are --m-* tokens and nothing animates a glow or a shadow', () => {
     const css: string = readFileSync('src/ui/styles.css', 'utf8');
-    for (const t of ['--m-feedback', '--m-state', '--m-beat', '--m-sentence', '--m-reveal-cap', '--m-stagger', '--m-results-cap', '--m-count', '--m-trail', '--m-scene', '--m-fall', '--m-ease', '--m-ease-exit'])
+    for (const t of ['--m-feedback', '--m-state', '--m-beat', '--m-sentence', '--m-reveal-cap', '--m-stagger', '--m-results-cap', '--m-count', '--m-trail', '--m-scene', '--m-fall', '--m-honor', '--m-ease', '--m-ease-exit'])
       expect(css).toContain(`${t}:`);
     for (const f of ['src/ui/motion.ts', 'src/ui/play.ts']) {
       const src: string = readFileSync(f, 'utf8');
