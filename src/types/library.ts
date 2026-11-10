@@ -248,4 +248,6 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   /** reward levels added for some kinds of `by` (a part size: smaller parts pay more), e.g. { small: 1 } */
   levelUp?: Partial<Record<string, number>>;
   /** earned again at every multiple of this count (granted as `<id>:<n>`), instead of once */
-  every?: number };
+  every?: number;
+  /** a name of its own for each earning, by what it is earned for (an every-N row: the level); others use `name` */
+  names?: Record<string, string> };
