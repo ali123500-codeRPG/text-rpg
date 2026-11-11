@@ -698,7 +698,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** The observer is suspicious of the owner, not aware.
 - **Effect:** An observer who loses the contest drops to unaware, instead of staying suspicious.
 - **Lasts:** That contest.
-- **Open:** Parked for a hiding perk.
+- **Open:** Parked for a hiding perk (D-189).
 - **Banked as:** a later Sneaking perk, suggested for the 60 perk
 
 ### Held Shot (Medium ranged) · D8
@@ -721,7 +721,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and in the owner's zone or one sight link away. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scene.
 - **Effect:** The owner's Insight against the watcher's stealth (Combat Stealth in a fight, Sneaking otherwise). If the owner wins, it gets a hunch of being watched from the watcher's zone, never who, and turns suspicious of the watcher there. It can then look or listen for them as usual.
 - **Lasts:** Until the owner's belief changes on its own.
-- **Open:** Built, then parked by Ali until it has a place on the ladder (Insight 20 holds Overheard).
+- **Open:** Built, then parked by Ali until it has a place on the ladder (Insight 20 holds Overheard); D-176.
 - **Banked as:** a later Insight perk
 
 ### Not Born Yesterday (Insight) · LI2c
@@ -732,7 +732,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** Someone persuades the owner.
 - **Effect:** The owner's answering roll uses the better of Persuasion and Insight, each at full value.
 - **Lasts:** Each answer to a persuasion.
-- **Open:** Parked by Ali.
+- **Open:** Parked by Ali (D-187).
 - **Banked as:** a later Insight perk
 
 ### Steady Nerves (Resolve) · MR5a
@@ -743,7 +743,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner makes a roll while Rattled or Afraid.
 - **Effect:** The Rattled and Afraid roll penalties do not apply to the owner.
 - **Lasts:** Always.
-- **Open:** Parked by Ali. One of three options for the Resolve 20 perk.
+- **Open:** Parked by Ali (D-188). One of three options for the Resolve 20 perk.
 - **Banked as:** a later Resolve perk
 
 ### Used to the Pain (Resolve) · MR5b
@@ -754,7 +754,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner is wounded.
 - **Effect:** The owner's own wounds start costing morale one health level later.
 - **Lasts:** Always.
-- **Open:** Parked by Ali. One of three options for the Resolve 20 perk (could be Resolve 60 instead).
+- **Open:** Parked by Ali (D-188). One of three options for the Resolve 20 perk (could be Resolve 60 instead).
 - **Banked as:** a later Resolve perk
 
 ### Run Later (Resolve) · MR5c
@@ -766,7 +766,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** Not used yet this fight.
 - **Effect:** The owner is left at Panicking instead of Broken.
 - **Lasts:** That morale loss.
-- **Open:** Parked by Ali. One of three options for the Resolve 20 perk (could be Resolve 60 instead). Shown on the morale page as Not Yet; renamed because an achievement is already called Not Yet.
+- **Open:** Parked by Ali (D-188). One of three options for the Resolve 20 perk (could be Resolve 60 instead). Shown on the morale page as Not Yet; renamed because an achievement is already called Not Yet.
 - **Banked as:** a later Resolve perk
 
 ### Crushing Blow (Heavy weapons) · D1
