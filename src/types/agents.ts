@@ -179,6 +179,8 @@ export type StagePlan = {
   /** SP2: spars under way or agreed when the scene opens (a training yard, a tournament): each side's cast keys or actor ids */
   spars?: SparMade[];
   weaverNote: string;
+  /** SC1/SC2/SC7: a new scene's hidden question, its scale, and two or three ways it can end (not on a frontier extension) */
+  scene?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[] };
 };
 
 // ---- the Claude-call boundary (artifact `sample` capability, runtime 0.2.96) ----

@@ -238,6 +238,22 @@ const DEFAULTS = {
     tool: [5, 10, 15, 20],
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
+  /** SC2 levers per scene scale (placeholders), keyed by SCENE_SCALES key: the turn budget (fight turns excluded) or, for
+   * the biggest, a budget in game days; and how many places a plan of that scale may hold (code raises the scale to fit) */
+  SCENE_SCALE: {
+    moment: { budgetTurns: 12, places: 1 },
+    situation: { budgetTurns: 40, places: 2 },
+    episode: { budgetTurns: 120, places: 4 },
+    venture: { budgetDays: 3, places: Infinity },
+  } as Record<string, { budgetTurns?: number; budgetDays?: number; places: number }>,
+  /** SC4: scales from this one up hold smaller scenes inside them, one level deep */
+  SCENE_HOLDS_FROM: 'episode',
+  /** SC7: how many endings a scene plan lists */
+  SCENE_ENDINGS_MIN: 2,
+  SCENE_ENDINGS_MAX: 3,
+  /** SC6: scene records kept in the save, and how many the next Weaver gets */
+  SCENE_RECORDS_SAVED: 30,
+  SCENE_RECORDS_SHOWN: 5,
   IMPROVISED_HIT_ADJ: -10,
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,

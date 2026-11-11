@@ -1,9 +1,10 @@
 // Stage-plan validation (Part 2, Agent Weaver: Validation) and the grades table.
-import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
-import { GRADES, ORDER_TYPES } from '../types';
+import type { EndCheck, GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
+import { GRADES, ORDER_TYPES, SCENE_ENDINGS } from '../types';
+import { scaleFor } from '../engine/sceneEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { COVER, LIGHT, SCENE_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
@@ -381,11 +382,52 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     else if (r?.type !== 'event_in_zone' && r?.type !== 'check_passed') err('bad_secret', `secret ${s.id}: revealWhen unknown`);
   }
 
+  // ---- SC1/SC2/SC3/SC7: a new scene's question, scale and endings ----
+  if (ctx.kind === 'scene') {
+    // degradable: after the repair retry, a plan whose scene is still wrong is applied with the bad endings dropped
+    const serr = (code: string, message: string) => err(code, message, undefined, true);
+    const sc = plan.scene;
+    if (!sc || typeof sc !== 'object') serr('scene_missing', `scene: give the scene's question, scale and ${CONFIG.SCENE_ENDINGS_MIN} to ${CONFIG.SCENE_ENDINGS_MAX} endings`);
+    else {
+      if (typeof sc.question !== 'string' || !sc.question.trim()) serr('scene_question', 'scene.question: one line, the hidden question this scene turns on');
+      const scale = SCENE_SCALES.keyOf(sc.scale);
+      if (!scale) serr('scene_scale', `scene.scale must be one of ${SCENE_SCALES.list()}`);
+      else {
+        // SC3: the plan must fit its scale's space; code raises the scale to fit (a repair note, never blocking)
+        const fit = scaleFor(new Set(zones.map((z) => z?.place)).size, scale); // places that hold zones in this plan
+        if (fit !== scale) errs.push({ code: 'scene_scale_raised', message: `scene.scale ${scale} holds at most ${CONFIG.SCENE_SCALE[scale].places} place(s) with zones; raised to ${fit}`, routineOnly: false, repaired: true });
+        sc.scale = fit;
+      }
+      const ends = arr(sc.endings);
+      if (ends.length < CONFIG.SCENE_ENDINGS_MIN || ends.length > CONFIG.SCENE_ENDINGS_MAX) serr('scene_endings', `scene.endings: ${CONFIG.SCENE_ENDINGS_MIN} to ${CONFIG.SCENE_ENDINGS_MAX}, got ${ends.length}`);
+      ends.forEach((e, i) => {
+        const at = `scene.endings ${i}`;
+        if (!e || typeof e !== 'object') { serr('scene_ending', `${at}: not an ending`); return; }
+        if (!PLAN_ENDINGS.includes(e.as as never)) serr('scene_ending', `${at}: as must be one of ${PLAN_ENDINGS.join(', ')}`);
+        text(`${at} text`, e.text, false);
+        const w = e.when as EndCheck | undefined;
+        switch (w?.kind) {
+          case 'band_out': if (!isBand(w.band)) serr('scene_ending', `${at}: band ${w.band} unknown`); break;
+          case 'reach': case 'leave': if (!isPlace(w.place) && !isZone(w.place)) serr('scene_ending', `${at}: place ${w.place} unknown`); break;
+          case 'find': if (!isActor(w.actor)) serr('scene_ending', `${at}: actor ${w.actor} unknown`); break;
+          case 'hold': if (!lib.items?.[w.item]) serr('scene_ending', `${at}: item ${w.item} unknown`); break;
+          case 'deliver': if (!lib.items?.[w.item]) serr('scene_ending', `${at}: item ${w.item} unknown`); else if (!isActor(w.to)) serr('scene_ending', `${at}: actor ${w.to} unknown`); break;
+          case 'time': if (!TIME_OF_DAY.keyOf(w.at)) serr('scene_ending', `${at}: time must be one of ${TIME_OF_DAY.list()}`); break;
+          case 'judged': break;
+          default: serr('scene_ending', `${at}: when.kind must be one of band_out, reach, leave, find, hold, deliver, time, judged`);
+        }
+      });
+    }
+  }
+
   // ---- rewards: repaired, never blocking (loot L1) ----
   errs.push(...tidyRewards(state, plan).notes);
 
   return errs;
 }
+
+/** SC10: the endings a plan may name; worn out and broken off are code's own */
+const PLAN_ENDINGS = SCENE_ENDINGS.filter((e) => e !== 'worn_out' && e !== 'broken_off');
 
 type Reward = StagePlan['rewards'][number];
 

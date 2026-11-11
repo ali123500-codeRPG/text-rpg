@@ -18,7 +18,17 @@ export type StageInfo = {
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
-  breakCause?: 'rest' | 'story_beat' | 'time_skip' | 'knocked_out' | 'encounter'; // P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere safe)
+  /** P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere
+   * safe; scene_end: one of the scene's endings was met, SC7). Rest, sleep and time skips never end a scene (SC4, SC9). */
+  breakCause?: 'story_beat' | 'knocked_out' | 'encounter' | 'scene_end';
+  /** SC1/SC2/SC7: the scene's question, scale and endings (absent before the first scene, or on an old save) */
+  scene?: import('./hidden').SceneFrame;
+  /** SC4: the bigger scene (Episode or Venture) this one sits inside, one level deep; it carries on when this one ends */
+  outer?: import('./hidden').SceneFrame;
+  /** SC7/SC13: an ending that was met, waiting for a clear turn (no fight, chase or talk) before it ends the scene */
+  ending?: { as: import('./hidden').SceneEnding; text: string; outer?: true; turn: number };
+  /** SC10: how the scene that just ended ended, set with breakCause and recorded when the next one begins */
+  ended?: { as: import('./hidden').SceneEnding; text: string; outer?: true };
   /** TV4: an encounter on the road: its event roll (the next scene's tier), whether the player saw it coming (TV8), and
    * where on the road it stands; cleared at the start of the next turn */
   encounter?: { eventRoll: import('./ruleset').EventRollResult; noticed: boolean; zone: string; at: { x: number; y: number } };

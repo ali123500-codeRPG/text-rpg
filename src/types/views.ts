@@ -237,6 +237,10 @@ export type WeaverView = {
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance> }[];
   player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel };
   previousNote: string;
+  /** SC6: how the last few scenes went, oldest first (question, scale, tier, ending, who fell, what the player gained) */
+  lastScenes: { question: string; scale: string; tier: TierName; ending: string; note: string; turns: number; fallen: string[]; gained: string[]; inner?: true }[];
+  /** SC4: the bigger scene (Episode or Venture) this new scene sits inside; it carries on when this one ends */
+  outerScene?: { question: string; scale: string };
   catalogs: {
     templates: { id: string; label: string; raceId: string; classId?: string }[];
     services: { id: string; name: string; price: number }[]; // PY3: base prices, before the markup

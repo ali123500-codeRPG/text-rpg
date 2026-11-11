@@ -162,12 +162,16 @@ type Cast = StagePlan['cast'][number];
 const weaver = obj<StagePlan>({
   event: obj<StagePlan['event']>({ summary: str, challenge: GRADE, gain: GRADE }),
   timeOfDay: level(TIME_OF_DAY),
-  places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)) })), // no parent = top level (V5)
+  // BG-36: every optional field the Weaver may give is named here, or it is dropped before validation
+  places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
+    layout: str, names: record(str), looks: record(str) }, ['layout', 'names', 'looks'])), // no parent = top level (V5)
   zones: arr(obj<StagePlan['zones'][number]>({
     key: str, place: str, kind: str, name: str, look: str,
     cover: level(COVER), light: level(LIGHT),
+    height: num, size: str, area: num, edges: record(str) as V<NonNullable<StagePlan['zones'][number]['edges']>>,
+    length: (v, p, e) => (typeof v === 'number' ? num(v, p, e) : str(v, p, e)), danger: str, fromLayout: any as V<true>,
     links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool })),
-  }, ['cover', 'light'])),
+  }, ['cover', 'light', 'height', 'size', 'area', 'edges', 'length', 'danger', 'fromLayout'])),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
@@ -201,7 +205,8 @@ const weaver = obj<StagePlan>({
   hiddenTerms: arr(str),
   weaverNote: str,
   spars: arr(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])),
-}, ['timeOfDay', 'spars']);
+  scene: any as V<StagePlan['scene']>, // SC1/SC2/SC7: checked by the validator (src/scene/validate.ts)
+}, ['timeOfDay', 'spars', 'scene']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);

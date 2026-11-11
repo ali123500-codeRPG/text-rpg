@@ -1,4 +1,5 @@
 // Applying a stage plan (Scene setup steps 4–8), the fallback stage, opening events.
+import { frameOf } from '../engine/sceneEnd';
 import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
@@ -321,6 +322,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // GAP: an extension keeps the scene's grades; its summary is appended and its hiddenTerms join the stage's.
   else state.hidden.stage = { ...hs, eventSummary: [hs.eventSummary, plan.event.summary].filter(Boolean).join(' / '), hiddenTerms: [...new Set([...hs.hiddenTerms, ...plan.hiddenTerms])] };
   state.hidden.weaverNote = plan.weaverNote;
+  // SC1/SC2/SC7: a new scene's question, scale and endings, plan keys mapped to ids
+  if (ctx.kind === 'scene') state.stage.scene = frameOf(state, plan.scene, ctx.tier, (k, r) => (k === 'band' ? bandRef(r) : k === 'actor' ? actorRef(r) : placeMap.get(r) ?? zoneMap.get(r) ?? r));
   state.hidden.castNotes ??= {};
   plan.cast.forEach((c, i) => (state.hidden.castNotes![castActors[i].id] = { motive: c.motive, ...(c.routineGap ? { routineGap: c.routineGap } : {}) }));
 
@@ -363,6 +366,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     }
     if (place?.zones[0] && !state.stage.zoneIds.includes(state.player.zone)) moveTo(state, state.player, place.zones[0].id);
     state.hidden.stage = { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] };
+    state.stage.scene = frameOf(state, undefined, ctx.tier, (_k, r) => r); // no endings: the stall (and later the budget) ends it
   }
   setFallbackFlags(state, reason, 'weaver_fallback', errors);
 }
