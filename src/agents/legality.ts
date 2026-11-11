@@ -59,7 +59,10 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     const sp = out.move.spot!;
     const keys = (['near', 'awayFrom', 'side'] as const).filter((k) => sp[k]);
     const ok = keys.length === 1 && (sp.side ? !!compassOf(sp.side) : ref((sp.near ?? sp.awayFrom)!));
-    if (!ok) illegal.push(`move.spot ${JSON.stringify(sp)}`);
+    // BG-31 (run 40): on a move to another zone the spot is only where to stop there; one that can't be checked (a zone
+    // out of view) or doesn't fit is dropped and the move goes on, instead of asking where in the current zone to go
+    if (!ok && out.move.toZone !== view.zone.id) delete out.move.spot;
+    else if (!ok) illegal.push(`move.spot ${JSON.stringify(sp)}`);
   }
   const a = out.action;
   if (a?.mode) a.mode = modeIdOf(a.mode); // a mode named by its name maps to its AM id
