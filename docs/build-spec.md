@@ -2871,6 +2871,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-193 | Further aura reach (I3) | 1 | Parked | An engagement aura reaches the owner's zone and zones one link away (CONFIG.AURA_REACH, D-169). A factor that stretches it further (a perk or a stronger aura) is parked. |
 | D-194 | Long-distance trades (S1, S2) | 1 | Parked | Parked by Ali with the trade reach answers: buying works from a seller up to TRADE_SELLER_LINKS (1) zone links away and for someone up to 2 links away. Trading farther (messengers, orders, other towns) is parked. |
 | D-195 | XP curve rework (XC1, XC2) | 1 | Parked | Ali said the curve "scales too harshly at first", then parked the subject (11/11/2026) after the options page (https://claude.ai/artifact/HC8rtovrrLrFKRVwB7RkaZ). Options left open: XC1 levelCost = 250 + 50 × level (recommended) instead of 100 × level; XC2 LEVEL_RATING_SHARE 0.005 instead of 0.02. Any change stays inside levelCost, which quest XP reads. |
+| D-196 | Affiliations and groups | 1 | Parked | Parked by Ali (11/11/2026). Two layers beside the band (Actor.bandId, the people together right now, YD7). An affiliation is grander than a faction, or runs in parallel to factions: an order, a guild, a church or a crown, which can span several factions. A group is bigger than a band and can be temporary: a team formed for a job, a hunting party, a crew for one quest. Open questions: how each sets relations, whether an actor can hold several, and how a group forms and breaks. |
 
 ## Bug log
 
