@@ -49,9 +49,11 @@ export function noteFighting(state: GameState, events: GameEvent[]): void {
       if (knows(t)) press(state, t, a, 'engaged');
       for (const m of allActors(state)) if (m !== t && m !== a && m.bandId === t.bandId && e.perception[m.id] && knows(m)) press(state, m, a, 'engaged');
     }
-    if (e.kind === 'move' && e.fromZone) {
+    if (e.kind === 'move' && (e.fromZone || e.target)) {
       for (const b of allActors(state)) {
-        if (b === a || !isActive(b) || links(state, a.zone, b.zone) >= links(state, e.fromZone, b.zone)) continue;
+        // a move into a zone nearer b, or a step inside one zone that closes in on b (step 2)
+        const closer = e.fromZone ? links(state, a.zone, b.zone) < links(state, e.fromZone, b.zone) : e.target === b.id;
+        if (b === a || !isActive(b) || !closer) continue;
         const mine = a.mind?.knowledge?.[b.id], theirs = b.mind?.knowledge?.[a.id];
         if (hostile(state, a, b) && atLeast(mine?.status, 'aware')) press(state, a, b, 'hunting');
         else if (a === state.player && theirs?.status === 'engaged') theirs.closedTurn = state.turn; // the player keeps a fight alive by closing in

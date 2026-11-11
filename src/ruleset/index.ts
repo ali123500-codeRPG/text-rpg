@@ -196,8 +196,9 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   if (ranged) {
     const far = rangeMod(dist, mode.reach);
     if (far) am.push({ source: 'range', type: 'situational', value: far });
-    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && (foe(state, A, o) || foe(state, o, A))); // either way: the player holds no stances of its own
-    if (crowded && CONFIG.HOSTILE_IN_ZONE_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.HOSTILE_IN_ZONE_MOD });
+    // RD5: a hostile within HOSTILE_NEAR_M, close enough to strike or grab; either way: the player holds no stances of its own
+    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && sightDistM(state, A, o) <= CONFIG.HOSTILE_NEAR_M);
+    if (crowded && CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));

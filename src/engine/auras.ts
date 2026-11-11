@@ -1,6 +1,6 @@
 // Auras (NT14, MB19, MB36–MB39; Intimidation aura doc I1–I8). An aura is a perk-granted function of one skill. Each kind
 // has its own trigger: an engagement aura checks each opposed-or-worse target once per engagement, the first time the
-// target is aware of the owner within reach (the owner's zone and CONFIG.AURA_REACH links). The target rolls its morale
+// target is aware of the owner within reach (CONFIG.AURA_REACH_M metres, by distM). The target rolls its morale
 // skill (Resolve, with renown) against the owner's aura skill; when the owner wins, the target takes the aura's effect
 // and pays the aura's fear per tier of gap. Several auras check and cost on their own, so their morale costs add up.
 //   Dread Presence (Intimidation 100): Shaken toward the owner by SHAKEN_PER_TIER × gap until the engagement ends (the
@@ -13,6 +13,7 @@ import { PK } from '../library/perkIds';
 import { SK } from '../library/skillIds';
 import { FR } from '../library/tableIds';
 import { allActors, atLeast, isActive, shortestPath, stance, wary } from './relations';
+import { distM } from './position';
 import { besidePlayer } from './engagement';
 import { perceptionOf } from '../perception';
 import type { GameEvent } from '../types';
@@ -29,8 +30,7 @@ const key = (aura: AuraDef, owner: Actor) => `${aura.perk}:${owner.id}`;
 function inReach(state: GameState, owner: Actor, t: Actor): boolean {
   if (t === owner || !isActive(t) || !wary(state, t, owner)) return false;
   if (!atLeast(t.mind?.knowledge?.[owner.id]?.status, 'aware')) return false;
-  const path = t.zone === owner.zone ? [] : shortestPath(state, owner.zone, t.zone);
-  return !!path && path.length <= CONFIG.AURA_REACH;
+  return distM(state, owner, t) <= CONFIG.AURA_REACH_M;
 }
 
 export type AuraCheck = { owner: Actor; target: Actor; aura: AuraDef; contest: ContestResult; took: boolean; overwhelmed?: true };

@@ -26,13 +26,13 @@ describe('111 coded perks, batch 1', () => {
     const aware = ruleset.attack({ ...req, context: {} }, s, forcedRng([50, 30, 20]));
     expect(aware.attack.tierShifts).toEqual([]);
   });
-  it('Point Blank: no "hostile in zone" penalty on a ranged attack', () => {
+  it('Point Blank: no "hostile close" penalty on a ranged attack', () => {
     const s = makeVillage();
     place(s, 'player', 'field_mid');
     for (const i of s.player.core.inventory) delete i.equippedIn;
     s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     const req = { attackerId: 'player', targetId: 'slime_1', weaponId: 'bow', targetPart: null, aimed: false };
-    const has = (r: ReturnType<typeof ruleset.attack>) => r.attack.modifiers.some((m) => m.source === 'hostile in zone');
+    const has = (r: ReturnType<typeof ruleset.attack>) => r.attack.modifiers.some((m) => m.source === 'hostile close');
     expect(has(ruleset.attack(req, s, forcedRng([50, 50, 50])))).toBe(true);
     give(s.player, PK.point_blank);
     expect(has(ruleset.attack(req, s, forcedRng([50, 50, 50])))).toBe(false);
