@@ -78,5 +78,5 @@ it('167c the player is in a fight in a spar too, and a foe in the zone crowds th
   for (const i of t.player.core.inventory) delete i.equippedIn;
   t.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
   const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'bow', targetPart: null, aimed: false }, t, forcedRng([50, 50, 50]));
-  expect(r.attack.modifiers.some((m) => m.source === 'hostile in zone')).toBe(true);
+  expect(r.attack.modifiers.some((m) => m.source === 'hostile close')).toBe(true);
 });

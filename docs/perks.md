@@ -44,12 +44,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Point Blank (Light ranged) · A4
 
-*Story:* Most archers panic when a blade closes in. You just smile: with any ranged weapon you take no penalty for shooting while a hostile is in your zone.
+*Story:* Most archers panic when a blade closes in. You just smile: with any ranged weapon you take no penalty for shooting while a hostile is close enough to strike you.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
-- **Conditions:** Any ranged attack, thrown included. A hostile actor is in the owner's zone.
-- **Effect:** The −10 ranged modifier for a hostile in the shooter's zone is not applied.
+- **Conditions:** Any ranged attack, thrown included. A hostile actor is within 2 m of the owner (HOSTILE_NEAR_M).
+- **Effect:** The −10 ranged modifier for a hostile close to the shooter is not applied.
 - **Lasts:** That attack.
 
 ### Hunter's Mark (Medium ranged) · A5
