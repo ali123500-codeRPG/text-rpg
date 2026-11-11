@@ -97,16 +97,16 @@ The dice deal the hand; skills and perks decide what the character can do with i
 margin = d100 + EVENT_BASE + net modifiers − 100
 ```
 
-Only three sources may modify the roll, each its own modifier type: perks, gear and statuses (blessings, buffs, curses, debuffs) whose library entry names the event roll. A gear effect counts only when its library entry names the event roll; it may be active while only carried (Part 5 §2). Code reads the player's inventory once, at scene setup step 2. Injury, place, difficulty, skills, terrain and tactics never modify it. With the placeholder base, the totals (d100 + net modifiers) read as follows:
+Only three sources may modify the roll, each its own modifier type: perks, gear and statuses (blessings, buffs, curses, debuffs) whose library entry names the event roll. A gear effect counts only when its library entry names the event roll; it may be active while only carried (Part 5 §2). Code reads the player's inventory once, at scene setup step 2. Injury, place, difficulty, skills, terrain and tactics never modify it. It reads the normal roll table (MARGIN\_BANDS, the same bands as a skill roll; ER3), so with the placeholder base the totals (d100 + net modifiers) read as follows. Without modifiers of 25 or more, only a natural roll reaches a critical tier:
 
 | Total (d100 + modifiers) | Tier (ID) | Stakes |
 | --- | --- | --- |
-| Under 0 | Critical Failure (−3) | A real challenge with little gain; the harder of the two **\[Proposed\]** |
-| 0–24 | Failure (−2) | A real challenge with little gain |
+| Under −25 | Critical Failure (−3) | A real challenge with little gain; the harder of the two **\[Proposed\]** |
+| −25 to 24 | Failure (−2) | A real challenge with little gain |
 | 25–49 | Near Miss (−1) | A fair event tilted slightly against the player: gain one step below the challenge (ER2) |
 | 50–74 | Success (0) | A normal event, gain matched to challenge |
-| 75–99 | Great Success (1) | Good fortune: gain major, challenge none to moderate, a windfall or a chance worth taking (ER1) |
-| 100+ | Critical Success (2) | The best of luck: gain extreme, challenge none to major (ER1) |
+| 75–124 | Great Success (1) | Good fortune: gain major, challenge none to moderate, a windfall or a chance worth taking (ER1) |
+| 125+ | Critical Success (2) | The best of luck: gain extreme, challenge none to major (ER1) |
 
 **Natural edges** apply after the bands, clamped at the ends of the scale: a natural 01 drops two tiers, 02–05 one tier, 96–99 raises one tier, 00 two tiers.
 

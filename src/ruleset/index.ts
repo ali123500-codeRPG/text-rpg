@@ -157,13 +157,12 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
   return { a: ra, b: rb, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
 }
 
-// Part 1 §4 table on totals (d100 + modifiers), read on the margin: total − 50 with the placeholder base
-export const EVENT_BANDS = [-50, -25, 0, 25, 50];
+// Part 1 §4: read on the normal roll table (MARGIN_BANDS, ER3), the margin being total − 50 with the placeholder base
 function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollResult['modifiers'] = []): EventRollResult {
   const modifiers = [...eventRollMods(state, actor), ...extra];
   const d = rng.d100();
   const margin = d + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
-  const tier = TIERS.at(EVENT_BANDS.filter((t) => margin >= t).length + naturalEdge(d));
+  const tier = TIERS.at(band(margin) + naturalEdge(d));
   return { actorId: actor.id, roll: d, tier, modifiers };
 }
 

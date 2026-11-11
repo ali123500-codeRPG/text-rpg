@@ -5,7 +5,7 @@ import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { CLASS_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
-import { MARGIN_BANDS, EVENT_BANDS, band, ladder, naturalEdge, stackType } from './index';
+import { MARGIN_BANDS, band, ladder, naturalEdge, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
 import { tierMult } from './gear';
@@ -105,8 +105,8 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Event roll (no skill)', at: 'eventRoll · src/ruleset/index.ts',
         formula: `margin = d100 ${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.EVENT_BASE - 100)} + modifiers`,
         terms: [[`${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.EVENT_BASE - 100)}`, `event base ${CONFIG.EVENT_BASE} (CONFIG.EVENT_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
-        table: { head: ['Tier', 'Margin'], rows: bandRows(EVENT_BANDS) },
-        notes: ['The natural edge applies here too. There are no tier shifts.'] },
+        table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
+        notes: ['It reads the same tier table as a skill roll. The natural edge applies here too. There are no tier shifts.'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
         formula: `type total = biggest + ${n(CONFIG.STACK_RATIO)} × next + ${n(CONFIG.STACK_RATIO ** 2)} × next …, bonuses and penalties apart; types add in full`,
         notes: [`Example: three +10 of one type → ${n(stackType([10, 10, 10]))}.`] },
