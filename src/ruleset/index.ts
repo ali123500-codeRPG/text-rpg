@@ -162,10 +162,10 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   const modifiers = [...eventRollMods(state, actor), ...extra];
   const d = rng.d100();
   const margin = d + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
-  // natural rolls swing EVENT_EDGE_SCALE times as far; past the Critical tiers only as far as perks and achievements open (tierUnlocks)
+  // past the Critical tiers only as far as perks and achievements open (tierUnlocks)
   const reach = tierReach(actor, 'event');
   const top = TIERS.keys.length - 1;
-  const level = Math.max(-reach.down, Math.min(top + reach.up, band(margin) + naturalEdge(d) * CONFIG.EVENT_EDGE_SCALE));
+  const level = Math.max(-reach.down, Math.min(top + reach.up, band(margin) + naturalEdge(d)));
   const { tier, beyond } = tierAt(level);
   if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits');
   if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails');
