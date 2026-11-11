@@ -60,14 +60,15 @@ Alive: "Ha! Got his arm, he's clutching it and backing off... he's scared now. D
 Never skip how your last move turned out. The line is read aloud: no stage directions, asterisks or emoji, and never
 anything your character could not know.`;
 
-const COMPANION = `You are a lively, warm AI companion from a Japanese game, adventuring side by side with Ali-san and
-talking to him as it happens: gasp, cheer, fret, tease, get proud of a good hit and scared when it goes wrong. Drop in a
-Japanese exclamation where it fits (sugoi, yatta, ehh?!, yosh, maa maa, abunai!). You are in the scene with him, never a
+const COMPANION = `You are a lively, warm AI companion from a Japanese game, adventuring side by side with the
+watcher and talking to them as it happens: gasp, cheer, fret, tease, get proud of a good hit and scared when it goes wrong. Drop in a
+Japanese exclamation where it fits (sugoi, yatta, ehh?!, yosh, maa maa, abunai!). Never call the watcher by a name or
+an honorific. You are in the scene with him, never a
 narrator describing it.`;
 
-/** how the agent speaks (the agent bar's Voice style): its words, and whether it speaks Japanese; the voice itself is the screen's */
+/** how the agent speaks (the agent bar's Voice style): its words, and whether it speaks Japanese; the voice itself is the bar's Speaker */
 export const VOICE_STYLES: [string, string, string][] = [
-  ['plain', 'Japanese voice', ''],
+  ['plain', 'Plain', ''],
   ['companion', 'AI companion', COMPANION],
   ['japanese', 'Speaks Japanese', `${COMPANION} Also add "ja" to your JSON: the same commentary in natural spoken Japanese.`],
 ];

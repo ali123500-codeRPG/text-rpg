@@ -1,5 +1,5 @@
 // Watch an agent play: an autopilot bar on the Play screen. The agent picks each command (typed into the box where you can
-// see it) and says one short line of commentary, read aloud with the browser's own speech voices. It plays on your story,
+// see it) and says a few lines of commentary, read aloud in one of Claude's own voices. It plays on your story,
 // or on its own save (one story per owner: yours and the agent's), and you can switch between them.
 import type { GameApi } from '../types';
 import { h } from './kit';
@@ -7,20 +7,16 @@ import { PERSONA_NAMES, VOICE_STYLES, autoPerk } from '../agents/autopilot';
 import { recommendedBuild } from '../library/spawn';
 
 const KEY = 'rpg.autopilot';
-/** style: a VOICE_STYLES id; voiceName: 'claude:<voice>' (Claude's own voices), a speech voice on this PC, or '' = a Claude voice
- * where the page can speak with one, else the PC's first Japanese voice */
+/** style: a VOICE_STYLES id; voiceName: 'claude:<voice>' (one of Claude's own voices), anything else = Buttery */
 type Prefs = { persona: string; waitS: number; voice: boolean; style: string; voiceName: string; rate: number };
 const WAITS = [2, 5, 10];
-const RATES = [1, 1.25, 1.5, 1.75, 2]; // speaking speed
+const RATES = [1, 1.25, 1.5]; // speaking speed (Claude's voices read at most 1.5×)
 const PREFS: Prefs = { persona: '', waitS: 5, voice: true, style: 'companion', voiceName: '', rate: 1.5 };
 function readPrefs(): Prefs {
   try { return { ...PREFS, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }; } catch { return { ...PREFS }; }
 }
-const voices = () => (typeof speechSynthesis === 'undefined' ? [] : speechSynthesis.getVoices());
-const japanese = () => voices().find((v) => /^ja/i.test(v.lang));
 /** Claude's own voices: the page's tts capability (null where it can't speak, e.g. not declared or not offered) */
 const CLAUDE_VOICES = ['buttery', 'airy', 'glassy', 'rounded'];
-const CLAUDE_MAX_RATE = 1.5; // the fastest those voices read
 type Tts = { speak(text: string, o: { voice: string; rate: number; language: string }): Promise<unknown>; stop(): Promise<void>; onState?(cb: (s: { state: string }) => void): unknown };
 const writePrefs = (p: Prefs) => { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* per-PC convenience only */ } };
 /** what the bar was doing, kept for this tab so a reload or a new version of the page carries on where it was */
@@ -51,34 +47,15 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   const agentStory = () => api.state()?.meta.owner === 'agent';
   const stopped = () => api.notices().some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
 
-  if (typeof speechSynthesis !== 'undefined') speechSynthesis.addEventListener?.('voiceschanged', () => update()); // voices load late
-  const claudeVoice = () => (prefs.voiceName.startsWith('claude:') ? prefs.voiceName.slice(7) : !prefs.voiceName && tts ? CLAUDE_VOICES[0] : '');
-  /** in a Claude voice when chosen (Japanese read as Japanese); otherwise, or when it can't speak now, in a PC voice */
+  const claudeVoice = () => (prefs.voiceName.startsWith('claude:') ? prefs.voiceName.slice(7) : CLAUDE_VOICES[0]);
+  /** in the chosen Claude voice (Japanese read as Japanese); where Claude can't speak, the line is only shown */
   function speak(text: string, ja = '') {
-    if (!prefs.voice || !text) return;
-    const cv = claudeVoice();
-    if (tts && cv) {
-      if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
-      tts.speak(ja || text, { voice: cv, rate: Math.min(prefs.rate, CLAUDE_MAX_RATE), language: ja ? 'ja' : 'en' }).then(() => { voiceNote = ''; }, (e: { code?: string }) => {
-        if (e?.code === 'stopped') return;
-        voiceNote = e?.code === 'rate_limited' ? 'Claude’s voice has used its allowance for now, so your PC’s voice reads instead.' : 'Claude’s voice couldn’t read that line, so your PC’s voice did.';
-        speakPc(text, ja); update();
-      });
-      return;
-    }
-    speakPc(text, ja);
-  }
-  /** the chosen PC voice, else its first Japanese voice; Japanese words only in a Japanese voice, else the English line */
-  function speakPc(text: string, ja: string) {
-    if (typeof speechSynthesis === 'undefined') return;
-    const voice = voices().find((v) => v.name === prefs.voiceName) ?? japanese();
-    const inJa = !!ja && !!voice && /^ja/i.test(voice.lang);
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(inJa ? ja : text);
-      if (voice) { u.voice = voice; u.lang = voice.lang; }
-      u.rate = prefs.rate; speechSynthesis.speak(u);
-    } catch { /* no voice here */ }
+    if (!prefs.voice || !text || !tts) return;
+    tts.speak(ja || text, { voice: claudeVoice(), rate: Math.min(prefs.rate, RATES.at(-1)!), language: ja ? 'ja' : 'en' }).then(() => { voiceNote = ''; }, (e: { code?: string }) => {
+      if (e?.code === 'stopped' || e?.code === 'viewer_stopped') return;
+      voiceNote = e?.code === 'rate_limited' ? 'Claude’s voice has used its allowance for now, so this line is shown only.' : 'Claude’s voice couldn’t read that line.';
+      update();
+    });
   }
   const set = (s: string) => { status = s; update(); };
   function pause(why = '') { playing = false; stepping = false; set(why); redraw(); }
@@ -86,6 +63,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   async function loop() {
     let failures = 0;
     while (playing) {
+      if (api.busy()) set('Waiting for the story to finish the turn…');
       while (api.busy() && playing) await sleep(300);
       if (!playing) break;
       if (stopped()) { pause('Stopped: the story can’t take turns right now.'); break; }
@@ -108,7 +86,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     }
   }
   function play(step = false) {
-    if (playing || api.busy() || switching) return;
+    if (playing || switching) return; // a turn still running is waited for, never a reason to ignore the click
     playing = true; stepping = step; redraw();
     void loop().catch((e) => pause(`The agent stopped: ${(e as Error).message}`));
   }
@@ -148,13 +126,10 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     const style = h('select', { 'aria-label': 'Voice style', onchange: (e: Event) => { prefs.style = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       VOICE_STYLES.map(([id, name]) => h('option', { value: id, selected: prefs.style === id }, name)));
     const voicePick = h('select', { 'aria-label': 'Speaking voice', onchange: (e: Event) => { prefs.voiceName = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
-      h('option', { value: '', selected: !prefs.voiceName }, tts ? 'Claude · Buttery' : japanese() ? `Japanese · ${japanese()!.name}` : 'Japanese (none on this PC)'),
-      tts ? CLAUDE_VOICES.slice(1).map((v) => h('option', { value: `claude:${v}`, selected: prefs.voiceName === `claude:${v}` }, `Claude · ${v[0].toUpperCase()}${v.slice(1)}`)) : '',
-      voices().map((v) => h('option', { value: v.name, selected: prefs.voiceName === v.name }, v.name)));
+      CLAUDE_VOICES.map((v) => h('option', { value: `claude:${v}`, selected: claudeVoice() === v }, `${v[0].toUpperCase()}${v.slice(1)}`)));
     const rate = h('select', { 'aria-label': 'Speaking speed', onchange: (e: Event) => { prefs.rate = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       RATES.map((r) => h('option', { value: String(r), selected: prefs.rate === r }, `${r}×`)));
-    const noJa = prefs.voice && !prefs.voiceName && !tts && typeof speechSynthesis !== 'undefined' && !japanese()
-      ? 'No Japanese voice on this PC, so the default voice speaks. Add one in Windows Settings › Time & language › Speech › Add voices › Japanese, then reload.' : '';
+    const noVoice = prefs.voice && !tts ? 'Claude’s voice isn’t available in this view, so the commentary is shown only.' : '';
     const wait = h('select', { 'aria-label': 'Wait between turns', onchange: (e: Event) => { prefs.waitS = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s a turn`)));
     el.replaceChildren(h('div', { class: 'auto-panel' },
@@ -167,7 +142,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
         h('label', { class: 'auto-field' }, 'Style', style),
         h('label', { class: 'auto-field' }, 'Speaker', voicePick),
         h('label', { class: 'auto-field' }, 'Speed', rate),
-        btn(prefs.voice ? '✓ Voice' : 'Voice', () => { prefs.voice = !prefs.voice; writePrefs(prefs); if (!prefs.voice) { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); void tts?.stop(); } update(); },
+        btn(prefs.voice ? '✓ Voice' : 'Voice', () => { prefs.voice = !prefs.voice; writePrefs(prefs); if (!prefs.voice) void tts?.stop(); update(); },
           { pressed: prefs.voice, title: prefs.voice ? 'The agent’s commentary is read aloud. Click to mute it' : 'Click to read the agent’s commentary aloud' }),
         h('div', { class: 'auto-go' },
           talking ? btn('Stop voice', () => void tts?.stop(), { title: 'Stop reading this line aloud' }) : '',
@@ -176,7 +151,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
           h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'))),
       said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), saidJa ? h('span', {}, `“${saidJa}”`, h('span', { class: 'auto-en' }, said)) : `“${said}”`) : '',
       status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status || mine!.textContent) : '',
-      noJa || voiceNote ? h('p', { class: 'hs-note' }, noJa || voiceNote) : ''));
+      noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : ''));
   }
   update();
   return { el, opener, update, playing: () => playing };
