@@ -1,6 +1,6 @@
-// All-XXX perks (src/library/allPerks.ts). When enough skills of a tree reach 50 true skill (CONFIG.ALL_STEP_SKILLS by the
+// All-XXX perks (src/library/allPerks.ts). All-50, All-100 and All-150 work alike. When enough skills of a tree reach the step (50, 100, 150) in true skill (CONFIG.ALL_STEP_SKILLS by the
 // tree's rating: never for inferior, 3 for normal, 2 for superior, 1 for legendary), the actor
-// gets the tree's passive and the parts of the skills at 50 (SKILL_PARTS, so a part follows its skill), each once built, for free (OwnedPerk source 'mastery'); a
+// gets the tree's passive for that step and the parts of the skills at it (STEP_PARTS, so a part follows its skill), each once built, for free (OwnedPerk source 'mastery'); a
 // further skill reaching 50 adds its part. Every tree, with a bundle or without, earns the player its mastery achievements at
 // 50, 100 and 150 on the same rule, from its rating's line (MASTERY_ACH: normal Adept/Master/Grandmaster, superior
 // Paragon/Ascendant/Transcendent Sovereign, legendary Chosen/Incarnate/The Heavens Kneel).
@@ -9,13 +9,13 @@
 import { TR } from '../library/treeIds';
 import type { Actor, GameState, Mod, TierShift } from '../types';
 import { getLibrary } from '../library';
-import { ALL_BUNDLES, SKILL_PARTS } from '../library/allPerks';
+import { ALL_BUNDLES, STEP_PARTS } from '../library/allPerks';
 import { MASTERY_ACH } from '../library/achievementIds';
 import { FUNCTION_ROLLS } from '../library/functionNames';
 import { CONFIG } from '../config';
 import { TIERS } from '../scales';
 import { grantAchievement } from '../engine/xp';
-import { hasPerk, trueSkill } from './perks';
+import { ALL_STEPS, hasPerk, trueSkill } from './perks';
 import { treeOpen } from './access';
 import { allActors, atLeast, isActive } from '../engine/relations';
 import { beliefStatus, updateBeliefs } from '../perception';
@@ -43,12 +43,11 @@ export function grantAllSteps(state: GameState, a: Actor): void {
   if (a.id === state.player.id) for (const treeId of Object.keys(lib.trees)) // each rating has its own line (MASTERY_ACH)
     for (const [step, key] of Object.entries(MASTERY_ACH[lib.trees[treeId].rating ?? 'normal'] ?? {}))
       if (treeAt(a, treeId, Number(step))) grantAchievement(state, key, treeId); // once only (B4)
-  const step = 50; // the All-50 (All-100 and All-150 are designed later, G8)
-  for (const treeId of Object.keys(lib.trees)) {
+  for (const step of ALL_STEPS) for (const treeId of Object.keys(lib.trees)) { // All-50, All-100 and All-150 work alike
     if (!treeAt(a, treeId, step)) continue;
-    const at = skillsAt(a, treeId, step);
+    const at = skillsAt(a, treeId, step), parts = STEP_PARTS[step];
     const passive = ALL_BUNDLES.find((b) => b.treeId === treeId && b.step === step)?.passive;
-    for (const id of [...(passive ? [passive] : []), ...at.flatMap((s) => (SKILL_PARTS[s] ? [SKILL_PARTS[s]] : []))]) {
+    for (const id of [...(passive ? [passive] : []), ...at.flatMap((s) => (parts[s] ? [parts[s]] : []))]) {
       if (!perks[id]?.built || a.core.perks.some((p) => p.perkId === id)) continue;
       a.core.perks.push({ perkId: id, source: 'mastery', gainedTurn: state.turn, treeId, tier: step });
       state.log.push({ turn: state.turn, code: 'all_step_perk', detail: { actorId: a.id, perkId: id, treeId, step } });

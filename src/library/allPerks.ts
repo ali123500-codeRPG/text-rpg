@@ -13,7 +13,7 @@ import { PK } from './perkIds';
 import { CONFIG } from '../config';
 
 /** a tree's All-50: its name and its passive (the skills' parts are in SKILL_PARTS) */
-export type AllBundle = { treeId: string; step: 50; name: string; passive?: string };
+export type AllBundle = { treeId: string; step: 50 | 100 | 150; name: string; passive?: string };
 
 export const ALL_BUNDLES: AllBundle[] = [
   { treeId: TR.melee, step: 50, name: 'Warborn', passive: PK.fighters_frame }, // Weapon Drill dropped (Round 3)
@@ -25,6 +25,8 @@ export const ALL_BUNDLES: AllBundle[] = [
   { treeId: TR.perception, step: 50, name: 'Nothing Escapes', passive: PK.curiouser }, // Light Sleeper parked (D-190)
   { treeId: TR.stealth, step: 50, name: 'One with the Dark', passive: PK.child_of_night },
   { treeId: TR.speech, step: 50, name: 'Silver Voice', passive: PK.silver_words }, // Read Them parked (D-191)
+  // All-100 and All-150 work like the All-50: a tree passive plus each skill's part (STEP_PARTS) at that step
+  { treeId: TR.perception, step: 150, name: 'Nothing Unwitnessed', passive: PK.one_sense },
 ];
 
 /** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
@@ -38,6 +40,9 @@ export const SKILL_PARTS: Record<string, string> = {
   [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade,
   [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
 };
+
+/** each skill's part at each All-X step: All-50 parts above; none at 100 or 150 yet */
+export const STEP_PARTS: Record<AllBundle['step'], Record<string, string>> = { 50: SKILL_PARTS, 100: {}, 150: {} };
 
 const part = (treeId: string, p: Omit<PerkWriteup, 'skill' | 'place' | 'allStep'>): PerkWriteup =>
   ({ ...p, skill: treeId, place: 'all50', allStep: { treeId, step: 50 } });
@@ -140,6 +145,11 @@ export const ALL_PARTS: PerkWriteup[] = [
     story: 'Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.',
     rules: { kind: 'Always on', trigger: 'The owner makes a sight or hearing roll (any skill with that function, Tremor included).', conditions: ['The roll ends in Success or better.'],
       effect: 'Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.', lasts: 'That roll.' } }),
+  part(TR.perception, { id: PK.one_sense, ref: 'T5-150', name: 'Every Sense One', effect: 'senses',
+    story: 'Your senses have run together. What you see, you hear, and what you hear, you see: a voice in the dark has a face, and a figure across the yard has a voice.',
+    rules: { kind: 'Always on', trigger: 'The owner perceives an event, or makes a sight or hearing roll.', conditions: [],
+      effect: 'The owner perceives every event as well as the better of its sight and its hearing would allow, and by both senses at once: whatever it hears, it sees as clearly (who and what), and whatever it sees, it hears (spoken words included). Every sight or hearing roll (by function) uses the best of the owner\'s sight and hearing skills, so light only matters when a sight skill is the one rolling.',
+      lasts: 'Always.' } }),
   part(TR.perception, { id: PK.know_the_step, ref: 'T5f', name: 'Know the Step', effect: 'senses',
     story: 'A cough, a gait, the way a voice drops. You know the people you have met by sound alone.',
     rules: { kind: 'Always on', trigger: 'The owner hears someone it can\'t see (sound only).', conditions: ['The owner knows that someone\'s name.'],
