@@ -35,7 +35,8 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
     let ok = false;
     switch (op.op) {
       case 'draw':
-        ok = !!inst && draw(state, actor, inst);
+        // BG-24: drawing what is already in hand is nothing to do, not a mistake
+        ok = !!inst && (!!inst.equippedIn?.some((s) => s.startsWith('hand:')) || draw(state, actor, inst));
         break;
       case 'stow':
         ok = !!inst?.equippedIn?.some((s) => s.startsWith('hand:'));
