@@ -7,6 +7,7 @@ import { buildPlayerView } from '../views';
 import { zoneById } from '../engine/relations';
 import { journalPlaces } from './pages';
 import { heightOf } from '../scene/heights';
+import { ZK } from '../library/tableIds';
 
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string };
 export type MapPerson = { id: string; name: string; now: boolean };
@@ -17,11 +18,22 @@ export type MapZone = {
   /** the zone's rectangle in metres and its sides' edge kinds, when code has placed it (drawn by the To scale view) */
   rect?: import('../types').Rect; edges?: import('../types').Zone['edges'];
   light?: string; cover?: string; links: MapLink[]; people: MapPerson[]; items: string[];
+  /** where you stand, in the frame of rect (Actor.pos), when you are here and code has placed you */
+  you?: { x: number; y: number };
+  /** TV7: on a road, how far along it you are: metres from its west (or south) end, of its whole length */
+  along?: { m: number; len: number; from: 'west' | 'south'; to: 'east' | 'north' };
 };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
 export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[] };
 
 const safe = <T>(f: () => T): T | undefined => { try { return f(); } catch { return undefined; } };
+
+/** TV7: a point on a road, measured along the road's long side from its west end (or south end, for a north-south road) */
+export function alongRoad(r: import('../types').Rect, at: { x: number; y: number }): NonNullable<MapZone['along']> {
+  const ew = r.w >= r.d, len = ew ? r.w : r.d;
+  const m = Math.max(0, Math.min(len, ew ? at.x - (r.x - r.w / 2) : at.y - (r.y - r.d / 2)));
+  return ew ? { m, len, from: 'west', to: 'east' } : { m, len, from: 'south', to: 'north' };
+}
 
 export function knownMap(s: GameState): KnownMap {
   const p = s.player, pv = safe(() => buildPlayerView(s));
@@ -43,7 +55,9 @@ export function knownMap(s: GameState): KnownMap {
       const otherPlace = to && to.placeId !== z.placeId ? s.places.find((x) => x.id === to.placeId)?.names.current : undefined;
       return { to: l.to, label: l.label, sight: l.sight, frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}) };
     });
+    const you = id === p.zone && p.pos && z.rect ? { x: p.pos.x, y: p.pos.y } : undefined;
     const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), ...(z.rect ? { rect: z.rect, edges: z.edges } : {}), links,
+      ...(you ? { you } : {}), ...(you && z.kind === ZK.road ? { along: alongRoad(z.rect!, you) } : {}),
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
     if (!byPlace.has(z.placeId)) byPlace.set(z.placeId, []);
     byPlace.get(z.placeId)!.push(mz);
@@ -95,7 +109,8 @@ export function worldTiles(m: KnownMap): MapZone[] {
       if (to && to !== r.id && !links.some((x) => x.to === to)) links.push({ to, label: l.label, sight: false, frontier: false, known: true });
     }
     const n = zones.length;
+    const along = zones.find((z) => z.along)?.along;
     return { id: r.id, placeId: r.id, name: r.name, look: n ? `${n} zone${n === 1 ? '' : 's'} known` : 'no zones known', outdoor: true,
-      here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [] };
+      here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [], ...(along ? { along } : {}) };
   });
 }
