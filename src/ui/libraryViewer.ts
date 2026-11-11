@@ -151,7 +151,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
     i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
-      `reach ${m.reachM} m${row?.reachBonusM ? ` + ${row.reachBonusM} m (${row.name})` : ''} (${modeReach(m)} link${modeReach(m) === 1 ? '' : 's'})`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      `${m.thrown ? 'thrown' : 'reach'} ${m.reachM} m (${modeReach(m)} link${modeReach(m) === 1 ? '' : 's'})`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
       m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
@@ -566,7 +566,7 @@ function achievements(): HTMLElement[] {
 /** classes, lowest tier first (CLASS_TIERS order), then by name */
 const byTier = (): ClassDef[] => Object.values(lib.classes ?? {}).sort((a, b) => CLASS_TIERS.pos(a.tier) - CLASS_TIERS.pos(b.tier) || a.name.localeCompare(b.name));
 /** every condition a class unlocks on, as one list (all must hold; an either-of group needs one of its skills) */
-const PERK_NUMBERS: Record<string, string> = { hearingReach: 'hearing reach' };
+const PERK_NUMBERS: Record<string, string> = { hearingDb: 'hears quieter (dB)' };
 function unlockRow(c: ClassDef): HTMLElement | null {
   const sk = ([id, n]: [string, number]) => [link('skills', id, skillName(id)), ` ${n}`];
   const lines: (Node | string)[][] = [

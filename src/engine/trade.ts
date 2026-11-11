@@ -12,6 +12,7 @@ import { PK } from '../library/perkIds';
 import { IT } from '../library/itemIds';
 import { tally } from './xp';
 import { itemValue as benefitValue } from '../ruleset/value';
+import { noiseReach } from '../perception/noise';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -93,16 +94,20 @@ export type BuyResult =
   | { ok: true; price: number; qty: number; itemInst?: string; service?: string; to: Actor }
   | { ok: false; reason: 'not_here' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' };
 
+/** RD2: the zone links a called order carries: as far as a voice at CONFIG.ORDER_NOISE is heard clearly (noiseReach).
+ * Farther trades (messengers, letters) stay parked (D-194). */
+export const orderReach = (): number => noiseReach(CONFIG.ORDER_NOISE)[0];
+
 /** zone links between two actors on the stage, or Infinity when no path joins them */
 function links(state: GameState, a: Actor, b: Actor): number {
   return shortestPath(state, a.zone, b.zone)?.length ?? Infinity;
 }
 
 /** PY5/PY7: buy qty (default 1) of a ware from seller, for `to` (default the buyer). All or nothing; no roll.
- * The seller may stand up to TRADE_SELLER_LINKS zone links away, `to` up to TRADE_GIFT_LINKS (S1, S2). */
+ * RD2: an order is called out, so the seller must hear it clearly (orderReach); `to` must be as near the buyer or the seller. */
 export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, wareId: string | null | undefined, qtyIn: number | null | undefined, to: Actor = buyer): BuyResult {
-  if (!seller || seller === buyer || !isActive(seller) || links(state, buyer, seller) > CONFIG.TRADE_SELLER_LINKS) return { ok: false, reason: 'not_here' };
-  if (!isActive(to) || links(state, buyer, to) > CONFIG.TRADE_GIFT_LINKS) return { ok: false, reason: 'not_here' };
+  if (!seller || seller === buyer || !isActive(seller) || links(state, buyer, seller) > orderReach()) return { ok: false, reason: 'not_here' };
+  if (!isActive(to) || Math.min(links(state, buyer, to), links(state, seller, to)) > orderReach()) return { ok: false, reason: 'not_here' };
   if (wary(state, seller, buyer)) return { ok: false, reason: 'refuses' };
   const each = wareId ? warePrice(state, buyer, seller, wareId) : null;
   if (each === null) return { ok: false, reason: 'not_offered' };
@@ -177,7 +182,7 @@ export type SellResult =
 /** SL4/SL6: sell qty (default 1; stacks only) of one of the seller's own items to a Trader. All or nothing; no roll.
  * The item joins the Trader's stock and wares; the Trader pays from its own purse. */
 export function sell(state: GameState, owner: Actor, seller: Actor | undefined, instId: string | null | undefined, qtyIn: number | null | undefined): SellResult {
-  if (!seller || seller === owner || !isActive(seller) || links(state, owner, seller) > CONFIG.TRADE_SELLER_LINKS) return { ok: false, reason: 'not_here' };
+  if (!seller || seller === owner || !isActive(seller) || links(state, owner, seller) > orderReach()) return { ok: false, reason: 'not_here' };
   if (wary(state, seller, owner)) return { ok: false, reason: 'refuses' };
   const inst = owner.core.inventory.find((i) => i.id === instId);
   const each = inst ? sellPrice(state, owner, seller, inst.itemId) : null;

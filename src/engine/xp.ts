@@ -178,7 +178,7 @@ export function unlockClasses(state: GameState): void {
     const met = ([sk, need]: [string, number]) => trueSkill(p, sk) >= need;
     if (!Object.entries(c.unlock ?? {}).every(met)) continue;
     if (!(c.unlockAny ?? []).every((group) => Object.entries(group).some(met))) continue;
-    if (c.unlockPerkWith && !Object.entries(c.unlockPerkWith).every(([k, n]) => p.core.perks.some((x) => !x.dormant && (getLibrary().perks[x.perkId]?.[k as 'hearingReach'] ?? 0) >= n))) continue;
+    if (c.unlockPerkWith && !Object.entries(c.unlockPerkWith).every(([k, n]) => p.core.perks.some((x) => !x.dormant && (getLibrary().perks[x.perkId]?.[k as 'hearingDb'] ?? 0) >= n))) continue;
     if (!Object.entries(c.unlockClass ?? {}).every(([id, lv]) => (p.core.classes.find((x) => x.classId === id)?.level ?? 0) >= (lv === 'max' ? classMaxLevel(id) : lv))) continue;
     openClass(state, c.id);
   }

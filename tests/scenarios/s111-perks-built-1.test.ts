@@ -87,7 +87,7 @@ describe('111 coded perks, batch 1', () => {
     wim.core.condition.hpLostPct = 20; // Hurt: still hidden
     expect(seen().health).toBeUndefined();
   });
-  it('Keen Ear: sound reaches one zone link further', () => {
+  it('Keen Ear: hears 10 dB quieter, about one zone link further; silence stays silent', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     const far = npc(s, 'slime_2');
@@ -97,8 +97,7 @@ describe('111 coded perks, batch 1', () => {
     const after = perceptionOf(ev, s, s.player);
     expect(before).toBeNull();
     expect(after).toMatchObject({ level: 'partial', cue: 'sound' });
-    // nowhere is a step too: with Keen Ear a Silent sound in the owner's zone is heard like a Hushed one
     const here: GameEvent = { ...ev, zone: s.player.zone, noise: 'silent' };
-    expect(perceptionOf(here, s, s.player)).toEqual({ level: 'full', cue: 'sound', heard: true });
+    expect(perceptionOf(here, s, s.player)).toBeNull(); // no sound at all: nothing to hear
   });
 });

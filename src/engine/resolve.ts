@@ -9,7 +9,7 @@ import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
-import { reachLinks } from '../ruleset/range';
+import { slotLinks } from './speed';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
 import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -70,12 +70,6 @@ const slotsOf = (ctx: Ctx, a: Actor): Slots => {
 const hasMain = (ctx: Ctx, a: Actor): boolean => slotsOf(ctx, a).main > 0;
 /** spends a main slot; false when none is left */
 const useMain = (ctx: Ctx, a: Actor): boolean => { const s = slotsOf(ctx, a); if (s.main <= 0) return false; s.main--; return true; };
-/** CO13: the zone links one slot of movement covers in a fight turn (the Fight turn duration): a move slot walks
- * (WALK_M_S), a main slot spent moving runs the rest of the turn (RUN_M_S − WALK_M_S); at least one link each */
-export const slotLinks = (paid: 'move' | 'main'): number => {
-  const seconds = (getLibrary().durations?.[DU.fight_turn]?.minutes ?? 0.1) * 60;
-  return Math.max(1, reachLinks((paid === 'move' ? CONFIG.WALK_M_S : CONFIG.RUN_M_S - CONFIG.WALK_M_S) * seconds));
-};
 /** CO13: a movement spends a move slot first and a main slot when no move slot is left; null when neither is */
 const useMoveSlot = (ctx: Ctx, a: Actor, mainToo: boolean): 'move' | 'main' | null => {
   const s = slotsOf(ctx, a);
@@ -664,13 +658,17 @@ function step(ctx: Ctx, id: string): void {
   const g = applyGearOps(state, a, o.gear); // free, before the action
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
-  // AE1: a ranged attack and a move don't share a turn: the attack stands if it reaches from here, else the move does
-  if (o.move && o.type === 'attack' && rangedHere(state, a, o)) {
-    if (inReach(state, a, o)) { logCode(state, 'move_dropped', { actorId: id, to: o.move, reason: 'ranged_attack' }); o.move = null; }
-    else { logCode(state, 'order_dropped', { actorId: id, type: o.type, target: o.target, reason: 'ranged_after_move' }); o.type = 'hold'; o.target = null; }
+  // AE1/ZP3: a ranged attack costs the main action and a move slot (CONFIG.RANGED_MOVE_SLOTS). One that reaches from here
+  // takes its move slot first, and the move goes only on what is left; one that doesn't is dropped and the move stands
+  if (o.type === 'attack' && rangedHere(state, a, o)) {
+    if (inReach(state, a, o)) {
+      const s = slotsOf(ctx, a);
+      s.move = Math.max(0, s.move - CONFIG.RANGED_MOVE_SLOTS);
+      if (o.move && s.move <= 0) { logCode(state, 'move_dropped', { actorId: id, to: o.move, reason: 'ranged_attack' }); o.move = null; }
+    } else if (o.move) { logCode(state, 'order_dropped', { actorId: id, type: o.type, target: o.target, reason: 'ranged_after_move' }); o.type = 'hold'; o.target = null; }
   }
-  // CO13: a step toward the move's zone is one link; a move slot walks slotLinks('move') links, and with no main action
-  // planned (hold) a main slot runs slotLinks('main') more once the move slots run out. A move paid with a main slot is
+  // CO13: a step toward the move's zone is one link; a move slot walks slotLinks(…'move') links, and with no main action
+  // planned (hold) a main slot runs slotLinks(…'main') more once the move slots run out. A move paid with a main slot is
   // a dash (AE2): a lame actor can't.
   const move = (mainToo: boolean) => {
     if (!o.move) return;
@@ -681,7 +679,7 @@ function step(ctx: Ctx, id: string): void {
         const paid = useMoveSlot(ctx, a, mainToo && step > 0);
         if (!paid) return;
         if (paid === 'main' && lame(state, a)) return logCode(state, 'dash_blocked', { actorId: id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' });
-        left = slotLinks(paid);
+        left = slotLinks(state, a, paid);
       }
       left--;
       if (!doMove(ctx, a, o.move, o, false)) return logCode(state, 'move_dropped', { actorId: id, to: o.move });

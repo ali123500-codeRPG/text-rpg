@@ -19,7 +19,7 @@ export function hiddenWatcher(state: GameState, owner: Actor, w: Actor): boolean
   if (w.id === owner.id || !isActive(w) || (!!w.bandId && w.bandId === owner.bandId) || !wary(state, w, owner)) return false;
   if (!atLeast(beliefStatus(state, w, owner), 'aware')) return false;
   const path = shortestPath(state, w.zone, owner.zone, true);
-  return !!path && path.length <= 1 && beliefStatus(state, owner, w) === 'unaware';
+  return !!path && beliefStatus(state, owner, w) === 'unaware'; // RD3: any distance, as long as the watcher has sight of the owner
 }
 
 /** the turn's Gut Feeling rolls, every owner against each hidden watcher that hasn't set it off this scene */

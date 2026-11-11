@@ -26,6 +26,8 @@ export type ItemDef = {
     multiplier: number;
     weight: ArmorWeightKey;
     pools?: Record<string, number>;
+    /** RD7 how much it slows its wearer: flat m/s off the base speed, then a share off what is left. Default: CONFIG.ARMOR_SPEED by weight */
+    speed?: { flat: number; pct: number };
   };
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
