@@ -213,6 +213,18 @@ describe('errors and commands', () => {
     expect(claude.calls).toHaveLength(1);
   });
 
+  it('/stats marks tagged skills with ✦ and lists skills used that are not on the sheet', async () => {
+    start();
+    const p = game.state()!.player;
+    delete p.core.skills[SK.unarmed_strike];
+    p.progression!.used = [SK.unarmed_strike];
+    await game.submit('/stats', { aimed: false });
+    const t = game.lines().filter((l) => l.kind === 'command').at(-1)!.text;
+    expect(t).not.toMatch(/\d\+/);
+    if (Object.values(p.core.skills).some((v) => v.state === 'tagged')) expect(t).toContain('✦ tagged');
+    expect(t).toContain('Also used, not on your sheet yet: Strike 0.');
+  });
+
   it('commands make no Claude call; /aim sets aimed for one turn only', async () => {
     start();
     await game.submit('/stats', { aimed: false });

@@ -800,3 +800,9 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-who { width: 12px; height: 12px; border-radius: 50%; background: var(--c4); }
 .k-who.last { background: none; border: 1.5px dashed var(--c4); }
 @media (max-width: 1000px) { main.map-page { height: auto; } .map-body { grid-template-columns: minmax(0, 1fr); } .map-stage { height: 70vh; } .map-crumbs { pointer-events: auto; } }
+
+/* a skill rolled but not on the sheet yet (fists: Strike), and the tagged mark's hover */
+.tag { cursor: help; }
+.cs-sk .n small.off, small.off { display: inline; font-size: 11px; font-weight: 400; color: var(--faint); cursor: help; }
+/* a skill that went up this turn, under the turn's prose */
+.skill-up { color: var(--scene-mark); font-weight: 600; }
