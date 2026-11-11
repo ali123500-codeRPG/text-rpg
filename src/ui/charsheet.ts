@@ -172,7 +172,14 @@ export function treeBars(s: GameState, p: Actor): HTMLElement {
       t.block ? h('small', { class: 'cs-tree-block' }, t.block) : null, // TA10: points kept in a tree the character can't use
       t.rows.map((r) => h('div', { class: 'cs-sk' + (r.raw ? '' : ' zero') },
         h('div', { class: 'n' }, skillName(r.id), r.tagged ? [' ', tag()] : null, r.off ? [' ', offNote()] : null, marked(p, r.id) ? markDot() : null, SKILL_SUB[r.id] ? h('small', {}, SKILL_SUB[r.id]) : null),
-        bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), h('div', { class: 'num' }, String(trueSkill(p, r.id)), trueSkill(p, r.id) !== r.raw ? h('small', { title: 'Raw skill' }, ` raw ${r.raw}`) : null))))));
+        bar(r.raw, windowOf(p, r.id)), ((w) => h('div', { class: 'lwn', title: winTitle(w) }, winText(w)))(windowOf(p, r.id)), skillNum(trueSkill(p, r.id), r.raw))))));
+}
+
+/** the skill's true value; when raw differs it shows only on hover or keyboard focus, as a small card beside the number */
+function skillNum(value: number, raw: number): HTMLElement {
+  if (value === raw) return h('div', { class: 'num' }, String(value));
+  return h('div', { class: 'num has-raw', tabindex: '0', 'aria-label': `${value}, raw ${raw}` }, String(value),
+    h('span', { class: 'raw-tip', 'aria-hidden': 'true' }, `Raw ${raw}`));
 }
 
 const partOpen = { on: false, autoTurn: -1 }; // body-part list under the health bar, kept open across turns; opens once on a turn that healed a part (H2 a)
