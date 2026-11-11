@@ -3,7 +3,8 @@ import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
 import { GRADES, ORDER_TYPES } from '../types';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY } from '../scales';
+import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES } from '../scales';
+import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
@@ -186,6 +187,12 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     const kinds = Object.values(getLibrary().zoneKinds ?? {});
     if (!kinds.some((k) => k.id === z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.map((k) => `${k.id} (${k.name})`).join(', ')}`);
     if (z.height !== undefined && (typeof z.height !== 'number' || !Number.isFinite(z.height) || Math.abs(z.height) > 500)) err('bad_zone', `zone ${z.key}: height is metres above the ground, a number from -500 to 500`);
+    if (z.size !== undefined && !ZONE_SIZES.has(z.size)) err('bad_zone', `zone ${z.key}: size is ${ZONE_SIZES.list()}`);
+    if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
+    const edgeKinds = getLibrary().edgeKinds ?? {};
+    for (const [side, ek] of Object.entries(z.edges ?? {})) {
+      if (!SIDES.includes(side as never) || !edgeKinds[ek as string]) err('bad_zone', `zone ${z.key}: edges are n, e, s or w, each an edge kind id from catalogs.edgeKinds (${Object.values(edgeKinds).map((k) => `${k.id} ${k.name}`).join(', ')})`);
+    }
     if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);

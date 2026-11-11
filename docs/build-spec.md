@@ -367,9 +367,19 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // link whose words go up (up, upstairs, loft, roof...) climbs CONFIG.STOREY_HEIGHT (3 m, placeholder), one that goes down
 // (down, downstairs, cellar, below...) drops it, any other keeps it; a story's first zones stand at 0. The Map page shows
 // one height (floor) at a time, with floor buttons and stair badges, and zones on other floors straight above or below.
+// Metres (CO1–CO19, Ali, 11/11/2026; step 1, no rule reads these yet): the range unit is the pace, CONFIG.PACE_M (1.5 m,
+// one tabletop grid square), with CONFIG.LINK_PACES (5) converting today's link-based tables. A zone's area is m²: the Weaver
+// gives a size word (ZONE_SIZES cramped 9, small 25, room 60, hall 225, yard 400, open 1,600, vast 10,000; CONFIG.ZONE_SIZE_M2,
+// placeholders) or area in m², else the kind's default size. Each library zoneSizes row names a real or fantasy reference.
+// Each side (n, e, s, w by map compass) has an edge kind from the library's edgeKinds table (EK1 wall, EK2 open, EK3 low:
+// counter or fence, EK4 window; a new kind is a new row with walk/see/reach/climb flags); indoor kinds default to wall,
+// outdoor kinds to open, and the Weaver gives edges only for a side that differs. An unknown size or edge kind is a bad_zone.
+// Step 2 gives every character a position in metres and measures moves and ranges in paces (CO11–CO13); step 3 is travel
+// along a road that is one long zone (CO18, its own deep dive).
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
               links: ZoneLink[]; cover: 'none' | 'some' | 'heavy'; light: 'bright' | 'dim' | 'dark';      // zone ids unique within a story
               height?: number;                                           // metres above the ground outside
+              area?: number; edges?: Partial<Record<'n' | 'e' | 's' | 'w', string>>; // CO16 m², CO15 edge kind ids by side
               groundItems: ItemInstance[] };                             // Part 5 §4
 type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true };
                                                    // label: how the linked zone reads from here, e.g. 'left of the gate'

@@ -115,13 +115,23 @@ export type Library = {
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
+  edgeKinds?: Record<string, EdgeKind>; // CO15
+  zoneSizes?: Record<string, ZoneSize>; // CO16
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' }>; // GC…: the skill an item of the class asks for
   attackModes?: Record<string, { id: string; name: string; reachBonus?: number; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
 /** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
  * indoor or outdoor and gives the default cover and light, which the Weaver may change. */
-export type ZoneKind = { id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light };
+export type ZoneKind = {
+  id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light;
+  /** CO16 default size, and CO15 the edge kind every side gets unless the Weaver names another */
+  size: import('../scales').ZoneSizeKey; edge: string;
+};
+/** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
+export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; text: string };
+/** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
+export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };
 
 /** Perk page S1–S9: a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
  * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */
