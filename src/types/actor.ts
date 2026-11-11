@@ -21,6 +21,8 @@ export type Actor = {
   knownOnSight?: boolean;
   placeId: PlaceId; // always the place of `zone`
   zone: string;
+  /** ZP1 where it stands in metres on the map (the frame of Zone.rect); code keeps it inside `zone` (engine/position.ts) */
+  pos?: { x: number; y: number };
   posture?: 'open' | 'stealthy'; // NS1: any actor can be stealthy
   bandId: string;
   core: Core;

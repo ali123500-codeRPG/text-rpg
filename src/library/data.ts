@@ -10,7 +10,6 @@ import type { ArmorWeightKey } from '../scales';
 import { CLASS_TIERS, NOISE, VISIBILITY, ZONE_SIZES } from '../scales';
 import { noiseReach } from '../perception/noise';
 import { sightReach } from '../perception/sight';
-import { reachLinks } from '../ruleset/range';
 
 /** a zone link count in words, for the Noise and Visibility levels tables */
 const links = (n: number) => (n < 0 ? 'nowhere' : n === 0 ? 'same zone' : n === 1 ? '1 link away' : `${n} links away`);
@@ -92,8 +91,8 @@ for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = ta
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
 for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
-/** an attack mode with its reach in metres (real references); its reach in zone links comes from reachLinks */
-const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'hands'> & { reachM: number }) => ({ ...m, reach: reachLinks(m.reachM) });
+/** an attack mode with its reach in metres (real references) */
+const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'hands'> & { reachM: number }) => ({ ...m, reach: m.reachM });
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
 /** armor numbers come from CONFIG (one source, Part 5 armor table) */
 /** Improvised weapons: a melee strike and a throw (like throwing a vase), both rolled with
@@ -237,8 +236,8 @@ export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
     speed: { walk: 1.4, run: 5 }, // an everyday walk about 1.4 m/s; a run in kit about 5 m/s (a sprinter reaches 8–10)
-    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: reachLinks(0.7), hands: 0, name: 'fists' },
-      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: reachLinks(0.6), hands: 0, name: 'grapple' }],
+    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, hands: 0, name: 'fists' },
+      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, hands: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
       { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
@@ -267,7 +266,7 @@ export const BODY_TYPES: Record<string, BodyType> = {
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
     speed: { walk: 0.5, run: 1 }, // no real reference: a placeholder for a creeping mass
-    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: reachLinks(0.5), hands: 0, name: 'slam' }],
+    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: 0.5, hands: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.unarmed_natural },
   },

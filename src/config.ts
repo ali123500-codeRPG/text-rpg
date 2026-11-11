@@ -237,6 +237,11 @@ const DEFAULTS = {
   LINK_PACES: 8,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
+  /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
+   * personal distance (Hall's proxemics, 0.45–1.2 m) */
+  PLACE_GAP_M: 1,
+  /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door) */
+  ENTER_M: 1,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
    * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");

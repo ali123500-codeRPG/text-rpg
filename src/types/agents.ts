@@ -81,8 +81,8 @@ export type StanceStep = { toward: string; step: 'friendlier' | 'colder' };
  * Incapacitated, only when every fighter accepted that (SP4) */
 export type SparMade = { sides: string[][]; cruel?: boolean };
 
-/** the NPC's one move beside its action, as the player's: toZone is where it heads (one zone toward it, two as a dash
- * with hold); after: act first, then move */
+/** the NPC's one move beside its action, as the player's: toZone is where it heads (it walks toward it; with hold it runs
+ * on, a dash); after: act first, then move */
 export type NpcMove = { toZone: string; after?: boolean };
 export type PlannerOutput = {
   action: NpcAction;

@@ -1,5 +1,6 @@
-// 92 Reach: reach is metres turned into zone links. A shortbow (50 m) hits a target one linked zone away with sight; the
-// same shot through a link without sight becomes a wasted action, and a spear (2.8 m) can't reach the next zone at all.
+// 92 Reach: reach is metres, and so is distance (a zone link with no zone rectangles is LINK_PACES × PACE_M metres). A spear
+// (2.8 m) can't reach the next zone from here, so the thrust closes in on the move slot first (ZP3) and strikes. A shortbow
+// (50 m) hits a target one linked zone away with sight; the same shot through a link without sight is a wasted action.
 import { AM } from '../../src/library/tableIds';
 import { expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
@@ -15,7 +16,9 @@ it('92 Reach', () => {
   s.player.core.inventory.push({ id: 'bw', itemId: IT.shortbow });
   const stow = [{ op: 'stow' as const, item: `player_${IT.arming_sword}_1` }, { op: 'stow' as const, item: `player_${IT.round_shield}_2` }];
   const ev0 = play(s, { intent: intent({ gear: [...stow, { op: 'draw' as const, item: 'sp' }], action: { type: 'attack', target: 'patron_1', skill: SK.melee_medium, item: 'sp', mode: AM.thrust } }) });
-  expect(ev0.find((e) => e.actorId === 'player' && e.target === 'patron_1')).toMatchObject({ kind: 'wasted' });
+  expect(ev0.find((e) => e.actorId === 'player' && e.kind === 'move')).toMatchObject({ fromZone: 'tav_common', zone: 'tav_counter' });
+  expect(ev0.find((e) => e.actorId === 'player' && e.target === 'patron_1')).toMatchObject({ kind: 'attack' });
+  place(s, 'player', 'tav_common');
   const shoot = { type: 'attack' as const, skill: SK.ranged_light, item: 'bw', mode: AM.shoot };
   const ev = play(s, { intent: intent({ gear: [{ op: 'stow' as const, item: 'sp' }, { op: 'draw' as const, item: 'bw' }], action: { ...shoot, target: 'patron_1' } }) });
   expect(ev.find((e) => e.actorId === 'player' && e.target === 'patron_1')).toMatchObject({ kind: 'attack' });

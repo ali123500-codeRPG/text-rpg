@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
 import { blendedSkill, effectiveSkill, ruleset, usableModes } from '../../src/ruleset';
 import { getLibrary, resetLibrary } from '../../src/library';
-import { reachLinks } from '../../src/ruleset/range';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
@@ -34,14 +33,14 @@ describe('145 The throw action', () => {
     const dagger = lib.items[IT.dagger].weapon!.modes.find((m) => m.id === AM.throw)!;
     expect(dagger.reachM).toBe(CONFIG.THROW_M.knife); // a throw mode's reach is its own throw range
     const s = withDagger();
-    expect(throwOf(s).reach).toBe(reachLinks(CONFIG.THROW_M.knife));
+    expect(throwOf(s).reach).toBe(CONFIG.THROW_M.knife); // metres
     s.player.core.inventory.push({ id: 'sp', itemId: IT.spear, equippedIn: ['hand:right_arm'] });
     s.player.core.inventory.find((i) => i.itemId === IT.arming_sword)!.equippedIn = undefined;
-    expect(throwOf(s, 'sp').reach).toBe(reachLinks(CONFIG.THROW_M.spear)); // 17.5 m: two links
+    expect(throwOf(s, 'sp').reach).toBe(CONFIG.THROW_M.spear); // 17.5 m
     getLibrary().perks.far_arm = { id: 'far_arm', name: 'Far Arm', throwReach: 8 }; // metres
     s.player.core.perks.push({ perkId: 'far_arm', source: 'class', gainedTurn: 0 });
-    expect(throwOf(s).reach).toBe(reachLinks(CONFIG.THROW_M.knife + 8));
-    expect(usableModes(s, s.player).find((m) => m.itemId === 'dg' && m.mode.id === AM.slash)!.mode.reach).toBe(0); // the slash is untouched
+    expect(throwOf(s).reach).toBe(CONFIG.THROW_M.knife + 8);
+    expect(usableModes(s, s.player).find((m) => m.itemId === 'dg' && m.mode.id === AM.slash)!.mode.reach).toBe(1); // the slash (1 m) is untouched
   });
 
   it('the roll is combined: own skill × 0.75 + same-class ranged × 0.25, each part with its own stand-ins and gear', () => {

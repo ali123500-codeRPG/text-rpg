@@ -58,6 +58,7 @@ export type YieldView = { took: string[]; waiting: string[]; refused: string[] }
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
+  distanceM?: number; // ZP5: metres from the viewer, once both stand at points on the map (to 0.1 m)
   health?: HealthLevel; // others: only from Wounded down
   morale?: string; // MB16: others' morale level, only from Afraid down
   stance?: string; // LI2b Read Their Face: a speaker's stance toward the viewer
@@ -189,6 +190,7 @@ export type NarrationEvent = {
   overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words
+  metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes

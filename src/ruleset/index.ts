@@ -8,7 +8,8 @@ import type {
 import { CONFIG } from '../config';
 import { COVER, TIERS } from '../scales';
 import { actorBody, itemDef } from '../library';
-import { actorById, foe, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
+import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
+import { sightDistM } from '../engine/position';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
@@ -167,17 +168,16 @@ function situation(actor: Actor, state: GameState, rng: Rng): SituationResult {
 }
 
 /** a ranged attack's range penalty: the first RANGE_SHARE_MODS band that the target's distance fits in, as a share of the
- * mode's reach (both in links from real metres); the same zone has none */
+ * mode's reach (both in metres) */
 export function rangeMod(dist: number, reach: number): number {
-  if (dist < 1 || reach <= 0) return 0;
+  if (dist <= 0 || reach <= 0) return 0;
   return CONFIG.RANGE_SHARE_MODS.find(([share]) => dist / reach <= share)?.[1] ?? CONFIG.RANGE_SHARE_MODS.at(-1)![1];
 }
 
 function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const A = mustActor(state, req.attackerId);
   const D = mustActor(state, req.targetId);
-  const path = A.zone === D.zone ? [] : shortestPath(state, A.zone, D.zone, true);
-  const dist = path ? path.length : Infinity;
+  const dist = sightDistM(state, A, D);
   const { mode, name } = resolveMode(state, A, req.weaponId, req.modeId, dist);
   const ranged = mode.tree === 'ranged';
   const ct = actorBody(state, D);

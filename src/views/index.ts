@@ -9,6 +9,7 @@ import { CONFIG } from '../config';
 import { COVER, LIGHT } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
+import { sightDistM } from '../engine/position';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
@@ -148,6 +149,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const look = lookOf(events, viewer.id, a.id);
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
+      ...(a.pos && viewer.pos ? { distanceM: Math.round(sightDistM(state, viewer, a) * 10) / 10 } : {}),
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       ...(moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
@@ -421,8 +423,9 @@ export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): stri
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
   const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
-  const where = e.kind === 'move' || e.kind === 'flee' ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';
-  return `${who} ${e.kind.replace(/_/g, ' ')}${v.target ? ` ${name(v.target)}` : ''}${where}${v.outcome ? ` (${v.outcome})` : ''}${said}`;
+  const moving = e.kind === 'move' || e.kind === 'flee';
+  const where = moving && (e.fromZone || !v.target) ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';
+  return `${who} ${e.kind.replace(/_/g, ' ')}${v.target ? ` ${moving ? 'toward ' : ''}${name(v.target)}` : ''}${where}${v.outcome ? ` (${v.outcome})` : ''}${said}`;
 }
 
 export function buildOppositionView(state: GameState, actorId: string): OppositionView {
@@ -503,6 +506,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(e.overheard?.includes(me) ? { overheard: tellFor(p) } : {}), // LI5a
       ...(item ? { item } : {}),
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
+      ...(full && e.metres ? { metres: e.metres } : {}),
       ...(forWhom ? { for: forWhom } : {}),
       ...(full && e.reason ? { reason: e.reason.replace(/_/g, ' ') } : {}),
       ...(changes.length && e.kind !== 'attack' ? { changes } : {}),
