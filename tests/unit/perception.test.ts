@@ -32,7 +32,7 @@ describe('computePerception', () => {
   it('sound from another zone is partial and stops after `noise` links; no sight through a closed link', () => {
     const s = makeVillage({ playerZone: 'street_door' });
     const e = ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'normal', visibility: 'normal' });
-    expect(computePerception(e, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound', heard: true });
+    expect(computePerception(e, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' }); // a voice, not its words
     expect(computePerception({ ...e, noise: 'quiet' }, s, createRng(1)).player).toBeUndefined();
   });
   it('NV1–NV6: hushed stays in its zone, loud and deafening are clear one link away, murmur only partly; close is made out in its zone only', () => {
@@ -42,7 +42,7 @@ describe('computePerception', () => {
     expect(computePerception({ ...e, noise: 'deafening' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
     expect(computePerception({ ...e, noise: 'loud' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
     expect(computePerception({ ...e, noise: 'normal' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
-    expect(computePerception({ ...e, noise: 'murmur' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound', heard: true });
+    expect(computePerception({ ...e, noise: 'murmur' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' }); // heard only partly: no words
     expect(computePerception({ ...e, zone: 'street_door' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
     const v = makeVillage({ playerZone: 'street_square' });
     const hid = ev({ actorId: 'slime_1', kind: 'idle', zone: 'gate_inner', noise: 'silent', visibility: 'close' });
@@ -96,7 +96,7 @@ describe('updateBeliefs', () => {
   it('communication copies the sender belief as told, capped at suspicious, dated by the sender', () => {
     const s = makeVillage();
     actor(s, 'trader').mind!.knowledge.slime_1 = { status: 'tracking', lastKnownZone: 'field_mid', lastSeenTurn: 0, source: 'seen', revealed: ['has_acid'] };
-    run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', line: { text: 'Slimes!', volume: 'normal' } }));
+    run(s, ev({ actorId: 'trader', kind: 'speak', zone: 'tav_counter', noise: 'normal', line: { text: 'Slimes!', volume: 'normal' } })); // a normal voice: clear one link away
     expect(actor(s, 'patron_1').mind!.knowledge.slime_1).toEqual({ status: 'suspicious', source: 'told', lastKnownZone: 'field_mid', lastSeenTurn: 0, revealed: ['has_acid'] });
   });
   it('a bark copies nothing', () => {
