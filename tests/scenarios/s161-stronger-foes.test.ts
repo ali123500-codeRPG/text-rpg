@@ -8,7 +8,7 @@ import { gearRating, rating } from '../../src/engine/xp';
 import { ACH } from '../../src/library/achievementIds';
 import type { Actor, GameState } from '../../src/types';
 
-const know = (a: Actor, b: Actor) => { a.mind!.knowledge[b.id] = { status: 'aware', lastKnownZone: b.zone, source: 'seen', revealed: [] }; };
+const know = (a: Actor, b: Actor) => { a.mind!.knowledge[b.id] = { status: 'engaged', lastKnownZone: b.zone, source: 'seen', revealed: [] }; };
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.key!);
 const power = (s: GameState, a: Actor) => rating(a) + gearRating(s, a); // written out: must equal engine power()
 

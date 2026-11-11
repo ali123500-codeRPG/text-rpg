@@ -120,7 +120,7 @@ export const PERK_WRITEUPS: PerkWriteup[] = [
     rules: { kind: "Always on",
       trigger: "A perception check for the owner by sound.",
       conditions: [],
-      effect: "Sound reaches the owner one zone link further: both the clear and the half reach of every noise level go up one link (CONFIG.NOISE_REACH). Nowhere is the step below the same zone, so a Silent sound is heard like a Hushed one, and a Quiet sound is heard clearly one link away.",
+      effect: "Sound reaches the owner one zone link further: both the clear and the half reach of every noise level go up one link (noiseReach). Nowhere is the step below the same zone, so a Silent sound is heard like a Hushed one, and a Quiet sound is heard clearly one link away.",
       lasts: "Always." } },
   { id: PK.quick_word, ref: "A15", name: "Quick Word", skill: SK.persuasion, place: "20",
     ladder: { skill: SK.persuasion, milestone: 20 }, effect: "speech",

@@ -56,7 +56,7 @@ export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['
 export const INTELLIGENCE = scale([['unintelligent', 'Unintelligent'], ['semi', 'Semi-intelligent'], ['intelligent', 'Intelligent']]);
 export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];
 /** how much one actor knows of another, least first (Belief.status; decays one step at a time) */
-export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicious'], ['aware', 'Aware'], ['tracking', 'Tracking']]);
+export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicious'], ['aware', 'Aware'], ['tracking', 'Tracking'], ['hunting', 'Hunting'], ['engaged', 'Engaged']]);
 /** XP reward levels for achievements; XP per level is CONFIG.REWARD_XP */
 export const REWARD_LEVELS = scale([['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI'],
   ['vii', 'VII'], ['viii', 'VIII'], ['ix', 'IX'], ['x', 'X'], ['xi', 'XI'], ['xii', 'XII'], ['xiii', 'XIII'], ['xiv', 'XIV'], ['xv', 'XV']]);
@@ -72,8 +72,9 @@ export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged']
 export type PartStateKey = (typeof PART_STATES.keys)[number];
 /** the player's posture (ST5: not named like the Sneaking skill) */
 export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
-/** how far an event is heard, quietest first; reach per level is CONFIG.NOISE_REACH */
-export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['normal', 'Normal'], ['loud', 'Loud'], ['deafening', 'Deafening']]);
+/** how loud an event is, quietest first; each level's decibels are CONFIG.NOISE_DB, its real reference the library's noiseLevels row,
+ * and how far it carries comes from perception's noiseReach */
+export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['murmur', 'Murmur'], ['normal', 'Normal'], ['raised', 'Raised'], ['loud', 'Loud'], ['blaring', 'Blaring'], ['deafening', 'Deafening']]);
 export type NoiseKey = (typeof NOISE.keys)[number];
 /** how far an event is seen, least first; reach per level is CONFIG.SIGHT_REACH */
 export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);

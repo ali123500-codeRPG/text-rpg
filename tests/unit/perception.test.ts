@@ -28,13 +28,14 @@ describe('computePerception', () => {
     expect(computePerception(e, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
     expect(computePerception({ ...e, noise: 'quiet' }, s, createRng(1)).player).toBeUndefined();
   });
-  it('NV1–NV6: hushed stays in its zone, loud and deafening are clear one link away, close is seen in its zone only', () => {
+  it('NV1–NV6: hushed stays in its zone, loud and deafening are clear one link away, murmur only partly, close is seen in its zone only', () => {
     const s = makeVillage({ playerZone: 'street_door' });
     const e = ev({ actorId: 'trader', kind: 'speak', zone: 'tav_common', noise: 'hushed', visibility: 'unseen' });
     expect(computePerception(e, s, createRng(1)).player).toBeUndefined();
     expect(computePerception({ ...e, noise: 'deafening' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
     expect(computePerception({ ...e, noise: 'loud' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
-    expect(computePerception({ ...e, noise: 'normal' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
+    expect(computePerception({ ...e, noise: 'normal' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
+    expect(computePerception({ ...e, noise: 'murmur' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
     expect(computePerception({ ...e, zone: 'street_door' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound' });
     const v = makeVillage({ playerZone: 'street_square' });
     const hid = ev({ actorId: 'slime_1', kind: 'idle', zone: 'gate_inner', noise: 'silent', visibility: 'close' });
@@ -74,7 +75,7 @@ describe('updateBeliefs', () => {
   it('partial sound makes an unaware observer suspicious, source heard', () => {
     const s = makeVillage();
     place(s, 'guard_1', 'street_door');
-    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'normal' }));
+    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'murmur' }));
     expect(actor(s, 'guard_1').mind!.knowledge.trader).toMatchObject({ status: 'suspicious', source: 'heard' });
   });
   it('an attack on a bandmate sets an override to opposed toward the attacker', () => {

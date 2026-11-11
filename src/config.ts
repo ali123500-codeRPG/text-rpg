@@ -112,17 +112,23 @@ const DEFAULTS = {
   OVERWHELM_TIERS: 3, // MR4 Overwhelm: an aura roll lost by this many tiers or more can overwhelm
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
   AURA_REACH: 1, // I3: an engagement aura reaches the owner's zone and zones one link away (a further reach factor is parked, D-193)
-  ENGAGEMENT_END_TURNS: 2, // E1: an engagement ends after this many turns with no one engaged with the actor
+  ENGAGEMENT_END_TURNS: 3, // E1: an engagement ends after this many turns with no one engaged with the actor; YD6: hunting and engaged drop to tracking after this many turns with no blow or closing in
   SPAR_LIMIT: 'Critical', // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
-  // GAP (placeholders): zone links an event reaches, [full, partial], per NOISE / VISIBILITY key. −1 = nowhere, the step
-  // below 0 (same zone), so a +1 link bonus turns nowhere into same zone.
-  // Sound from another zone is partial except Loud and Deafening. A dark zone caps sight at partial.
-  // NV1–NV6: Loud and Deafening carry further (NV6). Later comments: Loud is heard
-  // clearly one link away, Deafening two.
-  NOISE_REACH: { silent: [-1, -1], faint: [-1, 0], hushed: [0, 0], quiet: [0, 1], normal: [0, 2], loud: [1, 4], deafening: [2, 6] } as Record<string, [number, number]>,
+  // GAP (placeholders): zone links an event is seen, [full, partial], per VISIBILITY key. −1 = nowhere, the step
+  // below 0 (same zone), so a +1 link bonus turns nowhere into same zone. A dark zone caps sight at partial.
+  /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
+  NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
+  /** hearing (perception noiseReach): a sound is heard while it is at least HEAR_DB at the listener (0 dB is the threshold
+   * of human hearing) and heard clearly (who and what) from CLEAR_HEAR_DB. It weakens 20·log10(metres) with distance (the
+   * inverse-square law), a listener in the same zone counts as SAME_ZONE_M away, a zone link is LINK_PACES × PACE_M metres,
+   * and each link costs LINK_SOUND_LOSS_DB more (a doorway, a corner, a wall to get round). Placeholders until step 2's positions. */
+  HEAR_DB: 0,
+  CLEAR_HEAR_DB: 25,
+  SAME_ZONE_M: 1,
+  LINK_SOUND_LOSS_DB: 12,
   SIGHT_REACH: { unseen: [-1, -1], faint: [-1, 0], close: [0, 0], low: [0, 1], normal: [1, 2], high: [2, 3], glaring: [3, 4] } as Record<string, [number, number]>,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
@@ -218,10 +224,10 @@ const DEFAULTS = {
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,
   MAIN_SLOTS: 1,
-  /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (tabletop grid square = 1.5 m) */
-  PACE_M: 1.5,
+  /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
+  PACE_M: 1,
   /** CO14 today's zone link in paces, to convert range tables written in links (placeholder) */
-  LINK_PACES: 5,
+  LINK_PACES: 8,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words

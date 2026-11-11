@@ -2,6 +2,8 @@
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS } from '../scales';
+import { noiseReach } from './noise';
+export { noiseReach } from './noise';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
@@ -29,9 +31,9 @@ function dist(state: GameState, from: string, to: string, sightOnly: boolean): n
   return p ? p.length : null;
 }
 
-// GAP: the spec gives no reach table. Each NOISE / VISIBILITY level reaches [full, partial] zone links (CONFIG.NOISE_REACH,
-// CONFIG.SIGHT_REACH): sight counts sight links only, sound any links. Dark zone: sight at most partial.
-// Sound from another zone is partial (you hear something, not who; test 4), except a Deafening one link away (NV6).
+// Each VISIBILITY level reaches [full, partial] zone links (CONFIG.SIGHT_REACH) and each NOISE level what noiseReach
+// works out from its decibels: sight counts sight links only, sound any links. Dark zone: sight at most partial.
+// Sound heard only partly gives something, not who (test 4).
 // The event is perceived at its own zone (a move: the destination zone).
 function reach([full, partial]: [number, number], d: number | null): Perception | null {
   return d === null ? null : d <= full ? 'full' : d <= partial ? 'partial' : null;
@@ -41,7 +43,7 @@ function reach([full, partial]: [number, number], d: number | null): Perception 
  * Perks with hearingReach (A14 Keen Ear: 1) add links to both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed. */
 function soundReach(state: GameState, observer: Actor, zone: string, noise: GameEvent['noise']): Perception | null {
   const up = perkSum(observer, 'hearingReach');
-  const [full, heard] = CONFIG.NOISE_REACH[noise];
+  const [full, heard] = noiseReach(noise);
   return reach([full + up, heard + up], dist(state, observer.zone, zone, false));
 }
 
@@ -202,7 +204,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     if (!o.mind || !sender) continue;
     const cur = o.mind.knowledge[e.actorId]?.status;
     write(o, e.actorId, {
-      status: p.level === 'full' ? (atLeast(cur, 'aware') ? 'tracking' : 'aware') : raise(cur, 'suspicious'),
+      status: raise(cur, p.level === 'full' ? (atLeast(cur, 'aware') ? 'tracking' : 'aware') : 'suspicious'), // hunting and engaged stay (YD6)
       lastKnownZone: e.zone, lastSeenTurn: e.turn, source: p.cue === 'sound' ? 'heard' : 'seen',
     });
     if (e.kind === 'attack' && e.target) {
@@ -232,7 +234,7 @@ export function applyBeliefDecay(state: GameState): void {
   const D = CONFIG.DECAY_TURNS;
   for (const a of allActors(state)) {
     for (const b of Object.values(a.mind?.knowledge ?? {})) {
-      if (b.lastSeenTurn === undefined || b.status === 'unaware') continue;
+      if (b.lastSeenTurn === undefined || b.status === 'unaware' || atLeast(b.status, 'hunting')) continue; // YD6: noteFighting drops those
       const age = state.turn - b.lastSeenTurn;
       if (age > D && (age - 1) % D === 0) b.status = AWARENESS.at(AWARENESS.pos(b.status) - 1);
     }

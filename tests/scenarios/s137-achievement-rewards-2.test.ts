@@ -25,7 +25,7 @@ import { fightEnded } from '../../src/engine/feats';
 import { actorById } from '../../src/engine/relations';
 import type { Actor } from '../../src/types';
 
-const know = (a: Actor, b: Actor) => { a.mind!.knowledge[b.id] = { status: 'aware', lastKnownZone: b.zone, source: 'seen', revealed: [] }; };
+const know = (a: Actor, b: Actor) => { a.mind!.knowledge[b.id] = { status: 'engaged', lastKnownZone: b.zone, source: 'seen', revealed: [] }; };
 const has = (s: ReturnType<typeof makeVillage>, key: string) => !!s.player.progression?.achievements?.some((x) => x.key === key);
 
 describe('137 achievement rewards, round 2', () => {

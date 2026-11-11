@@ -75,6 +75,8 @@ export type Belief = {
   lastKnownZone?: string;
   lastSeenTurn?: number;
   source: 'seen' | 'heard' | 'told';
+  /** YD6: the last turn either side attacked or closed in on the other, which keeps hunting and engaged alive */
+  closedTurn?: number;
   revealed: string[]; // e.g. 'has_crossbow', 'item:<instanceId>' for revealed concealed items
 };
 

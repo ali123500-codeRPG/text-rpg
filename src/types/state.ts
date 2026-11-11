@@ -54,7 +54,7 @@ export type Quest = {
  * out: who has yielded or reached the limit (SP4, SP5), with the turn; last: the turn of the latest blow between sides (or the start). */
 export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
 /** MB40–MB43: the player's yield this scene: foes yet to answer, those that took it (truce) and those that fought on */
-export type PlayerYield = { turn: number; pending: string[]; accepted: string[]; refused: string[] };
+export type PlayerYield = { turn: number; pending: string[]; accepted: string[]; refused: string[]; ended?: boolean }; // ended: YD3, the fight already ended on it
 
 // In-memory working state, built from Part 4's pages on load. Never saved as one document.
 export type GameState = {
