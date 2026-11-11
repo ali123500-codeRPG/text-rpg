@@ -23,8 +23,9 @@ import { PERSONAS, autoPerk } from '../src/agents/autopilot';
 import { villageStagePlan } from '../src/scene/fixtures';
 import { TP } from '../src/library/templateIds';
 import { getLibrary } from '../src/library';
+import { personalityText } from '../src/ruleset/personality';
 import { skillName as sk } from '../src/library/skillNames';
-import type { LogLine } from '../src/types';
+import type { LogLine, Personality } from '../src/types';
 
 /** what the play screen shows under a line whatever the mechanics switch: skill-ups, perk unlocks, level-ups, achievements */
 const screenNotes = (l: LogLine): string[] => {
@@ -106,6 +107,26 @@ the game. Reply with ONLY what you type next, one short line in plain words (no 
 /stats, /inv, /quests, /help or /aim <text>.`;
 const PERSONA = PERSONAS[arg('persona', '')] ?? '';
 
+/** --character "nerve=-60,PA1=60,PA3=-60,values=VL10+VL7": the character's personality points on the creation build
+ * (the creation screen's picker), so a persona can play a character unlike itself */
+const CHARACTER = arg('character', '');
+function characterPersonality(): Personality | undefined {
+  if (!CHARACTER) return undefined;
+  const p: Personality = { nerve: 0, traits: {}, values: [] };
+  for (const kv of CHARACTER.split(',')) {
+    const [k, v] = kv.split('=');
+    if (k === 'nerve') p.nerve = Number(v); else if (k === 'values') p.values = v.split('+'); else p.traits[k] = Number(v);
+  }
+  return p;
+}
+
+/** every run: play toward the persona's goals, check each try worked, and report what doesn't */
+const GOAL_RULES = `How to play this test:
+- Every turn, take a concrete step toward your goals above. Never idle, wait or repeat a command just to pass turns.
+- After each try, read the result and check that it did what you meant. If the same thing fails twice, try a clearly
+  different way, and add a second line to your reply: REPORT: what you tried, what happened, and what you expected.
+- Also write a REPORT line whenever the game does something that looks wrong or confusing to you.`;
+
 /** --near-seller: start the player one zone from the first seller on the stage (across its counter), else in its zone */
 function nearSeller(st: GameState) {
   const seller = st.actors.find((a) => isSeller(a) && st.stage.zoneIds.includes(a.zone));
@@ -143,8 +164,11 @@ async function main() {
     afterResolve: (st, ev, rng, ctx) => inner.afterResolve(st, ev, rng, ctx), afterSave: (st, ctx) => inner.afterSave(st, ctx) };
   const game = createGame({ client: cliClient, clock: realClock, store: memoryStore(Date.now), director });
   // --class late_bloomer starts an Unwritten Legend; the default is the Swordsman. Both use the class's recommended build.
-  await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden' });
+  const pers = characterPersonality();
+  await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden', ...(pers ? { personality: pers } : {}) });
   const storyId = game.state()?.storyId;
+  // the Character page shows the personality; the agent reads it as a player would, but plays as its persona
+  if (pers) charLine = `\nYour character's sheet describes their personality as: ${personalityText(game.state()!.player, 'steady')} You may play differently from it; play the way your persona says.`;
   const st0 = game.state()!;
   const planErrors = before ? game.gm().agentLog.filter((a) => a.agent === 'weaver' && a.output).map((a) =>
     validateStagePlan(structuredClone(before!), a.output as StagePlan, { tier: st0.stage.tier, kind: 'scene', placeId: before!.player.placeId })) : [];
@@ -164,8 +188,12 @@ async function main() {
     if (stop) { console.log('stop_play:', stop.text); break; }
     // spoken lines are shown under the narration on screen (the Narrator does not quote them), so the player sees them too
     const recent = game.lines().slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`), ...screenNotes(l), ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
-    const ask = `${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n\nThe story so far (latest last):\n${recent}`;
-    const first = (r: ClaudeResponse) => (r.text || 'I look around.').split('\n')[0].trim().slice(0, 200);
+    const ask = `${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}${charLine}\n${GOAL_RULES}\n\nThe story so far (latest last):\n${recent}`;
+    const first = (r: { text: string }) => {
+      const lines = (r.text || 'I look around.').split('\n').map((x) => x.trim()).filter(Boolean);
+      for (const x of lines.filter((x) => /^REPORT:/i.test(x))) { reports.push(`turn ${t}: ${x.replace(/^REPORT:\s*/i, '')}`); console.log(`turn ${t} REPORT: ${x.slice(7).trim()}`); }
+      return (lines.find((x) => !/^REPORT:/i.test(x)) ?? 'I look around.').slice(0, 200);
+    };
     let input = first(await claudeCli(ask, 'claude-sonnet-5-5'));
     // a slash command answers at once and passes no time: sending the same one again only repeats its answer (run 33 sent /stats 11 times)
     if (input.startsWith('/') && input === lastInput) input = first(await claudeCli(`${ask}\n\nYou just sent ${input} and its answer is above; it passes no time. Do something in the story instead.`, 'claude-sonnet-5-5'));
@@ -208,6 +236,8 @@ function tracePacing(game: ReturnType<typeof createGame>, step: number, input: s
 /** The test player can't open the Perks page, so it spends each perk point at once on the open milestone of its highest skill. */
 const progress: string[] = [];
 const skillUps: string[] = [];
+const reports: string[] = [];
+let charLine = '';
 let lastInput = '';
 let levelUpsSeen = 0;
 function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
@@ -234,6 +264,7 @@ function writeTranscript(game: ReturnType<typeof createGame>, storyId: string, t
       + (l.speech?.length ? `\n\n${l.speech.map((sp) => `> _${sp.speaker}:_ "${sp.text}"`).join('\n')}` : '')
       + (l.mechanics?.length ? `\n\n    ${l.mechanics.join('\n    ')}` : ''))].join('\n');
   writeFileSync(join(OUT, 'transcript.md'), md);
+  writeFileSync(join(OUT, 'reports.md'), `# Player reports (${reports.length})\n\n${reports.map((x) => `- ${x}`).join('\n')}\n`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
