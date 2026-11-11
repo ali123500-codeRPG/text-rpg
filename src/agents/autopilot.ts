@@ -23,6 +23,13 @@ leads or start conversations yourself; answer briefly if spoken to, and see what
   slimes: `You are a monster hunter clearing the slimes that trouble this village (a test of combat and skill growth). Find the
 slimes (ask where they are if you must), go there and fight them, one after another. Between fights, check /stats once in a
 while (never twice in a row) to see how your skills are growing, and keep hunting. Pay attention to when and how your skills improve.`,
+  walker: `You are a scout mapping this village on foot (a test of moving between places and standing positions). Your goals,
+in order, one per turn or two: 1) walk behind the bar; 2) go down the cellar steps, then to the back of the cellar; 3) come
+all the way back up and out the front door into the street; 4) walk to the gate, then through it into the open field;
+5) walk up close to someone or something in the field and stand right beside it; 6) sprint (run) back to the tavern door in
+one go; 7) walk back inside and stand next to the barkeep. After each move, check the narration and the place line say you
+are where you meant to be, how far you went, and who is near you; REPORT anything that seems off (wrong place, no progress,
+teleporting, impossible distances, people in odd spots). If attacked, fight back, then carry on with the goals.`,
   gentle: `You are a gentle, honest, soft-spoken peacemaker (a test of talk and of playing against your character's
 personality). Your goals, in order: 1) greet the barkeep politely and ask how she is; 2) ask someone about any trouble in
 the village and offer to help; 3) when anyone is rude or threatening, calm them down with kind words, and never strike

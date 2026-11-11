@@ -2950,6 +2950,8 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-9 | The Weaver's repair of BG-8 failed the same way, so the scene fell back to a placeholder area (play) | Play | Fixed | this PR |
 | BG-10 | BG-8 again on a new story (play) | Play | Fixed | this PR |
 | BG-11 | BG-9 again on a new story (play) | Play | Fixed | this PR |
+| BG-12 | The player can't move to a spot inside their zone ("walk to the back of the cellar"): moves only name a zone, so the Parser returned nothing and the turn passed as holding still, five times (playtest run 36) | Playtest | Open | |
+| BG-13 | The Parser aimed attacks at a slime its view listed as Dead, so the player swung at a corpse while a live slime kept attacking (playtest run 36) | Playtest | Open | |
 
 ## Check on release
 
