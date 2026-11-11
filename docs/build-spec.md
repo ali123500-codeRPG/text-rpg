@@ -1548,6 +1548,13 @@ Decided by Ali, 10/11/2026 (Motion Rules Review, answers Q1–Q4; it replaces th
 - **M-38** Gold cards land last in a turn's results, one at a time. A level-up also fills the XP bar, then starts it again from empty, as one short moment (the Thread weaves). The perk-point badge on the rail's Character item is held back until then: it lands with the level-up card that gave the point, never before it (src/ui/play.ts pointsBeat).
 - **M-38a** An achievement is the turn's special moment. Its gold card shows the reward tier ("Tier II") and what it asks for (earnedAtText). It arrives with its own beat within --m-honor: it rises in, one band of light sweeps across it, and then its tier lands. A scar arrives heavier and in the danger colour, with no light. A click, Enter or Space on the card opens the movable, non-modal details pop-up (src/ui/pop.ts), which shows why it was earned, what it asks for, its XP and its rewards. Esc closes the pop-up, unless something is still moving, in which case Esc only skips (M-12).
 
+**Feedback tiers [Proposed]** (game-feel GF-01 to GF-52 fitted inside the rules above; built, awaiting Ali's review)
+
+- **M-23** [Proposed] Every beat has a tier set by how rare its event is, and rarer events get more channels: T0 missed or dodged (no motion), T1 grazed, blocked, a small gain (one fade), T2 full hit, a level word crossed (one pulse), T3 a heavy or crushing hit on the player, a part Crippled or Destroyed (hold, shake, edge), T4 level-up and achievement (the milestone beat, M-38b). A pulse grows a word by up to 6% per strength but a wide card by only a few pixels, so card text never slides.
+- **M-24** [Proposed] A crushing hit on the player: its result word snaps to a struck pose and holds for --m-hold (hit-stop), then the story and the sheet shake once and the screen edge flares red once. The shake is decaying trauma: offset = 3 px × trauma², gone within --m-shake; a heavy hit on the player adds a smaller shake (about 1 px) with no hold. Blows close together merge (trauma adds and clamps at 1), so the cap never grows. The input bar never moves. A part that becomes Crippled or Destroyed flares its red card the same way, holding for --m-hold, with no growth.
+- **M-33a** [Proposed] Bars have two layers. A loss shows the new fill at once and leaves a pale ghost of the part lost, which holds for --m-ghost-hold and then drains toward the fill. A gain shows a faint ghost of the new length at once and the fill grows into it. The body figure keeps a part's old colour until that part's beat, then changes.
+- **M-38b** [Proposed] A level-up card gets the same milestone beat as an achievement: a --m-hold pause, the card rises in, its star holds its struck pose, and one band of light sweeps across it once. Milestones play one at a time after every other beat, each skippable.
+
 **Scenes**
 
 - **M-40** A scene break (story start, rest, time skip or story beat) is the one transition between scenes, within --m-scene: the quiet rule draws across (with the place name if the place changed), then the opening narration appears as normal (M-10). Earlier lines stay as they are. The only other authored moments are the fall (the player is incapacitated), the level-up (M-38) and an achievement (M-38a).
@@ -1556,7 +1563,7 @@ Decided by Ali, 10/11/2026 (Motion Rules Review, answers Q1–Q4; it replaces th
 
 **Motion tokens**
 
-- **M-50** All durations and easings are named CSS variables in :root; no literal durations in components. Starting values: --m-feedback 120ms, --m-state 200ms, --m-beat 220ms, --m-sentence 180ms, --m-reveal-cap 1500ms, --m-stagger 350ms, --m-results-cap 3500ms, --m-count 600ms, --m-trail 700ms, --m-scene 650ms, --m-fall 1400ms, --m-ease cubic-bezier(0.16, 1, 0.3, 1), --m-ease-exit cubic-bezier(0.4, 0, 1, 1).
+- **M-50** All durations and easings are named CSS variables in :root; no literal durations in components. Starting values: --m-feedback 120ms, --m-state 200ms, --m-beat 220ms, --m-sentence 180ms, --m-reveal-cap 1500ms, --m-stagger 350ms, --m-results-cap 3500ms, --m-count 600ms, --m-trail 700ms, --m-scene 650ms, --m-fall 1400ms, --m-honor 900ms, --m-hold 80ms (hit-stop), --m-shake 280ms (a shake runs out within it), --m-ghost-hold 250ms (a bar's ghost waits this long before it drains), --m-ease cubic-bezier(0.16, 1, 0.3, 1), --m-ease-exit cubic-bezier(0.4, 0, 1, 1).
 - **M-51** Exits are faster than entrances.
 
 **Replays, undo and loading**

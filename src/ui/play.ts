@@ -22,7 +22,7 @@ import { timePassedRow, todBadge } from './timeOfDay';
 import { shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
-import { applyMotion, arrive, bar as barMove, count, delta, finishAll, motionOn, moving, ms, play, pulse, sentences, setMotion, slam, stamp } from './motion';
+import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
 import { closePop, openPop } from './pop';
 import { PART_STATES, SHOWN_LEVELS, working } from '../ruleset/body';
@@ -665,38 +665,49 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       // M-20: the outcome word's beat, by severity
       const w = r.querySelector('.res b'), o = Number(w?.getAttribute('data-o') ?? 0);
       if (w && o === 1) play(w, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-beat'), delay: d + fade });
-      else if (w && o > 1) pulse(w, d + fade, o - 1, o > 2);
-      if (r.classList.contains('wcard')) pulse(r, d + fade, 2);
+      else if (w && o === 4 && r.classList.contains('in')) {
+        // a crushing hit on the player (game-feel T3): the word holds its struck pose, then the story and the sheet
+        // shake once (3 px, gone within --m-shake) and the screen edge flares red once. The input bar never moves.
+        impact(w, d + fade);
+        shake([story, sheet], 1, d + fade + ms('--m-hold'));
+        play(edge, [{ opacity: 0 }, { opacity: 0.8, offset: 0.2 }, { opacity: 0 }], { dur: ms('--m-trail'), delay: d + fade + ms('--m-hold') });
+      } else if (w && o > 1) {
+        pulse(w, d + fade, o - 1, o > 2);
+        if (o === 3 && r.classList.contains('in')) shake([story, sheet], 0.6, d + fade); // a heavy hit on the player: about 1 px
+      }
+      // a part that became Crippled or Destroyed: its card flares red, holds, and settles, with no growth that moves its text
+      if (r.classList.contains('wcard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--danger) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }
     }
     if (b) sheetBeats(b, a, at, stagger);
     if (ab) aroundBeats(ab, aa, Math.min(t, end));
     let pointsAt: number | null = null;
     for (const g of gold) {
       const d = at(stagger);
-      if (g.classList.contains('ach')) { const n = honor(g as HTMLElement, d); t += n; continue; }
+      if (g.classList.contains('ach') || g.hasAttribute('data-levelup')) { const n = honor(g as HTMLElement, d); t += n; if (pointsAt === null && g.hasAttribute('data-levelup')) pointsAt = d + fade; continue; }
       arrive(g, d, 6); pulse(g.querySelector('.st'), d + fade, 2);
-      if (pointsAt === null && g.hasAttribute('data-levelup')) pointsAt = d + fade;
     }
     // M-38: the rail's perk-point badge lands with the level-up card that gave the point, never before it
     if (b && a.points !== b.points) pointsBeat(b.points, a.points, pointsAt ?? at(stagger));
   }
 
-  /** M-38: an achievement is the turn's special moment, so it gets its own beat: the card rises in, a band of light
-   * sweeps across it once, then its reward level lands. A scar comes in heavier and darker, with no light. Returns
-   * how long it holds the cards after it. */
-  function honor(g: HTMLElement, d: number): number {
-    const dur = ms('--m-honor'), beat = ms('--m-beat');
+  /** M-38/M-38a, game-feel T4: an achievement or a level-up is the turn's milestone, one at a time after every other
+   * beat. Anticipation: a --m-hold pause. Then the card rises in, its star lands in its struck pose and holds, one band
+   * of light sweeps across once, and an achievement's tier lands. A scar comes in heavier and darker, with no light.
+   * Nothing on the card grows more than a few pixels, so its text never slides. Returns how long it holds the cards
+   * after it. */
+  function honor(g: HTMLElement, d0: number): number {
+    const dur = ms('--m-honor'), beat = ms('--m-beat'), d = d0 + ms('--m-hold');
     if (g.classList.contains('scar')) {
-      play(g, [{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'none' }], { dur: beat, delay: d });
-      pulse(g.querySelector('.st'), d + beat, 3, true);
+      play(g, [{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], { dur: beat, delay: d });
+      impact(g.querySelector('.st'), d + beat);
       stamp(g.querySelector<HTMLElement>('.ach-lv'), d + beat);
-      return beat;
+      return beat + ms('--m-hold');
     }
-    play(g, [{ opacity: 0, transform: 'translateY(8px) scale(.97)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') * 2, delay: d });
+    play(g, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') * 2, delay: d });
     play(g, [{ transform: 'translateX(-100%)' }, { transform: 'translateX(100%)' }], { dur, delay: d + ms('--m-state'), pseudo: '::after' });
-    pulse(g.querySelector('.st'), d + ms('--m-state'), 3);
+    impact(g.querySelector('.st'), d + ms('--m-state'));
     stamp(g.querySelector<HTMLElement>('.ach-lv'), d + dur / 2);
-    return dur / 2;
+    return dur / 2 + ms('--m-hold');
   }
 
   /** the rail's ✦n badge (it lives outside the Play screen): a new badge fades in, a changed count swaps at its beat */
@@ -737,7 +748,16 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         const worse = levelOfPart(a.parts[k]) > levelOfPart(b.parts[k]);
         const chip = q(`.cs-pchip[data-part="${k}"]`);
         if (worse) slam(chip, d); else pulse(chip, d);
-        play(q(`path[data-part="${k}"]`), [{ opacity: 1 }, { opacity: 0.25, offset: 0.4 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });
+        // the figure keeps the part's old colour until this beat, then turns and dips once (M-30, M-74: the new
+        // colour is already set; the old one is only the animation's first frame)
+        const path = q(`path[data-part="${k}"]`);
+        if (path) {
+          const cls = path.getAttribute('class') ?? '';
+          path.setAttribute('class', cls.replace(/\bbf-\w+/, `bf-${b.parts[k].toLowerCase()}`));
+          const old = getComputedStyle(path).fill;
+          path.setAttribute('class', cls);
+          play(path, [{ fill: old, opacity: 1 }, { fill: old, opacity: 0.35, offset: 0.35 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });
+        }
       }
     }
     // gear lines (M-35, M-32): a shield's state or a pool's points land; an item that is gone fades out of its line
