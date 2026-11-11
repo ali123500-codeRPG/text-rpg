@@ -19,6 +19,12 @@ export function compassOf(label: string): [number, number] | null {
   return [e / len, n / len];
 }
 
+/** the point on a rectangle's edge straight out from its centre along `d` (a direction [east, north], any length) */
+export function edgeToward(r: Rect, d: [number, number]): { x: number; y: number } {
+  const k = Math.min(d[0] ? r.w / 2 / Math.abs(d[0]) : Infinity, d[1] ? r.d / 2 / Math.abs(d[1]) : Infinity);
+  return k === Infinity ? { x: r.x, y: r.y } : { x: r.x + d[0] * k, y: r.y + d[1] * k };
+}
+
 const STEP: Record<Side, [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] };
 const sideOf = (d: [number, number]): Side => (Math.abs(d[0]) >= Math.abs(d[1]) ? (d[0] >= 0 ? 'e' : 'w') : d[1] >= 0 ? 'n' : 's');
 const sameFloor = (a: Zone, b: Zone) => Math.abs(heightOf(a) - heightOf(b)) < CONFIG.STOREY_HEIGHT / 2;
@@ -37,7 +43,12 @@ function exitBetween(from: Zone, to: Zone): { dir: [number, number] | null; vert
   const out = from.links.find((l) => l.to === to.id), back = to.links.find((l) => l.to === from.id);
   const fwd = out ? compassOf(out.label) : null;
   const rev = back ? compassOf(back.label) : null;
-  const vertical = (out ? verticalOf(out.label) : 0) || (back ? -verticalOf(back.label) : 0) || Math.sign(heightOf(to) - heightOf(from));
+  // heights, once settled (inferHeights runs first and reads the exit from the settled side), decide whether the exit
+  // climbs: an exit's words read both ways can disagree ("the low tunnel" one way, "back up into the cellar" the other),
+  // and stacking two zones of one height put them on top of each other on the same floor (run 36)
+  const settled = from.height !== undefined || to.height !== undefined;
+  const vertical = settled ? (sameFloor(from, to) ? 0 : Math.sign(heightOf(to) - heightOf(from)))
+    : (out ? verticalOf(out.label) : 0) || (back ? -verticalOf(back.label) : 0);
   return { dir: fwd ?? (rev ? [-rev[0], -rev[1]] : null), vertical };
 }
 

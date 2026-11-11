@@ -938,6 +938,7 @@ Rules for simultaneous orders, because the Parser and the Planner worked without
 
 - **Target moved first.** An attack resolves against where the target stands now if it is still within the weapon's reach; otherwise it becomes a wasted-action event ("swings at empty air"). Reach comes from the attack mode, in metres with sight (Part 5 §5).
 - **Closing in (ZP3).** A melee attack on someone out of reach, with no other move planned before it (none, or a move to the target's zone), walks at the target on the move slot first and stops just inside the weapon's reach (a move event with `target` and no fromZone). Still out of reach, the blow is lost (a wasted action). A ranged attack never closes in.
+- **Spots in a zone (BG-12).** A player's move can name a spot in its zone, the player's own zone included (Parser `move.spot`): `near` someone there (stops PLACE\_GAP\_M from them) or a way out of it (its doorway, or a frontier's side); `awayFrom` someone or a way out (the far edge straight across from it through the zone's middle; a way out at the middle, such as stairs straight down, keeps to the side the walker is on); or `side`, a compass word (the middle of that side). It walks there on move slots like any move, stopping ENTER\_M (a step) inside the edge (position.ts spotPoint). A spot that names nothing there makes the Parser's turn ask where. A move with no spot to the player's own zone is still no move.
 - **Moves.** A move resolves at its actor's initiative like any other action. Provisional: how many actions a turn holds is part of the action-economy discussion.
 - **Same target or object.** Earlier initiative acts first; the later actor gets a contested check or a wasted action.
 - **Stealth.** A hide or sneak is contested once per observer in perception range. Each result sets that observer's belief separately. A hide or sneak also sets the player's posture to stealthy.
@@ -2950,8 +2951,9 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-9 | The Weaver's repair of BG-8 failed the same way, so the scene fell back to a placeholder area (play) | Play | Fixed | this PR |
 | BG-10 | BG-8 again on a new story (play) | Play | Fixed | this PR |
 | BG-11 | BG-9 again on a new story (play) | Play | Fixed | this PR |
-| BG-12 | The player can't move to a spot inside their zone ("walk to the back of the cellar"): moves only name a zone, so the Parser returned nothing and the turn passed as holding still, five times (playtest run 36) | Playtest | Open | |
-| BG-13 | The Parser aimed attacks at a slime its view listed as Dead, so the player swung at a corpse while a live slime kept attacking (playtest run 36) | Playtest | Open | |
+| BG-12 | The player can't move to a spot inside their zone ("walk to the back of the cellar"): moves only name a zone, so the Parser returned nothing and the turn passed as holding still, five times (playtest run 36). Fixed: a move can name a spot in its zone (move.spot: near someone or a way out, away from one, or a compass side) | Playtest | Fixed | this PR |
+| BG-13 | The Parser aimed attacks at a slime its view listed as Dead, so the player swung at a corpse while a live slime kept attacking (playtest run 36). Fixed: legality stops an attack on someone the view lists as Dead with "That one is already dead. Who do you mean?", and the Parser is told not to aim at the dead | Playtest | Fixed | this PR |
+| BG-14 | A level tunnel was laid on top of the cellar on the same floor, because the layout read the tunnel's back exit ("back up into the cellar") as a climb while heights put both at −3 m; their doorway became the cellar's middle, so a slime from the tunnel stood 0 m from the player (playtest run 36). Fixed: once heights are settled, they alone decide whether an exit climbs | Playtest | Fixed | this PR |
 
 ## Check on release
 

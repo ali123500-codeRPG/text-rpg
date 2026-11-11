@@ -6,8 +6,8 @@ import { CONFIG } from '../config';
 import { FN } from '../library/functionIds';
 import { zoneById, allActors, atLeast, hostile, isActive, isEngaged, shortestPath } from './relations';
 import { moveSpeed } from './speed';
-import { walkLeg, spotOf, distM, type Located, type Pos } from './position';
-import { compassOf } from '../scene/geometry';
+import { walkLeg, spotOf, distM, frontierPoint, spotPoint, type Located, type Pos } from './position';
+export { frontierPoint };
 import { together } from './yield';
 import { advanceClock, minutesUntil, now, timeOfDay } from '../time';
 import { passiveHealing } from './heal';
@@ -27,19 +27,6 @@ export const darkOut = (t: number) => ['dusk', 'night'].includes(timeOfDay(t));
 /** TV2: travel speed in m/s at a pace: a share of the walking speed (body type, armor, speed factor all count) */
 export const travelSpeed = (state: GameState, a: Actor, pace: TravelPaceKey): number => moveSpeed(state, a).walk * CONFIG.TRAVEL_PACE_SHARE[pace];
 
-/** TV3: where a frontier off a road is: the middle of the road's side its label's compass names, else the far end of the
- * road from `from` */
-export function frontierPoint(z: Zone, label: string, from: Pos): Pos {
-  const r = z.rect!;
-  const d = compassOf(label);
-  if (d) {
-    const k = Math.min(d[0] ? r.w / 2 / Math.abs(d[0]) : Infinity, d[1] ? r.d / 2 / Math.abs(d[1]) : Infinity);
-    return { x: r.x + d[0] * k, y: r.y + d[1] * k };
-  }
-  const ends: Pos[] = r.w >= r.d ? [{ x: r.x - r.w / 2, y: r.y }, { x: r.x + r.w / 2, y: r.y }] : [{ x: r.x, y: r.y - r.d / 2 }, { x: r.x, y: r.y + r.d / 2 }];
-  return ends.sort((p, q) => Math.hypot(q.x - from.x, q.y - from.y) - Math.hypot(p.x - from.x, p.y - from.y))[0];
-}
-
 /** TV1: travel mode, or null for normal turns. A move with no main action along a route that uses a road, outside a
  * fight, with nobody hostile engaged with the player or perceiving them. The goal is the move's zone, or for a frontier off
  * the road, the road's end (crossing it comes after). */
@@ -54,7 +41,12 @@ export function tripGoal(state: GameState, a: Actor, o: Order): { goal: Located;
   }
   const path = shortestPath(state, a.zone, o.move);
   if (!path || ![a.zone, ...path].some((id) => isRoad(zoneById(state, id)))) return null;
-  return { goal: { zone: o.move } };
+  // BG-12: a spot on the way (a road's far end, the north side) is where the trip ends; one that names nothing is no trip
+  if (o.moveSpot) {
+    const sp = spotPoint(state, o.move, o.moveSpot, a);
+    return sp && !sp.toward ? { goal: { zone: o.move, pos: sp.pos } } : null;
+  }
+  return path.length ? { goal: { zone: o.move } } : null;
 }
 
 /** who travels with the player: active bandmates together with it (TV6, as YD7) */
