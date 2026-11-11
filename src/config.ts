@@ -208,6 +208,9 @@ const DEFAULTS = {
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10,
   /** the throw action adds this many zones to the weapon's own reach; perks add more (PerkDef.throwReach) */
+  /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
+  MOVE_SLOTS: 1,
+  MAIN_SLOTS: 1,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   THROWN_REACH_BONUS: 2, // placeholder (loot L3)
   /** the throw action is a combined roll: the weapon's own skill (a melee weapon's melee skill) and the ranged skill of
