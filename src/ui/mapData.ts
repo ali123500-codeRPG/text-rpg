@@ -5,11 +5,14 @@ import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
 import { zoneById } from '../engine/relations';
 import { journalPlaces } from './pages';
+import { heightOf } from '../scene/heights';
 
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string };
 export type MapPerson = { id: string; name: string; now: boolean };
 export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;
+  /** metres above the ground outside: the map shows one height (a floor) at a time */
+  height: number;
   light?: string; cover?: string; links: MapLink[]; people: MapPerson[]; items: string[];
 };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
@@ -37,7 +40,7 @@ export function knownMap(s: GameState): KnownMap {
       const otherPlace = to && to.placeId !== z.placeId ? s.places.find((x) => x.id === to.placeId)?.names.current : undefined;
       return { to: l.to, label: l.label, sight: l.sight, frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}) };
     });
-    const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, links,
+    const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), links,
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
     if (!byPlace.has(z.placeId)) byPlace.set(z.placeId, []);
     byPlace.get(z.placeId)!.push(mz);
@@ -59,14 +62,13 @@ export function knownMap(s: GameState): KnownMap {
   return { placeId: p.placeId, zoneId: p.zone, places: order };
 }
 
-/** a compass hint from an exit's words ("north gate", "the east road"); null when it names no direction */
+/** a compass hint from an exit's words ("north gate", "the east road"); null when it names no direction. Up and down are
+ *  heights, not directions (src/scene/heights.ts verticalOf): stairs never push a zone north or south. */
 export function compassOf(label: string): [number, number] | null {
   let x = 0, y = 0;
   for (const w of label.toLowerCase().split(/[^a-z]+/)) {
     const m = w.match(/^(north|south)?(east|west)?(ward|wards|ern)?$/);
     if (m && (m[1] || m[2])) { if (m[1] === 'north') y -= 1; if (m[1] === 'south') y += 1; if (m[2] === 'east') x += 1; if (m[2] === 'west') x -= 1; }
-    else if (w === 'up' || w === 'upstairs' || w === 'above' || w === 'loft' || w === 'roof') y -= 1;
-    else if (w === 'down' || w === 'downstairs' || w === 'below' || w === 'cellar') y += 1;
   }
   if (!x && !y) return null;
   const n = Math.hypot(x, y);
@@ -97,6 +99,6 @@ export function worldTiles(m: KnownMap): MapZone[] {
     }
     const n = zones.length;
     return { id: r.id, placeId: r.id, name: r.name, look: n ? `${n} zone${n === 1 ? '' : 's'} known` : 'no zones known', outdoor: true,
-      here: r.id === here, inView: r.id === here, links, people: [], items: [] };
+      here: r.id === here, inView: r.id === here, height: 0, links, people: [], items: [] };
   });
 }

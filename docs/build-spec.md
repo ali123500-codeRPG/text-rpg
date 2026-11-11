@@ -359,8 +359,14 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // several zones of the same kind joined by sight links. There are no positions inside a zone. Every Weaver zone names a
 // zone kind from the library (zoneKinds: room, corridor, stairs, cellar, street, square, gate, yard, field, woods); the kind
 // fixes indoor or outdoor and gives the default cover and light, which the plan may change. An unknown kind is a bad_zone.
+// Height: a zone's height is metres above the ground outside (0 when unset). Stairs change height, never distance north,
+// south, east or west. The Weaver may give it; when it doesn't, code infers it from the exits (src/scene/heights.ts): a
+// link whose words go up (up, upstairs, loft, roof...) climbs CONFIG.STOREY_HEIGHT (3 m, placeholder), one that goes down
+// (down, downstairs, cellar, below...) drops it, any other keeps it; a story's first zones stand at 0. The Map page shows
+// one height (floor) at a time, with floor buttons and stair badges, and zones on other floors straight above or below.
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
               links: ZoneLink[]; cover: 'none' | 'some' | 'heavy'; light: 'bright' | 'dim' | 'dark';      // zone ids unique within a story
+              height?: number;                                           // metres above the ground outside
               groundItems: ItemInstance[] };                             // Part 5 §4
 type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true };
                                                    // label: how the linked zone reads from here, e.g. 'left of the gate'

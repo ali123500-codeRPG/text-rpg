@@ -15,8 +15,9 @@ const game = async () => {
 describe('map', () => {
   it('reads compass words from exit labels', () => {
     expect(compassOf('the kitchen door, west')).toEqual([-1, 0]);
-    expect(compassOf('the stairs up')).toEqual([0, -1]);
-    expect(compassOf('down to the cellar')).toEqual([0, 1]);
+    // up and down are heights, never north or south
+    expect(compassOf('the stairs up')).toBeNull();
+    expect(compassOf('down to the cellar')).toBeNull();
     expect(compassOf('the northeast tower')![0]).toBeCloseTo(Math.SQRT1_2);
     expect(compassOf('the green door')).toBeNull();
   });
@@ -75,7 +76,8 @@ describe('map', () => {
     const tav = knownMap(s).places.find((p) => p.id === 'tavern')!;
     const at = layout(tav.zones, 'tav_common', new Map());
     const c = at.get('tav_common')!;
-    expect(at.get('tav_upstairs')!.y).toBeLessThan(c.y);
+    // the landing is straight above the common room, on its own floor
+    expect(at.get('tav_upstairs')).toEqual(c);
     expect(at.get('tav_kitchen')!.x).toBeLessThan(c.x);
     expect(at.get('tav_yard')!.x).toBeGreaterThan(c.x);
   });

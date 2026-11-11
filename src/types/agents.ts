@@ -128,6 +128,7 @@ export type StagePlan = {
   zones: {
     key: string; place: string; kind: string; name: string; look: string;
     cover?: Cover; light?: Light; // Z3: default from the kind
+    height?: number; // metres above the ground; inferred from up/down exit words when left out
     links: { to: string; label: string; sight: boolean }[];
   }[];
   frontiers: { key: string; label: string }[];

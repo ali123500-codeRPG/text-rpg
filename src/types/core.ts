@@ -51,6 +51,8 @@ export type Zone = {
   cover: Cover;
   light: Light; // the zone's own light (lamps, hearths); outdoors the sky can brighten it (src/time.ts zoneLight)
   outdoor?: true; // T3a: under the sky
+  /** metres above the ground outside (0 when unset); stairs change it, never distance across the map (src/scene/heights.ts) */
+  height?: number;
   groundItems: import('./items').ItemInstance[];
 };
 

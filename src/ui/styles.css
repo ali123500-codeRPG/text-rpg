@@ -729,6 +729,17 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   border: 1px solid var(--rule); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--scene-mark); font-weight: 800; font-size: 12px; padding-top: 4px; box-sizing: border-box; }
 .map-compass::after { content: ""; position: absolute; left: 50%; top: 19px; width: 2px; height: 14px; margin-left: -1px; background: linear-gradient(var(--scene-mark), var(--rule)); }
 .map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
+.map-floors { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+.map-floor { border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted); border-radius: var(--r-pill);
+  padding: 5px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
+.map-floor.on { color: var(--text); border-color: var(--accent); }
+.map-floor .you { color: var(--scene-mark); }
+.map-stair circle { fill: var(--bg); stroke: var(--accent); stroke-width: 2; }
+.map-stair text { fill: var(--accent); font-size: 11px; font-weight: 800; pointer-events: none; }
+.map-stair:not(.unknown) { cursor: pointer; }
+.map-stair.unknown circle { stroke: var(--faint); stroke-dasharray: 3 3; }
+.map-stair.unknown text { fill: var(--faint); }
+.map-stair.hot circle { stroke: var(--scene-mark); }
 .map-btn { width: 38px; height: 38px; border-radius: var(--r-md); border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 92%, transparent);
   color: var(--text); font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; }
 .map-btn:hover { border-color: var(--accent); }
@@ -763,6 +774,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-line { width: 20px; height: 0; border-top: 2.5px solid color-mix(in srgb, var(--faint) 70%, transparent); }
 .k-line.dashed { border-top-style: dashed; }
 .k-line.stub { border-top: 2px dotted color-mix(in srgb, var(--faint) 60%, transparent); }
+.k-stair { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); font-size: 9px; font-style: normal; display: grid; place-items: center; box-sizing: border-box; }
 .k-line.away { border-top: 2px dashed var(--accent); }
 .k-pin { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 4px solid var(--scene-mark); }
 .k-area { width: 20px; height: 12px; border-radius: 4px; border: 1.5px dashed color-mix(in srgb, var(--c15) 60%, transparent); }
