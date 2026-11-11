@@ -54,8 +54,8 @@ describe('136 achievement rewards', () => {
   });
   it('Shadow\'s Edge (50 unaware defeats) gives XP only; The Unseen Death makes your moves one step quieter', () => {
     const lib = getLibrary().achievements!;
-    const { id: _i, name: _n, level: _l, rule: _r, tags: _t, count: _c, after: _a, ...rest } = lib[ACH.unaware_50];
-    expect(rest).toEqual({});
+    const { id: _i, name: _n, level: _l, rule: _r, tags: _t, count: _c, after: _a, personality: _p, ...rest } = lib[ACH.unaware_50];
+    expect(rest).toEqual({}); // no reward beyond XP (its personality step, AP4, is not a game effect)
     expect(lib[ACH.unaware_100].quieter).toBe(1);
   });
   it('Bones Heal Later grants Past the Pain: one Crippled part gives no role penalty', () => {
@@ -96,9 +96,10 @@ describe('136 achievement rewards', () => {
     grantAchievement(s, ACH.yielded_50);
     expect(s.player.progression!.achievements!.find((x) => x.key === ACH.yielded_10)?.replacedBy).toBeDefined();
     expect(trueSkill(s.player, SK.intimidation)).toBe(15); // carried up from Breaker of Wills
-    expect(rewardLines(ach[ACH.yielded_50])).toEqual([
+    expect([...rewardLines(ach[ACH.yielded_50])].sort()).toEqual([
       '+5 true skill in Intimidation (from Breaker of Wills)',
-      'every foe fighting you takes -10 on its morale rolls']);
+      'every foe fighting you takes -10 on its morale rolls']
+      .concat([ACH.yielded_1, ACH.yielded_10].map((k) => `+5 Pride (from ${ach[k].name})`), ['+5 Pride']).sort());
     const was = ach[ACH.yielded_10].skillAdd;
     try {
       ach[ACH.yielded_10].skillAdd = { [SK.intimidation]: 2 }; // nerf the lower level: every level above follows
