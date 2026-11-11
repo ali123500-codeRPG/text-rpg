@@ -178,6 +178,13 @@ export function endScene(state: GameState, as: SceneEnding, text = '', outer?: b
   logCode(state, 'scene_ended', { as, outer: !!outer });
 }
 
+/** SD1: how the scene ends at this turn's break, before closeScene records it (null: no break, or no scene yet) */
+export function pendingEnding(state: GameState): SceneEnding | null {
+  const st = state.stage;
+  if (!st.breakCause || !st.scene) return null;
+  return st.ended?.as ?? BREAK_ENDING[st.breakCause] ?? 'interrupted';
+}
+
 /** how a break that is not an ending ends the scene (SC9, SC10) */
 const BREAK_ENDING: Record<string, SceneEnding> = { knocked_out: 'broken_off', encounter: 'interrupted', story_beat: 'worn_out' };
 

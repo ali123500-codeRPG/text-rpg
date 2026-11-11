@@ -146,7 +146,8 @@ const narrator = obj<NarratorOutput>({
     return s;
   },
   narrated: arr(str),
-});
+  closing: str,
+}, ['closing']);
 
 const GRADE = oneOf(GRADES);
 /** a scale level Claude writes as its display name (or key); code keeps the key (src/scales.ts) */

@@ -280,3 +280,25 @@ describe('story text (Q18)', () => {
     expect(sh.mock.calls[1][3]).toBe(2);
   });
 });
+
+describe('SD1 scene ending moment', () => {
+  it('a turn that ends a scene says how while its calls run, and its line carries the ending and the closing line', async () => {
+    start();
+    H.onResolve = (s) => { s.stage.scene = { number: 1 } as NonNullable<GameState['stage']['scene']>; s.stage.ended = { as: 'escaped', text: 'hidden' }; s.stage.breakCause = 'scene_end'; };
+    const seen: unknown[] = [];
+    game.subscribe(() => seen.push(game.sceneEnding()));
+    claude.push('parser', intentOf()).push('narrator', { ...narr, closing: 'The cellar door slams behind you.' });
+    await game.submit('run', { aimed: false });
+    expect(seen).toContainEqual({ as: 'escaped', name: 'escaped' });
+    expect(game.sceneEnding()).toBeNull();
+    expect(game.lines().at(-1)).toMatchObject({ kind: 'narration', text: narr.text, sceneEnd: { as: 'escaped', name: 'escaped', closing: 'The cellar door slams behind you.' } });
+    expect(sentText(claude.calls.at(-1)!)).toContain('"sceneEnded":"escaped"');
+    expect(sentText(claude.calls.at(-1)!)).not.toContain('hidden');
+  });
+  it('a closing line on any other turn is dropped', async () => {
+    start();
+    claude.push('parser', intentOf()).push('narrator', { ...narr, closing: 'Stray.' });
+    await game.submit('wait', { aimed: false });
+    expect(game.lines().at(-1)).not.toHaveProperty('sceneEnd');
+  });
+});

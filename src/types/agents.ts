@@ -121,7 +121,8 @@ export type VoiceOutput = {
 };
 
 // ---- Agent Narrator ----
-export type NarratorOutput = { text: string; narrated: string[] };
+/** closing (SD1): one sentence closing the scene that ended this turn, given only when NarrationView.sceneEnded is set */
+export type NarratorOutput = { text: string; narrated: string[]; closing?: string };
 
 // ---- Agent Weaver: the stage plan ----
 export type StagePlan = {

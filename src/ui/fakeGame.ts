@@ -151,6 +151,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     lines: () => lines,
     notices: () => notices,
     busy: () => busy,
+    sceneEnding: () => null,
     fell: () => fell,
     subscribe(cb) { subs.add(cb); return () => subs.delete(cb); },
     validateBuild: validateBuildLocal,
