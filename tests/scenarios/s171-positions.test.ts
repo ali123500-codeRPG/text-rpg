@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
-import { placeZones } from '../../src/scene/geometry';
+import { doorway, placeZones } from '../../src/scene/geometry';
 import { verticalOf } from '../../src/scene/heights';
 import { distM, placeAll, sightDistM } from '../../src/engine/position';
 import { perceptionOf } from '../../src/perception';
@@ -26,6 +26,7 @@ function mapped(playerZone?: string): GameState {
   return s;
 }
 const r = (n: number) => Math.round(n * 10) / 10;
+const zoneOf = (s: GameState, id: string) => s.places.flatMap((p) => p.zones).find((z) => z.id === id)!;
 
 describe('171 positions', () => {
   it('BG-6: "down the street" is level; "down the cellar steps" goes down a storey', () => {
@@ -33,6 +34,28 @@ describe('171 positions', () => {
     expect(verticalOf('up the road')).toBe(0);
     expect(verticalOf('down the cellar steps')).toBe(-1);
     expect(verticalOf('the stairs up')).toBe(1);
+  });
+
+  it('BG-7: linked zones that don\'t touch are walked across edge to edge, never leaving the walker between them', () => {
+    const s = mapped('tav_common');
+    const zs = s.places.flatMap((p) => p.zones);
+    const room = zs.find((z) => z.id === 'tav_common')!, street = zs.find((z) => z.id === 'street_door')!;
+    street.rect = { ...street.rect!, x: room.rect!.x + room.rect!.w / 2 + 30 + street.rect!.w / 2, y: room.rect!.y }; // a 30 m gap, no doorway
+    s.actors = s.actors.filter((a) => a.zone !== 'tav_common' && a.zone !== 'street_door');
+    s.player.pos = { x: room.rect!.x - room.rect!.w / 2 + 0.5, y: room.rect!.y }; // the far wall: more than one slot away
+    expect(distM(s, s.player, { zone: 'street_door' })).toBeLessThan(room.rect!.w + street.rect!.w / 2 + 1); // to the street's middle; the gap isn't counted
+    for (let i = 0; i < 3 && s.player.zone !== 'street_door'; i++) play(s, { intent: intent({ move: { toZone: 'street_door' }, action: { type: 'wait' } as never }) });
+    expect(s.player.zone).toBe('street_door');
+  });
+
+  it('BG-7: a zone whose exit names no direction touches the zone it leads from on a free side, not across a gap', () => {
+    const s = mapped();
+    const zs = s.places.flatMap((p) => p.zones);
+    const room = zs.find((z) => z.id === 'tav_common')!, street = zs.find((z) => z.id === 'street_door')!;
+    expect(street.rect && room.rect).toBeTruthy();
+    const gapX = Math.abs(street.rect!.x - room.rect!.x) - (street.rect!.w + room.rect!.w) / 2;
+    const gapY = Math.abs(street.rect!.y - room.rect!.y) - (street.rect!.d + room.rect!.d) / 2;
+    expect(Math.max(gapX, gapY)).toBeLessThan(0.01);
   });
 
   it('ZP1: code places everyone inside their zone, an arm\'s length apart', () => {
@@ -57,16 +80,19 @@ describe('171 positions', () => {
 
   it('ZP2: a move walks 8.4 m toward its zone, a dash runs 21.6 m more, and a move to a zone stops a step past its edge', () => {
     const s = mapped('field_edge');
-    s.player.pos = { x: 93.9, y: 0 }; // the field's centre: 20 m from field_mid
+    const fe = zoneOf(s, 'field_edge'), fm = zoneOf(s, 'field_mid'), door = doorway(fe, fm)!;
+    const c = { x: fe.rect!.x, y: fe.rect!.y }; // the field's centre: 20 m from field_mid
+    expect(r(Math.hypot(door.x - c.x, door.y - c.y))).toBe(20);
+    s.player.pos = { ...c };
     const ev = play(s, { intent: intent({ move: { toZone: 'field_mid' }, action: { type: 'wait' } }) }); // the main slot is busy: no dash
     expect(s.player.zone).toBe('field_edge');
     expect(ev.find((e) => e.actorId === 'player' && e.kind === 'move')).toMatchObject({ metres: 8.4 });
-    expect(r(s.player.pos!.x)).toBe(102.3);
+    expect(r(Math.hypot(s.player.pos!.x - c.x, s.player.pos!.y - c.y))).toBe(8.4);
     const t = mapped('field_edge');
-    t.player.pos = { x: 93.9, y: 0 };
+    t.player.pos = { ...c };
     play(t, { intent: intent({ move: { toZone: 'field_mid' } }) }); // no action: the main slot runs on (a dash)
     expect(t.player.zone).toBe('field_mid');
-    expect(r(t.player.pos!.x)).toBe(r(113.9 + CONFIG.ENTER_M));
+    expect(r(Math.hypot(t.player.pos!.x - door.x, t.player.pos!.y - door.y))).toBe(r(CONFIG.ENTER_M));
   });
 
   it('ZP3: an attack out of reach closes in on the move slot, then strikes', () => {
@@ -83,7 +109,7 @@ describe('171 positions', () => {
 
   it('ZP3: still out of reach after closing in, the blow is lost', () => {
     const s = mapped('field_edge');
-    s.player.pos = { x: 93.9, y: 0 };
+    s.player.pos = { x: zoneOf(s, 'field_edge').rect!.x, y: zoneOf(s, 'field_edge').rect!.y };
     const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'slime_1', skill: SK.melee_medium } }) });
     expect(ev.find((e) => e.actorId === 'player' && e.kind === 'move')).toMatchObject({ metres: 8.4 });
     expect(ev.find((e) => e.actorId === 'player' && e.target === 'slime_1' && e.kind !== 'move')?.kind).toBe('wasted');
@@ -103,15 +129,18 @@ describe('171 positions', () => {
 
   it('PR 2: sight is measured in metres from where the event happened', () => {
     const s = mapped('field_edge');
-    const seen = (x: number, visibility: GameEvent['visibility']) => {
-      place(s, 'player', x > 113.9 ? 'field_mid' : 'field_edge').pos = { x, y: 0 };
-      const ev = { id: 'e', turn: 1, actorId: 'slime_1', kind: 'idle', zone: 'field_mid', pos: { x: 120, y: 0 }, effects: [], noise: 'silent', visibility, perception: {} } as GameEvent;
+    const fe = zoneOf(s, 'field_edge'), fm = zoneOf(s, 'field_mid'), door = doorway(fe, fm)!;
+    const at = { x: fm.rect!.x + (door.x - fm.rect!.x) * 0.7, y: fm.rect!.y + (door.y - fm.rect!.y) * 0.7 }; // 6 m inside field_mid
+    const u = { x: (door.x - at.x) / Math.hypot(door.x - at.x, door.y - at.y), y: (door.y - at.y) / Math.hypot(door.x - at.x, door.y - at.y) };
+    const seen = (d: number, visibility: GameEvent['visibility']) => {
+      place(s, 'player', d > 6 ? 'field_edge' : 'field_mid').pos = { x: at.x + u.x * d, y: at.y + u.y * d };
+      const ev = { id: 'e', turn: 1, actorId: 'slime_1', kind: 'idle', zone: 'field_mid', pos: at, effects: [], noise: 'silent', visibility, perception: {} } as GameEvent;
       return perceptionOf(ev, s, s.player)?.level ?? null;
     };
-    expect(seen(100, 'normal')).toBe('full'); // 20 m: a walking figure is made out to 25 m
-    expect(seen(80, 'normal')).toBe('partial'); // 40 m: glimpsed (to 200 m)
-    expect(seen(80, 'low')).toBe('partial'); // a still figure: made out to 15 m
-    expect(seen(119.5, 'faint')).toBe('partial'); // 0.5 m counts as SAME_ZONE_M (1 m): past faint's clear 0.5 m
+    expect(seen(20, 'normal')).toBe('full'); // 20 m: a walking figure is made out to 25 m
+    expect(seen(40, 'normal')).toBe('partial'); // 40 m: glimpsed (to 200 m)
+    expect(seen(40, 'low')).toBe('partial'); // a still figure: made out to 15 m
+    expect(seen(0.5, 'faint')).toBe('partial'); // 0.5 m counts as SAME_ZONE_M (1 m): past faint's clear 0.5 m
   });
 
   it('RD5: a shot is crowded only by a hostile within 2 m, not by one across the room', () => {
