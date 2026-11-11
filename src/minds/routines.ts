@@ -54,7 +54,7 @@ export function desiredState(view: ActorView): { zone: string; activity: string 
   return null; // unreachable: t < total
 }
 
-/** shortest path over the view's map, never through a frontier link; zone ids after `from`, or null. */
+/** shortest path over the view's map, never through a frontier link or a drop (SD7: NPCs do not jump yet); zone ids after `from`, or null. */
 export function mapPath(map: MapZone[], from: string, to: string): string[] | null {
   if (from === to) return [];
   const byId = new Map(map.map((z) => [z.id, z]));
@@ -63,7 +63,7 @@ export function mapPath(map: MapZone[], from: string, to: string): string[] | nu
   while (q.length) {
     const cur = q.shift()!;
     for (const l of byId.get(cur)?.links ?? []) {
-      if (l.frontier || !byId.has(l.to) || prev.has(l.to)) continue;
+      if (l.frontier || l.drop || !byId.has(l.to) || prev.has(l.to)) continue;
       prev.set(l.to, cur);
       if (l.to === to) {
         const path = [to];
@@ -123,7 +123,7 @@ function flee(view: ActorView, source: Order['source']): Order {
   let best: string | null = null;
   let bestD = dist(here, threat);
   for (const l of links) {
-    if (l.frontier || !view.map.some((z) => z.id === l.to)) continue;
+    if (l.frontier || l.drop || !view.map.some((z) => z.id === l.to)) continue;
     const d = dist(l.to, threat);
     if (d > bestD) [best, bestD] = [l.to, d];
   }

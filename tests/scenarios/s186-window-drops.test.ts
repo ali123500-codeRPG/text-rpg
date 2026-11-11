@@ -9,6 +9,8 @@ import { fallDamage } from '../../src/ruleset';
 import { buildNarrationView } from '../../src/views';
 import { checkIntent, checkStagePlan } from '../../src/agents/schema';
 import { CONFIG } from '../../src/config';
+import { buildActorView } from '../../src/views';
+import { mapPath } from '../../src/minds';
 
 /** the bar is an upper floor, 7 m up, with a window over the square */
 function upstairs(): GameState {
@@ -46,6 +48,12 @@ describe('186 window and ledge drops (SD7)', () => {
     expect(ev.fall!.damage).toBeGreaterThan(0); // 7 m is the second band; one band down still hurts
     expect(s.player.core.condition.hpLostPct).toBeGreaterThan(0);
     expect(buildNarrationView(s, events).events.find((e) => e.id === ev.id)).toMatchObject({ fall: { metres: 7 } });
+  });
+  it('code minds path round a drop too (NPCs do not jump yet)', () => {
+    const s = upstairs();
+    const v = buildActorView(s, 'trader');
+    expect(v.map.find((z) => z.id === 'tav_counter')!.links.find((l) => l.to === 'street_square')).toMatchObject({ drop: true });
+    expect(mapPath(v.map, 'tav_counter', 'street_square')?.[0]).not.toBe('street_square');
   });
   it('without jump, a move to the zone below walks round', () => {
     const s = upstairs();

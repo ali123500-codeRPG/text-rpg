@@ -377,7 +377,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
-    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })) })),
+    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}) })) })),
     zones: perceivedZones(state, a.zone),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
