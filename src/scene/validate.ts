@@ -63,7 +63,12 @@ function trimNote(v: unknown): unknown {
 export function expandLayouts(plan: StagePlan): void {
   const layouts = getLibrary().layouts ?? {};
   for (const p of Array.isArray(plan.places) ? plan.places : []) {
-    const l = p?.layout ? layouts[p.layout] : undefined;
+    // the Weaver often names a building's kind (a tavern) and uses its layout's keys (tavern.common) without naming the
+    // layout: a place whose kind is a layout's building, and some of whose layout keys the plan uses, gets that layout
+    const guess = p && !p.layout ? Object.values(layouts).find((x) => x.building === p.kind) : undefined;
+    const text = guess ? JSON.stringify(plan) : '';
+    const l = p?.layout ? layouts[p.layout] : guess?.zones.some((z) => text.includes(`"${p.key}.${z.key}"`)) ? guess : undefined;
+    if (l && p && !p.layout) p.layout = l.id;
     if (!l || !Array.isArray(plan.zones) || plan.zones.some((z) => z?.key === `${p.key}.${l.entry}`)) continue;
     for (const z of l.zones) plan.zones.push({
       key: `${p.key}.${z.key}`, place: p.key, kind: z.kind, name: p.names?.[z.key] ?? z.name, look: p.looks?.[z.key] ?? z.look,
