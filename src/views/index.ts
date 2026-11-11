@@ -222,6 +222,13 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'aura_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by} and gives up` : `${who} falters before ${by}`); // NT14 auras: Dread Presence; MR4 Overwhelm
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
     if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s roar`); // the roarer's own rally goes untold
+    if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
+      const d = f.data as { metres: number; minutes: number; pace: string; night: boolean; stop: string };
+      const km = d.metres >= 1000 ? `${Math.round(d.metres / 100) / 10} km` : `${d.metres} m`;
+      const h = Math.floor(d.minutes / 60), m = d.minutes % 60;
+      const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
+      out.push(`${who} travel${own ? '' : 's'} ${km} in ${[h ? `${h} h` : '', m || !h ? `${m} min` : ''].filter(Boolean).join(' ')} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);
+    }
     if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
@@ -555,7 +562,8 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     tier: tierName(state.stage.tier),
     time: clockSet(state) ? timeView(state) : null,
     stakes: STAKES[state.stage.tier] ?? '',
-    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}) },
+    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
+      ...(target.kind === 'scene' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     stage: stageZones(state).map((z) => zoneView(state, z)),
     actors: onStage.map((a) => {

@@ -159,8 +159,8 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
 
 // Part 1 §4 table on totals (d100 + modifiers), read on the margin: total − 50 with the placeholder base
 export const EVENT_BANDS = [-50, -25, 0, 25, 50];
-function eventRoll(actor: Actor, state: GameState, rng: Rng): EventRollResult {
-  const modifiers = eventRollMods(state, actor);
+function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollResult['modifiers'] = []): EventRollResult {
+  const modifiers = [...eventRollMods(state, actor), ...extra];
   const d = rng.d100();
   const margin = d + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
   const tier = TIERS.at(EVENT_BANDS.filter((t) => margin >= t).length + naturalEdge(d));

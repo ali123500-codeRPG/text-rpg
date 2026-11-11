@@ -5,7 +5,7 @@ import type { AgreementMade, Intent, NarratorOutput, QuestEnd, SparMade, Stance,
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { COVER, LIGHT, STANCES, TACTICS, TIME_OF_DAY, type Scale } from '../scales';
+import { COVER, LIGHT, STANCES, TACTICS, TIME_OF_DAY, TRAVEL_PACES, type Scale, type TravelPaceKey } from '../scales';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -56,7 +56,7 @@ const GEAR = nul(arr(gearOp));
 const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
 
 const intent = obj<Intent>({
-  move: nul(obj<{ toZone: string; after?: boolean }>({ toZone: str, after: bool }, ['after'])),
+  move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey }>({ toZone: str, after: bool, pace: oneOf(TRAVEL_PACES.keys) }, ['after', 'pace'])),
   action: nul(obj<NonNullable<Intent['action']>>({
     type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),

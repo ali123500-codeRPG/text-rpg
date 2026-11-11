@@ -1113,7 +1113,20 @@ Settled by Ali 07/11/2026 ("Sense of time: options", T1–T11; settles D-101).
 - **Waiting (T6):** the Parser reads "wait until dawn" as action wait with the time of day in target (none: the next time of day; the time of day it already is: nothing happens and the line says so, Q2 08/11/2026), and "sleep" as action sleep (the sleep row). Sleep also gives the rest heal (or the place's row, e.g. a clinic) once per REST\_COOLDOWN\_MIN of sleep, twice for 8 hours, and counts as the last rest (Ali, 07/11/2026). Code moves the clock and breaks the scene (time\_skip). A hostile in the zone or tactical mode blocks it, like rest. The turn shows "Time passes: 11 h (Day 2 · Dawn)".
 - **Starting time (T8):** the Weaver's first plan names `timeOfDay`, and code sets the clock to its start on day 1. After that a plan may only name the current one (bad\_time otherwise).
 - **Shown (T11):** the Play header reads "Turn 5 · Day 2 · Evening · …"; its look is the designer's.
-- **Later:** travel time for long journeys (Voyage E1), NPC needs such as hunger and sleep (T10, not planned).
+- **Later:** NPC needs such as hunger and sleep (T10, not planned). Travel time for long journeys is the Travel section below.
+
+### Travel
+
+Settled by Ali 11/11/2026 ("Travel on the Road", TV1–TV9). Code: src/engine/travel.ts. Roads are one long zone (Zone type, Roads).
+
+- **When (TV1):** a player move with no main action whose route uses a road, outside tactical mode, with nobody hostile engaged with the player or perceiving them (suspicious or more), is a trip walked in one turn. Otherwise it is a normal move, a slot at a time. A frontier off a road is at the road's far end (the side its label's compass names, else the end farthest from the player): the trip walks there, then crosses it.
+- **Pace (TV2):** the Parser's `move.pace` (slow, normal, fast; normal when left out). Travel speed is the walking speed (body type, armor, speed factor: moveSpeed) × CONFIG.TRAVEL\_PACE\_SHARE (0.6 / 0.9 / 1.2), which gives a 1.4 m/s walker 3 / 4.5 / 6 km/h. Everyone travelling together goes at the slowest one's speed. Mounts and carts are parked (D-201).
+- **Legs (TV4):** code walks the trip in legs of TRAVEL\_LEG\_MIN (60) game minutes; the clock moves and natural recovery runs for each. A leg that ends on a road meets something with a chance of ROAD\_ENCOUNTER\_PCT for its danger × the leg's share of an hour (× NIGHT\_ENCOUNTER\_MULT 2 in the dark). On a meeting, code makes the event roll (the encounter's tier) and the trip stops there: the scene breaks (`encounter`), and the next scene starts with that roll, its people placed ENCOUNTER\_M (20 m) on along the road the way the player was walking. The Weaver gets `target.encounter` (zone, danger, noticed).
+- **Night (TV5):** a trip that reaches dusk stops there (`nightfall`); the next order is the answer: travel again to press on, or camp (sleep, wait). A trip that sets off at dusk or night presses on: slow pace, the event roll gets NIGHT\_TRAVEL\_EVENT\_MOD (−15, type situational, source "night travel"), and encounters come twice as often. Hunger and fatigue are parked.
+- **Who comes (TV6):** active bandmates together with the player (YD7) travel along and stand beside it at the end. Reviewing who travels together, and agreeing a time to set off, is parked (D-202).
+- **What is shown (TV7):** one `travel` event with one `travelled` effect (metres, minutes, pace, night, stop); the Narrator gets it as one passage ("you travel 9.2 km in 2 h 2 min at a normal pace"). The mechanics line reads "Travelled 9.2 km at a normal pace · stopped at nightfall" and "Time passes: …". The Map's point on the road is the play page's. Landmarks are parked (D-203).
+- **Noticing (TV8):** when something meets the player, one noticing roll: the sight function, with the pace's modifier (TRAVEL\_NOTICE\_MOD slow +10, fast −10) and the light. Success or better: the player saw it coming, and the Weaver is told that no ambush springs and anyone lying in wait has not seen the player. What else could be hidden by a road (side paths, lost things) comes with landmarks.
+- **Off the road (TV9):** parked. NPCs travelling between places use these rules in the NPCs-stay-in-the-world work.
 
 ### Scenes
 

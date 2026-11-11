@@ -979,6 +979,13 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
       : d.reason === 'already' ? `it's already ${TIME_OF_DAY.name(d.timeOfDay as TimeOfDay).toLowerCase()}` : 'not while someone hostile is near you';
     out.push(`${what}: ${why}`);
   }
+  // TV7: a trip says how far it went and why it stopped
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'travelled') continue;
+    const d = l.detail as { actorId: string; metres: number; pace: string; night: boolean; stop: string };
+    if (d.actorId !== s.player.id) continue;
+    out.push(`Travelled ${d.metres >= 1000 ? `${Math.round(d.metres / 100) / 10} km` : `${d.metres} m`} at a ${d.pace} pace${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
+  }
   // T6: a wait or sleep says how long it took and where the clock is now
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'time_passed') continue;

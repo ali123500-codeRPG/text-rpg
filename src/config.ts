@@ -244,6 +244,20 @@ const DEFAULTS = {
   ROAD_WIDTH_M: 4,
   /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
   ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
+  /** TV2 travel paces as shares of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels slow 3, normal
+   * 4.5 and fast 6 km/h (D&D's 3.2 / 4.8 / 6.4 km/h, a brisk real walk about 5) */
+  TRAVEL_PACE_SHARE: { slow: 0.6, normal: 0.9, fast: 1.2 } as Record<string, number>,
+  /** TV8 the noticing roll's modifier by pace: slow notices more, fast less (placeholders) */
+  TRAVEL_NOTICE_MOD: { slow: 10, normal: 0, fast: -10 } as Record<string, number>,
+  /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
+  TRAVEL_LEG_MIN: 60,
+  TRAVEL_MAX_LEGS: 96, // a safety stop: four days on the road in one turn
+  /** TV4/TV5 pressing on in the dark: the event roll's modifier and the encounter chance's multiplier (placeholders) */
+  NIGHT_TRAVEL_EVENT_MOD: -15,
+  NIGHT_ENCOUNTER_MULT: 2,
+  /** TV4 how far ahead on the road an encounter stands when it starts: D&D's encounter distance in a forest, 2d6 × 10 ft
+   * (about 21 m on average) */
+  ENCOUNTER_M: 20,
   /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
    * personal distance (Hall's proxemics, 0.45–1.2 m) */
   PLACE_GAP_M: 1,

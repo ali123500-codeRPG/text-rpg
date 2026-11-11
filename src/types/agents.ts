@@ -19,7 +19,7 @@ export const IMPROVISED_BASES = ['improvised_light', 'improvised_medium', 'impro
 export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
 
 export type Intent = {
-  move: { toZone: string; after?: boolean } | null; // after: the action first, then the move (AE3)
+  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey } | null; // after: the action first, then the move (AE3); pace: TV2 on a road trip
   action: {
     type: ParserActionType;
     skill: string;
