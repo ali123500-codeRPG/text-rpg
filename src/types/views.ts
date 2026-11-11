@@ -145,6 +145,7 @@ export type ActorView = {
   secrets: Secret[]; // its own
   firedTriggers: { triggerId: string; turn: number }[]; // "already happened"
   band: { id: string; name: string; goals: string; temperament: string; tactics: Tactics; relations: Record<string, Stance> };
+  personality: string; // PL1, PL9: Nerve tier with the mood, trait words, values and named types (CHARACTER only; never the Voice)
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives
@@ -237,6 +238,7 @@ export type WeaverView = {
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: { id: string; name: string }[];
+    personality: { nerve: string[]; types: { id: string; name: string; hint: string }[]; values: { id: string; name: string }[] }; // PL12
     zoneKinds: import('./library').ZoneKind[]; // Z2
     edgeKinds: import('./library').EdgeKind[]; // CO15
     layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string }[] }[]; // CO17

@@ -144,8 +144,18 @@ const DEFAULTS = {
   /** max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (MB29), like HP from Endurance */
   MORALE_BASE: 50,
   MORALE_PER_RESOLVE: 1,
-  /** MB30: an NPC template's starting Resolve, by personality (MB4: fearless is 90, not immune) */
-  PERSONALITY_RESOLVE: { fearless: 90, bold: 70, steady: 50, timid: 30 } as Record<string, number>,
+  /** PL3, PL20: raw Resolve where each Nerve tier starts (one per NERVE_LINES row); 100 and up is superhuman */
+  NERVE_TIER_FROM: [0, 20, 40, 60, 80, 100],
+  /** PL20 [Proposed]: past the last tier, every this much more Resolve adds a + to its name */
+  NERVE_BEYOND_STEP: 50,
+  /** PL2, PL3: a Nerve or trait value leans (counts) at this distance from 0 or more */
+  PERSONALITY_LEAN: 20,
+  /** PL9: the word before a trait, from its distance from 0: [from, word] (below the first, the trait is left out) */
+  TRAIT_WORDS: [[20, 'a bit '], [40, ''], [70, 'very ']] as [number, string][],
+  /** PL10: at most this many named types are given to the agent, strongest first */
+  PERSONALITY_TYPES_SHOWN: 2,
+  /** PL12: the Nerve points a named line sets (− for cautious, + for daring) */
+  NERVE_LINE_POINTS: 40,
   /** [MORALE_LEVELS key, max % of max morale lost, roll penalty (type wounds, MB3)]; broken = out of the fight */
   MORALE_TRACK: [
     ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -5], ['afraid', 60, -5],

@@ -115,3 +115,12 @@ export type ClassTierKey = (typeof CLASS_TIERS.keys)[number];
 /** a skill tree's rating, weakest first: sets how many of its skills at a step earn its All-XXX (CONFIG.ALL_STEP_SKILLS) */
 export const TREE_RATINGS = scale([['inferior', 'Inferior'], ['normal', 'Normal'], ['superior', 'Superior'], ['legendary', 'Legendary']]);
 export type TreeRatingKey = (typeof TREE_RATINGS.keys)[number];
+
+/** PL2, PL3, PL20: Nerve tiers, one ordered scale per Nerve line, lowest Resolve first. CONFIG.NERVE_TIER_FROM gives the
+ * raw Resolve each position starts at. Lines are unordered and named by their keys. Names are placeholders (PL18). */
+export const NERVE_LINES = {
+  cautious: scale([['skittish', 'Skittish'], ['timid', 'Timid'], ['careful', 'Careful'], ['prudent', 'Prudent'], ['cool_headed', 'Cool-headed'], ['imperturbable', 'Imperturbable']]),
+  steady: scale([['jittery', 'Jittery'], ['settled', 'Settled'], ['steady', 'Steady'], ['stalwart', 'Stalwart'], ['unbreakable', 'Unbreakable'], ['adamant', 'Adamant']]),
+  daring: scale([['blustering', 'Blustering'], ['brash', 'Brash'], ['spirited', 'Spirited'], ['bold', 'Bold'], ['fearless', 'Fearless'], ['dauntless', 'Dauntless']]),
+} as const;
+export type NerveLine = keyof typeof NERVE_LINES;

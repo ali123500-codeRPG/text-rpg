@@ -11,7 +11,7 @@ import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
 type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels'];
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -140,6 +140,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
     case 'bonusLevels': return [`+${steps(d.bonusLevels!, 'bonus level')} (character levels no class gets: perk points, no class perks)`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
+    case 'personality': return Object.entries(d.personality ?? {}).map(([k, n]) => `${n > 0 ? '+' : ''}${n} ${k === 'nerve' ? 'Nerve (toward Daring)' : getLibrary().personalityAxes?.[k]?.name ?? k}`);
   }
 }
 /** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display; a reward carried up from
