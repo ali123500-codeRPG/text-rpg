@@ -9,7 +9,7 @@ import { buildPlayerView, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
 import { questFocus } from './pages';
 import { tierGap } from '../agents/game';
-import { isDownLevel, TAG_MARK, tierAtLeast, tierName } from '../ruleset';
+import { isDownLevel, othersHealthWord, TAG_MARK, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
@@ -490,7 +490,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
     const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label) }, h('b', {}, cap(a.name ?? a.label)),
-      a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, isDownLevel(a.health) ? 'Down' : a.health)
+      a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, othersHealthWord(a.health, a.level === 'full'))
         : a.activityLook ? h('span', { class: 'st' }, a.activityLook) : null,
       // MB16: others' morale, only from Afraid down
       a.morale ? h('span', { class: 'st fear' }, a.morale) : null,

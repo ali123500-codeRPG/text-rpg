@@ -1764,7 +1764,7 @@ Total HP is divided into levels by the share of HP lost, following World of Dark
 | Mauled | 61–75% | −20 | +20 to intimidate a Mauled foe; Mauled enemies may surrender |
 | Critical | 76–99% | −30 | One action per turn; last-stand perks switch on; fear: reaching Critical costs more morale (rolled) |
 | Incapacitated | 100–149% | Out of the fight | Lethal fight: the story ends; otherwise a survival roll (D-54) |
-| Dead | 150% | Out for good | Never shown in the UI (a dead actor shows as Incapacitated, "Down" for others); the Narrator does see it. No healing row heals it (`revivesDead` is no on every row, a lever for resurrection later) |
+| Dead | 150% | Out for good | The player's own Dead is never shown (it shows as Incapacitated). Others show "Down" once they fall, and "Dead" when the player sees them clearly (full sight); the Narrator does see it. No healing row heals it (`revivesDead` is no on every row, a lever for resurrection later) |
 
 HP lost keeps counting past 100% while an actor is down, up to 150%, where it is Dead (Ali, 08/11/2026; first set at 200%). Someone down can still be struck (BG-25): the blow lands as on someone unaware (no defense), and a blow on someone already down does not count as downing them again. Only the dead can't be struck, and an NPC's blow on the downed player is wasted, since the survival roll (D-54) decides the player's fate. A wasted action carries its reason (already dead, out of reach, nerve broken, yielded to, spar held) for the Narrator, which tells that and never makes up a miss (Narrator rule 18). A destroyed essential part (head, neck) is Dead.
 

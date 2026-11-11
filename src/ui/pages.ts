@@ -12,7 +12,7 @@ import { CONFIG } from '../config';
 import { requirement, shortBy } from '../ruleset/requirements';
 import { kitBonus, modeName } from '../ruleset/gear';
 import { skillName } from '../library/skillNames';
-import { isDownLevel } from '../ruleset';
+import { othersHealthWord } from '../ruleset';
 import { buildPlayerView, callName, factText, questGoalText } from '../views';
 import { closePanel, groupedTable, type PanelRow, h, natural, openPanel, plural, unitOf, visPass, visTiles, type Col, type TGroup, type TRow, type VisState, type VisTile } from './kit';
 import { charCard, invFocus, treeBars } from './charsheet';
@@ -407,7 +407,7 @@ export function journalPeople(s: GameState): { id: string; name: string; label: 
     const v = seen.get(id);
     const zone = v ? pv?.zones.find((z) => z.id === v.zone)?.name : undefined;
     return [{ id, name: v?.name ?? (s.player.journal?.namesKnown.includes(id) ? a.names.current : '–'), label: a.label,
-      where: v ? (zone ? `In view · ${zone}` : 'In view') : 'Not in view', health: v?.health && isDownLevel(v.health) ? 'Down' : v?.health ?? '–' }];
+      where: v ? (zone ? `In view · ${zone}` : 'In view') : 'Not in view', health: v?.health ? othersHealthWord(v.health, v.level === 'full') : '–' }];
   });
 }
 

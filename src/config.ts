@@ -79,7 +79,7 @@ const DEFAULTS = {
     // [level, max % lost, wounds modifier]
     ['Unhurt', 0, 0], ['Bruised', 15, 0], ['Hurt', 30, -5], ['Injured', 45, -10],
     ['Wounded', 60, -15], ['Mauled', 75, -20], ['Critical', 99.999, -30], ['Incapacitated', 149.999, 0],
-    ['Dead', Infinity, 0], // dead at 150% lost (was 200%); never shown in the UI
+    ['Dead', Infinity, 0], // dead at 150% lost (was 200%); the player's own Dead is never shown; others clearly seen show Dead
   ] as [string, number, number][],
   PART_SHARE: { tiny: 0.15, extra_small: 0.15, small: 0.2, normal: 0.3, big: 0.5 } as Record<string, number>,
   HIT_WEIGHT: { tiny: 0.25, extra_small: 0.5, small: 1, normal: 2, big: 4 } as Record<string, number>,
