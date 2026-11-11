@@ -2961,6 +2961,8 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-15 | "Go up the cellar steps and out the front door into the street" stopped behind the bar: moves could only name a zone next to the player, so the Parser named the first step (playtest run 37). Fixed: a move can name any zone the player knows, or a way out of one it has seen (PlayerView `known`), and the walk goes through the zones between | Playtest | Fixed | this PR |
 | BG-16 | A move-only turn ("walk behind the bar") was narrated as "You hold your ground and wait": the turn's unused main action made a hold event after the move (playtest run 37). Fixed: no hold after a move unless words go with it | Playtest | Fixed | this PR |
 | BG-17 | A guard's shout at the gate, four rooms away, reached the player in the cellar word for word: any sound heard, even partly, carried its words (playtest run 36). Fixed by Ali's decision: words need the sound heard clearly | Playtest | Fixed | this PR |
+| BG-18 | With two slimes both an arm's length away, "attack the nearest slime" and then "the slime on the left" / "on the right" each got the clarify "Which slime do you mean?", two turns running, while both slimes kept attacking (playtest run 38). The Parser has no way to break a tie or use left/right | Playtest | Open | |
+| BG-19 | "Walk to the back of the cellar" still gave move.spot {awayFrom: the player's own zone} after PR #415 (playtest run 38, as in run 37) | Playtest | Open | |
 
 ## Check on release
 
