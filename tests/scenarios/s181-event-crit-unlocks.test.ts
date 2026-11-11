@@ -1,6 +1,5 @@
 // 181 Event-roll criticals: a chain for Critical Success and a scar for Critical Failure on your event rolls. Each opens
-// one tier past its Critical (tierUnlocks, summed along the chain and from perks); natural rolls on the event roll swing
-// EVENT_EDGE_SCALE times as far, so the opened tiers can be reached. Without an unlock the roll stops at Critical.
+// one tier past its Critical (tierUnlocks, summed along the chain and from perks). Without an unlock the roll stops at Critical.
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset, tierName } from '../../src/ruleset';
@@ -19,15 +18,18 @@ describe('181 event-roll criticals open Critical+ and Critical−', () => {
     expect(r.beyond).toBeUndefined();
     expect(earned(s)).toContain(ACH.event_crit_1);
   });
-  it('once earned, the next natural 96+ reaches Critical Success+; the chain adds a tier per level', () => {
+  it('once earned, a natural 00 reaches Critical Success+; the chain adds a tier per level', () => {
     const s = makeVillage();
     ruleset.eventRoll(s.player, s, forcedRng([100]));
-    const r = ruleset.eventRoll(s.player, s, forcedRng([97]));
+    const r = ruleset.eventRoll(s.player, s, forcedRng([100]));
     expect(tierName(r)).toBe('Critical Success+');
     for (let i = 0; i < 3; i++) ruleset.eventRoll(s.player, s, forcedRng([99])); // five Critical Successes in all
     expect(earned(s)).toContain(ACH.event_crit_5);
     expect(tierReach(s.player, 'event')).toEqual({ up: 2, down: 0 });
-    expect(tierName(ruleset.eventRoll(s.player, s, forcedRng([100])))).toBe('Critical Success++');
+    getLibrary().perks.blessed2 = { id: 'blessed2', name: 'Blessed', eventRoll: 30 };
+    s.player.core.perks.push({ perkId: 'blessed2', source: 'level', gainedTurn: 0 });
+    try { expect(tierName(ruleset.eventRoll(s.player, s, forcedRng([100])))).toBe('Critical Success++'); } // margin 80, +2 natural
+    finally { delete getLibrary().perks.blessed2; s.player.core.perks.pop(); }
     expect(tierReach(s.player, 'hit')).toEqual({ up: 0, down: 0 }); // event rolls only
   });
   it('a Critical Failure leaves the scar, which opens Critical Failure−', () => {
@@ -42,7 +44,7 @@ describe('181 event-roll criticals open Critical+ and Critical−', () => {
     getLibrary().perks.fated = { id: 'fated', name: 'Fated', tierUnlocks: [{ roll: 'any', side: 'up', steps: 2 }] };
     s.player.core.perks.push({ perkId: 'fated', source: 'level', gainedTurn: 0 });
     try {
-      expect(tierName(ruleset.eventRoll(s.player, s, forcedRng([100])))).toBe('Critical Success++');
+      expect(tierName(ruleset.eventRoll(s.player, s, forcedRng([100])))).toBe('Critical Success+'); // a natural 00 is one past
     } finally { delete getLibrary().perks.fated; }
   });
 });
