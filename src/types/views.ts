@@ -197,6 +197,9 @@ export type NarrationEvent = {
   price?: string; // buy: coin paid, in coin words
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
+  from?: string; // BG-22: a move that left a zone: the zone it left (where is the zone it entered)
+  within?: true; // BG-22: a move that stayed inside `where` (across it, toward someone, a spot or its way out)
+  heading?: string; // BG-22: a leg within `where` on the way to another zone: that zone's name
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes
