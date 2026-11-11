@@ -49,6 +49,9 @@ const healthShows = (level: string, sharp: boolean) => LEVEL_POS(level) >= LEVEL
 // ---------- shared helpers ----------
 const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneById(state, id)).filter((z): z is Zone => !!z);
 
+/** a distance as the story and the Map say it: metres under 1 km, else km to one decimal (4.5 km) */
+export const distText = (m: number): string => (m >= 1000 ? `${Math.round(m / 100) / 10} km` : `${Math.round(m)} m`);
+
 export function zoneView(state: GameState, z: Zone): ZoneView {
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
@@ -224,7 +227,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s roar`); // the roarer's own rally goes untold
     if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
       const d = f.data as { metres: number; minutes: number; pace: string; night: boolean; stop: string };
-      const km = d.metres >= 1000 ? `${Math.round(d.metres / 100) / 10} km` : `${d.metres} m`;
+      const km = distText(d.metres);
       const h = Math.floor(d.minutes / 60), m = d.minutes % 60;
       const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
       out.push(`${who} travel${own ? '' : 's'} ${km} in ${[h ? `${h} h` : '', m || !h ? `${m} min` : ''].filter(Boolean).join(' ')} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);

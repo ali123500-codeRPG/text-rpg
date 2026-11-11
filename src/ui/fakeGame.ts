@@ -1,6 +1,7 @@
 // In-memory fake GameApi with canned lines, for building and screenshotting the screens until W7's pipeline lands.
 import { placeZones } from '../scene/geometry';
-import { EK } from '../library/tableIds';
+import { EK, ZK } from '../library/tableIds';
+import { roadShape } from '../scene/apply';
 import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice } from '../types';
@@ -175,6 +176,18 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (drop) fell = true;
       // "attack" trades blows, to show the play screen's motion: health and a crippled arm lost, a skill, XP and coin gained
       const hurt = /^attack\b/i.test(text) ? fightTurn(state) : null;
+      // "travel" adds a road west of the village and sets you partway along it, to show your point on the road on the Map (TV7)
+      if (/^travel\b/i.test(text)) {
+        if (!state.places.some((x) => x.id === 'west_road')) {
+          state.places.push(FP('west_road', 'road', null, 'the west road', [FZ('w_road', 'west_road', 'the west road', 'A rutted cart road between hedges.',
+            [['v_square', 'Millbrook, east', false], ['ash_gate', 'Ashford, west', false]], { outdoor: true, light: 'bright', cover: 'none', kind: ZK.road, ...roadShape('hour', 'quiet') })]));
+          placeZones(state, state.places.find((x) => x.id === 'west_road')!.zones);
+        }
+        const road = state.places.find((x) => x.id === 'west_road')!.zones[0];
+        state.player.zone = road.id; state.player.placeId = road.placeId;
+        if (road.rect) state.player.pos = { x: road.rect.x - road.rect.w * 0.1, y: road.rect.y };
+        (state.player.journal?.zonesSeen ?? []).push(road.id);
+      }
       // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
       const lvl = /^train\b/i.test(text) ? levelTurn(state) : null;
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
