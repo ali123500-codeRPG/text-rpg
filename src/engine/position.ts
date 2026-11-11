@@ -80,6 +80,13 @@ export function sightDistM(state: GameState, a: Located, b: Located): number {
   return Math.hypot(flat(A.pos, B.pos), heightOf(zoneById(state, A.zone)) - heightOf(zoneById(state, B.zone)));
 }
 
+/** step 2 PR 2: how far away something is for sight, in metres: sightDistM, never under SAME_ZONE_M (in a zone without a
+ * rectangle the same zone is SAME_ZONE_M away and each sight link LINK_PACES × PACE_M); null without sight */
+export function seeingM(state: GameState, a: Located, b: Located): number | null {
+  const d = sightDistM(state, a, b);
+  return d === Infinity ? null : Math.max(d, CONFIG.SAME_ZONE_M);
+}
+
 /** ZP4: metres between two people (or a person and a spot): a straight line with sight between their zones, else the
  * walking path through the doorways; Infinity with no way between them */
 export function distM(state: GameState, a: Located, b: Located): number {

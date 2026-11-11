@@ -7,11 +7,12 @@ import { intent, play } from './w4-kit';
 import { placeZones } from '../../src/scene/geometry';
 import { verticalOf } from '../../src/scene/heights';
 import { distM, placeAll, sightDistM } from '../../src/engine/position';
+import { perceptionOf } from '../../src/perception';
 import { CONFIG } from '../../src/config';
 import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { AM } from '../../src/library/tableIds';
-import type { GameState } from '../../src/types';
+import type { GameEvent, GameState } from '../../src/types';
 
 /** the test village with real zone sizes laid out on the map: rooms 60 m², streets 400 m², fields 1600 m² (40 m across) */
 function mapped(playerZone?: string): GameState {
@@ -96,5 +97,18 @@ describe('171 positions', () => {
     const ev = play(s, { intent: intent({ gear: [...stow, { op: 'draw' as const, item: 'sp' }], action: { type: 'attack', target: 'trader', skill: SK.melee_medium, item: 'sp', mode: AM.thrust } }) });
     expect(ev.find((e) => e.actorId === 'player' && e.kind === 'move')).toBeUndefined();
     expect(ev.find((e) => e.actorId === 'player' && e.kind === 'attack')?.target).toBe('trader');
+  });
+
+  it('PR 2: sight is measured in metres from where the event happened', () => {
+    const s = mapped('field_edge');
+    const seen = (x: number, visibility: GameEvent['visibility']) => {
+      place(s, 'player', x > 113.9 ? 'field_mid' : 'field_edge').pos = { x, y: 0 };
+      const ev = { id: 'e', turn: 1, actorId: 'slime_1', kind: 'idle', zone: 'field_mid', pos: { x: 120, y: 0 }, effects: [], noise: 'silent', visibility, perception: {} } as GameEvent;
+      return perceptionOf(ev, s, s.player)?.level ?? null;
+    };
+    expect(seen(100, 'normal')).toBe('full'); // 20 m: a walking figure is made out to 25 m
+    expect(seen(80, 'normal')).toBe('partial'); // 40 m: glimpsed (to 200 m)
+    expect(seen(80, 'low')).toBe('partial'); // a still figure: made out to 15 m
+    expect(seen(119.5, 'faint')).toBe('partial'); // 0.5 m counts as SAME_ZONE_M (1 m): past faint's clear 0.5 m
   });
 });
