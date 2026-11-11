@@ -255,7 +255,7 @@ describe('errors and commands', () => {
     await game.submit('look around', { aimed: false });
     const l = game.lines().at(-1)!;
     expect(l.gear).toEqual(['Put away: arming sword', 'Used: coin', 'Picked up: odd_stone']);
-    expect(l.place).toEqual({ id: state.player.placeId, name: expect.stringMatching(/^[A-Z]/) });
+    expect(l.place).toEqual({ id: state.player.placeId, name: expect.stringMatching(/^[A-Z]/), zone: 'common room' });
     expect(l.scene).toBe(3);
   });
 });
