@@ -148,7 +148,7 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [['potential', `CONFIG.POTENTIAL = ${CONFIG.POTENTIAL}, plus any adjustments`], [String(CONFIG.K), 'CONFIG.K']] },
       { name: 'Improvement roll', at: 'improveMarked · src/ruleset/improve.ts',
         formula: 'target = raw + burden (a tagged skill: raw). Improves if d100 > target, or d100 is 99–100',
-        terms: [['flawed skill', 'rolls two d100 and keeps the lower'], ['gain', '+1d5 raw (1 to 5)'],
+        terms: [['flawed skill', 'rolls two d100 and keeps the lower'], ['gain', `+1d${CONFIG.SKILL_GAIN_DIE} raw (1 to ${CONFIG.SKILL_GAIN_DIE}, CONFIG.SKILL_GAIN_DIE)`],
           ['rolls', `1 per roll owed${quick.length ? `; ${quick.map((p) => `${p.name}: ${p.improveRolls!.rolls} rolls while raw is below ${p.improveRolls!.below}`).join('; ')}` : ''}`]],
         table: { head: ['Target', 'Chance', 'Flawed'], rows: [0, 20, 40, 60, 80, 95].map((t) => [String(t), pct(improveChance(t, false)), pct(improveChance(t, true))]) },
         notes: [`Crossing a milestone (${MILESTONES.join(', ')}) on true skill is logged with the gain.`] },

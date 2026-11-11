@@ -61,7 +61,9 @@ const DEFAULTS = {
    * Infinity: one roll per skill per engagement. */
   MARK_STACK_EVERY: 3,
   /** SM2: owed rolls are made at the end of the turn of the mark instead of when the engagement ends or the scene breaks */
-  SKILL_UP_INSTANT: false,
+  SKILL_UP_INSTANT: true,
+  /** a successful improvement roll adds 1d(this) raw */
+  SKILL_GAIN_DIE: 3,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
   ENDURANCE_MARK_PCT: 10,
   // ---- Part 3 ----

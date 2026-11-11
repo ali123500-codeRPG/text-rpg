@@ -161,7 +161,7 @@ export function improveMarked(state: GameState, rng: Rng): { skill: string; from
       const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
       if (!(roll > target || roll >= 99)) continue;
       const from = s.raw, trueBefore = trueSkill(a, id);
-      s.raw += rng.int(1, 5);
+      s.raw += rng.int(1, CONFIG.SKILL_GAIN_DIE);
       a.core.skills[id] = s;
       const crossed = MILESTONES.filter((m) => trueBefore < m && trueSkill(a, id) >= m).pop();
       gains.push({ skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) });
