@@ -1,6 +1,7 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import { checkSceneEnd, closeScene } from './sceneEnd';
 import { noteLeft, noteZonesSeen } from './trail';
+import { heightOf } from '../scene/heights';
 import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
@@ -15,7 +16,7 @@ import { travel, tripGoal } from './travel';
 import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
-import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
@@ -247,6 +248,18 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     // GAP: the player crossing a frontier stays in its zone; scene setup / stage extension places it (pipeline reads scratch).
     state.scratch = { ...(state.scratch ?? {}), frontierCrossed: goal.zone };
     emit(ctx, mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] }));
+    return 'spent';
+  }
+  // SD7: a jump down a window or ledge: straight into the zone below, with a landing roll and flat fall damage
+  if (o.jump && link?.drop && a.kind === 'player') {
+    const up = zoneById(state, a.zone)!, down = zoneById(state, goal.zone)!;
+    const drop = Math.max(0, heightOf(up) - heightOf(down)), was = a.pos && { ...a.pos };
+    a.zone = down.id;
+    a.placeId = down.placeId;
+    delete a.pos;
+    noteLeft(state, up.id);
+    const f = landFall(state, a, drop, ctx.rng);
+    emit(ctx, mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects }));
     return 'spent';
   }
   const from = a.zone, fromPos = a.pos && { ...a.pos };
