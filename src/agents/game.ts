@@ -583,8 +583,8 @@ export function createGame(deps: GameDeps): Game {
     reportBug: (note) => fileBug(store, clock.now(), { code: 'player_report', storyId: state?.storyId ?? '', turn: state?.turn ?? 0, note: note.slice(0, 2000),
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),
-    async agentMove(persona = '') {
-      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona) }], json: true, ...modelFor('autopilot') });
+    async agentMove(persona = '', style = '') {
+      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style) }], json: true, ...modelFor('autopilot') });
       return r.ok ? readMove(r.value) : null;
     },
     submit,

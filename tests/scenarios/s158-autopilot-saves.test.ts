@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ScriptedClaude, makeVillage } from '../harness';
 import { createGame, VirtualClock, type SceneDirector } from '../../src/agents';
 import { memoryStore, saveTurn } from '../../src/save';
-import { readMove } from '../../src/agents/autopilot';
+import { autopilotTurn, readMove } from '../../src/agents/autopilot';
 import type { GameState, TurnRecord } from '../../src/types';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
@@ -45,5 +45,8 @@ describe('158 autopilot saves', () => {
     expect(await g.agentMove('eager')).toEqual({ command: 'I ask the barkeep about work', say: 'Barkeeps hear everything.' });
     expect(claude.callsFor('autopilot')[0].input[1].content).toContain('Your playstyle:');
     expect(readMove({ say: 'no command' })).toBeNull();
+    expect(readMove({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' })).toEqual({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' });
+    expect(autopilotTurn([], '', 'companion')).toContain('Your voice:');
+    expect(autopilotTurn([], '', 'plain')).not.toContain('Your voice:');
   });
 });

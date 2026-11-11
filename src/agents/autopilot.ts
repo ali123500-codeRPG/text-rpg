@@ -54,20 +54,31 @@ out, and what the people around you did), then what you do now and why"}.
 The watcher only hears you, so never skip the outcome of your last move.
 The commentary is read aloud: plain words, no stage directions, never anything your character could not know.`;
 
+/** how the agent speaks (the agent bar's Voice style): its words, and whether it speaks Japanese; the voice itself is the screen's */
+export const VOICE_STYLES: [string, string, string][] = [
+  ['plain', 'Japanese voice', ''],
+  ['companion', 'AI companion', `Speak as a cheerful AI companion from a Japanese game: short status reports ("Analysis complete", "Three
+people detected"), polite and eager, and call the watcher Ali-san.`],
+  ['japanese', 'Speaks Japanese', `Speak as a cheerful AI companion from a Japanese game, and call the watcher Ali-san. Also add "ja" to your
+JSON: the same commentary in natural spoken Japanese.`],
+];
+
 /** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration) */
-export function autopilotTurn(lines: LogLine[], persona: string): string {
+export function autopilotTurn(lines: LogLine[], persona: string, style = ''): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}`;
+  const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}`;
 }
 
 /** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters */
-export function readMove(v: unknown): { command: string; say: string } | null {
+export function readMove(v: unknown): { command: string; say: string; ja?: string } | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
   const command = typeof o.command === 'string' ? o.command.split('\n')[0].trim().slice(0, 200) : '';
   if (!command) return null;
   const say = typeof o.say === 'string' ? o.say.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
-  return { command, say };
+  const ja = typeof o.ja === 'string' ? o.ja.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
+  return ja ? { command, say, ja } : { command, say };
 }
 
 /** the perk an agent playing its own save takes with a spare point: the open milestone of its highest skill */

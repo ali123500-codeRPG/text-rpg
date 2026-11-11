@@ -88,7 +88,8 @@ export interface GameApi {
   reportBug(note: string): Promise<string | null>;
   /** the open bugs, newest first */
   openBugs(): Promise<import('../save/bugs').FiledBug[]>;
-  agentMove(persona?: string): Promise<{ command: string; say: string } | null>;
+  /** style: a VOICE_STYLES id; ja: the commentary in Japanese, for the 'japanese' style */
+  agentMove(persona?: string, style?: string): Promise<{ command: string; say: string; ja?: string } | null>;
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
   reset(): Promise<void>; // confirmed by the UI first
