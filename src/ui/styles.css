@@ -649,7 +649,8 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .auto-say { margin: 0; display: flex; gap: var(--space-3); align-items: baseline; font: italic 15px/1.5 var(--font-story); }
 .auto-who { flex: none; font: 600 11px/1 var(--font-round); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-style: normal; }
 .auto-panel .hs-note { margin: 0; }
-.auto-own { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-md); }
+/* the agent's own story: the opener and the pressed "Its own story" choice turn yellow instead of a banner row */
+.auto-agent[aria-pressed="true"], .auto-open.auto-agent { color: var(--warn); background: var(--warn-soft); }
 .title-tools { display: flex; align-items: center; gap: var(--space-3); align-self: start; }
 
 /* creation: name and gender above the class picker */
