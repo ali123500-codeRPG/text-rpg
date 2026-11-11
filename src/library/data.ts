@@ -7,7 +7,11 @@ import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import { LAYOUTS } from './layouts';
 import type { ArmorWeightKey } from '../scales';
-import { CLASS_TIERS, ZONE_SIZES } from '../scales';
+import { CLASS_TIERS, NOISE, ZONE_SIZES } from '../scales';
+import { noiseReach } from '../perception/noise';
+
+/** a zone link count in words, for the Noise levels table */
+const links = (n: number) => (n < 0 ? 'nowhere' : n === 0 ? 'same zone' : n === 1 ? '1 link away' : `${n} links away`);
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
@@ -525,6 +529,18 @@ export function prototypeLibrary(): Library {
       yard: 'An inn yard with stables, a castle courtyard (about 20 × 20 m)',
       open: 'A village green or small market (about 40 × 40 m)',
       vast: 'A city market square (Kraków\'s is about 200 × 200 m, four of these)',
+    } as Record<string, string>)[k] }])),
+    noiseLevels: Object.fromEntries(NOISE.keys.map((k) => [k, { id: k, name: NOISE.name(k), decibels: CONFIG.NOISE_DB[k], clearTo: links(noiseReach(k)[0]), heardTo: links(noiseReach(k)[1]), like: ({
+      silent: 'No sound at all: standing still and holding your breath',
+      faint: 'Breathing, rustling leaves, a cloth brushing a wall (about 20 dB)',
+      hushed: 'A whisper (about 30 dB)',
+      quiet: 'A quiet library, soft footsteps, a page turned (about 40 dB)',
+      murmur: 'Low talk across a table, steady rain, a crackling hearth (about 50 dB)',
+      normal: 'Ordinary conversation, a sword drawn, someone walking in boots (about 60 dB)',
+      raised: 'A raised voice, a busy tavern, a scuffle (about 70 dB)',
+      loud: 'A shout, steel ringing on steel (about 88 dB)',
+      blaring: 'A scream, a hammer on an anvil, a war horn (about 100 dB)',
+      deafening: 'A thunderclap overhead, a church bell up close, an alarm bell (about 120 dB)',
     } as Record<string, string>)[k] }])),
     layouts: LAYOUTS,
     items: ITEMS,
