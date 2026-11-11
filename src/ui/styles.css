@@ -608,6 +608,21 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pbreak { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-4) 0 0; color: var(--faint); font: 600 13px/1.4 var(--font-round); }
 .pbreak::before, .pbreak::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
 .pbreak.scene { gap: 0; }
+/* SD1: the scene-ending moment. The old scene's last line, quieter than the prose; then the rule with the ending's name
+   in its own colour (an unordered category, one colour each); the place it moved to, if any, follows in the rule's grey */
+.ln-closing { margin: var(--space-4) 0 0; color: var(--muted); font: italic var(--story-size, 17px)/1.6 var(--font-story); text-wrap: pretty; }
+.pbreak.end { --end: var(--scene-mark); margin-top: var(--space-4); }
+.pbreak.end b { color: var(--end); font-weight: 700; letter-spacing: .04em; }
+.pbreak.end::before, .pbreak.end::after { background: color-mix(in srgb, var(--end) 45%, var(--rule)); }
+.pbreak.end[data-end="resolved"] { --end: var(--ok); }
+.pbreak.end[data-end="escaped"] { --end: var(--accent); }
+.pbreak.end[data-end="left"] { --end: var(--muted); }
+.pbreak.end[data-end="lost"] { --end: var(--danger); }
+.pbreak.end[data-end="interrupted"] { --end: var(--scene-mark); }
+.pbreak.end[data-end="worn_out"] { --end: var(--faint); }
+.pbreak.end[data-end="broken_off"] { --end: var(--warn); }
+.end-now:empty { display: none; }
+.end-now .pbreak.end { margin-bottom: var(--space-3); }
 /* speaker lines: the names in one column sized to the longest, the lines beside them */
 .speech { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: var(--space-2) var(--space-3); align-items: center; }
 .speech .who2 { font-weight: 800; text-align: right; }
