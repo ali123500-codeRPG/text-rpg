@@ -1062,12 +1062,13 @@ All-50, All-100 and All-150 work alike. Granted free once enough skills of the t
 - **Lasts:** That roll.
 - **Built:** yes
 
-### Every Sense One (Perception, passive) · T5-150
+### Every Sense One (Perception, Eyesight) · T5-150
 
 *Story:* Your senses have run together. What you see, you hear, and what you hear, you see: a voice in the dark has a face, and a figure across the yard has a voice.
 
 - **Kind:** Always on
 - **Trigger:** The owner perceives an event, or makes a sight or hearing roll.
+- **Conditions:** The All-150 part of both Eyesight and Earshot: granted with the Perception All-150 when either of them is at 150.
 - **Effect:** The owner perceives every event as well as the better of its sight and its hearing would allow, and by both senses at once: whatever it hears, it sees as clearly (who and what), and whatever it sees, it hears (spoken words included). Every sight or hearing roll (by function) uses the best of the owner's sight and hearing skills, so light only matters when a sight skill is the one rolling.
 - **Lasts:** Always.
 - **Built:** yes

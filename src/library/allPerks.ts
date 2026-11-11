@@ -26,7 +26,7 @@ export const ALL_BUNDLES: AllBundle[] = [
   { treeId: TR.stealth, step: 50, name: 'One with the Dark', passive: PK.child_of_night },
   { treeId: TR.speech, step: 50, name: 'Silver Voice', passive: PK.silver_words }, // Read Them parked (D-191)
   // All-100 and All-150 work like the All-50: a tree passive plus each skill's part (STEP_PARTS) at that step
-  { treeId: TR.perception, step: 150, name: 'Nothing Unwitnessed', passive: PK.one_sense },
+  { treeId: TR.perception, step: 150, name: 'Nothing Unwitnessed' }, // no passive yet; Every Sense One is Eyesight's and Earshot's part
 ];
 
 /** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
@@ -42,7 +42,10 @@ export const SKILL_PARTS: Record<string, string> = {
 };
 
 /** each skill's part at each All-X step: All-50 parts above; none at 100 or 150 yet */
-export const STEP_PARTS: Record<AllBundle['step'], Record<string, string>> = { 50: SKILL_PARTS, 100: {}, 150: {} };
+export const STEP_PARTS: Record<AllBundle['step'], Record<string, string>> = {
+  50: SKILL_PARTS, 100: {},
+  150: { [SK.eyesight]: PK.one_sense, [SK.earshot]: PK.one_sense }, // one part shared by both senses: either at 150 brings it
+};
 
 const part = (treeId: string, p: Omit<PerkWriteup, 'skill' | 'place' | 'allStep'>): PerkWriteup =>
   ({ ...p, skill: treeId, place: 'all50', allStep: { treeId, step: 50 } });
@@ -147,7 +150,7 @@ export const ALL_PARTS: PerkWriteup[] = [
       effect: 'Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.', lasts: 'That roll.' } }),
   part(TR.perception, { id: PK.one_sense, ref: 'T5-150', name: 'Every Sense One', effect: 'senses',
     story: 'Your senses have run together. What you see, you hear, and what you hear, you see: a voice in the dark has a face, and a figure across the yard has a voice.',
-    rules: { kind: 'Always on', trigger: 'The owner perceives an event, or makes a sight or hearing roll.', conditions: [],
+    rules: { kind: 'Always on', trigger: 'The owner perceives an event, or makes a sight or hearing roll.', conditions: ['The All-150 part of both Eyesight and Earshot: granted with the Perception All-150 when either of them is at 150.'],
       effect: 'The owner perceives every event as well as the better of its sight and its hearing would allow, and by both senses at once: whatever it hears, it sees as clearly (who and what), and whatever it sees, it hears (spoken words included). Every sight or hearing roll (by function) uses the best of the owner\'s sight and hearing skills, so light only matters when a sight skill is the one rolling.',
       lasts: 'Always.' } }),
   part(TR.perception, { id: PK.know_the_step, ref: 'T5f', name: 'Know the Step', effect: 'senses',
@@ -189,10 +192,11 @@ export const ALL_PARTS: PerkWriteup[] = [
     trueSkillTo: { [SK.persuasion]: 5, [SK.intimidation]: 5, [SK.barter]: 5 } }),
 ];
 
-// a passive carries its tree; a skill's part carries its skill (src/library/data.ts fills in the skill's current tree)
+// a passive carries its tree; a skill's part carries its skill and step (src/library/data.ts fills in the skill's current tree).
+// A part shared by several skills names the first.
 for (const p of ALL_PARTS) {
   const b = ALL_BUNDLES.find((x) => x.passive === p.id);
-  const skill = Object.keys(SKILL_PARTS).find((k) => SKILL_PARTS[k] === p.id);
+  const at = (Object.entries(STEP_PARTS) as [string, Record<string, string>][]).flatMap(([step, m]) => Object.keys(m).filter((k) => m[k] === p.id).map((skill) => ({ step: +step as AllBundle['step'], skill })))[0];
   if (b) Object.assign(p, { skill: b.treeId, allStep: { treeId: b.treeId, step: b.step } });
-  else if (skill) Object.assign(p, { allStep: { treeId: p.allStep!.treeId, step: 50, skill } });
+  else if (at) Object.assign(p, { allStep: { treeId: p.allStep!.treeId, step: at.step, skill: at.skill } });
 }
