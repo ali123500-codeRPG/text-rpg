@@ -48,6 +48,7 @@ export type TreeDef = { id: string; name: string; skills: string[]; access?: Tre
 export type ServiceDef = { id: string; name: string; price: number; heals?: string };
 export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
+  personality?: PersonalityAdd; // PL16: points added while it is the current class
   /** the class's tier (CLASS_TIERS key): how strong it is next to other classes */
   tier: import('../scales').ClassTierKey;
   /** the public stranger label a player starting in this class has */
@@ -95,6 +96,14 @@ export type BodyType = {
   figure?: { viewBox: string; parts: Record<string, string> };
 };
 
+/** PL6: one personality axis; `low` and `high` are the words for its two ends */
+export type PersonalityAxisDef = { id: string; name: string; low: string; high: string };
+/** PL10: a named type: every condition must hold. Keys are personality axes (PA…), 'nerve', or SK.resolve (raw); `hint`
+ * tells the agent how the type acts */
+export type PersonalityTypeDef = { id: string; name: string; when: Record<string, { min?: number; max?: number }>; hint: string };
+/** PL15, PL16: points a perk, class or achievement adds while held, by 'nerve' or personality axis (PA…) */
+export type PersonalityAdd = Record<string, number>;
+
 export type Library = {
   version: number;
   status: Record<string, EntryStatus>;
@@ -112,6 +121,9 @@ export type Library = {
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
   composure?: Record<string, ComposureDef>; // what restores morale, apart from healing so each tunes on its own
   fears?: Record<string, FearDef>; // MB21: what costs morale
+  personalityAxes?: Record<string, PersonalityAxisDef>; // PL6: PA…
+  values?: Record<string, { id: string; name: string }>; // PL19: VL…, what a character cares about
+  personalityTypes?: Record<string, PersonalityTypeDef>; // PL10: PY…, named mixes read from the points
   services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
@@ -159,6 +171,7 @@ export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: 
 export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 export type PerkDef = {
   id: string; name: string; text?: string; eventRoll?: number;
+  personality?: PersonalityAdd; // PL16: points added while owned
   /** MB21: moves a health fear's `from` level by `steps` (+ later, − sooner) */
   fearFrom?: { fear: string; steps: number };
   /** metres added to a thrown weapon's own range (CONFIG.THROW_M) */
@@ -279,7 +292,7 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
-  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels';
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -289,6 +302,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   quieter?: number; // the owner's moves are this many steps quieter on the noise scale
   readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
   skillAdd?: Record<string, number>; // true skill added to these skills
+  personality?: PersonalityAdd; // PL15: Nerve or trait points added while current
   renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up

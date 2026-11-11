@@ -7,8 +7,9 @@ import { inferHeights } from './heights';
 import { placeZones } from './geometry';
 import { placeAll } from '../engine/position';
 import { clockSet, startClock } from '../time';
-import { activity, getLibrary, itemDef } from '../library';
+import { activity, getLibrary, itemDef, npcTemplate } from '../library';
 import { spawnNpc } from '../library/spawn';
+import { personalityFrom } from '../ruleset/personality';
 import { installRoutines, desiredState, detectPlayer } from '../minds';
 import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
@@ -227,7 +228,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       a.label = c.label;
       // GAP: a reused actor keeps its names; the plan's name is ignored.
     } else {
-      a = spawnNpc(state, c.template!, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId }, rng);
+      const t = npcTemplate(state, c.template!);
+      const personality = c.personality ? personalityFrom(t.personality, c.personality) : undefined; // PL12
+      a = spawnNpc(state, c.template!, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}) }, rng);
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);

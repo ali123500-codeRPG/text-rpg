@@ -1,6 +1,6 @@
 // NPC generation from templates (Part 4 §4) and player creation.
 import { BT, RC } from './raceIds';
-import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Rng, SkillEntry } from '../types';
+import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstance, NpcTemplate, OwnedPerk, Personality, Rng, SkillEntry } from '../types';
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
@@ -46,7 +46,7 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
   return out;
 }
 
-export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string };
+export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string; personality?: Personality /* PL12: replaces the template's points */ };
 
 /** A class's skill floors: its own floors plus its unlock conditions (a character of the class must meet what unlocks it).
  * all = every skill must reach its value; any = either-of groups, one skill in each must reach its value. */
@@ -73,7 +73,7 @@ export function templateMinimums(t: NpcTemplate): Record<string, number> {
 
 /** Unique generation (Part 4 §4): minimums, then level x POINTS_PER_LEVEL + bonusPoints in 5-point chunks, a seeded d3 per chunk. */
 export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, SkillEntry> {
-  const raw: Record<string, number> = { [SK.resolve]: CONFIG.PERSONALITY_RESOLVE[t.personality] ?? 0, ...templateMinimums(t) }; // class floors included // MB30: personality sets starting Resolve
+  const raw: Record<string, number> = { [SK.resolve]: t.resolve, ...templateMinimums(t) }; // class floors included // MB30: the template sets starting Resolve
   let points = t.level * CONFIG.POINTS_PER_LEVEL + t.bonusPoints;
   while (points > 0 && t.focus.length) {
     const chunk = Math.min(5, points); // GAP: a remainder under 5 goes out as the last, smaller chunk
@@ -127,6 +127,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
       standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, t.loadout ?? []), // GAP: raw skill; ties go block, parry, dodge like the player
+      personality: opts.personality ?? structuredClone(t.personality), // PL11, PL12: the template's points, or the Weaver's pick on them
     },
     // GAP: unique NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'unique' ? { progression: {
@@ -135,7 +136,6 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
     } } : {}),
     mind: {
       control: t.control,
-      behavior: t.personality,
       knowledge: {},
       knows: [],
     },
@@ -269,6 +269,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       inventory: [{ id: 'player_coin', itemId: IT.coin, qty: CONFIG.STARTING_COIN }, { id: 'player_bandage', itemId: IT.bandage, qty: CONFIG.STARTING_BANDAGES }],
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
       standingDefense: rawDefense((id) => build.skills[id] ?? 0),
+      personality: structuredClone(build.personality ?? { nerve: 0, traits: {}, values: [] }), // PL14
     },
     progression: {
       startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),

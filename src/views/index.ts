@@ -1,4 +1,5 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
+import { personalityText } from '../ruleset/personality';
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
@@ -6,7 +7,7 @@ import type { Tier, TierRoll,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
-import { COVER, LIGHT } from '../scales';
+import { COVER, LIGHT, NERVE_LINES } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
 import { sightDistM } from '../engine/position';
@@ -365,6 +366,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
+    personality: personalityText(a, moraleWord(a)),
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
@@ -595,6 +597,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
       })),
       items: [...items.values()],
       skills: Object.keys(lib.skills).map((id) => ({ id, name: skillName(id) })),
+      personality: { nerve: Object.keys(NERVE_LINES), types: Object.values(lib.personalityTypes ?? {}).map((t) => ({ id: t.id, name: t.name, hint: t.hint })), values: Object.values(lib.values ?? {}).map((v) => ({ id: v.id, name: v.name })) },
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
       edgeKinds: Object.values(lib.edgeKinds ?? {}).map((k) => ({ ...k })),
       layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name })) })),

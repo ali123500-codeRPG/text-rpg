@@ -94,7 +94,7 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['NPCs roll speech at the player only with persuade, deceive, intimidate or barter; their plain talk does not roll, but a line they know is false is always given as deceive. A second Shaken or Swayed from the same speaker keeps the bigger one.'] },
       { name: 'Morale roll', at: 'moraleRoll · src/ruleset/index.ts; payFear · src/engine/morale.ts; fear · src/engine/resolve.ts',
         formula: `margin = d100 + ${n(W())} × Resolve + modifiers − ${n(NEED())}; morale lost = the fear's cost × the tier's multiplier`,
-        terms: [['max morale', `${CONFIG.MORALE_BASE} + ${CONFIG.MORALE_PER_RESOLVE} × Resolve; an NPC template's starting Resolve comes from its personality: ${Object.entries(CONFIG.PERSONALITY_RESOLVE).map(([k, v]) => `${k} ${v}`).join(', ')}`],
+        terms: [['max morale', `${CONFIG.MORALE_BASE} + ${CONFIG.MORALE_PER_RESOLVE} × Resolve; an NPC template sets its starting Resolve; raw Resolve also sets the Nerve tier (from ${CONFIG.NERVE_TIER_FROM.join(', ')})`],
           ['tier multiplier', `${TIERS.keys.map((k) => `${TIERS.name(k)} ×${CONFIG.MORALE_TIER_MULT[k]}`).join(' · ')}; each step below Critical Failure +${CONFIG.MORALE_BEYOND_CF}`],
           ['levels', CONFIG.MORALE_TRACK.map(([k, max, v]) => `${MORALE_LEVELS.name(k as MoraleLevel)}${max === Infinity ? ' 100 %+' : ` ≤${Math.round(max)} %`}${v ? ` ${v}` : ''}`).join(' · ')],
           ['modifiers', 'wounds: the health level, the morale level (fear feeds on itself) and a crippled essential part; the player\'s renown on every morale roll of a foe fighting the player; the player\'s rally on allies fighting beside the player']],

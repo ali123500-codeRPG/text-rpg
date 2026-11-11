@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, CP, DU, EK, FR, GC, HL, RL, ZK } from './tableIds';
+import { AM, CP, DU, EK, FR, GC, HL, PA, PY, RL, VL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -13,7 +13,7 @@ import { sightReach } from '../perception/sight';
 
 /** a zone link count in words, for the Noise and Visibility levels tables */
 const links = (n: number) => (n < 0 ? 'nowhere' : n === 0 ? 'same zone' : n === 1 ? '1 link away' : `${n} links away`);
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
+import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -286,10 +286,13 @@ export const BODY_TYPES: Record<string, BodyType> = {
   },
 };
 
+/** PL11: a template's Nerve, trait and value points ([Proposed] numbers) */
+const pers = (nerve: number, traits: Record<string, number> = {}, values: string[] = []): Personality => ({ nerve, traits, values });
+
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
-    level: 0, bonusPoints: 0, focus: [], personality: 'steady', control: 'code', label: 'a slime',
+    level: 0, bonusPoints: 0, focus: [], resolve: 50, personality: pers(0), control: 'code', label: 'a slime',
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [TP.guard]: {
@@ -298,26 +301,26 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
     focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.parry }, { treeId: TR.perception, skill: SK.eyesight }],
-    personality: 'steady', loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
+    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
   },
   [TP.trader]: {
     id: TP.trader, raceId: RC.human, classId: CL.trader, generation: 'copy',
     minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
     focus: [{ treeId: TR.perception, skill: SK.earshot }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
-    personality: 'timid', control: 'code', label: 'the barkeep',
+    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.wealth]), control: 'code', label: 'the barkeep',
   },
   // NS7: a village thief, the first stealthy NPC
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
     minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
     focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
-    personality: 'timid', loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
+    resolve: 30, personality: pers(-40, { [PA.honesty]: -40 }, [VL.wealth]), loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
   },
   [TP.patron]: {
     id: TP.patron, raceId: RC.human, generation: 'copy',
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0,
     focus: [{ treeId: TR.unarmed, skill: SK.unarmed_strike }, { treeId: TR.defense, skill: SK.dodge }, { treeId: TR.perception, skill: SK.eyesight }],
-    personality: 'timid', control: 'code', label: 'a tavern patron',
+    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.pleasure]), control: 'code', label: 'a tavern patron',
   },
 };
 
@@ -467,6 +470,25 @@ export function prototypeLibrary(): Library {
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
     },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
+    // PL6: personality axes, with the words for each end; PL19: values; PL10: named types ([Proposed] until approved, PL21–PL27)
+    personalityAxes: {
+      [PA.honesty]: { id: PA.honesty, name: 'Honesty', low: 'deceitful', high: 'honest' },
+      [PA.pride]: { id: PA.pride, name: 'Pride', low: 'humble', high: 'proud' },
+      [PA.temper]: { id: PA.temper, name: 'Temper', low: 'patient', high: 'quick to anger' },
+      [PA.sociability]: { id: PA.sociability, name: 'Sociability', low: 'quiet', high: 'talkative' },
+      [PA.discipline]: { id: PA.discipline, name: 'Discipline', low: 'impulsive', high: 'disciplined' },
+      [PA.curiosity]: { id: PA.curiosity, name: 'Curiosity', low: 'set in its ways', high: 'curious' },
+    },
+    values: Object.fromEntries(Object.entries(VL).map(([k, id]) => [id, { id, name: k }])),
+    personalityTypes: {
+      [PY.prideful]: { id: PY.prideful, name: 'Prideful', when: { [PA.pride]: { min: 40 } }, hint: 'saves face, won\'t back down in front of others, takes insults personally' },
+      [PY.mature]: { id: PY.mature, name: 'Mature', when: { [PA.discipline]: { min: 40 }, [PA.temper]: { max: -20 }, [SK.resolve]: { min: 40 } }, hint: 'thinks before acting, keeps a cool head, owns its mistakes' },
+      [PY.childish]: { id: PY.childish, name: 'Childish', when: { [PA.discipline]: { max: -40 }, [PA.temper]: { min: 20 } }, hint: 'acts on impulse, sulks or lashes out when crossed' },
+      [PY.honourable]: { id: PY.honourable, name: 'Honourable', when: { [PA.honesty]: { min: 40 }, [PA.pride]: { min: 20 } }, hint: 'keeps its word, and answers an insult to its name' },
+      [PY.schemer]: { id: PY.schemer, name: 'Schemer', when: { [PA.honesty]: { max: -40 }, [PA.discipline]: { min: 20 } }, hint: 'plans ahead, lies patiently, uses people' },
+      [PY.bully]: { id: PY.bully, name: 'Bully', when: { [PA.pride]: { min: 40 }, [PA.temper]: { min: 40 }, [PA.honesty]: { max: -20 } }, hint: 'picks on the weaker, backs off from the stronger' },
+      [PY.busybody]: { id: PY.busybody, name: 'Busybody', when: { [PA.sociability]: { min: 40 }, [PA.curiosity]: { min: 40 } }, hint: 'pokes into others\' business and passes on what it learns' },
+    },
     fears: {
       [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 25, rolled: true, health: { from: 'Injured', to: 'Mauled' } },
       [FR.own_critical]: { id: FR.own_critical, name: 'Your health reaches Critical', cost: 50, rolled: true, health: { from: 'Critical', to: 'Critical' } },

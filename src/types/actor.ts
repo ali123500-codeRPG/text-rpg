@@ -74,7 +74,12 @@ export type Core = {
   inventory: ItemInstance[];
   standingDefense: DefenseKind;
   perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
+  personality?: Personality; // PL1: Nerve and personality points, before what perks, classes and achievements add (personalityOf)
 };
+
+/** PL1: Nerve runs Cautious (−100) to Daring (+100); traits are points by personality axis (PA…, −100 to +100); values
+ * are what the character cares about (VL…). Words and named types are read from these, never stored. */
+export type Personality = { nerve: number; traits: Record<LibraryRef, number>; values: LibraryRef[] };
 
 export type ClassEntry = {
   classId: LibraryRef;
@@ -141,7 +146,6 @@ export type Mind = {
   control: 'agent' | 'code';
   /** PM6: code-made lines about perceived events that fell out of its recent window; upTo = last summarized event id */
   earlier?: { upTo: string; lines: string[] };
-  behavior: string;
   moraleState?: 'broken' | 'surrendered';
   hitByPlayer?: true; // X5: the player has hit it
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware
@@ -165,7 +169,8 @@ export type NpcTemplate = {
   level: number;
   bonusPoints: number;
   focus: { treeId: LibraryRef; skill: LibraryRef }[];
-  personality: 'fearless' | 'bold' | 'steady' | 'timid';
+  resolve: number; // starting Resolve (MB30)
+  personality: Personality; // PL11: Nerve, trait and value points
   loadout?: LibraryRef[];
   potential?: number;
   control: 'agent' | 'code';
