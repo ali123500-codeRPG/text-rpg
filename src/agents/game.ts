@@ -78,6 +78,7 @@ export function createGame(deps: GameDeps): Game {
   let savedLines = 0; // Q18: lines[0..savedLines) are in the story's saved history
   let notices: Notice[] = [];
   let busy = false;
+  let agentSaid: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
   let stopped = false;
   let rateLimited = false;
   let aimNext = false;
@@ -584,8 +585,10 @@ export function createGame(deps: GameDeps): Game {
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),
     async agentMove(persona = '', style = '') {
-      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
-      return r.ok ? readMove(r.value) : null;
+      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+      const mv = r.ok ? readMove(r.value) : null;
+      if (mv?.say) agentSaid = [...agentSaid, mv.ja ? `${mv.ja} (${mv.say})` : mv.say].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
+      return mv;
     },
     submit,
     async reset() {

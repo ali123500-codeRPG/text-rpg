@@ -345,6 +345,7 @@ const DEFAULTS = {
   BACKGROUND_WINDOW_MS: 8_000, // Q2 (D-39)
   DIALOGUE_WINDOW_MS: 10_000, // Q2
   WEAVER_TIMEOUT_MS: 120_000, // Q2
+  AUTOPILOT_SAID_KEPT: 6, // the agent's last commentary lines it is shown, so it doesn't repeat its words
   AUTOPILOT_TIMEOUT_MS: 60_000, // a Watch-an-agent-play move that takes longer is given up and asked again, so the bar never hangs
   MAX_ROUTE_ZONES: 4, // Q2
   MAX_STAGE_ZONES: 12, // Q2

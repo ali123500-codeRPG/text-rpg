@@ -48,5 +48,6 @@ describe('158 autopilot saves', () => {
     expect(readMove({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' })).toEqual({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' });
     expect(autopilotTurn([], '', 'companion')).toContain('Your voice:');
     expect(autopilotTurn([], '', 'plain')).not.toContain('Your voice:');
+    expect(autopilotTurn([], '', 'companion', ['Yatta! Got him.'])).toContain('- Yatta! Got him.'); // never repeats itself
   });
 });
