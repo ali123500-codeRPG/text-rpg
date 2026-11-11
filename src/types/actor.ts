@@ -118,6 +118,8 @@ export type Progression = {
   tally?: Record<string, number>;
   /** achievement charges: the game day each was last spent, by achievement key */
   charges?: Record<string, number>;
+  /** skills the player has rolled, on the sheet or not, so the sheet and /stats can show an off-sheet skill in use (fists: Strike) */
+  used?: LibraryRef[];
   zonesSeen?: string[]; // zones the player has entered
   crippled?: string[]; // parts Crippled or worse, waiting to heal back to Healthy (the 'mended' achievements)
   wasDown?: true; // went Down and is not yet back to Unhurt (the 'back_from_down' achievement)
