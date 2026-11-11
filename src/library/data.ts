@@ -750,9 +750,9 @@ export function prototypeLibrary(): Library {
       [ACH.morale_lost_1000]: { id: ACH.morale_lost_1000, name: 'Seen Too Much', level: 'i', rule: 'morale_lost', tags: ['survival'], count: 1000, after: ACH.morale_lost_100 },
       [ACH.morale_lost_10000]: { id: ACH.morale_lost_10000, name: 'Fear Is an Old Friend', level: 'ii', rule: 'morale_lost', tags: ['survival'], count: 10000, after: ACH.morale_lost_1000 },
       // D-177: fights against a hostile foe stronger than you (power = rating + gear rating); gaps are placeholders
-      [ACH.survived_above_100]: { id: ACH.survived_above_100, name: 'Lived to Tell It', level: 'zero', rule: 'survived_above', tags: ['combat', 'survival'], count: 100 },
-      [ACH.survived_above_250]: { id: ACH.survived_above_250, name: 'Walked Away From That', level: 'i', rule: 'survived_above', tags: ['combat', 'survival'], count: 250, after: ACH.survived_above_100 },
-      [ACH.survived_above_500]: { id: ACH.survived_above_500, name: 'Should Have Died There', level: 'ii', rule: 'survived_above', tags: ['combat', 'survival'], count: 500, after: ACH.survived_above_250 },
+      [ACH.survived_above_100]: { id: ACH.survived_above_100, name: 'Lived to Tell It', level: 'i', rule: 'survived_above', tags: ['combat', 'survival'], count: 100 },
+      [ACH.survived_above_250]: { id: ACH.survived_above_250, name: 'Walked Away From That', level: 'ii', rule: 'survived_above', tags: ['combat', 'survival'], count: 250, after: ACH.survived_above_100 },
+      [ACH.survived_above_500]: { id: ACH.survived_above_500, name: 'Should Have Died There', level: 'iii', rule: 'survived_above', tags: ['combat', 'survival'], count: 500, after: ACH.survived_above_250 },
       [ACH.survived_pct_25]: { id: ACH.survived_pct_25, name: 'Outclassed, Not Outlived', level: 'ii', rule: 'survived_above_pct', tags: ['combat', 'survival'], count: 25 },
       [ACH.survived_pct_50]: { id: ACH.survived_pct_50, name: 'Too Stubborn to Die', level: 'iii', rule: 'survived_above_pct', tags: ['combat', 'survival'], count: 50, after: ACH.survived_pct_25 },
       [ACH.survived_pct_100]: { id: ACH.survived_pct_100, name: 'Death Looked Away', level: 'iv', rule: 'survived_above_pct', tags: ['combat', 'survival'], count: 100, after: ACH.survived_pct_50 },
