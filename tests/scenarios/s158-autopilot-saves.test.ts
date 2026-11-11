@@ -49,5 +49,23 @@ describe('158 autopilot saves', () => {
     expect(autopilotTurn([], '', 'companion')).toContain('Your voice:');
     expect(autopilotTurn([], '', 'plain')).not.toContain('Your voice:');
     expect(autopilotTurn([], '', 'companion', ['Yatta! Got him.'])).toContain('- Yatta! Got him.'); // never repeats itself
+    const v = makeVillage();
+    v.player.core.condition.hpLostPct = 50;
+    expect(autopilotTurn([], '', '', [], undefined, v)).toContain('How you are right now (you always know this; never stop to check it): health Wounded'); // BG-26: every move
+  });
+
+  it('BG-25/BG-26: the agent acts instead of looking at its sheet', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    const claude = new ScriptedClaude(clock)
+      .push('autopilot', { command: '/inv', say: 'What do I have?' })
+      .push('autopilot', { command: '/quests', say: 'And my jobs?' })
+      .push('autopilot', { command: 'I strike her', say: 'Now!' })
+      .push('autopilot', { command: '/stats', say: 'How bad am I hurt?' })
+      .push('autopilot', { command: 'I strike again', say: 'Again!' });
+    const g = createGame({ client: claude, clock, store, director: idle });
+    expect((await g.agentMove())?.command).toBe('/inv');
+    expect((await g.agentMove())?.command).toBe('I strike her'); // a second look so soon is asked again
+    expect(claude.callsFor('autopilot')[2].input[1].content).toContain('do not check it now');
+    expect((await g.agentMove())?.command).toBe('I strike again'); // BG-26: /stats is never needed, so it is always asked again
   });
 });

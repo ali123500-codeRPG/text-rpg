@@ -1,7 +1,12 @@
 // Autopilot: an agent that plays the game while the player watches (the play screen's "Watch an agent play"), and the
 // personas the playtest script shares. Each turn it picks the next command and one short line of commentary, spoken aloud.
-import type { Actor, LogLine } from '../types';
+import type { Actor, GameState, LogLine } from '../types';
+import { type Ask, type GuidedCtx, guidedPrompt, readAsk } from './crossroads';
 import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
+import { healthLevel, partStates } from '../ruleset/body';
+import { moraleLevel } from '../ruleset/morale';
+import { MORALE_LEVELS } from '../scales';
+import { coinWords, coins } from '../engine/trade';
 
 /** playstyles: the playtest script's --persona and the autopilot's persona picker */
 /** --persona eager: an over-enthusiastic adventurer who drives the story forward on their own (P7 pacing test) */
@@ -47,7 +52,9 @@ export const PERSONA_NAMES: [string, string][] = [['', 'Curious'], ['eager', 'Ea
 
 export const AUTOPILOT_BRIEF = `You are playing a text RPG as its player character while a person watches you play, live. Play naturally and
 curiously: talk to people, explore, take on any trouble you find, fight if it comes to that, and sometimes try something
-unusual. Now and then use a command: /stats, /inv, /quests or /aim <text>.
+unusual. Use /aim <text> to aim an attack. You are always told how hurt you are, your
+morale and your coin, so you never need /stats: never stop, look or "check how bad you're hurt", and never say you will.
+/inv and /quests list your gear and quests: use them rarely, and never in a fight or instead of acting.
 Reply with ONLY a JSON object: {"command": "what you type next, one short line in plain words", "say": "what you say
 out loud right now, 2 to 4 short sentences, at most 70 words"}.
 The watcher only hears "say", and it must sound like someone LIVING this moment, never like someone reporting it. Speak in the
@@ -76,21 +83,31 @@ export const VOICE_STYLES: [string, string, string][] = [
 
 /** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
  *  own recent commentary, so it doesn't keep repeating itself */
-export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = []): string {
-  const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
-  const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}`;
+/** BG-26: what the character knows of itself, given every move so it never stops to look at its sheet */
+export function condition(s: GameState): string {
+  const p = s.player, hurt = partStates(s, p).filter((x) => x.state !== 'Healthy').map((x) => `${x.id.replace(/_/g, ' ')} ${x.state}`);
+  const points = p.progression?.unspentPerkPoints ?? 0;
+  return `How you are right now (you always know this; never stop to check it): health ${healthLevel(p)}${hurt.length ? `, ${hurt.join(', ')}` : ', no wounded parts'}; morale ${MORALE_LEVELS.name(moraleLevel(p))}; you carry ${coinWords(coins(p))}${points ? `; ${points} perk point${points > 1 ? 's' : ''} to spend` : ''}.`;
 }
 
-/** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters */
-export function readMove(v: unknown): { command: string; say: string; ja?: string } | null {
+export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }, me?: GameState | null): string {
+  const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
+  const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
+}
+
+/** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters; in
+ *  guided play it may instead be a question for the watcher (ask, with no command) */
+export type Move = { command: string; say: string; ja?: string; ask?: Ask };
+export function readMove(v: unknown, mustKind?: string): Move | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
-  const command = typeof o.command === 'string' ? o.command.split('\n')[0].trim().slice(0, 200) : '';
-  if (!command) return null;
   const say = typeof o.say === 'string' ? o.say.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
   const ja = typeof o.ja === 'string' ? o.ja.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
-  return ja ? { command, say, ja } : { command, say };
+  const ask = o.ask !== undefined || mustKind ? readAsk(o.ask, mustKind) : null;
+  const command = ask ? '' : typeof o.command === 'string' ? o.command.split('\n')[0].trim().slice(0, 200) : '';
+  if (!command && !ask) return null;
+  return { command, say, ...(ja ? { ja } : {}), ...(ask ? { ask } : {}) };
 }
 
 /** the perk an agent playing its own save takes with a spare point: the open milestone of its highest skill */

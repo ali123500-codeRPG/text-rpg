@@ -26,6 +26,8 @@ import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK,
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { fameEntry } from './fame';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
+import type { GuidedCtx } from './crossroads';
+
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
 import { isComm, noticeCue } from '../perception';
@@ -33,6 +35,8 @@ import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
+
+const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
 /**
  * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
@@ -78,7 +82,7 @@ export function createGame(deps: GameDeps): Game {
   let savedLines = 0; // Q18: lines[0..savedLines) are in the story's saved history
   let notices: Notice[] = [];
   let busy = false;
-  let agentSaid: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
+  let agentSaid: string[] = [], agentCmds: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
   let stopped = false;
   let rateLimited = false;
   let aimNext = false;
@@ -584,9 +588,16 @@ export function createGame(deps: GameDeps): Game {
     reportBug: (note) => fileBug(store, clock.now(), { code: 'player_report', storyId: state?.storyId ?? '', turn: state?.turn ?? 0, note: note.slice(0, 2000),
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),
-    async agentMove(persona = '', style = '') {
-      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
-      const mv = r.ok ? readMove(r.value) : null;
+    async agentMove(persona = '', style = '', guided?: GuidedCtx) {
+      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined, state) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+      let mv = r.ok ? readMove(r.value, guided?.mustAsk?.kind) : null;
+      // BG-25/BG-26: it kept checking its sheet instead of acting. It is told its condition every move, so /stats is always
+      // asked again once, and /inv or /quests when it looked within AUTOPILOT_INFO_EVERY moves
+      if (mv && (/^\/stats\b/i.test(mv.command) || (INFO_COMMAND.test(mv.command) && agentCmds.some((c) => INFO_COMMAND.test(c))))) {
+        const again = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: `${autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined, state)}\n\nYou already know how you are (it is above) and looked at your sheet recently: do not check it now. Act.` }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+        mv = again.ok ? readMove(again.value, guided?.mustAsk?.kind) ?? mv : mv;
+      }
+      if (mv?.command) agentCmds = [...agentCmds, mv.command].slice(-CONFIG.AUTOPILOT_INFO_EVERY);
       if (mv?.say) agentSaid = [...agentSaid, mv.ja ? `${mv.ja} (${mv.say})` : mv.say].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
       return mv;
     },
