@@ -42,19 +42,19 @@ describe('161 All-150 Every Sense One', () => {
   });
 
   it('what the owner only half sees, it also hears (so spoken words come through)', () => {
-    const s = makeVillage();
-    const e = ev(s, 'trader', 'tav_counter', 'low', 'silent'); // a shape one zone away, no sound
+    const s = makeVillage({ playerZone: 'street_square' });
+    const e = ev(s, 'slime_1', 'field_edge', 'low', 'silent'); // a still shape two zones (16 m) away, no sound
     expect(perceptionOf(e, s, s.player)).toEqual({ level: 'partial', cue: 'sight' });
     give(s.player);
-    expect(perceptionOf(e, s, s.player)).toEqual({ level: 'partial', cue: 'sound' });
+    expect(perceptionOf(e, s, s.player)).toEqual({ level: 'partial', cue: 'sound', heard: true });
   });
 
   it('what the owner hears clearly, it sees clearly', () => {
     const s = makeVillage();
     const e = ev(s, 'trader', s.player.zone, 'unseen', 'normal'); // heard in the owner's zone, never seen
-    expect(perceptionOf(e, s, s.player)).toEqual({ level: 'full', cue: 'sound' });
+    expect(perceptionOf(e, s, s.player)).toEqual({ level: 'full', cue: 'sound', heard: true });
     give(s.player);
-    expect(perceptionOf(e, s, s.player)).toEqual({ level: 'full', cue: 'sight' });
+    expect(perceptionOf(e, s, s.player)).toEqual({ level: 'full', cue: 'sight', heard: true });
   });
 
   it('a sight roll uses Earshot when it is the better sense, and a hearing roll uses Eyesight', () => {
