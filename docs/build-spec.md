@@ -2928,6 +2928,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-204 | Nerve by area of life | 4 | Parked | Parked by Ali (PL5, 11/11/2026, "I like it"). Risk differs by area (DOSPERT: ethical, financial, health and safety, recreational, social). Options: a keep one Nerve (physical danger) as now; b split Nerve into areas, each its own axis with its own line; c one Nerve plus area modifiers on top. |
 | D-205 | Numeric effects of personality | 3, 4 | Parked | Parked by Ali (PL13, 11/11/2026, low priority: Claude already plays personality for agent NPCs). Options: a words only (now); b Nerve tiers move numbers such as when a code-run NPC flees or morale costs; c named types carry small roll modifiers. |
 | D-206 | Attachment, and how strongly stances drive actions | 2, 4 | Parked | Parked by Ali (PL8, 11/11/2026) for its own deep dive: stances feel too rigid and binary. HEXACO Emotionality's attachment half (sentimentality, dependence) could set how hard a stance drives what someone does for or against another. Options: a an Attachment axis in personality; b a strength on each stance; c both. Needs its own design thread. |
+| D-207 | Zone level ratings (a difficulty level per zone or area) | 3 | Parked | Parked by Ali (11/11/2026), who does not like it: the goal is a living world with a story, not areas graded by level. Difficulty comes from who is there and what is happening (the event roll and the Weaver), not from a zone's rating. |
 
 ## Bug log
 
