@@ -152,10 +152,13 @@ export function checkinErrors(state: GameState, a: CheckinAnswer | null): string
  * SC8/SC14: apply a check-in's answer to the scene it was asked about (dropped if that scene is over). A failed or invalid
  * answer changes nothing and files a bug; the next set moment asks again. An end waits for a clear turn (SC13) like any ending.
  */
-export function applyCheckin(state: GameState, number: number, a: CheckinAnswer | null, events: GameEvent[]): void {
+export type CheckinExtras = { errors: (a: CheckinAnswer) => string[]; apply: (a: CheckinAnswer) => Record<string, unknown> };
+export function applyCheckin(state: GameState, number: number, a: CheckinAnswer | null, events: GameEvent[], extras?: CheckinExtras): void {
   const st = state.stage;
   if (st.scene?.number !== number || st.breakCause) return;
+  // SC12: a continue's scene change, arrivals and frontiers are checked with the rest; one bad part drops the whole answer
   const errors = checkinErrors(state, a);
+  if (!errors.length && a!.verdict === 'continue' && extras) errors.push(...extras.errors(a!));
   if (errors.length) { logCode(state, 'checkin_failed', { number, errors }); return; }
   if (a!.verdict === 'end') {
     st.ending ??= { as: a!.as as SceneEnding, text: a!.text ?? '', turn: state.turn };
@@ -167,7 +170,8 @@ export function applyCheckin(state: GameState, number: number, a: CheckinAnswer 
     const beat = { ...t, id: `ci${state.turn}_${i}_${t.id}`, once: t.once ?? true };
     (state.hidden.plans[t.ownerId] ??= { goal: '', steps: [], triggers: [], createdTurn: state.turn }).triggers.push(beat);
   }
-  logCode(state, 'checkin_continue', { beats: a!.beats?.length ?? 0 });
+  const did = a!.verdict === 'continue' && extras ? extras.apply(a!) : {};
+  logCode(state, 'checkin_continue', { beats: a!.beats?.length ?? 0, ...did });
 }
 
 /** ends the scene this turn with `as` (outer: the bigger scene's own ending, which ends both) */

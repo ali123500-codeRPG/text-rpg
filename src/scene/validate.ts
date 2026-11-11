@@ -174,7 +174,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 
   // ---- grades ----
   const ev = plan.event;
-  if (!ev || !GRADES.includes(ev.challenge) || !GRADES.includes(ev.gain)) err('bad_grade', 'event needs challenge and gain grades');
+  if (ctx.kind === 'checkin') { /* SC12: a check-in keeps the scene's grades */ }
+  else if (!ev || !GRADES.includes(ev.challenge) || !GRADES.includes(ev.gain)) err('bad_grade', 'event needs challenge and gain grades');
   else if (!gradesFitTier(ctx.tier, ev.challenge, ev.gain))
     err('grades_misfit', `challenge ${ev.challenge} / gain ${ev.gain} does not fit tier ${tierName(ctx.tier)}`);
 
@@ -372,7 +373,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   }
 
   // ---- SC1/SC2/SC3/SC7: a new scene's question, scale and endings ----
-  if (ctx.kind === 'scene') {
+  if (ctx.kind === 'scene' || (ctx.kind === 'checkin' && plan.scene)) {
     // degradable: after the repair retry, a plan whose scene is still wrong is applied with the bad endings dropped
     const serr = (code: string, message: string) => err(code, message, undefined, true);
     const sc = plan.scene;

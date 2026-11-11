@@ -217,5 +217,17 @@ export const checkNarrator = run(narrator);
 export const checkStagePlan = run(weaver);
 
 /** SC8: the Weaver's check-in answer; what it may say is checked by engine/sceneEnd.ts checkinErrors */
-const checkin = obj<CheckinAnswer>({ verdict: oneOf(['continue', 'end'] as const), as: str, text: str, beats: optArr(trigger) as V<CheckinAnswer['beats']>, note: str }, ['as', 'text', 'beats', 'note']);
+/** SC12: arrivals use the stage plan's own band, cast and seed checks */
+const arrivals: V<NonNullable<CheckinAnswer['arrivals']>> = (v, p, e) => {
+  if (!isObj(v)) { e.push(`${p}: expected object`); return { bands: [], cast: [] }; }
+  const r = weaver({ event: { summary: '', challenge: 'none', gain: 'none' }, places: [], zones: [], frontiers: [], rewards: [], hiddenTerms: [], weaverNote: '',
+    bands: v.bands ?? [], cast: v.cast ?? [], seeds: v.seeds ?? { plans: [], triggers: [], secrets: [] } }, p, e);
+  return { bands: r.bands, cast: r.cast, seeds: r.seeds };
+};
+const checkin = obj<CheckinAnswer>({
+  verdict: oneOf(['continue', 'end'] as const), as: str, text: str, beats: optArr(trigger) as V<CheckinAnswer['beats']>, note: str,
+  change: obj<NonNullable<CheckinAnswer['change']>>({ question: str, scale: str, endings: arr(any) as V<NonNullable<NonNullable<CheckinAnswer['change']>['endings']>> }, ['question', 'scale', 'endings']),
+  arrivals,
+  frontiers: arr(obj<NonNullable<CheckinAnswer['frontiers']>[number]>({ zone: str, key: str, label: str })),
+}, ['as', 'text', 'beats', 'note', 'change', 'arrivals', 'frontiers']);
 export const checkCheckin = run(checkin);

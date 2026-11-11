@@ -3,6 +3,7 @@
 import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, StagePlan } from '../types';
 import { SceneDirector as Director } from '../scene/director';
 import { openingEvents } from '../scene';
+import { applyCheckinPlan, checkinPlanErrors } from '../scene/checkin';
 import type { AgentCtx } from './call';
 import type { SceneDirector } from './game';
 import { runAgent } from './call';
@@ -58,7 +59,7 @@ export function createDirector(clock: Clock): SceneDirector {
       if (!key) {
         // SC8: a check-in that came back since the last turn: applied now, to the scene it was about
         const ci = d.takeCheckin();
-        if (ci) applyCheckin(state, ci.number, ci.answer, _events);
+        if (ci) applyCheckin(state, ci.number, ci.answer, _events, { errors: (a) => checkinPlanErrors(state, a), apply: (a) => applyCheckinPlan(state, a, rng) });
         // sceneBreak (P7, D-30): rest, a beat that ends the scene, or a stall. A frontier crossing goes first; the break waits a turn.
         if (!state.stage.breakCause) return [];
         ctx = c;

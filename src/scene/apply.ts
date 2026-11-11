@@ -23,7 +23,7 @@ import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 
-function freshId(key: string, taken: Set<string>): string {
+export function freshId(key: string, taken: Set<string>): string {
   let id = key;
   for (let n = 2; taken.has(id); n++) id = `${key}_${n}`;
   taken.add(id);
@@ -259,8 +259,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       installRoutines(a, c.routineSetId, slots, c.startAt, turn, rng);
     }
   });
-  // step 5: each actor stands in its default routine's desired zone for the current turn
-  for (const a of castActors) {
+  // step 5: each actor stands in its default routine's desired zone for the current turn (SC12: arrivals walk in instead)
+  if (ctx.kind !== 'checkin') for (const a of castActors) {
     const d = desiredState(buildActorView(state, a.id));
     if (d) moveTo(state, a, d.zone);
   }
@@ -327,7 +327,13 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   else state.hidden.stage = { ...hs, eventSummary: [hs.eventSummary, plan.event.summary].filter(Boolean).join(' / '), hiddenTerms: [...new Set([...hs.hiddenTerms, ...plan.hiddenTerms])] };
   state.hidden.weaverNote = plan.weaverNote;
   // SC1/SC2/SC7: a new scene's question, scale and endings, plan keys mapped to ids
-  if (ctx.kind === 'scene') state.stage.scene = frameOf(state, plan.scene, ctx.tier, (k, r) => (k === 'band' ? bandRef(r) : k === 'actor' ? actorRef(r) : placeMap.get(r) ?? zoneMap.get(r) ?? r));
+  const frameRef = (k: 'band' | 'place' | 'actor', r: string) => (k === 'band' ? bandRef(r) : k === 'actor' ? actorRef(r) : placeMap.get(r) ?? zoneMap.get(r) ?? r);
+  if (ctx.kind === 'scene') state.stage.scene = frameOf(state, plan.scene, ctx.tier, frameRef);
+  // SC12: a check-in may change the running scene's question, scale and endings; its number, start and records stay
+  else if (ctx.kind === 'checkin' && plan.scene && state.stage.scene) {
+    const f = frameOf(state, plan.scene, state.stage.scene.tier, frameRef);
+    Object.assign(state.stage.scene, { question: f.question, scale: f.scale, endings: f.endings });
+  }
   state.hidden.castNotes ??= {};
   plan.cast.forEach((c, i) => (state.hidden.castNotes![castActors[i].id] = { motive: c.motive, ...(c.routineGap ? { routineGap: c.routineGap } : {}) }));
 
