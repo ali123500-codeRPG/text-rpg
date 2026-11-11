@@ -127,6 +127,8 @@ export type ZoneKind = {
   id: string; name: string; outdoor: boolean; cover: import('./core').Cover; light: import('./core').Light;
   /** CO16 default size, and CO15 the edge kind every side gets unless the Weaver names another */
   size: import('../scales').ZoneSizeKey; edge: string;
+  /** long side ÷ short side of the zone's rectangle (1 = square) */
+  aspect: number;
 };
 /** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
 export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; text: string };

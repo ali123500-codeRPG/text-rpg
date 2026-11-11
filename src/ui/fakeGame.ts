@@ -1,4 +1,6 @@
 // In-memory fake GameApi with canned lines, for building and screenshotting the screens until W7's pipeline lands.
+import { placeZones } from '../scene/geometry';
+import { EK } from '../library/tableIds';
 import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice } from '../types';
@@ -68,25 +70,27 @@ const FZ = (id: string, placeId: string, name: string, look: string, links: [str
   ({ id, placeId, name, look, links: links.map(([to, label, sight = true, frontier]) => ({ to, label, sight, ...(frontier ? { frontier } : {}) })), cover: 'some', light: 'dim', groundItems: [], ...extra });
 const FP = (id: string, kind: string, parentId: string | null, name: string, zones: FakeZone[]): GameState['places'][number] =>
   ({ id, storyId: 'fake', kind, parentId, names: { current: name, past: [] }, zones, state: {}, headlines: [] });
-const FAKE_PLACES = (): GameState['places'] => [
+const FAKE_PLACES = (): GameState['places'] => placed([
   FP('village', 'village', null, 'Millbrook', [
-    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['ash_gate', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none' }),
+    FZ('v_square', 'village', 'village square', 'A muddy square around a well, with the tavern sign creaking over it.', [['tav_common', 'the Kettle’s front door', false], ['field_edge', 'the east lane'], ['ash_gate', 'the west road', false]], { outdoor: true, light: 'bright', cover: 'none', area: 1600 }),
   ]),
   FP('ashford', 'village', null, 'Ashford', [
-    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['v_square', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none' }),
+    FZ('ash_gate', 'ashford', 'Ashford gate', 'A timber gate in a low wall, a day’s walk west of Millbrook.', [['v_square', 'the east road', false], ['f_ash', 'the market, north', false, true]], { outdoor: true, light: 'bright', cover: 'none', area: 25, aspect: 2 }),
   ]),
   FP('tavern', 'tavern', 'village', 'the Crooked Kettle', [
-    FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]]),
-    FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', false], ['tav_cellar', 'the cellar hatch, down', false]]),
-    FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some' }),
-    FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', false]], { light: 'dark', height: 3 }),
-    FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', false]], { light: 'dark', height: -3 }),
+    FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]], { area: 64, edges: { n: EK.wall, e: EK.wall, s: EK.window, w: EK.wall } }),
+    FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', false], ['tav_cellar', 'the cellar hatch, down', false]], { area: 25 }),
+    FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some', area: 150, edges: { n: EK.low, e: EK.low, s: EK.low, w: EK.wall } }),
+    FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', false]], { light: 'dark', height: 3, area: 9, aspect: 2 }),
+    FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', false]], { light: 'dark', height: -3, area: 60 }),
   ]),
   FP('field', 'field', 'village', 'the slime field', [
-    FZ('field_edge', 'field', 'field edge', 'Long grass streaked with silver trails.', [['v_square', 'the lane back west'], ['field_mid', 'into the field, north']], { outdoor: true, light: 'bright', cover: 'none' }),
-    FZ('field_mid', 'field', 'middle of the field', 'Trampled grass around a shallow pond.', [['field_edge', 'the field edge, south'], ['f_trees', 'the trees, east', true, true]], { outdoor: true, light: 'bright', cover: 'some' }),
+    FZ('field_edge', 'field', 'field edge', 'Long grass streaked with silver trails.', [['v_square', 'the lane back west'], ['field_mid', 'into the field, north']], { outdoor: true, light: 'bright', cover: 'none', area: 1600 }),
+    FZ('field_mid', 'field', 'middle of the field', 'Trampled grass around a shallow pond.', [['field_edge', 'the field edge, south'], ['f_trees', 'the trees, east', true, true]], { outdoor: true, light: 'bright', cover: 'some', area: 1600 }),
   ]),
-];
+]);
+/** code places every fake zone in metres, as applyStagePlan does for real ones */
+function placed(ps: GameState['places']): GameState['places'] { placeZones({ places: ps } as GameState, ps.flatMap((p) => p.zones)); return ps; }
 
 export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
   let state: GameState | null = null;

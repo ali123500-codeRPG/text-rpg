@@ -45,6 +45,8 @@ export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: t
 /** a zone's four sides, by map compass */
 export type Side = 'n' | 'e' | 's' | 'w';
 export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
+/** a zone's rectangle in metres: centre x east, y north of the story's first zone; w east-west, d north-south */
+export type Rect = { x: number; y: number; w: number; d: number };
 
 export type Zone = {
   id: string;
@@ -61,6 +63,10 @@ export type Zone = {
   area?: number;
   /** CO15 each side's edge kind id (EK); a side not listed is the kind's default */
   edges?: Partial<Record<Side, string>>;
+  /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
+  aspect?: number;
+  /** set by code (src/scene/geometry.ts placeZones), never by Claude */
+  rect?: Rect;
   groundItems: import('./items').ItemInstance[];
 };
 

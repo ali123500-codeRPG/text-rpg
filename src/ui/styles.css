@@ -713,6 +713,25 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile-sub { fill: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .map-tile.here .map-tile-sub { fill: var(--accent); }
 .map-who circle { fill: var(--c4); stroke: var(--bg); stroke-width: 2; }
+/* To scale (CO1): zones as rectangles in metres; each side drawn by its edge kind */
+.map-tile.plan .map-tile-box { stroke: none; }
+.map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
+.map-tile.plan.selected .map-tile-box { stroke: var(--scene-mark); stroke-width: 2; }
+.map-tile.plan .map-tile-name { font-size: 11px; }
+.map-edge { stroke: var(--text); stroke-linecap: square; }
+.map-edge.wall { stroke-width: 3; }
+.map-edge.open { stroke-width: 1; stroke-dasharray: 1 5; opacity: .5; }
+.map-edge.low { stroke-width: 2; stroke-dasharray: 6 4; }
+.map-edge.window { stroke-width: 1; stroke-dasharray: 10 3 2 3; }
+.map-dot-who { fill: var(--c4); stroke: var(--bg); stroke-width: 1.5; }
+.map-dot-who.last { opacity: .5; }
+.map-scale line { stroke: var(--muted); stroke-width: 2; }
+.map-scale text { fill: var(--muted); font-size: 12px; }
+.k-edge { display: inline-block; width: 22px; height: 0; border-top: 3px solid var(--text); vertical-align: middle; }
+.k-edge.low { border-top-style: dashed; border-top-width: 2px; }
+.k-edge.window { border-top: 1px double var(--text); border-bottom: 1px solid var(--text); height: 3px; }
+.k-edge.open { border-top: 1px dotted var(--muted); }
+.map-plan-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-pill); }
 .map-who text { fill: var(--on-pill); font-size: 11px; font-weight: 800; }
 .map-who.last circle { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
 .map-who.last text { fill: var(--c4); }

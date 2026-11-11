@@ -4,6 +4,7 @@ import { CONFIG } from '../config';
 import { TIME_OF_DAY } from '../scales';
 import { SIDES } from '../types';
 import { inferHeights } from './heights';
+import { placeZones } from './geometry';
 import { clockSet, startClock } from '../time';
 import { activity, getLibrary, itemDef } from '../library';
 import { spawnNpc } from '../library/spawn';
@@ -179,13 +180,14 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     });
     const k = getLibrary().zoneKinds![z.kind]; // the validator checked it
     const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), ...(z.height ? { height: z.height } : z.height === 0 ? { height: 0 } : {}),
-      area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, z.edges?.[sd] ?? k.edge])), groundItems: [] };
+      area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, z.edges?.[sd] ?? k.edge])), ...(k.aspect > 1 ? { aspect: k.aspect } : {}), groundItems: [] };
     state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
     putOnStage(state, zone);
     newZones.push(zone);
   }
   ensureBackLinks(state, newZones);
   inferHeights(state, newZones);
+  placeZones(state, newZones); // after heights: stairs stack zones straight above or below
   const firstZone = newZones[0]?.id;
   if (ctx.kind === 'extension' && ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0]);
   // GAP: at story start the player has no zone on the stage yet; it starts in the plan's first zone.
