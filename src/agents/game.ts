@@ -589,11 +589,12 @@ export function createGame(deps: GameDeps): Game {
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),
     async agentMove(persona = '', style = '', guided?: GuidedCtx) {
-      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined, state) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
       let mv = r.ok ? readMove(r.value, guided?.mustAsk?.kind) : null;
-      // BG-25: it kept checking its sheet instead of acting; a second look within AUTOPILOT_INFO_EVERY moves is asked again once
-      if (mv && INFO_COMMAND.test(mv.command) && agentCmds.some((c) => INFO_COMMAND.test(c))) {
-        const again = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: `${autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined)}\n\nYou looked at your sheet only a few moves ago: do not check it again now. Act.` }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+      // BG-25/BG-26: it kept checking its sheet instead of acting. It is told its condition every move, so /stats is always
+      // asked again once, and /inv or /quests when it looked within AUTOPILOT_INFO_EVERY moves
+      if (mv && (/^\/stats\b/i.test(mv.command) || (INFO_COMMAND.test(mv.command) && agentCmds.some((c) => INFO_COMMAND.test(c))))) {
+        const again = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: `${autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined, state)}\n\nYou already know how you are (it is above) and looked at your sheet recently: do not check it now. Act.` }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
         mv = again.ok ? readMove(again.value, guided?.mustAsk?.kind) ?? mv : mv;
       }
       if (mv?.command) agentCmds = [...agentCmds, mv.command].slice(-CONFIG.AUTOPILOT_INFO_EVERY);

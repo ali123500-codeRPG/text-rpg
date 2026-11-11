@@ -3,6 +3,10 @@
 import type { Actor, GameState, LogLine } from '../types';
 import { type Ask, type GuidedCtx, guidedPrompt, readAsk } from './crossroads';
 import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
+import { healthLevel, partStates } from '../ruleset/body';
+import { moraleLevel } from '../ruleset/morale';
+import { MORALE_LEVELS } from '../scales';
+import { coinWords, coins } from '../engine/trade';
 
 /** playstyles: the playtest script's --persona and the autopilot's persona picker */
 /** --persona eager: an over-enthusiastic adventurer who drives the story forward on their own (P7 pacing test) */
@@ -48,9 +52,9 @@ export const PERSONA_NAMES: [string, string][] = [['', 'Curious'], ['eager', 'Ea
 
 export const AUTOPILOT_BRIEF = `You are playing a text RPG as its player character while a person watches you play, live. Play naturally and
 curiously: talk to people, explore, take on any trouble you find, fight if it comes to that, and sometimes try something
-unusual. Use /aim <text> to aim an attack. /stats, /inv and /quests show your sheet, gear and quests: use them rarely,
-only for a fact the story hasn't told you, and never in a fight or instead of acting. The story tells you how hurt you are,
-so never stop to check your wounds.
+unusual. Use /aim <text> to aim an attack. You are always told how hurt you are, your
+morale and your coin, so you never need /stats: never stop, look or "check how bad you're hurt", and never say you will.
+/inv and /quests list your gear and quests: use them rarely, and never in a fight or instead of acting.
 Reply with ONLY a JSON object: {"command": "what you type next, one short line in plain words", "say": "what you say
 out loud right now, 2 to 4 short sentences, at most 70 words"}.
 The watcher only hears "say", and it must sound like someone LIVING this moment, never like someone reporting it. Speak in the
@@ -79,10 +83,17 @@ export const VOICE_STYLES: [string, string, string][] = [
 
 /** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
  *  own recent commentary, so it doesn't keep repeating itself */
-export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }): string {
+/** BG-26: what the character knows of itself, given every move so it never stops to look at its sheet */
+export function condition(s: GameState): string {
+  const p = s.player, hurt = partStates(s, p).filter((x) => x.state !== 'Healthy').map((x) => `${x.id.replace(/_/g, ' ')} ${x.state}`);
+  const points = p.progression?.unspentPerkPoints ?? 0;
+  return `How you are right now (you always know this; never stop to check it): health ${healthLevel(p)}${hurt.length ? `, ${hurt.join(', ')}` : ', no wounded parts'}; morale ${MORALE_LEVELS.name(moraleLevel(p))}; you carry ${coinWords(coins(p))}${points ? `; ${points} perk point${points > 1 ? 's' : ''} to spend` : ''}.`;
+}
+
+export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }, me?: GameState | null): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
   const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
 }
 
 /** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters; in
