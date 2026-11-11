@@ -152,13 +152,27 @@ Rules:
 1. Judge from the stage, the actors, their plans and the quests whether the scene's question is answered or left behind.
    If it is, answer "end" with the ending it reached ("as") and one hidden line of what happened.
 2. Otherwise answer "continue". You may add beats: triggers owned by actors on the stage, to move the story when play goes quiet.
+   A continue may also change the scene:
+   - change: a new question, scale or endings (endings replace the old list, ${CONFIG.SCENE_ENDINGS_MIN} to ${CONFIG.SCENE_ENDINGS_MAX}), when play has turned the story;
+   - arrivals: people who come in now, as bands, cast and seeds in a stage plan. Each comes in through a way that already
+     exists: its first slot is a stage zone the player cannot see now, and it walks in from there. Their own beats go in
+     arrivals.seeds;
+   - frontiers: new ways out found on stage zones (a hidden door, a cart track), each {zone, key, label}; what lies
+     behind is built later, when the player goes through.
+   Never add zones or rooms to a place: the world grows only through frontiers.
 3. Over budget: close the scene unless a fight or chase is on; code ends it at ${CONFIG.SCENE_OVERRUN_MULT} times its budget anyway.
 4. Stuck: give a way forward, a beat that brings someone or something in, or an ending. Never remove a danger: being stuck
    is no escape from a bad scene.
 5. Only ids that are in WEAVER_VIEW. Keep note short.
 
 Return only JSON matching the schema.`;
-export const CHECKIN_SHAPE = `{"verdict":"continue"|"end","as"?:"resolved"|"lost"|"left"|"escaped"|"interrupted","text"?:string,"beats"?:[trigger],"note"?:string}
+export const CHECKIN_SHAPE = `{"verdict":"continue"|"end","as"?:"resolved"|"lost"|"left"|"escaped"|"interrupted","text"?:string,"beats"?:[trigger],"note"?:string,
+ "change"?:{"question"?:string,"scale"?:${words(SCENE_SCALES)},"endings"?:[{"when":endCheck,"as","text"}]},
+ "arrivals"?:{${WEAVER_SHAPE.slice(WEAVER_SHAPE.indexOf('"bands":'), WEAVER_SHAPE.indexOf(' "rewards":')).trim().replace(/,$/, '')}},
+ "frontiers"?:[{"zone":stage zone id,"key","label"}]}
+${WEAVER_SHAPE.slice(WEAVER_SHAPE.indexOf('endCheck = '), WEAVER_SHAPE.indexOf('\n', WEAVER_SHAPE.indexOf('endCheck = ')))}
+awareness = "unaware"|"suspicious"|"aware"
+Public text (names, labels, appearances, knows) is at most ${CONFIG.TEXT_CAP} characters.
 trigger = {"id","ownerId":actor id,"when":{"type":"quiet_turns","turns":number}|{"type":"player_seen_in_zone","zone"}|{"type":"turn_reached","turn":number}|{"type":"actor_down","actorId"}|{"type":"alarm_heard"},"then":{"type":orderType,"target":id|"$player"|null,"skill":string|null,"intent"},"once"?:boolean (default true)}
 orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}`;
 

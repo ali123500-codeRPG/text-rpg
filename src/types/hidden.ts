@@ -56,7 +56,15 @@ export type SceneFrame = {
 /** SC8/SC15: why a Weaver check-in is asked */
 export type CheckinReason = 'beat' | 'budget' | 'judged' | 'stuck';
 /** SC8: the check-in's answer: carry on (with new beats) or end the scene */
-export type CheckinAnswer = { verdict: 'continue' | 'end'; as?: string; text?: string; beats?: Trigger[]; note?: string };
+/** SC8/SC12: a check-in's answer. continue may also change the scene (question, scale, endings), send people in through
+ * ways that already exist (arrivals: new bands, cast and seeds, as in a stage plan, starting out of the player's sight),
+ * and add frontiers on stage zones (new ways out, built later like any frontier). It never builds zones. */
+export type CheckinAnswer = {
+  verdict: 'continue' | 'end'; as?: string; text?: string; beats?: Trigger[]; note?: string;
+  change?: { question?: string; scale?: string; endings?: { when: EndCheck; as: string; text: string }[] };
+  arrivals?: { bands: import('./agents').StagePlan['bands']; cast: import('./agents').StagePlan['cast']; seeds?: import('./agents').StagePlan['seeds'] };
+  frontiers?: { zone: string; key: string; label: string }[];
+};
 /** SC6: how one scene went */
 export type SceneRecord = {
   number: number; question: string; scale: SceneScale; tier: Tier;
