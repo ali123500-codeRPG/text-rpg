@@ -14,7 +14,7 @@
   --font-story: "Literata", Georgia, serif;
   --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-9: 36px;
-  --control-h: 36px; --input-h: 40px; --touch: 44px; --rail-w: 84px; --panel-w: 420px; --tile-min: 180px;
+  --control-h: 36px; --input-h: 40px; --touch: 44px; --rail-w: 84px; --panel-w: 420px; --sheet-w: 300px; --tile-min: 180px;
   --r-sm: 2px; --r-md: 4px; --r-lg: 6px; --r-rail: 14px; --r-pill: 999px;
   --shadow-toast: 0 6px 24px rgba(0,0,0,.18);
   --bg: #0b1330; --surface: #16214a; --text: #eef4ff; --muted: #bccbec; --faint: #adbde2; --border: #2a3b70; --rule: #34477f;
@@ -391,6 +391,15 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .bf-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; margin: 0; font-size: 12px; color: var(--muted); }
 .bf-key span { display: inline-flex; align-items: center; gap: 4px; }
 .bf-key i { width: 10px; height: 10px; border-radius: 2px; }
+/* the play sheet keeps every block as compact as its skill rows */
+.cs-side { gap: var(--space-3); }
+.cs-side .bf-svg svg { width: 72px; }
+.cs-side .cs-row > span:first-child { white-space: nowrap; }
+.cs-side .cs-row > b { text-align: right; }
+/* the small figure with its key beside it; the tapped part's line runs underneath */
+.cs-side .bf { grid-template-columns: auto auto; justify-content: center; align-items: center; column-gap: var(--space-6); }
+.cs-side .bf-key { grid-column: 2; grid-row: 1; flex-direction: column; align-items: flex-start; font-size: 12px; }
+.cs-side .bf-out { grid-column: 1 / -1; }
 
 /* Perks (Character page; perk page S1, S7). Gold = --scene-mark. */
 .hs-rail a { position: relative; }
@@ -560,11 +569,11 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
 .playmain > .fell { grid-row: 4; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
-.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) clamp(var(--panel-w), 30vw, 600px); } /* the open sheet grows with the screen */
+.play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) var(--sheet-w); } /* the open sheet is as narrow as its skill rows; the story takes the rest */
 .play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
 /* the story fills all the space beside the sheet at every width (always fit the screen, no empty spaces); its type
    grows a little with the screen so wide lines stay readable */
-.play { --story-size: clamp(17px, 0.45vw + 11px, 21px); }
+.play { --story-size: clamp(16px, 0.45vw + 10px, 20px); }
 .col { font: var(--story-size)/1.6 var(--font-story); width: 100%; box-sizing: border-box; }
 .col > * { font: 14px/1.4 var(--font-round); }
 .story { overflow-y: auto; min-height: 0; scrollbar-color: var(--rule) transparent;
@@ -589,10 +598,10 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .speech { display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: var(--space-2) var(--space-3); align-items: center; }
 .speech .who2 { font-weight: 800; text-align: right; }
 .speech .how { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
-.speech q { font: 17px/1.6 var(--font-story); quotes: "\201C" "\201D"; }
+.speech q { font: 16px/1.6 var(--font-story); quotes: "\201C" "\201D"; }
 .speech q.shout { font-weight: 700; }
 .speech q.whisper { color: var(--muted); }
-.speech .stage { color: var(--muted); font: italic 17px/1.6 var(--font-story); }
+.speech .stage { color: var(--muted); font: italic 16px/1.6 var(--font-story); }
 /* each turn's results under its prose: quieter than the story, one hairline above */
 .results { display: grid; gap: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border); }
 .rrow { display: flex; gap: var(--space-3); align-items: baseline; font-size: 13px; color: var(--muted); }
