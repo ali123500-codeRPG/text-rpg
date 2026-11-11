@@ -2884,6 +2884,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-2 | A sparring blow struck from hiding raised the alarm (SP11) | Thread | Fixed | PR #363 |
 | BG-3 | "I await the outcome" after a yield got a clarify ("Nothing is pending"): the Parser had no way to let a moment pass | Play | Fixed | PR #375 |
 | BG-4 | "I yield" asked a hostile who never fought the player (waiting in another room), and the sheet's "Deciding" list revealed him; he also counts in the fight log | Play | Open, waiting on Ali's rule | |
+| BG-5 | The player's fight never ended after they left it: the slimes stayed hostile and aware while fighting the guard, so fightingWith kept the engagement open and the end-of-engagement skill-up rolls never came (playtest run 31) | Playtest | Open, waiting on Ali's rule (YD6) | |
 
 ## Check on release
 
