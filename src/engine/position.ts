@@ -4,6 +4,7 @@
 // walking path through the doorways. A zone with no rectangle (a hand-built test world) is a point: every link costs a
 // zone link of metres (linkM), as before positions.
 import { CONFIG } from '../config';
+import { getLibrary } from '../library';
 import { doorway } from '../scene/geometry';
 import { heightOf } from '../scene/heights';
 import { linkM } from '../ruleset/range';
@@ -36,7 +37,7 @@ export function placeAll(state: GameState): void {
     if (!z?.rect) { delete a.pos; continue; }
     if (a.pos && inside(z, a.pos)) continue;
     const taken = people.filter((o) => o !== a && o.zone === a.zone && o.pos && inside(z, o.pos)).map((o) => o.pos!);
-    const c = centre(z)!;
+    const c = anchor(state, z);
     let spot = c;
     search: for (let r = 0; r <= 50; r++) {
       for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) {
@@ -47,6 +48,15 @@ export function placeAll(state: GameState): void {
     }
     a.pos = { ...spot };
   }
+}
+
+/** where placeAll starts looking in a zone: an encounter's point on the road (TV4); on a road, beside the player (the
+ * companions who travelled with it); else the zone's centre */
+function anchor(state: GameState, z: Zone): Pos {
+  const e = state.stage.encounter, p = state.player;
+  if (e && e.zone === z.id && inside(z, e.at)) return e.at;
+  if (z.kind && getLibrary().zoneKinds?.[z.kind]?.road && p.zone === z.id && p.pos && inside(z, p.pos)) return p.pos;
+  return centre(z)!;
 }
 
 /** the point where a walk crosses from one zone into the next: their doorway, else halfway between their centres */

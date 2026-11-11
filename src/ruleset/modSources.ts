@@ -105,6 +105,8 @@ export const MOD_SOURCES: ModSource[] = [
     when: 'Every roll against someone whose intimidation beat you, until your engagement ends.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },
   { type: 'status', roll: 'skill', source: 'Swayed', at: 'src/ruleset/pressure.ts',
     when: 'Every roll against someone whose persuasion beat you, until your engagement ends.', value: `−${CONFIG.SWAYED_PER_TIER} × tiers lost by` },
+  { type: 'situational', roll: 'skill', source: 'Travel pace', at: 'src/engine/travel.ts', when: 'The noticing roll on a road trip when something meets you, by pace (TV8).',
+    value: `slow ${sg(CONFIG.TRAVEL_NOTICE_MOD.slow)}, fast ${sg(CONFIG.TRAVEL_NOTICE_MOD.fast)}` },
   // aim
   { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at.',
     value: list(CONFIG.AIM_PENALTY) },
@@ -115,4 +117,6 @@ export const MOD_SOURCES: ModSource[] = [
     value: 'the effect\'s value', feeds: (lib) => itemRollMods(lib, true) },
   { type: 'achievement', roll: 'event', source: 'Achievement event-roll bonus', at: 'src/ruleset/gear.ts', when: 'Event rolls, for the best current achievement with an event-roll value.',
     value: 'the achievement\'s event-roll value', feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.eventRoll).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(a.eventRoll!) })) },
+  { type: 'situational', roll: 'event', source: 'Night travel', at: 'src/engine/travel.ts', when: 'Event rolls for an encounter on a trip pressed on through dusk or night (TV4).',
+    value: sg(CONFIG.NIGHT_TRAVEL_EVENT_MOD) },
 ];

@@ -65,6 +65,8 @@ export type Zone = {
   edges?: Partial<Record<Side, string>>;
   /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
   aspect?: number;
+  /** the zone kind id (ZK) it was built from (Z2); hand-built test zones may have none */
+  kind?: string;
   /** TV4 a road's danger (ROAD_DANGERS); only roads have one */
   danger?: import('../scales').RoadDangerKey;
   /** set by code (src/scene/geometry.ts placeZones), never by Claude */

@@ -47,7 +47,7 @@ export class SceneDirector {
   async startScene(state: GameState, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
     const placeId = state.player.placeId; // step 1
     ensurePlace(state, placeId);
-    const eventRoll = ruleset.eventRoll(state.player, state, rng); // step 2
+    const eventRoll = state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng); // step 2; TV4: an encounter's roll was made on the road
     this.lastEventRoll = eventRoll;
     this.held.clear();
     const wake = state.stage.breakCause === 'knocked_out'; // D-54
@@ -168,7 +168,7 @@ function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry:
 export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | null)[], rng: Rng, entry: 'open' | 'stealthy' = 'open'): SceneResult {
   const placeId = state.player.placeId;
   ensurePlace(state, placeId);
-  const eventRoll = ruleset.eventRoll(state.player, state, rng);
+  const eventRoll = state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng);
   const wake = state.stage.breakCause === 'knocked_out'; // D-54
   beginScene(state, eventRoll.tier);
   const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };

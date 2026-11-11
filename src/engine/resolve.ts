@@ -10,6 +10,7 @@ import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEv
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
+import { travel, tripGoal } from './travel';
 import { distM, placeAll, sightDistM, spotOf, walkLeg, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
@@ -46,11 +47,11 @@ import { PK } from '../library/perkIds';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
-  attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
+  travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
-const BODY_MOVING = new Set(['move', 'attack', 'perk_move', 'break_free', 'pick_up']);
+const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'pick_up']);
 const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const; // NV5: a whisper isn't heard next door
 /** first build: checks only change beliefs (OQ-22). */
 const CHECK_TYPES = new Set(['observe', 'interact', 'use_item', 'other', 'search']);
@@ -687,6 +688,9 @@ function step(ctx: Ctx, id: string): void {
   const g = applyGearOps(state, a, o.gear); // free, before the action
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
+  // TV1: a move along a road with nothing else going on is a trip, walked in one turn
+  const trip = tripGoal(state, a, o);
+  if (trip) return doTravel(ctx, a, o, trip);
   // AE1/ZP3: a ranged attack costs the main action and a move slot (CONFIG.RANGED_MOVE_SLOTS). One that reaches from here
   // takes its move slot first, and the move goes only on what is left; one that doesn't is dropped and the move stands
   if (o.type === 'attack' && rangedHere(state, a, o)) {
@@ -714,6 +718,22 @@ function step(ctx: Ctx, id: string): void {
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
   if (useMain(ctx, a)) doMain(ctx, a, o);
   if (o.moveAfter) move(false); // AE3: act, then move
+}
+
+/** TV1–TV8: the trip: one travel event where it ends; an encounter breaks the scene (the next one starts there, with the
+ * encounter's event roll); reaching a frontier at the road's end crosses it */
+function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof tripGoal>>): void {
+  const { state } = ctx;
+  const trip = travel(state, a, t.goal, o, ctx.rng);
+  if (a.zone !== trip.fromZone) noteLeft(state, trip.fromZone);
+  const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), pace: trip.pace, night: trip.night, stop: trip.stop, companions: trip.companions };
+  logCode(state, 'travelled', { actorId: a.id, ...detail });
+  if (trip.minutes > 0) logCode(state, 'time_passed', { actorId: a.id, minutes: trip.minutes, travel: true });
+  emit(ctx, mk(ctx, a, 'travel', { metres: detail.metres, ...(a.zone !== trip.fromZone ? { fromZone: trip.fromZone } : {}), effects: [{ kind: 'travelled', actorId: a.id, data: detail }] }));
+  if (trip.encounter) {
+    state.stage.encounter = { eventRoll: trip.encounter.eventRoll, noticed: trip.encounter.noticed, zone: a.zone, at: trip.encounter.at };
+    state.stage.breakCause = 'encounter';
+  } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0, true);
 }
 
 /** AE5/AE8: a perk move; a free one resolves beside the main action, just before it */
@@ -792,6 +812,7 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
   noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
   placeAll(state); // ZP1: anyone new on stage, or moved by a scene, gets a spot in their zone
+  delete state.stage.encounter; // TV4: an encounter's scene has placed its people by now
   const learnedBefore = learned(state);
   const playerUp = isActive(state.player);
   // MB41: foes asked by the player's yield answer in this turn's output, before anyone acts

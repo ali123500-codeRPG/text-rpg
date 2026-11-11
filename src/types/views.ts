@@ -217,7 +217,9 @@ export type WeaverView = {
   time: TimeView | null;
   stakes: string;
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
-  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string; wake?: true };
+  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string; wake?: true;
+    /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
+    encounter?: { zone: string; danger: string; noticed: boolean } };
   headlines: string[];
   stage: ZoneView[];
   actors: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[];

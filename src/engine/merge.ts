@@ -16,6 +16,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     source: 'player',
     move: intent?.move?.toZone ?? null,
     ...(intent?.move?.after ? { moveAfter: true } : {}),
+    ...(intent?.move?.pace ? { pace: intent.move.pace } : {}),
     ...(intent?.perkMove ? { perkMove: intent.perkMove } : {}),
     targetPart: a?.targetPart ?? null,
     aimed: !!aimed && a?.type === 'attack',
