@@ -79,8 +79,8 @@ const FAKE_PLACES = (): GameState['places'] => [
     FZ('tav_common', 'tavern', 'common room', 'A low room with a hearth, benches and a scarred counter.', [['tav_kitchen', 'the kitchen door, west', false], ['v_square', 'out the front door, south', false], ['tav_yard', 'the back door, east'], ['tav_upstairs', 'the stairs up', false]]),
     FZ('tav_kitchen', 'tavern', 'kitchen', 'Copper pots, a long table and the smell of onions.', [['tav_common', 'the common room, east', false], ['tav_cellar', 'the cellar hatch, down', false]]),
     FZ('tav_yard', 'tavern', 'back yard', 'A walled yard of firewood and a rain barrel.', [['tav_common', 'the back door, west'], ['f_lane', 'the gate to the lane', true, true]], { outdoor: true, cover: 'some' }),
-    FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', false]], { light: 'dark' }),
-    FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', false]], { light: 'dark' }),
+    FZ('tav_upstairs', 'tavern', 'upstairs landing', 'A narrow landing with three doors.', [['tav_common', 'the stairs down', false]], { light: 'dark', height: 3 }),
+    FZ('tav_cellar', 'tavern', 'cellar', 'A damp cellar of barrels.', [['tav_kitchen', 'the hatch, up', false]], { light: 'dark', height: -3 }),
   ]),
   FP('field', 'field', 'village', 'the slime field', [
     FZ('field_edge', 'field', 'field edge', 'Long grass streaked with silver trails.', [['v_square', 'the lane back west'], ['field_mid', 'into the field, north']], { outdoor: true, light: 'bright', cover: 'none' }),

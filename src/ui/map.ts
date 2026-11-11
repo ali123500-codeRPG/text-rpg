@@ -4,6 +4,7 @@
 // their spots between turns. Drag to pan, wheel or the buttons to zoom. Clicking a zone shows it in the side column.
 import type { GameApi } from '../types';
 import { h } from './kit';
+import { verticalOf } from '../scene/heights';
 import { worldTiles, compassOf, knownMap, type KnownMap, type MapPlace, type MapZone } from './mapData';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -17,6 +18,9 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
 const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
+/** a height as the floor buttons and stair tips name it */
+export const floorName = (m: number) => (m === 0 ? 'Ground level' : `${Math.abs(m)} m ${m > 0 ? 'up' : 'down'}`);
+const mode = (xs: number[]) => { const c = new Map<number, number>(); for (const x of xs) c.set(x, (c.get(x) ?? 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1])[0][0]; };
 /** the `world` key of the World view (every top-level place as one tile) */
 const WORLD = '*world*';
 type Pt = { x: number; y: number };
@@ -27,16 +31,19 @@ const tileH = (z: MapZone) => (z.people.length ? TILE_H_PEOPLE : TILE_H);
 /** deterministic force layout; zones laid out before keep their spots (they still settle a little) */
 export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): Map<string, Pt> {
   const byPlace = new Map<string, string[]>(), place = new Map(zones.map((z) => [z.id, z.placeId]));
+  // floors: zones at another height sit right above or below the zone their stairs reach, and never push each other
+  const height = new Map(zones.map((z) => [z.id, z.height]));
+  const level = (a: string, b: string) => height.get(a) === height.get(b);
   for (const z of zones) byPlace.set(z.placeId, [...(byPlace.get(z.placeId) ?? []), z.id]);
   const ids = new Set(zones.map((z) => z.id));
   const nodes = new Map<string, Node2>();
-  const edges: { a: string; b: string; dir: [number, number] | null }[] = [];
+  const edges: { a: string; b: string; dir: [number, number] | null; stairs?: true }[] = [];
   for (const z of zones) for (const l of z.links) if (ids.has(l.to) && z.id < l.to || (ids.has(l.to) && !zones.find((q) => q.id === l.to)?.links.some((m) => m.to === z.id)))
-    edges.push({ a: z.id, b: l.to, dir: compassOf(l.label) ?? (() => { const back = zones.find((q) => q.id === l.to)?.links.find((m) => m.to === z.id); const d = back ? compassOf(back.label) : null; return d ? [-d[0], -d[1]] as [number, number] : null; })() });
+    edges.push(!level(z.id, l.to) ? { a: z.id, b: l.to, dir: null, stairs: true } : { a: z.id, b: l.to, dir: compassOf(l.label) ?? (() => { const back = zones.find((q) => q.id === l.to)?.links.find((m) => m.to === z.id); const d = back ? compassOf(back.label) : null; return d ? [-d[0], -d[1]] as [number, number] : null; })() });
   // first spots: old ones kept; new zones placed breadth-first from where you are, each beside a placed neighbour,
   // on the side its exit's compass word names (else spread by the golden angle), so the forces start near the answer
   const spot = new Map<string, Pt>(prev);
-  const taken = (p: Pt) => [...spot.values()].some((o) => Math.abs(o.x - p.x) < 150 && Math.abs(o.y - p.y) < 90);
+  const taken = (p: Pt, id: string) => [...spot.entries()].some(([o, q]) => level(o, id) && Math.abs(q.x - p.x) < 150 && Math.abs(q.y - p.y) < 90);
   const order = [ids.has(start) ? start : zones[0].id];
   for (let i = 0; i < order.length; i++) for (const e of edges) { const o = e.a === order[i] ? e.b : e.b === order[i] ? e.a : null; if (o && !order.includes(o)) order.push(o); }
   for (const z of zones) if (!order.includes(z.id)) order.push(z.id);
@@ -45,12 +52,13 @@ export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): 
     const e = edges.find((x) => (x.a === id && spot.has(x.b)) || (x.b === id && spot.has(x.a)));
     if (!e) { spot.set(id, spot.size ? { x: (i % 4) * LINK_LEN * 1.4, y: (Math.floor(i / 4) + 1) * LINK_LEN * 1.4 } : { x: 0, y: 0 }); return; }
     const from = spot.get(e.a === id ? e.b : e.a)!;
+    if (e.stairs && !taken(from, id)) { spot.set(id, { ...from }); return; } // straight above or below
     const dir = e.dir ? (e.a === id ? [-e.dir[0], -e.dir[1]] : e.dir) : null;
     let p: Pt = { x: 0, y: 0 };
     for (let k = 0; k < 12; k++) {
       const ang = dir ? Math.atan2(dir[1], dir[0]) + (k ? (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.45 : 0) : i * 2.399963 + k * 0.7;
       p = { x: from.x + Math.cos(ang) * LINK_LEN, y: from.y + Math.sin(ang) * LINK_LEN };
-      if (!taken(p)) break;
+      if (!taken(p, id)) break;
     }
     spot.set(id, p);
   });
@@ -62,6 +70,7 @@ export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): 
     for (const n of list) { n.vx = 0; n.vy = 0; }
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
       const a = list[i], b = list[j];
+      if (!level(a.id, b.id)) continue;
       let dx = b.x - a.x, dy = b.y - a.y;
       if (!dx && !dy) { dx = 1; dy = 0.5; }
       const d = Math.hypot(dx, dy);
@@ -74,7 +83,7 @@ export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): 
     for (const e of edges) {
       const a = nodes.get(e.a)!, b = nodes.get(e.b)!;
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1;
-      const f = (d - LINK_LEN) * 0.06;
+      const f = (d - (e.stairs ? 0 : LINK_LEN)) * 0.06;
       a.vx += dx / d * f; a.vy += dy / d * f; b.vx -= dx / d * f; b.vy -= dy / d * f;
       if (e.dir) { // "north gate": b sits north of a
         const tx = a.x + e.dir[0] * LINK_LEN, ty = a.y + e.dir[1] * LINK_LEN;
@@ -111,6 +120,7 @@ export function mapPage(api: GameApi) {
   const spots = new Map<string, Map<string, Pt>>(); // per world
   const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
   let cur: KnownMap | null = null, world = '';
+  const floors = new Map<string, number>(); // per world: the height shown
 
   const svg = s('svg', { class: 'map-svg', role: 'img' }) as SVGSVGElement;
   const vp = s('g', { class: 'map-vp' }) as SVGGElement;
@@ -128,7 +138,8 @@ export function mapPage(api: GameApi) {
   const tools = h('div', { class: 'map-tools' },
     zoomBtn('+', 'Zoom in', () => zoomBy(1.25)), zoomBtn('−', 'Zoom out', () => zoomBy(0.8)),
     zoomBtn('◎', 'Find me', () => findMe()), zoomBtn('⤢', 'Show the whole map', () => fit(world)));
-  stage.append(svg, crumbs, compass, tools, empty);
+  const floorBar = h('nav', { class: 'map-floors', 'aria-label': 'Floor' });
+  stage.append(svg, crumbs, compass, tools, floorBar, empty);
 
   const placeOf = (id: string) => cur?.places.find((p) => p.id === id);
   const rootOf = (id: string) => { let p = placeOf(id); for (let n = 0; p?.parentId && placeOf(p.parentId) && n < 20; n++) p = placeOf(p.parentId); return p?.id ?? id; };
@@ -136,6 +147,9 @@ export function mapPage(api: GameApi) {
   const allZones = () => (cur?.places ?? []).flatMap((p) => p.zones);
   // WORLD: every top-level place as one tile, joined by the roads you know (worldTiles); any other `world` is a place's own map
   let tilesOfWorld: MapZone[] = [];
+  const floor = () => floors.get(world) ?? 0;
+  /** the zones drawn now: the world's zones at the shown height */
+  const floorZones = () => worldZones().filter((z) => world === WORLD || z.height === floor());
   const worldZones = () => (world === WORLD ? tilesOfWorld : (cur?.places ?? []).filter((p) => rootOf(p.id) === world).flatMap((p) => p.zones));
 
   // ---------- pan and zoom
@@ -151,7 +165,7 @@ export function mapPage(api: GameApi) {
   /** the box around a place's zones (and the places inside it), stubs included */
   function bounds(placeId: string): { x0: number; y0: number; x1: number; y1: number } | null {
     const sp = spots.get(world);
-    const zs = worldZones().filter((z) => placeId === WORLD || inside(z.placeId, placeId));
+    const zs = floorZones().filter((z) => placeId === WORLD || inside(z.placeId, placeId));
     if (!zs.length || !sp) return null;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     for (const z of zs) { const p = sp.get(z.id); if (!p) continue; const w = tileW(z) / 2 + STUB, hh = tileH(z) / 2 + STUB; x0 = Math.min(x0, p.x - w); x1 = Math.max(x1, p.x + w); y0 = Math.min(y0, p.y - hh); y1 = Math.max(y1, p.y + hh); }
@@ -180,7 +194,7 @@ export function mapPage(api: GameApi) {
   function findMe() {
     if (!cur) return;
     if (world === WORLD) { centre(rootOf(cur.placeId)); return; }
-    focus = cur.placeId; selected = cur.zoneId; draw(); centre(cur.zoneId);
+    focus = cur.placeId; selected = cur.zoneId; setFloorOf(cur.zoneId); draw(); centre(cur.zoneId);
   }
   let drag: { x: number; y: number; vx: number; vy: number; moved: boolean } | null = null;
   svg.addEventListener('pointerdown', (e) => { if (e.button !== 0) return; const v = view(); drag = { x: e.clientX, y: e.clientY, vx: v.x, vy: v.y, moved: false }; });
@@ -207,10 +221,10 @@ export function mapPage(api: GameApi) {
 
   // ---------- drawing
   function drawMap() {
-    const zones = worldZones();
+    const every = worldZones(), zones = floorZones();
     const prev = spots.get(world) ?? new Map<string, Pt>();
     let sp = prev;
-    if ([...prev.keys()].sort().join('|') !== zones.map((z) => z.id).sort().join('|')) { sp = layout(zones, world === WORLD ? rootOf(cur!.placeId) : cur!.zoneId, prev); spots.set(world, sp); }
+    if ([...prev.keys()].sort().join('|') !== every.map((z) => z.id).sort().join('|')) { sp = layout(every, world === WORLD ? rootOf(cur!.placeId) : cur!.zoneId, prev); spots.set(world, sp); }
     const byId = new Map(zones.map((z) => [z.id, z]));
     const centroid = zones.reduce((a, z) => ({ x: a.x + sp.get(z.id)!.x / zones.length, y: a.y + sp.get(z.id)!.y / zones.length }), { x: 0, y: 0 });
     const areas = s('g', { class: 'map-areas' }), links = s('g', { class: 'map-links' }), tiles = s('g', { class: 'map-tiles' }), labels = s('g', { class: 'map-labels' });
@@ -229,6 +243,7 @@ export function mapPage(api: GameApi) {
         s('text', { x: x0 - pad + 16, y: y0 - pad - 2, class: 'map-area-name' }, p.name)));
     }
     const done = new Set<string>();
+    const stairs: { z: MapZone; l: MapZone['links'][number]; up: boolean; other?: MapZone }[] = [];
     let compassUsed = false;
     for (const z of zones) {
       const a = sp.get(z.id)!;
@@ -250,6 +265,9 @@ export function mapPage(api: GameApi) {
           if ((hot || road) && Math.hypot(p2.x - p1.x, p2.y - p1.y) > Math.min(lab.length * 6.6 + 18, Math.abs(p2.y - p1.y) > Math.abs(p2.x - p1.x) ? 60 : lab.length * 6.6 + 40)) labels.append(pill((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, lab));
           return;
         }
+        // stairs: a badge on the tile, never a line across the floor; a known far end opens its floor
+        const other = every.find((x) => x.id === l.to);
+        if ((other && other.height !== z.height) || (!l.known && verticalOf(l.label))) { stairs.push({ z, l, up: other ? other.height > z.height : verticalOf(l.label) > 0, other }); return; }
         // an exit to a zone you don't know: a short stub with an arrow
         let dx = a.x - centroid.x, dy = a.y - centroid.y;
         const dir = compassOf(l.label);
@@ -268,6 +286,17 @@ export function mapPage(api: GameApi) {
       });
     }
     for (const z of zones) tiles.append(tile(z, sp.get(z.id)!, world === WORLD ? (z.here ? 'You are here' : z.look) : undefined));
+    // stair badges at the tile's left edge: up at the top corner, down at the bottom, side by side when there are several
+    const nth = new Map<string, number>();
+    for (const st of stairs) {
+      const c = sp.get(st.z.id)!, w = tileW(st.z), hh = tileH(st.z), key = `${st.z.id}${st.up}`, i = nth.get(key) ?? 0;
+      nth.set(key, i + 1);
+      const x = c.x - w / 2 + 14 + i * 26, y = st.up ? c.y - hh / 2 : c.y + hh / 2;
+      const gone = st.other ? `${st.up ? 'up' : 'down'} to ${st.other.name} (${floorName(st.other.height)})` : 'unexplored';
+      tiles.append(s('g', { class: `map-stair${st.other ? '' : ' unknown'}${st.z.id === selected ? ' hot' : ''}`, ...(st.other ? { 'data-goto': st.other.id, tabindex: 0, role: 'button' } : {}), 'aria-label': `${st.l.label}: ${gone}` },
+        s('circle', { cx: x, cy: y, r: 11 }), s('text', { x, y: y + 4, 'text-anchor': 'middle' }, st.up ? '▲' : '▼'), s('title', {}, `${st.l.label}: ${gone}`)));
+    }
+    drawFloors();
     compass.hidden = !compassUsed;
     vp.replaceChildren(bg, areas, links, tiles, labels);
     svg.setAttribute('aria-label', world === WORLD ? `The world as you know it: ${zones.length} place${zones.length === 1 ? '' : 's'}` : `Map of ${placeOf(world)?.name ?? 'this place'}: ${zones.length} zone${zones.length === 1 ? '' : 's'} known`);
@@ -312,6 +341,7 @@ export function mapPage(api: GameApi) {
     const z = worldZones().find((x) => x.id === selected);
     const all = cur!.places.flatMap((p) => p.zones);
     const zoneName = (id: string) => all.find((x) => x.id === id)?.name;
+    const climb = (from: MapZone, to: string) => { const t = all.find((x) => x.id === to); const d = t ? t.height - from.height : 0; return d ? `, ${Math.abs(d)} m ${d > 0 ? 'up' : 'down'}` : ''; };
     const pl = placeOf(focus)!;
     const worldCard = () => {
       const roads = tilesOfWorld.flatMap((a) => a.links.filter((l) => a.id < l.to || !tilesOfWorld.find((b) => b.id === l.to)?.links.some((m) => m.to === a.id))
@@ -332,7 +362,7 @@ export function mapPage(api: GameApi) {
       h('p', { class: 'hs-label' }, 'Exits'),
       h('ul', { class: 'map-exits' }, z.links.map((l) => h('li', {},
         h('span', {}, l.label),
-        h('span', { class: 'to' }, l.known ? `to ${zoneName(l.to) ?? 'a known zone'}${l.otherPlace ? ` (${l.otherPlace})` : ''}` : 'unexplored'),
+        h('span', { class: 'to' }, l.known ? `to ${zoneName(l.to) ?? 'a known zone'}${l.otherPlace ? ` (${l.otherPlace})` : ''}${climb(z, l.to)}` : 'unexplored'),
         l.known ? h('button', { type: 'button', class: 'map-go', title: 'Show this zone', 'aria-label': `Show ${zoneName(l.to) ?? 'this zone'}`, onclick: () => goTo(l.to) }, '›') : ''))),
       z.people.length ? h('div', {}, h('p', { class: 'hs-label' }, 'People'), h('p', {}, ...z.people.map((p) => h('span', { class: 'hs-tg' + (p.now ? '' : ' faded') }, p.now ? p.name : `${p.name} (last seen)`)))) : '',
       z.items.length ? h('div', {}, h('p', { class: 'hs-label' }, 'On the ground'), h('p', {}, ...z.items.map((x) => h('span', { class: 'hs-tg' }, x)))) : '')
@@ -348,7 +378,7 @@ export function mapPage(api: GameApi) {
         h('li', {}, h('i', { class: 'k-tile outdoor' }), 'Outdoors'), h('li', {}, h('i', { class: 'k-tile indoor' }), 'Indoors'),
         h('li', {}, h('i', { class: 'k-tile remembered' }), 'Out of sight now'), h('li', {}, h('i', { class: 'k-pin' }), 'You'),
         h('li', {}, h('i', { class: 'k-line' }), 'You can see across'), h('li', {}, h('i', { class: 'k-line dashed' }), 'The far side is hidden'),
-        h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'), h('li', {}, h('i', { class: 'k-line away' }), 'Road to another map'),
+        h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'), h('li', {}, h('i', { class: 'k-line away' }), 'Road to another map'), h('li', {}, h('i', { class: 'k-stair' }, '▲'), 'Stairs up or down: click to change floor'),
         h('li', {}, h('i', { class: 'k-who' }), 'Someone there now'), h('li', {}, h('i', { class: 'k-who last' }), 'Last seen there')));
     side.replaceChildren(card, facts, placeList, legend);
   }
@@ -358,7 +388,18 @@ export function mapPage(api: GameApi) {
     if (!z) return;
     const w = rootOf(z.placeId);
     selected = zoneId; focus = z.placeId;
+    floors.set(w, z.height);
     if (w !== world) { world = w; draw(); requestAnimationFrame(() => fit(w)); } else { draw(); centre(zoneId); }
+  }
+  function setFloorOf(zoneId: string) { const z = allZones().find((x) => x.id === zoneId); if (z) floors.set(rootOf(z.placeId), z.height); }
+  /** the floor buttons: one per height this map has, highest first; hidden when it has one */
+  function drawFloors() {
+    const hs = world === WORLD ? [] : [...new Set(worldZones().map((z) => z.height))].sort((a, b) => b - a);
+    floorBar.hidden = hs.length < 2;
+    const mineH = cur ? allZones().find((z) => z.id === cur!.zoneId)?.height : undefined;
+    floorBar.replaceChildren(...hs.map((x) => h('button', { type: 'button', class: 'map-floor' + (x === floor() ? ' on' : ''), 'aria-pressed': x === floor() ? 'true' : 'false',
+      title: `Show ${floorName(x).toLowerCase()}`, onclick: () => { floors.set(world, x); draw(); requestAnimationFrame(() => fit(focus)); } },
+      floorName(x), worldZones().some((z) => z.here && z.height === x) && mineH === x ? h('span', { class: 'you' }, ' · you') : '')));
   }
   function showWorld() {
     world = WORLD; selected = ''; draw();
@@ -369,7 +410,13 @@ export function mapPage(api: GameApi) {
     focus = id;
     const here = worldZones().find((z) => z.here && inside(z.placeId, id));
     selected = here?.id ?? (selected && inside(worldZones().find((z) => z.id === selected)?.placeId ?? '', id) ? selected : '');
-    world = w; draw();
+    world = w;
+    // the floor: yours when you are in this place, else its ground (or the height with most of its zones)
+    const mine = worldZones().find((z) => z.here && inside(z.placeId, id));
+    const zs = worldZones().filter((z) => inside(z.placeId, id));
+    if (mine) floors.set(w, mine.height);
+    else if (zs.length && !zs.some((z) => z.height === floor())) floors.set(w, zs.some((z) => z.height === 0) ? 0 : mode(zs.map((z) => z.height)));
+    draw();
     requestAnimationFrame(() => fit(id));
   }
 
@@ -395,7 +442,7 @@ export function mapPage(api: GameApi) {
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Map'), h('p', {}, 'Every zone you have stood in or seen, with the places inside places outlined; World shows every place you know and the roads between them. Only what your character knows.'))),
       h('div', { class: 'map-body' }, stage, side));
     const moved = cur.zoneId !== lastHere;
-    if (moved) { lastHere = cur.zoneId; world = rootOf(cur.placeId); focus = cur.placeId; selected = cur.zoneId; }
+    if (moved) { lastHere = cur.zoneId; world = rootOf(cur.placeId); focus = cur.placeId; selected = cur.zoneId; setFloorOf(cur.zoneId); }
     const fresh = !views.has(world);
     draw();
     if (fresh) requestAnimationFrame(() => fit(focus));
