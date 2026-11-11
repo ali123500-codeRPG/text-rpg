@@ -3,7 +3,8 @@ import { TR } from '../library/treeIds';
 import type { Actor, CreationBuild, GameApi, Pronouns } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { classFloors, creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
+import { classFloors, createPlayer, creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
+import { blankPersonality, personalityPicker } from './personality';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
 import { h, openPanel, readouts, type Readout } from './kit';
@@ -40,6 +41,7 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId: str
 // name and gender carry over when the player switches starting class
 const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they', 'Other']];
 const identity: { name: string; pronouns: Pronouns } = { name: 'Aldric', pronouns: 'he' };
+const persona = { p: blankPersonality() }; // PL14: carries over too
 
 function classScreen(api: GameApi, onStarted: () => void, classId: string, switchTo: (id: string) => void): HTMLElement {
   const lib = getLibrary();
@@ -53,7 +55,8 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
   const recommended = () => { const r = recommendedBuild(classId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
-  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, classId, skills: { ...st.v }, tagged: [...st.tags] });
+  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, classId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p) });
+  const picker = personalityPicker(persona, () => createPlayer(build(), 'preview', { preview: true }));
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };
 
   const tilesHost = h('div');
@@ -141,6 +144,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       const ks = (lib.trees[t.id]?.skills ?? []).filter((k) => open.includes(k));
       sums.get(t.id)!.textContent = ks.length ? `${ks.reduce((a, k) => a + st.v[k], 0)} pts` : '';
     }
+    picker.refresh(); // the Nerve tier reads Resolve
     msg.textContent = ''; msg.className = 'msg';
   }
 
@@ -194,6 +198,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
       h('span', {}, h('i', { class: 'tick cap' }), `Creation cap ${cap()}`),
       h('span', {}, h('span', { class: 'hs-tg cap', style: '--tg:var(--c15)' }, 'Tagged'), ' tagged skill'),
       h('span', {}, h('i', { class: 'hs-sq', style: 'background:var(--c5)' }), 'Class tree')),
+    picker.el,
     h('div', { class: 'hs-hl ask ph' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Placeholders' },
       `${total()} points, cap ${cap()}, floors medium weapons ${floors[SK.melee_medium] ?? 0} and block ${floors[SK.block] ?? 0}, ${maxTags()} tags, Potential fixed at ${CONFIG.POTENTIAL}. `
       + `Figures use the starting kit this build gets. Swordsman skills have no effects yet. Odds use the game’s attack rules against the library’s slime.`)));

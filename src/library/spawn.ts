@@ -244,6 +244,13 @@ export function validateBuild(build: CreationBuild): string[] {
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
   if (tags.size !== CONFIG.CREATION_TAGS) errs.push(`Tag exactly ${CONFIG.CREATION_TAGS} skills (${tags.size} tagged)`);
   for (const id of tags) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} cannot be tagged`);
+  const pe = build.personality; // PL14: points run −100 to +100; up to two values from the library
+  if (pe) {
+    const inRange = (n: number) => Number.isFinite(n) && n >= -100 && n <= 100;
+    if (!inRange(pe.nerve)) errs.push('Nerve must be between −100 and 100');
+    for (const [k, v] of Object.entries(pe.traits)) if (!lib.personalityAxes?.[k] || !inRange(v)) errs.push(`${lib.personalityAxes?.[k]?.name ?? k} must be a personality trait between −100 and 100`);
+    if (pe.values.length > 2 || new Set(pe.values).size !== pe.values.length || pe.values.some((v) => !lib.values?.[v])) errs.push('Pick up to two different values');
+  }
   return errs;
 }
 
