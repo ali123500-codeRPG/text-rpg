@@ -8,9 +8,10 @@ import { recommendedBuild } from '../library/spawn';
 
 const KEY = 'rpg.autopilot';
 /** style: a VOICE_STYLES id; voiceName: a speech voice on this PC, '' = its first Japanese voice */
-type Prefs = { persona: string; waitS: number; voice: boolean; style: string; voiceName: string };
+type Prefs = { persona: string; waitS: number; voice: boolean; style: string; voiceName: string; rate: number };
 const WAITS = [2, 5, 10];
-const PREFS: Prefs = { persona: '', waitS: 5, voice: true, style: 'companion', voiceName: '' };
+const RATES = [1, 1.25, 1.5, 1.75, 2]; // speaking speed
+const PREFS: Prefs = { persona: '', waitS: 5, voice: true, style: 'companion', voiceName: '', rate: 1.5 };
 function readPrefs(): Prefs {
   try { return { ...PREFS, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }; } catch { return { ...PREFS }; }
 }
@@ -49,7 +50,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(inJa ? ja : text);
       if (voice) { u.voice = voice; u.lang = voice.lang; }
-      u.rate = 1.05; speechSynthesis.speak(u);
+      u.rate = prefs.rate; speechSynthesis.speak(u);
     } catch { /* no voice here */ }
   }
   const set = (s: string) => { status = s; update(); };
@@ -122,6 +123,8 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     const voicePick = h('select', { 'aria-label': 'Speaking voice', onchange: (e: Event) => { prefs.voiceName = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       h('option', { value: '', selected: !prefs.voiceName }, japanese() ? `Japanese · ${japanese()!.name}` : 'Japanese (none on this PC)'),
       voices().map((v) => h('option', { value: v.name, selected: prefs.voiceName === v.name }, v.name)));
+    const rate = h('select', { 'aria-label': 'Speaking speed', onchange: (e: Event) => { prefs.rate = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
+      RATES.map((r) => h('option', { value: String(r), selected: prefs.rate === r }, `${r}×`)));
     const noJa = prefs.voice && !prefs.voiceName && typeof speechSynthesis !== 'undefined' && !japanese()
       ? 'No Japanese voice on this PC, so the default voice speaks. Add one in Windows Settings › Time & language › Speech › Add voices › Japanese, then reload.' : '';
     const wait = h('select', { 'aria-label': 'Wait between turns', onchange: (e: Event) => { prefs.waitS = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
@@ -135,6 +138,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
         h('label', { class: 'auto-field' }, 'Pace', wait),
         h('label', { class: 'auto-field' }, 'Style', style),
         h('label', { class: 'auto-field' }, 'Speaker', voicePick),
+        h('label', { class: 'auto-field' }, 'Speed', rate),
         btn(prefs.voice ? '✓ Voice' : 'Voice', () => { prefs.voice = !prefs.voice; writePrefs(prefs); if (!prefs.voice && typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); update(); },
           { pressed: prefs.voice, title: prefs.voice ? 'The agent’s commentary is read aloud. Click to mute it' : 'Click to read the agent’s commentary aloud' }),
         h('div', { class: 'auto-go' },
