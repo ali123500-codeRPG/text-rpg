@@ -1,4 +1,6 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
+import { lastScenes } from '../engine/sceneEnd';
+import { SCENE_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
@@ -7,7 +9,7 @@ import type { Tier, TierRoll,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, NERVE_LINES } from '../scales';
+import { COVER, LIGHT, NERVE_LINES, SCENE_SCALES } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
 import { sideFrom, sightDistM } from '../engine/position';
@@ -593,6 +595,8 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations } })),
     player: { level: state.player.core.classes.reduce((n, c) => n + c.level, 0), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player) },
     previousNote: state.hidden.weaverNote,
+    lastScenes: lastScenes(state).map((r) => ({ question: r.question, scale: SCENE_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENE_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),
+    ...(state.stage.outer ? { outerScene: { question: state.stage.outer.question, scale: SCENE_SCALES.name(state.stage.outer.scale) } } : {}),
     catalogs: {
       templates: [...templates.values()],
       services: Object.values(lib.services ?? {}).map((s) => ({ id: s.id, name: s.name, price: s.price })),

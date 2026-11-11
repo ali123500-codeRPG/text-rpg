@@ -68,6 +68,10 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
     rewards: [{ item: IT.coin, qty: 5, place: { carriedBy: 'barkeep' } }],
     hiddenTerms: ['nest'],
     weaverNote: 'Opening: slimes raid the field from a nest in the woods. Mags will pay for help.',
+    scene: { question: 'will the slimes be driven off the field?', scale: 'episode', endings: [
+      { when: { kind: 'band_out', band: 'slimes' }, as: 'resolved', text: 'the slimes are beaten or gone' },
+      { when: { kind: 'judged' }, as: 'lost', text: 'the slimes overrun the field' },
+    ] },
   };
 }
 
@@ -76,6 +80,8 @@ export function grovePlan(tier: Tier = 'success'): StagePlan {
   return {
     ...villageStagePlan(tier), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
     event: { summary: 'a quiet grove', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.success) },
+    scene: { question: 'what is in the grove?', scale: 'moment', endings: [
+      { when: { kind: 'judged' }, as: 'resolved', text: 'the grove is explored' }, { when: { kind: 'judged' }, as: 'left', text: 'the player walks on' }] },
     zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove of birches', cover: 'some', links: [{ to: 'field_far', label: 'back to the field', sight: true }] }],
   };
 }

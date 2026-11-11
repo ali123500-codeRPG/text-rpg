@@ -52,6 +52,7 @@ export const MILL_PLAN: StagePlan = {
   frontiers: [{ key: 'mill_pond', label: 'along the race' }],
   bands: [], cast: [], seeds: { plans: [], triggers: [], secrets: [] }, rewards: [],
   hiddenTerms: ['nest'], weaverNote: 'the slimes come from the pond',
+  scene: { question: 'what waits at the old mill?', scale: 'moment', endings: [{ when: { kind: 'judged' }, as: 'resolved', text: 'the mill is searched' }, { when: { kind: 'leave', place: 'mill' }, as: 'left', text: 'the player walks away' }] },
 };
 
 /** a scripted Weaver answer: MILL_PLAN with grades that fit whatever tier the event roll dealt */

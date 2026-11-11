@@ -7,7 +7,7 @@ import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scene/validate';
 import { GRADES, ORDER_TYPES } from '../types';
-import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
+import { COVER, LIGHT, SCENE_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
 /** a scale's levels as the JSON choices Claude may write (G4) */
 const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.stringify(sc.name(k))).join('|');
 /** V7 (flavor voice): the story's tone colors NPC speech without overriding character */
@@ -98,7 +98,13 @@ export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain"
  "seeds":{"plans":[{"ownerId","goal","steps":[short phrase],"triggers":[trigger, ownerId defaults to the plan owner],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string, at least one],"revealWhen":{"type":"event_in_zone","kind","zone"}|{"type":"check_passed","skill":skill id from catalogs.skills,"minTier":tier,"againstActorId"}}]},
  "rewards":[{"item":itemId|{"base","quality":1|2|3|4,"boosts","name","look"},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone}}],
  "hiddenTerms":[string],"weaverNote":string,
- "spars"?:[{"sides":[[cast key|actor id]],"cruel"?:true}]}
+ "spars"?:[{"sides":[[cast key|actor id]],"cruel"?:true}],
+ "scene"?:{"question":string,"scale":${words(SCENE_SCALES)},"endings":[{"when":endCheck,"as":"resolved"|"lost"|"left"|"escaped"|"interrupted","text":string}]}}
+scene is required when WEAVER_VIEW.target.kind is "scene", and left out for a frontier. question: the one hidden question this scene turns on (will the slimes be driven off, will the guard let the player through).
+scale: how big the situation is, at any tier: ${SCENE_SCALES.keys.map((k) => { const c = CONFIG.SCENE_SCALE[k]; return `${k} (${c.budgetTurns ? `about ${c.budgetTurns} turns` : `about ${c.budgetDays} days`}, ${c.places === Infinity ? 'any number of' : `at most ${c.places}`} place${c.places === 1 ? '' : 's'})`; }).join(', ')}. A road meeting is a moment or a situation. ${SCENE_SCALES.keys.filter((k) => SCENE_SCALES.pos(k) >= SCENE_SCALES.pos(CONFIG.SCENE_HOLDS_FROM as never)).join(' and ')} scenes hold smaller scenes inside them: if WEAVER_VIEW.outerScene is set, this scene is one of those, and the bigger one carries on after it.
+endings: ${CONFIG.SCENE_ENDINGS_MIN} to ${CONFIG.SCENE_ENDINGS_MAX} ways the question can be answered or left behind; code checks them every turn and ends the scene when one is met. text is a hidden line on what it means.
+endCheck = {"kind":"band_out","band"} (every member down, broken or gone) | {"kind":"reach","place":place or zone} | {"kind":"leave","place":place or zone} | {"kind":"find","actor"} (seen clearly) | {"kind":"hold","item":itemId} (the player has it) | {"kind":"deliver","item":itemId,"to":actor} | {"kind":"time","at":${words(TIME_OF_DAY)}} | {"kind":"judged"} (only when code cannot check it: you decide it later)
+Rest, sleep and waiting never end a scene. WEAVER_VIEW.lastScenes says how the last scenes went: write their aftermath into this plan (who is angry, who moved on, what changed).
 A spar is a bout every fighter agreed to: they trade real blows without turning hostile, until all but one side has
 yielded or reached ${CONFIG.SPAR_LIMIT} health (cruel: until they are Incapacitated). One against one is two sides of one fighter.
 grade = ${GRADES.map((g) => JSON.stringify(g)).join("|")}

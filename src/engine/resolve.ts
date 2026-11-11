@@ -1,4 +1,5 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
+import { checkSceneEnd, closeScene } from './sceneEnd';
 import { noteLeft, noteZonesSeen } from './trail';
 import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
@@ -557,8 +558,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       for (let i = 0; i < Math.floor(minutes / CONFIG.REST_COOLDOWN_MIN); i++) applyHealing(state, a, restRow(state, a));
       state.clocks[`rest:${a.id}`] = now(state);
     }
-    ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } });
-    state.stage.breakCause = 'time_skip';
+    ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } }); // SC4/SC9: a time skip never ends the scene
   }
   emit(ctx, ev);
 }
@@ -920,11 +920,12 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (input.intent?.yields && isActive(state.player)) (sparOf(state, state.player.id) ? yieldSpar(state, state.player) : playerYields(state));
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   const defeated = payDefeats(state, ctx.events);
-  updatePacing(state, ctx.events, learnedBefore, playerOrder);
+  updatePacing(state, ctx.events, learnedBefore);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   updateQuests(state, ctx.events, defeated);
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
+  checkSceneEnd(state, ctx.events); // SC7/SC13: the scene's endings, held while fighting, chased or talking
   updateSpars(state, ctx.events); // after the scene-break checks, so a break ends the spar this turn
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
   const fight = state.player.engagement?.fight;
@@ -939,6 +940,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); } // All-50 parts and mastery achievements; linked perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
+  if (state.stage.breakCause) closeScene(state); // SC6: record the scene; SC4: an inner scene's end resumes the bigger one
   state.events.push(...ctx.events);
   return ctx.events;
 }
@@ -970,15 +972,15 @@ function learned(state: GameState): number {
 }
 
 /**
- * A quiet turn: no attack, nothing new learned, no beat fired (the beat's own reset). Rest outside a fight, or a
- * stall (STALL_TURNS quiet turns with no beat left), marks the scene to end; the director starts the next one.
+ * A quiet turn: no attack, nothing new learned, no beat fired (the beat's own reset). A stall (STALL_TURNS quiet turns
+ * with no beat left) marks the scene to end as worn out; the director starts the next one. Rest, sleep and time skips
+ * never end a scene (SC4, SC9).
  */
-function updatePacing(state: GameState, events: GameEvent[], learnedBefore: number, playerOrder: Order): void {
+function updatePacing(state: GameState, events: GameEvent[], learnedBefore: number): void {
   const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
   state.stage.quiet = quiet ? (state.stage.quiet ?? 0) + 1 : 0;
   if (state.stage.breakCause) return;
-  if (playerOrder.type === 'rest' && state.mode !== 'tactical' && isActive(state.player)) state.stage.breakCause = 'rest';
-  else if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) state.stage.breakCause = 'story_beat';
+  if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) state.stage.breakCause = 'story_beat';
 }
 
 function beatsLeft(state: GameState): boolean {

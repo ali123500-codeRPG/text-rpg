@@ -65,6 +65,10 @@ export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 export const QUEST_REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type QuestRewardLevel = (typeof QUEST_REWARD_LEVELS.keys)[number];
 /** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
+/** SC2: scene scales, smallest first. Each scale's budget and space are levers in CONFIG.SCENE_SCALE, keyed by key;
+ * a new scale is a new row here and a row there. */
+export const SCENE_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['venture', 'Venture']]);
+export type SceneScale = (typeof SCENE_SCALES.keys)[number];
 export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]);
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */

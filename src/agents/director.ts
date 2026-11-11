@@ -32,6 +32,9 @@ export function createDirector(clock: Clock): SceneDirector {
       const note = errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.filter((e) => !e.repaired).map((e) => `- ${e.code}: ${e.message}`).join('\n')}` +
         (REPAIR_WITH_PLAN && rejected ? `\n\nREJECTED_PLAN:\n${JSON.stringify(rejected)}\n\nReturn the whole plan again with only these errors fixed; keep everything else as it is.` : '') : '';
       const run = await runAgent<StagePlan>(own, { agent: 'weaver', fixed: FIXED.weaver, data: formatWeaverView(view) + note, schema: checkStagePlan });
+      // SC7: an ending code cannot check is numbered as a bug, so we can look at making it checkable
+      const judged = Array.isArray(run.value?.scene?.endings) ? run.value!.scene!.endings.filter((e) => e?.when?.kind === 'judged') : [];
+      if (judged.length && !errors?.length) own.reportBug?.('scene_ending_judged', { question: run.value!.scene!.question, endings: judged.map((e) => ({ as: e.as, text: e.text })) });
       return run.value;
     },
   });

@@ -37,7 +37,7 @@ describe('110 engagement', () => {
   it('a scene break ends it at once', () => {
     const s = makeVillage();
     next(s, [speak(s, 'player', 'patron_1')]);
-    s.stage.breakCause = 'rest';
+    s.stage.breakCause = 'story_beat';
     expect(next(s)).toBe(true);
   });
   it('once-per-engagement uses reset with a new engagement', () => {
@@ -46,7 +46,7 @@ describe('110 engagement', () => {
     next(s, [speak(s, 'player', 'patron_1')]);
     useThisEngagement(s.player, PK.battle_cry);
     expect(usableThisEngagement(s.player, PK.battle_cry)).toBe(false);
-    s.stage.breakCause = 'rest'; next(s); delete s.stage.breakCause;
+    s.stage.breakCause = 'story_beat'; next(s); delete s.stage.breakCause;
     next(s, [speak(s, 'player', 'patron_1')]);
     expect(usableThisEngagement(s.player, PK.battle_cry)).toBe(true);
   });

@@ -14,6 +14,7 @@ export function smugglerPlan(): StagePlan {
   // room under PLAN_CAPS: this plan has no slimes
   p.cast = p.cast.filter((c) => c.band !== 'slimes');
   p.bands = p.bands.filter((b) => b.key !== 'slimes').map((b) => ({ ...b, relations: {} }));
+  p.scene!.endings[0].when = { kind: 'band_out', band: 'smugglers' };
   p.bands.push({ key: 'smugglers', name: 'cellar folk', goals: 'move the crates unseen', temperament: 'cagey', tactics: 'competent', lethal: true, relations: { village_watch: 'hostile' } });
   const smuggler = (key: string, name: string) => ({
     template: TP.patron, key, label: 'a hooded drinker', name, appearance: 'a hood pulled low',
