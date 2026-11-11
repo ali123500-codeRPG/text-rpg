@@ -98,7 +98,7 @@ type Ctx = {
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
   const [noise, visibility] = SENSE[kind] ?? ['quiet', 'normal'];
   const n = ctx.state.events.length + ctx.events.length + 1;
-  return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, effects: [], noise: armorNoise(ctx.state, a, kind, noise), visibility, perception: {}, ...extra };
+  return { id: `t${ctx.state.turn}.${n}`, turn: ctx.state.turn, actorId: a.id, kind, zone: a.zone, ...(a.pos ? { pos: { ...a.pos } } : {}), effects: [], noise: armorNoise(ctx.state, a, kind, noise), visibility, perception: {}, ...extra };
 }
 
 /** AN1–AN4: a body-moving event is louder by the worn armor's weight steps (Quiet Mail: one step less); Soft Tread:

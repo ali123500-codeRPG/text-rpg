@@ -3,7 +3,8 @@ import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackRes
 import { CONFIG } from '../config';
 import { AWARENESS } from '../scales';
 import { noiseReach } from './noise';
-import { sightReach } from './sight';
+import { sightLevel } from './sight';
+import { seeingM } from '../engine/position';
 export { noiseReach } from './noise';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
@@ -34,14 +35,14 @@ function dist(state: GameState, from: string, to: string, sightOnly: boolean): n
   return p ? p.length : null;
 }
 
-// Each VISIBILITY level reaches what sightReach works out from its metres and each NOISE level what noiseReach
-// works out from its decibels: sight counts sight links only, sound any links. Dark zone: sight at most partial.
+// Each VISIBILITY level is seen out to its metres (CONFIG.SIGHT_M) measured with sight from where the event happened
+// (seeingM); each NOISE level carries what noiseReach works out from its decibels, over any links. Dark zone: sight at most partial.
 // Sound heard only partly gives something, not who (test 4).
 // The event is perceived at its own zone (a move: the destination zone).
-/** NS2: how many sight links a figure keeping still is made out clearly (the Low visibility level's clear reach) */
-const stillSeen = (): number => sightReach('low')[0];
-/** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear reach) */
-const lookReach = (): number => sightReach('normal')[0];
+/** NS2: how many metres a figure keeping still is made out clearly (the Low visibility level's clear metres) */
+const stillSeen = (): number => CONFIG.SIGHT_M.low![0];
+/** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres) */
+const lookReach = (): number => CONFIG.SIGHT_M.normal![0];
 
 function reach([full, partial]: [number, number], d: number | null): Perception | null {
   return d === null ? null : d <= full ? 'full' : d <= partial ? 'partial' : null;
@@ -64,11 +65,12 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   if (observer.id === event.actorId) return { level: 'full', cue: 'sight' };
   const zone = zoneById(state, event.zone);
   let sight: Seen | null = null;
-  const sl = reach(sightReach(event.visibility), dist(state, observer.zone, event.zone, true));
+  const at = { zone: event.zone, pos: event.pos };
+  const sl = sightLevel(event.visibility, seeingM(state, observer, at)); // step 2: metres from where it happened
   if (sl) sight = { level: zoneLight(state, zone) === 'dark' ? 'partial' : sl, cue: 'sight' };
   // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see)
   if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone) {
-    const d = dist(state, observer.zone, event.zone, true);
+    const d = seeingM(state, observer, at);
     if (d !== null && d <= lookReach()) sight = { level: 'full', cue: 'sight' };
   }
   const nl = soundReach(state, observer, event.zone, event.noise);
@@ -108,7 +110,7 @@ export function beliefStatus(state: GameState, o: Actor, about: Actor): BeliefSt
 export function stealthStart(state: GameState, a: Actor): void {
   const p = state.player;
   if (!p.journal || a.id === p.id) return;
-  const d = isActive(p) ? dist(state, p.zone, a.zone, true) : null;
+  const d = isActive(p) ? seeingM(state, p, a) : null;
   const status: BeliefStatus = d === null || d > stillSeen() ? 'unaware' : zoneLight(state, zoneById(state, a.zone)) === 'dark' ? 'suspicious' : 'aware';
   (p.journal.stealthSeen ??= {})[a.id] = status;
 }
@@ -130,7 +132,7 @@ export function lookAround(state: GameState): string[] {
   const shown: string[] = [];
   for (const a of allActors(state)) {
     if (a.id === p.id) continue;
-    const d = dist(state, p.zone, a.zone, true);
+    const d = seeingM(state, p, a);
     if (d !== null && d <= lookReach()) { cs[a.id] = a.zone; shown.push(a.id); }
   }
   return shown;
