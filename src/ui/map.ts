@@ -5,6 +5,10 @@
 import type { GameApi } from '../types';
 import { h } from './kit';
 import { verticalOf } from '../scene/heights';
+import { EK } from '../library/tableIds';
+import { CONFIG } from '../config';
+/** CSS class of each edge kind's line on the To scale view */
+const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 import { worldTiles, compassOf, knownMap, type KnownMap, type MapPlace, type MapZone } from './mapData';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -15,6 +19,8 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
   return e;
 };
 
+/** To scale: screen pixels per metre before zoom */
+const PX_PER_M = 12;
 const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
@@ -121,6 +127,12 @@ export function mapPage(api: GameApi) {
   const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
   let cur: KnownMap | null = null, world = '';
   const floors = new Map<string, number>(); // per world: the height shown
+  // To scale (CO1): each zone as its own rectangle in metres, sides drawn by edge kind, in place of the exit tiles
+  let plan = false;
+  const plannedLast = new Set<string>(); // worlds whose spots are the to-scale ones
+  const planned = () => plan && world !== WORLD && worldZones().length > 0 && worldZones().every((z) => z.rect);
+  const tw = (z: MapZone) => (planned() && z.rect ? z.rect.w * PX_PER_M : tileW(z));
+  const th = (z: MapZone) => (planned() && z.rect ? z.rect.d * PX_PER_M : tileH(z));
 
   const svg = s('svg', { class: 'map-svg', role: 'img' }) as SVGSVGElement;
   const vp = s('g', { class: 'map-vp' }) as SVGGElement;
@@ -138,6 +150,9 @@ export function mapPage(api: GameApi) {
   const tools = h('div', { class: 'map-tools' },
     zoomBtn('+', 'Zoom in', () => zoomBy(1.25)), zoomBtn('−', 'Zoom out', () => zoomBy(0.8)),
     zoomBtn('◎', 'Find me', () => findMe()), zoomBtn('⤢', 'Show the whole map', () => fit(world)));
+  const planBtn = h('button', { type: 'button', class: 'map-btn map-plan-btn', title: 'Draw to scale', 'aria-label': 'Draw to scale', 'aria-pressed': 'false',
+    onclick: () => { plan = !plan; planBtn.setAttribute('aria-pressed', String(plan)); draw(); requestAnimationFrame(() => fit(focus || world)); } }, '▦');
+  tools.append(planBtn);
   const floorBar = h('nav', { class: 'map-floors', 'aria-label': 'Floor' });
   stage.append(svg, crumbs, compass, tools, floorBar, empty);
 
@@ -168,7 +183,7 @@ export function mapPage(api: GameApi) {
     const zs = floorZones().filter((z) => placeId === WORLD || inside(z.placeId, placeId));
     if (!zs.length || !sp) return null;
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (const z of zs) { const p = sp.get(z.id); if (!p) continue; const w = tileW(z) / 2 + STUB, hh = tileH(z) / 2 + STUB; x0 = Math.min(x0, p.x - w); x1 = Math.max(x1, p.x + w); y0 = Math.min(y0, p.y - hh); y1 = Math.max(y1, p.y + hh); }
+    for (const z of zs) { const p = sp.get(z.id); if (!p) continue; const w = tw(z) / 2 + STUB, hh = th(z) / 2 + STUB; x0 = Math.min(x0, p.x - w); x1 = Math.max(x1, p.x + w); y0 = Math.min(y0, p.y - hh); y1 = Math.max(y1, p.y + hh); }
     return { x0, y0, x1, y1 };
   }
   function fit(placeId: string) {
@@ -224,7 +239,9 @@ export function mapPage(api: GameApi) {
     const every = worldZones(), zones = floorZones();
     const prev = spots.get(world) ?? new Map<string, Pt>();
     let sp = prev;
-    if ([...prev.keys()].sort().join('|') !== every.map((z) => z.id).sort().join('|')) { sp = layout(every, world === WORLD ? rootOf(cur!.placeId) : cur!.zoneId, prev); spots.set(world, sp); }
+    if (planned()) { sp = new Map(every.map((z) => [z.id, { x: z.rect!.x * PX_PER_M, y: -z.rect!.y * PX_PER_M }])); spots.set(world, sp); }
+    else if ([...prev.keys()].sort().join('|') !== every.map((z) => z.id).sort().join('|') || plannedLast.has(world)) { sp = layout(every, world === WORLD ? rootOf(cur!.placeId) : cur!.zoneId, plannedLast.has(world) ? new Map() : prev); spots.set(world, sp); }
+    if (planned()) plannedLast.add(world); else plannedLast.delete(world);
     const byId = new Map(zones.map((z) => [z.id, z]));
     const centroid = zones.reduce((a, z) => ({ x: a.x + sp.get(z.id)!.x / zones.length, y: a.y + sp.get(z.id)!.y / zones.length }), { x: 0, y: 0 });
     const areas = s('g', { class: 'map-areas' }), links = s('g', { class: 'map-links' }), tiles = s('g', { class: 'map-tiles' }), labels = s('g', { class: 'map-labels' });
@@ -236,7 +253,7 @@ export function mapPage(api: GameApi) {
       if (!zs.length) continue;
       const pad = 30 + (maxDepth - p.depth) * 18;
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      for (const z of zs) { const c = sp.get(z.id)!; x0 = Math.min(x0, c.x - tileW(z) / 2); x1 = Math.max(x1, c.x + tileW(z) / 2); y0 = Math.min(y0, c.y - tileH(z) / 2); y1 = Math.max(y1, c.y + tileH(z) / 2); }
+      for (const z of zs) { const c = sp.get(z.id)!; x0 = Math.min(x0, c.x - tw(z) / 2); x1 = Math.max(x1, c.x + tw(z) / 2); y0 = Math.min(y0, c.y - th(z) / 2); y1 = Math.max(y1, c.y + th(z) / 2); }
       const on = p.id === focus, mine = inside(cur!.placeId, p.id);
       areas.append(s('g', { class: `map-area${on ? ' on' : ''}${mine ? ' mine' : ''}`, 'data-area': p.id, tabindex: 0, role: 'button', 'aria-label': `${p.name}, ${zs.length} zones known` },
         s('rect', { x: x0 - pad, y: y0 - pad - 22, width: x1 - x0 + 2 * pad, height: y1 - y0 + 2 * pad + 22, rx: 18 }),
@@ -255,8 +272,9 @@ export function mapPage(api: GameApi) {
           const key = [z.id, l.to].sort().join('>');
           if (done.has(key)) return;
           done.add(key);
+          if (planned()) return; // to scale, neighbours touch: their shared wall is the exit
           const b = sp.get(l.to)!;
-          const p1 = edgeOf(a, tileW(z), tileH(z), b), p2 = edgeOf(b, tileW(to), tileH(to), a);
+          const p1 = edgeOf(a, tw(z), th(z), b), p2 = edgeOf(b, tw(to), th(to), a);
           const road = world === WORLD;
           links.append(s('line', { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: road ? 'map-link road' : `map-link${l.sight ? '' : ' hidden-view'}${hot ? ' hot' : ''}` },
             s('title', {}, road ? `${l.label}: ${z.name} ↔ ${to.name}` : `${l.label}: ${z.name} ↔ ${to.name}${l.sight ? ' · you can see across' : ' · the far side is out of sight'}`)));
@@ -274,8 +292,8 @@ export function mapPage(api: GameApi) {
         if (dir) [dx, dy] = dir;
         if (!dx && !dy) { dx = Math.cos(i * 2.4); dy = Math.sin(i * 2.4); }
         const n = Math.hypot(dx, dy), ang = Math.atan2(dy / n, dx / n) + (dir ? 0 : (i % 3 - 1) * 0.35);
-        const far = { x: a.x + Math.cos(ang) * (tileW(z) / 2 + STUB), y: a.y + Math.sin(ang) * (tileH(z) / 2 + STUB) };
-        const p1 = edgeOf(a, tileW(z), tileH(z), far);
+        const far = { x: a.x + Math.cos(ang) * (tw(z) / 2 + STUB), y: a.y + Math.sin(ang) * (th(z) / 2 + STUB) };
+        const p1 = edgeOf(a, tw(z), th(z), far);
         // a known zone on another map (another village, say): the stub says where it goes and clicking it opens that map
         const away = l.known ? allZones().find((x) => x.id === l.to) : undefined;
         const awayName = away ? placeOf(rootOf(away.placeId))?.name ?? away.name : '';
@@ -289,7 +307,7 @@ export function mapPage(api: GameApi) {
     // stair badges at the tile's left edge: up at the top corner, down at the bottom, side by side when there are several
     const nth = new Map<string, number>();
     for (const st of stairs) {
-      const c = sp.get(st.z.id)!, w = tileW(st.z), hh = tileH(st.z), key = `${st.z.id}${st.up}`, i = nth.get(key) ?? 0;
+      const c = sp.get(st.z.id)!, w = tw(st.z), hh = th(st.z), key = `${st.z.id}${st.up}`, i = nth.get(key) ?? 0;
       nth.set(key, i + 1);
       const x = c.x - w / 2 + 14 + i * 26, y = st.up ? c.y - hh / 2 : c.y + hh / 2;
       const gone = st.other ? `${st.up ? 'up' : 'down'} to ${st.other.name} (${floorName(st.other.height)})` : 'unexplored';
@@ -298,8 +316,35 @@ export function mapPage(api: GameApi) {
     }
     drawFloors();
     compass.hidden = !compassUsed;
+    if (planned()) labels.append(scaleBar(zones, sp));
     vp.replaceChildren(bg, areas, links, tiles, labels);
     svg.setAttribute('aria-label', world === WORLD ? `The world as you know it: ${zones.length} place${zones.length === 1 ? '' : 's'}` : `Map of ${placeOf(world)?.name ?? 'this place'}: ${zones.length} zone${zones.length === 1 ? '' : 's'} known`);
+  }
+  /** To scale: the zone's floor, each side drawn as its edge kind (wall solid, low dashed, window double, open faint) */
+  function planTile(z: MapZone, p: Pt) {
+    const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
+    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
+    const m2 = Math.round(z.rect!.w * z.rect!.d);
+    const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${m2} m²${z.here ? ', you are here' : ''}` },
+      s('rect', { x, y, width: w, height: hh, class: 'map-tile-box' }));
+    const sides: Record<string, [number, number, number, number]> = { n: [x, y, x + w, y], s: [x, y + hh, x + w, y + hh], w: [x, y, x, y + hh], e: [x + w, y, x + w, y + hh] };
+    for (const [side, [x1, y1, x2, y2]] of Object.entries(sides)) {
+      const kind = (z.edges as Record<string, string> | undefined)?.[side] ?? (z.outdoor ? EK.open : EK.wall);
+      g.append(s('line', { x1, y1, x2, y2, class: `map-edge ${EDGE_CLASS[kind] ?? 'wall'}` }));
+    }
+    g.append(s('text', { x: p.x, y: p.y - (z.people.length ? 6 : 0) + 4, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
+      s('title', {}, `${z.name}: about ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²)`));
+    z.people.slice(0, 6).forEach((who, i, all) => g.append(s('circle', { cx: p.x + (i - (all.length - 1) / 2) * 12, cy: p.y + 12, r: 4.5, class: `map-dot-who${who.now ? '' : ' last'}` }, s('title', {}, who.name))));
+    if (z.here) g.append(s('g', { class: 'map-pin' }, s('circle', { cx: x + w - 2, cy: y + 2, r: 9 }), s('circle', { cx: x + w - 2, cy: y + 2, r: 3.5, class: 'core' })));
+    return g;
+  }
+  /** To scale: a 10 m bar under the plan, with the same length in paces */
+  function scaleBar(zs: MapZone[], sp: Map<string, Pt>) {
+    let x0 = Infinity, y1 = -Infinity;
+    for (const z of zs) { const c = sp.get(z.id)!; x0 = Math.min(x0, c.x - tw(z) / 2); y1 = Math.max(y1, c.y + th(z) / 2); }
+    const len = 10 * PX_PER_M, y = y1 + 28;
+    return s('g', { class: 'map-scale' }, s('line', { x1: x0, y1: y, x2: x0 + len, y2: y }), s('line', { x1: x0, y1: y - 5, x2: x0, y2: y + 5 }), s('line', { x1: x0 + len, y1: y - 5, x2: x0 + len, y2: y + 5 }),
+      s('text', { x: x0 + len + 8, y: y + 4 }, `10 m · ${Math.round(10 / CONFIG.PACE_M)} paces`));
   }
   function pill(x: number, y: number, text: string, tone = '', lean = 0) {
     const w = text.length * 6.6 + 18;
@@ -307,7 +352,8 @@ export function mapPage(api: GameApi) {
     return s('g', { class: `map-pill ${tone}` }, s('rect', { x: x0, y: y - 11, width: w, height: 22, rx: 11 }), s('text', { x: x0 + w / 2, y: y + 4, 'text-anchor': 'middle' }, text));
   }
   function tile(z: MapZone, p: Pt, sub?: string) {
-    const w = tileW(z), hh = tileH(z), x = p.x - w / 2, y = p.y - hh / 2;
+    if (planned() && z.rect) return planTile(z, p);
+    const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
     const cls = ['map-tile', world === WORLD ? 'world-place' : '', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
     const status = sub ? sub : z.here ? 'You are here' : z.inView ? `In view${z.light ? ' · ' + z.light : ''}` : 'Remembered';
     const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${status}` },
@@ -379,6 +425,7 @@ export function mapPage(api: GameApi) {
         h('li', {}, h('i', { class: 'k-tile remembered' }), 'Out of sight now'), h('li', {}, h('i', { class: 'k-pin' }), 'You'),
         h('li', {}, h('i', { class: 'k-line' }), 'You can see across'), h('li', {}, h('i', { class: 'k-line dashed' }), 'The far side is hidden'),
         h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'), h('li', {}, h('i', { class: 'k-line away' }), 'Road to another map'), h('li', {}, h('i', { class: 'k-stair' }, '▲'), 'Stairs up or down: click to change floor'),
+        ...(planned() ? [h('li', {}, h('i', { class: 'k-edge wall' }), 'Wall'), h('li', {}, h('i', { class: 'k-edge low' }), 'Counter or fence'), h('li', {}, h('i', { class: 'k-edge window' }), 'Window'), h('li', {}, h('i', { class: 'k-edge open' }), 'Open side')] : []),
         h('li', {}, h('i', { class: 'k-who' }), 'Someone there now'), h('li', {}, h('i', { class: 'k-who last' }), 'Last seen there')));
     side.replaceChildren(card, facts, placeList, legend);
   }
