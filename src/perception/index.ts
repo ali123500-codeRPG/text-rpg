@@ -204,7 +204,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
     if (!o.mind || !sender) continue;
     const cur = o.mind.knowledge[e.actorId]?.status;
     write(o, e.actorId, {
-      status: p.level === 'full' ? (atLeast(cur, 'aware') ? 'tracking' : 'aware') : raise(cur, 'suspicious'),
+      status: raise(cur, p.level === 'full' ? (atLeast(cur, 'aware') ? 'tracking' : 'aware') : 'suspicious'), // hunting and engaged stay (YD6)
       lastKnownZone: e.zone, lastSeenTurn: e.turn, source: p.cue === 'sound' ? 'heard' : 'seen',
     });
     if (e.kind === 'attack' && e.target) {
@@ -234,7 +234,7 @@ export function applyBeliefDecay(state: GameState): void {
   const D = CONFIG.DECAY_TURNS;
   for (const a of allActors(state)) {
     for (const b of Object.values(a.mind?.knowledge ?? {})) {
-      if (b.lastSeenTurn === undefined || b.status === 'unaware') continue;
+      if (b.lastSeenTurn === undefined || b.status === 'unaware' || atLeast(b.status, 'hunting')) continue; // YD6: noteFighting drops those
       const age = state.turn - b.lastSeenTurn;
       if (age > D && (age - 1) % D === 0) b.status = AWARENESS.at(AWARENESS.pos(b.status) - 1);
     }

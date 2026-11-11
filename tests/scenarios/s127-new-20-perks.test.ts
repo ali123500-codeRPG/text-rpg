@@ -142,7 +142,7 @@ describe('127 20 perks for the new skills', () => {
     expect(run(false).posture).toBe('open');
     const r = run(true);
     expect(r.posture).toBe('stealthy');
-    expect(r.target).toBe('aware');
+    expect(r.target).toBe('engaged'); // the target knows who struck, so the two are engaged (YD6)
   });
 
   it('the 60s against crowds: Blade Wall (Parry, medium weapon), Shield Wall (Block) and Slip the Crowd (Dodge) drop the outnumbered penalty', () => {

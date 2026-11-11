@@ -15,7 +15,7 @@ import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel
 import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
-import { updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
+import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
@@ -828,6 +828,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
 
   for (const id of ordered) if (!ctx.acted.has(id)) step(ctx, id);
 
+  noteFighting(state, ctx.events); // YD6: blows engage, closing in hunts, quiet turns drop both
   applyBeliefDecay(state);
   const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
