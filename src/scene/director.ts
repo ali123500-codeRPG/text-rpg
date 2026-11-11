@@ -51,7 +51,7 @@ export class SceneDirector {
     this.lastEventRoll = eventRoll;
     this.held.clear();
     const wake = state.stage.breakCause === 'knocked_out'; // D-54
-    beginScene(state, eventRoll.tier);
+    beginScene(state, eventRoll.tier, eventRoll.beyond);
     const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
     // GAP: WEAVER_TIMEOUT bounds the whole scene-start wait (first call and repair together).
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
@@ -170,7 +170,7 @@ export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | n
   ensurePlace(state, placeId);
   const eventRoll = state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng);
   const wake = state.stage.breakCause === 'knocked_out'; // D-54
-  beginScene(state, eventRoll.tier);
+  beginScene(state, eventRoll.tier, eventRoll.beyond);
   const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
   const [first, second] = weaverOutputs;
   let planned: Planned;

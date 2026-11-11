@@ -80,6 +80,8 @@ export type EventRollResult = {
   actorId: string;
   roll: number;
   tier: Tier;
+  /** steps past the end tier (Critical Success+ / Critical Failure−), only when an achievement opens them */
+  beyond?: number;
   modifiers: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement' | 'situational'; value: number }[]; // situational: night travel (TV4)
 };
 
