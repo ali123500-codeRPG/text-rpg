@@ -2943,7 +2943,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 
 ## Bug log
 
-The play page's Bugs page (Ali, 11/11/2026): Report bug files the player's note as code player_report with the story, turn and last six lines; the list shows open bugs only, newest first; Send open bugs to Claude posts a comment sent to Claude that wakes the build thread, which triages each bug to the thread that owns it.
+The play page's Bugs page (Ali, 11/11/2026): Report bug files the player's note as code player_report with the story, turn and last six lines, then sends every open bug to Claude at once (BG-27): a comment sent to Claude that wakes the build thread, which triages each bug to the thread that owns it. The list shows open bugs only, newest first; Send open bugs to Claude sends them again.
 
 Every bug found or reported, in any thread or in play, gets a fixed number (BG-n). Numbers come from one counter, `bugs_meta/counter` in the play page's db: the game takes the next one when it files a bug, and a thread that finds a bug takes the next one there too (read the counter, write next + 1 pinned to the version read), so a number is never shared or reused. Always mention a bug by its BG-n.
 
@@ -2976,6 +2976,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-23 | The barkeep, 0.7 m from the player, broke and fled through the kitchen door; perception took the move only where it ended (no sight into the kitchen), so the player only heard something, she dropped from lastSeen, and "cut down the barkeep" next turn asked who that was (Ali's game, turn 6). Fixed: a leg out of a zone is also seen where it set off (`fromPos`), and a clear sight of it remembers the zone she went into | Ali | Fixed | this PR |
 | BG-24 | "Wrench my sword out and strike" drew the arming sword already in the player's hand, and the draw was logged as invalid gear (Ali's game, turn 12). Fixed: drawing what is already in hand is nothing to do, not a mistake | Ali | Fixed | this PR |
 | BG-25 | The player swung three times at a woman lying Incapacitated at 0.7 m; every blow was wasted in silence (attacks on anyone down were refused), and the Narrator made up a blade stuck in the floorboards and shaking hands (Ali's game, turns 11 to 14). Fixed: blows on someone down land with no defense, only the dead can't be struck, and a wasted action says why (Narrator rule 18) | Ali | Fixed | this PR |
+| BG-27 | Pressing Report bug only saved the report; the open bugs reached Claude only through a separate "Send open bugs to Claude" button, though Ali had asked that reporting sends them. Fixed: Report bug saves the report and sends every open bug to Claude at once (the send button stays for sending again) | Ali | Fixed | this PR |
 
 ## Check on release
 

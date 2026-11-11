@@ -1,7 +1,8 @@
 // Bugs: report a bug from play, see the open bugs (the game's own filings and the threads'), and send them to Claude.
-// Reports are numbered from the same counter as every other bug (src/save/bugs.ts). "Send open bugs to Claude" posts a
-// comment sent to Claude (the comments capability), which wakes the build thread that triages them; the button is hidden
-// when the page runs outside claude.ai or the viewer can't send to Claude.
+// Reports are numbered from the same counter as every other bug (src/save/bugs.ts). "Report bug" saves the report and
+// then sends every open bug to Claude (BG-27: Ali asked that pressing it sends them), the same as "Send open bugs to
+// Claude": a comment sent to Claude (the comments capability), which wakes the thread that triages them. The send
+// button stays for sending again; it is hidden, and a report is only saved, when the page can't send to Claude.
 import type { GameApi } from '../types';
 import type { FiledBug } from '../save/bugs';
 import { h } from './kit';
@@ -22,36 +23,45 @@ export function bugsPage(api: GameApi) {
   const note = h('textarea', { class: 'hs-input bug-note', rows: 4, maxlength: 2000, placeholder: 'What went wrong? What did you do, and what did you expect?', 'aria-label': 'Bug report' });
   const sendNote = h('span', { class: 'hs-note', role: 'status' });
   const report = h('button', { type: 'button', class: 'hs-btn-main' }, 'Report bug');
+  const claudeNote = h('span', { class: 'hs-note', role: 'status' });
+  const toClaude = h('button', { type: 'button', class: 'hs-btn-main', hidden: true }, 'Send open bugs to Claude');
+  let comments: CommentsApi | null = null;
+  /** sends the open bugs to Claude; true when sent */
+  async function sendOpen(open: FiledBug[], anchorEl: Element): Promise<boolean> {
+    if (!comments || !open.length) return false;
+    const list = open.map((b) => `${b.id} (${b.code}, turn ${b.turn})`).join(', ');
+    await comments.sendToClaude({ anchor: await comments.anchorFor(anchorEl), text: `Open bugs to triage and hand to the right threads (read them from the db bugs collection): ${list}` });
+    return true;
+  }
   report.onclick = async () => {
     const text = note.value.trim();
     if (!text) { sendNote.textContent = 'Write what went wrong first.'; return; }
     report.disabled = true;
     const id = await api.reportBug(text).catch(() => null);
-    report.disabled = false;
-    if (!id) { sendNote.textContent = 'The report couldn’t be saved. Try again.'; return; }
+    if (!id) { report.disabled = false; sendNote.textContent = 'The report couldn’t be saved. Try again.'; return; }
     note.value = '';
-    sendNote.textContent = `Saved as ${id}.`;
-    fetchedAt = 0;
-    update();
+    sendNote.textContent = `Saved as ${id}. Sending the open bugs to Claude…`;
+    // BG-27: a report goes to Claude with every open bug, without a second press
+    const open = await api.openBugs().catch(() => rows ?? []);
+    rows = open; fetchedAt = Date.now();
+    const sent = await sendOpen(open, report).catch(() => false);
+    sendNote.textContent = sent ? `Saved as ${id} and sent to Claude with ${open.length} open bug${open.length === 1 ? '' : 's'}.`
+      : `Saved as ${id}, but it couldn’t be sent to Claude from here. Leave a comment on this page and send it to Claude.`;
+    report.disabled = false;
+    draw();
   };
-  const claudeNote = h('span', { class: 'hs-note', role: 'status' });
-  const toClaude = h('button', { type: 'button', class: 'hs-btn-main', hidden: true }, 'Send open bugs to Claude');
   const rt = (window as unknown as { claude?: { use(n: string): Promise<CommentsApi | null> } }).claude;
   rt?.use('comments').then(async (c) => {
     if (!c || (await c.canSendToClaude().catch(() => 'off')) !== 'available') return;
+    comments = c;
     toClaude.hidden = false;
     toClaude.onclick = async () => {
       const open = rows ?? [];
       if (!open.length) { claudeNote.textContent = 'No open bugs to send.'; return; }
       toClaude.disabled = true;
       claudeNote.textContent = 'Sending…';
-      try {
-        const list = open.map((b) => `${b.id} (${b.code}, turn ${b.turn})`).join(', ');
-        await c.sendToClaude({ anchor: await c.anchorFor(toClaude), text: `Open bugs to triage and hand to the right threads (read them from the db bugs collection): ${list}` });
-        claudeNote.textContent = `Sent ${open.length} open bug${open.length === 1 ? '' : 's'} to Claude.`;
-      } catch {
-        claudeNote.textContent = 'Couldn’t reach Claude from here. Leave a comment and send it to Claude instead.';
-      }
+      const sent = await sendOpen(open, toClaude).catch(() => false);
+      claudeNote.textContent = sent ? `Sent ${open.length} open bug${open.length === 1 ? '' : 's'} to Claude.` : 'Couldn’t reach Claude from here. Leave a comment and send it to Claude instead.';
       toClaude.disabled = false;
     };
   }).catch(() => undefined);
