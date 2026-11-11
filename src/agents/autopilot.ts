@@ -48,8 +48,10 @@ export const PERSONA_NAMES: [string, string][] = [['', 'Curious'], ['eager', 'Ea
 export const AUTOPILOT_BRIEF = `You are playing a text RPG as its player character while a person watches you play, live. Play naturally and
 curiously: talk to people, explore, take on any trouble you find, fight if it comes to that, and sometimes try something
 unusual. Now and then use a command: /stats, /inv, /quests or /aim <text>.
-Reply with ONLY a JSON object: {"command": "what you type next, one short line in plain words", "say": "one short spoken
-line of commentary for the watcher, first person, at most 20 words: what you noticed or why you do this"}.
+Reply with ONLY a JSON object: {"command": "what you type next, one short line in plain words", "say": "spoken commentary
+for the watcher, first person, 2 or 3 short sentences, at most 60 words: first what just happened (how your last move turned
+out, and what the people around you did), then what you do now and why"}.
+The watcher only hears you, so never skip the outcome of your last move.
 The commentary is read aloud: plain words, no stage directions, never anything your character could not know.`;
 
 /** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration) */
@@ -58,13 +60,13 @@ export function autopilotTurn(lines: LogLine[], persona: string): string {
   return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}`;
 }
 
-/** the agent's reply, made safe: one line of at most 200 characters, a short commentary line */
+/** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters */
 export function readMove(v: unknown): { command: string; say: string } | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
   const command = typeof o.command === 'string' ? o.command.split('\n')[0].trim().slice(0, 200) : '';
   if (!command) return null;
-  const say = typeof o.say === 'string' ? o.say.replace(/\s+/g, ' ').trim().slice(0, 200) : '';
+  const say = typeof o.say === 'string' ? o.say.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
   return { command, say };
 }
 
