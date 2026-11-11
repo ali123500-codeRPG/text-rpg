@@ -20,6 +20,8 @@ import type { SceneDirector } from '../src/agents';
 import { recommendedBuild } from '../src/library/spawn';
 import { CL } from '../src/library/classIds';
 import { PERSONAS, autoPerk } from '../src/agents/autopilot';
+import { villageStagePlan } from '../src/scene/fixtures';
+import { TP } from '../src/library/templateIds';
 
 // Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scene-start wait is widened here.
 // The game's own WEAVER_TIMEOUT_MS is not changed.
@@ -65,8 +67,11 @@ function claudeCli(prompt: string, model: string, effort?: string): Promise<{ te
 }
 
 let calls = 0;
+/** --fixture: the story opens on the fixture stage plan (Brookmere, its tavern, street and slime field) instead of a Weaver call */
+let fixtureLeft = process.argv.includes('--fixture') ? 1 : 0;
 const cliClient: ClaudeClient = {
   async call(req: ClaudeRequest): Promise<ClaudeResponse> {
+    if (fixtureLeft && req.agent === 'weaver') { fixtureLeft--; return { ok: true, value: villageStagePlan(), truncated: false, modelTierApplied: 'complex', modelApplied: 'fixture' }; }
     const model = req.model ?? TIER_MODEL[req.modelTier ?? 'default'];
     calls++;
     const r = await claudeCli(req.input.map((m) => m.content).join('\n\n'), model, req.effort);
@@ -95,6 +100,16 @@ function nearSeller(st: GameState) {
   console.log(`player placed in ${st.player.zone}, next to ${seller.id} in ${seller.zone}`);
 }
 
+/** --near-slimes: start the player one zone from the first slime on the stage, else in its zone */
+function nearSlimes(st: GameState) {
+  const slime = st.actors.find((a) => a.core.templateId === TP.slime && st.stage.zoneIds.includes(a.zone));
+  if (!slime) { console.log('no slime on the stage; the player starts where the story put them'); return; }
+  const next = st.zones.find((z) => z.id === slime.zone)?.links.find((l) => !l.frontier && st.stage.zoneIds.includes(l.to))?.to;
+  st.player.zone = next ?? slime.zone;
+  st.player.placeId = st.zones.find((z) => z.id === st.player.zone)?.placeId ?? st.player.placeId;
+  console.log(`player placed in ${st.player.zone}, next to ${slime.id} in ${slime.zone}`);
+}
+
 async function main() {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, 'call-errors.log'), '');
@@ -107,6 +122,7 @@ async function main() {
       before = structuredClone(st); ensurePlace(before, st.player.placeId);
       const ev = await inner.startStory(st, rng, ctx);
       if (process.argv.includes('--near-seller')) nearSeller(st); // before the opening is narrated
+      if (process.argv.includes('--near-slimes')) nearSlimes(st);
       return ev;
     },
     afterResolve: (st, ev, rng, ctx) => inner.afterResolve(st, ev, rng, ctx), afterSave: (st, ctx) => inner.afterSave(st, ctx) };
@@ -137,9 +153,10 @@ async function main() {
     const input = (pick.text || 'I look around.').split('\n')[0].trim().slice(0, 200);
     const aimed = input.startsWith('/aim');
     console.log(`turn ${t}: ${input}`);
+    const rawBefore = Object.fromEntries(Object.entries(game.state()?.player.core.skills ?? {}).map(([k, v]) => [k, v.raw]));
     await game.submit(input, { aimed });
     spendPerkPoints(game, t);
-    for (const l of game.gm().log.filter((x) => x.code === 'skill_improved' && x.turn === game.state()?.turn)) { const d = l.detail as { skill: string; from: number; to: number }; skillUps.push(`turn ${t}: ${d.skill} ${d.from} -> ${d.to}`); }
+    for (const [k, v] of Object.entries(game.state()?.player.core.skills ?? {})) if (v.raw > (rawBefore[k] ?? 0)) skillUps.push(`turn ${t}: ${k} ${rawBefore[k] ?? 0} -> ${v.raw}`);
     const gm = game.gm();
     appendFileSync(agentLog, JSON.stringify({ step: t, input, notices: game.notices(), agentLog: gm.agentLog }) + '\n');
     tracePacing(game, t, input);

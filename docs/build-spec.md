@@ -2876,7 +2876,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | --- | --- | --- | --- | --- |
 | BG-1 | Fight checks that go one way (health fears, crippled-part fear, crowded shots) skipped the player, because the player holds no stances or beliefs; spars didn't count as engaged | Thread | Fixed | PR #361 |
 | BG-2 | A sparring blow struck from hiding raised the alarm (SP11) | Thread | Fixed | PR #363 |
-| BG-3 | "I await the outcome" after a yield got a clarify ("Nothing is pending"): the Parser had no way to let a moment pass | Play | Fixed | this PR |
+| BG-3 | "I await the outcome" after a yield got a clarify ("Nothing is pending"): the Parser had no way to let a moment pass | Play | Fixed | PR #375 |
 | BG-4 | "I yield" asked a hostile who never fought the player (waiting in another room), and the sheet's "Deciding" list revealed him; he also counts in the fight log | Play | Open, waiting on Ali's rule | |
 
 ## Check on release

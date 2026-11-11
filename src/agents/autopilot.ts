@@ -21,8 +21,8 @@ through the night now and then. Try resting twice in a row, and try resting or w
 threatening you, then defend yourself. When your wounds have healed, pick another small scrap and repeat. Do not chase
 leads or start conversations yourself; answer briefly if spoken to, and see what the story does on its own.`,
   slimes: `You are a monster hunter clearing the slimes that trouble this village (a test of combat and skill growth). Find the
-slimes (ask where they are if you must), go there and fight them, one after another. Between fights, check /stats now and
-then to see how your skills are growing, and keep hunting. Pay attention to when and how your skills improve.`,
+slimes (ask where they are if you must), go there and fight them, one after another. Between fights, check /stats once in a
+while (never twice in a row) to see how your skills are growing, and keep hunting. Pay attention to when and how your skills improve.`,
   shopper: `You are a thrifty traveller with a little coin (a test of buying, paying and haggling). Find whoever sells things
 and spend your money: ask what they have and what it costs, buy a drink, then a meal, and a bed for the night. Haggle at
 least twice ("that's too much, how about less?"), once politely and once rudely. Buy a drink for someone else. Pay someone
