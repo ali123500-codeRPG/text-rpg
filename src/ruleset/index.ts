@@ -20,7 +20,7 @@ import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats, tally } from '../engine/xp';
 import { shortShifts } from './requirements';
-import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
+import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -116,7 +116,7 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
 
 function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const actor = mustActor(state, req.actorId);
-  const ctx = { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? fnSkills(req.fn) : [])], standInFns: req.standInFns, rollKind: req.rollKind };
+  const ctx = { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? rollFnSkills(actor, req.fn) : [])], standInFns: req.standInFns, rollKind: req.rollKind };
   const eff: { skill: string; value: number; parts?: string[] } = req.blend ? blendedSkill(state, actor, req.blend, ctx) : effectiveSkill(state, actor, req.skill, ctx); // a combined roll (Throw)
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {

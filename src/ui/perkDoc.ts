@@ -8,7 +8,7 @@ import { BUILT_PERKS } from '../library/builtPerks';
 import type { PerkWriteup } from '../types';
 import { skillName } from './creation';
 
-const PLACES: [PerkWriteup['place'], string][] = [['20', '20 milestone'], ['40', '40 milestone'], ['higher', 'Higher milestone'], ['very_high', 'Very high milestone'], ['banked', 'Banked, no milestone yet'], ['all50', 'All-50 parts'], ['linked', 'Linked perks']];
+const PLACES: [PerkWriteup['place'], string][] = [['20', '20 milestone'], ['40', '40 milestone'], ['higher', 'Higher milestone'], ['very_high', 'Very high milestone'], ['banked', 'Banked, no milestone yet'], ['all50', 'All-X parts (All-50, All-100, All-150)'], ['linked', 'Linked perks']];
 
 const bankedLabel = (p: PerkWriteup) => p.bankedAs === 'milestone' ? `a later ${skillName(p.skill)} perk${p.aimAt ? `, suggested for the ${p.aimAt} perk` : ''}`
   : p.bankedAs === 'allX' ? `an All-X candidate for the ${treeName(getLibrary().skills[p.skill]?.treeId ?? '')} tree${p.aimAt ? `, suggested for All-${p.aimAt}` : ''}` : 'other';
@@ -24,8 +24,8 @@ export function perksMarkdown(): string {
     '', 'The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120 perks raise numbers only, with no conditions: +5 true skill in the skill, +1 to every skill of its function, itself included, and one more number. Swordsman, lockpicking and slime skills have no perks for now.', ''];
   for (const [place, title] of PLACES) {
     out.push(`## ${title}`, '');
-    if (place === 'all50') out.push('Granted free once enough skills of the tree reach 50 true skill, by the tree\'s rating (inferior never, normal 3, superior 2, legendary 1): the tree\'s passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: ' +
-      ALL_BUNDLES.map((b) => `${treeName(b.treeId)} All-50: ${b.name}`).join('; ') + '.', '');
+    if (place === 'all50') out.push('All-50, All-100 and All-150 work alike. Granted free once enough skills of the tree reach the step in true skill, by the tree\'s rating (inferior never, normal 3, superior 2, legendary 1): the tree\'s passive for that step plus the part of each skill at it; a further skill reaching the step adds its part. Each part once it is built. Bundles: ' +
+      ALL_BUNDLES.map((b) => `${treeName(b.treeId)} All-${b.step}: ${b.name}`).join('; ') + '.', '');
     for (const p of [...PERK_WRITEUPS, ...BOOST_PERKS, ...ALL_PARTS].filter((d) => d.place === place)) {
       const r = p.rules;
       out.push(`### ${p.name} (${p.allStep ? `${treeName(p.skill)}, ${p.allStep.skill ? skillName(p.allStep.skill) : 'passive'}` : skillName(p.skill)}) · ${p.ref}`, '', `*Story:* ${p.story}`, '',
