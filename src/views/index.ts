@@ -10,7 +10,7 @@ import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
-import { sightDistM } from '../engine/position';
+import { sideFrom, sightDistM } from '../engine/position';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { sparLimit, sparOf } from '../engine/spar';
@@ -155,6 +155,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(a.pos && viewer.pos ? { distanceM: Math.round(sightDistM(state, viewer, a) * 10) / 10 } : {}),
+      ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       ...(moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),

@@ -117,6 +117,24 @@ export function distM(state: GameState, a: Located, b: Located): number {
   return m + flat(cur, B.pos);
 }
 
+/** a step of a walk to `to`: the walker now faces the way it walked (BG-18: \"the slime on the left\") */
+function step(a: { pos?: Pos; facing?: [number, number] }, to: Pos): void {
+  const from = a.pos, d = from ? Math.hypot(to.x - from.x, to.y - from.y) : 0;
+  if (from && d > EPS) a.facing = [(to.x - from.x) / d, (to.y - from.y) / d];
+  a.pos = { ...to };
+}
+
+/** BG-18: where someone stands as the viewer sees it, by the way the viewer faces (the way it last walked): ahead, left,
+ * right or behind, each a quarter turn wide; null when either has no point or the viewer has not walked */
+export function sideFrom(viewer: { pos?: Pos; facing?: [number, number] }, at: Pos | undefined): 'ahead' | 'left' | 'right' | 'behind' | null {
+  const f = viewer.facing, p = viewer.pos;
+  if (!f || !p || !at) return null;
+  const dx = at.x - p.x, dy = at.y - p.y;
+  if (Math.hypot(dx, dy) <= EPS) return null;
+  const ahead = dx * f[0] + dy * f[1], left = f[0] * dy - f[1] * dx; // north is +y, so a left turn is anticlockwise
+  return Math.abs(ahead) >= Math.abs(left) ? (ahead >= 0 ? 'ahead' : 'behind') : left > 0 ? 'left' : 'right';
+}
+
 /** ZP2: one leg of a walk toward `goal`: to the doorway of the next zone on the way (entering it), or, inside the goal's
  * zone, straight at the goal's point, stopping `stopShort` metres before it. A goal with no point is the zone itself: the
  * walk ends ENTER_M past its doorway. At most `metres` are walked; a zone without rectangles is crossed whole for a zone
@@ -129,7 +147,7 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
     if (!A.pos || !B?.pos) return 0;
     const d = flat(A.pos, B.pos), go = Math.min(metres, Math.max(0, d - stopShort));
     if (go <= EPS) return 0;
-    a.pos = { x: A.pos.x + (B.pos.x - A.pos.x) * go / d, y: A.pos.y + (B.pos.y - A.pos.y) * go / d };
+    step(a, { x: A.pos.x + (B.pos.x - A.pos.x) * go / d, y: A.pos.y + (B.pos.y - A.pos.y) * go / d });
     return go;
   }
   const r = route(state, A, goal);
@@ -138,7 +156,7 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
   const enter = (at?: Pos) => {
     a.zone = next.zone.id;
     a.placeId = next.zone.placeId;
-    if (at) a.pos = { ...at }; else delete a.pos;
+    if (at) step(a, at); else delete a.pos;
   };
   if (!A.pos || !next.at) {
     const cost = linkM();
@@ -152,7 +170,7 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
   if (leg > metres + EPS) {
     if (metres <= EPS) return 0;
     const k = metres / leg;
-    a.pos = { x: A.pos.x + (out.x - A.pos.x) * k, y: A.pos.y + (out.y - A.pos.y) * k };
+    step(a, { x: A.pos.x + (out.x - A.pos.x) * k, y: A.pos.y + (out.y - A.pos.y) * k });
     return metres;
   }
   // through the doorway; a walk to the zone itself goes ENTER_M on toward its centre
