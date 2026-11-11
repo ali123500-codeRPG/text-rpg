@@ -1,4 +1,4 @@
-// W6 — Scenes, the stage, frontiers, situation roll, Agent Weaver plan validation/application, fallback stage, opening narration, stage trim.
+// W6 — Scenes, the stage, frontiers, event roll, Agent Weaver plan validation/application, fallback stage, opening narration, stage trim.
 import type { Tier } from '../types';
 
 /** repaired: code already fixed it (rewards); it never blocks a plan or asks for a repair call. */

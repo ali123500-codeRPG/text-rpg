@@ -197,18 +197,18 @@ export function rollMods(state: GameState, actor: Actor, kind: RollKind, itemId?
     .map(({ e, source }) => ({ source, type: 'gear' as const, value: e.value }));
 }
 
-/** situation-roll modifiers from perks, gear and statuses naming the situation roll (one copy counts). */
-export function situationMods(state: GameState, actor: Actor): { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] {
+/** event-roll modifiers from perks, gear and statuses naming the event roll (one copy counts). */
+export function eventRollMods(state: GameState, actor: Actor): { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] {
   const perks = getLibrary().perks;
   const out: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] = [];
   for (const p of actor.core.perks) {
     const def = perks[p.perkId];
-    if (!p.dormant && def?.situation) out.push({ source: def.name, type: 'perk', value: def.situation });
+    if (!p.dormant && def?.eventRoll) out.push({ source: def.name, type: 'perk', value: def.eventRoll });
   }
-  for (const m of rollMods(state, actor, 'situation')) out.push({ ...m, type: 'gear' });
-  const ach = bestReward(actor, 'situation'); // an achievement reward (Old Blood)
+  for (const m of rollMods(state, actor, 'event')) out.push({ ...m, type: 'gear' });
+  const ach = bestReward(actor, 'eventRoll'); // an achievement reward (Old Blood)
   if (ach) out.push({ source: ach.name, type: 'achievement', value: ach.value });
-  // GAP: statuses have no library entries yet, so none can name the situation roll
+  // GAP: statuses have no library entries yet, so none can name the event roll
   return out;
 }
 

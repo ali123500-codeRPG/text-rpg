@@ -15,7 +15,7 @@ import { TR } from '../../src/library/treeIds';
 import { IT } from '../../src/library/itemIds';
 import { SV } from '../../src/library/serviceIds';
 import { groupsOf } from '../../src/library/functionNames';
-import { standInTable, kitBonus, situationMods } from '../../src/ruleset/gear';
+import { standInTable, kitBonus, eventRollMods } from '../../src/ruleset/gear';
 import { requirement, shortBy } from '../../src/ruleset/requirements';
 import { rallyMods } from '../../src/ruleset/achRewards';
 import { warePrice } from '../../src/engine/trade';
@@ -123,9 +123,9 @@ describe('137 achievement rewards, round 2', () => {
     expect(wornTitle(s)).toBe('The Name That Ends Fights');
   });
 
-  it('Old Blood: +10 on situation rolls (Seasoned gives none)', () => {
+  it('Old Blood: +10 on event rolls (Seasoned gives none)', () => {
     const s = makeVillage();
-    const ach = () => situationMods(s, s.player).filter((m) => m.type === 'achievement');
+    const ach = () => eventRollMods(s, s.player).filter((m) => m.type === 'achievement');
     grantAchievement(s, ACH.days_30);
     expect(ach()).toEqual([]);
     grantAchievement(s, ACH.days_100);

@@ -91,13 +91,13 @@ Wounds are no longer part of effective skill: the health-track level and body-pa
 
 The dice deal the hand; skills and perks decide what the character can do with it.
 
-**Layer 1 — situation roll.** Rolled once per scene, for the player, at scene setup (Part 2, Scene setup). It deals the hand: it decides the who and what of the scene (its event, cast, challenge and gain), not how alert anyone is. Code reads it with a fixed base in place of skill (SITUATION\_BASE, *placeholder*, 50):
+**Layer 1 — event roll.** Rolled once per scene, for the player, at scene setup (Part 2, Scene setup). It deals the hand: it decides the who and what of the scene (its event, cast, challenge and gain), not how alert anyone is. Code reads it with a fixed base in place of skill (EVENT\_BASE, *placeholder*, 50):
 
 ```
-margin = d100 + SITUATION_BASE + net modifiers − 100
+margin = d100 + EVENT_BASE + net modifiers − 100
 ```
 
-Only three sources may modify the roll, each its own modifier type: perks, gear and statuses (blessings, buffs, curses, debuffs) whose library entry names the situation roll. A gear effect counts only when its library entry names the situation roll; it may be active while only carried (Part 5 §2). Code reads the player's inventory once, at scene setup step 2. Injury, place, difficulty, skills, terrain and tactics never modify it. With the placeholder base, the totals (d100 + net modifiers) read as follows:
+Only three sources may modify the roll, each its own modifier type: perks, gear and statuses (blessings, buffs, curses, debuffs) whose library entry names the event roll. A gear effect counts only when its library entry names the event roll; it may be active while only carried (Part 5 §2). Code reads the player's inventory once, at scene setup step 2. Injury, place, difficulty, skills, terrain and tactics never modify it. With the placeholder base, the totals (d100 + net modifiers) read as follows:
 
 | Total (d100 + modifiers) | Tier (ID) | Stakes |
 | --- | --- | --- |
@@ -831,9 +831,9 @@ interface Ruleset {
   contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult;
   roll(req: RollRequest, state: GameState, rng: Rng): RollResult;          // Part 1 §4 Layer 2b
   attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult;    // Part 3, Damage flow
-  situation(actor: Actor, state: GameState, rng: Rng): SituationResult;
-  // Layer 1 (Part 1 §4): d100 + SITUATION_BASE + modifiers from perks, gear and
-  // statuses whose library entry names the situation roll. No skill. Six tiers and
+  eventRoll(actor: Actor, state: GameState, rng: Rng): EventRollResult;
+  // Layer 1 (Part 1 §4): d100 + EVENT_BASE + modifiers from perks, gear and
+  // statuses whose library entry names the event roll. No skill. Six tiers and
   // natural edges. Called once per scene, at scene setup step 2, always for the player.
   applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[];
   recordUse(actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult, state: GameState): void;
@@ -843,7 +843,7 @@ interface Ruleset {
 type CheckRequest = { actorId: string; skill: string; target?: string; modifiers: { source: string; value: number }[] };
 type CheckResult  = { actorId: string; skill: string; target: number; passed: boolean; modifiers: CheckRequest['modifiers'] };
 type ContestResult = { a: RollResult; b: RollResult; gap: number; winner: 'a' | 'b' | 'tie' };   // a = the acting side; gap = b.tier − a.tier (Part 1 §4, Contests)
-type SituationResult = {
+type EventRollResult = {
   actorId: string;                    // always the player
   roll: number;                       // natural d100
   tier: Tier;                         // one of the six TIERS
@@ -918,7 +918,7 @@ function resolveTurn(state: GameState, playerIntent: Intent, dialogueOrders: Ord
 
 A defense is a free reaction: it costs the defender no action and uses its standing defense. Each defense after the first in a turn takes the outnumbered situational modifier (value *placeholder*).
 
-check() reads its target from the scene's challenge grade (Part 1 §4, Layer 2). Ambush, detection and stealth rolls run as before. A situation roll's result is saved in the turn record; replay feeds it back with the logged Weaver output, so a replayed scene start makes no Claude call.
+check() reads its target from the scene's challenge grade (Part 1 §4, Layer 2). Ambush, detection and stealth rolls run as before. A event roll's result is saved in the turn record; replay feeds it back with the logged Weaver output, so a replayed scene start makes no Claude call.
 
 Perception rules:
 
@@ -938,14 +938,14 @@ Rules for simultaneous orders, because the Parser and the Planner worked without
 - **Speech.** Talking is an action. A talk action resolves at the speaker's initiative and is perceived by volume and zone links, except addressed speech in a dialogue turn, which resolves in the exchange slot at the top of the turn, followed by the spokespeople's spoken replies. A bark rides on its action's event: perceived and narrated, but it copies no belief.
 - **Numbers.** Tier tables, caps, perk effects and skill gains come only from the ruleset module. Do not invent or tune them here.
 
-**First-build ruleset.** Build TIERS, situation(), roll() and attack() as Parts 1 and 3 define them, and check() and contested() as Part 1 §4 sets out. The rest works like this:
+**First-build ruleset.** Build TIERS, eventRoll(), roll() and attack() as Parts 1 and 3 define them, and check() and contested() as Part 1 §4 sets out. The rest works like this:
 
 - initiative(): d100 + SKILL\_WEIGHT × the best skill with the Initiative function (full value, like a function roll; 0 when none) + roll modifiers naming initiative (rollMod roll `initiative`). No skill has the function yet, so it is a plain d100 for now (Dodge joins the Speed group directly, without the function). Higher acts first. An actor unaware of anyone attacking it this turn takes INIT\_UNAWARE (placeholder), so it acts last. Ties go to the seeded RNG.
 - applyEffects(): attacks as Part 3 sets out. A check or a contest only changes beliefs (through updateBeliefs) and reveals secrets; it never changes an object or a place (OQ-22).
 - recordUse(): writes the use to the agent log and changes nothing, so no skill changes in the first build.
 - The morale roll (Part 3, Morale) is moraleRoll(): roll() on Resolve with renown and rally; morale lost is saved in Condition.moraleLost and a break in Mind.moraleState until the scene ends. No new interface method.
 
-**Replay.** Each turn record (Part 4 §6) holds the RNG state before the turn, each agent's exact output and any situation roll. Replay feeds the logged outputs, not the player's text, back through the engine, and is exact only under the library version that record names. Merge Planner outputs in actor-id order, never in the order calls returned.
+**Replay.** Each turn record (Part 4 §6) holds the RNG state before the turn, each agent's exact output and any event roll. Replay feeds the logged outputs, not the player's text, back through the engine, and is exact only under the library version that record names. Merge Planner outputs in actor-id order, never in the order calls returned.
 
 ### Agent Narrator
 
@@ -1120,7 +1120,7 @@ A scene is the stretch of play between two scene starts.
   A frontier crossing in the same turn goes first; the break waits for the next turn.
 - **Quiet turns and beats.** A quiet turn is one where nobody on the stage attacks, the player learns nothing new (no secret, witnessed fact or name), and no beat fires. The stage counts quiet turns in a row and resets after any other turn and at scene start. Agent Weaver seeds at least one beat per scene plan: a trigger with when quiet\_turns N, which fires at turn start once the count reaches N.
 - **Stage.** A scene is played on a stage: the set of zones currently loaded. A stage can span several neighbouring places; each zone belongs to exactly one place, and an actor's place is always the place of its zone. Moving between zones or places never starts a scene.
-- **Frontiers.** A stage grows through frontiers: labelled exits to areas not yet built. When the player crosses a frontier, code extends the stage (Stage extension) without a new situation roll, using the scene's tier. A place already set up in this scene is loaded, not planned again.
+- **Frontiers.** A stage grows through frontiers: labelled exits to areas not yet built. When the player crosses a frontier, code extends the stage (Stage extension) without a new event roll, using the scene's tier. A place already set up in this scene is loaded, not planned again.
 - **Loading** a save resumes the current scene and stage. Encounter modes are chosen per turn inside a scene. Per-scene caps (fact promotions, minted items) reset at scene start.
 
 ### Scene setup
@@ -1128,7 +1128,7 @@ A scene is the stretch of play between two scene starts.
 Runs inside the turn that calls sceneBreak, after resolveTurn and before the save:
 
 1. Resolve the player's place node.
-2. Situation roll: ruleset.situation(player).
+2. Event roll: ruleset.eventRoll(player).
 3. Agent Weaver returns a stage plan with the tier in its view: the event first, then the zones (each with its place, creating place nodes as needed) and frontiers, any new bands, the cast (each actor's band, routine set id and slot bindings, with an optional startAt, opening belief about the player, beliefs about other bands and personal stances), hidden seeds and reward refs. The tier shapes the event and cast; opening attention and beliefs are the Weaver's story choice.
 4. Code validates the plan and instantiates the cast: templates, unique or copy, body types from the database.
 5. Code checks the plan's challenge and gain grades against the tier, and nothing else, then applies it. Code computes each actor's anchorTurn (Anchors) and places the actor in its default routine's desired zone for the current turn, whose activity sets its attention. On open entry only, each opening belief about the player is written through updateBeliefs. New bands and personal stances (Mind.overrides) are installed; each belief about another band becomes one belief per member on the stage (lastKnownZone = that member's zone), written through updateBeliefs whatever the entry. A plan that fails gets one repair retry. After that, routine-only errors degrade the affected actors, and any other error gives the fallback stage (Agent Weaver: Failed stage plan).
@@ -1141,13 +1141,13 @@ Story start has no triggering turn: setup runs alone, is saved as turn 0, and on
 
 **First build:** the premise is the config value STORY\_PREMISE, "A swordsman arrives at a village troubled by slimes", and the story starts in the village tavern.
 
-Whether the player sees the situation roll on screen stays with D-22. Until then it is hidden, like every roll Agent Narrator does not get.
+Whether the player sees the event roll on screen stays with D-22. Until then it is hidden, like every roll Agent Narrator does not get.
 
 ### Stage extension
 
 - **Background call.** After a turn is saved, if the player's zone links to a frontier that has no held extension, code starts a background Agent Weaver call for that frontier, with the scene's tier and the same contract.
 - **Held, not saved \[Proposed\].** The result is held in memory, keyed by frontier, for the rest of the scene; it is not saved.
-- **Crossing.** In the turn the player moves into that frontier, scene setup steps 4–7 run on the held plan in that turn's setup slot, after resolveTurn and before the save. There is no new situation roll: the Weaver's step 3 already ran in the background with the scene's tier. If the call is not back yet, the turn waits for it.
+- **Crossing.** In the turn the player moves into that frontier, scene setup steps 4–7 run on the held plan in that turn's setup slot, after resolveTurn and before the save. There is no new event roll: the Weaver's step 3 already ran in the background with the scene's tier. If the call is not back yet, the turn waits for it.
 - **Failure.** A failed background extension is not retried; the fallback stage applies when the player crosses that frontier.
 - **NPCs at frontiers \[Proposed\].** Orders that move an NPC into a frontier are dropped, and the actor holds this turn if not engaged, or uses its combat list if engaged (Fallback behavior; OQ-13).
 - **Stage trim \[Proposed\].** When the stage exceeds MAX\_STAGE\_ZONES (config, placeholder), code drops the zones farthest from the player that hold no engaged actor. They stay saved on their place pages, and the links into them become frontiers again; re-entry loads them with no Weaver call.
@@ -1302,7 +1302,7 @@ Return only JSON matching the schema.
 
 At scene setup step 8, code adds to the turn's events an arrival event for the player and a presence event for each actor the player perceives on arrival, computed by computePerception (level full or partial, with a cue). Agent Narrator also receives the player's zone and the zones linked to it with sight (frontiers by label), and visible state per Part 3. Every full presence event must be listed in "narrated" (fact check); partial ones may be left out. Each presence event carries the actor's current activity look, which is public text.
 
-Never in NarrationView: the tier, grades or situation roll; the event summary, Weaver note, plans, triggers or secrets; opening beliefs or attention; or any tone or mood hint derived from the tier.
+Never in NarrationView: the tier, grades or event roll; the event summary, Weaver note, plans, triggers or secrets; opening beliefs or attention; or any tone or mood hint derived from the tier.
 
 **Public and hidden text.** Every free-text field in a stage plan is either public (what anyone present could see or hear: labels, appearance, how a zone looks) or hidden (event summary, motives, notes). Only public fields reach Agent Narrator. The plan lists hiddenTerms: words and phrases that must not appear in public text. At validation, code scans public fields for hiddenTerms and for every secret's leakTerms; a hit fails validation (repair retry, then fallback). While the stage is active, the Narrator's leak scan also checks its hiddenTerms.
 
@@ -1574,24 +1574,24 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 24 | Same shape after submit | Explore and Tactical make the same sequence of calls after submit, and resolution never starts before the previous display plus BACKGROUND\_WINDOW |
 | 25 | Late Planner | A Planner call not back by BACKGROUND\_WINDOW gives that actor its type's combat list, discards the whole output and logs planner\_late |
 | 26 | Code minds read ActorView only | Routine and combat-list functions can't receive GameState (type-level test) |
-| 27 | Story start | Turn 0 makes one situation roll, one Weaver call and one Narrator call, and is saved as turn 0 |
-| 28 | Place change is not a scene | The player walks from the bar's zone to the street's zone (two places, one stage): no situation roll, no Weaver call |
+| 27 | Story start | Turn 0 makes one event roll, one Weaver call and one Narrator call, and is saved as turn 0 |
+| 28 | Place change is not a scene | The player walks from the bar's zone to the street's zone (two places, one stage): no event roll, no Weaver call |
 | 29 | The fight spills outside | An engaged NPC follows the player from the bar into the street; its placeId changes with its zone, and the turn stays Tactical |
 | 30 | Background extension | With the player in a zone linked to a frontier, one Weaver call starts after the save, is logged, and is not applied before the player crosses |
-| 31 | Crossing reuses the tier | Crossing applies the held extension with the scene's tier; no situation roll is made |
+| 31 | Crossing reuses the tier | Crossing applies the held extension with the scene's tier; no event roll is made |
 | 32 | Late extension | The player crosses before the extension returns; the turn waits for it, and no fallback is used |
 | 33 | Grades must fit the tier | A Failure-tier plan with gain major fails validation, gets one repair retry with the errors, and the corrected plan applies |
 | 34 | Fallback is flagged | A plan that fails twice yields the fallback stage, and all four flags appear: stage record, weaver\_fallback log, GM banner, play-screen marker |
 | 35 | Stakes only | A Failure-tier plan whose threats are unaware and unalert passes validation |
-| 36 | Situation modifiers | A perk naming the situation roll changes its total; a Wounded health level and a terrain bonus do not |
-| 37 | Natural edge | A natural 01 on the situation roll lowers the tier by two |
+| 36 | Event-roll modifiers | A perk naming the event roll changes its total; a Wounded health level and a terrain bonus do not |
+| 37 | Natural edge | A natural 01 on the event roll lowers the tier by two |
 | 38 | Hidden terms | A public zone description containing one of the plan's hiddenTerms fails validation |
 | 39 | Opening narration covers who is seen | Every full presence event appears in the Narrator's narrated list; a narration that omits one fails the fact check |
 | 40 | Nothing hidden in the opening | The logged NarrationView at scene start holds no tier, grade, event summary, Weaver note or opening belief |
 | 41 | Labels until names are known | The opening uses the stranger label; after an Agent Voice line with introduces = \[speaker\], the next NarrationView uses the name |
 | 42 | Sneaking arrival | A sneaking player crossing a frontier triggers detection tests; the plan's opening beliefs are not applied to those observers |
 | 43 | One belief writer | Opening beliefs on open entry are written through updateBeliefs only (unit test) |
-| 44 | Undo rerolls the hand | Undoing the scene-start turn and redoing it makes a new situation roll and a new Weaver call |
+| 44 | Undo rerolls the hand | Undoing the scene-start turn and redoing it makes a new event roll and a new Weaver call |
 | 45 | Replay of a scene start | Saved state, RNG state and the logged Weaver output reproduce the same stage, with no Weaver call |
 | 46 | Stage trim | Past MAX\_STAGE\_ZONES, the farthest zones without engaged actors drop off, their links become frontiers, and re-entry loads them with no Weaver call |
 | 47 | Words beside an attack | The player speaks while attacking: the words are a bark, no dialogue call runs, and no NPC view contains them |
@@ -1633,8 +1633,8 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 83 | Cover | A ranged attack into a cover-2 zone adds +2 to the gap |
 | 84 | No numbers to the Narrator | The combat packet in NarrationView holds no roll, margin, damage, pool or HP value (unit test) |
 | 85 | Packed sword does nothing | A sword stowed in the inventory adds no skill bonus to a melee hit roll; drawn, it does |
-| 86 | One copy counts | Two identical lucky charms give the same situation-roll modifier as one |
-| 87 | Carried charm | A charm whose entry names the situation roll and is active when carried modifies the roll at scene setup; one without the situation roll never does |
+| 86 | One copy counts | Two identical lucky charms give the same event-roll modifier as one |
+| 87 | Carried charm | A charm whose entry names the event roll and is active when carried modifies the roll at scene setup; one without the event roll never does |
 | 88 | Tool auto-pick | A lockpick action with two lockpick kits carried uses the better one; with both hands full, the off-hand item is stowed and no action is spent on it |
 | 89 | Crippled arm holds | A shield arm goes Crippled: the shield stays held, no block is offered, the hit table gains no change |
 | 90 | Destroyed arm drops | A Destroyed sword arm puts the sword on the zone's ground; an observer perceives an item\_dropped event; pick up returns it |
@@ -1671,7 +1671,7 @@ Done means every scenario test passes except those waiting on other work: 46 and
 Build in this order, so the game is playable with stubs before any agent is wired in:
 
 - [ ] State types, seeded RNG with saved state, agent log
-- [ ] Ruleset: TIERS, situation, roll, attack, check and contested built (Part 2, First-build ruleset); applyEffects and recordUse stubbed
+- [ ] Ruleset: TIERS, eventRoll, roll, attack, check and contested built (Part 2, First-build ruleset); applyEffects and recordUse stubbed
 - [ ] Perception per event, the single belief writer, communication events and belief decay
 - [ ] The six deny-by-default view builders (DialogueView built from ActorView; bark events never copied into NPC views)
 - [ ] isActive; bands, relations and overrides; engagement
@@ -1679,7 +1679,7 @@ Build in this order, so the game is playable with stubs before any agent is wire
 - [ ] Hidden store, trigger checker (turn start and mid-turn), fired log and secret reveal
 - [ ] Routine bank types, the import validator and the prototype bank (Appendix)
 - [ ] Desired-state routines (schedule, follow, wait) with slot bindings, route expansion and code-set anchors, alarm state, onAlert and returnTo; detection on major actions and ambush resolution (Explore mode)
-- [ ] Scenes, the stage, frontiers and the situation roll (ruleset.situation)
+- [ ] Scenes, the stage, frontiers and the event roll (ruleset.eventRoll)
 - [ ] Item library and blueprints, the active-effect reader, slots and gear ops, ground items, the damage step with armor (Part 5)
 - [ ] Fallback combat list per actor type (Fallback behavior)
 - [ ] Agent Parser, Planner, Responder, Voice and Narrator wrappers, prompts as constants, schemas validated
@@ -1740,7 +1740,7 @@ HP lost keeps counting past 100% while an actor is down, up to 150%, where it is
 
 The penalty is a roll modifier of type wounds (Part 1 §4, Layer 2b), diminishing together with body-part role penalties. It does not apply to no-dice checks (settles OQ-15).
 
-Bands are 15% wide; Critical takes the remaining 24% so a last stand lasts a little longer. Penalty values are placeholders; they stack by Part 1 §4, Stacking within a type. The health track never modifies the situation roll (Part 1 §4).
+Bands are 15% wide; Critical takes the remaining 24% so a last stand lasts a little longer. Penalty values are placeholders; they stack by Part 1 §4, Stacking within a type. The health track never modifies the event roll (Part 1 §4).
 
 **Morale** (Ali, 10/11/2026, morale bar MB1–MB43). Morale is a second, mental health bar that every actor has, the player included (MB11). Max morale = MORALE\_BASE (50) + MORALE\_PER\_RESOLVE (1) × Resolve (raw), as HP comes from Endurance; an NPC template's personality sets its starting Resolve (fearless 90, bold 70, steady 50, timid 30; MB4, fearless is not immune). Fears cost flat points (MB5), one row each in the library fears table: reaching Injured to Mauled 25 and Critical 50 (rolled, only while engaged, the player while someone is fighting them; the health range can move by steps with a perk's or achievement's fearFrom, MB21), a bandmate going Down 25 or breaking 25 when the actor perceives it (MB23), a hit that leaves the actor's own parts Crippled or worse (rolled once per hit, paying for each part by its impact: non-essential 5, normal 15, essential 30 for a 6-part body, × 6 ÷ the body's part count; a part Destroyed rolls again at 1.5 × those costs, read from the Crippled row; Ali, 11/11/2026), losing to an intimidation 10 per tier of the gap, and downing a foe gives back 10. A rolled fear makes the morale roll (Resolve, with renown on every morale roll of a foe fighting the player, MB24, and rally) and pays the cost × MORALE\_TIER\_MULT for its tier: Critical Failure 2 (+0.5 for each step beyond), Failure 1.5, Near Miss 1, Success 0.5, Great Success 0.25, Critical Success 0. The level is the share of max morale lost (MORALE\_TRACK): Calm, Uneasy 15%, Tense 30%, Rattled 45% (−5), Afraid 60% (−5), Terrified 75% (−10), Panicking (−15), Broken at 100% (Shattered banked, MB2). The penalty is type wounds, so it stacks with the health penalty and hits the morale roll too: fear feeds on itself (MB3). Reaching Broken replaces the old instant break (MB1): an NPC is broken for the scene and flees (Fallback behavior, rule 1); if the roll that broke it was Critical Failure or worse it surrenders instead; its perceiving bandmates pay the bandmate-broken fear. The player at Broken keeps control but cannot attack (MB12), and a break counts as defeated (achievements). **The player's yield** (MB40–MB43): saying "I yield" in a real fight (the Parser's yields, as in a spar) or typing /yield asks the foes who hear it (state.yielding, src/engine/yield.ts): every foe fighting the player (hostile and engaged), and hostile foes who perceive the player by any sense (the yield said at normal volume) and are fighting someone on the player's side (YD1, Ali, 11/11/2026). A hostile who is only tracking or hunting the player, such as one listening from another room, does not hear it (BG-4). A taken yield also covers the taker's hostile bandmates who are together with it (YD2, YD7) and did not refuse it themselves; bandmates apart keep fighting. Once everyone who heard the yield has taken it, the player's fight ends that turn (YD3); a hostile who never heard it starts a new fight. Who counts as a foe in the fight log stays parked (YD4). A foe run by Claude, of an Intelligent race, answers in its next output (acceptYield; no answer is a refusal); code-run foes and lesser races fight on. A taken yield is a truce for the rest of the scene: neither is hostile to the other, the fight ends, and it counts as defeated. Once yielded, the player cannot attack a foe that took the yield or has yet to answer, and a foe that took it cannot attack the player (MB43). What happens after a yield is OQ-30. Broken is a win condition: a broken actor counts on neither side of engagement. Surrender and a break also turn its stance toward everyone it was hostile to into **yielded** (Q1, Ali 08/11/2026); a broken actor still flees from those it yielded to: a yielded actor never attacks and is not a threat, so it blocks no rest or waiting; it still pays defeat XP; attacking it again turns it hostile, and talk steps it from opposed. Recovery comes from the library **composure** table, apart from healing so morale tunes on its own (Ali, 11/11/2026, D-183): natural composure is its hourly row (0.1% of max morale per Resolve point an hour, 5% at 50, MB8); Danger passed, when an engagement ends, gives back MORALE\_ENGAGEMENT\_END\_PCT (25%, MB9); Rest gives REST\_MORALE\_PCT (50%) and Clinic CLINIC\_MORALE\_PCT (100%) (MB34). A healing row names the composure row its action also restores (`composure`), so a rest restores health from the healing table and morale from the composure table in one action. One engine call (calm) applies a row; a perk that restores morale directly calls calmFromPerk and counts under the Perks row (CP5, count only); a unit test (morale-writes) fails if code restores morale anywhere else. Downing a foe and being rallied still restore through the fears table (negative cost). When the scene ends, yielded becomes opposed (a grudge), broken and surrendered end (Q4), a bar still at Broken moves up to Panicking (one point short), and the actor goes to its exit slot (with no off-stage yet, D-46/D-67, that is how it leaves). Others see an actor's morale only from Afraid down (MORALE\_SHOWN\_FROM, MB16); the actor itself always sees its own. Yielded is not on the STANCES scale: agents cannot choose it. What else the player can do with it is deferred (D-98).
 
@@ -2051,7 +2051,7 @@ The save stores only what can't be rebuilt. Everything recomputable is derived o
 
 - Potential is saved as a base plus a list of {source, delta, turn} adjustments, so a perk or event change can be traced or reversed.
 - Character level is the sum of class levels unless a perk changes it, so it is derived.
-- Values used at resolution (the Burden snapshot, the effective skill of a check, the situation roll) go in the turn record, not on the sheet.
+- Values used at resolution (the Burden snapshot, the effective skill of a check, the event roll) go in the turn record, not on the sheet.
 - Retuning never recalculates saved progress. Levels are stored and never lost. A retuned XP curve changes only the distance to the next level; if a character's XP already passes the new threshold, it levels up at its next XP award, not on load. A retuned perk-point rule applies only to future levels: points already earned and perks already bought stay.
 
 ### 4. Actor sheet
@@ -2182,7 +2182,7 @@ Page keys: engine, hidden, actor.\<id>, place.\<id>, facts.\<placeId>.\<n>, blue
 - An artifact's database holds at most 25,000 documents in total, shared by the library and every story. Documents per collection, total size and write rate are also capped, but those numbers are not published.
 - Leases give a single-writer lock.
 
-**Undo.** One turn. It points head back at the previous bookmark and drops that turn's record. The RNG does not roll back: the engine page keeps the undone turn's RNG state, so a retried action rolls new dice. Undo after a library edit is allowed; the restored state uses the new library from the next turn. Undoing the turn that started a scene rerolls the situation roll and runs Agent Weaver again, like any other dice. Undoing a turn that crossed a frontier reuses the held extension, if this session still holds it.
+**Undo.** One turn. It points head back at the previous bookmark and drops that turn's record. The RNG does not roll back: the engine page keeps the undone turn's RNG state, so a retried action rolls new dice. Undo after a library edit is allowed; the restored state uses the new library from the next turn. Undoing the turn that started a scene rerolls the event roll and runs Agent Weaver again, like any other dice. Undoing a turn that crossed a frontier reuses the held extension, if this session still holds it.
 
 **Removed.** No named save slots and no /save export. Backups are automatic (section 11).
 
@@ -2246,7 +2246,7 @@ Raw skill above 100 is logged as a warning, not refused, because workaround mech
 
 ### 9. Types
 
-These types replace Part 2's GameState and Actor as the saved shape. Belief, Fact, Zone, ZoneLink, Band, HiddenStore, GameEvent, AgentTurnLog, Tier and SituationResult keep their Part 2 definitions. Fields marked reserved hold a place for an open question and are not used yet.
+These types replace Part 2's GameState and Actor as the saved shape. Belief, Fact, Zone, ZoneLink, Band, HiddenStore, GameEvent, AgentTurnLog, Tier and EventRollResult keep their Part 2 definitions. Fields marked reserved hold a place for an open question and are not used yet.
 
 ```ts
 // ---------- ids ----------
@@ -2295,7 +2295,7 @@ type ItemDef = {                       // library entry or story blueprint (kind
 type ItemEffect = {
   kind: 'skill' | 'rollMod';           // rollMod only when the entry notes it
   skill?: LibraryRef;                  // kind 'skill'
-  roll?: 'hit' | 'dodge' | 'block' | 'perception' | 'stealth' | 'situation';   // kind 'rollMod'
+  roll?: 'hit' | 'dodge' | 'block' | 'perception' | 'stealth' | 'event';   // kind 'rollMod'
   value: number;
   active: 'worn' | 'held' | 'inUse' | 'carried';
   scope: 'withItem' | 'any';
@@ -2345,7 +2345,7 @@ type EnginePage = {
   pending: { turn: number; mode: 'explore' | 'dialogue' | 'tactical'; engaged: string[]; fired: string[] };
   stage: {
     zoneIds: string[];      // zones in play; may span several places
-    tier: Tier;             // this scene's situation-roll tier
+    tier: Tier;             // this scene's event-roll tier
     sceneNumber: number;
     sceneStartTurn: Turn;
     fallback?: { reason: string; turn: Turn };   // set when the fallback stage was used
@@ -2523,7 +2523,7 @@ type TurnRecord = {
   agentLog: AgentTurnLog[];
   events: GameEvent[];
   factsAdded: FactId[];
-  situation?: SituationResult;       // set on the turn that started a scene
+  eventRoll?: EventRollResult;       // set on the turn that started a scene
 };
 ```
 
@@ -2605,7 +2605,7 @@ Every item effect declares one activation state. Code collects an actor's active
 
 - **Tools.** For an action whose skill an inUse effect names, code picks the actor's best carried tool for that skill unless the action names one. The tool needs a free usable hand; if both are full, code stows the off-hand item as part of the action (free). \[Proposed\]
 - **One copy counts.** A second instance of the same item id adds nothing. \[Proposed\]
-- **Situation roll.** An effect may modify the situation roll only when its entry names it. Such an effect may be carried. Code reads the player's inventory once, at scene setup step 2. Only the player makes this roll.
+- **Event roll.** An effect may modify the event roll only when its entry names it. Such an effect may be carried. Code reads the player's inventory once, at scene setup step 2. Only the player makes this roll.
 
 ### 3. What an effect can do
 
@@ -2613,7 +2613,7 @@ Three kinds, all subject to §2's activation and to a scope (withItem: only acti
 
 1. **Skill bonus (default).** A flat bonus or penalty to named skills, entering effective skill (Part 1 §3). It counts in full in checks and at the roll's skill weight in rolls. The standard kit bonus is one +25 per roll, shared by all kit pieces, so two kit pieces that both apply still give +25 (Part 1 §3). Armor weight is a skill penalty on Dodge: light −5, medium −10, heavy −20 (*placeholders*).
 2. **Item stats.** Read by the combat flow, never stacked as modifiers: weapon modes (§5), armor protection and pools, shield part (§6).
-3. **Noted roll modifier (rare).** A flat modifier on one roll kind (hit, dodge, block, perception, stealth, situation), of type gear (Part 1 §4, Layer 2b), only when the entry says so. The weapon hit adjustment is one: it applies at full value on the hit roll.
+3. **Noted roll modifier (rare).** A flat modifier on one roll kind (hit, dodge, block, perception, stealth, event), of type gear (Part 1 §4, Layer 2b), only when the entry says so. The weapon hit adjustment is one: it applies at full value on the hit roll.
 
 Every gear modifier enters the check or roll request as its own entry, naming its item and state, e.g. "Gear (held): arming sword". How gear modifiers combine with perks and statuses is decided by the modifier-stacking rules, not here. Initiative is not a gear target yet (D-85).
 
@@ -2708,23 +2708,23 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-12 | Content database for items, loot and prices | 1 | Partly settled | Part 5 (Gear) sets the item data shape (Part 4 §9) and a prototype bank. Still deferred: loot tables, shops, trade, prices beyond the value placeholder |
 | D-13 | Faction clocks | 1 | Deferred | Time advances with turns and faction clocks tick on their own. A faction here is a grand faction, unrelated to bands |
 | D-14 | Skills and classes | 1, 4 | Deferred | Separate thread: general skills, class trees, how classes unlock. Exclusions settled 08/11/2026 as Skill tree access (TA1–TA11, Part 4 §4). Voyage playtest (07/11/2026): B11, ability requirements and cooldowns |
-| D-15 | Status effects | 1, 4 | Deferred | Blessings, buffs, curses, debuffs: library entries, duration, and which rolls they modify, the situation roll among them |
+| D-15 | Status effects | 1, 4 | Deferred | Blessings, buffs, curses, debuffs: library entries, duration, and which rolls they modify, the event roll among them |
 | D-16 | One Planner call per actor | 2 | Provisional | Evaluate later against one call per group of actors who can talk to each other, or a commander layer; also decides shared plans, whether a spokesperson's answer can bind its band (commander layer), and coordination between allies, who also commit blind |
 | D-17 | Fallback combat list | 2 | Under review | Which actors count as minor, and how rich their behaviors are. The prototype uses a fixed combat list in code (Fallback behavior). Later: a per-type, data-driven rule order once many body types fight; tacticsLevel variants, such as level 3 calling for help first |
 | D-18 | Call cap (MAX\_PLANNER\_CALLS) | 2 | Under review | The value, and which actors get calls first. Counts engaged significant actors only. Overflow runs its type's combat list \[Proposed\] |
 | D-19 | Action economy | 2 | Settled | Settled 07/11/2026 (AE1–AE12, Part 2 Action economy): slots, ranged attacks don't move, dash, act-then-move for the player. Earlier: speech is an action and takes the main action, for everyone; words beside another action are a bark. The rest stays parked: a per-turn action limit is being considered, each action using 0–100% of it by type; covers move plus action and move timing |
 | D-20 | Deferred actions | 2 | Parked | Run next turn unless new input, show as a queue, or drop; queuing many and typing "continue" is an exploit |
 | D-21 | Player names something that doesn't exist | 2 | Parked | A clarify question can reveal what exists in the world. Voyage playtest (07/11/2026): F1, the player liked an impossible action failing inside the story instead of a clarify question |
-| D-22 | What code produces, agents see, player sees | 2 | Parked | Separate document; includes roll numbers for Agent Narrator, SHOW\_MECHANICS and on-screen panels. Part 3's roll packet specifies part of this; Agent Narrator never gets roll numbers (Part 3, The packet). Includes whether the player sees the situation roll. Voyage playtest (07/11/2026): A1 one-line check summary, A2 typed update cards, D9 speaker labels and plain text, E3 location header, G2 quest text, G3 player-facing wording for rules text. Decided by Ali (07/11/2026, Voyage C2): no enemy health bars, by design; characters only know what they perceive |
+| D-22 | What code produces, agents see, player sees | 2 | Parked | Separate document; includes roll numbers for Agent Narrator, SHOW\_MECHANICS and on-screen panels. Part 3's roll packet specifies part of this; Agent Narrator never gets roll numbers (Part 3, The packet). Includes whether the player sees the event roll. Voyage playtest (07/11/2026): A1 one-line check summary, A2 typed update cards, D9 speaker labels and plain text, E3 location header, G2 quest text, G3 player-facing wording for rules text. Decided by Ali (07/11/2026, Voyage C2): no enemy health bars, by design; characters only know what they perceive |
 | D-23 | Fallback narration form | 2 | Parked | Template text breaks immersion |
 | D-24 | Streaming | 2 | Provisional | Off for now; revisit after playtests. Voyage playtest (07/11/2026): A5, narration paced line by line. Pacing settled 10/11/2026: sentence-by-sentence reveal after the turn lands (Play screen motion, M-10, M-11); streaming itself stays off |
 | D-25 | Improvement-roll timing | 2 | Settled | Settled 07/11/2026 (SP3, SP7): at the end of each engagement and at scene breaks; NPCs don't improve yet. Was: After each use, at scene end or at rest; whether NPCs improve. Part 1 §6 runs improvement at the end of a training action |
-| D-26 | Ruleset module | 2 | Partly settled | First build: TIERS, situation, roll, attack, check and contested are built (Part 2, Resolution engine, First-build ruleset); the rest stays stubbed |
+| D-26 | Ruleset module | 2 | Partly settled | First build: TIERS, eventRoll, roll, attack, check and contested are built (Part 2, Resolution engine, First-build ruleset); the rest stays stubbed |
 | D-27 | Body-part targeting | 2 | Settled | targetPart and aimed in the agent outputs (Part 2); aim penalty, gap ladder and location (Part 3) |
 | D-28 | Event log retention | 2, 4 | Partly settled | Keep the last N turn records (placeholder); story history is never pruned. N stays deferred |
 | D-29 | Who spawns enemies and weaves the story | 2–3 | Partly settled | Agent Weaver plans events, casts, stages and body types. Still deferred: story beats and who calls sceneBreak (story-weaving thread) |
 | D-30 | Scene breaks | 2 | Partly settled | Settled 07/11/2026 (P7): rest, beats with endsScene, and the stall fallback (Scenes); time skip (T6, Game clock). Still open: NPCs reacting on their own after a fight (P7 B2) |
-| D-31 | Random rolls during a scene | 2 | Deferred | Iliad Quest-style encounter rolls while travelling or mid-scene. For now only the scene-start situation roll exists |
+| D-31 | Random rolls during a scene | 2 | Deferred | Iliad Quest-style encounter rolls while travelling or mid-scene. For now only the scene-start event roll exists |
 | D-32 | Computed grade check | 2 | Partly settled | Measuring a plan's challenge and gain from its cast and rewards. Settled 07/11/2026 (loot V8): rewards are held to the gain's Boon budget (Part 5 §7). Still open: measuring the cast's challenge, a passing stub until then |
 | D-33 | Weaver effort | 2 | Dropped | Closed by Ali (07/11/2026, easy open questions Q10). The runtime accepts only low, medium and high, and the Weaver already uses high. Reopen if the runtime adds a higher level |
 | D-34 | Definition of a major action | 2 | Deferred | Which actions end the stealthy posture is settled (Part 2, Stealthy posture). Still open: whether an observer arriving in view counts. Stub: every player action is major |
@@ -2832,7 +2832,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-136 | Parked reward types | 1, 2 | Parked | Ali (09/11/2026): T12 initiative (park until an achievement fits); T14 tier floor (powerful, nothing fits yet; a balance lever that turns gap X into gap X−1 instead of a flat +1); T20 XP focus (a perk idea, not an achievement reward). |
 | D-137 | More reward types | 1, 2 | Deferred | Ali (09/11/2026): come back with more reward types once there are more achievements. |
 | D-138 | Worn titles | 1, 2 | Built | Decided by Ali (09/11/2026, reward variations page T18): a general option for every achievement, not a reward of one. `/title` lists the current, non-scar achievements; `/title <number or name>` wears one; `/title off` removes it (Progression.title). The title moves up its chain when a higher level replaces it. Stealth-safe: an NPC's belief about the player carries the title only when it has seen the player (source seen, status Aware or higher), never from sound, a glimpse (Suspicious) or hearsay. The narrator gets player.title and may use it now and then. |
-| D-139 | Old Blood situation bonus | 1 | Built | Decided by Ali (09/11/2026): Old Blood (100 game days survived) gives +10 on situation rolls (AchievementDef.situation, an achievement modifier in situationMods). |
+| D-139 | Old Blood event-roll bonus | 1 | Built | Decided by Ali (09/11/2026): Old Blood (100 game days survived) gives +10 on event rolls (AchievementDef.eventRoll, an achievement modifier in eventRollMods). |
 | D-140 | Multi-step quests | 2 | Deferred | Banked by Ali (09/11/2026, QT18): a quest chain with several goals in one quest. Today a quest has one goal, and a longer job is a linked follow-up quest (QT24). |
 | D-141 | Your own goals | 2 | Deferred | Banked by Ali (09/11/2026, QT20): the player writes a goal on the Quests page ("Become a knight"), tracked only: no giver, no check, no XP. |
 | D-142 | Quests held by NPCs | 2, 4 | Deferred | Banked by Ali (09/11/2026, QT26) under D-61: a recurring NPC (a rival, a companion) holds a quest code follows across scenes, using the same quest record with a holder field. |
@@ -3030,7 +3030,7 @@ Seventeen library items for the first build, approved as placeholders (Nov 2026)
 | plate\_harness | armor, heavy | covers general, arms, both legs, head, neck · 6, ×0.55 · head pool: 20 | Dodge −20 | — | 3 | 200 |
 | round\_shield | shield | shield part, pool 30 | Kit +25 (Block) | 1 | 2 | 10 |
 | signet\_ring | accessory, visible | — | none; shows the visible tag | — | 0 | 40 |
-| lucky\_charm | misc | — | Situation roll +5, carried, any (noted roll modifier) | — | 0 | 50 |
+| lucky\_charm | misc | — | Event roll +5, carried, any (noted roll modifier) | — | 0 | 50 |
 | lockpicks | tool | — | lockpicking +25, inUse, withItem (placeholder skill id) | 1 | 0 | 15 |
 | healing\_draught | consumable, stackable | — | none until Healing is designed | 1 | 1 | 10 |
 | coin | misc, stackable | — | — | — | 0 | 1 |

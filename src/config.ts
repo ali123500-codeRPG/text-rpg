@@ -29,7 +29,7 @@ const DEFAULTS = {
   } as Record<string, { fn: SkillFunction; k: number }[]>,
   /** Pairs of skills that never stand in for each other, even when they share a function (the three defenses) */
   NO_STAND_IN: [[SK.dodge, SK.block], [SK.block, SK.parry], [SK.dodge, SK.parry]] as [string, string][],
-  SITUATION_BASE: 50,
+  EVENT_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,

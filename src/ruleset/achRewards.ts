@@ -10,8 +10,8 @@ import { skillName } from '../library/skillNames';
 import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
-type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels' | 'bonusLevels';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'situation', 'freeLevels', 'bonusLevels'];
+type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels';
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -136,7 +136,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'pricePct': return [`+${d.pricePct}% off what you pay traders`];
     case 'rally': return [`allies fighting beside you get +${d.rally} on their morale rolls`];
     case 'restPct': return [`+${d.restPct}% healing on each rest`];
-    case 'situation': return [`+${d.situation} on your situation rolls`];
+    case 'eventRoll': return [`+${d.eventRoll} on your event rolls`];
     case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
     case 'bonusLevels': return [`+${steps(d.bonusLevels!, 'bonus level')} (character levels no class gets: perk points, no class perks)`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];

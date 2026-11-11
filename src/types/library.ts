@@ -152,7 +152,7 @@ export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: 
  * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */
 export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 export type PerkDef = {
-  id: string; name: string; text?: string; situation?: number;
+  id: string; name: string; text?: string; eventRoll?: number;
   /** MB21: moves a health fear's `from` level by `steps` (+ later, − sooner) */
   fearFrom?: { fear: string; steps: number };
   /** metres added to a thrown weapon's own range (CONFIG.THROW_M) */
@@ -273,7 +273,7 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
-  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels' | 'bonusLevels';
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -291,7 +291,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   pricePct?: number; // + this % off the owner's buying prices
   rally?: number; // allies fighting beside the owner get + this on their morale rolls
   restPct?: number; // + this % HP and part healing on each rest
-  situation?: number; // + this on the owner's situation rolls
+  eventRoll?: number; // + this on the owner's event rolls
   freeLevels?: number; // free levels: this many level-ups that cost no XP (taken like any level, src/engine/xp.ts spendXp)
   bonusLevels?: number; // bonus levels: this many character levels that no class gets (perk points on even levels; no class perks)
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile

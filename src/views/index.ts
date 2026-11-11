@@ -605,7 +605,7 @@ function modeOf(state: GameState, attacker: Actor, weaponId: string, modeId: str
   return { mode, weapon: mode?.name ?? null };
 }
 
-/** the other side's deciding sources: only lucky/fumble, situation and aim, the weapon used, and gear the viewer can see (no health, wounds, perks or hidden gear) */
+/** the other side's deciding sources: only lucky/fumble, situational and aim, the weapon used, and gear the viewer can see (no health, wounds, perks or hidden gear) */
 function shownDeciding(state: GameState, list: string[], roll: RollResult, rollerId: string, viewerId: string): string[] {
   if (rollerId === viewerId) return [...list];
   const seen = new Set(seenGear(state, need(state, rollerId), need(state, viewerId).mind?.knowledge[rollerId]?.revealed ?? []).map((g) => g.name));

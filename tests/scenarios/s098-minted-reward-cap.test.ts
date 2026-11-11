@@ -31,7 +31,7 @@ describe('98 Minted reward cap', () => {
     expect(s.log.some((l) => l.code === 'reward_repaired')).toBe(true);
   });
   it('run 2: a plan whose only faults are rewards applies at once, with no repair call', async () => {
-    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
+    const roll = vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const weave = vi.fn(async () => withSword(3, 'keen edge'));
     const r = await new SceneDirector({ weave, clock: new VirtualClock() }).startScene(makeVillage(), createRng(1));
     expect(weave).toHaveBeenCalledTimes(1);
