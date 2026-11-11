@@ -2910,7 +2910,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-3 | "I await the outcome" after a yield got a clarify ("Nothing is pending"): the Parser had no way to let a moment pass | Play | Fixed | PR #375 |
 | BG-4 | "I yield" asked a hostile who never fought the player (waiting in another room), and the sheet's "Deciding" list revealed him; he also counts in the fight log | Play | Fixed | PR #387 (YD1–YD3, YD6, YD7) |
 | BG-5 | The player's fight never ended after they left it: the slimes stayed hostile and aware while fighting the guard, so fightingWith kept the engagement open and the end-of-engagement skill-up rolls never came (playtest run 31) | Playtest | Fixed | PR #387 (YD6) |
-| BG-6 | Zone placement read "down the street" and "up the road" as stairs, so level street zones were stacked on top of each other | Thread | Fixed | step 2 PR 1 |
+| BG-6 | Zone placement read "down the street" and "up the road" as stairs, so level street zones were stacked on top of each other | Thread | Fixed | PR #395 |
 
 ## Check on release
 
