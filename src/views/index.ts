@@ -551,10 +551,10 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
 const STAKES: Record<Tier, string> = {
   critical_failure: 'A real challenge with little gain; the harder of the two',
   failure: 'A real challenge with little gain',
-  near_miss: 'A normal event, gain matched to challenge',
+  near_miss: 'A fair event tilted slightly against the player: gain a step below the challenge',
   success: 'A normal event, gain matched to challenge',
-  great_success: 'High gain with a matching high challenge',
-  critical_success: 'The biggest gain with the biggest challenge',
+  great_success: 'Good fortune: a windfall or a chance worth taking, with little challenge',
+  critical_success: 'The best of luck: the biggest gain, with at most a major challenge',
 };
 
 export function buildWeaverView(state: GameState, target: WeaverView['target']): WeaverView {

@@ -8,7 +8,7 @@ import type { AgentName, StoryOwner, TierRoll,
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
-import { TIME_OF_DAY, type TimeOfDay } from '../scales';
+import { TIERS, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
@@ -367,7 +367,7 @@ export function createGame(deps: GameDeps): Game {
     fileLogBugs(s);
     const nv = views.buildNarrationView(s, events, rec.intent);
     const leak = buildLeakContext(s);
-    const mechanics = mechanicsLines(s, events);
+    const mechanics = mechanicsLines(s, events, record.eventRoll);
     const turn = s.turn;
     const narrLog = turnLog;
     const notes = turnNotes(s);
@@ -924,7 +924,7 @@ export function tierGap(mine: TierRoll, theirs: TierRoll): string {
 /** mechanics panel: dice, modifiers and damage of events the player took part in or perceived clearly (never sent to an
  * agent). Someone the player doesn't clearly perceive stays "someone", an event only heard or glimpsed shows no dice,
  * and a sight or hearing roll shows only once its target is perceived (UI5). */
-export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
+export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: TurnRecord['eventRoll']): string[] {
   const me = s.player.id;
   const pv = views.buildPlayerView(s).actors;
   const seen = new Set(pv.map((a) => a.id)), clear = new Set(pv.filter((a) => a.level === 'full').map((a) => a.id));
@@ -941,6 +941,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     return t ? actorBody(s, t).general.name : a.location?.replace(/_/g, ' ');
   };
   const out: string[] = [];
+  // ER5: a scene's event roll, first, when it was made this turn (only ever shown here, with Show rolls on)
+  if (eventRoll) out.push(`Event roll d100 ${eventRoll.roll} → ${TIERS.name(eventRoll.tier)}${mods(eventRoll.modifiers)}`);
   for (const e of events) {
     const target = e.attack?.targetId ?? e.target;
     if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;

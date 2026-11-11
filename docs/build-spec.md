@@ -103,10 +103,10 @@ Only three sources may modify the roll, each its own modifier type: perks, gear 
 | --- | --- | --- |
 | Under 0 | Critical Failure (−3) | A real challenge with little gain; the harder of the two **\[Proposed\]** |
 | 0–24 | Failure (−2) | A real challenge with little gain |
-| 25–49 | Near Miss (−1) | A normal event, gain matched to challenge |
+| 25–49 | Near Miss (−1) | A fair event tilted slightly against the player: gain one step below the challenge (ER2) |
 | 50–74 | Success (0) | A normal event, gain matched to challenge |
-| 75–99 | Great Success (1) | High gain with a matching high challenge |
-| 100+ | Critical Success (2) | The biggest gain with the biggest challenge **\[Proposed\]** |
+| 75–99 | Great Success (1) | Good fortune: gain major, challenge none to moderate, a windfall or a chance worth taking (ER1) |
+| 100+ | Critical Success (2) | The best of luck: gain extreme, challenge none to major (ER1) |
 
 **Natural edges** apply after the bands, clamped at the ends of the scale: a natural 01 drops two tiers, 02–05 one tier, 96–99 raises one tier, 00 two tiers.
 
@@ -1164,7 +1164,7 @@ Story start has no triggering turn: setup runs alone, is saved as turn 0, and on
 
 **First build:** the premise is the config value STORY\_PREMISE, "A swordsman arrives at a village troubled by slimes", and the story starts in the village tavern.
 
-Whether the player sees the event roll on screen stays with D-22. Until then it is hidden, like every roll Agent Narrator does not get.
+The player sees the event roll only on the Rolls line, with Show rolls on (ER5): the scene's first line reads "Event roll d100 63 → Success" with its modifiers. With Show rolls off it stays hidden, and Agent Narrator never gets it.
 
 ### Stage extension
 
@@ -1286,8 +1286,9 @@ summary of the player, your previous note, and the catalogs of ids you may use.
 
 Rules:
 1. Plan the event first, then the cast. The tier sets the stakes: bad tiers
-   bring a real challenge with little gain; normal tiers match gain to
-   challenge; high tiers bring high gain with a matching high challenge.
+   bring a real challenge with little gain; Near Miss tilts slightly bad; Success
+   matches gain to challenge; high tiers are good fortune, high gain with little
+   challenge.
    Declare the challenge and gain grades honestly.
 2. The tier decides who and what, not how alert anyone is. Threats may be
    calm, busy or unaware.

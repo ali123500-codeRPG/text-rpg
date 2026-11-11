@@ -10,10 +10,10 @@ import { IT } from '../library/itemIds';
 export const FITTING_GRADES: Record<Tier, { challenge: Grade; gain: Grade }> = {
   critical_failure: { challenge: 'major', gain: 'minor' },
   failure: { challenge: 'moderate', gain: 'minor' },
-  near_miss: { challenge: 'moderate', gain: 'moderate' },
+  near_miss: { challenge: 'moderate', gain: 'minor' },
   success: { challenge: 'moderate', gain: 'moderate' },
-  great_success: { challenge: 'major', gain: 'major' },
-  critical_success: { challenge: 'extreme', gain: 'extreme' },
+  great_success: { challenge: 'minor', gain: 'major' },
+  critical_success: { challenge: 'moderate', gain: 'extreme' },
 };
 
 /** Story start: Brookmere's tavern, the street and gate, the slime field, a frontier into the woods. */
