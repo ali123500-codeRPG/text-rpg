@@ -523,6 +523,8 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
+      ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
+      ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
       ...(forWhom ? { for: forWhom } : {}),
       ...(full && e.reason ? { reason: e.reason.replace(/_/g, ' ') } : {}),
       ...(changes.length && e.kind !== 'attack' ? { changes } : {}),
