@@ -1764,7 +1764,7 @@ Total HP is divided into levels by the share of HP lost, following World of Dark
 | Incapacitated | 100–149% | Out of the fight | Lethal fight: the story ends; otherwise a survival roll (D-54) |
 | Dead | 150% | Out for good | Never shown in the UI (a dead actor shows as Incapacitated, "Down" for others); the Narrator does see it. No healing row heals it (`revivesDead` is no on every row, a lever for resurrection later) |
 
-HP lost keeps counting past 100% while an actor is down, up to 150%, where it is Dead (Ali, 08/11/2026; first set at 200%). A destroyed essential part (head, neck) is Dead.
+HP lost keeps counting past 100% while an actor is down, up to 150%, where it is Dead (Ali, 08/11/2026; first set at 200%). Someone down can still be struck (BG-25): the blow lands as on someone unaware (no defense), and a blow on someone already down does not count as downing them again. Only the dead can't be struck, and an NPC's blow on the downed player is wasted, since the survival roll (D-54) decides the player's fate. A wasted action carries its reason (already dead, out of reach, nerve broken, yielded to, spar held) for the Narrator, which tells that and never makes up a miss (Narrator rule 18). A destroyed essential part (head, neck) is Dead.
 
 The penalty is a roll modifier of type wounds (Part 1 §4, Layer 2b), diminishing together with body-part role penalties. It does not apply to no-dice checks (settles OQ-15).
 
@@ -2974,6 +2974,8 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-21 | A doorway right where the walker stood (a cellar laid under its counter with no heights) was crossed in 0 m with no move event and no trail entry, so "go back" had nothing to read (found testing BG-19). Fixed: a crossing counts as a move however short | Test | Fixed | this PR |
 | BG-22 | The narration view's move events said only where each leg ended: "open the tavern door and step inside" (8.4 m along the lane, then into the common room) was told as stepping out into the lane and coming back in, and cellar to kitchen as leaving the common room (playtest run 39). Fixed: a leg that leaves a zone carries `from`, a leg inside a zone is `within` it and names the zone it is `heading` for; Narrator rule 17 reads them | Playtest | Fixed | this PR |
 | BG-23 | The barkeep, 0.7 m from the player, broke and fled through the kitchen door; perception took the move only where it ended (no sight into the kitchen), so the player only heard something, she dropped from lastSeen, and "cut down the barkeep" next turn asked who that was (Ali's game, turn 6). Fixed: a leg out of a zone is also seen where it set off (`fromPos`), and a clear sight of it remembers the zone she went into | Ali | Fixed | this PR |
+| BG-24 | "Wrench my sword out and strike" drew the arming sword already in the player's hand, and the draw was logged as invalid gear (Ali's game, turn 12). Fixed: drawing what is already in hand is nothing to do, not a mistake | Ali | Fixed | this PR |
+| BG-25 | The player swung three times at a woman lying Incapacitated at 0.7 m; every blow was wasted in silence (attacks on anyone down were refused), and the Narrator made up a blade stuck in the floorboards and shaking hands (Ali's game, turns 11 to 14). Fixed: blows on someone down land with no defense, only the dead can't be struck, and a wasted action says why (Narrator rule 18) | Ali | Fixed | this PR |
 
 ## Check on release
 

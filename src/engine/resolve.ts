@@ -333,27 +333,32 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
 function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const { state, rng } = ctx;
   let t = o.target ? actorById(state, o.target) : undefined;
-  const wasted = () => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined }), o));
-  if (!t || t === a || !isActive(t)) return wasted();
-  if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted(); } // MB12
-  if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted(); } // MB43
-  if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted(); }
+  // BG-25: a wasted attack says why, so the story tells that and not a miss it made up
+  const wasted = (reason?: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(reason ? { reason } : {}) }), o));
+  // BG-25: someone down (Incapacitated) can still be struck: HP lost keeps counting while down, to Dead. Only the dead can't.
+  if (!t || t === a) return wasted();
+  if (healthLevel(t) === 'Dead') return wasted('already_dead');
+  if (t === state.player && !isActive(t)) return wasted('already_down'); // a downed player's fate is the survival roll's (D-54)
+  if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
+  if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted('yielded_to'); } // MB43
+  if (heldBack(state, a, t)) { logCode(state, 'spar_blow_held', { actorId: a.id, target: t.id }); return wasted('spar_held'); }
   const dist = sightDistM(state, a, t);
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
   // a named skill picks the mode that uses it ("I grab him" names unarmed_grapple, not the sword in hand)
   const bySkill = !named && o.skill ? usableModes(state, a).find((x) => modeSkill(x.mode) === o.skill && x.mode.reach >= dist) : undefined;
   const m = named ?? bySkill ?? defaultMode(state, a, dist);
   // target moved first: resolves only within the mode's reach (metres, with sight); else a wasted action
-  if (!m || dist > m.mode.reach) return wasted();
+  if (!m || dist > m.mode.reach) return wasted('out_of_reach');
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
   const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, PK.in_and_out); // A23 In and Out: only the target sees you
   const shows = fromHiding && m.mode.tree !== 'ranged' && !inAndOut;
   if (shows) a.posture = 'open'; // ST5: a melee blow shows you
   const ev = bark(mk(ctx, a, 'attack', { target: t.id, itemId: m.itemId }), o);
   ev.perception = computePerception(ev, state, rng);
-  let surprised = false;
+  // BG-25: someone down can't defend: the blow lands as on someone unaware
+  let surprised = !isActive(t);
   // NS6: a stealthy NPC can ambush the player too; the player's belief is cleared only after the blow
-  if (!atLeast(beliefStatus(state, t, a), 'suspicious')) {
+  if (!surprised && !atLeast(beliefStatus(state, t, a), 'suspicious')) {
     surprised = resolveAmbush(state, a.id, t.id, ev, rng).surprised && !hearsItComing(state, t, ev.zone, ev.noise);
     if (surprised) ctx.surprised.add(t.id);
   }
@@ -400,7 +405,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const hf = L.indexOf(after) > L.indexOf(before.level) ? healthFear(t, after) : undefined;
   if (hf) fear(ctx, t, hf.id, {}, ev.perception);
   for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, ev.perception); // parts Crippled (or worse) by this hit
-  if (!isActive(t)) {
+  if (!isActive(t) && before.lost < 100) { // newly down: a blow on someone already down downs no one
     fear(ctx, a, FR.foe_downed);
     for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
   }
