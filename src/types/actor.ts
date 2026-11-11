@@ -105,7 +105,10 @@ export type Progression = {
   potential: { base: number; adjustments: { source: string; delta: number; turn: Turn }[] };
   xp: number;
   unspentPerkPoints: number;
+  /** skills waiting for an improvement roll; a skill appears once per roll it is owed (SM1 stacking) */
   marks: LibraryRef[];
+  /** SM1/SM3: marks each skill got this engagement (or this scene, outside one), cleared when it ends */
+  markCounts?: Record<LibraryRef, number>;
   xpLog?: XpAward[]; // source trail (B8); every award, in order
   /** earned, each once (B4, X6). key = the library achievements table row, of = the body type, race or tree it names;
    * the name and XP level live only in that table. name is only on entries from older saves. */
