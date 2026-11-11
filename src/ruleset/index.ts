@@ -162,13 +162,18 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   const modifiers = [...eventRollMods(state, actor), ...extra];
   const d = rng.d100();
   const margin = d + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
-  // past the Critical tiers only as far as perks and achievements open (tierUnlocks)
+  // past the Critical tiers only as far as perks and achievements open (tierUnlocks). Each tier opened widens the natural
+  // critical range by EVENT_CRIT_NATURALS: with one opened above, 96-100 is Critical Success+ and 91-95 Critical Success
   const reach = tierReach(actor, 'event');
-  const top = TIERS.keys.length - 1;
-  const level = Math.max(-reach.down, Math.min(top + reach.up, band(margin) + naturalEdge(d)));
+  const top = TIERS.keys.length - 1, B = CONFIG.EVENT_CRIT_NATURALS;
+  let level = band(margin) + naturalEdge(d);
+  if (reach.up && d > 100 - B * (reach.up + 1)) level = Math.max(level, top + reach.up - Math.floor((100 - d) / B));
+  if (reach.down && d <= B * (reach.down + 1)) level = Math.min(level, -reach.down + Math.floor((d - 1) / B));
+  level = Math.max(-reach.down, Math.min(top + reach.up, level));
   const { tier, beyond } = tierAt(level);
-  if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits');
-  if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails');
+  // the chains count how far past Critical you have reached: 1 = Critical, 2 = one + or −, and so on
+  if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits', { to: 1 + (beyond ?? 0) });
+  if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails', { to: 1 - (beyond ?? 0) });
   return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers };
 }
 
