@@ -117,6 +117,7 @@ export type Library = {
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
   edgeKinds?: Record<string, EdgeKind>; // CO15
   zoneSizes?: Record<string, ZoneSize>; // CO16
+  noiseLevels?: Record<string, NoiseLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' }>; // GC…: the skill an item of the class asks for
   attackModes?: Record<string, { id: string; name: string; reachBonus?: number; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
@@ -139,6 +140,8 @@ export type LayoutDef = {
 /** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
 export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; text: string };
 /** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
+/** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all (noiseReach) */
+export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
 export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };
 
 /** Perk page S1–S9: a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
