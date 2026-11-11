@@ -32,6 +32,8 @@ const DEFAULTS = {
   EVENT_BASE: 50,
   /** event rolls: naturals per tier opened past Critical (tierUnlocks); each opened tier widens the natural critical range by this many */
   EVENT_CRIT_NATURALS: 5,
+  /** D-211: width of each extra margin band a tier unlock opens past either end of the skill-roll table */
+  TIER_EXTRA_BAND: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,

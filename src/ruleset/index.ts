@@ -73,12 +73,25 @@ export const MARGIN_BANDS = [-75, -25, 0, 25, 75];
 export function band(margin: number): number {
   return MARGIN_BANDS.filter((t) => margin >= t).length;
 }
+type Reach = { up: number; down: number };
+const NO_REACH: Reach = { up: 0, down: 0 };
+/** D-211 on skill rolls (an extra band past the end): each tier a perk or achievement opens (tierUnlocks, tierReach) adds
+ * a band CONFIG.TIER_EXTRA_BAND wider past the end of MARGIN_BANDS: Critical Success+ from margin 75 + 50, Critical
+ * Failure− below −75 − 50. Without an unlock a roll reads the table as before. */
+export function extraBands(margin: number, reach: Reach): number {
+  const top = MARGIN_BANDS[MARGIN_BANDS.length - 1], bottom = MARGIN_BANDS[0];
+  let n = 0;
+  for (let k = 1; k <= reach.up; k++) if (margin >= top + CONFIG.TIER_EXTRA_BAND * k) n++;
+  for (let k = 1; k <= reach.down; k++) if (margin < bottom - CONFIG.TIER_EXTRA_BAND * k) n--;
+  return n;
+}
 export function naturalEdge(d: number): -2 | -1 | 0 | 1 | 2 {
   return d === 1 ? -2 : d <= 5 ? -1 : d === 100 ? 2 : d >= 96 ? 1 : 0;
 }
 const sumShifts = (s: TierShift[]) => s.reduce((t, x) => t + x.value, 0);
-function tierOf(d: number, skill: number, mods: Mod[], shifts: TierShift[]): number {
-  return band(d + CONFIG.SKILL_WEIGHT * skill + modTotal(mods) - CONFIG.ROLL_NEEDED) + naturalEdge(d) + sumShifts(shifts);
+function tierOf(d: number, skill: number, mods: Mod[], shifts: TierShift[], reach: Reach = NO_REACH): number {
+  const margin = d + CONFIG.SKILL_WEIGHT * skill + modTotal(mods) - CONFIG.ROLL_NEEDED;
+  return band(margin) + extraBands(margin, reach) + naturalEdge(d) + sumShifts(shifts);
 }
 
 function mustActor(state: GameState, id: string): Actor {
@@ -102,15 +115,15 @@ function rowKey(type: DefenseKind, gap: number, shield: boolean): string {
 }
 
 /** sources whose removal alone changes the roll's tier index; natural edges listed as lucky/fumble */
-function decidingOf(r: RollResult, skill: number, gear: { source: string; value: number }[]): string[] {
+function decidingOf(r: RollResult, skill: number, gear: { source: string; value: number }[], reach: Reach = NO_REACH): string[] {
   const out: string[] = [];
   if (r.natural) out.push(r.natural > 0 ? 'lucky' : 'fumble');
   r.modifiers.forEach((m, i) => {
-    if (tierOf(r.d100, skill, r.modifiers.filter((_, j) => j !== i), r.tierShifts) !== tierLevel(r)) out.push(m.source);
+    if (tierOf(r.d100, skill, r.modifiers.filter((_, j) => j !== i), r.tierShifts, reach) !== tierLevel(r)) out.push(m.source);
   });
-  for (const g of gear) if (tierOf(r.d100, skill - g.value, r.modifiers, r.tierShifts) !== tierLevel(r)) out.push(g.source);
+  for (const g of gear) if (tierOf(r.d100, skill - g.value, r.modifiers, r.tierShifts, reach) !== tierLevel(r)) out.push(g.source);
   r.tierShifts.forEach((s, i) => {
-    if (tierOf(r.d100, skill, r.modifiers, r.tierShifts.filter((_, j) => j !== i)) !== tierLevel(r)) out.push(s.source);
+    if (tierOf(r.d100, skill, r.modifiers, r.tierShifts.filter((_, j) => j !== i), reach) !== tierLevel(r)) out.push(s.source);
   });
   return out;
 }
@@ -133,7 +146,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
   const shifts = [...req.tierShifts];
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on
-  let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
+  let level = band(margin) + extraBands(margin, tierReach(actor, req.rollKind)) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
   const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), ...(req.rollKind ? { rollKind: req.rollKind } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
@@ -219,7 +232,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, standInFns: mode.standInFns, blend: mode.blend }, state, rng);
   const atkEff = mode.blend ? blendedSkill(state, A, mode.blend, { itemId: req.weaponId, standInFns: mode.standInFns }) : effectiveSkill(state, A, skill, { itemId: req.weaponId });
-  const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
+  const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear, tierReach(A, 'hit'));
 
   const base: Omit<AttackResult, 'outcome' | 'deciding'> = {
     attack: atk, ...(req.context?.defenderUnaware ? { unaware: true as const } : {}), defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
@@ -253,7 +266,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   dm.push(...(req.context?.defenderMods ?? []));
   const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
   const defEff = effectiveSkill(state, D, DEFENSE_SKILL[type], { itemId: blocker?.id });
-  const defDeciding = decidingOf(def, defEff.value, defEff.gear);
+  const defDeciding = decidingOf(def, defEff.value, defEff.gear, tierReach(D, type));
 
   // 4. gap
   const gapShifts: TierShift[] = [];
