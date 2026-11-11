@@ -41,7 +41,8 @@ export type Band = {
   relations: Record<string, Stance>;
 };
 
-export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true };
+/** drop (SD7): a window or ledge down to a lower zone: only jumped down, with fall damage from the drop; never walked or climbed */
+export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true; drop?: true };
 /** a zone's four sides, by map compass */
 export type Side = 'n' | 'e' | 's' | 'w';
 export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
@@ -110,6 +111,7 @@ export type GameEvent = {
   heading?: string; // BG-22: a leg that stays in its zone on the way to another: the zone it heads for
   metres?: number; // moves (ZP2): metres walked on this leg; a leg inside one zone has no fromZone, and `target` when closing in
   spot?: string; // BG-12: a move to a spot in a zone, in words ("to the north side", "away from the cellar steps")
+  fall?: { metres: number; damage: number; landing: string }; // SD7: a jump down a drop link: the drop, the flat damage, the landing roll's tier name
   vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
   activity?: string; // idle / presence: ActivityDef id
   itemId?: string; // item instance involved (gear, give, thrown, dropped)

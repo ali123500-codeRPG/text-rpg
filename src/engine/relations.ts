@@ -130,7 +130,8 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
     const cur = q.shift()!;
     const z = zoneById(state, cur);
     for (const l of z?.links ?? []) {
-      if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !l.sight)) continue;
+      // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
+      if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !l.sight) || (l.drop && !sightOnly)) continue;
       seen.add(l.to);
       prev.set(l.to, cur);
       if (l.to === to) {

@@ -23,7 +23,7 @@ export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
  * names ("north", "south-west") */
 export type MoveSpot = { near?: string; awayFrom?: string; side?: string };
 export type Intent = {
-  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null } | null; // after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
+  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean } | null; // after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
   action: {
     type: ParserActionType;
     skill: string;
@@ -143,7 +143,7 @@ export type StagePlan = {
     length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
-    links: { to: string; label: string; sight: boolean }[];
+    links: { to: string; label: string; sight: boolean; drop?: boolean }[];
   }[];
   frontiers: { key: string; label: string }[];
   bands: {

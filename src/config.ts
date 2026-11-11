@@ -301,6 +301,11 @@ const DEFAULTS = {
   /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
    * wall or a way out stops this far inside it */
   ENTER_M: 1,
+  /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
+   * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
+  FALL_BANDS: [{ over: 2, damage: 15 }, { over: 5, damage: 40 }, { over: 9, damage: 80 }] as { over: number; damage: number }[],
+  /** SD7: the Dodge roll on landing moves the fall this many bands (by tier key; a tier past either end uses the end's row) */
+  FALL_LANDING_STEP: { critical_failure: 1, failure: 1, near_miss: 0, success: 0, great_success: -1, critical_success: -1 } as Record<string, number>,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
    * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");

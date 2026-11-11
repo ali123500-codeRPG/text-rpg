@@ -460,6 +460,25 @@ export const ruleset: Ruleset = {
   recordUse,
 };
 
+/** SD7: a fall's flat damage from the drop in metres, moved `step` bands by the landing roll (0 below the first band) */
+export function fallDamage(metres: number, step = 0): number {
+  const bands = CONFIG.FALL_BANDS;
+  const at = bands.filter((b) => metres > b.over).length + step;
+  return at <= 0 ? 0 : bands[Math.min(at, bands.length) - 1].damage;
+}
+
+/** SD7: a jump down a drop: a Dodge roll on landing (rollKind dodge) moves the fall a band (FALL_LANDING_STEP), and the damage
+ * lands on a leg (a part with the move role) like a hit, so armor and health tracks work as for any wound */
+export function landFall(state: GameState, actor: Actor, metres: number, rng: Rng): { damage: number; landing: string; effects: Effect[] } {
+  const r = roll({ actorId: actor.id, skill: SK.dodge, modifiers: [], tierShifts: [], rollKind: 'dodge' }, state, rng);
+  const t = tierAt(tierLevel(r));
+  const damage = fallDamage(metres, CONFIG.FALL_LANDING_STEP[t.tier] ?? 0);
+  const legs = actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.move));
+  const leg = legs.length ? legs[Math.floor(rng.next() * legs.length)] : undefined;
+  const effects = damage > 0 && leg ? applyEffects({ outcome: 'hit', location: leg.id, damage, targetId: actor.id } as unknown as AttackResult, state) : [];
+  return { damage, landing: tierName(t), effects };
+}
+
 /** D-54 survival roll: roll() with no skill and no modifiers; Near Miss or better survives */
 export function survivalRoll(rng: Rng): { d100: number; tier: string; survived: boolean } {
   const d = rng.d100();

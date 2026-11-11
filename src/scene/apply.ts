@@ -192,7 +192,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   for (const z of plan.zones) {
     const links: ZoneLink[] = z.links.map((l) => {
       const fr = frontierMap.get(l.to) ?? (!isZoneRef(l.to) ? l.to : undefined);
-      return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight };
+      return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight, ...(l.drop ? { drop: true as const } : {}) };
     });
     const k = getLibrary().zoneKinds![z.kind]; // the validator checked it
     const road = k.road ? roadShape(z.length, z.danger) : {};

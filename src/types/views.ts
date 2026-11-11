@@ -10,8 +10,8 @@ export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
 
 export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' };
-export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean }[]; groundItems: { id: string; name: string }[] };
-export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean }[] }; // geometry only, for code minds' pathing
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean }[]; groundItems: { id: string; name: string }[] };
+export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean }[] }; // geometry only, for code minds' pathing
 
 export type BeliefView = {
   about: ActorId;
@@ -197,6 +197,7 @@ export type NarrationEvent = {
   price?: string; // buy: coin paid, in coin words
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
+  fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)
   from?: string; // BG-22: a move that left a zone: the zone it left (where is the zone it entered)
   within?: true; // BG-22: a move that stayed inside `where` (across it, toward someone, a spot or its way out)
   heading?: string; // BG-22: a leg within `where` on the way to another zone: that zone's name

@@ -59,7 +59,7 @@ export const distText = (m: number): string => (m >= 1000 ? `${Math.round(m / 10
 export function zoneView(state: GameState, z: Zone): ZoneView {
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
-    links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })),
+    links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}) })),
     groundItems: z.groundItems.map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })),
   };
 }
@@ -377,7 +377,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
-    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}) })) })),
+    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}) })) })),
     zones: perceivedZones(state, a.zone),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
@@ -529,6 +529,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
+      ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
       ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
       ...(forWhom ? { for: forWhom } : {}),
