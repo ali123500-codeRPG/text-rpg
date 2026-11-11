@@ -7,7 +7,7 @@ import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import { LAYOUTS } from './layouts';
 import type { ArmorWeightKey } from '../scales';
-import { CLASS_TIERS, NOISE, VISIBILITY, ZONE_SIZES } from '../scales';
+import { CLASS_TIERS, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { noiseReach } from '../perception/noise';
 import { sightReach } from '../perception/sight';
 
@@ -518,8 +518,11 @@ export function prototypeLibrary(): Library {
       [ZK.room, 'Room', false, 'some', 'dim', 'room', 1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2],
       [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room', 1], [ZK.street, 'Street', true, 'none', 'dark', 'yard', 4], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1],
       [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
-      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1],
-    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall }])),
+      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1],
+    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall, ...(id === ZK.road ? { road: true as const } : {}) }])),
+    // TV3/TV4: a road is one long zone; its length and danger words
+    roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
+    roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
     edgeKinds: Object.fromEntries(([
       [EK.wall, 'Wall', false, false, false, false, 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
       [EK.open, 'Open', true, true, true, false, 'Nothing in the way: walk and see across anywhere along it.'],

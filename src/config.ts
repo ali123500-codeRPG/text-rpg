@@ -238,6 +238,12 @@ const DEFAULTS = {
   LINK_PACES: 8,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
+  /** TV3 road lengths in km (ROAD_LENGTHS): a walk of about 4.5 km an hour gives the time words their lengths */
+  ROAD_LENGTH_KM: { short_walk: 0.5, half_hour: 2, hour: 4.5, half_day: 15, day: 30, two_days: 60 } as Record<string, number>,
+  /** TV3 a road's width in metres: a cart track or Roman road, about 4 m (Roman viae ran about 4 to 6 m with the verges) */
+  ROAD_WIDTH_M: 4,
+  /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
+  ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
   /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
    * personal distance (Hall's proxemics, 0.45–1.2 m) */
   PLACE_GAP_M: 1,

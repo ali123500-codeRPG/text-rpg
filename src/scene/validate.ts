@@ -3,7 +3,7 @@ import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
 import { GRADES, ORDER_TYPES } from '../types';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES } from '../scales';
+import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
@@ -205,6 +205,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     if (!kinds.some((k) => k.id === z.kind)) err('bad_zone', `zone ${z.key}: kind is one of ${kinds.map((k) => `${k.id} (${k.name})`).join(', ')}`);
     if (z.height !== undefined && (typeof z.height !== 'number' || !Number.isFinite(z.height) || Math.abs(z.height) > 500)) err('bad_zone', `zone ${z.key}: height is metres above the ground, a number from -500 to 500`);
     if (z.size !== undefined && !ZONE_SIZES.has(z.size)) err('bad_zone', `zone ${z.key}: size is ${ZONE_SIZES.list()}`);
+    const road = getLibrary().zoneKinds?.[z.kind]?.road;
+    if (z.length !== undefined && (!road || !(ROAD_LENGTHS.has(z.length) || (typeof z.length === 'number' && Number.isFinite(z.length) && z.length >= 0.1 && z.length <= 500)))) err('bad_zone', `zone ${z.key}: only a road has a length: ${ROAD_LENGTHS.list()}, or km from 0.1 to 500`);
+    if (z.danger !== undefined && (!road || !ROAD_DANGERS.has(z.danger))) err('bad_zone', `zone ${z.key}: only a road has a danger: ${ROAD_DANGERS.list()}`);
     if (z.area !== undefined && (typeof z.area !== 'number' || !Number.isFinite(z.area) || z.area < 1 || z.area > 1e6)) err('bad_zone', `zone ${z.key}: area is m², a number from 1 to 1000000`);
     const edgeKinds = getLibrary().edgeKinds ?? {};
     for (const [side, ek] of Object.entries(z.edges ?? {})) {
