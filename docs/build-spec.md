@@ -374,11 +374,11 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // Drops (SD7): a link marked drop (a window or ledge over a lower zone) is seen through but never walked: paths and
 // pursuit go round (shortestPath skips it unless it asks for sight only), and the Weaver never links back up it. The player
 // takes it only by saying they jump (Parser move.jump, Order.jump): they land in the zone below and take a fall. The fall is
-// flat damage by the drop in metres (the two zones' heights), from CONFIG.FALL_BANDS (over 2 m 15, over 5 m 40, over 9 m 80;
+// flat damage by the drop in metres (the two zones' heights), from CONFIG.FALL_BANDS (over 2 m 15, over 5 m 40, over 9 m 80, and past the human range over 15 m 120, over 30 m 160, over 50 m 200, about terminal speed, after which it stays;
 // placeholders, real-life injury heights: under about 2 m rarely hurts, a storey or two breaks bones, past about 9 m is often
 // fatal for a person). Being flat, tough or supernatural bodies can power through it. It lands on a random leg through the
 // normal damage step. A Dodge roll on landing moves it a band (CONFIG.FALL_LANDING_STEP: failures one band worse, Great or
-// Critical Success one band better). The move event carries fall {metres, damage, landing} and the Narrator tells the jump
+// Critical Success one band better; each tier past Critical Success, CONFIG.FALL_LANDING_PAST_STEP, one more band better, so a supernatural dodger lands a tower jump unhurt; past Critical Failure reads Critical Failure's row). The move event carries fall {metres, damage, landing} and the Narrator tells the jump
 // and landing from it. NPCs do not jump yet.
 // Metres (CO1–CO19, Ali, 11/11/2026; step 1, no rule reads these yet): the range unit is the pace, CONFIG.PACE_M (1 m,
 // about one stride; 1.5 m until 11/11/2026), with CONFIG.LINK_PACES (8, so a link stays about 8 m) converting today's link-based tables. A zone's area is m²: the Weaver

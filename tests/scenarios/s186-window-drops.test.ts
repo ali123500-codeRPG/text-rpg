@@ -5,7 +5,7 @@ import type { GameState, Intent } from '../../src/types';
 import { createRng, makeVillage } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import { shortestPath, zoneById } from '../../src/engine/relations';
-import { fallDamage } from '../../src/ruleset';
+import { fallDamage, landingStep } from '../../src/ruleset';
 import { buildNarrationView } from '../../src/views';
 import { checkIntent, checkStagePlan } from '../../src/agents/schema';
 import { CONFIG } from '../../src/config';
@@ -30,7 +30,16 @@ describe('186 window and ledge drops (SD7)', () => {
     expect(fallDamage(12)).toBe(CONFIG.FALL_BANDS[2].damage);
     expect(fallDamage(3, -1)).toBe(0);
     expect(fallDamage(2, 1)).toBe(CONFIG.FALL_BANDS[0].damage);
-    expect(fallDamage(12, 1)).toBe(CONFIG.FALL_BANDS[2].damage);
+    expect(fallDamage(12, 1)).toBe(CONFIG.FALL_BANDS[3].damage);
+    expect(fallDamage(200, 1)).toBe(CONFIG.FALL_BANDS.at(-1)!.damage); // past the last band it stays
+  });
+  it('scaling past the human range: falls keep hurting more to about terminal speed, and landings past Critical keep helping', () => {
+    expect(fallDamage(20)).toBeGreaterThan(fallDamage(10));
+    expect(fallDamage(60)).toBeGreaterThan(fallDamage(20));
+    expect(landingStep({ tier: 'critical_success' })).toBe(-1);
+    expect(landingStep({ tier: 'critical_success', beyond: 3 })).toBe(-4);
+    expect(landingStep({ tier: 'critical_failure', beyond: -2 })).toBe(1); // the bottom end reads its own row
+    expect(fallDamage(20, landingStep({ tier: 'critical_success', beyond: 3 }))).toBe(0); // a supernatural landing from 20 m
   });
   it('a drop is seen through but never walked', () => {
     const s = upstairs();

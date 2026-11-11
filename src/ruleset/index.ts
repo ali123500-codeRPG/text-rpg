@@ -467,12 +467,16 @@ export function fallDamage(metres: number, step = 0): number {
   return at <= 0 ? 0 : bands[Math.min(at, bands.length) - 1].damage;
 }
 
+/** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
+ * more; a tier past Critical Failure reads Critical Failure's row */
+export const landingStep = (t: Tiered): number => (CONFIG.FALL_LANDING_STEP[t.tier] ?? 0) - Math.max(0, t.beyond ?? 0) * CONFIG.FALL_LANDING_PAST_STEP;
+
 /** SD7: a jump down a drop: a Dodge roll on landing (rollKind dodge) moves the fall a band (FALL_LANDING_STEP), and the damage
  * lands on a leg (a part with the move role) like a hit, so armor and health tracks work as for any wound */
 export function landFall(state: GameState, actor: Actor, metres: number, rng: Rng): { damage: number; landing: string; effects: Effect[] } {
   const r = roll({ actorId: actor.id, skill: SK.dodge, modifiers: [], tierShifts: [], rollKind: 'dodge' }, state, rng);
   const t = tierAt(tierLevel(r));
-  const damage = fallDamage(metres, CONFIG.FALL_LANDING_STEP[t.tier] ?? 0);
+  const damage = fallDamage(metres, landingStep(t));
   const legs = actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.move));
   const leg = legs.length ? legs[Math.floor(rng.next() * legs.length)] : undefined;
   const effects = damage > 0 && leg ? applyEffects({ outcome: 'hit', location: leg.id, damage, targetId: actor.id } as unknown as AttackResult, state) : [];
