@@ -32,7 +32,7 @@ import { isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
-import { fileBug, isBugCode } from '../save/bugs';
+import { fileBug, isBugCode, openBugs } from '../save/bugs';
 
 /**
  * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
@@ -580,6 +580,9 @@ export function createGame(deps: GameDeps): Game {
     newStory,
     resume,
     hallOfFame: () => save.listFallen(store),
+    reportBug: (note) => fileBug(store, clock.now(), { code: 'player_report', storyId: state?.storyId ?? '', turn: state?.turn ?? 0, note: note.slice(0, 2000),
+      lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
+    openBugs: () => openBugs(store),
     async agentMove(persona = '') {
       const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona) }], json: true, ...modelFor('autopilot') });
       return r.ok ? readMove(r.value) : null;

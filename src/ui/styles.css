@@ -829,3 +829,12 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 /* TV7: a road tile's track, end to end, with you at your point along it */
 .map-road-track line { stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 10 6; }
 .map-road-track text { fill: var(--muted); font-size: 11px; font-weight: 700; }
+/* bugs page (bugs.ts): the report box spans the page; the open list is a full-width table */
+.bug-report { display: grid; gap: var(--space-3); margin-bottom: var(--space-6); }
+.bug-note { width: 100%; min-height: 96px; resize: vertical; font: 15px/1.5 var(--font-ui, inherit); padding: 10px 12px; }
+.bug-actions, .bug-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.bug-bar h2 { margin: 0 auto 0 0; font-size: 20px; }
+.bug-table { width: 100%; border-collapse: collapse; margin-top: var(--space-3); }
+.bug-table th, .bug-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.bug-table .bug-id { font-weight: 700; white-space: nowrap; }
+.bug-table .num { text-align: right; }
