@@ -32,7 +32,7 @@ import { isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
-import { fileBug } from '../save/bugs';
+import { fileBug, isBugCode } from '../save/bugs';
 
 /**
  * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
@@ -200,6 +200,7 @@ export function createGame(deps: GameDeps): Game {
     s.mode = p.mode;
     s.events = []; // this turn's events already went into recentEvents before the save (finishTurn)
     s.agentLog = [];
+    fileLogBugs(s); // background scene work since the save may have logged some
     s.log = [];
     turnLog = [];
     abortBackground();
@@ -217,17 +218,29 @@ export function createGame(deps: GameDeps): Game {
   }
 
   /** Q3: a Responder said a secret without listing it; logged and filed as a bug for the build threads to review */
-  async function reportUnlisted(s: GameState, actorId: string, secretIds: string[], line: string): Promise<void> {
+  function reportUnlisted(s: GameState, actorId: string, secretIds: string[], line: string): void {
     const detail = { actorId, secretIds, line };
     s.log.push({ turn: s.turn, code: 'unlisted_reveal', detail });
-    await fileBug(store, clock.now(), { code: 'unlisted_reveal', storyId: s.storyId, turn: s.turn, ...detail });
   }
 
-  /** Q9: a late or failed NPC call keeps its fallback, and is filed for the build threads to review */
+  /** every bug code in the state log is filed once, numbered (src/save/bugs.ts) */
+  const filedLog = new WeakSet<object>();
+  function fileLogBugs(s: GameState): void {
+    for (const l of s.log) {
+      if (!isBugCode(l.code) || filedLog.has(l)) continue;
+      filedLog.add(l);
+      void fileBug(store, clock.now(), { code: l.code, storyId: s.storyId, turn: l.turn, ...(l.detail ?? {}) });
+    }
+  }
+
+  /** Q9: a late or failed call keeps its fallback, and it, or any call whose output broke a rule, is filed as a bug */
   function reportFallbacks(s: GameState, log: AgentTurnLog[]): void {
     for (const e of log) {
-      if (!['planner', 'responder', 'voice'].includes(e.agent) || (e.status !== 'late' && e.status !== 'fallback')) continue;
-      const code = e.status === 'late' ? 'planner_late' : 'agent_fallback';
+      // a slip the state log also holds (unlisted_reveal, invalid_reveal...) is filed from there, not twice
+      const slip = e.errors.find((c) => isBugCode(c) && !s.log.some((l) => l.code === c));
+      const fell = e.status === 'fallback' || e.status === 'failed';
+      if (e.status !== 'late' && !fell && !slip) continue;
+      const code = e.status === 'late' ? 'planner_late' : fell ? 'agent_fallback' : slip!;
       void fileBug(store, clock.now(), { code, storyId: s.storyId, turn: s.turn, agent: e.agent, actorId: e.actorId, errors: e.errors });
     }
   }
@@ -237,7 +250,7 @@ export function createGame(deps: GameDeps): Game {
       const view = views.buildOppositionView(s, id);
       const fired = s.hidden.firedLog.filter((f) => f.turn === s.turn && f.ownerId === id).map((f) => f.triggerId);
       const r = await callResponder(view, input, ctx, { world, committed: fired.length ? committedText(s, id, fired[0]) : null, slips: exchange.perSpokesperson[id]?.slips ?? [] });
-      if (r.unlisted.length) await reportUnlisted(s, id, r.unlisted, r.output.dialogue?.line ?? '');
+      if (r.unlisted.length) reportUnlisted(s, id, r.unlisted, r.output.dialogue?.line ?? '');
       return { agent: 'responder', actorId: id, output: r.output };
     }
     const view = views.buildDialogueView(s, id, input);
@@ -345,9 +358,8 @@ export function createGame(deps: GameDeps): Game {
       if (!err.committed) notice({ kind: 'save_failed', text: `The turn could not be saved (${err.message}); the last good save is kept.` });
     }
     reportFallbacks(s, turnLog);
-    // QT27: an "other" quest goal is filed for the build threads, so code can learn to track it
-    for (const l of s.log.filter((x) => x.code === 'quest_goal_gap'))
-      void fileBug(store, clock.now(), { code: 'quest_goal_gap', storyId: s.storyId, turn: s.turn, ...l.detail });
+    // every bug code logged this turn (an "other" quest goal, QT27, among them) is filed for the build threads
+    fileLogBugs(s);
     const nv = views.buildNarrationView(s, events, rec.intent);
     const leak = buildLeakContext(s);
     const mechanics = mechanicsLines(s, events);
