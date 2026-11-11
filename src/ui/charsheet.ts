@@ -11,6 +11,7 @@ import { classMaxLevel } from '../library/spawn';
 import { treeBlock } from '../ruleset/access';
 import { augmentWindow, learningWindow } from '../ruleset/improve';
 import { h } from './kit';
+import { personalityBlock } from './personality';
 import { callName } from '../views';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
@@ -112,6 +113,7 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
       h('div', {}, h('b', {}, whole(atk?.value ?? null)), h('span', {}, atk ? `Standing attack · ${atk.name}` : 'Standing attack · no weapon')),
       h('div', {}, h('b', {}, whole(def.value)), h('span', {}, `Standing defense · ${def.kind}`))),
     gear.length ? h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'In hand and worn'), gear) : null,
+    personalityBlock(p),
     h('div', { class: 'cs-gear' }, h('p', { class: 'hs-label' }, 'Achievements'),
       (p.progression?.achievements ?? []).length
         ? p.progression!.achievements!.map((a) => h('span', {}, achievementName(s, a), ` · turn ${a.turn}`, a.replacedBy ? ' · replaced by the next level' : ''))
