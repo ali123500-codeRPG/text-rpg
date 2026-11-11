@@ -448,7 +448,7 @@ export function createGame(deps: GameDeps): Game {
         // MB40: yield as a command; the words go to the Parser as the player's line
         yieldNext = true;
         return submit(arg || 'I yield.', opts);
-      // attack commands: the words go to the Parser as "I strike …" (Ali, 11/11/2026: the agent misread /aim as picking a person)
+      // attack commands: the words go to the Parser as "I strike …", so no one has to guess what /aim is for
       case 'strike': case 'shoot': case 'throw':
         if (!arg) return say(`/${cmd.toLowerCase()} needs someone to attack, e.g. /${cmd.toLowerCase()} the guard, or /${cmd.toLowerCase()} the guard at his left arm. Put /aim in front to aim at that part.`);
         return submit(`I ${cmd.toLowerCase()} ${arg}`, opts);
