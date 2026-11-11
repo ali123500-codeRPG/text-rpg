@@ -70,6 +70,14 @@ svg.hs-i { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-w
 .hs-rail a[aria-current="page"] { background: var(--accent); color: var(--on-pill); }
 .hs-rail a[aria-disabled="true"] { opacity: .55; cursor: default; }
 .hs-rail .foot { margin-top: auto; }
+/* the game's rail shows icons only; each name is in a tip on hover or focus (and stays for screen readers) */
+.icon-rail { --rail-w: 60px; }
+.icon-rail .hs-rail a, .icon-rail .hs-rail button { height: 52px; }
+.icon-rail .hs-rail svg.hs-i { width: 22px; height: 22px; }
+.icon-rail .hs-rail .hs-badge { top: 2px; right: 2px; }
+.rail-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.rail-tip { position: fixed; z-index: 60; transform: translateY(-50%); padding: 4px 10px; border-radius: var(--r-md); background: var(--text); color: var(--bg);
+  font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
 .hs-rail button[aria-pressed="true"] { color: var(--accent); }
 
 main { padding: 20px var(--space-8) 48px; display: grid; gap: var(--space-6); align-content: start; min-width: 0; }
