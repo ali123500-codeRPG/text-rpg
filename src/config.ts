@@ -303,9 +303,14 @@ const DEFAULTS = {
   ENTER_M: 1,
   /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
    * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
-  FALL_BANDS: [{ over: 2, damage: 15 }, { over: 5, damage: 40 }, { over: 9, damage: 80 }] as { over: number; damage: number }[],
+  // scaling: the bands go on to about terminal speed (most of a body's falling speed is reached by about
+  // 50 m), so a tower jump hurts more than a roof jump; past the last band the damage stays (placeholders)
+  FALL_BANDS: [{ over: 2, damage: 15 }, { over: 5, damage: 40 }, { over: 9, damage: 80 }, { over: 15, damage: 120 }, { over: 30, damage: 160 }, { over: 50, damage: 200 }] as { over: number; damage: number }[],
   /** SD7: the Dodge roll on landing moves the fall this many bands (by tier key; a tier past either end uses the end's row) */
   FALL_LANDING_STEP: { critical_failure: 1, failure: 1, near_miss: 0, success: 0, great_success: -1, critical_success: -1 } as Record<string, number>,
+  /** scaling: each tier a landing goes past Critical Success (Critical Success+, ++) moves the fall this
+   * many more bands lighter, so a supernatural dodger can land a tower jump unhurt (past Critical Failure: its own row) */
+  FALL_LANDING_PAST_STEP: 1,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
    * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");
