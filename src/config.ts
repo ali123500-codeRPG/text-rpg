@@ -271,7 +271,8 @@ const DEFAULTS = {
   /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
    * personal distance (Hall's proxemics, 0.45–1.2 m) */
   PLACE_GAP_M: 1,
-  /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door) */
+  /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
+   * wall or a way out stops this far inside it */
   ENTER_M: 1,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add

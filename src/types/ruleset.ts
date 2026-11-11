@@ -154,6 +154,7 @@ export type Order = {
   move?: string | null; // the turn's one move (toZone), resolved before the main action (player, or an NPC's Planner/Responder)
   moveAfter?: boolean; // AE3: the player's move comes after the main action
   pace?: import('../scales').TravelPaceKey; // TV2: the player's travel pace on a road trip (normal when left out)
+  moveSpot?: import('./agents').MoveSpot; // BG-12: where in the move's zone the player heads
   vanish?: true; // ST13: the player's move is a Vanish
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;

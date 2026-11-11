@@ -6,6 +6,7 @@ import { TIME_OF_DAY } from '../scales';
 import { meltAwayHere } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { modeIdOf } from '../ruleset/gear';
+import { compassOf } from '../scene/geometry';
 
 // ---------------- Parser ----------------
 
@@ -14,9 +15,11 @@ export type ParserLegality = { illegal: string[]; gearErrors: string[]; intent: 
 /** P2: a question about the part of the input that failed, instead of the generic one */
 export function illegalClarify(illegal: string[], view: PlayerView): string | null {
   const first = illegal[0] ?? '';
-  const names = view.actors.map((a) => a.name || a.label).filter(Boolean);
+  const names = view.actors.filter((a) => a.health !== 'Dead').map((a) => a.name || a.label).filter(Boolean);
   const who = names.length ? ` I can see ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]}.` : '';
+  if (first.startsWith('action.target_dead')) return `That one is already dead. Who do you mean?${who}`;
   if (first.startsWith('action.target') || first.startsWith('addressee')) return `Who do you mean?${who}`;
+  if (first.startsWith('move.spot')) return `Where in ${view.zone.name} do you want to go? You can go to someone, to a way out (${view.zone.links.map((l) => l.label).join(', ') || 'none'}), away from one, or to one side, such as the north side.`;
   if (first.startsWith('action.item')) return 'Which item do you mean?';
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
   if (first.startsWith('action.time')) return `Until when? You can wait until ${TIME_OF_DAY.keys.map((k) => TIME_OF_DAY.name(k).toLowerCase()).join(', ').replace(/, ([^,]*)$/, ' or $1')}.`;
@@ -29,17 +32,29 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
 export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: string[] = []): ParserLegality {
   const zones = new Set([view.zone.id, ...view.zone.links.map((l) => l.to), ...view.zones.map((z) => z.id)]);
   const actors = new Set(view.actors.map((a) => a.id));
+  const dead = new Set(view.actors.filter((a) => a.health === 'Dead').map((a) => a.id));
   const own = view.player.inventory;
   const ground = new Set([view.zone, ...view.zones].flatMap((z) => z.groundItems.map((g) => g.id)));
   const seenItems = new Set(view.actors.flatMap((a) => a.gear.map((g) => g.id)));
   const items = new Set([...own.map((i) => i.id), ...ground]);
   const illegal: string[] = [];
   const gearErrors: string[] = [];
-  const out: Intent = { ...intent, action: intent.action ? { ...intent.action } : null };
+  const out: Intent = { ...intent, move: intent.move ? { ...intent.move } : null, action: intent.action ? { ...intent.action } : null };
 
-  // a move to the zone the player already stands in is no move (runs 11–13: it was the most common clarify)
-  if (out.move?.toZone === view.zone.id) out.move = null;
-  if (out.move && !view.zone.links.some((l) => l.to === out.move!.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
+  // a move to the zone the player already stands in is no move (runs 11–13: it was the most common clarify), unless it
+  // goes to a spot in it (BG-12: "walk to the back of the cellar")
+  const spot = out.move?.spot;
+  if (out.move && !spot) delete out.move.spot;
+  if (out.move?.toZone === view.zone.id && !spot) out.move = null;
+  if (out.move && out.move.toZone !== view.zone.id && !view.zone.links.some((l) => l.to === out.move!.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
+  if (out.move && spot) {
+    // one of near / awayFrom (someone in view, or a way out of that zone) / side (a compass word)
+    const there = [view.zone, ...view.zones].find((z) => z.id === out.move!.toZone);
+    const ref = (id: string) => actors.has(id) || !!there?.links.some((l) => l.to === id);
+    const keys = (['near', 'awayFrom', 'side'] as const).filter((k) => spot[k]);
+    const ok = keys.length === 1 && (spot.side ? !!compassOf(spot.side) : ref((spot.near ?? spot.awayFrom)!));
+    if (!ok) illegal.push(`move.spot ${JSON.stringify(spot)}`);
+  }
   const a = out.action;
   if (a?.mode) a.mode = modeIdOf(a.mode); // a mode named by its name maps to its AM id
   if (a) {
@@ -53,6 +68,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
       }
     } else if (a.target !== null && a.target !== 'player' && !actors.has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
       illegal.push(`action.target ${a.target}`);
+    // BG-13: the dead can't be fought (the Parser aimed at a slime its view listed as Dead while a live one attacked)
+    else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);
     // P2: code picks a speech action's skill from its type (SPEECH_SKILL), so the Parser's skill there is dropped
     // hide and sneak: code picks the stealth skill (ST2), so the Parser's skill there is dropped
     if (a.type === 'hide' || a.type === 'sneak' || a.type === 'vanish') a.skill = '';
@@ -75,7 +92,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   if (a?.type === 'vanish' && !out.move && !(view.player.perks.some((x) => x.id === PK.melt_away) && meltAwayHere(view.zone.cover, view.zone.light))) illegal.push('action.vanish'); // A19 Melt Away
   const move = out.perkMove && view.player.perkMoves?.find((m) => m.id === out.perkMove!.perk || m.name.toLowerCase() === out.perkMove!.perk.trim().toLowerCase());
   if (out.perkMove && move) out.perkMove.perk = move.id; // a perk move named instead of given by id is read as its id
-  if (out.perkMove && (!move || (out.perkMove.target !== null && !actors.has(out.perkMove.target)))) {
+  if (out.perkMove && (!move || (out.perkMove.target !== null && (!actors.has(out.perkMove.target) || dead.has(out.perkMove.target))))) {
     gearErrors.push(`perkMove ${out.perkMove.perk}`);
     out.perkMove = null;
   }

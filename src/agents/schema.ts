@@ -1,7 +1,7 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
-import type { AgreementMade, Intent, NarratorOutput, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import type { AgreementMade, Intent, MoveSpot, NarratorOutput, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
@@ -56,7 +56,8 @@ const GEAR = nul(arr(gearOp));
 const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
 
 const intent = obj<Intent>({
-  move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey }>({ toZone: str, after: bool, pace: oneOf(TRAVEL_PACES.keys) }, ['after', 'pace'])),
+  move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null }>({ toZone: str, after: bool, pace: oneOf(TRAVEL_PACES.keys),
+    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str }, ['near', 'awayFrom', 'side'])) }, ['after', 'pace', 'spot'])),
   action: nul(obj<NonNullable<Intent['action']>>({
     type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
