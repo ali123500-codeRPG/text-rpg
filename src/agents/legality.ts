@@ -52,10 +52,14 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   if (out.move && spot) {
     // one of near / awayFrom (someone in view, or a way out of that zone) / side (a compass word)
     const there = [view.zone, ...view.zones].find((z) => z.id === out.move!.toZone);
+    // BG-19 (runs 37, 38): "the back of the cellar" came as awayFrom the cellar itself: the back is away from the way in
+    const cameIn = view.cameFrom?.[0]?.zone;
+    if (spot.awayFrom === out.move.toZone && cameIn && there?.links.some((l) => l.to === cameIn)) out.move.spot = { awayFrom: cameIn };
     const ref = (id: string) => actors.has(id) || !!there?.links.some((l) => l.to === id);
-    const keys = (['near', 'awayFrom', 'side'] as const).filter((k) => spot[k]);
-    const ok = keys.length === 1 && (spot.side ? !!compassOf(spot.side) : ref((spot.near ?? spot.awayFrom)!));
-    if (!ok) illegal.push(`move.spot ${JSON.stringify(spot)}`);
+    const sp = out.move.spot!;
+    const keys = (['near', 'awayFrom', 'side'] as const).filter((k) => sp[k]);
+    const ok = keys.length === 1 && (sp.side ? !!compassOf(sp.side) : ref((sp.near ?? sp.awayFrom)!));
+    if (!ok) illegal.push(`move.spot ${JSON.stringify(sp)}`);
   }
   const a = out.action;
   if (a?.mode) a.mode = modeIdOf(a.mode); // a mode named by its name maps to its AM id

@@ -58,6 +58,8 @@ export type YieldView = { took: string[]; waiting: string[]; refused: string[] }
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
+  /** BG-18: where it stands by the way the viewer faces (engine/position.ts sideFrom) */
+  side?: 'ahead' | 'left' | 'right' | 'behind';
   distanceM?: number; // ZP5: metres from the viewer, once both stand at points on the map (to 0.1 m)
   health?: HealthLevel; // others: only from Wounded down
   morale?: string; // MB16: others' morale level, only from Afraid down
