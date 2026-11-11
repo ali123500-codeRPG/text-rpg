@@ -22,6 +22,21 @@ import { CL } from '../src/library/classIds';
 import { PERSONAS, autoPerk } from '../src/agents/autopilot';
 import { villageStagePlan } from '../src/scene/fixtures';
 import { TP } from '../src/library/templateIds';
+import { getLibrary } from '../src/library';
+import { skillName as sk } from '../src/library/skillNames';
+import type { LogLine } from '../src/types';
+
+/** what the play screen shows under a line whatever the mechanics switch: skill-ups, perk unlocks, level-ups, achievements */
+const screenNotes = (l: LogLine): string[] => {
+  const lib = getLibrary();
+  const gains = Object.entries(l.gains ?? {}).filter(([, n]) => n);
+  return [
+    ...(gains.length ? [`Skills: ${gains.map(([k, n]) => `${sk(k)} +${n}`).join(' · ')}`] : []),
+    ...(l.unlocks ?? []).map((u) => `New perk unlocked: ${sk(u.skill)} reached ${u.milestone}`),
+    ...(l.levelUps ?? []).map((u) => `Level up: ${lib.classes[u.classId]?.name ?? 'bonus level'} reached level ${u.level}`),
+    ...(l.achievements ?? []).map((a) => `${a.scar ? 'Scar' : 'Achievement'}: ${a.name}${a.xp ? ` (+${a.xp} XP)` : ''}`),
+  ].map((x) => `  [screen] ${x}`);
+};
 
 // Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scene-start wait is widened here.
 // The game's own WEAVER_TIMEOUT_MS is not changed.
@@ -148,9 +163,13 @@ async function main() {
     const stop = game.notices().find((n) => n.kind === 'stop_play');
     if (stop) { console.log('stop_play:', stop.text); break; }
     // spoken lines are shown under the narration on screen (the Narrator does not quote them), so the player sees them too
-    const recent = game.lines().slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`), ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
-    const pick = await claudeCli(`${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n\nThe story so far (latest last):\n${recent}`, 'claude-sonnet-5-5');
-    const input = (pick.text || 'I look around.').split('\n')[0].trim().slice(0, 200);
+    const recent = game.lines().slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`), ...screenNotes(l), ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
+    const ask = `${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n\nThe story so far (latest last):\n${recent}`;
+    const first = (r: ClaudeResponse) => (r.text || 'I look around.').split('\n')[0].trim().slice(0, 200);
+    let input = first(await claudeCli(ask, 'claude-sonnet-5-5'));
+    // a slash command answers at once and passes no time: sending the same one again only repeats its answer (run 33 sent /stats 11 times)
+    if (input.startsWith('/') && input === lastInput) input = first(await claudeCli(`${ask}\n\nYou just sent ${input} and its answer is above; it passes no time. Do something in the story instead.`, 'claude-sonnet-5-5'));
+    lastInput = input;
     const aimed = input.startsWith('/aim');
     console.log(`turn ${t}: ${input}`);
     const rawBefore = Object.fromEntries(Object.entries(game.state()?.player.core.skills ?? {}).map(([k, v]) => [k, v.raw]));
@@ -165,7 +184,7 @@ async function main() {
   await game.settle();
   writeTranscript(game, storyId!, t0);
   if (DEBRIEF) {
-    const story = game.lines().map((l) => [`[${l.kind}] ${l.text}`, ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
+    const story = game.lines().map((l) => [`[${l.kind}] ${l.text}`, ...screenNotes(l), ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
     const r = await claudeCli(`${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n\nYou have finished playing. The whole story you played:\n${story}\n\n${DEBRIEF}\nAnswer as the player, honestly and specifically, in plain prose.`, 'claude-sonnet-5-5');
     writeFileSync(join(OUT, 'debrief.md'), `# Debrief\n\nQuestion: ${DEBRIEF}\n\n${r.text || r.error}\n\nSkill-ups this run (${skillUps.length}):\n${skillUps.map((x) => `- ${x}`).join('\n')}\n`);
   }
@@ -189,6 +208,7 @@ function tracePacing(game: ReturnType<typeof createGame>, step: number, input: s
 /** The test player can't open the Perks page, so it spends each perk point at once on the open milestone of its highest skill. */
 const progress: string[] = [];
 const skillUps: string[] = [];
+let lastInput = '';
 let levelUpsSeen = 0;
 function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
   const st = game.state();
