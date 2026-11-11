@@ -203,6 +203,7 @@ export type NarrationEvent = {
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes
+  pronouns?: 'he' | 'she' | 'they' | 'it'; targetPronouns?: 'he' | 'she' | 'they' | 'it'; // BG-33: the actor's and target's pronouns, for people no longer in sight at the turn's end
 };
 
 export type NarrationView = {

@@ -58,6 +58,9 @@ export function parseTolerant(text: string): { ok: true; value: unknown } | { ok
   if (widened !== text) return parseTolerant(widened);
   const unshaped = text.replace(/([}\]"\d]|true|false|null)\s*\|\s*null\b/g, '$1');
   if (unshaped !== text) return parseTolerant(unshaped);
+  // BG-35: a model sometimes leaves out the comma before the next key ("text":"…""narrated":[…]) (run 40)
+  const commaed = text.replace(/((?<!\\)"|[}\]]|\d|true|false|null)(\s*)(?="[\w$-]+"\s*:)/g, (m, v: string, ws: string) => `${v},${ws}`);
+  if (commaed !== text) { const c = tryParse(commaed.slice(Math.max(0, commaed.search(/[{[]/)), Math.max(commaed.lastIndexOf('}'), commaed.lastIndexOf(']')) + 1)); if (c) return c; }
   return { ok: false };
 }
 

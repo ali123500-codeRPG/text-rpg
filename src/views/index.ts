@@ -515,7 +515,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     out.push({
       id: e.id, kind: e.kind, level: per.level, cue: per.cue,
       ...(full ? { actor: callName(state, me, e.actorId) } : {}),
+      ...(full && e.actorId !== me && actorById(state, e.actorId)?.pronouns ? { pronouns: actorById(state, e.actorId)!.pronouns } : {}),
       ...(target ? { target } : {}),
+      ...(target && e.target !== me && actorById(state, e.target!)?.pronouns ? { targetPronouns: actorById(state, e.target!)!.pronouns } : {}),
       where: full ? zoneById(state, e.zone)?.name : whereLabel(state, p.zone, e.zone),
       ...(hears ? { line: { text: e.line!.text, volume: e.line!.volume, ...(speaker ? { speaker } : {}) } } : {}),
       ...(look ? { activityLook: look } : {}),
