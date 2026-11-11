@@ -15,7 +15,7 @@ import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { h } from './kit';
+import { h, dragScroll } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
@@ -221,6 +221,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let dealsOpen = false;
   document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
+  dragScroll(sheet); // no scrollbar: the wheel or a mouse drag scrolls the sheet
   const wrap = h('div', { class: 'play-wrap' }, body, sheet);
   // Watch an agent play: it types each command into the box, then sends it like Send
   const auto = autopilotBar(api, async (text) => {

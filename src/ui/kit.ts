@@ -134,3 +134,25 @@ export function openPanel(title: string, rows: PanelRow[], note?: string, head?:
   (panelHost.querySelector('.edit input') as HTMLInputElement | null)?.focus();
 }
 
+
+/** a scroll box without a visible scrollbar: the wheel scrolls it, and so does dragging it with the mouse.
+ *  A drag of more than a few pixels swallows the click that ends it, so buttons inside still work on a plain click. */
+export function dragScroll(box: HTMLElement): void {
+  let startY = 0, startTop = 0, down = false, dragged = false;
+  box.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    if ((e.target as Element).closest('input, select, textarea, [contenteditable]')) return;
+    down = true; dragged = false; startY = e.clientY; startTop = box.scrollTop;
+  });
+  box.addEventListener('pointermove', (e) => {
+    if (!down) return;
+    const dy = e.clientY - startY;
+    if (!dragged && Math.abs(dy) < 4) return;
+    if (!dragged) { dragged = true; box.classList.add('dragging'); box.setPointerCapture?.(e.pointerId); }
+    box.scrollTop = startTop - dy;
+  });
+  const end = () => { down = false; box.classList.remove('dragging'); };
+  box.addEventListener('pointerup', end);
+  box.addEventListener('pointercancel', end);
+  box.addEventListener('click', (e) => { if (dragged) { dragged = false; e.stopPropagation(); e.preventDefault(); } }, true);
+}
