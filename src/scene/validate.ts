@@ -59,8 +59,23 @@ function trimNote(v: unknown): unknown {
 }
 
 /** Fill in what a plan may leave out, in place, before validation (V4, V5, V6; missing plan steps). Never fills public text. */
+/** CO17: a place that names a layout gets the layout's zones, keyed `${placeKey}.${zoneKey}`; runs once per plan */
+export function expandLayouts(plan: StagePlan): void {
+  const layouts = getLibrary().layouts ?? {};
+  for (const p of Array.isArray(plan.places) ? plan.places : []) {
+    const l = p?.layout ? layouts[p.layout] : undefined;
+    if (!l || !Array.isArray(plan.zones) || plan.zones.some((z) => z?.key === `${p.key}.${l.entry}`)) continue;
+    for (const z of l.zones) plan.zones.push({
+      key: `${p.key}.${z.key}`, place: p.key, kind: z.kind, name: p.names?.[z.key] ?? z.name, look: p.looks?.[z.key] ?? z.look,
+      ...(z.size ? { size: z.size } : {}), ...(z.edges ? { edges: { ...z.edges } } : {}), fromLayout: true,
+      links: z.links.map(([to, label, sight]) => ({ to: `${p.key}.${to}`, label, sight })),
+    });
+  }
+}
+
 export function fillPlanDefaults(plan: StagePlan): void {
   if (!plan || typeof plan !== 'object') return;
+  expandLayouts(plan);
   const list = <T>(x: T[] | undefined): T[] => (Array.isArray(x) ? x : []);
   if (plan.event) plan.event.summary = trimNote(plan.event.summary) as string;
   plan.weaverNote = trimNote(plan.weaverNote) as string;
@@ -140,7 +155,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 
   // ---- caps ----
   const counts: [string, number, number][] = [
-    ['cast', cast.length, P.cast], ['zones', zones.length, P.zones], ['frontiers', frontiers.length, P.frontiers],
+    ['cast', cast.length, P.cast], ['zones', zones.filter((z) => !z?.fromLayout).length, P.zones], ['frontiers', frontiers.length, P.frontiers],
     ['places', places.length, P.places], ['bands', bands.length, P.bands],
   ];
   for (const [what, n, max] of counts) if (n > max) err('cap_exceeded', `${what}: ${n} > ${max}`);
@@ -176,6 +191,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`place ${p.key} name`, p.name, true);
     // GAP: a root place may give parent '' (the type has no null); anything else must resolve.
     if (p.parent && !isPlace(p.parent)) err('unresolved_place', `place ${p.key}: parent ${p.parent} unknown`);
+    const lays = getLibrary().layouts ?? {};
+    if (p.layout !== undefined && !lays[p.layout]) err('bad_place', `place ${p.key}: layout is a layout id from catalogs.layouts (${Object.values(lays).map((l) => `${l.id} ${l.name}`).join(', ')})`);
   }
   for (const f of frontiers) text(`frontier ${f.key} label`, f.label, true);
 

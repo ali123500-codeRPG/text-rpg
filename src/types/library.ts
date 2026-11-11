@@ -117,6 +117,7 @@ export type Library = {
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
   edgeKinds?: Record<string, EdgeKind>; // CO15
   zoneSizes?: Record<string, ZoneSize>; // CO16
+  layouts?: Record<string, LayoutDef>; // CO17
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' }>; // GC…: the skill an item of the class asks for
   attackModes?: Record<string, { id: string; name: string; reachBonus?: number; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
@@ -129,6 +130,11 @@ export type ZoneKind = {
   size: import('../scales').ZoneSizeKey; edge: string;
   /** long side ÷ short side of the zone's rectangle (1 = square) */
   aspect: number;
+};
+/** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
+export type LayoutDef = {
+  id: string; name: string; building: string; entry: string;
+  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; edges?: Partial<Record<import('./core').Side, string>>; links: [string, string, boolean][] }[];
 };
 /** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
 export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; text: string };
