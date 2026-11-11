@@ -1,6 +1,7 @@
 // Stage-plan validation (Part 2, Agent Weaver: Validation) and the grades table.
 import type { EndCheck, GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
-import { GRADES, ORDER_TYPES, SCENE_ENDINGS } from '../types';
+import { GRADES, SCENE_ENDINGS } from '../types';
+import { triggerErrors } from './triggers';
 import { scaleFor } from '../engine/sceneEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
@@ -13,7 +14,6 @@ import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
 
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
-const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard', 'quiet_turns'];
 
 const g = (x: Grade) => GRADES.indexOf(x);
 
@@ -340,21 +340,10 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   }
 
   // ---- seeds ----
-  const checkWhen = (where: string, w: TriggerWhen | undefined) => {
-    if (!w || !TRIGGER_TYPES.includes(w.type)) return err('bad_trigger', `${where}: unknown trigger type ${w?.type}`);
-    if (w.type === 'player_seen_in_zone' && !isZone(w.zone)) err('bad_trigger', `${where}: zone ${w.zone} unknown`);
-    if (w.type === 'actor_down' && !isActor(w.actorId)) err('bad_trigger', `${where}: actor ${w.actorId} unknown`);
-    if (w.type === 'turn_reached' && typeof w.turn !== 'number') err('bad_trigger', `${where}: turn is a number`);
-    if (w.type === 'quiet_turns' && !(Number.isInteger(w.turns) && w.turns >= 1)) err('bad_trigger', `${where}: turns is a whole number of at least 1`);
-  };
+  const refs = { isZone, isActor };
   const checkTrigger = (where: string, t: StagePlan['seeds']['triggers'][number]) => {
-    if (!t || !t.id) return err('bad_trigger', `${where}: trigger without an id`);
-    if (!isActor(t.ownerId)) err('bad_trigger', `trigger ${t.id}: owner ${t.ownerId} unknown`);
-    checkWhen(`trigger ${t.id}`, t.when);
-    // one order per trigger: `then` is a single order template
-    if (!t.then || Array.isArray(t.then) || typeof t.then.type !== 'string') err('bad_trigger', `trigger ${t.id}: then holds exactly one order`);
-    else if (!(ORDER_TYPES as readonly string[]).includes(t.then.type)) err('bad_trigger', `trigger ${t.id}: then.type ${t.then.type} unknown; known: ${ORDER_TYPES.join(', ')}`);
-    if (typeof t.once !== 'boolean') err('bad_trigger', `trigger ${t.id}: once is true or false`);
+    for (const m of triggerErrors(state, t, refs, where)) err('bad_trigger', m);
+    if (t && t.id && typeof t.once !== 'boolean') err('bad_trigger', `trigger ${t.id}: once is true or false`); // tidy() fills it in
   };
   for (const p of arr(seeds.plans)) {
     if (!isActor(p.ownerId)) err('unresolved_actor', `plan owner ${p.ownerId} unknown`);

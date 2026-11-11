@@ -94,6 +94,8 @@ export interface GameApi {
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
   reset(): Promise<void>; // confirmed by the UI first
+  /** SC15: the GM view's End scene button: the running scene ends after the next turn */
+  endScene(): void;
   gm(): GmSnapshot;
   calls(): number; // Claude calls made in this session (page load), counted by code
   /** Claude calls in flight now, oldest first: which agent and since when (Date.now ms) */

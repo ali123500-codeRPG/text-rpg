@@ -9,7 +9,7 @@ const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null,
 export function gmPage(api: GameApi) {
   const el = h('main');
   const how = h('p', { class: 'how', hidden: true });
-  let confirm: { kind: 'restore'; turn: number } | { kind: 'download' } | { kind: 'newSave' } | null = null;
+  let confirm: { kind: 'restore'; turn: number } | { kind: 'download' } | { kind: 'newSave' } | { kind: 'endScene' } | null = null;
 
   function download() {
     const snap = api.gm();
@@ -32,6 +32,10 @@ export function gmPage(api: GameApi) {
           confirm?.kind === 'download'
             ? confirmRow('Download the whole story as a file?', 'Download backup', download)
             : h('button', { class: 'hs-btn-text', type: 'button', title: 'Owner only. Asks to confirm each time', onclick: () => { confirm = { kind: 'download' }; update(); } }, 'Download backup'),
+          // SC15: end the running scene, for testing; it ends after the next turn and is recorded as interrupted
+          s?.stage.scene && !s.stage.breakCause ? (confirm?.kind === 'endScene'
+            ? confirmRow(`End scene ${s.stage.sceneNumber} ("${s.stage.scene.question}") after the next turn?`, 'End scene', () => api.endScene())
+            : h('button', { class: 'hs-btn-text', type: 'button', title: 'Ends the running scene after the next turn, recorded as interrupted. Asks to confirm', onclick: () => { confirm = { kind: 'endScene' }; update(); } }, 'End scene')) : '',
           // The GM can start a new save, with warnings. The old story is archived, not deleted (D-73).
           s ? (confirm?.kind === 'newSave'
             ? h('div', { class: 'confirm', role: 'alert' },

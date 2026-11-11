@@ -1,8 +1,8 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
-import { lastScenes } from '../engine/sceneEnd';
+import { budgetUsed, lastScenes } from '../engine/sceneEnd';
 import { SCENE_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
-import type { Tier, TierRoll,
+import type { SceneFrame, Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WeaverView, Zone, ZoneView,
@@ -554,6 +554,15 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
 }
 
 // ---------- WeaverView ----------
+/** SC8: the running scene, as the check-in sees it: its question, endings, and how much of its budget is used */
+function checkinScene(state: GameState, f: SceneFrame): NonNullable<WeaverView['target']['scene']> {
+  const c = CONFIG.SCENE_SCALE[f.scale];
+  return {
+    question: f.question, scale: SCENE_SCALES.name(f.scale), endings: f.endings.map((e) => ({ when: e.when, as: e.as, text: e.text })),
+    turns: state.turn - f.startTurn, budget: c?.budgetTurns ? `${c.budgetTurns} turns, fights not counted` : `${c?.budgetDays ?? '?'} days`,
+    used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
+  };
+}
 const STAKES: Record<Tier, string> = {
   critical_failure: 'A real challenge with little gain; the harder of the two',
   failure: 'A real challenge with little gain',
@@ -580,6 +589,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     time: clockSet(state) ? timeView(state) : null,
     stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
     target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
+      ...(target.kind === 'checkin' && state.stage.scene ? { reason: target.reason, scene: checkinScene(state, state.stage.scene) } : {}),
       ...(target.kind === 'scene' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     stage: stageZones(state).map((z) => zoneView(state, z)),

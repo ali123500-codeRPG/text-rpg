@@ -1,13 +1,14 @@
 // Wires W6's SceneDirector (scene setup, stage extension) into the pipeline's SceneDirector surface,
 // with the real Agent Weaver. Each Weaver call is one agent-log entry, so replay can feed the outputs back in order.
-import type { Clock, GameEvent, GameState, Rng, StagePlan } from '../types';
+import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, StagePlan } from '../types';
 import { SceneDirector as Director } from '../scene/director';
 import { openingEvents } from '../scene';
 import type { AgentCtx } from './call';
 import type { SceneDirector } from './game';
 import { runAgent } from './call';
 import { FIXED } from './prompts';
-import { checkStagePlan } from './schema';
+import { checkCheckin, checkStagePlan } from './schema';
+import { applyCheckin } from '../engine/sceneEnd';
 import { formatWeaverView } from './format';
 
 /** V11 switch: send the rejected plan back with the repair (set by the V11 test) */
@@ -37,6 +38,13 @@ export function createDirector(clock: Clock): SceneDirector {
       if (judged.length && !errors?.length) own.reportBug?.('scene_ending_judged', { question: run.value!.scene!.question, endings: judged.map((e) => ({ as: e.as, text: e.text })) });
       return run.value;
     },
+    // SC8: a background check-in, logged under the turn whose save started it
+    checkin: async (view) => {
+      const own = ctx;
+      if (!own) return null;
+      const run = await runAgent<CheckinAnswer>(own, { agent: 'weaver', fixed: FIXED.checkin, data: formatWeaverView(view), schema: checkCheckin });
+      return run.value;
+    },
   });
   return {
     async startStory(state: GameState, rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
@@ -48,6 +56,9 @@ export function createDirector(clock: Clock): SceneDirector {
     async afterResolve(state: GameState, _events: GameEvent[], rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
       const key = state.scratch?.frontierCrossed as string | undefined;
       if (!key) {
+        // SC8: a check-in that came back since the last turn: applied now, to the scene it was about
+        const ci = d.takeCheckin();
+        if (ci) applyCheckin(state, ci.number, ci.answer, _events);
         // sceneBreak (P7, D-30): rest, a beat that ends the scene, or a stall. A frontier crossing goes first; the break waits a turn.
         if (!state.stage.breakCause) return [];
         ctx = c;

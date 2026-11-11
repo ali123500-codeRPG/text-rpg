@@ -227,7 +227,10 @@ export type WeaverView = {
   time: TimeView | null;
   stakes: string;
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
-  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string; wake?: true;
+  target: { kind: 'scene' | 'frontier' | 'checkin'; placeId: string; label?: string; frontierKey?: string; wake?: true;
+    /** SC8: why this check-in was asked, and the running scene it is about */
+    reason?: import('./hidden').CheckinReason;
+    scene?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean };
     /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
     encounter?: { zone: string; danger: string; noticed: boolean } };
   headlines: string[];

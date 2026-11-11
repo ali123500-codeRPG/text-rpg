@@ -29,6 +29,10 @@ export type StageInfo = {
   ending?: { as: import('./hidden').SceneEnding; text: string; outer?: true; turn: number };
   /** SC10: how the scene that just ended ended, set with breakCause and recorded when the next one begins */
   ended?: { as: import('./hidden').SceneEnding; text: string; outer?: true };
+  /** SC8: a Weaver check-in is due after this turn is saved, and why */
+  checkinDue?: import('./hidden').CheckinReason;
+  /** SC8: the turn a beat (a quiet_turns trigger) last fired */
+  beatTurn?: number;
   /** TV4: an encounter on the road: its event roll (the next scene's tier), whether the player saw it coming (TV8), and
    * where on the road it stands; cleared at the start of the next turn */
   encounter?: { eventRoll: import('./ruleset').EventRollResult; noticed: boolean; zone: string; at: { x: number; y: number } };
