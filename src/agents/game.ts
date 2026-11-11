@@ -72,7 +72,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in). The story saves every turn.';
+  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -448,6 +448,10 @@ export function createGame(deps: GameDeps): Game {
         // MB40: yield as a command; the words go to the Parser as the player's line
         yieldNext = true;
         return submit(arg || 'I yield.', opts);
+      // attack commands: the words go to the Parser as "I strike …" (Ali, 11/11/2026: the agent misread /aim as picking a person)
+      case 'strike': case 'shoot': case 'throw':
+        if (!arg) return say(`/${cmd.toLowerCase()} needs someone to attack, e.g. /${cmd.toLowerCase()} the guard, or /${cmd.toLowerCase()} the guard at his left arm. Put /aim in front to aim at that part.`);
+        return submit(`I ${cmd.toLowerCase()} ${arg}`, opts);
       case 'aim':
         aimNext = true;
         if (arg) return submit(arg, opts);

@@ -68,4 +68,17 @@ describe('158 autopilot saves', () => {
     expect(claude.callsFor('autopilot')[2].input[1].content).toContain('do not check it now');
     expect((await g.agentMove())?.command).toBe('I strike again'); // BG-26: /stats is never needed, so it is always asked again
   });
+
+  it('attack commands: /strike with no target says how; /aim /strike sends an aimed "I strike …" turn', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    await saveTurn(store, story('mine', '2026-11-10T10:00:00Z'), rec(story('mine', '2026-11-10T10:00:00Z')));
+    const claude = new ScriptedClaude(clock);
+    const g = createGame({ client: claude, clock, store, director: idle });
+    await g.resume();
+    await g.submit('/strike', { aimed: false });
+    expect(g.lines().at(-1)?.text).toContain('/strike needs someone to attack');
+    void g.submit('/aim /strike the guard at his left leg', { aimed: false }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 50));
+    expect(g.lines().find((l) => l.kind === 'player')).toMatchObject({ text: 'I strike the guard at his left leg', aimed: true });
+  });
 });
