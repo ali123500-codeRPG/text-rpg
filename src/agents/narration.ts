@@ -112,7 +112,7 @@ function eventLine(e: NarrationEvent): string {
     case 'arrival':
       return `${cap(who(e.actor))} ${e.actor === 'player' ? 'arrive' : 'arrives'}${e.where ? ` at ${e.where}` : ''}.`;
     case 'move':
-      return `${cap(who(e.actor))} ${e.actor === 'player' ? 'move' : 'moves'}${e.where ? ` to ${e.where}` : ''}.`;
+      return `${cap(who(e.actor))} ${e.actor === 'player' ? 'move' : 'moves'}${e.spot ? ` ${e.spot}` : e.where ? ` to ${e.where}` : ''}.`;
   }
   const changes = e.changes?.length ? `: ${e.changes.join('; ')}` : '';
   return `${cap(who(e.actor))} ${e.kind.replace(/_/g, ' ')}${e.target ? ` ${who(e.target)}` : ''}${e.item ? ` (${e.item})` : ''}${changes}.`;

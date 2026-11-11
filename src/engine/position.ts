@@ -5,11 +5,11 @@
 // zone link of metres (linkM), as before positions.
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { doorway } from '../scene/geometry';
+import { compassOf, doorway, edgeToward } from '../scene/geometry';
 import { heightOf } from '../scene/heights';
 import { linkM } from '../ruleset/range';
-import { allActors, shortestPath, zoneById } from './relations';
-import type { GameState, Zone } from '../types';
+import { actorById, allActors, shortestPath, zoneById } from './relations';
+import type { GameState, MoveSpot, Zone } from '../types';
 
 export type Pos = { x: number; y: number };
 /** someone or something that stands somewhere: a zone, and a point in it once the zone has a rectangle */
@@ -163,4 +163,56 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
   }
   enter(at);
   return used;
+}
+
+/** TV3: where a frontier off a road is: the middle of the road's side its label's compass names, else the far end of the
+ * road from `from` */
+export function frontierPoint(z: Zone, label: string, from: Pos): Pos {
+  const r = z.rect!;
+  const d = compassOf(label);
+  if (d) return edgeToward(r, d);
+  const ends: Pos[] = r.w >= r.d ? [{ x: r.x - r.w / 2, y: r.y }, { x: r.x + r.w / 2, y: r.y }] : [{ x: r.x, y: r.y - r.d / 2 }, { x: r.x, y: r.y + r.d / 2 }];
+  return ends.sort((p, q) => Math.hypot(q.x - from.x, q.y - from.y) - Math.hypot(p.x - from.x, p.y - from.y))[0];
+}
+
+/** BG-12: the point a move spot names in zone `zoneId`, as seen from `from`: beside someone there (`near` an actor:
+ * stopShort keeps PLACE_GAP_M from them) or at a way out (`near` a link's zone: its doorway, a frontier's side); the far
+ * edge straight across from someone or a way out (`awayFrom`); or the middle of the side a compass word names (`side`).
+ * Points stand ENTER_M (a step) inside the edge. null: the zone has no rectangle, or the spot names nothing there. `toward` is the
+ * actor walked to; `words` says the spot for the story ("to the north side", "away from the cellar steps"). */
+export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from: Located): { pos: Pos; stopShort: number; toward?: string; words?: string } | null {
+  const z = zoneById(state, zoneId);
+  if (!z?.rect) return null;
+  const r = z.rect, c = centre(z)!;
+  const start = spotOf(state, from).pos ?? c;
+  const inset = (p: Pos): Pos => {
+    const dx = c.x - p.x, dy = c.y - p.y, len = Math.hypot(dx, dy), m = Math.min(CONFIG.ENTER_M, len);
+    return len > EPS ? { x: p.x + (dx / len) * m, y: p.y + (dy / len) * m } : p;
+  };
+  /** a person in the zone, or a way out of it: where it is and what the story calls it */
+  const point = (ref: string): { at: Pos; actor?: string; label?: string; here?: boolean } | null => {
+    const who = actorById(state, ref);
+    if (who) { const s = spotOf(state, who); return s.pos ? { at: s.pos, actor: who.id, label: who.label, here: s.zone === z.id } : null; }
+    const link = z.links.find((l) => l.to === ref);
+    if (!link) return null;
+    const there = zoneById(state, ref);
+    const d = there?.rect ? doorway(z, there) : null;
+    return { at: d ?? frontierPoint(z, link.label, start), label: link.label };
+  };
+  if (spot.near) {
+    const p = point(spot.near);
+    if (!p || (p.actor && !p.here)) return null; // someone elsewhere is a move to their zone, not a spot in this one
+    return p.actor ? { pos: p.at, stopShort: CONFIG.PLACE_GAP_M, toward: p.actor } : { pos: inset(p.at), stopShort: 0, words: `toward ${p.label}` };
+  }
+  if (spot.awayFrom) {
+    const p = point(spot.awayFrom);
+    if (!p) return null;
+    let d: [number, number] = [c.x - p.at.x, c.y - p.at.y];
+    // a way out at the middle (stairs straight up or down) has no far side: keep to the side the walker is already on
+    if (Math.hypot(d[0], d[1]) <= EPS) d = [start.x - c.x, start.y - c.y];
+    if (Math.hypot(d[0], d[1]) <= EPS) d = [0, 1];
+    return { pos: inset(edgeToward(r, d)), stopShort: 0, words: `away from ${p.label}` };
+  }
+  const d = spot.side ? compassOf(spot.side) : null;
+  return d ? { pos: inset(edgeToward(r, d)), stopShort: 0, words: `to the ${spot.side!.toLowerCase()} side` } : null;
 }

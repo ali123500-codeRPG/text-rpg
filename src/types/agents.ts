@@ -18,8 +18,12 @@ export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimid
 export const IMPROVISED_BASES = ['improvised_light', 'improvised_medium', 'improvised_heavy'] as const;
 export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
 
+/** BG-12: a spot inside the move's zone (the player's own zone included), one of: beside someone in view (`near` an actor
+ * id) or at a way out (`near` a link's zone id); the far side `awayFrom` someone or a way out; or the `side` a compass word
+ * names ("north", "south-west") */
+export type MoveSpot = { near?: string; awayFrom?: string; side?: string };
 export type Intent = {
-  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey } | null; // after: the action first, then the move (AE3); pace: TV2 on a road trip
+  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null } | null; // after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
   action: {
     type: ParserActionType;
     skill: string;

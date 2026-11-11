@@ -192,6 +192,7 @@ export type NarrationEvent = {
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
+  spot?: string; // BG-12: where in the zone a move went, in words
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes

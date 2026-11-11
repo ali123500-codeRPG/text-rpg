@@ -11,7 +11,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, tripGoal } from './travel';
-import { distM, placeAll, sightDistM, spotOf, walkLeg, type Located } from './position';
+import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
 import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -231,7 +231,7 @@ function bark(ev: GameEvent, o: Order): GameEvent {
  * within the goal's zone straight at its point (position.ts walkLeg). Returns the metres walked (0: none), 'spent' when
  * the move is used up where the actor stands (held: its try to break free; a frontier), or null when it is dropped
  * (frontier for an NPC, no path). */
-function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, metres: number, fresh: boolean, stopShort = 0, toward?: string): number | 'spent' | null {
+function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, metres: number, fresh: boolean, stopShort = 0, toward?: string, spot?: string): number | 'spent' | null {
   const { state } = ctx;
   if (goal.zone === a.zone && !goal.pos) return 0;
   // A8 Hold: a held actor's move is its try to break free; it stays in the zone either way
@@ -254,7 +254,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (walked <= 0) return 0;
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone
-  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward } : {}) };
+  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward } : {}), ...(spot && a.zone === goal.zone ? { spot } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
@@ -265,7 +265,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
  * dash, runs the rest of the turn), one leg at a time, until it gets there, the slots run out, or the move is spent or
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
  * (closing in to strike). Returns false when the move was dropped. */
-function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string } = {}): boolean {
+function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string } = {}): boolean {
   const { state } = ctx;
   const there = () => (goal.pos ? distM(state, a, goal) <= (opts.stopShort ?? 0) + 0.01 : a.zone === goal.zone);
   let left = 0, fresh = false;
@@ -277,7 +277,7 @@ function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 
       left = slotMetres(state, a, paid);
       fresh = true;
     }
-    const r = doMove(ctx, a, goal, o, !!opts.bark && legs === 0, left, fresh, opts.stopShort ?? 0, opts.toward);
+    const r = doMove(ctx, a, goal, o, !!opts.bark && legs === 0, left, fresh, opts.stopShort ?? 0, opts.toward, opts.spot);
     if (r === null) return false;
     if (r === 'spent') return true;
     if (r === 0) { if (fresh) return true; left = 0; continue; }
@@ -707,8 +707,13 @@ function step(ctx: Ctx, id: string): void {
   if (closeIn) o.move = null;
   // CO13/ZP2: a move slot walks slotMetres(…'move') toward the move's zone, and with no main action planned (hold) a main
   // slot runs slotMetres(…'main') more once the move slots run out: a dash (AE2), which a lame actor can't make
+  // BG-12: a move to a spot walks to that point of the zone (beside someone, by a way out, the far side, a compass side)
+  const sp = o.move && o.moveSpot ? spotPoint(state, o.move, o.moveSpot, a) : null;
+  if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: id, to: o.move, spot: o.moveSpot });
   const move = (mainToo: boolean) => {
-    if (o.move && !walk(ctx, a, { zone: o.move }, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0))) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+    const goal: Located = sp ? { zone: o.move!, pos: sp.pos } : { zone: o.move! };
+    const opts = sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {};
+    if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
   if (!o.moveAfter) move(o.type === 'hold');
   if (closeIn && foe && !inReach(state, a, o)) {
