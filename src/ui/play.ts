@@ -3,7 +3,7 @@
 // status strip that opens the full sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
-import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
+import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView, SceneEndNote } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
@@ -188,7 +188,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   // the story: an append-only list (role=log announces each new entry once); the waiting line sits outside it
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
-  const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, waiting));
+  // SD1: while a turn that ended a scene is still running, the ending's rule is drawn here, under the player's line
+  const endNow = h('div', { class: 'end-now' });
+  let endKey = '', endDrawn = false; // the ending shown in endNow; whether its rule was drawn there, so the turn doesn't draw it again
+  const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, endNow, waiting));
   const notices = h('div', { class: 'notices' });
   const aimBtn = h('button', { type: 'button', class: 'aim' });
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', 'aria-label': 'What do you do', 'aria-describedby': 'cmd-hint' });
@@ -376,6 +379,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return l.scene !== undefined && prev.scene !== undefined && l.scene !== prev.scene ? '' : null;
   }
 
+  /** SD1: the scene-ending rule, the ending's name in its middle in that ending's colour, plus the new place when the
+   *  turn also moved the player there */
+  function endRule(end: SceneEndNote, place: string): HTMLElement {
+    return h('p', { class: 'pbreak end', 'data-end': end.as }, h('b', {}, cap(end.name)), place ? h('span', {}, ` · ${place}`) : null);
+  }
+
   function entry(l: LogLine, s: GameState | null, prev: LogLine | null): HTMLElement {
     let e = entries.get(l);
     if (e) return e;
@@ -385,7 +394,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     else if (l.kind === 'command') e = h('p', { class: 'ln-command' }, ...l.text.split(TAG_MARK).flatMap((x, i) => (i ? [tag(), x] : [x])));
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
-      ((b) => b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scene') }, b))(breakFor(l, prev)),
+      // SD1: a turn that ended a scene: the old scene's closing line, then the ending's rule, then the new scene's opening
+      l.sceneEnd?.closing ? h('p', { class: 'ln-closing' }, l.sceneEnd.closing) : null,
+      ((b) => l.sceneEnd ? endRule(l.sceneEnd, b ?? '') : b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scene') }, b))(breakFor(l, prev)),
       // M-10: each sentence its own span, so the reveal can pace them; the text is unchanged
       h('p', { class: 'ln-narration' }, sentences(l.text).flatMap((t, i) => [i ? ' ' : '', h('span', { class: 'sn' }, t)])),
       l.speech?.length ? h('div', { class: 'speech' }, l.speech.flatMap((sp) => [
@@ -521,6 +532,19 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     if (!busy) { delete waiting.dataset.since; waiting.replaceChildren(); }
     waiting.hidden = !busy;
+    // SD1: the ending moment starts as soon as the engine knows how the scene ended, while the next scene is still being
+    // made: the rule draws across with the ending's name. The closing line and the opening come with the turn's prose.
+    const ending = busy ? api.sceneEnding?.() ?? null : null;
+    const key = ending ? `${ending.as}|${ending.name}` : '';
+    if (key !== endKey) {
+      endKey = key;
+      if (!ending) endNow.replaceChildren();
+      else {
+        const r = endRule(ending, '');
+        endNow.replaceChildren(r);
+        endDrawn = drawBreak(r, 0) > 0;
+      }
+    }
 
     helpPanel.hidden = !open;
     cmdBtn.setAttribute('aria-pressed', String(open === 'commands'));
@@ -632,19 +656,27 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     };
   }
 
+  /** M-40: a break's rule draws outward from its name; returns how long the prose waits for it */
+  function drawBreak(brk: Element, delay: number): number {
+    if (!motionOn()) return 0;
+    const d = ms('--m-scene');
+    play(brk, [{ opacity: 0 }, { opacity: 1 }], { dur: d / 2, delay });
+    play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'right' }, { transform: 'scaleX(1)', transformOrigin: 'right' }], { dur: d, delay, pseudo: '::before' });
+    play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'left' }, { transform: 'scaleX(1)', transformOrigin: 'left' }], { dur: d, delay, pseudo: '::after' });
+    return d * 0.6;
+  }
+
   function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around) {
     finishAll();
     if (!e || !motionOn()) return;
     let t = 0;
+    // SD1: the old scene's closing line comes first; the ending's rule was already drawn while the turn ran, so it stays put
+    const closing = e.querySelector('.ln-closing');
+    if (closing) { play(closing, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') }); t += ms('--m-state'); }
     // M-40/M-42: a scene or place break draws across first, outward from its name
     const brk = e.querySelector('.pbreak');
-    if (brk) {
-      const d = ms('--m-scene');
-      play(brk, [{ opacity: 0 }, { opacity: 1 }], { dur: d / 2 });
-      play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'right' }, { transform: 'scaleX(1)', transformOrigin: 'right' }], { dur: d, pseudo: '::before' });
-      play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'left' }, { transform: 'scaleX(1)', transformOrigin: 'left' }], { dur: d, pseudo: '::after' });
-      t += d * 0.6;
-    }
+    if (brk && !(brk.classList.contains('end') && endDrawn)) t += drawBreak(brk, t);
+    endDrawn = false;
     // M-10/M-11: the prose, sentence by sentence (opacity only: a sentence is inline text), then what was said and the time row
     const gap = ms('--m-sentence'), fade = ms('--m-state');
     const parts = Array.from(e.querySelectorAll('.ln-narration .sn'));
