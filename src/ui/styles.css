@@ -393,6 +393,10 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .bf-key i { width: 10px; height: 10px; border-radius: 2px; }
 /* the play sheet keeps every block as compact as its skill rows */
 .cs-side { gap: var(--space-3); }
+/* the sheet scrolls by wheel or mouse drag, with no scrollbar */
+.cs-side { scrollbar-width: none; }
+.cs-side::-webkit-scrollbar { display: none; }
+.cs-side.dragging { cursor: grabbing; user-select: none; }
 .cs-side .bf-svg svg { width: 72px; }
 .cs-side .cs-row > span:first-child { white-space: nowrap; }
 .cs-side .cs-row > b { text-align: right; }
