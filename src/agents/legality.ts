@@ -46,7 +46,9 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const spot = out.move?.spot;
   if (out.move && !spot) delete out.move.spot;
   if (out.move?.toZone === view.zone.id && !spot) out.move = null;
-  if (out.move && out.move.toZone !== view.zone.id && !view.zone.links.some((l) => l.to === out.move!.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
+  // BG-15: a move names where the player means to end up, any zone it knows; the walk finds the way through the rest
+  const reachable = (id: string) => view.zone.links.some((l) => l.to === id) || view.zones.some((z) => z.id === id) || !!view.known?.some((k) => k.id === id);
+  if (out.move && out.move.toZone !== view.zone.id && !reachable(out.move.toZone)) illegal.push(`move.toZone ${out.move.toZone}`);
   if (out.move && spot) {
     // one of near / awayFrom (someone in view, or a way out of that zone) / side (a compass word)
     const there = [view.zone, ...view.zones].find((z) => z.id === out.move!.toZone);

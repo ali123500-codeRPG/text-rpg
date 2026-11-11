@@ -5,6 +5,7 @@ import { compassOf as geoCompass } from '../scene/geometry';
 import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
 import { zoneById } from '../engine/relations';
+import { knownZoneIds } from '../engine/trail';
 import { journalPlaces } from './pages';
 import { heightOf } from '../scene/heights';
 import { ZK } from '../library/tableIds';
@@ -38,7 +39,7 @@ export function alongRoad(r: import('../types').Rect, at: { x: number; y: number
 export function knownMap(s: GameState): KnownMap {
   const p = s.player, pv = safe(() => buildPlayerView(s));
   const inView = new Map((pv?.zones ?? []).map((z) => [z.id, z]));
-  const known = new Set<string>([...(p.journal?.zonesSeen ?? []), ...inView.keys(), ...(p.journal?.trail ?? []).map((t) => t.zone), p.zone]);
+  const known = new Set<string>([...knownZoneIds(s), ...inView.keys()]);
   for (const id of [...known]) if (!zoneById(s, id)) known.delete(id);
 
   // people: seen now (PlayerView) and last seen (out of sight now, in the zone they were last seen in)
