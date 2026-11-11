@@ -30,8 +30,8 @@ describe('106 XP and levels', () => {
     expect(killXp(s, slime)).toBeCloseTo(rating(slime) * t * CONFIG.KILL_XP_MULT, 1);
     s.player.core.skills[SK.barter] = { raw: 90, state: 'normal' }; // influence counts at 0.25×
     const before = rating(s.player);
-    s.player.core.skills[SK.lockpicking] = { raw: 90, state: 'normal' }; // misc counts 0
-    expect(rating(s.player)).toBe(before);
+    s.player.core.skills[SK.thievery] = { raw: 90, state: 'normal' }; // BA2: Thievery's Lockpicking function sits in Stealth, so it counts
+    expect(rating(s.player)).toBeGreaterThan(before);
   });
   it('ten defeats earn defeats_10 and defeats_10:<body type> once each, named for what was defeated', () => {
     const s = makeVillage();

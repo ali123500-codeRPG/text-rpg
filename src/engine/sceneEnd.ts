@@ -2,7 +2,7 @@
 // holds one met mid-fight, mid-chase or mid-talk (SC13), and keeps a record of how each scene went (SC6). An Episode or
 // Venture holds smaller scenes one level deep (SC4): a road encounter inside one starts an inner scene, and when that ends
 // the bigger scene carries on with no new event roll and no Weaver call.
-import type { CheckinAnswer, CheckinReason, EndCheck, GameEvent, GameState, PlanEnding, SceneEnding, SceneFrame, SceneRecord, StagePlan, Tier } from '../types';
+import type { CheckinAnswer, CheckinReason, EndCheck, GameEvent, GameState, Grade, PlanEnding, SceneEnding, SceneFrame, SceneRecord, StagePlan, Tier } from '../types';
 import { CONFIG } from '../config';
 import { SCENE_SCALES, TIME_OF_DAY, type SceneScale } from '../scales';
 import { now, timeOfDay } from '../time';
@@ -200,7 +200,17 @@ function record(state: GameState, f: SceneFrame, as: SceneEnding, text: string, 
     fallen: [...f.upAtStart.filter((id) => !isActive(actorById(state, id) ?? state.player)).map(name), ...(as === 'broken_off' ? ['the player'] : [])],
     gained: [...new Set(state.player.core.inventory.map((i) => i.itemId).filter((x) => !held.has(x)))],
     ...(inner ? { inner: true as const } : {}),
+    ...waysOf(state, f.number),
   };
+}
+/** BA8: the barriers made in scene `n`, counted for the GM view */
+function waysOf(state: GameState, n: number): Pick<SceneRecord, 'ways'> {
+  const made = Object.values(state.barriers ?? {}).filter((b) => b.scene === n);
+  if (!made.length) return {};
+  const grades: Partial<Record<Grade, number>> = {};
+  for (const b of made) grades[b.grade] = (grades[b.grade] ?? 0) + 1;
+  const count = (f: (b: (typeof made)[number]) => unknown) => made.filter(f).length;
+  return { ways: { barriers: made.length, locked: count((b) => b.lock), barred: count((b) => b.bar), blocked: count((b) => b.blocked), guarded: count((b) => b.guarded), grades } };
 }
 function keep(state: GameState, r: SceneRecord): void {
   const log = (state.hidden.scenes ??= []);

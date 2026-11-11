@@ -230,6 +230,19 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
       if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, or a frontier`);
+      // SD3–SD5: a barrier on the way
+      const b = l.barrier;
+      if (b) {
+        const bks = getLibrary().barrierKinds ?? {}, k = bks[b.kind];
+        if (!k) err('bad_link', `zone ${z.key}: a barrier's kind is a barrier kind id from catalogs.barrierKinds (${Object.values(bks).map((x) => `${x.id} ${x.name}`).join(', ')})`);
+        else {
+          if (b.locked && !k.lock) err('bad_link', `zone ${z.key}: ${k.name} takes no lock`);
+          if (b.barredFrom !== undefined && !k.bar) err('bad_link', `zone ${z.key}: ${k.name} takes no bar`);
+        }
+        if (b.barredFrom !== undefined && b.barredFrom !== z.key && b.barredFrom !== l.to) err('bad_link', `zone ${z.key}: barredFrom is the zone the bolt is on: ${z.key} or ${l.to}`);
+        if (l.drop || isFrontier(l.to)) err('bad_link', `zone ${z.key}: a barrier goes on a way between two zones, never on a drop or a frontier`);
+        for (const key of arr(b.keys)) if (!isActor(key)) err('bad_link', `zone ${z.key}: key holder ${key} is not in the cast or on the stage`);
+      }
     }
   }
 

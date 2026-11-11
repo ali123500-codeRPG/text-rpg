@@ -2,6 +2,7 @@
 import type { Actor, BeliefStatus, GameState, Stance } from '../types';
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
+import { linkPassage } from './barriers';
 
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
@@ -119,8 +120,15 @@ export function perceivedZoneIds(state: GameState, zoneId: string): string[] {
   return [zoneId, ...(z?.links ?? []).filter((l) => l.sight && !l.frontier && zoneById(state, l.to)).map((l) => l.to)];
 }
 
-/** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. */
-export function shortestPath(state: GameState, from: string, to: string, sightOnly = false): string[] | null {
+/** SD3–SD5: the walking path for `walker`: round any barrier shut to it; with none, the plain path (whose first shut way
+ * the walker then tries) */
+export const wayPath = (state: GameState, from: string, to: string, walker: Actor): string[] | null =>
+  shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to);
+
+/** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. With a `walker`, a way whose
+ * barrier is shut to it (no key, the far side of the bar, rubble) is left out (SD3–SD5); with none, barriers are ignored
+ * (how far away, for sound and sight). */
+export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor): string[] | null {
   if (from === to) return [];
   const stage = new Set(state.stage.zoneIds);
   const prev = new Map<string, string>();
@@ -132,6 +140,7 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
     for (const l of z?.links ?? []) {
       // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
       if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !l.sight) || (l.drop && !sightOnly)) continue;
+      if (walker && linkPassage(state, l, walker, cur) === 'shut') continue;
       seen.add(l.to);
       prev.set(l.to, cur);
       if (l.to === to) {

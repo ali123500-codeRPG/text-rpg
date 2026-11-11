@@ -5,7 +5,7 @@ import { personalityText } from '../ruleset/personality';
 import type { SceneFrame, Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
-  SparView, WeaverView, Zone, ZoneView,
+  SparView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
@@ -15,6 +15,7 @@ import { wornTitle } from '../engine/xp';
 import { sideFrom, sightDistM } from '../engine/position';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
+import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
@@ -57,14 +58,22 @@ const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneByI
 /** a distance as the story and the Map say it: metres under 1 km, else km to one decimal (4.5 km) */
 export const distText = (m: number): string => (m >= 1000 ? `${Math.round(m / 100) / 10} km` : `${Math.round(m)} m`);
 
-export function zoneView(state: GameState, z: Zone): ZoneView {
+/** a zone as `viewer` knows it (SD3–SD5: a barrier on a way shows what the viewer can tell of it); with no viewer (the
+ * Weaver), every barrier in full */
+export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
+  const way = (l: ZoneLink) => {
+    const b = barrierOn(state, l);
+    if (!b) return {};
+    return { way: viewer ? barrierView(b, viewer, z.id) : { kind: barrierName(b), grade: b.grade, ...(b.lock ? { lock: b.lock.locked ? 'locked' : 'unlocked' } : {}),
+      ...(b.bar ? { bar: `${b.bar.drawn ? 'drawn' : 'open'}, bolt on the ${b.bar.side === z.id ? 'this' : 'far'} side` } : {}), ...(b.blocked ? { blocked: true as const } : {}), ...(b.guarded ? { guarded: true as const } : {}) } };
+  };
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
-    links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}) })),
+    links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
     groundItems: z.groundItems.map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })),
   };
 }
-const perceivedZones = (state: GameState, zoneId: string) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!));
+const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!, viewer));
 
 /** how a zone reads from `from`: its name when it is `from`, else the label of the first link toward it */
 function whereLabel(state: GameState, from: string, to: string): string | undefined {
@@ -304,8 +313,8 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(sparOf(state, p.id) ? { spar: sparView(state, p, (id) => callName(state, p.id, id)) } : {}),
       ...(yieldView(state) ? { yielded: yieldView(state) } : {}),
     },
-    zone: zoneView(state, zoneById(state, p.zone)!),
-    zones: perceivedZones(state, p.zone),
+    zone: zoneView(state, zoneById(state, p.zone)!, p),
+    zones: perceivedZones(state, p.zone, p),
     actors,
     ...(lastSeen(state, actors).length ? { lastSeen: lastSeen(state, actors) } : {}),
     ...(knownDestinations(state).length ? { known: knownDestinations(state) } : {}),
@@ -378,8 +387,9 @@ function baseView(state: GameState, actorId: string): BaseView {
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
-    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}) })) })),
-    zones: perceivedZones(state, a.zone),
+    // BA7: code paths treat a way shut to this actor (no key, the far side of the bar, rubble) as no way
+    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
+    zones: perceivedZones(state, a.zone, a),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
   };
@@ -531,6 +541,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
+      ...(full && e.way && state.barriers?.[e.way.barrier] ? { way: { what: barrierName(state.barriers[e.way.barrier]), did: WAY_WORDS[e.way.did], to: zoneById(state, e.way.to)?.name ?? e.way.to } } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
       ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
       ...(forWhom ? { for: forWhom } : {}),
@@ -547,7 +558,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     player: { name: p.names.current, health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(p, moraleWord(p)),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
-    surroundings: perceivedZones(state, p.zone),
+    surroundings: perceivedZones(state, p.zone, p),
     heard,
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
@@ -565,6 +576,26 @@ function checkinScene(state: GameState, f: SceneFrame): NonNullable<WeaverView['
     used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
   };
 }
+/** SD3–SD5, BA2: what was done at a barrier, for the Narrator */
+const WAY_WORDS: Record<WayDid, string> = {
+  unlocked: 'unlocked it with a key on the way through', unbarred: 'slid its bar back on the way through',
+  found_locked: 'tried it: locked', found_barred: 'tried it: barred from the other side', found_blocked: 'blocked: no way through',
+  lock: 'locked it with a key', unlock: 'unlocked it with a key', bar: 'slid its bar across', unbar: 'slid its bar back',
+  picked: 'picked the lock: it opens', picking: 'working at the lock, not open yet', not_yet: 'working at the lock: not yet',
+  beyond: 'the lock is beyond them for now', pick_broke: 'the pick snapped in the lock',
+};
+
+/** BA8 (SD3): how the tier leans the ways in and out, never a limit. A tier past Critical reads its end row for now (the
+ * extra lean past Critical is parked, D-216). The GM view counts barriers per tier so the lean can be checked. */
+const WAYS_LEAN: Record<Tier, string> = {
+  critical_failure: 'Ways out lean toward locked, barred or guarded, at major or extreme grades, and pursuers chase far.',
+  failure: 'Ways out lean toward locked, barred or guarded, at major or extreme grades, and pursuers chase far.',
+  near_miss: 'A way or two shut, around moderate.',
+  success: 'Ways mostly open, minor at most.',
+  great_success: 'Open ways, and a guard who looks away.',
+  critical_success: 'Open ways, and a guard who looks away.',
+};
+
 const STAKES: Record<Tier, string> = {
   critical_failure: 'A real challenge with little gain; the harder of the two',
   failure: 'A real challenge with little gain',
@@ -589,6 +620,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   return {
     tier: tierName({ tier: state.stage.tier, ...(state.stage.tierBeyond ? { beyond: state.stage.tierBeyond } : {}) }),
     time: clockSet(state) ? timeView(state) : null,
+    ways: WAYS_LEAN[state.stage.tier] ?? '',
     stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
     target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
       ...(target.kind === 'checkin' && state.stage.scene ? { reason: target.reason, scene: checkinScene(state, state.stage.scene) } : {}),
@@ -626,6 +658,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
       personality: { nerve: Object.keys(NERVE_LINES), types: Object.values(lib.personalityTypes ?? {}).map((t) => ({ id: t.id, name: t.name, hint: t.hint })), values: Object.values(lib.values ?? {}).map((v) => ({ id: v.id, name: v.name })) },
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
       edgeKinds: Object.values(lib.edgeKinds ?? {}).map((k) => ({ ...k })),
+      barrierKinds: Object.values(lib.barrierKinds ?? {}).map((k) => ({ ...k })),
       layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name })) })),
     },
     grades: [...GRADES],

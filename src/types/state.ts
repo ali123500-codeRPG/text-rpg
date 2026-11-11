@@ -101,6 +101,7 @@ export type GameState = {
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   yielding?: PlayerYield; // MB40: cleared when the scene ends
+  barriers?: Record<string, import('./core').Barrier>; // SD3–SD5: doors, gates, grates and rubble on ways, by id
   settings: Settings;
   libraryVersion: number;
   blueprints: BlueprintPage[]; // story blueprints (story first, then library)
@@ -168,6 +169,7 @@ export type EnginePage = {
   quests: Quest[];
   spars?: Spar[];
   yielding?: PlayerYield;
+  barriers?: Record<string, import('./core').Barrier>;
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */

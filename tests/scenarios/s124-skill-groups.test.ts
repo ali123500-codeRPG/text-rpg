@@ -26,7 +26,7 @@ describe('124 skill groups and functions', () => {
     expect(k[SK.tremor].functions).toEqual([FN.sight, FN.hearing]);
     // XP reads the skill's first group (no separate XP category)
     expect([k[SK.melee_light], k[SK.unarmed_strike], k[SK.ranged_heavy], k[SK.riposte], k[SK.blade_dance]].map((s) => groupsOf(s)[0])).toEqual([GR.melee, GR.melee, GR.ranged, GR.melee, GR.melee]);
-    expect([k[SK.dodge], k[SK.endurance], k[SK.eyesight], k[SK.tremor], k[SK.barter], k[SK.lockpicking]].map((s) => groupsOf(s)[0])).toEqual([GR.defense, GR.health, GR.notice, GR.notice, GR.influence, undefined]);
+    expect([k[SK.dodge], k[SK.endurance], k[SK.eyesight], k[SK.tremor], k[SK.barter], k[SK.thievery]].map((s) => groupsOf(s)[0])).toEqual([GR.defense, GR.health, GR.notice, GR.notice, GR.influence, GR.stealth]);
     expect(getLibrary().trees[TR.melee].name).toBe('Combat – Arms'); // F7
   });
   it('F4: sight and hearing no longer stand in for each other; tremor stands in for both', () => {

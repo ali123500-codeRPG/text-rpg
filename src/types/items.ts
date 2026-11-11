@@ -76,6 +76,7 @@ export type ItemInstance = {
   qty?: number;
   equippedIn?: string[]; // 'hand:<gripPartId>' | 'armor' | 'acc:<n>'; absent = carried (stowed)
   pools?: Record<string, number>; // % left: 'shield', or a covered part id
+  opens?: string[]; // BA3: a key: the barriers (GameState.barriers ids) it locks and unlocks
 };
 
 export type GearOp = {

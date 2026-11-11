@@ -20,6 +20,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     ...(intent?.move?.spot ? { moveSpot: intent.move.spot } : {}),
     ...(intent?.move?.jump ? { jump: true as const } : {}),
     ...(intent?.perkMove ? { perkMove: intent.perkMove } : {}),
+    ...(intent?.way ? { way: intent.way } : {}),
     targetPart: a?.targetPart ?? null,
     aimed: !!aimed && a?.type === 'attack',
     item: a?.item ?? null,
