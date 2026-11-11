@@ -516,7 +516,7 @@ function achievements(): HTMLElement[] {
   const section = (title: string, list: [string, AchievementDef][]) => {
     const xp = list.reduce((n, [, d]) => n + achXp(d), 0);
     return h('section', { class: 'lv-group lv-chain' }, h('h2', { class: 'hs-section' }, title,
-      h('span', { class: 'lv-meta' }, ` (${list.length} level${list.length === 1 ? '' : 's'}, ${fmtNum(xp)} XP)`)),
+      h('span', { class: 'lv-chainmeta' }, ` (${list.length} level${list.length === 1 ? '' : 's'}, ${fmtNum(xp)} XP)`)),
       h('div', { class: 'lv-grid lv-track', style: `--n: ${Math.min(list.length, 6)}` }, list.map(medal)));
   };
   // a line: one rule counted one way (rule + by), its levels in count order; each line folds on its own
@@ -868,7 +868,8 @@ const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).le
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
   RAIL_GROUPS.flatMap(([g, keys]) => {
     const list = keys ? keys.flatMap((k) => SECTIONS.filter((s) => s.key === k)) : SECTIONS.filter((s) => !RAIL_GROUPS.some(([, k]) => k?.includes(s.key)));
-    return list.length ? [h('div', { class: 'lv-railgroup', 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
+    const grp = g.toLowerCase(); // each group has its own colour (CSS [data-group]), so the breaks between them read at a glance
+    return list.length ? [h('div', { class: 'lv-railgroup', 'data-group': grp, 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'data-group': grp, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
   }));
 const picks = new Map<string, 'shown' | 'out'>();
 // each table keeps its own filter picks, remembered across visits and reloads (this browser only)

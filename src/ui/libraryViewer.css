@@ -197,7 +197,7 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 
 /* Achievements as medal tracks: each chain is one row of medals, lowest count first, joined by a rail.
    A medal shows its face (count, reward level, name, gist); the full card opens in the pop-up. */
-.lv-chain > h2 .lv-meta { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.lv-chain > h2 .lv-chainmeta { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
 /* one column per level, so a chain fills the row; narrow screens fall back to as many 196px columns as fit */
 .lv-track:not(.lv-tabled) { display: grid; gap: var(--space-4); align-items: stretch; overflow-x: clip; padding-top: 2px;
   grid-template-columns: repeat(auto-fit, minmax(max(196px, calc((100% - (var(--n, 4) - 1) * var(--space-4)) / var(--n, 4))), 1fr)); } /* clip: a wrapped row's rail stub */
@@ -225,3 +225,17 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .lv-pop-body .lv-card.lv-toned { box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .lv-track > .lv-medal { transition: none; } .lv-track > .lv-medal:hover { transform: none; } }
 .lv-grid.lv-track > .lv-card.lv-medal { grid-row: auto; align-self: stretch; }
+
+/* Rail groups: Library, Rules and World each carry a colour; the group's label is a tinted band in it, so the breaks stand out at first glance */
+.hs-rail [data-group="library"] { --grp: var(--c9); }
+.hs-rail [data-group="rules"] { --grp: var(--c15); }
+.hs-rail [data-group="world"] { --grp: var(--c2); }
+.lv-railgroup[data-group] { margin: var(--space-2) 0 var(--space-1); padding: var(--space-2) 0; color: var(--grp); font-weight: 700;
+  background: color-mix(in srgb, var(--grp) 16%, transparent); border-top: 2px solid var(--grp); }
+.hs-brand + .lv-railgroup[data-group] { margin-top: var(--space-1); border-top: 2px solid var(--grp); }
+/* the All sub-tab has its own colour, apart from the single-tag tabs */
+.lv-subrail .lv-tabs button[data-pane="all"] { --all: var(--c7); color: var(--all); font-weight: 700; background: color-mix(in srgb, var(--all) 14%, transparent);
+  box-shadow: inset 0 -2px 0 var(--all); }
+.lv-subrail .lv-tabs button[data-pane="all"] small { color: color-mix(in srgb, var(--all) 70%, var(--text)); }
+.lv-subrail .lv-tabs button[data-pane="all"][aria-selected="true"] { background: var(--all); color: var(--on-pill); }
+.lv-subrail .lv-tabs button[data-pane="all"][aria-selected="true"] small { color: var(--on-pill); }
