@@ -374,6 +374,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // Each side (n, e, s, w by map compass) has an edge kind from the library's edgeKinds table (EK1 wall, EK2 open, EK3 low:
 // counter or fence, EK4 window; a new kind is a new row with walk/see/reach/climb flags); indoor kinds default to wall,
 // outdoor kinds to open, and the Weaver gives edges only for a side that differs. An unknown size or edge kind is a bad_zone.
+// Placement (CO1 B, src/scene/geometry.ts placeZones): code, never Claude, gives each new zone a rectangle (Zone.rect, metres:
+// centre east/north, w east-west, d north-south) of its area at its kind's aspect (corridor and street 4:1, stairs and gate
+// 2:1, else square), touching the zone it links to on the side its exit's compass word names (else the first free side),
+// lined up with that zone's centre or either end, sliding outward only when all are taken. Zones up or down stairs sit
+// straight above or below. doorway() is the middle of a shared wall (CO3). The Map's "Draw to scale" button draws the
+// rectangles at 12 px a metre, each side by its edge kind, with a 10 m bar in metres and paces.
 // Step 2 gives every character a position in metres and measures moves and ranges in paces (CO11–CO13); step 3 is travel
 // along a road that is one long zone (CO18, its own deep dive).
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text

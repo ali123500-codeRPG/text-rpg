@@ -505,11 +505,11 @@ export function prototypeLibrary(): Library {
       ...(id === AM.throw ? { reachBonus: CONFIG.THROWN_REACH_BONUS, blend: CONFIG.THROW_BLEND } : {}) }])),
     // CO16 default size and CO15 default edge per kind: indoors walled, outdoors open
     zoneKinds: Object.fromEntries(([
-      [ZK.room, 'Room', false, 'some', 'dim', 'room'], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small'], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped'],
-      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room'], [ZK.street, 'Street', true, 'none', 'dark', 'yard'], [ZK.square, 'Square', true, 'none', 'dark', 'open'],
-      [ZK.gate, 'Gate', true, 'none', 'dark', 'small'], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard'], [ZK.field, 'Field', true, 'none', 'dark', 'open'],
-      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open'],
-    ] as const).map(([id, name, outdoor, cover, light, size]) => [id, { id, name, outdoor, cover, light, size, edge: outdoor ? EK.open : EK.wall }])),
+      [ZK.room, 'Room', false, 'some', 'dim', 'room', 1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2],
+      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room', 1], [ZK.street, 'Street', true, 'none', 'dark', 'yard', 4], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1],
+      [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
+      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1],
+    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall }])),
     edgeKinds: Object.fromEntries(([
       [EK.wall, 'Wall', false, false, false, false, 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
       [EK.open, 'Open', true, true, true, false, 'Nothing in the way: walk and see across anywhere along it.'],

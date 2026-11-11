@@ -1,6 +1,7 @@
 // The Map page's data: only what the character knows. Zones it stood in or saw across a sight link (journal.zonesSeen),
 // what it sees now (PlayerView), its trail, and the places the Journal lists. Never the hidden store: light, cover,
 // people and things on the ground show only for zones in view now; a remembered zone keeps its name, look and exits.
+import { compassOf as geoCompass } from '../scene/geometry';
 import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
 import { zoneById } from '../engine/relations';
@@ -13,6 +14,8 @@ export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;
   /** metres above the ground outside: the map shows one height (a floor) at a time */
   height: number;
+  /** the zone's rectangle in metres and its sides' edge kinds, when code has placed it (drawn by the To scale view) */
+  rect?: import('../types').Rect; edges?: import('../types').Zone['edges'];
   light?: string; cover?: string; links: MapLink[]; people: MapPerson[]; items: string[];
 };
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
@@ -40,7 +43,7 @@ export function knownMap(s: GameState): KnownMap {
       const otherPlace = to && to.placeId !== z.placeId ? s.places.find((x) => x.id === to.placeId)?.names.current : undefined;
       return { to: l.to, label: l.label, sight: l.sight, frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}) };
     });
-    const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), links,
+    const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), ...(z.rect ? { rect: z.rect, edges: z.edges } : {}), links,
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
     if (!byPlace.has(z.placeId)) byPlace.set(z.placeId, []);
     byPlace.get(z.placeId)!.push(mz);
@@ -65,14 +68,8 @@ export function knownMap(s: GameState): KnownMap {
 /** a compass hint from an exit's words ("north gate", "the east road"); null when it names no direction. Up and down are
  *  heights, not directions (src/scene/heights.ts verticalOf): stairs never push a zone north or south. */
 export function compassOf(label: string): [number, number] | null {
-  let x = 0, y = 0;
-  for (const w of label.toLowerCase().split(/[^a-z]+/)) {
-    const m = w.match(/^(north|south)?(east|west)?(ward|wards|ern)?$/);
-    if (m && (m[1] || m[2])) { if (m[1] === 'north') y -= 1; if (m[1] === 'south') y += 1; if (m[2] === 'east') x += 1; if (m[2] === 'west') x -= 1; }
-  }
-  if (!x && !y) return null;
-  const n = Math.hypot(x, y);
-  return [x / n, y / n];
+  const c = geoCompass(label); // the scene's reading of compass words, flipped to screen (y down)
+  return c ? [c[0], -c[1] || 0] : null;
 }
 
 /** the top-level place a place sits in (itself when it has no known parent) */
