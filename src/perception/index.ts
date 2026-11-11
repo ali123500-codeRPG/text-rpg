@@ -68,6 +68,9 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   const nl = soundReach(state, observer, event.zone, event.noise);
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
+  // Perception All-150 Every Sense One: what the owner hears it sees, and what it sees it hears. The better sense sets the
+  // level for both: a full perception shows everything (read as sight), a partial one is heard too (its words come through)
+  if (best && hasPerk(observer, PK.one_sense)) best = { level: best.level, cue: best.level === 'full' ? 'sight' : 'sound' };
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.
   if (event.target === observer.id) best = better(best, { level: 'partial', cue: 'touch' });
   return best;

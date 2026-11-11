@@ -12,6 +12,7 @@ import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL } from '../library/skillIds';
 import { requirement, requiredSkill } from './requirements';
 import { PK } from '../library/perkIds';
+import { FN } from '../library/functionIds';
 import { skillName } from '../library/skillNames';
 import { AM } from '../library/tableIds';
 
@@ -126,7 +127,13 @@ export function standInShare(skill: string, id: string, table = standInTable(ski
 export const fnSkills = (fn: string): string[] => Object.values(getLibrary().skills).filter((s) => ((s.functions ?? []) as string[]).includes(fn)).map((s) => s.id);
 /** the skill a function roll will use: the best effective skill with `fn`. Callers read situational modifiers from it,
  * so light and Night Eyes follow the skill that rolls (Q3): Tremor ignores light. */
-export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: fnSkills(fn) }).skill;
+/** the skills a function roll counts at full value: the function's skills; for an owner of the Perception All-150 Every
+ * Sense One, a sight or hearing roll counts both senses' skills */
+export const rollFnSkills = (actor: Actor, fn: string): string[] => {
+  const senses: string[] = [FN.sight, FN.hearing];
+  return senses.includes(fn) && hasPerk(actor, PK.one_sense) ? senses.flatMap(fnSkills) : fnSkills(fn);
+};
+export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: rollFnSkills(actor, fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[]; rollKind?: RollKind } = {}) {
