@@ -1,12 +1,12 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, CP, DU, FR, GC, HL, RL, ZK } from './tableIds';
+import { AM, CP, DU, EK, FR, GC, HL, RL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import type { ArmorWeightKey } from '../scales';
-import { CLASS_TIERS } from '../scales';
+import { CLASS_TIERS, ZONE_SIZES } from '../scales';
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
@@ -503,12 +503,28 @@ export function prototypeLibrary(): Library {
     // Throw carries the throw action's rules for every weapon that lists it: + reach, and a combined roll
     attackModes: Object.fromEntries(Object.entries(AM).map(([w, id]) => [id, { id, name: w[0].toUpperCase() + w.slice(1),
       ...(id === AM.throw ? { reachBonus: CONFIG.THROWN_REACH_BONUS, blend: CONFIG.THROW_BLEND } : {}) }])),
+    // CO16 default size and CO15 default edge per kind: indoors walled, outdoors open
     zoneKinds: Object.fromEntries(([
-      [ZK.room, 'Room', false, 'some', 'dim'], [ZK.corridor, 'Corridor', false, 'none', 'dim'], [ZK.stairs, 'Stairs', false, 'none', 'dim'],
-      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark'], [ZK.street, 'Street', true, 'none', 'dark'], [ZK.square, 'Square', true, 'none', 'dark'],
-      [ZK.gate, 'Gate', true, 'none', 'dark'], [ZK.yard, 'Yard', true, 'some', 'dark'], [ZK.field, 'Field', true, 'none', 'dark'],
-      [ZK.woods, 'Woods', true, 'heavy', 'dark'],
-    ] as const).map(([id, name, outdoor, cover, light]) => [id, { id, name, outdoor, cover, light }])),
+      [ZK.room, 'Room', false, 'some', 'dim', 'room'], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small'], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped'],
+      [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room'], [ZK.street, 'Street', true, 'none', 'dark', 'yard'], [ZK.square, 'Square', true, 'none', 'dark', 'open'],
+      [ZK.gate, 'Gate', true, 'none', 'dark', 'small'], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard'], [ZK.field, 'Field', true, 'none', 'dark', 'open'],
+      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open'],
+    ] as const).map(([id, name, outdoor, cover, light, size]) => [id, { id, name, outdoor, cover, light, size, edge: outdoor ? EK.open : EK.wall }])),
+    edgeKinds: Object.fromEntries(([
+      [EK.wall, 'Wall', false, false, false, false, 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
+      [EK.open, 'Open', true, true, true, false, 'Nothing in the way: walk and see across anywhere along it.'],
+      [EK.low, 'Low', false, true, true, true, 'A counter, fence or rail: see and reach across it, cross it by climbing.'],
+      [EK.window, 'Window', false, true, false, false, 'See through it; no walking or reaching across.'],
+    ] as const).map(([id, name, walk, see, reach, climb, text]) => [id, { id, name, walk, see, reach, climb, text }])),
+    zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
+      cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
+      small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',
+      room: 'A village tavern\'s common room (about 8 × 8 m)',
+      hall: 'Penshurst Place\'s Baron\'s Hall (about 19 × 12 m); a lord\'s great hall like Winterfell\'s',
+      yard: 'An inn yard with stables, a castle courtyard (about 20 × 20 m)',
+      open: 'A village green or small market (about 40 × 40 m)',
+      vast: 'A city market square (Kraków\'s is about 200 × 200 m, four of these)',
+    } as Record<string, string>)[k] }])),
     items: ITEMS,
     templates: TEMPLATES,
     activities: ACTIVITIES,

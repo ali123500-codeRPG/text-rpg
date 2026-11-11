@@ -42,6 +42,10 @@ export type Band = {
 };
 
 export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true };
+/** a zone's four sides, by map compass */
+export type Side = 'n' | 'e' | 's' | 'w';
+export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
+
 export type Zone = {
   id: string;
   placeId: PlaceId;
@@ -53,6 +57,10 @@ export type Zone = {
   outdoor?: true; // T3a: under the sky
   /** metres above the ground outside (0 when unset); stairs change it, never distance across the map (src/scene/heights.ts) */
   height?: number;
+  /** CO16 floor area in m² (from the size word, the kind's default size, or the Weaver's own figure) */
+  area?: number;
+  /** CO15 each side's edge kind id (EK); a side not listed is the kind's default */
+  edges?: Partial<Record<Side, string>>;
   groundItems: import('./items').ItemInstance[];
 };
 

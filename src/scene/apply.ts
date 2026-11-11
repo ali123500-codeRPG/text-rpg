@@ -2,6 +2,7 @@
 import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { TIME_OF_DAY } from '../scales';
+import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { clockSet, startClock } from '../time';
 import { activity, getLibrary, itemDef } from '../library';
@@ -177,7 +178,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight };
     });
     const k = getLibrary().zoneKinds![z.kind]; // the validator checked it
-    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), ...(z.height ? { height: z.height } : z.height === 0 ? { height: 0 } : {}), groundItems: [] };
+    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), ...(z.height ? { height: z.height } : z.height === 0 ? { height: 0 } : {}),
+      area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, z.edges?.[sd] ?? k.edge])), groundItems: [] };
     state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
     putOnStage(state, zone);
     newZones.push(zone);

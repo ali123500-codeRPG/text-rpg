@@ -216,6 +216,12 @@ const DEFAULTS = {
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,
   MAIN_SLOTS: 1,
+  /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (tabletop grid square = 1.5 m) */
+  PACE_M: 1.5,
+  /** CO14 today's zone link in paces, to convert range tables written in links (placeholder) */
+  LINK_PACES: 5,
+  /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
+  ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   THROWN_REACH_BONUS: 2, // placeholder (loot L3)
   /** the throw action is a combined roll: the weapon's own skill (a melee weapon's melee skill) and the ranged skill of
