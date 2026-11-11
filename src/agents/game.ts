@@ -18,7 +18,7 @@ import * as save from '../save';
 import type { Store } from '../save';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { PART_STATES } from '../ruleset/body';
-import { actorById } from '../engine/relations';
+import { actorById, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
@@ -370,7 +370,7 @@ export function createGame(deps: GameDeps): Game {
     const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
     // M-30: the player's body parts that got worse this turn, so the play screen can name them (shown again after a reload)
     const wounds = rec.partsBefore ? partsWorse(rec.partsBefore, partStates(s, s.player)) : [];
-    const where = { ...(gear.length ? { gear } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s) }, scene: s.stage.sceneNumber };
+    const where = { ...(gear.length ? { gear } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scene: s.stage.sceneNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
@@ -817,6 +817,9 @@ export function gearRows(a: GearSnap, b: GearSnap): string[] {
 }
 
 /** where the player is: "River path · the Riverside" (the place and the place around it) */
+/** the zone the player ended the turn in, as the play header names it */
+const zoneOf = (s: GameState): { zone?: string } => { const z = zoneById(s, s.player.zone)?.name; return z ? { zone: z } : {}; };
+
 export function placeName(s: GameState): string {
   const place = s.places.find((x) => x.id === s.player.placeId);
   const parent = place?.parentId ? s.places.find((x) => x.id === place.parentId) : undefined;

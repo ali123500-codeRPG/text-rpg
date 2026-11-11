@@ -31,7 +31,7 @@ export type LogLine = {
   downedBy?: DownedBy; // the turn left the player down: the last blow that hurt them, as they knew it ("You fell" screen)
   wounds?: { id: string; from: string; to: string }[]; // M-30: the player's body parts whose state got worse this turn (part state names)
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
-  place?: { id: string; name: string }; // where the player ended the turn; name like "River path · the Riverside"
+  place?: { id: string; name: string; zone?: string }; // where the player ended the turn; name like "River path · the Riverside", zone like "cellar"
   scene?: number; // stage.sceneNumber when the turn ended
 };
 

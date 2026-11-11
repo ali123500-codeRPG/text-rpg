@@ -36,7 +36,7 @@ const screenNotes = (l: LogLine): string[] => {
     ...(l.unlocks ?? []).map((u) => `New perk unlocked: ${sk(u.skill)} reached ${u.milestone}`),
     ...(l.levelUps ?? []).map((u) => `Level up: ${lib.classes[u.classId]?.name ?? 'bonus level'} reached level ${u.level}`),
     ...(l.achievements ?? []).map((a) => `${a.scar ? 'Scar' : 'Achievement'}: ${a.name}${a.xp ? ` (+${a.xp} XP)` : ''}`),
-    ...(l.place ? [`You are at: ${l.place.name}`] : []),
+    ...(l.place ? [`You are at: ${[l.place.zone, l.place.name].filter(Boolean).join(' · ')}`] : []), // the zone leads, as on the play header
   ].map((x) => `  [screen] ${x}`);
 };
 
