@@ -460,10 +460,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const lastTurn = [...lines].reverse().find((l) => l.kind === 'narration')?.turn ?? s?.turn;
     // data-mh names the header pieces that get a beat when they change (M-36); the place line changes quietly (M-41)
     const mh = <T extends Element | null>(key: string, x: T): T => { x?.setAttribute('data-mh', key); return x; };
+    // the agent button is one live element: a stand-in copy is compared, so a header that isn't redrawn keeps the real one
+    const openerSlot = s ? auto.opener.cloneNode(true) as HTMLElement : null;
     const titleKids = [h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, s ? auto.opener : '', rollsBtn ?? '', motionBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', motionBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
-    if (!frozen && titleNow !== titleHtml) { title.replaceChildren(...titleKids); titleHtml = titleNow; }
+    if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
 
     // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
