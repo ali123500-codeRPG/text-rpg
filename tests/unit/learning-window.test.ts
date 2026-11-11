@@ -9,13 +9,13 @@ describe('learning window', () => {
   it('runs from raw − 10 to true + 10', () => {
     const s = makeVillage(), p = s.player;
     p.core.skills[SK.dodge] = { raw: 30, state: 'normal' };
-    const marked = (opp: number) => { p.progression!.marks = []; markIfClose(s, p, SK.dodge, opp); return p.progression!.marks.length === 1; };
+    const marked = (opp: number) => { p.progression!.marks = []; p.progression!.markCounts = {}; markIfClose(s, p, SK.dodge, opp); return p.progression!.marks.length === 1; };
     expect([19, 20, 40, 41].map(marked)).toEqual([false, true, true, false]);
   });
   it('a skill not on the sheet is marked at raw 0 and joins the sheet when it improves', () => {
     const s = makeVillage(), p = s.player;
     delete p.core.skills[SK.unarmed_strike];
-    p.progression!.marks = [];
+    p.progression!.marks = []; p.progression!.markCounts = {};
     markIfClose(s, p, SK.unarmed_strike, 25);
     expect(p.progression!.marks).toEqual([]); // 25 is above 0 + 10
     markIfClose(s, p, SK.unarmed_strike, 8);
@@ -34,7 +34,7 @@ describe('close calls teach', () => {
     p.core.skills[SK.block] = { raw: 10, state: 'normal' };
     const roll = (actorId: string, skill: string) => ({ actorId, skill, d100: 50, margin: 0, tier: 'success' as const, natural: 0 as const, modifiers: [], tierShifts: [] });
     const contest = (gap: number) => ({ a: roll(p.id, SK.block), b: roll('guard_1', SK.melee_medium), gap, winner: gap === 0 ? 'tie' as const : 'b' as const });
-    p.progression!.marks = [];
+    p.progression!.marks = []; p.progression!.markCounts = {};
     markUse(s, p, SK.block, contest(1));
     expect(p.progression!.marks).toEqual([]); // the guard's ~55 is far above Block 10 + 10
     markUse(s, p, SK.block, contest(0));
