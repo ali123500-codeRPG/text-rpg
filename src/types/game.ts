@@ -33,7 +33,11 @@ export type LogLine = {
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
   place?: { id: string; name: string; zone?: string }; // where the player ended the turn; name like "River path · the Riverside", zone like "cellar"
   scene?: number; // stage.sceneNumber when the turn ended
+  /** SD1: this turn ended a scene: how (SCENE_ENDINGS key and its name), and the Narrator's closing line for it, which the
+   * play page shows before the scene break; text is then the rest of the turn and the next scene's opening */
+  sceneEnd?: SceneEndNote;
 };
+export type SceneEndNote = { as: import('./hidden').SceneEnding; name: string; closing?: string };
 
 /** a hall-of-fame row: the fallen character, whose story it was, and its story id */
 export type FallenCharacter = import('./state').FameEntry & { owner: import('./state').StoryOwner; storyId: string };
@@ -76,6 +80,9 @@ export interface GameApi {
   lines(): LogLine[];
   notices(): Notice[];
   busy(): boolean;
+  /** SD1: while a turn that ended a scene is still running (the next scene's Weaver and Narrator calls), how it ended, so the
+   * play page can start the ending moment then; null otherwise */
+  sceneEnding(): SceneEndNote | null;
   fell(): boolean; // "You fell" screen (lethal fight incapacitated the player)
   subscribe(cb: () => void): () => void;
   validateBuild(build: CreationBuild): string[]; // empty = valid

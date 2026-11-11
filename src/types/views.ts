@@ -219,6 +219,8 @@ export type NarrationView = {
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
+  /** SD1: this turn ended a scene, and how (an ending name: escaped, resolved...); the Narrator gives a closing line */
+  sceneEnded?: string;
 };
 
 // ---------- WeaverView: Agent Weaver ----------
