@@ -470,7 +470,8 @@ export function prototypeLibrary(): Library {
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
     },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
-    // PL6: personality axes, with the words for each end; PL19: values; PL10: named types ([Proposed] until approved, PL21–PL27)
+    // PL6: personality axes, with the words for each end; PL19, PL28: values (Schwartz's 19 refined values plus family; VL11–VL20
+    // [Proposed], PL29); PL10, PL21–PL27: named types
     personalityAxes: {
       [PA.honesty]: { id: PA.honesty, name: 'Honesty', low: 'deceitful', high: 'honest' },
       [PA.pride]: { id: PA.pride, name: 'Pride', low: 'humble', high: 'proud' },
