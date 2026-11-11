@@ -8,7 +8,7 @@ import type { AgentName, StoryOwner, TierRoll,
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
-import { TIME_OF_DAY, type TimeOfDay } from '../scales';
+import { TIERS, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
@@ -26,6 +26,8 @@ import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK,
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { fameEntry } from './fame';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
+import type { GuidedCtx } from './crossroads';
+
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
 import { isComm, noticeCue } from '../perception';
@@ -33,6 +35,8 @@ import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
+
+const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
 /**
  * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
@@ -68,7 +72,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /aim [text] (this turn\'s attack is aimed), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in). The story saves every turn.';
+  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -78,6 +82,7 @@ export function createGame(deps: GameDeps): Game {
   let savedLines = 0; // Q18: lines[0..savedLines) are in the story's saved history
   let notices: Notice[] = [];
   let busy = false;
+  let agentSaid: string[] = [], agentCmds: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
   let stopped = false;
   let rateLimited = false;
   let aimNext = false;
@@ -362,7 +367,7 @@ export function createGame(deps: GameDeps): Game {
     fileLogBugs(s);
     const nv = views.buildNarrationView(s, events, rec.intent);
     const leak = buildLeakContext(s);
-    const mechanics = mechanicsLines(s, events);
+    const mechanics = mechanicsLines(s, events, record.eventRoll);
     const turn = s.turn;
     const narrLog = turnLog;
     const notes = turnNotes(s);
@@ -443,6 +448,10 @@ export function createGame(deps: GameDeps): Game {
         // MB40: yield as a command; the words go to the Parser as the player's line
         yieldNext = true;
         return submit(arg || 'I yield.', opts);
+      // attack commands: the words go to the Parser as "I strike …", so no one has to guess what /aim is for
+      case 'strike': case 'shoot': case 'throw':
+        if (!arg) return say(`/${cmd.toLowerCase()} needs someone to attack, e.g. /${cmd.toLowerCase()} the guard, or /${cmd.toLowerCase()} the guard at his left arm. Put /aim in front to aim at that part.`);
+        return submit(`I ${cmd.toLowerCase()} ${arg}`, opts);
       case 'aim':
         aimNext = true;
         if (arg) return submit(arg, opts);
@@ -583,9 +592,18 @@ export function createGame(deps: GameDeps): Game {
     reportBug: (note) => fileBug(store, clock.now(), { code: 'player_report', storyId: state?.storyId ?? '', turn: state?.turn ?? 0, note: note.slice(0, 2000),
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),
-    async agentMove(persona = '') {
-      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona) }], json: true, ...modelFor('autopilot') });
-      return r.ok ? readMove(r.value) : null;
+    async agentMove(persona = '', style = '', guided?: GuidedCtx) {
+      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined, state) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+      let mv = r.ok ? readMove(r.value, guided?.mustAsk?.kind) : null;
+      // BG-25/BG-26: it kept checking its sheet instead of acting. It is told its condition every move, so /stats is always
+      // asked again once, and /inv or /quests when it looked within AUTOPILOT_INFO_EVERY moves
+      if (mv && (/^\/stats\b/i.test(mv.command) || (INFO_COMMAND.test(mv.command) && agentCmds.some((c) => INFO_COMMAND.test(c))))) {
+        const again = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: `${autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined, state)}\n\nYou already know how you are (it is above) and looked at your sheet recently: do not check it now. Act.` }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+        mv = again.ok ? readMove(again.value, guided?.mustAsk?.kind) ?? mv : mv;
+      }
+      if (mv?.command) agentCmds = [...agentCmds, mv.command].slice(-CONFIG.AUTOPILOT_INFO_EVERY);
+      if (mv?.say) agentSaid = [...agentSaid, mv.ja ? `${mv.ja} (${mv.say})` : mv.say].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
+      return mv;
     },
     submit,
     async reset() {
@@ -910,7 +928,7 @@ export function tierGap(mine: TierRoll, theirs: TierRoll): string {
 /** mechanics panel: dice, modifiers and damage of events the player took part in or perceived clearly (never sent to an
  * agent). Someone the player doesn't clearly perceive stays "someone", an event only heard or glimpsed shows no dice,
  * and a sight or hearing roll shows only once its target is perceived (UI5). */
-export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
+export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: TurnRecord['eventRoll']): string[] {
   const me = s.player.id;
   const pv = views.buildPlayerView(s).actors;
   const seen = new Set(pv.map((a) => a.id)), clear = new Set(pv.filter((a) => a.level === 'full').map((a) => a.id));
@@ -927,6 +945,8 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     return t ? actorBody(s, t).general.name : a.location?.replace(/_/g, ' ');
   };
   const out: string[] = [];
+  // ER5: a scene's event roll, first, when it was made this turn (only ever shown here, with Show rolls on)
+  if (eventRoll) out.push(`Event roll d100 ${eventRoll.roll} → ${TIERS.name(eventRoll.tier)}${mods(eventRoll.modifiers)}`);
   for (const e of events) {
     const target = e.attack?.targetId ?? e.target;
     if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;

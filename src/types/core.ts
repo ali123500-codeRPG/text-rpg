@@ -106,6 +106,7 @@ export type GameEvent = {
   // structured payload (code only; views decide what to copy):
   line?: { text: string; volume: 'whisper' | 'normal' | 'shout'; introduces?: string[] };
   fromZone?: string; // moves
+  fromPos?: { x: number; y: number }; // BG-23: a leg that left a zone: where in fromZone it set off
   heading?: string; // BG-22: a leg that stays in its zone on the way to another: the zone it heads for
   metres?: number; // moves (ZP2): metres walked on this leg; a leg inside one zone has no fromZone, and `target` when closing in
   spot?: string; // BG-12: a move to a spot in a zone, in words ("to the north side", "away from the cellar steps")

@@ -15,7 +15,7 @@ import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { h } from './kit';
+import { h, dragScroll } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
@@ -38,7 +38,7 @@ const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
-  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/yield', 'give up the fight you are in'], ['/aim ', 'this turn’s attack is aimed'], ['/undo', 'rewind one turn (dice are not rolled back)'],
+  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/yield', 'give up the fight you are in'], ['/strike ', 'a blow at someone: /strike the guard at his left arm'], ['/shoot ', 'shoot at someone, by part if you like'], ['/throw ', 'throw something at someone'], ['/aim ', 'aim this attack at the body part it names: /aim /strike the guard at his leg'], ['/undo', 'rewind one turn (dice are not rolled back)'],
   ['/difficulty ', 'show or change the difficulty'],
 ];
 const UNDONE = 'Turn undone.'; // the game's line after /undo
@@ -221,6 +221,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let dealsOpen = false;
   document.addEventListener('click', () => { if (dealsOpen && el.isConnected) { dealsOpen = false; update(); } });
   const sheet = h('aside', { class: 'cs-side', 'aria-label': 'Character sheet' });
+  dragScroll(sheet); // no scrollbar: the wheel or a mouse drag scrolls the sheet
   const wrap = h('div', { class: 'play-wrap' }, body, sheet);
   // Watch an agent play: it types each command into the box, then sends it like Send
   const auto = autopilotBar(api, async (text) => {
@@ -272,7 +273,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   async function submit(byAgent = false) {
     const text = input.value.trim();
-    if (!text || api.busy() || (auto.playing() && !byAgent)) return;
+    if (!text || api.busy() || (auto.playing() && !byAgent && !auto.asking())) return;
+    if (!byAgent && auto.asking() && !text.startsWith('/')) auto.playedTurn(); // GA15: a turn you play yourself answers the agent's question
     finishAll(); // M-12: sending finishes everything still moving
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
@@ -539,8 +541,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     notices.replaceChildren(...ns.map((n) => h('div', { class: 'hs-hl ' + (n.kind === 'stop_play' || n.kind === 'save_failed' ? 'bad' : 'ask'), role: 'status' },
       h('span', { class: 'hs-hl-b', 'data-kind': NOTICE_KIND[n.kind] }, n.text))));
     const stopped = ns.some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
-    input.disabled = stopped || busy || auto.playing(); // the autopilot has the box while it plays
-    send.disabled = stopped || busy || auto.playing();
+    input.disabled = stopped || busy || (auto.playing() && !auto.asking()); // the autopilot has the box while it plays, unless it asks you
+    send.disabled = stopped || busy || (auto.playing() && !auto.asking());
     auto.update();
     aimBtn.disabled = stopped;
     st.set(stealthy, stopped);

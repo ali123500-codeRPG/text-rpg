@@ -63,11 +63,16 @@ export function hears(state: GameState, observer: Actor, zone: string, noise: Ga
 export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
   if (!isActive(observer)) return null;
   if (observer.id === event.actorId) return { level: 'full', cue: 'sight' };
-  const zone = zoneById(state, event.zone);
-  let sight: Seen | null = null;
   const at = { zone: event.zone, pos: event.pos };
-  const sl = sightLevel(event.visibility, seeingM(state, observer, at)); // step 2: metres from where it happened
-  if (sl) sight = { level: zoneLight(state, zone) === 'dark' ? 'partial' : sl, cue: 'sight' };
+  /** what is seen of it at one point: step 2, metres from where it happened, half seen in the dark */
+  const seenAt = (p: { zone: string; pos?: { x: number; y: number } }): Seen | null => {
+    const sl = sightLevel(event.visibility, seeingM(state, observer, p));
+    return sl ? { level: zoneLight(state, zoneById(state, p.zone)) === 'dark' ? 'partial' : sl, cue: 'sight' } : null;
+  };
+  let sight = seenAt(at);
+  // BG-23: a leg out of a zone is seen where it set off as well as where it ended (someone walking out through a door
+  // in plain sight is seen going, though the room beyond is out of sight)
+  if (event.fromZone) sight = better(sight, seenAt({ zone: event.fromZone, pos: event.fromPos }));
   // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see)
   if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone) {
     const d = seeingM(state, observer, at);

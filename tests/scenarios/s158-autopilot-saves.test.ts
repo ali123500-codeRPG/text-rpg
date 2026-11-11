@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ScriptedClaude, makeVillage } from '../harness';
 import { createGame, VirtualClock, type SceneDirector } from '../../src/agents';
 import { memoryStore, saveTurn } from '../../src/save';
-import { readMove } from '../../src/agents/autopilot';
+import { autopilotTurn, readMove } from '../../src/agents/autopilot';
 import type { GameState, TurnRecord } from '../../src/types';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
@@ -45,5 +45,40 @@ describe('158 autopilot saves', () => {
     expect(await g.agentMove('eager')).toEqual({ command: 'I ask the barkeep about work', say: 'Barkeeps hear everything.' });
     expect(claude.callsFor('autopilot')[0].input[1].content).toContain('Your playstyle:');
     expect(readMove({ say: 'no command' })).toBeNull();
+    expect(readMove({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' })).toEqual({ command: 'I wave', say: 'Hello!', ja: 'こんにちは！' });
+    expect(autopilotTurn([], '', 'companion')).toContain('Your voice:');
+    expect(autopilotTurn([], '', 'plain')).not.toContain('Your voice:');
+    expect(autopilotTurn([], '', 'companion', ['Yatta! Got him.'])).toContain('- Yatta! Got him.'); // never repeats itself
+    const v = makeVillage();
+    v.player.core.condition.hpLostPct = 50;
+    expect(autopilotTurn([], '', '', [], undefined, v)).toContain('How you are right now (you always know this; never stop to check it): health Wounded'); // BG-26: every move
+  });
+
+  it('BG-25/BG-26: the agent acts instead of looking at its sheet', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    const claude = new ScriptedClaude(clock)
+      .push('autopilot', { command: '/inv', say: 'What do I have?' })
+      .push('autopilot', { command: '/quests', say: 'And my jobs?' })
+      .push('autopilot', { command: 'I strike her', say: 'Now!' })
+      .push('autopilot', { command: '/stats', say: 'How bad am I hurt?' })
+      .push('autopilot', { command: 'I strike again', say: 'Again!' });
+    const g = createGame({ client: claude, clock, store, director: idle });
+    expect((await g.agentMove())?.command).toBe('/inv');
+    expect((await g.agentMove())?.command).toBe('I strike her'); // a second look so soon is asked again
+    expect(claude.callsFor('autopilot')[2].input[1].content).toContain('do not check it now');
+    expect((await g.agentMove())?.command).toBe('I strike again'); // BG-26: /stats is never needed, so it is always asked again
+  });
+
+  it('attack commands: /strike with no target says how; /aim /strike sends an aimed "I strike …" turn', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    await saveTurn(store, story('mine', '2026-11-10T10:00:00Z'), rec(story('mine', '2026-11-10T10:00:00Z')));
+    const claude = new ScriptedClaude(clock);
+    const g = createGame({ client: claude, clock, store, director: idle });
+    await g.resume();
+    await g.submit('/strike', { aimed: false });
+    expect(g.lines().at(-1)?.text).toContain('/strike needs someone to attack');
+    void g.submit('/aim /strike the guard at his left leg', { aimed: false }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 50));
+    expect(g.lines().find((l) => l.kind === 'player')).toMatchObject({ text: 'I strike the guard at his left leg', aimed: true });
   });
 });

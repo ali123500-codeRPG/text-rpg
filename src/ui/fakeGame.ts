@@ -98,7 +98,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
   let lines: LogLine[] = [];
   const KETTLE = { id: 'tavern', name: 'The Crooked Kettle' };
   const placeOf = (st: GameState) => ({ id: st.player.placeId, name: placeName(st) });
-  let busy = false, fell = !!opts.fell, n = 0;
+  let busy = false, fell = !!opts.fell, n = 0, asks = 0;
   const notices: Notice[] = opts.notices ?? [];
   const subs = new Set<() => void>();
   const emit = () => subs.forEach((f) => f());
@@ -126,7 +126,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
-      { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['hand:left'], pools: { shield: 70 } }); // the shield the story says you raise
+      { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['hand:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
       { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scene: 1 },
@@ -164,7 +164,12 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     },
     async reportBug() { return 'BG-99'; },
     async openBugs() { return [{ id: 'BG-12', code: 'player_report', storyId: 'story_fake', turn: 4, status: 'open' as const, at: Date.now(), note: 'Walking to the back of the cellar did nothing.' }]; },
-    async agentMove() { return { command: 'I look around.', say: 'Getting my bearings first.' }; },
+    // guided mode: every other move is a question (screenshots and UI checks)
+    async agentMove(_persona, _style, guided) {
+      if (guided?.answered) return { command: 'I talk to the barkeep.', say: 'Okay, your way!' };
+      if (guided && (guided.mustAsk || ++asks % 2)) return { command: '', say: 'The barkeep offers a job: clear the cellar for 5 silver. Take it?', ask: { kind: guided.mustAsk?.kind ?? 'deal', about: `the barkeep ${asks}`, choices: ['I take the job.', 'I turn it down.', 'I ask for more.'], pick: 0 } };
+      return { command: 'I look around.', say: 'Getting my bearings first.' };
+    },
     async submit(text, o) {
       if (busy || !state) return;
       // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one

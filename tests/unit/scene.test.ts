@@ -50,12 +50,15 @@ describe('gradesFitTier', () => {
     expect(gradesFitTier('critical_failure', 'moderate', 'none')).toBe(false);
     expect(gradesFitTier('failure', 'moderate', 'minor')).toBe(true);
     expect(gradesFitTier('failure', 'moderate', 'major')).toBe(false);
-    expect(gradesFitTier('near_miss', 'minor', 'moderate')).toBe(true);
+    expect(gradesFitTier('near_miss', 'minor', 'moderate')).toBe(false); // ER2: Near Miss gain is a step below
+    expect(gradesFitTier('near_miss', 'moderate', 'minor')).toBe(true);
     expect(gradesFitTier('success', 'minor', 'major')).toBe(false);
     expect(gradesFitTier('success', 'none', 'none')).toBe(false);
-    expect(gradesFitTier('great_success', 'extreme', 'major')).toBe(true);
+    expect(gradesFitTier('great_success', 'extreme', 'major')).toBe(false); // ER1: the top tiers are good fortune
+    expect(gradesFitTier('great_success', 'none', 'major')).toBe(true);
     expect(gradesFitTier('great_success', 'major', 'moderate')).toBe(false);
-    expect(gradesFitTier('critical_success', 'extreme', 'extreme')).toBe(true);
+    expect(gradesFitTier('critical_success', 'extreme', 'extreme')).toBe(false);
+    expect(gradesFitTier('critical_success', 'major', 'extreme')).toBe(true);
     for (const [t, g] of Object.entries(FITTING_GRADES)) expect(gradesFitTier(t as Tier, g.challenge, g.gain)).toBe(true);
   });
 });
