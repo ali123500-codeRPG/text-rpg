@@ -991,7 +991,7 @@ Rules:
 6. List in "narrated" the id of every event your text describes.
 7. Keep to the length given in STYLE. End on a moment that invites the player's next move. Do not list options.
 8. Never write the player character's words or decisions beyond the resolved action.
-9. Refer to each person with the pronouns given for them in actors. If none are given, use "they".
+9. Refer to each person with the pronouns given for them in actors, or on an event (pronouns for its actor, targetPronouns for its target). Keep the same pronouns for a person the whole way through. If none are given, use "they" (BG-33).
 
 Return only JSON matching the schema.
 ```
@@ -2998,6 +2998,10 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-31 | "Walk to Tavern Lane, the street door" came as a move to the lane with a spot near the common room; the lane was out of view, so the spot couldn't be checked and the player was asked "Where in common room do you want to go?" twice (playtest run 40). Fixed: on a move to another zone, a spot that doesn't fit is dropped and the move goes on. | 11/11/2026 | fixed | this PR |
 | BG-36 | The Weaver's layouts, named spots and looks, and a zone's height, size, area, edges, road length and danger never reached the game: the plan schema copied only the keys it named (agents/schema.ts obj()), so every place came out with no layout. Found while building scenes. Fixed: the schema names every field the Weaver may give, and the scene too | 11/11/2026 | fixed | this PR |
 | BG-37 | On the Map, two places' outlines overlapped (the Crooked Kettle over the slime field): the force layout places zones, not places, so sibling places could land on top of each other. Fixed: after layout, each top place's group of zones and each loose zone is pushed apart the short way, keeping the group the player is in still | Ali | Fixed | this PR |
+| BG-32 | Playtest run 40 had two taverns: the bare place made for the story start ('tavern') and the Weaver's tavern of the same key, which became 'tavern_2', The Crossed Keys; the player was in one, the other kept the plain name, and Brannoc said there was no such house. Fixed: the bare start place is marked bare, and the plan's place with its key fills it in instead of becoming a second place | 11/11/2026 | fixed | this PR |
+| BG-33 | The Narrator called Maud, a cloth merchant (she), "he": she had spoken that turn but was out of sight by its end, so her pronouns were not in the view. Fixed: each fully seen event carries its actor's pronouns (and its target's), and Narrator rule 9 reads them and keeps a person's pronouns the same throughout | 11/11/2026 | fixed | this PR |
+| BG-34 | Brannoc agreed to walk back with the player, but no NPC can follow, so he stayed put while the Narrator showed him walking along. Narrator side fixed: nobody walks along unless their own move says so. Whether a Claude-run NPC who agrees gets a follow order is Ali's call (asked) | 11/11/2026 | open | this PR (Narrator side) |
+| BG-35 | The Narrator's JSON left out the comma before "narrated" (one call in 244 in run 40), so the turn fell back. Fixed: the tolerant parser puts back a missing comma between members | 11/11/2026 | fixed | this PR |
 
 ## Check on release
 

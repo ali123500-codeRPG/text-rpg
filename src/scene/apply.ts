@@ -155,7 +155,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
 
   // ---- keys -> stable ids (plan keys first, then existing ids) ----
   const placeMap = new Map<string, string>();
-  const placeTaken = new Set(state.places.map((p) => p.id));
+  // BG-32: the bare place made for the story start (ensurePlace) is filled in by the plan's place of the same key, never doubled
+  const bare = (id: string) => state.places.find((p) => p.id === id && p.bare);
+  const placeTaken = new Set(state.places.filter((p) => !bare(p.id)).map((p) => p.id));
   for (const p of plan.places) placeMap.set(p.key, freshId(p.key, placeTaken));
   const zoneMap = new Map<string, string>();
   for (const z of plan.zones) zoneMap.set(z.key, freshId(z.key, allZoneIds));
@@ -182,7 +184,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       id: placeMap.get(p.key)!, storyId: state.storyId, kind: p.kind, parentId: p.parent ? placeRef(p.parent) : null,
       names: { current: p.name, past: [] }, zones: [], state: {}, headlines: [],
     };
-    state.places.push(node);
+    const stub = bare(node.id);
+    if (stub) { Object.assign(stub, { ...node, zones: stub.zones }); delete stub.bare; }
+    else state.places.push(node);
   }
   const newZones: Zone[] = [];
   for (const z of plan.zones) {
@@ -338,7 +342,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
 export function ensurePlace(state: GameState, placeId: string): Place {
   let place = state.places.find((p) => p.id === placeId);
   if (!place) {
-    place = { id: placeId, storyId: state.storyId, kind: 'place', parentId: null, names: { current: placeId, past: [] }, zones: [], state: {}, headlines: [] };
+    place = { id: placeId, storyId: state.storyId, kind: 'place', parentId: null, names: { current: placeId, past: [] }, zones: [], state: {}, headlines: [], bare: true };
     state.places.push(place);
   }
   return place;

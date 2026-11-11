@@ -188,6 +188,8 @@ export type Place = {
   zones: Zone[];
   state: Record<SlotKey, { value: string; setTurn: Turn; setBy: string }>;
   headlines: FactId[];
+  /** a bare node made for the story start before any plan (ensurePlace); the first plan's place of the same key fills it in (BG-32) */
+  bare?: true;
 };
 
 export type StoryFact = {
