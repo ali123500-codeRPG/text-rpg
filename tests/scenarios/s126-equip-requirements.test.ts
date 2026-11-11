@@ -61,7 +61,7 @@ describe('126 Equip requirements', () => {
       attack: { actorId: 'patron_1', skill: SK.unarmed_strike }, defense: null, location, targetId: 'player',
     }) as unknown as AttackResult;
     const marked = (armor: number, attacker: number, location = 'general') => {
-      p.progression!.marks = [];
+      p.progression!.marks = []; p.progression!.markCounts = {};
       p.core.skills[SK.light_armor] = sk(armor); // gambeson: Common, needs 25
       wim.core.skills[SK.unarmed_strike] = sk(attacker);
       ruleset.recordUse(wim, SK.unarmed_strike, hit(location), s);

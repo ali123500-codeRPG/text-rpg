@@ -13,13 +13,13 @@ function setup() {
   const s = makeVillage(), p = s.player, o = s.actors[0];
   p.core.classes = [{ classId: CL.merchant, state: 'current', level: 1 }];
   o.core.classes = [{ classId: CL.merchant, state: 'current', level: 1 }];
-  p.progression!.marks = [];
+  p.progression!.marks = []; p.progression!.markCounts = {};
   return { s, p, o };
 }
 const sheet = (a: Actor, v: Record<string, number>) => { a.core.skills = {}; for (const [id, raw] of Object.entries(v)) a.core.skills[id] = { raw, state: 'normal' }; };
 function contest(s: GameState, p: Actor, o: Actor, gap: number, rollKind?: RollKind) {
   const r = (id: string) => ({ actorId: id, skill: SK.barter, ...(rollKind ? { rollKind } : {}), d100: 50, margin: 0, tier: 'success', natural: 0, modifiers: [], tierShifts: [] });
-  p.progression!.marks = [];
+  p.progression!.marks = []; p.progression!.markCounts = {};
   markUse(s, p, SK.barter, { a: r(p.id), b: r(o.id), gap, winner: gap ? (gap < 0 ? 'a' : 'b') : 'tie' } as unknown as ContestResult);
   return p.progression!.marks;
 }

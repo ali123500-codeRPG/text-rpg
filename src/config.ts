@@ -57,6 +57,11 @@ const DEFAULTS = {
   K: 20,
   /** SP2: a use marks its skill when the opposition is within ± this of raw or true skill (placeholder) */
   MARK_WINDOW: 10,
+  /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (3: marks 1, 4, 7...).
+   * Infinity: one roll per skill per engagement. */
+  MARK_STACK_EVERY: 3,
+  /** SM2: owed rolls are made at the end of the turn of the mark instead of when the engagement ends or the scene breaks */
+  SKILL_UP_INSTANT: false,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
   ENDURANCE_MARK_PCT: 10,
   // ---- Part 3 ----

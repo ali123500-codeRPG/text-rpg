@@ -16,7 +16,16 @@ import { PK } from '../library/perkIds';
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
   // a skill not on the sheet learns from use too: it counts as raw 0 and joins the sheet with its first gain
-  if (pr && getLibrary().skills[skill] && skillOpen(actor, skill) && !pr.marks.includes(skill)) pr.marks.push(skill); // a closed tree can't be raised (TA4)
+  if (!pr || !getLibrary().skills[skill] || !skillOpen(actor, skill)) return; // a closed tree can't be raised (TA4)
+  // SM1: marks stack. The first mark this engagement owes a roll, and every MARK_STACK_EVERY-th mark after it owes another
+  const counts = (pr.markCounts ??= {});
+  const n = (counts[skill] = (counts[skill] ?? 0) + 1);
+  if (n === 1 || (n - 1) % CONFIG.MARK_STACK_EVERY === 0) pr.marks.push(skill);
+}
+
+/** SM1/SM3: the engagement (or, outside one, the scene) is over: mark counts start again */
+export function clearMarkCounts(actor: Actor): void {
+  if (actor.progression) actor.progression.markCounts = {};
 }
 
 /** SP2: does `opposition` teach this skill? From MARK_WINDOW below raw skill up to MARK_WINDOW above true skill.
@@ -134,7 +143,8 @@ function improveRolls(a: Actor, raw: number): number {
   return Math.max(1, ...a.core.perks.filter((p) => !p.dormant).map((p) => perks[p.perkId]?.improveRolls).filter((r) => r && raw < r.below).map((r) => r!.rolls));
 }
 
-/** Part 1 §6, unchanged: Burden snapshot, then one improvement roll per marked skill; marks clear. Returns the gains. */
+/** Part 1 §6: Burden snapshot, then one improvement roll per roll a skill is owed (SM1: a skill can be owed several); marks clear.
+ * Returns the gains. Mark counts are kept: clearMarkCounts clears them when the engagement or scene ends. */
 export function improveMarked(state: GameState, rng: Rng): { skill: string; from: number; to: number; milestone?: number }[] {
   const a = state.player, pr = a.progression;
   if (!pr || !pr.marks.length) return [];
