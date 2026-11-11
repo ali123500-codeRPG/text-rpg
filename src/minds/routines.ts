@@ -1,6 +1,7 @@
 // Code minds: routines (desired state) and the fallback combat list. They read only ActorView, never GameState.
 import type { ActorView, MapZone, Order, OrderTemplate, Routine, Rng } from '../types';
 import { CONFIG } from '../config';
+import { AWARENESS } from '../scales';
 import { routine as getRoutine } from '../library';
 
 export type Stop = { slot: string; zone: string; turns: number; activity: string };
@@ -135,7 +136,7 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
   if (s.broken || s.surrendered) return flee(view, 'fallback');
   // 2. Attack
   const here = view.beliefs
-    .filter((b) => (b.hostile || b.sparring) && b.active && (b.status === 'aware' || b.status === 'tracking') && b.lastKnownZone === s.zone)
+    .filter((b) => (b.hostile || b.sparring) && b.active && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)
     .map((b) => b.about)
     .sort();
   if (here.length) {

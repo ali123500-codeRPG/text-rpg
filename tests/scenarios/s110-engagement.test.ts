@@ -23,9 +23,9 @@ describe('110 engagement', () => {
     const start = s.turn;
     expect(s.player.engagement).toEqual({ start, last: start, kinds: ['talk'] });
     expect(wim.engagement?.kinds).toEqual(['talk']);
-    // the talk breaks down: Wim turns hostile and knows the player is there
+    // the talk breaks down: Wim turns hostile and they trade blows (engaged, YD6)
     s.bands.find((b) => b.id === 'tavern_folk')!.relations.player_band = 'hostile';
-    wim.mind!.knowledge = { player: { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] } };
+    wim.mind!.knowledge = { player: { status: 'engaged', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, closedTurn: s.turn + 1, source: 'seen', revealed: [] } };
     expect(next(s)).toBe(false);
     expect(s.player.engagement).toMatchObject({ start, kinds: ['talk', 'fight'] }); // one engagement
     wim.core.condition.hpLostPct = 100; // down: no longer engaged

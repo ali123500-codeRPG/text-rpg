@@ -209,7 +209,7 @@ export function detectPlayer(state: GameState, event: GameEvent, rng: Rng): void
   for (const a of state.actors) {
     if (!a.mind || !isActive(a)) continue;
     const cur = a.mind.knowledge.player?.status ?? 'unaware';
-    if (cur === 'aware' || cur === 'tracking') continue;
+    if (atLeast(cur, 'aware')) continue;
     // Observers unaware of the player are left out of event.perception (they perceive the player only through detection),
     // so detection reads the perception level directly.
     const level = event.perception[a.id]?.level ?? perceptionOf(event, state, a)?.level;

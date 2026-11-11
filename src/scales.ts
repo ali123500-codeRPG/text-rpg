@@ -56,7 +56,7 @@ export const STANCES = scale([['hostile', 'hostile'], ['opposed', 'opposed'], ['
 export const INTELLIGENCE = scale([['unintelligent', 'Unintelligent'], ['semi', 'Semi-intelligent'], ['intelligent', 'Intelligent']]);
 export type IntelligenceKey = (typeof INTELLIGENCE.keys)[number];
 /** how much one actor knows of another, least first (Belief.status; decays one step at a time) */
-export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicious'], ['aware', 'Aware'], ['tracking', 'Tracking']]);
+export const AWARENESS = scale([['unaware', 'Unaware'], ['suspicious', 'Suspicious'], ['aware', 'Aware'], ['tracking', 'Tracking'], ['hunting', 'Hunting'], ['engaged', 'Engaged']]);
 /** XP reward levels for achievements; XP per level is CONFIG.REWARD_XP */
 export const REWARD_LEVELS = scale([['minus_1', '−1'], ['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV'], ['v', 'V'], ['vi', 'VI'],
   ['vii', 'VII'], ['viii', 'VIII'], ['ix', 'IX'], ['x', 'X'], ['xi', 'XI'], ['xii', 'XII'], ['xiii', 'XIII'], ['xiv', 'XIV'], ['xv', 'XV']]);
