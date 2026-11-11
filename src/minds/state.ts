@@ -7,7 +7,7 @@ import { actorById, allActors, atLeast, isActive, isEngaged, sparring, wary, zon
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, fnRoller, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { hasPerk } from '../ruleset/perks';
-import { bindTemplate, expandSteps, slotsRead } from './routines';
+import { bindTemplate, expandSteps, offeredRoutines, slotsRead } from './routines';
 import { SK, SENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from '../engine/feats';
@@ -34,7 +34,9 @@ export function installRoutines(actor: Actor, setId: string, slots: Record<strin
 
 export function switchRoutine(state: GameState, actor: Actor, routineId: string, reason: 'agent' | 'bandmate'): boolean {
   const mind = actor.mind;
-  const r = mind?.routines?.includes(routineId) ? getRoutineOrNull(routineId) : null;
+  // BG-34: an agent may switch its own actor to follow whatever its set; bandmates never take follow from a spokesperson
+  const offered = reason === 'agent' ? offeredRoutines(mind?.routines) : mind?.routines ?? [];
+  const r = offered.includes(routineId) ? getRoutineOrNull(routineId) : null;
   const unbound = r ? slotsRead(r).filter((s) => !hasBinding(mind!.slots?.[s])) : [];
   if (!mind || !r || unbound.length) {
     log(state, reason === 'agent' ? 'invalid_routine' : 'routine_skip', { actorId: actor.id, routineId, ...(unbound.length ? { unbound } : {}) });

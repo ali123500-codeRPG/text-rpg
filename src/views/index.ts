@@ -20,6 +20,7 @@ import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routin
 import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, hearsWords, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
+import { offeredRoutines } from '../minds/routines';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
 import { pressedWords, tellFor, tookWords } from '../engine/speech';
@@ -361,7 +362,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill,
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn } } : {}),
-      routines: (m.routines ?? []).map((id) => ({ id, brief: routine(id).brief })),
+      routines: offeredRoutines(m.routines).map((id) => ({ id, brief: routine(id).brief })),
       ...(m.routineSetId ? { routineSetId: m.routineSetId } : {}),
       slots: Object.fromEntries(Object.entries(m.slots ?? {}).map(([k, v]) => [k, Array.isArray(v) ? [...v] : v])),
       ...(m.alarm ? { alarm: { armed: m.alarm.armed, ...(m.alarm.lastAlarmTurn !== undefined ? { lastAlarmTurn: m.alarm.lastAlarmTurn } : {}), ...(m.alarm.returnTo ? { returnTo: { id: m.alarm.returnTo.id, anchorTurn: m.alarm.returnTo.anchorTurn } } : {}) } } : {}),

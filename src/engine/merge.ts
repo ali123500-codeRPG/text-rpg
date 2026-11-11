@@ -1,6 +1,6 @@
 // One order per active actor: trigger > broken > agent (dialogue call, else Planner) > onAlert > routine / combat list.
 import type { ActorView, GameState, Intent, NpcAction, Order, Rng } from '../types';
-import { alertOrders, brokenOrder, fallbackOrder, routineOrder } from '../minds';
+import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } from '../minds';
 import { isEngaged } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 
@@ -74,7 +74,10 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   const agent = new Map<string, Order>();
   for (const o of usableAgentOutputs(input)) {
     if (!views.has(o.actorId) || agent.has(o.actorId)) continue;
-    agent.set(o.actorId, npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o), ...npcMove(o) }));
+    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o), ...npcMove(o) });
+    // BG-34: a follower out of a fight walks after the player beside the action its agent gave
+    const follow = !order.move && !MOVE_ACTIONS.includes(order.type) && !isEngaged(state, state.actors.find((x) => x.id === o.actorId)!) ? followMove(views.get(o.actorId)!) : null;
+    agent.set(o.actorId, follow ? { ...order, move: follow } : order);
   }
   for (const [id, o] of agent) {
     const cur = out.get(id);
