@@ -24,7 +24,8 @@ describe('135 class and level achievements', () => {
     const got = earned(s);
     expect(got).toContain(ids.length >= 10 ? ACH.class_max_10 : ids.length >= 5 ? ACH.class_max_5 : ids.length >= 3 ? ACH.class_max_3 : ACH.class_max_1);
     for (const [t, n] of tiers) {
-      expect(got).toContain(`${ACH.class_max_tier_1}:${t}`);
+      // one chain per tier: Peak (1) is replaced by Twin Peaks (2), then Crown (3)
+      if (n === 1) expect(got).toContain(`${ACH.class_max_tier_1}:${t}`);
       if (n === 2) expect(got).toContain(`${ACH.class_max_tier_2}:${t}`);
       if (n >= 3) expect(got).toContain(`${ACH.class_max_tier_3}:${t}`);
     }
