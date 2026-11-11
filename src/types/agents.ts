@@ -124,7 +124,11 @@ export type StagePlan = {
   event: { summary: string; challenge: Grade; gain: Grade };
   /** T8: when the story opens; after that, only the current time of day */
   timeOfDay?: TimeOfDay;
-  places: { key: string; name: string; kind: string; parent: string }[];
+  places: {
+    key: string; name: string; kind: string; parent: string;
+    /** CO17 a prebuilt layout id: code adds its zones as `${key}.${zoneKey}`; names/looks rename them by the layout's zone keys */
+    layout?: string; names?: Record<string, string>; looks?: Record<string, string>;
+  }[];
   zones: {
     key: string; place: string; kind: string; name: string; look: string;
     cover?: Cover; light?: Light; // Z3: default from the kind
@@ -132,6 +136,7 @@ export type StagePlan = {
     size?: string; // CO16 a ZONE_SIZES word; the kind's default when left out
     area?: number; // CO16 m², instead of a size word
     edges?: Partial<Record<import('./core').Side, string>>; // CO15 edge kind ids by side; the kind's default when left out
+    fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
     links: { to: string; label: string; sight: boolean }[];
   }[];
   frontiers: { key: string; label: string }[];

@@ -582,6 +582,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
       skills: Object.keys(lib.skills).map((id) => ({ id, name: skillName(id) })),
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
       edgeKinds: Object.values(lib.edgeKinds ?? {}).map((k) => ({ ...k })),
+      layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name })) })),
     },
     grades: [...GRADES],
   };

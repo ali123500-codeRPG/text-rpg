@@ -380,6 +380,12 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // lined up with that zone's centre or either end, sliding outward only when all are taken. Zones up or down stairs sit
 // straight above or below. doorway() is the middle of a shared wall (CO3). The Map's "Draw to scale" button draws the
 // rectangles at 12 px a metre, each side by its edge kind, with a 10 m bar in metres and paces.
+// Layouts (CO7, CO17; src/library/layouts.ts, typed ids LY): a common building's zones, sizes, sides and exits, prebuilt.
+// A plan place may name one ("layout": LY id from catalogs.layouts, optional "names"/"looks" by the layout's zone keys);
+// code adds its zones as placeKey.zoneKey (not counted against the zone cap) and places them like any others. The Weaver
+// links its own zones to placeKey.<entry>. An unknown layout is a bad_place. LY1 village tavern (common room with a counter
+// on its north side, behind the counter, kitchen, back yard, upstairs landing, cellar), LY2 cottage, LY3 shop, LY4 smithy
+// (open to the street on its south side), LY5 gatehouse. A building type may have several; a new layout is a new row.
 // Step 2 gives every character a position in metres and measures moves and ranges in paces (CO11–CO13); step 3 is travel
 // along a road that is one long zone (CO18, its own deep dive).
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
