@@ -495,8 +495,30 @@ function achievements(): HTMLElement[] {
           : row('Earned at', `${at}${d.by && !d.only ? `, once per ${d.by.replace('_', ' ')}` : ''}`); })(),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
   };
-  const section = (title: string, list: [string, AchievementDef][]) =>
-    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' }, list.map(achCard)));
+  // a medal: the card stays whole (search, filters, table view and the pop-up read it) and shows only its face on the
+  // page: the count it asks for leads, then the reward level, name and the gist of its reward. Clicking opens the full card.
+  const medal = ([key, d]: [string, AchievementDef]) => {
+    const c = achCard([key, d]);
+    const lv = `Level ${rewardName(d.level)}`, tone = toneFor('Level', lv);
+    const kind = d.by === 'body_type' ? 'body type' : 'race';
+    const bane = isBane(d) ? baneSkill(key) : 0, total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0;
+    const gist = [...(bane ? [`+${bane} skill vs that ${kind}`] : []), ...(total ? [`+${total} on attack and defense rolls`] : []), ...rewardLines(d)];
+    c.classList.add('lv-medal');
+    if (d.scar) c.classList.add('lv-scarmedal');
+    if (tone) c.style.setProperty('--gem', `var(${tone})`);
+    c.prepend(h('div', { class: 'lv-face', 'aria-hidden': 'true' },
+      h('span', { class: 'lv-gem' }, rewardName(d.level)), d.scar ? h('span', { class: 'lv-scartag' }, 'Scar') : null, h('span', { class: 'lv-xp' }, `${fmtNum(achXp(d))} XP`),
+      h('b', { class: 'lv-count' }, d.every ? `every ${fmtNum(d.every)}` : fmtNum(d.count ?? 1))));
+    if (gist.length) c.querySelector(':scope > header')!.after(h('p', { class: 'lv-gist' }, `${gist[0]}${gist.length > 1 ? ` · +${gist.length - 1} more` : ''}`)); // XP only: the XP says it
+    return c;
+  };
+  const fmtNum = (n: number) => n.toLocaleString('en');
+  const section = (title: string, list: [string, AchievementDef][]) => {
+    const xp = list.reduce((n, [, d]) => n + achXp(d), 0);
+    return h('section', { class: 'lv-group lv-chain' }, h('h2', { class: 'hs-section' }, title,
+      h('span', { class: 'lv-meta' }, ` (${list.length} level${list.length === 1 ? '' : 's'}, ${fmtNum(xp)} XP)`)),
+      h('div', { class: 'lv-grid lv-track', style: `--n: ${Math.min(list.length, 6)}` }, list.map(medal)));
+  };
   // a line: one rule counted one way (rule + by), its levels in count order; each line folds on its own
   const lineOf = (d: AchievementDef) => `${d.rule}|${d.by ?? ''}`;
   const lineTitle = (k: string) => { const [rule, by] = k.split('|'); const t = ACH_RULE_TEXT[rule as AchievementDef['rule']] ?? rule; return `${t[0].toUpperCase()}${t.slice(1)}${by ? ` (per ${by.replace('_', ' ')})` : ''}`; };
@@ -1210,7 +1232,7 @@ function fold(head: Element, open?: boolean, save = true): void {
   head.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
 }
 // tables whose sections start folded until opened; for them the remembered choice is which sections are open
-const FOLDED_FIRST = new Set(['achievements']);
+const FOLDED_FIRST = new Set<string>([]); // achievements read as compact medal tracks now, so they open unfolded
 const openedSet = new Set<string>(remember<string[]>('lv-opened', []));
 const savedFolded = (k: string): boolean => (FOLDED_FIRST.has(shown) ? !openedSet.has(k) : foldedSet.has(k));
 // keyed by tab and title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new

@@ -194,3 +194,34 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .lv-allgroup { display: grid; gap: var(--space-2); }
 .lv-allgroup h2 { margin: 0; font-size: 16px; font-weight: 700; }
 .lv-names { margin: 0; padding-left: 1.1em; }
+
+/* Achievements as medal tracks: each chain is one row of medals, lowest count first, joined by a rail.
+   A medal shows its face (count, reward level, name, gist); the full card opens in the pop-up. */
+.lv-chain > h2 .lv-meta { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+/* one column per level, so a chain fills the row; narrow screens fall back to as many 196px columns as fit */
+.lv-track:not(.lv-tabled) { display: grid; gap: var(--space-4); align-items: stretch; overflow-x: clip; padding-top: 2px;
+  grid-template-columns: repeat(auto-fit, minmax(max(196px, calc((100% - (var(--n, 4) - 1) * var(--space-4)) / var(--n, 4))), 1fr)); } /* clip: a wrapped row's rail stub */
+.lv-chain + .lv-chain { margin-top: var(--space-4); }
+.lv-track > .lv-medal { position: relative; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1);
+  padding: var(--space-3); border-color: color-mix(in srgb, var(--gem, var(--border)) 45%, var(--border)); transition: border-color .15s, transform .15s; }
+.lv-track > .lv-medal + .lv-medal::before { content: ''; position: absolute; left: calc(-1 * var(--space-4) - 1px); top: 30px; width: var(--space-4); height: 2px;
+  background: color-mix(in srgb, var(--gem, var(--border)) 60%, var(--border)); }
+.lv-track > .lv-medal:hover { border-color: var(--gem, var(--accent)); transform: translateY(-1px); }
+.lv-track > .lv-medal:has(a.lv-title:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lv-track > .lv-medal > .lv-cbody, .lv-track > .lv-medal > header > .hs-tg, .lv-track > .lv-medal > header > .lv-id { display: none; }
+.lv-track > .lv-medal > header h3 { font-size: 14px; line-height: 1.3; font-weight: 600; }
+.lv-track > .lv-medal a.lv-title { color: inherit; text-decoration: none; }
+.lv-track > .lv-medal a.lv-title::after { content: ''; position: absolute; inset: 0; border-radius: inherit; } /* the whole medal opens the card */
+.lv-face { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.lv-gem { display: inline-grid; place-items: center; min-width: 28px; height: 24px; padding: 0 7px; border-radius: 6px; font-size: 12px; font-weight: 700;
+  font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--gem, var(--text)) 30%, var(--text));
+  background: color-mix(in srgb, var(--gem, var(--surface)) 28%, var(--surface)); border: 1px solid color-mix(in srgb, var(--gem, var(--border)) 70%, transparent); }
+.lv-xp { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lv-count { flex-basis: 100%; font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.lv-gist { margin: 0; font-size: 13px; line-height: 1.4; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lv-scarmedal { border-style: dashed; }
+.lv-scartag { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--danger); }
+.lv-pop-body .lv-face, .lv-pop-body .lv-gist { display: none; }
+.lv-pop-body .lv-card.lv-toned { box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .lv-track > .lv-medal { transition: none; } .lv-track > .lv-medal:hover { transform: none; } }
+.lv-grid.lv-track > .lv-card.lv-medal { grid-row: auto; align-self: stretch; }
