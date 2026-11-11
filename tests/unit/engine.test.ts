@@ -108,6 +108,7 @@ vi.mock('../../src/minds', () => {
   const o = (v: { self: { id: string } }, type: string, source: Order['source']): Order => ({ actorId: v.self.id, type, target: null, skill: null, intent: '', source });
   return {
     routineOrder: (v: { self: { id: string } }) => o(v, 'idle', 'routine'),
+    followMove: () => null,
     fallbackOrder: (v: { self: { id: string } }) => o(v, 'hold', 'fallback'),
     brokenOrder: (v: { self: { id: string } }) => o(v, 'hold', 'broken'),
     bindTemplate: (tpl: Order, v: { self: { id: string } }, ctx: { triggerZone?: string; source: Order['source']; triggerId?: string }) => ({

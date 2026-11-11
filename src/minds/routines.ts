@@ -4,6 +4,11 @@ import { CONFIG } from '../config';
 import { AWARENESS } from '../scales';
 import { routine as getRoutine } from '../library';
 
+/** BG-34: the follow routine any NPC may switch to when it agrees to come along with the player, whatever its set */
+export const FOLLOW_ROUTINE = 'follow';
+/** the routines an NPC's agent may pick: its set's, plus follow (BG-34) */
+export const offeredRoutines = (own: string[] | undefined): string[] => [...new Set([...(own ?? []), FOLLOW_ROUTINE])];
+
 export type Stop = { slot: string; zone: string; turns: number; activity: string };
 
 /** a route slot expands to one stop per bound zone; an unbound slot gives no stop. */
@@ -78,6 +83,14 @@ export function mapPath(map: MapZone[], from: string, to: string): string[] | nu
 
 const order = (view: ActorView, type: string, source: Order['source'], intent: string, extra: Partial<Order> = {}): Order =>
   ({ actorId: view.self.id, type, target: null, skill: null, intent, source, ...extra });
+
+/** BG-34: an agent-run NPC on a follow routine walks toward the player beside whatever action its agent gave (a zone, or null) */
+export function followMove(view: ActorView): string | null {
+  const cur = view.self.routine;
+  if (!cur || getRoutine(cur.id).kind !== 'follow') return null;
+  const d = desiredState(view);
+  return d && d.zone !== view.self.zone && mapPath(view.map, view.self.zone, d.zone) ? d.zone : null;
+}
 
 /** marks a routine order whose desired zone has no path; the engine logs routine_unreachable [Proposed]. */
 export const UNREACHABLE = 'routine_unreachable';
