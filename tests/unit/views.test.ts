@@ -195,6 +195,16 @@ describe('NarrationView and the packet', () => {
     actor(s, 'trader').core.condition.hpLostPct = 100;
     expect(health()).toBe('Incapacitated');
   });
+  it('someone Down shows no mood (BG-29)', () => {
+    const s = makeVillage();
+    place(s, 'trader', 'tav_common');
+    const t = actor(s, 'trader');
+    t.core.condition.moraleLost = 1000; // as frightened as they get
+    const morale = () => buildPlayerView(s).actors.find((a) => a.label === t.label)!.morale;
+    expect(morale()).toBeDefined();
+    t.core.condition.hpLostPct = 100;
+    expect(morale()).toBeUndefined();
+  });
 });
 
 describe('place facts and headlines', () => {

@@ -762,6 +762,11 @@ export function prototypeLibrary(): Library {
       [ACH.won_pct_25]: { id: ACH.won_pct_25, name: 'Long Odds', level: 'iii', rule: 'won_above_pct', tags: ['combat'], count: 25, personality: ap({ nerve: 1 }) },
       [ACH.won_pct_50]: { id: ACH.won_pct_50, name: 'Against All Odds', level: 'iv', rule: 'won_above_pct', tags: ['combat'], count: 50, after: ACH.won_pct_25, personality: ap({ nerve: 1 }) },
       [ACH.won_pct_100]: { id: ACH.won_pct_100, name: 'Nobody Bet on You', level: 'v', rule: 'won_above_pct', tags: ['combat'], count: 100, after: ACH.won_pct_50, personality: ap({ nerve: 1 }) },
+      // event rolls at the Critical tiers; each level opens one more tier past Critical on your event rolls
+      [ACH.event_crit_1]: { id: ACH.event_crit_1, name: 'Fate Meant It as a Curse', level: 'i', rule: 'event_crits', tags: ['exploration'], count: 1, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }] },
+      [ACH.event_crit_5]: { id: ACH.event_crit_5, name: 'Fortune\'s Favourite Accident', level: 'ii', rule: 'event_crits', tags: ['exploration'], count: 5, after: ACH.event_crit_1, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }] },
+      [ACH.event_crit_15]: { id: ACH.event_crit_15, name: 'The Joke Is on Fate', level: 'iii', rule: 'event_crits', tags: ['exploration'], count: 15, after: ACH.event_crit_5, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }] },
+      [ACH.event_crit_fail_1]: { id: ACH.event_crit_fail_1, name: 'Fate Has a Sense of Humour', level: 'zero', rule: 'event_crit_fails', tags: ['exploration'], count: 1, scar: true, tierUnlocks: [{ roll: 'event', side: 'down', steps: 1 }] },
       [ACH.total_10]: { id: ACH.total_10, name: 'A Few Threads', level: 'i', rule: 'achievements', tags: ['progression'], count: 10 },
       [ACH.total_25]: { id: ACH.total_25, name: 'Woven In', level: 'ii', rule: 'achievements', tags: ['progression'], count: 25, after: ACH.total_10 },
       [ACH.total_50]: { id: ACH.total_50, name: 'A Thread Worth Following', level: 'iii', rule: 'achievements', tags: ['progression'], count: 50, after: ACH.total_25 },

@@ -15,7 +15,7 @@ import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, per
 import { knownDestinations } from '../engine/trail';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { PERK_MOVES, hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
+import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, hearsWords, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
@@ -158,7 +158,8 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
-      ...(moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
+      // someone Down (incapacitated or dead) shows no mood
+      ...(!isDownLevel(h) && moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
@@ -571,9 +572,9 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });
   return {
-    tier: tierName(state.stage.tier),
+    tier: tierName({ tier: state.stage.tier, ...(state.stage.tierBeyond ? { beyond: state.stage.tierBeyond } : {}) }),
     time: clockSet(state) ? timeView(state) : null,
-    stakes: STAKES[state.stage.tier] ?? '',
+    stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
     target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
       ...(target.kind === 'scene' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
