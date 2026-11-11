@@ -189,6 +189,9 @@ export type Journal = {
   namesKnown: ActorId[];
   /** Q17: actors the player has seen clearly, and the zone they were in; they stay seen until they move */
   clearSight?: Record<ActorId, string>;
+  /** BG-28: where the player last saw or heard each actor (any perception of it, a sound included); never forgotten by an
+   * unseen move, so lastSeen still names someone heard running off */
+  lastKnown?: Record<ActorId, string>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;
   /** the places the player last left, newest first, with the turn it left each (CONFIG.TRAIL_ZONES long): "go back" reads it */

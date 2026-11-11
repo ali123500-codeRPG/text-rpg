@@ -269,11 +269,12 @@ function need(state: GameState, id: string): Actor {
 }
 
 // ---------- PlayerView ----------
-/** people the player saw clearly earlier who are out of sight now, with the zone they were last seen in, so the Parser
- * never answers "they aren't here" about someone a few steps away (playtest run 20) */
+/** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
+ * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
+ * off (BG-28) */
 function lastSeen(state: GameState, seen: SeenActor[]): { id: string; name: string; zone: string }[] {
   const p = state.player;
-  return Object.entries(p.journal?.clearSight ?? {}).flatMap(([id, zone]) => {
+  return Object.entries({ ...p.journal?.clearSight, ...p.journal?.lastKnown }).flatMap(([id, zone]) => {
     const a = actorById(state, id);
     if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
     return [{ id, name: nameKnown(state, a) ? a.names.current : a.label, zone: zoneById(state, zone)?.name ?? zone }];

@@ -1345,6 +1345,7 @@ In Explore no Planner runs: unaware actors follow routines, the player is detect
 - Each turn, every active actor with no higher-priority order reads its desired zone and activity from its ActorView. Elsewhere: it moves one zone link along the shortest path. There: it performs the activity. Actors are processed in actor-id order; ties use the seeded RNG. If no path to the desired zone exists on the stage, the actor stays in its zone, performing the step's activity, and code logs routine\_unreachable **\[Proposed\]**. Whether a stage trim may cut off a bound zone stays deferred (D-46).
 - **Clear sight (Ali, 07/11/2026, Q17).** The player's Journal keeps clearSight: each actor the player has seen fully by sight (or made out with a successful look), with the zone it was in. While that actor stays in that zone, and the zone is the player's own or in sight of it, its events reach the player as full sight, dark zones included. A move or flee the player does not see fully removes it; one the player does see records the new zone.
 - **Seen leaving (BG-23).** A move that leaves a zone is perceived where it set off as well as where it ended, and the better sight counts: someone walking out through a door in plain sight is seen going, even into a room out of sight. A full sight of it records the zone they went into in clearSight, so lastSeen names it ("the barkeep, last seen in the kitchen").
+- **Last known place (BG-28).** The Journal also keeps lastKnown: the zone of every actor the player has seen or heard (any perception, a sound included), never forgotten by an unseen move. lastSeen reads it, so someone heard running off is still named where they were heard, and the Parser never asks who the player means when one of them fits.
 - Moves and activities emit ordinary move and idle events with the activity's noise and visibility, and go through computePerception, so the player perceives patrols (a partial event, sound only).
 - An activity's attention level is passed to the ruleset as a situational tag on perception rolls and checks. The ruleset owns its value (stub: 0).
 - Actors that aren't engaged keep following their routines during Tactical turns too.
@@ -2524,6 +2525,7 @@ type Journal = {
   remembered: Record<SlotKey, { value: string; seenTurn: Turn }>;
   namesKnown: ActorId[];             // actors the player knows by name
   clearSight?: Record<ActorId, ZoneId>; // actors seen clearly and where; kept until they move unseen (Q17)
+  lastKnown?: Record<ActorId, ZoneId>; // where each actor was last seen or heard; never forgotten (BG-28)
 };
 
 // ---------- places and memory ----------
@@ -2979,7 +2981,8 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-24 | "Wrench my sword out and strike" drew the arming sword already in the player's hand, and the draw was logged as invalid gear (Ali's game, turn 12). Fixed: drawing what is already in hand is nothing to do, not a mistake | Ali | Fixed | this PR |
 | BG-25 | The player swung three times at a woman lying Incapacitated at 0.7 m; every blow was wasted in silence (attacks on anyone down were refused), and the Narrator made up a blade stuck in the floorboards and shaking hands (Ali's game, turns 11 to 14). Fixed: blows on someone down land with no defense, only the dead can't be struck, and a wasted action says why (Narrator rule 18) | Ali | Fixed | this PR |
 | BG-26 | The autopilot agent kept stopping to check how badly it was hurt ("let me check how bad I'm hurt") with /stats instead of acting (Ali's report, the agent's save, turn 15). Fixed: the agent is given its health, wounded parts, morale, coin and perk points every move, is told never to check its wounds, and a /stats move is re-asked once | Ali | Fixed | PR #445 |
-| BG-27 | Pressing Report bug only saved the report; the open bugs reached Claude only through a separate "Send open bugs to Claude" button, though Ali had asked that reporting sends them. Fixed: Report bug saves the report and sends every open bug to Claude at once (the send button stays for sending again) | Ali | Fixed | this PR |
+| BG-27 | Pressing Report bug only saved the report; the open bugs reached Claude only through a separate "Send open bugs to Claude" button, though Ali had asked that reporting sends them. Fixed: Report bug saves the report and sends every open bug to Claude at once (the send button stays for sending again) | Ali | Fixed | PR #446 |
+| BG-28 | "I strike the innkeeper behind the counter" moved the player behind the counter and struck no one, and the next turn answered "No innkeeper is in sight". The barkeep had been seen, then only heard running off to the kitchen; that unseen move wiped her from the player's clear sightings, so the Parser had no trace of her. Fixed: lastSeen keeps everyone seen or heard at the last zone known (Journal lastKnown), and the Parser never asks who someone in it is | Ali | Fixed | this PR |
 
 ## Check on release
 
