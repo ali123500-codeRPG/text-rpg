@@ -4,10 +4,10 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { Personality, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { Personality, TierUnlock, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
-import { achLevel, achXp, rewardLines, rewardName } from '../ruleset/achRewards';
+import { achLevel, achXp, rewardLines, rewardName, tierUnlockLine } from '../ruleset/achRewards';
 import { ACH_RULE_TEXT, ACH_TAGS } from '../library/achievementIds';
 import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '../ruleset/modSources';
 import { modTotal, stackType } from '../ruleset';
@@ -100,6 +100,8 @@ function val(v: unknown, depth = 0): Node | string {
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
+  // the game's own wording for tier unlocks (D-211), on perks and anywhere else the field turns up
+  if (k === 'tierUnlocks' && Array.isArray(v)) return v.map((u) => tierUnlockLine(u as TierUnlock)).join('; ');
   // personality points (PL1, PL15, PL16) in words: axis names, signed points, the Nerve line, values as links
   if (k === 'personality' && v && typeof v === 'object') {
     const sg = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
