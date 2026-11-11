@@ -72,13 +72,12 @@ svg.hs-i { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-w
 .hs-rail .foot { margin-top: auto; }
 .hs-rail button[aria-pressed="true"] { color: var(--accent); }
 
-main { padding: 20px var(--space-8) 48px; display: grid; gap: var(--space-6); align-content: start; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+main { padding: 20px var(--space-8) 48px; display: grid; gap: var(--space-6); align-content: start; min-width: 0; }
 .head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-6); flex-wrap: wrap; }
 h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spacing: .02em; }
 .head p { margin: 4px 0 0; color: var(--muted); }
 .head p.story-line { font-family: var(--font-story); color: var(--text); }
 .actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
-.head > div { min-width: 0; max-width: 100%; } .head .actions button { white-space: normal; text-align: left; }
 
 /* Readouts */
 .hs-readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(var(--tile-min), 1fr)); border-block: 1px solid var(--border); }
@@ -167,7 +166,7 @@ h1 { font-size: 22px; line-height: 1.25; margin: 0; font-weight: 800; letter-spa
 pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); white-space: pre-wrap; word-break: break-word; }
 
 /* Creation screen (approved layout B: tree grid) */
-.groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(460px, 100%), 1fr)); gap: var(--space-8); }
+.groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: var(--space-8); }
 .grp-h { display: flex; align-items: center; gap: var(--space-2); padding: 8px 0; border-bottom: 2px solid var(--accent); min-height: 38px; box-sizing: border-box; }
 .grp-h .hs-section { flex: 1; }
 .grp-h .hs-chip { cursor: default; margin: 0; }
@@ -209,7 +208,7 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .pe .hs-picker button:disabled { opacity: .45; cursor: default; }
 .pe-tierline { color: var(--muted); font-size: 13px; }
 .pe-tierline b { color: var(--text); }
-.pe-axes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr)); gap: 0 var(--space-8); }
+.pe-axes { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 0 var(--space-8); }
 .pe-axis { display: grid; grid-template-columns: minmax(130px, 11rem) minmax(0, 1fr); align-items: center; gap: var(--space-3); border-bottom: 1px solid var(--border); min-height: 44px; }
 .pe-axis .nm b { font-weight: 700; display: block; }
 .pe-word { font-size: 13px; color: var(--accent); font-weight: 600; }
@@ -217,8 +216,6 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .pe-ends { display: grid; grid-template-columns: 7.5rem minmax(60px, 1fr) 7.5rem; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--muted); }
 .pe-ends > span:first-child { text-align: right; }
 .cs-pe .cs-pe-v { color: var(--text); }
-@media (max-width: 600px) { .row { grid-template-columns: minmax(0, 1fr) 96px 64px; } }
-@media (max-width: 600px) { .pe-axis { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 6px 0; } .pe-ends { grid-template-columns: max-content minmax(60px, 1fr) max-content; } }
 
 .msg.ok { color: var(--ok); } .msg.bad { color: var(--warn); }
 
