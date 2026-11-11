@@ -715,13 +715,16 @@ function step(ctx: Ctx, id: string): void {
     const opts = sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {};
     if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
+  const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
   if (!o.moveAfter) move(o.type === 'hold');
   if (closeIn && foe && !inReach(state, a, o)) {
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) walk(ctx, a, spotOf(state, foe), o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: Math.max(0, m.mode.reach - 0.01), toward: foe.id });
   }
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
-  if (useMain(ctx, a)) doMain(ctx, a, o);
+  // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting)
+  const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > 0.01);
+  if (useMain(ctx, a) && !(o.type === 'hold' && moved && !o.line)) doMain(ctx, a, o);
   if (o.moveAfter) move(false); // AE3: act, then move
 }
 

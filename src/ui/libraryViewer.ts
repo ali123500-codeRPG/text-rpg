@@ -916,7 +916,7 @@ const FACETS: Record<string, Facets> = {
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)],
     ...perkSkills(d).map((sk): [string, string] => ['Skill', skillName(sk)])],
   achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${rewardName(d.level)}`],
-    ['Reward', specialReward(d) ? 'special reward' : 'XP only']],
+    ['Reward', specialReward(d) ? 'special reward' : 'XP only'], ['Personality', d.personality || d.personalityByKind ? 'gives points' : 'none']],
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Access', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
     ...(t.access?.blockedBy ?? []).map((c): [string, string] => ['Blocked by', condName(c)]),

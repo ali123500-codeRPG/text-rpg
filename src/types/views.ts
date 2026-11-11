@@ -90,6 +90,8 @@ export type PlayerView = {
   zones: ZoneView[]; // zones the player perceives (own + sight links)
   /** the places the player last left, newest first (journal trail): "go back" means cameFrom[0] */
   cameFrom?: { zone: string; name: string; leftTurn: number }[];
+  /** BG-15: zones the player knows and ways out of them it has seen: a move can name any of them (the walk finds the way) */
+  known?: { id: string; name: string }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
   lastSeen?: { id: string; name: string; zone: string }[];

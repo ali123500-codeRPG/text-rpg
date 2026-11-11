@@ -6,6 +6,7 @@ import { getLibrary, npcTemplate } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
 import { PA, PY, VL } from '../../src/library/tableIds';
 import { TP } from '../../src/library/templateIds';
+import { ACH } from '../../src/library/achievementIds';
 import { SK } from '../../src/library/skillIds';
 import { nerveLine, nerveTier, personalityFrom, personalityOf, personalityText, personalityTypes, traitWords } from '../../src/ruleset/personality';
 import { formatDialogueView, formatOppositionView } from '../../src/agents/format';
@@ -79,5 +80,35 @@ describe('personality', () => {
     expect(p.traits[PA.temper]).toBe(20);
     expect(p.values).toEqual([VL.family]);
     expect(t.personality.traits[PA.discipline]).toBe(40); // the template is untouched
+  });
+});
+
+describe('achievement personality points (AP1-AP20)', () => {
+  const STEP = CONFIG.ACH_PERSONALITY_STEP;
+  const earn = (a: Actor, ...rows: { key: string; of?: string }[]) => {
+    a.progression = { ...(a.progression ?? {}), achievements: rows.map((r) => ({ id: r.key, ...r, turn: 0 })) } as Actor['progression'];
+    return a;
+  };
+  it('rows are written in steps of the ACH_PERSONALITY_STEP lever (AP2)', () => {
+    const lib = getLibrary().achievements!;
+    expect(lib[ACH.unaware_1].personality).toEqual({ [PA.honesty]: -STEP });
+    expect(lib[ACH.outnumbered_1].personality).toEqual({ nerve: STEP });
+    expect(lib[ACH.morale_breaks_1].personality).toEqual({ nerve: -STEP }); // a scar pushes its own way (AP3)
+    expect(lib[ACH.no_blow_1].personality).toBeUndefined(); // AP8 turned down
+  });
+  it('a held chain level adds its own step plus every lower level by reference (AP1)', () => {
+    const base = personalityOf(npc(TP.guard));
+    const p = personalityOf(earn(npc(TP.guard), { key: ACH.unaware_50 }));
+    expect((p.traits[PA.honesty] ?? 0) - (base.traits[PA.honesty] ?? 0)).toBe(-3 * STEP);
+  });
+  it('a by-skill row adds its per-skill points only for the skill it was earned with (AP12)', () => {
+    const base = personalityOf(npc(TP.guard));
+    const lie = personalityOf(earn(npc(TP.guard), { key: ACH.speech_10, of: SK.lying }));
+    const talk = personalityOf(earn(npc(TP.guard), { key: ACH.speech_10, of: SK.persuasion }));
+    const d = (p: typeof base, k: string) => (p.traits[k] ?? 0) - (base.traits[k] ?? 0);
+    expect(d(lie, PA.sociability)).toBe(STEP);
+    expect(d(lie, PA.honesty)).toBe(-STEP);
+    expect(d(talk, PA.sociability)).toBe(STEP);
+    expect(d(talk, PA.honesty)).toBe(0);
   });
 });

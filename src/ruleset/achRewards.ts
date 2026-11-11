@@ -11,7 +11,7 @@ import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
 type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality'];
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -140,9 +140,16 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
     case 'bonusLevels': return [`+${steps(d.bonusLevels!, 'bonus level')} (character levels no class gets: perk points, no class perks)`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
-    case 'personality': return Object.entries(d.personality ?? {}).map(([k, n]) => `${n > 0 ? '+' : ''}${n} ${k === 'nerve' ? 'Nerve (toward Daring)' : getLibrary().personalityAxes?.[k]?.name ?? k}`);
+    case 'personality': return personalityLines(d.personality);
+    case 'personalityByKind': return Object.entries(d.personalityByKind ?? {}).flatMap(([kind, add]) => personalityLines(add).map((l) => `${l} when earned with ${kindLabel(d, kind)}`));
   }
 }
+/** personality points as display lines: +5 Honesty, −5 Nerve (toward Cautious) */
+function personalityLines(add?: Record<string, number>): string[] {
+  return Object.entries(add ?? {}).map(([k, n]) => `${n > 0 ? '+' : ''}${n} ${k === 'nerve' ? `Nerve (toward ${n > 0 ? 'Daring' : 'Cautious'})` : getLibrary().personalityAxes?.[k]?.name ?? k}`);
+}
+/** a by-kind row's kind in words (a skill's name for by-skill rows) */
+const kindLabel = (d: AchievementDef, kind: string): string => (d.by === 'skill' ? skillName(kind) : kind);
 /** the rewards of one achievement row beyond XP and roll bonuses, as plain lines for display; a reward carried up from
  * a lower level names that level */
 export function rewardLines(d: AchievementDef): string[] {

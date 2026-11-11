@@ -82,7 +82,9 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   if (best && oneSense) best = { level: best.level, cue: best.level === 'full' ? 'sight' : 'sound' };
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.
   if (event.target === observer.id) best = better(best, { level: 'partial', cue: 'touch' });
-  return best && (sound || oneSense) ? { ...best, heard: true } : best; // words need the sound, or Every Sense One
+  // words need the sound heard clearly (CLEAR_HEAR_DB: who and what; a sound heard only partly is a voice without its
+  // words), or Every Sense One
+  return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;
 }
 
 /** Q17: the player's clear sightings. A full sight of an actor records its zone; a move the player did not see clearly forgets it.
