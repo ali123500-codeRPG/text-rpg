@@ -26,6 +26,9 @@ export function createDirector(clock: Clock): SceneDirector {
       ctxOf.set(view, own);
       // the validator's errors go into the repair call's input (Agent Weaver: Failed stage plan)
       // V11: the rejected plan comes back with its errors, so the repair edits it instead of starting over
+      // a plan that failed validation went outside the options it was given (catalogs, scales, ids): a numbered bug,
+      // even when the repair call fixes it
+      if (errors?.length) own.reportBug?.('weaver_off_catalog', { errors: errors.filter((e) => !e.repaired).map((e) => ({ code: e.code, message: e.message })) });
       const note = errors?.length ? `\n\nREPAIR: your previous plan failed validation:\n${errors.filter((e) => !e.repaired).map((e) => `- ${e.code}: ${e.message}`).join('\n')}` +
         (REPAIR_WITH_PLAN && rejected ? `\n\nREJECTED_PLAN:\n${JSON.stringify(rejected)}\n\nReturn the whole plan again with only these errors fixed; keep everything else as it is.` : '') : '';
       const run = await runAgent<StagePlan>(own, { agent: 'weaver', fixed: FIXED.weaver, data: formatWeaverView(view) + note, schema: checkStagePlan });

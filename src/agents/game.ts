@@ -32,6 +32,7 @@ import { isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
+import { fileBug } from '../save/bugs';
 
 /**
  * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
@@ -114,6 +115,8 @@ export function createGame(deps: GameDeps): Game {
   const ctxFor = (turn: number, sink: AgentTurnLog[]): AgentCtx => ({
     client: counted, clock, turn, gate,
     log: (e) => sink.push(e),
+    // an agent that wrote something outside the options it was given: filed as a numbered bug for the build threads
+    reportBug: (code, detail) => { if (state) void fileBug(store, clock.now(), { code, storyId: state.storyId, turn, ...detail }); },
     onError: (code) => {
       if (code === 'rate_limited') {
         rateLimited = true;
@@ -217,7 +220,7 @@ export function createGame(deps: GameDeps): Game {
   async function reportUnlisted(s: GameState, actorId: string, secretIds: string[], line: string): Promise<void> {
     const detail = { actorId, secretIds, line };
     s.log.push({ turn: s.turn, code: 'unlisted_reveal', detail });
-    await store.set(`bugs/${s.storyId}_t${s.turn}_${actorId}`, { code: 'unlisted_reveal', storyId: s.storyId, turn: s.turn, at: clock.now(), ...detail }).catch(() => {});
+    await fileBug(store, clock.now(), { code: 'unlisted_reveal', storyId: s.storyId, turn: s.turn, ...detail });
   }
 
   /** Q9: a late or failed NPC call keeps its fallback, and is filed for the build threads to review */
@@ -225,7 +228,7 @@ export function createGame(deps: GameDeps): Game {
     for (const e of log) {
       if (!['planner', 'responder', 'voice'].includes(e.agent) || (e.status !== 'late' && e.status !== 'fallback')) continue;
       const code = e.status === 'late' ? 'planner_late' : 'agent_fallback';
-      store.set(`bugs/${s.storyId}_t${s.turn}_${e.agent}_${e.actorId}`, { code, storyId: s.storyId, turn: s.turn, agent: e.agent, actorId: e.actorId, errors: e.errors, at: clock.now() }).catch(() => {});
+      void fileBug(store, clock.now(), { code, storyId: s.storyId, turn: s.turn, agent: e.agent, actorId: e.actorId, errors: e.errors });
     }
   }
 
@@ -344,7 +347,7 @@ export function createGame(deps: GameDeps): Game {
     reportFallbacks(s, turnLog);
     // QT27: an "other" quest goal is filed for the build threads, so code can learn to track it
     for (const l of s.log.filter((x) => x.code === 'quest_goal_gap'))
-      store.set(`bugs/${s.storyId}_t${s.turn}_quest_goal_gap`, { code: 'quest_goal_gap', storyId: s.storyId, turn: s.turn, at: clock.now(), ...l.detail }).catch(() => {});
+      void fileBug(store, clock.now(), { code: 'quest_goal_gap', storyId: s.storyId, turn: s.turn, ...l.detail });
     const nv = views.buildNarrationView(s, events, rec.intent);
     const leak = buildLeakContext(s);
     const mechanics = mechanicsLines(s, events);

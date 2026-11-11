@@ -9,6 +9,8 @@ export type AgentCtx = {
   clock: Clock;
   turn: number;
   log: (entry: AgentTurnLog) => void;
+  /** files a numbered bug (src/save/bugs.ts) for the build threads, e.g. a Weaver plan that left its catalogs */
+  reportBug?: (code: string, detail: Record<string, unknown>) => void;
   /** told about every failed call code (rate_limited switches background calls off) */
   onError?: (code: ClaudeErrorCode, agent: AgentName) => void;
   /** the viewer's call slots, shared by every call of one game (Q4) */
