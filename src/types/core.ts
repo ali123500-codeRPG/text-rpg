@@ -95,7 +95,7 @@ export type GameEvent = {
   effects: Effect[]; // structured; text is built per view, never stored
   noise: NoiseKey;
   visibility: VisibilityKey;
-  perception: Record<string, { level: Perception; cue: Cue }>; // absent = not perceived
+  perception: Record<string, { level: Perception; cue: Cue; heard?: true }>; // absent = not perceived; heard = the sound reached them (words need it)
   spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):

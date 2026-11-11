@@ -76,7 +76,7 @@ export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
  * and how far it carries comes from perception's noiseReach */
 export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['murmur', 'Murmur'], ['normal', 'Normal'], ['raised', 'Raised'], ['loud', 'Loud'], ['blaring', 'Blaring'], ['deafening', 'Deafening']]);
 export type NoiseKey = (typeof NOISE.keys)[number];
-/** how far an event is seen, least first; reach per level is CONFIG.SIGHT_REACH */
+/** how far an event is seen, least first; reach per level is CONFIG.SIGHT_M (perception sightReach) */
 export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];
 /** worn armor weight, lightest first (AN3); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */

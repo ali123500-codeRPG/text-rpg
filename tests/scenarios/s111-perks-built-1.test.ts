@@ -99,6 +99,6 @@ describe('111 coded perks, batch 1', () => {
     expect(after).toMatchObject({ level: 'partial', cue: 'sound' });
     // nowhere is a step too: with Keen Ear a Silent sound in the owner's zone is heard like a Hushed one
     const here: GameEvent = { ...ev, zone: s.player.zone, noise: 'silent' };
-    expect(perceptionOf(here, s, s.player)).toEqual({ level: 'full', cue: 'sound' });
+    expect(perceptionOf(here, s, s.player)).toEqual({ level: 'full', cue: 'sound', heard: true });
   });
 });

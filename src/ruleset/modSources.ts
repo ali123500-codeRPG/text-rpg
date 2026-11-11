@@ -88,10 +88,10 @@ export const MOD_SOURCES: ModSource[] = [
   // situational
   { type: 'situational', roll: 'skill', source: 'Light', at: 'src/ruleset/gear.ts', when: 'Rolls whose skill has a light tag (sight, stealth …): the tag\'s sign × the light where the action is.',
     value: list(CONFIG.LIGHT_MODS) },
-  { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by zones to the target.',
-    value: Object.entries(CONFIG.RANGE_MODS).filter(([d, v]) => +d >= 1 && v).map(([d, v]) => `${d} zone${+d === 1 ? '' : 's'} ${sg(v)}`).join(' · ') },
+  { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by the distance to the target as a share of the weapon\'s reach (both from real metres).',
+    value: CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% ${sg(v)}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Hostile in zone', at: 'src/ruleset/index.ts', when: 'Ranged attacks while a hostile shares the shooter\'s zone (Point Blank removes it).',
-    value: sg(CONFIG.RANGE_MODS[0] ?? 0) },
+    value: sg(CONFIG.HOSTILE_IN_ZONE_MOD) },
   { type: 'situational', roll: 'skill', source: 'Outnumbered', at: 'src/ruleset/index.ts', when: 'Defense rolls after the first this turn (Blade Wall removes it for Parry with a medium weapon, Shield Wall for Block, Slip the Crowd for Dodge).',
     value: sg(CONFIG.OUTNUMBERED_MOD) },
   { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming.', value: sg(CONFIG.UNAWARE_MOD) },

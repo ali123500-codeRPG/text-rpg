@@ -32,6 +32,7 @@ describe('113 action economy', () => {
   it('a ranged attack out of reach gives way to the move', () => {
     const s = makeVillage();
     place(s, 'player', 'street_square');
+    place(s, 'slime_2', 'tav_common'); // the tavern door has no sight: out of the bow's reach from both zones
     bow(s);
     const ev = turn(s, intent({ toZone: 'gate_inner' }, { type: 'attack', target: 'slime_2' }));
     expect(s.player.zone).toBe('gate_inner');

@@ -13,7 +13,7 @@ import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, per
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { PERK_MOVES, hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
-import { beliefStatus, isComm } from '../perception';
+import { beliefStatus, hearsWords, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
@@ -192,7 +192,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(full && e.tier !== undefined && e.actorId === viewer.id ? { tier: tierName(e.tier) } : {}),
     level: p.level, cue: p.cue,
     ...(!full ? { where: whereLabel(state, viewer.zone, e.zone) } : {}),
-    ...(e.line && (full || p.cue === 'sound') ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
+    ...(e.line && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
@@ -308,7 +308,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   // never copy bark events into an NPC view (Leak prevention)
   const history = [...(state.recentEvents ?? []), ...state.events];
   const perceived = history.filter((e) => e.perception[a.id] && !e.bark).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
-  const told = history.filter((e) => e.perception[a.id] && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
+  const told = history.filter((e) => hearsWords(e.perception[a.id]) && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const said = history.filter((e) => e.actorId === a.id && e.line?.text && !e.bark).slice(-CONFIG.SAID_LINES).map((e) => e.line!.text);
   const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged', 'parried'].includes(e.attack.outcome));
   const scratchHits = state.scratch?.[a.id];
@@ -482,7 +482,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const changes = visibleChanges(state, e.effects, me);
     if ((e.kind === 'threshold_crossed' || e.kind === 'part_state_changed') && !changes.length) continue; // hidden change
     const speaker = full || knowsStep(state, p, e) ? callName(state, me, e.actorId) : undefined;
-    const hears = !!e.line && (full || per.cue === 'sound');
+    const hears = !!e.line && hearsWords(per);
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;
     const name = full && e.kind !== 'attack' ? (e.service ? getLibrary().services?.[e.service]?.name : e.itemId ? itemName(state, e.itemId) : undefined) : undefined;

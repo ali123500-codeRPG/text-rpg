@@ -114,11 +114,12 @@ const DEFAULTS = {
   AURA_REACH: 1, // I3: an engagement aura reaches the owner's zone and zones one link away (a further reach factor is parked, D-193)
   ENGAGEMENT_END_TURNS: 3, // E1: an engagement ends after this many turns with no one engaged with the actor; YD6: hunting and engaged drop to tracking after this many turns with no blow or closing in
   SPAR_LIMIT: 'Critical', // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
-  RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
+  /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
+   * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
+  RANGE_SHARE_MODS: [[0.25, 0], [0.5, -5], [0.75, -10], [1, -15]] as [number, number][],
+  HOSTILE_IN_ZONE_MOD: -10, // a ranged attack while a hostile shares the shooter's zone (Point Blank removes it)
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
-  // GAP (placeholders): zone links an event is seen, [full, partial], per VISIBILITY key. −1 = nowhere, the step
-  // below 0 (same zone), so a +1 link bonus turns nowhere into same zone. A dark zone caps sight at partial.
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
   /** hearing (perception noiseReach): a sound is heard while it is at least HEAR_DB at the listener (0 dB is the threshold
@@ -129,7 +130,11 @@ const DEFAULTS = {
   CLEAR_HEAR_DB: 25,
   SAME_ZONE_M: 1,
   LINK_SOUND_LOSS_DB: 12,
-  SIGHT_REACH: { unseen: [-1, -1], faint: [-1, 0], close: [0, 0], low: [0, 1], normal: [1, 2], high: [2, 3], glaring: [3, 4] } as Record<string, [number, number]>,
+  /** sight (perception sightReach): how far each VISIBILITY level is made out clearly (who and what) and glimpsed
+   * (something, not who), in metres, in daylight with a clear view, from real references (the library's
+   * visibilityLevels rows); null = nothing to see. Links come from the same metres-to-links conversion as reach; an
+   * event closer than SAME_ZONE_M can't be seen at that grade even in the same zone. A dark zone caps sight at partial. */
+  SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
@@ -220,9 +225,12 @@ const DEFAULTS = {
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10,
-  /** the throw action adds this many zones to the weapon's own reach; perks add more (PerkDef.throwReach) */
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,
+  /** CO13 how far movement goes in a fight turn (the Fight turn duration): a move slot walks at WALK_M_S (an everyday
+   * walk, about 1.4 m/s), a main slot spent moving (a dash) adds the rest of a run at RUN_M_S (a run in kit, about 5 m/s) */
+  WALK_M_S: 1.4,
+  RUN_M_S: 5,
   MAIN_SLOTS: 1,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
@@ -231,7 +239,9 @@ const DEFAULTS = {
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
-  THROWN_REACH_BONUS: 2, // placeholder (loot L3)
+  /** the throw action adds these metres to the weapon's own reach (perks add PerkDef.throwReach metres): a javelin,
+   * hatchet or knife thrown by hand is aimed at a man-sized target out to about 15 m */
+  THROWN_REACH_M: 15,
   /** the throw action is a combined roll: the weapon's own skill (a melee weapon's melee skill) and the ranged skill of
    * the same class, each with its own stand-ins, at these shares */
   THROW_BLEND: { weapon: 0.75, ranged: 0.25 },

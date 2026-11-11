@@ -13,6 +13,8 @@ import { tally } from './xp';
 import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
 import { countTry, repeatTryMods } from '../ruleset/pressure';
+import { hearsWords } from '../perception';
+import { noiseReach } from '../perception/noise';
 
 export const SPEECH_SKILL: Record<string, string> = {
   talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.lying, intimidate: SK.intimidation, barter: SK.barter,
@@ -81,7 +83,7 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   };
   for (const ad of intent.addressees) {
     if (ad === 'everyone') {
-      const heard = live.filter((a) => dist(a) <= 1);
+      const heard = live.filter((a) => dist(a) <= noiseReach('normal')[0]); // who hears a normal voice clearly
       const bands = [...new Set(heard.map((a) => a.bandId))].map((b) => ({ b, m: nearest(heard.filter((a) => a.bandId === b))! }));
       bands.sort((x, y) => dist(x.m) - dist(y.m) || (x.m.id < y.m.id ? -1 : 1));
       for (const { b, m } of bands) take(b, m);
@@ -211,7 +213,7 @@ export function overhearLie(state: GameState, ev: GameEvent, answered: string[],
   for (const o of [state.player, ...state.actors.filter((a) => a !== state.player)]) {
     if (o.id === speaker.id || answered.includes(o.id) || !isActive(o) || !hasPerk(o, PK.overheard)) continue;
     const heard = ev.perception?.[o.id];
-    if (!heard || (heard.level !== 'full' && heard.cue !== 'sound')) continue;
+    if (!hearsWords(heard)) continue;
     roll ??= ruleset.roll({ actorId: speaker.id, skill: SK.lying, modifiers: [], tierShifts: [] }, state, rng);
     const contest = toContest(roll, answerRoll(state, o, SK.insight, speaker.id, rng));
     contestFeat(state, contest);

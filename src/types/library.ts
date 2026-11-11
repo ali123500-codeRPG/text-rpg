@@ -118,9 +118,10 @@ export type Library = {
   edgeKinds?: Record<string, EdgeKind>; // CO15
   zoneSizes?: Record<string, ZoneSize>; // CO16
   noiseLevels?: Record<string, NoiseLevel>;
+  visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' }>; // GC…: the skill an item of the class asks for
-  attackModes?: Record<string, { id: string; name: string; reachBonus?: number; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
+  attackModes?: Record<string, { id: string; name: string; reachBonusM?: number; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
 /** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
@@ -142,6 +143,7 @@ export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; 
 /** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
 /** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all (noiseReach) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
+export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string; clearTo: string; glimpsedTo: string };
 export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };
 
 /** Perk page S1–S9: a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
@@ -151,7 +153,7 @@ export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
   /** MB21: moves a health fear's `from` level by `steps` (+ later, − sooner) */
   fearFrom?: { fear: string; steps: number };
-  /** zones added to the throw action's reach (on top of THROWN_REACH_BONUS) */
+  /** metres added to the throw action's reach (on top of THROWN_REACH_M) */
   throwReach?: number;
   /** zone links added to how far the owner hears (Keen Ear 1) */
   hearingReach?: number;
