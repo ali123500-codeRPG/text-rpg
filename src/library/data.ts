@@ -482,12 +482,12 @@ export function prototypeLibrary(): Library {
     values: Object.fromEntries(Object.entries(VL).map(([k, id]) => [id, { id, name: k }])),
     personalityTypes: {
       [PY.prideful]: { id: PY.prideful, name: 'Prideful', when: { [PA.pride]: { min: 40 } }, hint: 'saves face, won\'t back down in front of others, takes insults personally' },
-      [PY.mature]: { id: PY.mature, name: 'Mature', when: { [PA.discipline]: { min: 40 }, [PA.temper]: { max: -20 }, [SK.resolve]: { min: 40 } }, hint: 'thinks before acting, keeps a cool head, owns its mistakes' },
+      [PY.mature]: { id: PY.mature, name: 'Mature', when: { [PA.discipline]: { min: 40 }, [PA.temper]: { max: -20 }, [SK.resolve]: { min: 40 } }, hint: 'thinks before acting, keeps a cool head, owns their mistakes' },
       [PY.childish]: { id: PY.childish, name: 'Childish', when: { [PA.discipline]: { max: -40 }, [PA.temper]: { min: 20 } }, hint: 'acts on impulse, sulks or lashes out when crossed' },
-      [PY.honourable]: { id: PY.honourable, name: 'Honourable', when: { [PA.honesty]: { min: 40 }, [PA.pride]: { min: 20 } }, hint: 'keeps its word, and answers an insult to its name' },
+      [PY.honourable]: { id: PY.honourable, name: 'Honourable', when: { [PA.honesty]: { min: 40 }, [PA.pride]: { min: 20 } }, hint: 'keeps their word and answers any insult to their name' },
       [PY.schemer]: { id: PY.schemer, name: 'Schemer', when: { [PA.honesty]: { max: -40 }, [PA.discipline]: { min: 20 } }, hint: 'plans ahead, lies patiently, uses people' },
-      [PY.bully]: { id: PY.bully, name: 'Bully', when: { [PA.pride]: { min: 40 }, [PA.temper]: { min: 40 }, [PA.honesty]: { max: -20 } }, hint: 'picks on the weaker, backs off from the stronger' },
-      [PY.busybody]: { id: PY.busybody, name: 'Busybody', when: { [PA.sociability]: { min: 40 }, [PA.curiosity]: { min: 40 } }, hint: 'pokes into others\' business and passes on what it learns' },
+      [PY.bully]: { id: PY.bully, name: 'Bully', when: { [PA.pride]: { min: 40 }, [PA.temper]: { min: 40 }, [PA.honesty]: { max: -20 } }, hint: 'picks on the weak, backs down from the strong' },
+      [PY.busybody]: { id: PY.busybody, name: 'Busybody', when: { [PA.sociability]: { min: 40 }, [PA.curiosity]: { min: 40 } }, hint: 'pokes into other people\'s business and passes on what they learn' },
     },
     fears: {
       [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 25, rolled: true, health: { from: 'Injured', to: 'Mauled' } },

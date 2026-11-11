@@ -26,9 +26,9 @@ describe('Nerve', () => {
     expect(barkeep.core.skills[SK.resolve].raw).toBe(30);
     expect(nerveTier(barkeep)).toBe('Timid');
     expect(nerveTier(withResolve(barkeep, 40))).toBe('Careful');
-    expect(nerveTier(withResolve(barkeep, 100))).toBe('Imperturbable');
-    expect(nerveTier(withResolve(barkeep, 150))).toBe('Imperturbable+');
-    expect(nerveTier(withResolve(barkeep, 210))).toBe('Imperturbable++');
+    expect(nerveTier(withResolve(barkeep, 100))).toBe('Unflappable');
+    expect(nerveTier(withResolve(barkeep, 150))).toBe('Unflappable+');
+    expect(nerveTier(withResolve(barkeep, 210))).toBe('Unflappable++');
     expect(nerveTier(npc(TP.guard))).toBe('Steady');
   });
 });

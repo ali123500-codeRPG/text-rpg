@@ -119,8 +119,8 @@ export type TreeRatingKey = (typeof TREE_RATINGS.keys)[number];
 /** PL2, PL3, PL20: Nerve tiers, one ordered scale per Nerve line, lowest Resolve first. CONFIG.NERVE_TIER_FROM gives the
  * raw Resolve each position starts at. Lines are unordered and named by their keys. Names are placeholders (PL18). */
 export const NERVE_LINES = {
-  cautious: scale([['skittish', 'Skittish'], ['timid', 'Timid'], ['careful', 'Careful'], ['prudent', 'Prudent'], ['cool_headed', 'Cool-headed'], ['imperturbable', 'Imperturbable']]),
-  steady: scale([['jittery', 'Jittery'], ['settled', 'Settled'], ['steady', 'Steady'], ['stalwart', 'Stalwart'], ['unbreakable', 'Unbreakable'], ['adamant', 'Adamant']]),
-  daring: scale([['blustering', 'Blustering'], ['brash', 'Brash'], ['spirited', 'Spirited'], ['bold', 'Bold'], ['fearless', 'Fearless'], ['dauntless', 'Dauntless']]),
+  cautious: scale([['skittish', 'Skittish'], ['timid', 'Timid'], ['careful', 'Careful'], ['prudent', 'Prudent'], ['cool_headed', 'Cool-headed'], ['imperturbable', 'Unflappable']]),
+  steady: scale([['jittery', 'Jittery'], ['settled', 'Settled'], ['steady', 'Steady'], ['stalwart', 'Stalwart'], ['unbreakable', 'Unbreakable'], ['adamant', 'Immovable']]),
+  daring: scale([['blustering', 'Blustering'], ['brash', 'Brash'], ['spirited', 'Spirited'], ['bold', 'Bold'], ['fearless', 'Fearless'], ['dauntless', 'Death-defying']]),
 } as const;
 export type NerveLine = keyof typeof NERVE_LINES;
