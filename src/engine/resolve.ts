@@ -248,13 +248,13 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     emit(ctx, mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] }));
     return 'spent';
   }
-  const from = a.zone;
+  const from = a.zone, fromPos = a.pos && { ...a.pos };
   const walked = walkLeg(state, a, goal, metres, stopShort, fresh);
   if (walked === null) return null;
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone
-  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward } : goal.zone !== a.zone ? { heading: goal.zone } : {}), ...(spot && a.zone === goal.zone ? { spot } : {}) };
+  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from, ...(fromPos ? { fromPos } : {}) } : toward ? { target: toward } : goal.zone !== a.zone ? { heading: goal.zone } : {}), ...(spot && a.zone === goal.zone ? { spot } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
