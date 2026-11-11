@@ -1,5 +1,5 @@
 // 161 All-100 and All-150 work like the All-50 (a tree passive plus each skill's part at the step, granted once enough of
-// the tree's skills reach it), and the first All-150: Perception's Every Sense One. What the owner sees it hears, and
+// the tree's skills reach it), and the first All-150 part: Every Sense One, shared by Eyesight and Earshot. What the owner sees it hears, and
 // what it hears it sees; its sight and hearing rolls use the best of both senses.
 import { describe, expect, it } from 'vitest';
 import type { Actor, GameEvent, GameState } from '../../src/types';
@@ -22,9 +22,11 @@ const give = (a: Actor) => a.core.perks.push({ perkId: PK.one_sense, source: 'ma
 const raw = (a: Actor, skill: string, v: number) => { a.core.skills[skill] = { raw: v, state: 'normal' }; };
 
 describe('161 All-150 Every Sense One', () => {
-  it('is the Perception All-150 passive, built; All-50 parts are the 50 step of STEP_PARTS', () => {
-    expect(ALL_BUNDLES.find((b) => b.treeId === TR.perception && b.step === 150)?.passive).toBe(PK.one_sense);
-    expect(getLibrary().perks[PK.one_sense]?.allStep).toMatchObject({ treeId: TR.perception, step: 150 });
+  it('is the All-150 part of Eyesight and Earshot, built; All-50 parts are the 50 step of STEP_PARTS', () => {
+    expect(ALL_BUNDLES.find((b) => b.treeId === TR.perception && b.step === 150)?.passive).toBeUndefined();
+    expect(STEP_PARTS[150][SK.eyesight]).toBe(PK.one_sense);
+    expect(STEP_PARTS[150][SK.earshot]).toBe(PK.one_sense);
+    expect(getLibrary().perks[PK.one_sense]?.allStep).toMatchObject({ treeId: TR.perception, step: 150, skill: SK.eyesight });
     expect(BUILT_PERKS.has(PK.one_sense)).toBe(true);
     expect(STEP_PARTS[50]).toBe(SKILL_PARTS);
   });
