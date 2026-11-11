@@ -325,10 +325,18 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-tree-h b { font-size: 15px; }
 .cs-tree-h span { color: var(--muted); font-size: 13px; }
 .cs-tree-block { display: block; color: var(--muted); font-size: 13px; }
-.cs-sk { display: grid; grid-template-columns: 150px minmax(0, 1fr) 104px 40px; gap: var(--space-3); align-items: center; }
-.cs-sk .n { font-weight: 600; }
+/* two lines per skill so the bar always gets the tree's full width: name and value, then the bar and its learning window */
+.cs-sk { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "n num" "bar lwn"; gap: 6px var(--space-3); align-items: center; }
+.cs-sk .n { grid-area: n; font-weight: 600; } .cs-sk .num { grid-area: num; } .cs-sk .cs-bar { grid-area: bar; } .cs-sk .lwn { grid-area: lwn; }
 .cs-sk .n small { display: block; font-weight: 400; font-size: 12px; color: var(--faint); }
-.cs-sk .num { text-align: right; font-weight: 800; font-size: 16px; }
+.cs-sk .num { text-align: right; font-weight: 800; font-size: 16px; position: relative; }
+/* true value differs from raw: a dotted underline says there is more, and the raw value shows beside the number on hover or focus */
+.cs-sk .num.has-raw { text-decoration: underline dotted var(--faint); text-underline-offset: 4px; text-decoration-thickness: 1px; cursor: help; outline-offset: 2px; }
+.cs-sk .raw-tip { position: absolute; right: calc(100% + 6px); top: 50%; transform: translateY(-50%); z-index: 5; white-space: nowrap; pointer-events: none;
+  padding: 2px var(--space-2); border-radius: var(--r-md); border: 1px solid var(--rule); background: var(--surface); box-shadow: var(--shadow-toast);
+  font-size: 12px; font-weight: 600; color: var(--muted); opacity: 0; transition: opacity 120ms ease-out; }
+.cs-sk:hover .raw-tip, .cs-sk .num:focus-visible .raw-tip { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .cs-sk .raw-tip { transition: none; } }
 .cs-sk.zero .n, .cs-sk.zero .num { color: var(--faint); }
 .cs-bar { position: relative; height: 10px; border-radius: 5px; background: var(--accent-soft); }
 .cs-bar > b { position: absolute; inset: 0 auto 0 0; border-radius: 5px; background: var(--t); }
