@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, DU, FR, GC, HL, RL, ZK } from './tableIds';
+import { AM, CP, DU, FR, GC, HL, RL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -437,15 +437,24 @@ export function prototypeLibrary(): Library {
     bodyTypes: BODY_TYPES,
     // Healing sources (H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
     healing: {
-      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, moralePct: CONFIG.REST_MORALE_PCT, reach: 'damaged', revivesDead: false, inFight: false },
-      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, moralePct: CONFIG.CLINIC_HEAL_PCT, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
+      [HL.rest]: { id: HL.rest, name: 'Rest', hpPct: CONFIG.REST_HEAL_PCT, partPct: CONFIG.REST_HEAL_PCT, composure: CP.rest, reach: 'damaged', revivesDead: false, inFight: false },
+      [HL.clinic]: { id: HL.clinic, name: 'Clinic', hpPct: CONFIG.CLINIC_HEAL_PCT, partPct: CONFIG.CLINIC_HEAL_PCT, composure: CP.clinic, reach: 'crippled', revivesDead: false, inFight: false, placeKinds: ['clinic', 'infirmary'] },
       [HL.bandage]: { id: HL.bandage, name: 'Bandage', hpPct: 10, partPct: 10, reach: 'damaged', revivesDead: false, inFight: true },
       // H12–H14: natural recovery, all the time (fights too): endurance × 0.01 % an hour (0.5% at 50); never Crippled or worse
       [HL.passive]: { id: HL.passive, name: 'Natural recovery', hpPct: 0, partPct: 0, reach: 'damaged', revivesDead: false, inFight: true, hourly: { skill: SK.endurance, pctPerPoint: 0.01 } },
-      // MB8/MB34: morale comes back from Resolve: 0.1 % of max morale per point an hour (5 % at 50), all the time
-      [HL.composure]: { id: HL.composure, name: 'Natural composure', hpPct: 0, partPct: 0, reach: 'healthy', revivesDead: false, inFight: true, hourly: { skill: SK.resolve, pctPerPoint: 0.1, morale: true } },
       // never applied itself: healing straight from a perk (Second Wind) is counted here for achievements; Fast Healer counts as natural recovery
       [HL.perk]: { id: HL.perk, name: 'Perks', hpPct: 0, partPct: 0, reach: 'healthy', revivesDead: false, inFight: true, countOnly: true },
+    },
+    // What restores morale, a table apart from healing so each tunes on its own; a healing row names the row its action
+    // also restores (rest, clinic). Amounts are placeholders.
+    composure: {
+      [CP.rest]: { id: CP.rest, name: 'Rest', pct: CONFIG.REST_MORALE_PCT, inFight: false }, // MB8
+      [CP.clinic]: { id: CP.clinic, name: 'Clinic', pct: CONFIG.CLINIC_MORALE_PCT, inFight: false },
+      // MB34: morale comes back from Resolve: 0.1 % of max morale per point an hour (5 % at 50), all the time
+      [CP.natural]: { id: CP.natural, name: 'Natural composure', pct: 0, inFight: true, hourly: { skill: SK.resolve, pctPerPoint: 0.1 } },
+      [CP.danger_passed]: { id: CP.danger_passed, name: 'Danger passed', pct: CONFIG.MORALE_ENGAGEMENT_END_PCT, inFight: false }, // MB9: an engagement ends
+      // never applied itself: morale restored straight by a perk is counted here for achievements (calmFromPerk)
+      [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
     },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
     fears: {
@@ -458,6 +467,12 @@ export function prototypeLibrary(): Library {
       [FR.dread_presence]: { id: FR.dread_presence, name: 'An aura of dread gets to you', cost: 10, rolled: false, perTier: true }, // MB37: each failed aura check costs its own morale
       [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
       [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
+      // a part Crippled or worse: per part by impact for a 6-part body, scaled to the body's part count; one roll per hit pays the sum
+      [FR.own_part_crippled]: { id: FR.own_part_crippled, name: 'A part of yours is Crippled', cost: 0, rolled: true, part: 'crippled',
+        partCost: { non_essential: 5, normal: 15, essential: 30 }, refParts: 6 },
+      // a part Destroyed rolls again, at 1.5 × the Crippled row's costs (read from that row)
+      [FR.own_part_destroyed]: { id: FR.own_part_destroyed, name: 'A part of yours is Destroyed', cost: 0, rolled: true, part: 'destroyed',
+        partCostOf: { fear: FR.own_part_crippled, mult: 1.5 } },
     },
     // Game clock (T1): minutes per action; placeholders
     durations: {
@@ -641,6 +656,23 @@ export function prototypeLibrary(): Library {
       [ACH.healed_perk_50]: { id: ACH.healed_perk_50, name: 'Borrowed Strength', level: 'zero', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 50 },
       [ACH.healed_perk_500]: { id: ACH.healed_perk_500, name: 'Tricks of the Flesh', level: 'i', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 500, after: ACH.healed_perk_50 },
       [ACH.healed_perk_2500]: { id: ACH.healed_perk_2500, name: 'Unkillable by Habit', level: 'ii', rule: 'healed', by: 'heal_source', only: HL.perk, tags: ['survival'], count: 2500, after: ACH.healed_perk_500 },
+      // morale restored (flat points) from one composure row each, mirroring healing by source; counts are placeholders
+      [ACH.calmed_rest_100]: { id: ACH.calmed_rest_100, name: 'Sleep On It', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 100 },
+      [ACH.calmed_rest_1000]: { id: ACH.calmed_rest_1000, name: 'Rested Nerves', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 1000, after: ACH.calmed_rest_100 },
+      [ACH.calmed_rest_10000]: { id: ACH.calmed_rest_10000, name: 'Peace of Mind', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.rest, tags: ['survival'], count: 10000, after: ACH.calmed_rest_1000 },
+      [ACH.calmed_natural_50]: { id: ACH.calmed_natural_50, name: 'Catch Your Breath', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 50 },
+      [ACH.calmed_natural_500]: { id: ACH.calmed_natural_500, name: 'Shakes It Off', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 500, after: ACH.calmed_natural_50 },
+      [ACH.calmed_natural_2500]: { id: ACH.calmed_natural_2500, name: 'The Mind Remembers', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.natural, tags: ['survival'], count: 2500, after: ACH.calmed_natural_500 },
+      [ACH.calmed_perk_50]: { id: ACH.calmed_perk_50, name: 'Borrowed Courage', level: 'zero', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 50 },
+      [ACH.calmed_perk_500]: { id: ACH.calmed_perk_500, name: 'Tricks of the Mind', level: 'i', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 500, after: ACH.calmed_perk_50 },
+      [ACH.calmed_perk_2500]: { id: ACH.calmed_perk_2500, name: 'Unshakable by Habit', level: 'ii', rule: 'calmed', by: 'morale_source', only: CP.perk, tags: ['survival'], count: 2500, after: ACH.calmed_perk_500 },
+      // flat HP and morale points lost, from any cause; counts are placeholders
+      [ACH.hp_lost_100]: { id: ACH.hp_lost_100, name: 'Bled For It', level: 'zero', rule: 'hp_lost', tags: ['survival'], count: 100 },
+      [ACH.hp_lost_1000]: { id: ACH.hp_lost_1000, name: 'Hard to Count the Wounds', level: 'i', rule: 'hp_lost', tags: ['survival'], count: 1000, after: ACH.hp_lost_100 },
+      [ACH.hp_lost_10000]: { id: ACH.hp_lost_10000, name: 'Made of Old Wounds', level: 'ii', rule: 'hp_lost', tags: ['survival'], count: 10000, after: ACH.hp_lost_1000 },
+      [ACH.morale_lost_100]: { id: ACH.morale_lost_100, name: 'Nerves Worn Thin', level: 'zero', rule: 'morale_lost', tags: ['survival'], count: 100 },
+      [ACH.morale_lost_1000]: { id: ACH.morale_lost_1000, name: 'Seen Too Much', level: 'i', rule: 'morale_lost', tags: ['survival'], count: 1000, after: ACH.morale_lost_100 },
+      [ACH.morale_lost_10000]: { id: ACH.morale_lost_10000, name: 'Fear Is an Old Friend', level: 'ii', rule: 'morale_lost', tags: ['survival'], count: 10000, after: ACH.morale_lost_1000 },
       // D-177: fights against a hostile foe stronger than you (power = rating + gear rating); gaps are placeholders
       [ACH.survived_above_100]: { id: ACH.survived_above_100, name: 'Lived to Tell It', level: 'zero', rule: 'survived_above', tags: ['combat', 'survival'], count: 100 },
       [ACH.survived_above_250]: { id: ACH.survived_above_250, name: 'Walked Away From That', level: 'i', rule: 'survived_above', tags: ['combat', 'survival'], count: 250, after: ACH.survived_above_100 },

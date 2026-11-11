@@ -108,6 +108,7 @@ export type Library = {
   routineSets: Record<string, RoutineSet>;
   perks: Record<string, PerkDef>;
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
+  composure?: Record<string, ComposureDef>; // what restores morale, apart from healing so each tunes on its own
   fears?: Record<string, FearDef>; // MB21: what costs morale
   services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
@@ -190,17 +191,33 @@ export type HealingDef = {
   id: string; name: string; hpPct: number; partPct: number; reach: PartStateKey; inFight: boolean; placeKinds?: string[];
   /** heals a Dead actor (no for every row for now; a lever for resurrection later) */
   revivesDead: boolean;
-  /** MB8: share of max morale restored (hourly rows: `hourly.morale` restores morale instead of health) */
-  moralePct?: number;
-  hourly?: { skill: string; pctPerPoint: number; morale?: true };
+  /** the composure-table row the same action also restores (rest, clinic): morale comes from that table, not this one */
+  composure?: string;
+  hourly?: { skill: string; pctPerPoint: number };
   /** never applied itself: a source achievements count healing under (HL.perk: healing from perks) */
+  countOnly?: true;
+};
+
+/** A composure source: what restores morale (MB8/MB9/MB34), the morale twin of a healing row. `pct` = share of max morale
+ * restored; `hourly` makes it passive (per game hour, skill × pctPerPoint %). A healing row names the composure row its
+ * action also restores (HealingDef.composure), so rest restores both while each table tunes on its own. */
+export type ComposureDef = {
+  id: string; name: string; pct: number; inFight: boolean;
+  hourly?: { skill: string; pctPerPoint: number };
+  /** never applied itself: a source achievements count restored morale under (CP.perk: morale from perks) */
   countOnly?: true;
 };
 
 /** MB21–MB28: something that costs morale (a negative cost restores it). `rolled`: the morale roll's tier scales the cost
  * (MORALE_TIER_MULT); otherwise it is flat (× `perTier` the contest's tier gap for a lost speech roll).
  * `health`: the health-level positions (HEALTH_TRACK names) that set it off; perks and achievements move `from` with fearFrom. */
-export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; health?: { from: string; to: string } };
+/** part: a PART_STATES key; the fear fires when one of the actor's body parts reaches that state or worse from a better one.
+ * partCost: its cost per part by the part's impact, for a body of refParts parts; a body with more parts pays less per part
+ * (cost × refParts ÷ the body's part count). One roll per hit pays the sum for every part the hit took there. */
+export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; health?: { from: string; to: string }; part?: string;
+  partCost?: Record<ImpactId, number>; refParts?: number;
+  /** reads another part fear's partCost and refParts by reference, × mult, so editing that row changes this one too */
+  partCostOf?: { fear: string; mult: number } };
 
 /** innatePerks / innateQuirks: perk ids every member of the race is born with (OwnedPerk source 'race').
  * Any number of each; empty = none chosen yet. Innate perks must not be quirks, innate quirks must be. */
@@ -223,9 +240,9 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
   | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated'
-  | 'won_panicking' | 'morale_breaks' | 'healed' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct';
+  | 'won_panicking' | 'morale_breaks' | 'healed' | 'calmed' | 'hp_lost' | 'morale_lost' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
-export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source';
+export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source';
 /** scar: a negative achievement, listed under Scars instead of Achievements */
 /** an achievement tag: a key of ACH_TAGS in src/library/achievementIds.ts */
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';

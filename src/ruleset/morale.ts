@@ -1,10 +1,10 @@
 // The morale bar (MB1–MB43): a second, mental health bar. Max morale comes from Resolve as HP comes from Endurance;
 // fears cost flat points (the library fears table); the level is the share of max morale lost (CONFIG.MORALE_TRACK).
-import type { Actor, FearDef, Mod } from '../types';
+import type { Actor, FearDef, Mod, PartDef } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
-import { MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
+import { MORALE_LEVELS, PART_STATES, TIERS, type MoraleLevel } from '../scales';
 import { skillOpen } from './access';
 import { currentAchievements } from './achRewards';
 
@@ -44,6 +44,27 @@ export function healthFear(a: Actor, level: string): FearDef | undefined {
   const at = CONFIG.HEALTH_TRACK.findIndex(([l]) => l === level);
   const to = (f: FearDef) => CONFIG.HEALTH_TRACK.findIndex(([l]) => l === f.health!.to);
   return Object.values(getLibrary().fears ?? {}).find((f) => f.health && at >= fearFrom(a, f) && at <= to(f));
+}
+
+/** the part fears a hit sets off, each with the parts that reached (or passed) its state from a better one.
+ * before and after are part states by display name, as partStates gives them. */
+export function partFears(before: { id: string; state: string }[], after: { id: string; state: string }[]): { fear: FearDef; parts: string[] }[] {
+  const pos = (name: string) => PART_STATES.pos(PART_STATES.keyOf(name as never)!);
+  const was = new Map(before.map((p) => [p.id, pos(p.state)]));
+  return Object.values(getLibrary().fears ?? {}).flatMap((f) => {
+    if (!f.part) return [];
+    const at = PART_STATES.pos(f.part as never);
+    const parts = after.filter((p) => { const from = was.get(p.id); return from !== undefined && from < at && pos(p.state) >= at; }).map((p) => p.id);
+    return parts.length ? [{ fear: f, parts }] : [];
+  });
+}
+/** what a part fear costs before its roll: each part's impact cost (partCost, or another row's × mult) × refParts ÷ the body's part count, summed */
+export function partFearCost(f: FearDef, hit: string[], body: PartDef[]): number {
+  const base = f.partCostOf ? getLibrary().fears?.[f.partCostOf.fear] : f;
+  const mult = f.partCostOf?.mult ?? 1;
+  if (!base?.partCost || !body.length) return f.cost;
+  const scale = (base.refParts ?? body.length) / body.length;
+  return hit.reduce((n, id) => { const p = body.find((x) => x.id === id); return n + (p ? base.partCost![p.impact] * scale * mult : 0); }, 0);
 }
 
 /** sets morale lost, kept between 0 and max morale (Broken is 100 %); returns the change */

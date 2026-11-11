@@ -647,11 +647,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Battle Cry (Intimidation) · C2
 
-*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, makes a morale roll against you, and every ally that hears it takes heart and shakes off its fear.
+*Story:* Your roar tells every foe exactly how this ends, and tells your side it isn't over. Once per fight, as your action, every foe that hears it, however far, makes a morale roll against you, and you and every ally that hears it take heart and shake off fear.
 
 - **Kind:** Move (offensive aura)
 - **Trigger:** The owner uses the move. The roar is a Loud noise.
-- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back and loses any Shaken.
+- **Effect:** Every foe opposed or hostile to the owner that perceives the roar, at any perception level (half heard counts), wherever it is, rolls its morale skill (Resolve) against the owner's Intimidation. If the owner wins, the foe loses 10 morale per tier of gap (as Dread Presence). Every ally of the owner that perceives the roar (a bandmate, someone who counts the owner a friend or better, or someone fighting beside the owner) gets 10 morale back and loses any Shaken, and so does the owner.
 - **Lasts:** Instant.
 - **Cooldown:** Once per engagement. It is the owner's main action.
 
@@ -734,6 +734,40 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Lasts:** Each answer to a persuasion.
 - **Open:** Parked by Ali.
 - **Banked as:** a later Insight perk
+
+### Steady Nerves (Resolve) · MR5a
+
+*Story:* Your hands shake. Your aim doesn't. Being Rattled or Afraid no longer costs you anything on your rolls.
+
+- **Kind:** Always on
+- **Trigger:** The owner makes a roll while Rattled or Afraid.
+- **Effect:** The Rattled and Afraid roll penalties do not apply to the owner.
+- **Lasts:** Always.
+- **Open:** Parked by Ali. One of three options for the Resolve 20 perk.
+- **Banked as:** a later Resolve perk
+
+### Used to the Pain (Resolve) · MR5b
+
+*Story:* A cut is just a cut. Your own wounds shake you one step later than they would anyone else.
+
+- **Kind:** Always on
+- **Trigger:** The owner is wounded.
+- **Effect:** The owner's own wounds start costing morale one health level later.
+- **Lasts:** Always.
+- **Open:** Parked by Ali. One of three options for the Resolve 20 perk (could be Resolve 60 instead).
+- **Banked as:** a later Resolve perk
+
+### Run Later (Resolve) · MR5c
+
+*Story:* You can run later. Once in a fight, a blow to your nerve that would break you leaves you Panicking instead.
+
+- **Kind:** Once per fight
+- **Trigger:** A morale loss would make the owner Broken.
+- **Conditions:** Not used yet this fight.
+- **Effect:** The owner is left at Panicking instead of Broken.
+- **Lasts:** That morale loss.
+- **Open:** Parked by Ali. One of three options for the Resolve 20 perk (could be Resolve 60 instead). Shown on the morale page as Not Yet; renamed because an achievement is already called Not Yet.
+- **Banked as:** a later Resolve perk
 
 ### Crushing Blow (Heavy weapons) · D1
 

@@ -77,9 +77,13 @@ export const cryAlly = (state: GameState, t: Actor, owner: Actor): boolean =>
 /** I9/MB27 Battle Cry (Intimidation 140), an offensive aura triggered by its move: the owner's roar (`ev`, a Loud event)
  * reaches everyone who perceives it at any level, however far. Each foe (opposed or hostile to the owner) rolls its
  * morale skill (Resolve) against the owner's Intimidation and pays FR.battle_cry per tier of gap when it loses. Each
- * ally gets FR.rallied (10 morale back) and loses any Shaken. */
+ * ally, and the owner, gets FR.rallied (10 morale back) and loses any Shaken. */
 export function battleCry(state: GameState, owner: Actor, ev: GameEvent, rng: Rng, fear: AuraFear): CryResult[] {
   const out: CryResult[] = [];
+  // the roar rallies the one who roars as it rallies their allies
+  fear(owner, FR.rallied);
+  for (const p of Object.values(owner.pressure ?? {})) delete p.shaken;
+  out.push({ target: owner, rallied: true });
   for (const t of allActors(state)) {
     if (t === owner || !isActive(t) || !(ev.perception[t.id] ?? perceptionOf(ev, state, t))) continue;
     if (wary(state, t, owner)) {
