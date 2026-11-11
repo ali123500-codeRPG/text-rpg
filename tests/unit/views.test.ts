@@ -233,3 +233,13 @@ describe('P3 seen clearly stays seen', () => {
     expect(buildPlayerView(s).actors.find((a) => a.id === 'patron_1')!.level).toBe('full');
   });
 });
+
+describe('others health word', () => {
+  it('shows Dead only when seen clearly, Down for any other fallen state', async () => {
+    const { othersHealthWord } = await vi.importActual<typeof import('../../src/ruleset')>('../../src/ruleset');
+    expect(othersHealthWord('Dead', true)).toBe('Dead');
+    expect(othersHealthWord('Dead', false)).toBe('Down');
+    expect(othersHealthWord('Incapacitated', true)).toBe('Down');
+    expect(othersHealthWord('Wounded', true)).toBe('Wounded');
+  });
+});
