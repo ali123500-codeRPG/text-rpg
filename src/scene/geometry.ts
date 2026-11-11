@@ -61,21 +61,27 @@ export function placeZones(state: GameState, zones: Zone[]): void {
         z.rect = { x: p.x, y: p.y, w, d }; // up or down the stairs: straight above or below
       } else {
         const sides: Side[] = dir ? [sideOf(dir)] : ['e', 's', 'w', 'n'];
-        let best: Rect | null = null;
-        for (const side of sides) {
+        const at = (side: Side): Rect => {
           const [sx, sy] = STEP[side];
           const [w, d] = dims(z, sx ? 'ew' : 'ns');
-          // touch the near zone's side: centred on it, else lined up with either end of it; only when all three are in
-          // the way, slide outward from the centred spot until nothing on this floor is
-          const r: Rect = { x: p.x + sx * (p.w + w) / 2, y: p.y + sy * (p.d + d) / 2, w, d };
-          const shifts = [0, 1, -1].map((k) => (sx ? [0, k * (p.d - d) / 2] : [k * (p.w - w) / 2, 0]));
-          const lined = shifts.map(([ex, ny]) => ({ ...r, x: r.x + ex, y: r.y + ny })).find((c) => free(z, c));
-          if (lined) { best = lined; break; }
-          for (let k = 0; k < 100 && !free(z, r); k++) { r.x += sx * w / 2; r.y += sy * d / 2; }
-          if (free(z, r)) { best = r; break; }
-          best ??= r;
+          return { x: p.x + sx * (p.w + w) / 2, y: p.y + sy * (p.d + d) / 2, w, d };
+        };
+        // touch the near zone's side: centred on it, else lined up with either end of it, on any side the exit allows
+        // (BG-7: a blocked first side no longer leaves a gap while another side is free); only when every touching spot
+        // is in the way, slide outward from the first side's centred spot until nothing on this floor is
+        let best: Rect | undefined;
+        for (const side of sides) {
+          const r = at(side), sx = STEP[side][0];
+          const shifts = [0, 1, -1].map((k) => (sx ? [0, k * (p.d - r.d) / 2] : [k * (p.w - r.w) / 2, 0]));
+          best = shifts.map(([ex, ny]) => ({ ...r, x: r.x + ex, y: r.y + ny })).find((c) => free(z, c));
+          if (best) break;
         }
-        z.rect = best!;
+        if (!best) {
+          const r = at(sides[0]), [sx, sy] = STEP[sides[0]];
+          for (let k = 0; k < 100 && !free(z, r); k++) { r.x += sx * r.w / 2; r.y += sy * r.d / 2; }
+          best = r;
+        }
+        z.rect = best;
       }
       open.delete(id); progress = true;
     }

@@ -2943,7 +2943,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-4 | "I yield" asked a hostile who never fought the player (waiting in another room), and the sheet's "Deciding" list revealed him; he also counts in the fight log | Play | Fixed | PR #387 (YD1–YD3, YD6, YD7) |
 | BG-5 | The player's fight never ended after they left it: the slimes stayed hostile and aware while fighting the guard, so fightingWith kept the engagement open and the end-of-engagement skill-up rolls never came (playtest run 31) | Playtest | Fixed | PR #387 (YD6) |
 | BG-6 | Zone placement read "down the street" and "up the road" as stairs, so level street zones were stacked on top of each other | Thread | Fixed | PR #395 |
-| BG-7 | The player can't walk out of the tavern front door: zones of different places sit about 36 m apart with no doorway, so the walk heads for a crossing point in the gap, a partial leg leaves the player outside the room, and the next turn resets them to its centre (playtests runs 34, 35) | Playtest | Open | |
+| BG-7 | The player can't walk out of the tavern front door: zones of different places sit about 36 m apart with no doorway, so the walk heads for a crossing point in the gap, a partial leg leaves the player outside the room, and the next turn resets them to its centre (playtests runs 34, 35) | Playtest | Fixed | PR #408: a zone touches the zone its exit leads from on any free side before it slides out; linked zones that still don't touch are walked edge to edge (the gap is not walked) |
 
 ## Check on release
 

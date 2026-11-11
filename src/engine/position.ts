@@ -59,23 +59,28 @@ function anchor(state: GameState, z: Zone): Pos {
   return centre(z)!;
 }
 
-/** the point where a walk crosses from one zone into the next: their doorway, else halfway between their centres */
-function crossing(a: Zone, b: Zone): Pos {
+const clampTo = (r: NonNullable<Zone['rect']>, p: Pos): Pos => ({ x: Math.max(r.x - r.w / 2, Math.min(r.x + r.w / 2, p.x)), y: Math.max(r.y - r.d / 2, Math.min(r.y + r.d / 2, p.y)) });
+/** where a walk leaves one zone (`out`) and enters the next (`at`): their doorway; for linked zones that don't touch, the
+ * point of a's edge nearest b and the point of b's edge nearest that (BG-7: the gap between them is not walked, as a link
+ * means the zones adjoin, so the walk never stands outside both) */
+function crossing(a: Zone, b: Zone): { out: Pos; at: Pos } {
   const d = doorway(a, b);
-  if (d) return d;
-  return { x: (a.rect!.x + b.rect!.x) / 2, y: (a.rect!.y + b.rect!.y) / 2 };
+  if (d) return { out: d, at: d };
+  const out = clampTo(a.rect!, { x: b.rect!.x, y: b.rect!.y });
+  return { out, at: clampTo(b.rect!, out) };
 }
 
-/** the walking route from A to B: the zones after A, each with the point where the walk enters it (none without rectangles) */
-function route(state: GameState, A: Located, B: Located): { zone: Zone; at?: Pos }[] | null {
+/** the walking route from A to B: the zones after A, each with the points where the walk leaves the zone before and enters
+ * it (none without rectangles) */
+function route(state: GameState, A: Located, B: Located): { zone: Zone; at?: Pos; out?: Pos }[] | null {
   const path = shortestPath(state, A.zone, B.zone);
   if (!path) return null;
   let prev = zoneById(state, A.zone)!;
   return path.map((id) => {
     const z = zoneById(state, id)!;
-    const at = prev.rect && z.rect ? crossing(prev, z) : undefined;
+    const c = prev.rect && z.rect ? crossing(prev, z) : undefined;
     prev = z;
-    return { zone: z, at };
+    return { zone: z, ...(c ? { at: c.at, out: c.out } : {}) };
   });
 }
 
@@ -108,7 +113,7 @@ export function distM(state: GameState, a: Located, b: Located): number {
   if (!r) return Infinity;
   if (!A.pos || !B.pos || r.some((s) => !s.at)) return r.length * linkM();
   let m = 0, cur = A.pos, h = heightOf(zoneById(state, A.zone));
-  for (const s of r) { m += flat(cur, s.at!) + Math.abs(heightOf(s.zone) - h); cur = s.at!; h = heightOf(s.zone); }
+  for (const s of r) { m += flat(cur, s.out!) + Math.abs(heightOf(s.zone) - h); cur = s.at!; h = heightOf(s.zone); }
   return m + flat(cur, B.pos);
 }
 
@@ -142,11 +147,12 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
     return Math.min(metres, cost);
   }
   const from = zoneById(state, A.zone);
-  const leg = flat(A.pos, next.at) + Math.abs(heightOf(next.zone) - heightOf(from));
+  const out = next.out ?? next.at;
+  const leg = flat(A.pos, out) + Math.abs(heightOf(next.zone) - heightOf(from));
   if (leg > metres + EPS) {
     if (metres <= EPS) return 0;
     const k = metres / leg;
-    a.pos = { x: A.pos.x + (next.at.x - A.pos.x) * k, y: A.pos.y + (next.at.y - A.pos.y) * k };
+    a.pos = { x: A.pos.x + (out.x - A.pos.x) * k, y: A.pos.y + (out.y - A.pos.y) * k };
     return metres;
   }
   // through the doorway; a walk to the zone itself goes ENTER_M on toward its centre
