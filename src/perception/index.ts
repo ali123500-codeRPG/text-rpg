@@ -99,6 +99,7 @@ export function noteSightings(event: GameEvent, state: GameState): void {
   if (!p.journal || event.actorId === p.id) return;
   const per = event.perception[p.id];
   const cs = (p.journal.clearSight ??= {});
+  if (per) (p.journal.lastKnown ??= {})[event.actorId] = event.zone; // BG-28: seen or heard, the last place known
   if (per?.level === 'full' && per.cue === 'sight') cs[event.actorId] = event.zone;
   else if (event.kind === 'move' || event.kind === 'flee') delete cs[event.actorId];
   if (!per && (event.kind === 'move' || event.kind === 'flee') && actorById(state, event.actorId)?.posture === 'stealthy') updateBeliefs(state, { kind: 'lost', observerId: p.id, aboutId: event.actorId });
@@ -140,7 +141,7 @@ export function lookAround(state: GameState): string[] {
   for (const a of allActors(state)) {
     if (a.id === p.id) continue;
     const d = seeingM(state, p, a);
-    if (d !== null && d <= lookReach()) { cs[a.id] = a.zone; shown.push(a.id); }
+    if (d !== null && d <= lookReach()) { cs[a.id] = a.zone; (p.journal.lastKnown ??= {})[a.id] = a.zone; shown.push(a.id); }
   }
   return shown;
 }
