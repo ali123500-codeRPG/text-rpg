@@ -465,7 +465,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // Who's here sits at the end of the place line; it is one live element, so an empty stand-in is compared and the real row moves in only on a redraw
     const whoSlot = h('span', { class: 'who-slot' });
     const titleKids = [h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv), whoSlot] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', motionBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv), h('span', { class: 'who-gap' }), whoSlot] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', motionBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
     if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); whoSlot.replaceWith(who); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);

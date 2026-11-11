@@ -85,20 +85,22 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       type: 'button', class: o.main ? 'hs-btn-main' : 'hs-btn-text', onclick: on, disabled: o.disabled, title: o.title,
       'aria-pressed': o.pressed === undefined ? undefined : String(o.pressed) }, label);
     const mine = agentStory() ? null : h('p', { class: 'hs-note' }, 'The agent’s turns are saved to your story like your own. Undo works one turn back.');
-    const banner = agentStory() ? h('div', { class: 'auto-own' }, h('span', {}, 'You’re watching the agent’s own story. Your story is kept as it is.'),
-      btn('Back to my story', () => void useSave('player'), { disabled: switching })) : null;
+    // on the agent's own save, yellow marks it (the header switch and the pressed story button); no separate banner
+    const own = agentStory();
     opener.textContent = open ? '✓ Watch an agent play' : 'Watch an agent play';
     opener.setAttribute('aria-pressed', String(open));
-    if (!open) { el.replaceChildren(banner ?? ''); return; }
+    opener.classList.toggle('on-agent', own);
+    opener.title = own ? 'You’re on the agent’s own story; your story is kept as it is' : 'An agent plays while you watch, with spoken commentary';
+    if (!open) { el.replaceChildren(); return; }
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       PERSONA_NAMES.map(([id, name]) => h('option', { value: id, selected: prefs.persona === id }, name)));
     const wait = h('select', { 'aria-label': 'Wait between turns', onchange: (e: Event) => { prefs.waitS = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s a turn`)));
-    el.replaceChildren(banner ?? '', h('div', { class: 'auto-panel' },
+    el.replaceChildren(h('div', { class: 'auto-panel' },
       h('div', { class: 'auto-row' },
         h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' },
-          btn('On my story', () => void useSave('player'), { pressed: !agentStory(), disabled: switching }),
-          btn('Its own story', () => void useSave('agent'), { pressed: agentStory(), disabled: switching })),
+          btn('On my story', () => void useSave('player'), { pressed: !own, disabled: switching }),
+          btn('Its own story', () => void useSave('agent'), { pressed: own, disabled: switching, title: own ? 'Your story is kept as it is' : undefined })),
         h('label', { class: 'auto-field' }, 'Playstyle', persona),
         h('label', { class: 'auto-field' }, 'Pace', wait),
         btn(prefs.voice ? '✓ Voice' : 'Voice', () => { prefs.voice = !prefs.voice; writePrefs(prefs); if (!prefs.voice && typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); update(); },

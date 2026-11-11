@@ -599,7 +599,13 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .working { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); margin: var(--space-4) 0 0; }
 /* who's here: one row that keeps its height, empty or full */
 /* Who's here ends the header's place line: "Turn 3 · Common room · the Crooked Kettle   WHO'S HERE  [A village guard]" */
-.who { display: inline-flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-left: var(--space-6); vertical-align: middle; color: var(--text); }
+.who { display: inline-flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; vertical-align: middle; color: var(--text); }
+/* the gap before Who's here stays on the place line, so a crowded row that drops to its own line starts flush left */
+.who-gap { display: inline-block; width: var(--space-6); }
+/* the header's left side takes the free width and the switches keep their spot, even when Who's here wraps */
+.playmain > .head { flex-wrap: nowrap; }
+.playmain > .head > div:first-child { flex: 1 1 0; min-width: 0; }
+.playmain > .head > .title-tools { flex: none; }
 .who .pp { flex: none; }
 /* input: the box takes the column's width, the tools sit in one row under it */
 .inbar { display: grid; gap: var(--space-2); }
@@ -650,7 +656,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .auto-say { margin: 0; display: flex; gap: var(--space-3); align-items: baseline; font: italic 15px/1.5 var(--font-story); }
 .auto-who { flex: none; font: 600 11px/1 var(--font-round); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-style: normal; }
 .auto-panel .hs-note { margin: 0; }
-.auto-own { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-md); }
+/* the agent's own save is marked in yellow: the pressed "Its own story" button and the header switch */
+.auto-panel .hs-picker button[aria-pressed="true"]:last-child { background: var(--warn); }
+.auto-open.on-agent, .auto-open.on-agent[aria-pressed="true"] { color: var(--warn); }
 .title-tools { display: flex; align-items: center; gap: var(--space-3); align-self: start; }
 
 /* creation: name and gender above the class picker */
