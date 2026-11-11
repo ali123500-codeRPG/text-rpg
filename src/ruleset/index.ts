@@ -15,7 +15,7 @@ import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
 import { baneMods, defeatsMods } from './bane';
 import { pressureMods } from './pressure';
-import { bestReward, deathsDoor, rallyMods, renownMods } from './achRewards';
+import { bestReward, deathsDoor, rallyMods, renownMods, tierReach } from './achRewards';
 import { besidePlayer } from '../engine/engagement';
 import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
@@ -162,8 +162,14 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   const modifiers = [...eventRollMods(state, actor), ...extra];
   const d = rng.d100();
   const margin = d + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
-  const tier = TIERS.at(band(margin) + naturalEdge(d));
-  return { actorId: actor.id, roll: d, tier, modifiers };
+  // natural rolls swing EVENT_EDGE_SCALE times as far; past the Critical tiers only as far as perks and achievements open (tierUnlocks)
+  const reach = tierReach(actor, 'event');
+  const top = TIERS.keys.length - 1;
+  const level = Math.max(-reach.down, Math.min(top + reach.up, band(margin) + naturalEdge(d) * CONFIG.EVENT_EDGE_SCALE));
+  const { tier, beyond } = tierAt(level);
+  if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits');
+  if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails');
+  return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers };
 }
 
 /** a ranged attack's range penalty: the first RANGE_SHARE_MODS band that the target's distance fits in, as a share of the

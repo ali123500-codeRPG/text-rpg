@@ -11,6 +11,8 @@ export type Pending = { turn: number; mode: Mode; engaged: string[]; fired: stri
 export type StageInfo = {
   zoneIds: string[];
   tier: Tier;
+  /** steps the scene's event roll went past its Critical tier (an achievement opened them) */
+  tierBeyond?: number;
   sceneNumber: number;
   sceneStartTurn: Turn;
   fallback?: { reason: string; turn: Turn };
