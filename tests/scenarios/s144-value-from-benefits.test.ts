@@ -7,6 +7,7 @@ import { benefits, itemValue } from '../../src/ruleset/value';
 import { effectiveSkill } from '../../src/ruleset/gear';
 import { itemDef } from '../../src/library';
 import { CONFIG } from '../../src/config';
+import { reachLinks } from '../../src/ruleset/range';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 
@@ -15,8 +16,8 @@ const val = (id: string) => itemValue(null, itemDef(null, id));
 
 it('144a weapons: kit bonus plus reach', () => {
   expect(val(IT.arming_sword)).toBe(20 * V.skillPoint); // kit 0.4 × need 50
-  expect(val(IT.shortbow)).toBe(10 * V.skillPoint + 3 * V.reachZone); // range counts (SL14)
-  expect(val(IT.dagger)).toBe(10 * V.skillPoint + CONFIG.THROWN_REACH_BONUS * V.reachZone); // its throw reaches melee reach 0 + THROWN_REACH_BONUS zones
+  expect(val(IT.shortbow)).toBe(10 * V.skillPoint + reachLinks(50) * V.reachZone); // range counts (SL14): 50 m in zone links
+  expect(val(IT.dagger)).toBe(10 * V.skillPoint + reachLinks(1 + CONFIG.THROWN_REACH_M) * V.reachZone); // its throw: 1 m + THROWN_REACH_M zones
   expect(val(IT.cudgel)).toBe(1); // crude: worth 1 (SL13)
   expect(val(IT.improvised_medium)).toBe(0);
 });

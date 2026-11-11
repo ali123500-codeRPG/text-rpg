@@ -30,7 +30,7 @@ export { improveMarked, clearMarkCounts, markEndurance, markUse } from './improv
 export { meltAwayHere } from './perks';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
-export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, perkThrowReach, augmentsOf } from './gear';
+export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, modeReach, augmentsOf } from './gear';
 
 // Tiers are keys of the TIERS table (src/scales.ts). Arithmetic (shifts, gaps) works on a tier's level: its row
 // position plus `beyond`, the steps a shifted roll went past either end (Part 1 §4: shifted tiers are not clamped).
@@ -166,6 +166,13 @@ function situation(actor: Actor, state: GameState, rng: Rng): SituationResult {
   return { actorId: actor.id, roll: d, tier, modifiers };
 }
 
+/** a ranged attack's range penalty: the first RANGE_SHARE_MODS band that the target's distance fits in, as a share of the
+ * mode's reach (both in links from real metres); the same zone has none */
+export function rangeMod(dist: number, reach: number): number {
+  if (dist < 1 || reach <= 0) return 0;
+  return CONFIG.RANGE_SHARE_MODS.find(([share]) => dist / reach <= share)?.[1] ?? CONFIG.RANGE_SHARE_MODS.at(-1)![1];
+}
+
 function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const A = mustActor(state, req.attackerId);
   const D = mustActor(state, req.targetId);
@@ -187,9 +194,10 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const hit = cls.hit + (mode.hitAdj ?? 0);
   if (hit) am.push({ source: `weapon: ${name}`, type: 'gear', value: hit });
   if (ranged) {
-    if (dist >= 1 && CONFIG.RANGE_MODS[dist]) am.push({ source: 'range', type: 'situational', value: CONFIG.RANGE_MODS[dist] });
+    const far = rangeMod(dist, mode.reach);
+    if (far) am.push({ source: 'range', type: 'situational', value: far });
     const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && (foe(state, A, o) || foe(state, o, A))); // either way: the player holds no stances of its own
-    if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
+    if (crowded && CONFIG.HOSTILE_IN_ZONE_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.HOSTILE_IN_ZONE_MOD });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));

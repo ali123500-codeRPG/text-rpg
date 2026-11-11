@@ -9,10 +9,11 @@ import { FN } from '../library/functionIds';
 import type { Actor, ActorView, AttackResult, CheckResult, ContestResult, GameEvent, GameState, Order, Rng, TierShift } from '../types';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
+import { reachLinks } from '../ruleset/range';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
 import { defaultMode, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
-import { applyBeliefDecay, beliefStatus, computePerception, hears, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
+import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -69,6 +70,12 @@ const slotsOf = (ctx: Ctx, a: Actor): Slots => {
 const hasMain = (ctx: Ctx, a: Actor): boolean => slotsOf(ctx, a).main > 0;
 /** spends a main slot; false when none is left */
 const useMain = (ctx: Ctx, a: Actor): boolean => { const s = slotsOf(ctx, a); if (s.main <= 0) return false; s.main--; return true; };
+/** CO13: the zone links one slot of movement covers in a fight turn (the Fight turn duration): a move slot walks
+ * (WALK_M_S), a main slot spent moving runs the rest of the turn (RUN_M_S − WALK_M_S); at least one link each */
+export const slotLinks = (paid: 'move' | 'main'): number => {
+  const seconds = (getLibrary().durations?.[DU.fight_turn]?.minutes ?? 0.1) * 60;
+  return Math.max(1, reachLinks((paid === 'move' ? CONFIG.WALK_M_S : CONFIG.RUN_M_S - CONFIG.WALK_M_S) * seconds));
+};
 /** CO13: a movement spends a move slot first and a main slot when no move slot is left; null when neither is */
 const useMoveSlot = (ctx: Ctx, a: Actor, mainToo: boolean): 'move' | 'main' | null => {
   const s = slotsOf(ctx, a);
@@ -217,8 +224,11 @@ function hold(ctx: Ctx, a: Actor, o: Order): void {
   emit(ctx, bark(mk(ctx, a, 'hold'), o));
 }
 
+/** a line said alongside an action: the event is as loud as the louder of the action and the voice, so the words carry */
 function bark(ev: GameEvent, o: Order): GameEvent {
-  return o.line ? { ...ev, line: { text: o.line.text, volume: o.line.volume }, bark: true } : ev;
+  if (!o.line) return ev;
+  const voice = VOLUME_NOISE[o.line.volume];
+  return { ...ev, line: { text: o.line.text, volume: o.line.volume }, bark: true, noise: NOISE.pos(voice) > NOISE.pos(ev.noise) ? voice : ev.noise };
 }
 
 /** one link toward `to`. Returns false when the move is dropped (frontier for an NPC, no path). */
@@ -273,7 +283,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   if (push) {
     ev.perception = computePerception(ev, state, ctx.rng);
     const heard = ev.perception[p.id];
-    if (heard && (heard.level === 'full' || heard.cue === 'sound')) {
+    if (hearsWords(heard)) {
       const contest = pushContest(state, a, o.type, ctx.rng);
       ev.contest = contest;
       ev.push = { type: o.type, listener: p.id, landed: contest.winner === 'a', ...applySpeech(a, p, o.type, contest),
@@ -659,15 +669,21 @@ function step(ctx: Ctx, id: string): void {
     if (inReach(state, a, o)) { logCode(state, 'move_dropped', { actorId: id, to: o.move, reason: 'ranged_attack' }); o.move = null; }
     else { logCode(state, 'order_dropped', { actorId: id, type: o.type, target: o.target, reason: 'ranged_after_move' }); o.type = 'hold'; o.target = null; }
   }
-  // CO13: each step toward the move's zone is one move; it spends a move slot, and with no main action planned (hold)
-  // a main slot too once the move slots run out. A move paid with a main slot is a dash (AE2): a lame actor can't.
+  // CO13: a step toward the move's zone is one link; a move slot walks slotLinks('move') links, and with no main action
+  // planned (hold) a main slot runs slotLinks('main') more once the move slots run out. A move paid with a main slot is
+  // a dash (AE2): a lame actor can't.
   const move = (mainToo: boolean) => {
     if (!o.move) return;
+    let left = 0;
     for (let step = 0; a.zone !== o.move; step++) {
       const zoneBefore = a.zone;
-      const paid = useMoveSlot(ctx, a, mainToo && step > 0);
-      if (!paid) return;
-      if (paid === 'main' && lame(state, a)) return logCode(state, 'dash_blocked', { actorId: id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' });
+      if (left === 0) {
+        const paid = useMoveSlot(ctx, a, mainToo && step > 0);
+        if (!paid) return;
+        if (paid === 'main' && lame(state, a)) return logCode(state, 'dash_blocked', { actorId: id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' });
+        left = slotLinks(paid);
+      }
+      left--;
       if (!doMove(ctx, a, o.move, o, false)) return logCode(state, 'move_dropped', { actorId: id, to: o.move });
       if (a.zone === zoneBefore) return; // held, or a frontier crossing: the move is spent where it stands
     }
@@ -841,7 +857,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       (views.get(id)?.perceived ?? []).some((e) => e.kind === 'speak' && e.actorId === toward && e.turn >= state.turn - 1) ||
       (input.spokespeople.includes(id) && toward === state.player.id && ctx.exchangeEvents.length > 0),
     heardExchange: (id) => ctx.exchangeEvents.some((e) => !!e.perception[id]),
-    heardNow: (listener, speaker) => ctx.events.some((e) => e.actorId === speaker && !!e.line && !!e.perception[listener]),
+    heardNow: (listener, speaker) => ctx.events.some((e) => e.actorId === speaker && !!e.line && hearsWords(e.perception[listener])),
   });
   // SP5: "I yield" in a spar leaves it; MB40: in a real fight it yields to the foes fighting the player. After the turn's blows
   if (input.intent?.yields && isActive(state.player)) (sparOf(state, state.player.id) ? yieldSpar(state, state.player) : playerYields(state));

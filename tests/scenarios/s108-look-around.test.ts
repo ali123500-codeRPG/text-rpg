@@ -12,15 +12,16 @@ const ev = (s: GameState, actorId: string, kind: string, zone: string, visibilit
   ({ id: `x${kind}`, turn: s.turn, actorId, kind, zone, effects: [], noise: 'silent', visibility, perception: {} }) as GameEvent;
 
 it('108 a clear look keeps a still figure seen until it moves', () => {
-  const s = makeVillage();
-  const hold = ev(s, 'trader', 'hold', 'tav_counter');
-  expect(perceptionOf(hold, s, s.player)?.level).toBe('partial'); // sitting still one zone away: a shape
+  const s = makeVillage({ playerZone: 'street_square' });
+  actor(s, 'trader').zone = 'field_edge';
+  const hold = ev(s, 'trader', 'hold', 'field_edge');
+  expect(perceptionOf(hold, s, s.player)?.level).toBe('partial'); // sitting still two zones away (16 m): a shape
   expect(lookAround(s)).toContain('trader');
   expect(perceptionOf(hold, s, s.player)?.level).toBe('full'); // seen, and stays seen while it stays put
-  const left = { ...ev(s, 'trader', 'move', 'tav_cellar'), perception: {} };
-  actor(s, 'trader').zone = 'tav_cellar';
+  const left = { ...ev(s, 'trader', 'move', 'field_far'), perception: {} };
+  actor(s, 'trader').zone = 'field_far';
   noteSightings(left, s); // moved where the player could not see clearly: forgotten
-  actor(s, 'trader').zone = 'tav_counter';
+  actor(s, 'trader').zone = 'field_edge';
   expect(perceptionOf(hold, s, s.player)?.level).toBe('partial');
 });
 

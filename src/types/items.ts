@@ -51,6 +51,9 @@ export type AttackMode = {
   tree: 'melee' | 'ranged' | 'unarmed';
   class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam' | 'grapple';
   skill?: LibraryRef; // unarmed only
+  /** how far the mode strikes or shoots, in metres, from real weapons (the library's item rows) */
+  reachM: number;
+  /** the zone links it reaches: reachLinks(reachM) (src/ruleset/range.ts), worked out when the library is built */
   reach: number;
   hands: 0 | 1 | 2;
   thrown?: true;

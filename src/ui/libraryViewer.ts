@@ -13,7 +13,7 @@ import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '.
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
 import { benefits, itemValue } from '../ruleset/value';
-import { fnSkills, kitBonus, modeName, standInShare, standInTable } from '../ruleset/gear';
+import { fnSkills, kitBonus, modeName, modeReach, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
@@ -151,7 +151,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
     i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
-      `reach ${m.reach}${row?.reachBonus ? ` + ${row.reachBonus} (${row.name})` : ''}`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      `reach ${m.reachM} m${row?.reachBonusM ? ` + ${row.reachBonusM} m (${row.name})` : ''} (${modeReach(m)} link${modeReach(m) === 1 ? '' : 's'})`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
       m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
@@ -883,7 +883,7 @@ function autoFacets(table: Record<string, Entry>): Facets {
   return (e: Entry) => keys.map((k) => [humanKey(k), typeof e[k] === 'string' ? typedId(e[k] as string)?.textContent ?? (e[k] as string) : (e[k] as string)]);
 }
 
-const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', noiseLevels: 'Noise levels', layouts: 'Layouts' };
+const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', layouts: 'Layouts' };
 const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[])
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? label(k), table: k }))];
@@ -1282,7 +1282,7 @@ body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest
 
 // Table view (VR1, VR2): flat tables read as one row per entry. The cards stay in the page (hidden), so search,
 // filters, colour and pins keep working on them; each row mirrors its card.
-const TABLE_FIRST = new Set(['gear', 'status', 'services', 'roles', 'durations', 'zoneKinds', 'edgeKinds', 'zoneSizes', 'noiseLevels', 'activities', 'routines', 'healing', 'classes', 'stacking']);
+const TABLE_FIRST = new Set(['gear', 'status', 'services', 'roles', 'durations', 'zoneKinds', 'edgeKinds', 'zoneSizes', 'noiseLevels', 'visibilityLevels', 'activities', 'routines', 'healing', 'classes', 'stacking']);
 const viewOfTable: Record<string, 'cards' | 'table'> = remember<Record<string, 'cards' | 'table'>>('lv-view', {});
 const modeOf = (key: string) => viewOfTable[key] ?? (TABLE_FIRST.has(key) ? 'table' : 'cards');
 const viewSwitch = h('div', { class: 'lv-seg', role: 'group', 'aria-label': 'Show entries as' });

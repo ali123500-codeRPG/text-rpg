@@ -89,7 +89,7 @@ describe('122 NPC memory and agreements', () => {
     const s = makeVillage();
     const ev = (n: number, extra: Partial<GameEvent> = {}): GameEvent => ({
       id: `t${n}.1`, turn: n, actorId: 'player', kind: 'search', zone: 'gate_inner', effects: [], noise: 'quiet', visibility: 'normal',
-      perception: { guard_1: { level: 'full', cue: 'sight' } }, ...extra,
+      perception: { guard_1: { level: 'full', cue: 'sight', heard: true } }, ...extra,
     });
     const all = [ev(1, { kind: 'speak', line: { text: 'Seen any slimes?', volume: 'normal' } }), ev(2), ev(3),
       ...Array.from({ length: CONFIG.RECENT_EVENTS }, (_, i) => ev(4 + i, { kind: 'hold' }))];
