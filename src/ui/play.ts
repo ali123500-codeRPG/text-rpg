@@ -229,6 +229,23 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     await submit(true);
   }, () => update());
   const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell, edge);
+  /** Who's here sits in the header line, between the place and the switches, while everyone fits there; a crowd drops it
+   *  to its own row under the header. It moves only when that changes, so its beats are never restarted. */
+  function placeWho() {
+    if (!el.isConnected) return;
+    const text = title.firstElementChild, tools = title.querySelector('.title-tools');
+    const kids = Array.from(who.children);
+    if (!text || !tools || !kids.length) return;
+    const need = kids.at(-1)!.getBoundingClientRect().right - kids[0].getBoundingClientRect().left;
+    const t = text.getBoundingClientRect(), tl = tools.getBoundingClientRect();
+    const gap = parseFloat(getComputedStyle(title).columnGap) || 0;
+    const oneLine = Math.abs(tl.top - t.top) < 2; // the switches haven't wrapped under the title
+    const room = tl.left - t.right - 2 * gap;
+    const fits = oneLine && need <= room;
+    if (fits && (who.parentElement !== title || who.nextElementSibling !== tools)) { who.classList.add('inline'); title.insertBefore(who, tools); }
+    else if (!fits && who.parentElement !== el) { who.classList.remove('inline'); el.insertBefore(who, auto.el); }
+  }
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => placeWho()).observe(el);
   applyMotion();
   if (typeof matchMedia === 'function') matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', () => { applyMotion(); if (el.isConnected) update(); });
   // M-12: a click on the story finishes everything still moving
@@ -480,6 +497,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // a redraw that changes nothing keeps the old elements, so nothing restarts (M-74)
     const whoNow = whoKids.map((k) => k.outerHTML).join('');
     if (!frozen && whoNow !== whoHtml) { who.replaceChildren(...whoKids); whoHtml = whoNow; }
+    placeWho();
 
     // Q16: what the player put off last turn is offered as a dimmed suggestion; nothing is typed or sent until they take it
     const nextLine = lines.at(-1);

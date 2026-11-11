@@ -81,24 +81,25 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
 
   function update() {
     if (document.activeElement?.tagName === 'SELECT' && el.contains(document.activeElement)) return; // don't close an open list
-    const btn = (label: string, on: () => void, o: { pressed?: boolean; disabled?: boolean; main?: boolean; title?: string } = {}) => h('button', {
-      type: 'button', class: o.main ? 'hs-btn-main' : 'hs-btn-text', onclick: on, disabled: o.disabled, title: o.title,
+    const btn = (label: string, on: () => void, o: { pressed?: boolean; disabled?: boolean; main?: boolean; title?: string; agent?: boolean } = {}) => h('button', {
+      type: 'button', class: (o.main ? 'hs-btn-main' : 'hs-btn-text') + (o.agent ? ' auto-agent' : ''), onclick: on, disabled: o.disabled, title: o.title,
       'aria-pressed': o.pressed === undefined ? undefined : String(o.pressed) }, label);
     const mine = agentStory() ? null : h('p', { class: 'hs-note' }, 'The agent’s turns are saved to your story like your own. Undo works one turn back.');
-    const banner = agentStory() ? h('div', { class: 'auto-own' }, h('span', {}, 'You’re watching the agent’s own story. Your story is kept as it is.'),
-      btn('Back to my story', () => void useSave('player'), { disabled: switching })) : null;
     opener.textContent = open ? '✓ Watch an agent play' : 'Watch an agent play';
     opener.setAttribute('aria-pressed', String(open));
-    if (!open) { el.replaceChildren(banner ?? ''); return; }
+    // on the agent's own story the opener and the "Its own story" choice turn yellow instead of a banner (no extra row)
+    opener.classList.toggle('auto-agent', agentStory());
+    opener.title = agentStory() ? 'You’re watching the agent’s own story. Your story is kept as it is.' : 'An agent plays while you watch, with spoken commentary';
+    if (!open) { el.replaceChildren(); return; }
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       PERSONA_NAMES.map(([id, name]) => h('option', { value: id, selected: prefs.persona === id }, name)));
     const wait = h('select', { 'aria-label': 'Wait between turns', onchange: (e: Event) => { prefs.waitS = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       WAITS.map((s) => h('option', { value: String(s), selected: prefs.waitS === s }, `${s} s a turn`)));
-    el.replaceChildren(banner ?? '', h('div', { class: 'auto-panel' },
+    el.replaceChildren(h('div', { class: 'auto-panel' },
       h('div', { class: 'auto-row' },
         h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' },
           btn('On my story', () => void useSave('player'), { pressed: !agentStory(), disabled: switching }),
-          btn('Its own story', () => void useSave('agent'), { pressed: agentStory(), disabled: switching })),
+          btn('Its own story', () => void useSave('agent'), { pressed: agentStory(), disabled: switching, agent: true })),
         h('label', { class: 'auto-field' }, 'Playstyle', persona),
         h('label', { class: 'auto-field' }, 'Pace', wait),
         btn(prefs.voice ? '✓ Voice' : 'Voice', () => { prefs.voice = !prefs.voice; writePrefs(prefs); if (!prefs.voice && typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); update(); },

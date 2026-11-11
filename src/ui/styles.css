@@ -542,7 +542,12 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 
 /* Play screen, layout A "Book with a status strip": fixed rows (header, who's here, story and input), one reading column
    filling the space on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
-.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) auto minmax(0, 1fr); padding-bottom: 0; }
+.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto auto auto minmax(0, 1fr); padding-bottom: 0; }
+/* fixed rows, so a row that is empty or moved (Who's here inside the header line) leaves the story where it is */
+.playmain { row-gap: 0; } .playmain > .who, .playmain > .auto, .playmain > .play-wrap, .playmain > .fell { margin-top: var(--space-6); }
+.playmain > .head { grid-row: 1; } .playmain > .who { grid-row: 2; } .playmain > .auto { grid-row: 3; } .playmain > .play-wrap { grid-row: 4; }
+/* Who's here in the header line while everyone fits: it takes the room between the place and the switches */
+.head > .who.inline { flex: 1 1 0; align-self: center; }
 /* the bottom gap sits inside the columns, so the sheet's divider runs to the foot of the screen */
 .playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
 .playmain > .fell { grid-row: 4; }
@@ -649,7 +654,8 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .auto-say { margin: 0; display: flex; gap: var(--space-3); align-items: baseline; font: italic 15px/1.5 var(--font-story); }
 .auto-who { flex: none; font: 600 11px/1 var(--font-round); text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-style: normal; }
 .auto-panel .hs-note { margin: 0; }
-.auto-own { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--warn); background: var(--warn-soft); border-radius: var(--r-md); }
+/* the agent's own story: the opener and the pressed "Its own story" choice turn yellow instead of a banner row */
+.auto-agent[aria-pressed="true"], .auto-open.auto-agent { color: var(--warn); background: var(--warn-soft); }
 .title-tools { display: flex; align-items: center; gap: var(--space-3); align-self: start; }
 
 /* creation: name and gender above the class picker */
