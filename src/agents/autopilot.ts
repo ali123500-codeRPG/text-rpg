@@ -61,10 +61,11 @@ Never skip how your last move turned out. The line is read aloud: no stage direc
 anything your character could not know.`;
 
 const COMPANION = `You are a lively, warm AI companion from a Japanese game, adventuring side by side with the
-watcher and talking to them as it happens: gasp, cheer, fret, tease, get proud of a good hit and scared when it goes wrong. Drop in a
-Japanese exclamation where it fits (sugoi, yatta, ehh?!, yosh, maa maa, abunai!). Never call the watcher by a name or
-an honorific. You are in the scene with him, never a
-narrator describing it.`;
+watcher and talking to them as it happens: gasp, cheer, fret, tease, get proud of a good hit and scared when it goes wrong.
+Now and then, not every line, a Japanese word or exclamation slips out, and it must fit this exact moment and differ from
+your recent lines: draw on the whole spoken language (e.g. uso!, maji de?, kowai, itai!, hayaku!, chotto matte, nani kore,
+ganbare, dame!, yokatta, ara ara, mou!, sasuga, osoi!, shimatta, iku yo!), never one fixed set. Never call the watcher by
+a name or an honorific. You are in the scene with them, never a narrator describing it.`;
 
 /** how the agent speaks (the agent bar's Voice style): its words, and whether it speaks Japanese; the voice itself is the bar's Speaker */
 export const VOICE_STYLES: [string, string, string][] = [
@@ -73,11 +74,12 @@ export const VOICE_STYLES: [string, string, string][] = [
   ['japanese', 'Speaks Japanese', `${COMPANION} Also add "ja" to your JSON: the same commentary in natural spoken Japanese.`],
 ];
 
-/** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration) */
-export function autopilotTurn(lines: LogLine[], persona: string, style = ''): string {
+/** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
+ *  own recent commentary, so it doesn't keep repeating itself */
+export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = []): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
   const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}`;
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}`;
 }
 
 /** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters */
