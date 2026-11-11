@@ -2,13 +2,14 @@
 // holds one met mid-fight, mid-chase or mid-talk (SC13), and keeps a record of how each scene went (SC6). An Episode or
 // Venture holds smaller scenes one level deep (SC4): a road encounter inside one starts an inner scene, and when that ends
 // the bigger scene carries on with no new event roll and no Weaver call.
-import type { EndCheck, GameEvent, GameState, PlanEnding, SceneEnding, SceneFrame, SceneRecord, StagePlan, Tier } from '../types';
+import type { CheckinAnswer, CheckinReason, EndCheck, GameEvent, GameState, PlanEnding, SceneEnding, SceneFrame, SceneRecord, StagePlan, Tier } from '../types';
 import { CONFIG } from '../config';
 import { SCENE_SCALES, TIME_OF_DAY, type SceneScale } from '../scales';
 import { now, timeOfDay } from '../time';
 import { actorById, atLeast, isActive, isEngaged } from './relations';
 import { givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
+import { triggerErrors } from '../scene/triggers';
 
 /** SC4: does a scene of this scale hold smaller scenes inside it */
 export const holdsInner = (s: SceneScale): boolean => SCENE_SCALES.pos(s) >= SCENE_SCALES.pos(CONFIG.SCENE_HOLDS_FROM as SceneScale);
@@ -88,6 +89,7 @@ export function endingHeld(state: GameState, events: GameEvent[]): string | null
 /** After each turn: check the scene's endings (the outer scene's too), and end the scene on the first clear turn. */
 export function checkSceneEnd(state: GameState, events: GameEvent[]): void {
   const st = state.stage;
+  for (const f of [st.scene, st.outer]) if (f && isEngaged(state, state.player)) f.fightTurns = (f.fightTurns ?? 0) + 1; // SC2: fights don't use the budget
   for (const f of [st.scene, st.outer]) for (const e of f?.endings ?? []) {
     if (e.when.kind === 'leave' && playerIn(state, e.when.place) && !f!.beenIn?.includes(e.when.place)) (f!.beenIn ??= []).push(e.when.place);
   }
@@ -98,10 +100,74 @@ export function checkSceneEnd(state: GameState, events: GameEvent[]): void {
     }
     if (st.ending) logCode(state, 'scene_ending_met', { as: st.ending.as, outer: !!st.ending.outer });
   }
+  const f = st.scene;
+  // SC12: no Weaver can overrun the budget: at SCENE_OVERRUN_MULT times it, code ends the scene (a bug: the check-in should have)
+  if (f && !st.ending && !st.breakCause && budgetUsed(state, f) >= CONFIG.SCENE_OVERRUN_MULT) {
+    st.ending = { as: 'worn_out', text: '', turn: state.turn };
+    logCode(state, 'scene_overrun', { number: f.number, scale: f.scale, turns: state.turn - f.startTurn });
+  }
+  if (f && !st.ending && !st.breakCause) dueCheckin(state, f);
   if (!st.ending || st.breakCause) return;
   const held = endingHeld(state, events);
   if (held) { logCode(state, 'scene_ending_held', { as: st.ending.as, why: held }); return; }
   endScene(state, st.ending.as, st.ending.text, st.ending.outer);
+}
+
+/** SC2/SC12: how much of its budget the scene has used (1 = all of it); turns spent fighting don't count */
+export function budgetUsed(state: GameState, f: SceneFrame): number {
+  const c = CONFIG.SCENE_SCALE[f.scale];
+  if (c?.budgetTurns) return Math.max(0, state.turn - f.startTurn - (f.fightTurns ?? 0)) / c.budgetTurns;
+  if (c?.budgetDays) return (now(state) - f.startMinute) / (c.budgetDays * 24 * 60);
+  return 0;
+}
+
+/** SC8: may a check-in be asked now (at most CHECKIN_MAX_PER_SCENE, CHECKIN_GAP_TURNS apart; /stuck skips both) */
+export function checkinAllowed(state: GameState, f: SceneFrame): boolean {
+  return (f.checkins ?? 0) < CONFIG.CHECKIN_MAX_PER_SCENE && (f.lastCheckin === undefined || state.turn - f.lastCheckin >= CONFIG.CHECKIN_GAP_TURNS);
+}
+
+/** SC8: the set moments a check-in is asked at: the scene reached its budget, a beat fired, or the scene has endings only
+ * the Weaver can judge (then every CHECKIN_GAP_TURNS turns) */
+function dueCheckin(state: GameState, f: SceneFrame): void {
+  const st = state.stage;
+  let why: CheckinReason | undefined;
+  if (budgetUsed(state, f) >= 1 && !f.overTime) why = 'budget';
+  else if (st.beatTurn === state.turn) why = 'beat';
+  else if (f.endings.some((e) => e.when.kind === 'judged') && state.turn - (f.lastCheckin ?? f.startTurn) >= CONFIG.CHECKIN_GAP_TURNS) why = 'judged';
+  if (!why || !checkinAllowed(state, f)) return;
+  if (why === 'budget') f.overTime = true;
+  st.checkinDue = why;
+}
+
+/** SC8: what is wrong with a check-in's answer (none: it can be applied) */
+export function checkinErrors(state: GameState, a: CheckinAnswer | null): string[] {
+  if (!a || typeof a !== 'object') return ['no answer'];
+  if (a.verdict !== 'continue' && a.verdict !== 'end') return ['verdict is continue or end'];
+  if (a.verdict === 'end' && !PLAN_AS.has(String(a.as))) return [`as is one of ${[...PLAN_AS].join(', ')}`];
+  if (a.beats !== undefined && !Array.isArray(a.beats)) return ['beats is a list'];
+  return (a.beats ?? []).flatMap((t) => triggerErrors(state, t, { isZone: (r) => state.stage.zoneIds.includes(r), isActor: (r) => !!actorById(state, r) }));
+}
+
+/**
+ * SC8/SC14: apply a check-in's answer to the scene it was asked about (dropped if that scene is over). A failed or invalid
+ * answer changes nothing and files a bug; the next set moment asks again. An end waits for a clear turn (SC13) like any ending.
+ */
+export function applyCheckin(state: GameState, number: number, a: CheckinAnswer | null, events: GameEvent[]): void {
+  const st = state.stage;
+  if (st.scene?.number !== number || st.breakCause) return;
+  const errors = checkinErrors(state, a);
+  if (errors.length) { logCode(state, 'checkin_failed', { number, errors }); return; }
+  if (a!.verdict === 'end') {
+    st.ending ??= { as: a!.as as SceneEnding, text: a!.text ?? '', turn: state.turn };
+    logCode(state, 'checkin_end', { as: st.ending.as });
+    if (!endingHeld(state, events)) { endScene(state, st.ending.as, st.ending.text, st.ending.outer); closeScene(state); }
+    return;
+  }
+  for (const [i, t] of (a!.beats ?? []).entries()) {
+    const beat = { ...t, id: `ci${state.turn}_${i}_${t.id}`, once: t.once ?? true };
+    (state.hidden.plans[t.ownerId] ??= { goal: '', steps: [], triggers: [], createdTurn: state.turn }).triggers.push(beat);
+  }
+  logCode(state, 'checkin_continue', { beats: a!.beats?.length ?? 0 });
 }
 
 /** ends the scene this turn with `as` (outer: the bigger scene's own ending, which ends both) */

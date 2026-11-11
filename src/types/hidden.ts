@@ -46,7 +46,17 @@ export type SceneFrame = {
   upAtStart: string[]; heldAtStart: string[];
   /** places a 'leave' ending names that the player has been in this scene (leaving needs being there first) */
   beenIn?: string[];
+  /** SC2/SC12: turns the player spent fighting, which the budget leaves out */
+  fightTurns?: number;
+  /** SC8: Weaver check-ins asked so far, and the turn of the last one */
+  checkins?: number; lastCheckin?: number;
+  /** SC12: the check-in has been told the scene is over its budget */
+  overTime?: true;
 };
+/** SC8/SC15: why a Weaver check-in is asked */
+export type CheckinReason = 'beat' | 'budget' | 'judged' | 'stuck';
+/** SC8: the check-in's answer: carry on (with new beats) or end the scene */
+export type CheckinAnswer = { verdict: 'continue' | 'end'; as?: string; text?: string; beats?: Trigger[]; note?: string };
 /** SC6: how one scene went */
 export type SceneRecord = {
   number: number; question: string; scale: SceneScale; tier: Tier;

@@ -1,7 +1,7 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
-import type { AgreementMade, Intent, MoveSpot, NarratorOutput, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import type { AgreementMade, CheckinAnswer, Intent, MoveSpot, NarratorOutput, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
@@ -214,3 +214,7 @@ export const checkResponder = run(responder);
 export const checkVoice = run(voice);
 export const checkNarrator = run(narrator);
 export const checkStagePlan = run(weaver);
+
+/** SC8: the Weaver's check-in answer; what it may say is checked by engine/sceneEnd.ts checkinErrors */
+const checkin = obj<CheckinAnswer>({ verdict: oneOf(['continue', 'end'] as const), as: str, text: str, beats: optArr(trigger) as V<CheckinAnswer['beats']>, note: str }, ['as', 'text', 'beats', 'note']);
+export const checkCheckin = run(checkin);

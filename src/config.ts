@@ -254,6 +254,11 @@ const DEFAULTS = {
   /** SC6: scene records kept in the save, and how many the next Weaver gets */
   SCENE_RECORDS_SAVED: 30,
   SCENE_RECORDS_SHOWN: 5,
+  /** SC8 Weaver check-ins (placeholders): at least this many turns apart, and at most this many per scene (/stuck excepted) */
+  CHECKIN_GAP_TURNS: 5,
+  CHECKIN_MAX_PER_SCENE: 6,
+  /** SC12: at this many times its budget, code ends the scene as worn out (after any fight or chase) and files a bug */
+  SCENE_OVERRUN_MULT: 2,
   IMPROVISED_HIT_ADJ: -10,
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,

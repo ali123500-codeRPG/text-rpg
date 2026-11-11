@@ -136,6 +136,29 @@ A reward that breaks these rules is not refused: code drops it or places it as i
 A minted item with no close library match uses the nearest generic base: ${IT.improvised_light}, ${IT.improvised_medium} or
 ${IT.improvised_heavy} (an improvised light, medium or heavy weapon) for an odd weapon, ${IT.curio} (curio) for a thing with no game effect.`;
 
+/** SC8: the Weaver's check-in on a running scene (a background call at set moments) */
+export const WEAVER_CHECKIN_INSTRUCTIONS = `You are the Weaver of a text RPG, checking in on a scene you planned while it is being played. You never narrate,
+never decide outcomes and never roll dice.
+
+You receive WEAVER_VIEW as for a plan, with target.kind "checkin": target.scene is the running scene (its hidden question,
+scale, endings, turns so far and how much of its budget is used) and target.reason says why you are asked:
+- "beat": a beat just fired; "judged": the scene has endings only you can judge; "budget": the scene is over its budget;
+- "stuck": the player says they are stuck and the scene cannot go anywhere.
+
+Rules:
+1. Judge from the stage, the actors, their plans and the quests whether the scene's question is answered or left behind.
+   If it is, answer "end" with the ending it reached ("as") and one hidden line of what happened.
+2. Otherwise answer "continue". You may add beats: triggers owned by actors on the stage, to move the story when play goes quiet.
+3. Over budget: close the scene unless a fight or chase is on; code ends it at ${CONFIG.SCENE_OVERRUN_MULT} times its budget anyway.
+4. Stuck: give a way forward, a beat that brings someone or something in, or an ending. Never remove a danger: being stuck
+   is no escape from a bad scene.
+5. Only ids that are in WEAVER_VIEW. Keep note short.
+
+Return only JSON matching the schema.`;
+export const CHECKIN_SHAPE = `{"verdict":"continue"|"end","as"?:"resolved"|"lost"|"left"|"escaped"|"interrupted","text"?:string,"beats"?:[trigger],"note"?:string}
+trigger = {"id","ownerId":actor id,"when":{"type":"quiet_turns","turns":number}|{"type":"player_seen_in_zone","zone"}|{"type":"turn_reached","turn":number}|{"type":"actor_down","actorId"}|{"type":"alarm_heard"},"then":{"type":orderType,"target":id|"$player"|null,"skill":string|null,"intent"},"once"?:boolean (default true)}
+orderType = ${ORDER_TYPES.map((t) => `"${t}"`).join("|")}`;
+
 const fixed = (instr: string, shape: string) => `${instr}\n\nSCHEMA:\n${shape}`;
 /** the whole fixed (leading) user turn per agent */
 export const FIXED = {
@@ -145,4 +168,5 @@ export const FIXED = {
   voice: fixed(VOICE_INSTRUCTIONS, VOICE_SHAPE),
   narrator: fixed(NARRATOR_INSTRUCTIONS, NARRATOR_SHAPE),
   weaver: fixed(WEAVER_INSTRUCTIONS, WEAVER_SHAPE),
+  checkin: fixed(WEAVER_CHECKIN_INSTRUCTIONS, CHECKIN_SHAPE),
 } as const;

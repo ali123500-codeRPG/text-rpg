@@ -980,7 +980,10 @@ function updatePacing(state: GameState, events: GameEvent[], learnedBefore: numb
   const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
   state.stage.quiet = quiet ? (state.stage.quiet ?? 0) + 1 : 0;
   if (state.stage.breakCause) return;
-  if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) state.stage.breakCause = 'story_beat';
+  if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) {
+    state.stage.breakCause = 'story_beat';
+    logCode(state, 'scene_stalled', { number: state.stage.sceneNumber, quiet: state.stage.quiet }); // SC12: code ended it, not the Weaver: a bug
+  }
 }
 
 function beatsLeft(state: GameState): boolean {

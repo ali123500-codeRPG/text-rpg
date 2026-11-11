@@ -72,7 +72,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in). The story saves every turn.';
+  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scene can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -428,6 +428,14 @@ export function createGame(deps: GameDeps): Game {
         const recap = lines.filter((l) => l.kind === 'narration').slice(-3).map((l) => l.text);
         return say([HELP_TEXT, ...(recap.length ? ['Recently:', ...recap] : [])].join('\n'));
       }
+      case 'stuck': {
+        // SC15: the player says the scene can go nowhere: a numbered bug, and a Weaver check-in now (no gap or limit)
+        if (!s.stage.scene) return say('There is no scene to check on yet.');
+        ctxFor(s.turn, turnLog).reportBug?.('player_stuck', { scene: s.stage.scene.question, note: arg.slice(0, 500) });
+        s.stage.checkinDue = 'stuck';
+        if (director && !rateLimited && !stopped) director.afterSave(s, { ...ctxFor(s.turn, turnLog), background: true });
+        return say('Noted. The story will find a way forward over the next turns; a bad situation stays bad, though.');
+      }
       case 'difficulty':
         // GAP: the spec names no difficulty settings; the word is stored as given and saved with the next turn
         if (arg) s.settings.difficulty = arg;
@@ -606,6 +614,12 @@ export function createGame(deps: GameDeps): Game {
       return mv;
     },
     submit,
+    endScene() {
+      // SC15: the GM view's End scene button (testing): the scene ends after the next turn, recorded as interrupted
+      if (!state?.stage.scene || state.stage.breakCause) return;
+      engine.endScene(state, 'interrupted', 'ended from the GM view');
+      emit();
+    },
     async reset() {
       abortBackground();
       if (state) {
