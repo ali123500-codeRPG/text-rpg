@@ -22,9 +22,9 @@ export const ALL_BUNDLES: AllBundle[] = [
   // Defense (Dodge, Block) and Fortitude (Endurance, Resolve) have two skills each, so neither earns its All-50 for now
   { treeId: TR.defense, step: 50, name: 'The Unbroken', passive: PK.thick_hide },
   { treeId: TR.fortitude, step: 50, name: 'Hard to Kill', passive: PK.last_to_fall },
-  { treeId: TR.perception, step: 50, name: 'Nothing Escapes', passive: PK.curiouser }, // Light Sleeper parked
+  { treeId: TR.perception, step: 50, name: 'Nothing Escapes', passive: PK.curiouser }, // Light Sleeper parked (D-190)
   { treeId: TR.stealth, step: 50, name: 'One with the Dark', passive: PK.child_of_night },
-  { treeId: TR.speech, step: 50, name: 'Silver Voice', passive: PK.silver_words }, // Read Them parked
+  { treeId: TR.speech, step: 50, name: 'Silver Voice', passive: PK.silver_words }, // Read Them parked (D-191)
 ];
 
 /** each skill's All-50 part, whatever tree the skill sits in (a skill with none yet brings nothing).
@@ -34,7 +34,7 @@ export const SKILL_PARTS: Record<string, string> = {
   [SK.ranged_light]: PK.unerring, [SK.ranged_medium]: PK.volley, [SK.ranged_heavy]: PK.past_the_cover,
   [SK.unarmed_strike]: PK.iron_knuckles, [SK.unarmed_grapple]: PK.hard_to_hold, [SK.unarmed_improvised]: PK.junk_arsenal,
   [SK.dodge]: PK.dodgy, [SK.parry]: PK.against_the_grain, [SK.block]: PK.iron_rim, [SK.endurance]: PK.second_wind, [SK.resolve]: PK.grit,
-  [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.know_the_step, // Spotter parked
+  [SK.eyesight]: PK.night_eyes, [SK.earshot]: PK.know_the_step, // Spotter parked (D-192)
   [SK.sneaking]: PK.hushed_steps, [SK.combat_stealth]: PK.strike_and_fade,
   [SK.persuasion]: PK.soft_landing, [SK.barter]: PK.easy_speaker,
 };
@@ -131,7 +131,7 @@ export const ALL_PARTS: PerkWriteup[] = [
       effect: 'Endurance augments Resolve: the roll adds the owner\'s true Endurance × 0.25 (CONFIG.GRIT_SHARE, placeholder) × its tier, the way a skill augment does, and Endurance can learn from the roll the same way.', lasts: 'Always.' },
     augments: [{ from: SK.endurance, skill: SK.resolve, share: CONFIG.GRIT_SHARE }] }),
   // ---- Perception ----
-  // Spotter is parked: no skill carries it in SKILL_PARTS, so it is never granted
+  // Spotter is parked (D-192): no skill carries it in SKILL_PARTS, so it is never granted
   part(TR.perception, { id: PK.spotter, ref: 'T5b', name: 'Spotter', effect: 'senses',
     story: 'What you see, your people sense. Your band-mates beside you know something is there whenever you do.',
     rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor outside its band.', 'A band-mate is in the owner\'s zone and is less than suspicious of that actor.'],
