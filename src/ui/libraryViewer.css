@@ -239,3 +239,6 @@ body.lv-allmode .lv-body > :not(.lv-allres), body.lv-allmode .lv-filters, body.l
 .lv-subrail .lv-tabs button[data-pane="all"] small { color: color-mix(in srgb, var(--all) 70%, var(--text)); }
 .lv-subrail .lv-tabs button[data-pane="all"][aria-selected="true"] { background: var(--all); color: var(--on-pill); }
 .lv-subrail .lv-tabs button[data-pane="all"][aria-selected="true"] small { color: var(--on-pill); }
+/* a line holding several chains (one per source): each chain gets a small label over its own track */
+.lv-chainlabel { margin: var(--space-3) 0 var(--space-2); font-size: 14px; font-weight: 600; color: var(--text); padding-left: var(--space-2); border-left: 2px solid var(--accent); }
+.lv-chain > h2 + .lv-chainlabel { margin-top: var(--space-1); }

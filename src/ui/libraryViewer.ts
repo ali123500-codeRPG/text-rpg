@@ -517,7 +517,19 @@ function achievements(): HTMLElement[] {
     const xp = list.reduce((n, [, d]) => n + achXp(d), 0);
     return h('section', { class: 'lv-group lv-chain' }, h('h2', { class: 'hs-section' }, title,
       h('span', { class: 'lv-chainmeta' }, ` (${list.length} level${list.length === 1 ? '' : 's'}, ${fmtNum(xp)} XP)`)),
-      h('div', { class: 'lv-grid lv-track', style: `--n: ${Math.min(list.length, 6)}` }, list.map(medal)));
+      ...chainsOf(list).map(([label, rows]) => [label ? h('h3', { class: 'lv-chainlabel' }, label) : null,
+        h('div', { class: 'lv-grid lv-track', style: `--n: ${Math.min(rows.length, 6)}` }, rows.map(medal))]).flat().filter((x) => !!x) as HTMLElement[]);
+  };
+  // one line can hold several chains (one per healing source, say): follow `after` from each root so a medal's rail
+  // always leads to the level that builds on it; a line with no `after` links stays one track in count order
+  const chainsOf = (list: [string, AchievementDef][]): [string, [string, AchievementDef][]][] => {
+    const ids = new Set(list.map(([k]) => k));
+    const roots = list.filter(([, d]) => !d.after || !ids.has(d.after));
+    const chains = roots.map((r) => { const out = [r]; for (let cur = r, i = 0; i < 50; i++) { const next = list.find(([, d]) => d.after === cur[0]); if (!next || out.includes(next)) break; out.push(next); cur = next; } return out; });
+    if (!chains.some((c) => c.length > 1) || chains.length === 1) return [['', list]];
+    const linked = chains.filter((c) => c.length > 1), loose = chains.filter((c) => c.length === 1).flat();
+    const label = (c: [string, AchievementDef][]) => { const d = c[0][1]; return d.only ? `From ${sourceRowName(d, d.only)}` : `${c[0][1].name} chain`; };
+    return [...linked.map((c): [string, [string, AchievementDef][]] => [label(c), c]), ...(loose.length ? [['Single levels', loose] as [string, [string, AchievementDef][]]] : [])];
   };
   // a line: one rule counted one way (rule + by), its levels in count order; each line folds on its own
   const lineOf = (d: AchievementDef) => `${d.rule}|${d.by ?? ''}`;
