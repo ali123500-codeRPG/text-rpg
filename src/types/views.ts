@@ -58,6 +58,7 @@ export type YieldView = { took: string[]; waiting: string[]; refused: string[] }
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
+  distanceM?: number; // ZP5: metres from the viewer, once both stand at points on the map (to 0.1 m)
   health?: HealthLevel; // others: only from Wounded down
   morale?: string; // MB16: others' morale level, only from Afraid down
   stance?: string; // LI2b Read Their Face: a speaker's stance toward the viewer
@@ -144,6 +145,7 @@ export type ActorView = {
   secrets: Secret[]; // its own
   firedTriggers: { triggerId: string; turn: number }[]; // "already happened"
   band: { id: string; name: string; goals: string; temperament: string; tactics: Tactics; relations: Record<string, Stance> };
+  personality: string; // PL1, PL9: Nerve tier with the mood, trait words, values and named types (CHARACTER only; never the Voice)
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives
@@ -189,6 +191,7 @@ export type NarrationEvent = {
   overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words
+  metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes
@@ -215,7 +218,9 @@ export type WeaverView = {
   time: TimeView | null;
   stakes: string;
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
-  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string; wake?: true };
+  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string; wake?: true;
+    /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
+    encounter?: { zone: string; danger: string; noticed: boolean } };
   headlines: string[];
   stage: ZoneView[];
   actors: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[];
@@ -233,6 +238,7 @@ export type WeaverView = {
     routineSets: { id: string; brief: string; tags: unknown; slots: Record<string, { kind: string; hint: string }> }[];
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: { id: string; name: string }[];
+    personality: { nerve: string[]; types: { id: string; name: string; hint: string }[]; values: { id: string; name: string }[] }; // PL12
     zoneKinds: import('./library').ZoneKind[]; // Z2
     edgeKinds: import('./library').EdgeKind[]; // CO15
     layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string }[] }[]; // CO17

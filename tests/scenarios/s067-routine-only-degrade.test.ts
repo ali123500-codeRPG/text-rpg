@@ -9,7 +9,7 @@ import { toStoryStart, villageStagePlan, VirtualClock } from '../../src/scene/fi
 
 describe('67 Routine-only degrade', () => {
   it('degrades one actor and applies the rest', async () => {
-    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
+    const roll = vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const p = villageStagePlan('success');
     p.cast[3].slots = { post: 'field_far' }; // slime_1: route unbound
     const weave = vi.fn(async () => p);

@@ -39,7 +39,7 @@ import { fileBug, isBugCode } from '../save/bugs';
  * W6 makes its Weaver calls through callWeaver with the ctx handed in.
  */
 export interface SceneDirector {
-  /** story start (turn 0): place the player, situation roll, Weaver, apply plan or fallback stage; returns the opening events */
+  /** story start (turn 0): place the player, event roll, Weaver, apply plan or fallback stage; returns the opening events */
   startStory(state: GameState, rng: Rng, ctx: AgentCtx): Promise<GameEvent[]>;
   /** inside a turn, after resolveTurn and before the save: scene setup on sceneBreak, or a frontier crossing; returns added events */
   afterResolve(state: GameState, events: GameEvent[], rng: Rng, ctx: AgentCtx): Promise<GameEvent[]>;
@@ -333,9 +333,9 @@ export function createGame(deps: GameDeps): Game {
     const record: TurnRecord = {
       storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, schemaVersion: CONFIG.SCHEMA_VERSION, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
       agentLog: s.agentLog, events, factsAdded: [], log: s.log, aimed: rec.aimed,
-      ...(s.scratch?.situation ? { situation: s.scratch.situation as TurnRecord['situation'] } : {}),
+      ...(s.scratch?.eventRoll ? { eventRoll: s.scratch.eventRoll as TurnRecord['eventRoll'] } : {}),
     };
-    if (s.scratch) delete s.scratch.situation;
+    if (s.scratch) delete s.scratch.eventRoll;
     // save step 1: hold the turn lock. Re-acquiring renews the lease, so a long turn (Weaver wait, slow calls) or the
     // first save of a new story still writes under the lock.
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {
@@ -978,6 +978,13 @@ export function mechanicsLines(s: GameState, events: GameEvent[]): string[] {
     const why = d.reason === 'cooldown' ? 'too soon after your last rest'
       : d.reason === 'already' ? `it's already ${TIME_OF_DAY.name(d.timeOfDay as TimeOfDay).toLowerCase()}` : 'not while someone hostile is near you';
     out.push(`${what}: ${why}`);
+  }
+  // TV7: a trip says how far it went and why it stopped
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'travelled') continue;
+    const d = l.detail as { actorId: string; metres: number; pace: string; night: boolean; stop: string };
+    if (d.actorId !== s.player.id) continue;
+    out.push(`Travelled ${d.metres >= 1000 ? `${Math.round(d.metres / 100) / 10} km` : `${d.metres} m`} at a ${d.pace} pace${d.night ? ' in the dark' : ''}${d.stop === 'nightfall' ? ' · stopped at nightfall' : d.stop === 'encounter' ? ' · stopped by an encounter' : ''}`);
   }
   // T6: a wait or sleep says how long it took and where the clock is now
   for (const l of s.log) {

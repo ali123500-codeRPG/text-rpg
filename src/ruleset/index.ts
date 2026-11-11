@@ -3,12 +3,13 @@
 import { RL } from '../library/tableIds';
 import type {
   Actor, AttackRequest, DefenseKind, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
-  PartState, Rng, RollRequest, RollResult, Ruleset, SituationResult, Tier, TierRoll, TierShift,
+  PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
 import { COVER, TIERS } from '../scales';
 import { actorBody, itemDef } from '../library';
-import { actorById, foe, isActive, hostile, shortestPath, zoneById } from '../engine/relations';
+import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
+import { sightDistM } from '../engine/position';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
 import { markUse } from './improve';
 import { boostAdd, boostMult, boostRollMods, hasPerk } from './perks';
@@ -20,7 +21,7 @@ import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats, tally } from '../engine/xp';
 import { shortShifts } from './requirements';
-import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
+import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -30,7 +31,7 @@ export { improveMarked, clearMarkCounts, markEndurance, markUse } from './improv
 export { meltAwayHere } from './perks';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
-export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, perkThrowReach, augmentsOf } from './gear';
+export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, eventRollMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, modeReach, augmentsOf } from './gear';
 
 // Tiers are keys of the TIERS table (src/scales.ts). Arithmetic (shifts, gaps) works on a tier's level: its row
 // position plus `beyond`, the steps a shifted roll went past either end (Part 1 §4: shifted tiers are not clamped).
@@ -116,7 +117,7 @@ function decidingOf(r: RollResult, skill: number, gear: { source: string; value:
 
 function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const actor = mustActor(state, req.actorId);
-  const ctx = { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? fnSkills(req.fn) : [])], standInFns: req.standInFns, rollKind: req.rollKind };
+  const ctx = { itemId: req.itemId, fullValue: [...(req.fullValue ?? []), ...(req.fn ? rollFnSkills(actor, req.fn) : [])], standInFns: req.standInFns, rollKind: req.rollKind };
   const eff: { skill: string; value: number; parts?: string[] } = req.blend ? blendedSkill(state, actor, req.blend, ctx) : effectiveSkill(state, actor, req.skill, ctx); // a combined roll (Throw)
   const modifiers = [...req.modifiers];
   if (req.auto !== false) {
@@ -157,20 +158,26 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
 }
 
 // Part 1 §4 table on totals (d100 + modifiers), read on the margin: total − 50 with the placeholder base
-export const SITUATION_BANDS = [-50, -25, 0, 25, 50];
-function situation(actor: Actor, state: GameState, rng: Rng): SituationResult {
-  const modifiers = situationMods(state, actor);
+export const EVENT_BANDS = [-50, -25, 0, 25, 50];
+function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollResult['modifiers'] = []): EventRollResult {
+  const modifiers = [...eventRollMods(state, actor), ...extra];
   const d = rng.d100();
-  const margin = d + CONFIG.SITUATION_BASE + modTotal(modifiers) - 100;
-  const tier = TIERS.at(SITUATION_BANDS.filter((t) => margin >= t).length + naturalEdge(d));
+  const margin = d + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
+  const tier = TIERS.at(EVENT_BANDS.filter((t) => margin >= t).length + naturalEdge(d));
   return { actorId: actor.id, roll: d, tier, modifiers };
+}
+
+/** a ranged attack's range penalty: the first RANGE_SHARE_MODS band that the target's distance fits in, as a share of the
+ * mode's reach (both in metres) */
+export function rangeMod(dist: number, reach: number): number {
+  if (dist <= 0 || reach <= 0) return 0;
+  return CONFIG.RANGE_SHARE_MODS.find(([share]) => dist / reach <= share)?.[1] ?? CONFIG.RANGE_SHARE_MODS.at(-1)![1];
 }
 
 function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const A = mustActor(state, req.attackerId);
   const D = mustActor(state, req.targetId);
-  const path = A.zone === D.zone ? [] : shortestPath(state, A.zone, D.zone, true);
-  const dist = path ? path.length : Infinity;
+  const dist = sightDistM(state, A, D);
   const { mode, name } = resolveMode(state, A, req.weaponId, req.modeId, dist);
   const ranged = mode.tree === 'ranged';
   const ct = actorBody(state, D);
@@ -187,9 +194,11 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   const hit = cls.hit + (mode.hitAdj ?? 0);
   if (hit) am.push({ source: `weapon: ${name}`, type: 'gear', value: hit });
   if (ranged) {
-    if (dist >= 1 && CONFIG.RANGE_MODS[dist]) am.push({ source: 'range', type: 'situational', value: CONFIG.RANGE_MODS[dist] });
-    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && o.zone === A.zone && isActive(o) && (foe(state, A, o) || foe(state, o, A))); // either way: the player holds no stances of its own
-    if (crowded && CONFIG.RANGE_MODS[0] && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile in zone', type: 'situational', value: CONFIG.RANGE_MODS[0] });
+    const far = rangeMod(dist, mode.reach);
+    if (far) am.push({ source: 'range', type: 'situational', value: far });
+    // RD5: a hostile within HOSTILE_NEAR_M, close enough to strike or grab; either way: the player holds no stances of its own
+    const crowded = [state.player, ...state.actors].some((o) => o.id !== A.id && isActive(o) && (foe(state, A, o) || foe(state, o, A)) && sightDistM(state, A, o) <= CONFIG.HOSTILE_NEAR_M);
+    if (crowded && CONFIG.HOSTILE_NEAR_MOD && !hasPerk(A, PK.point_blank)) am.push({ source: 'hostile close', type: 'situational', value: CONFIG.HOSTILE_NEAR_MOD });
   }
   am.push(...situational(state, skill, { light: zoneD }).modifiers); // ST21: light by tag (sight)
   am.push(...(req.context?.attackerMods ?? []));
@@ -423,7 +432,7 @@ export const ruleset: Ruleset = {
   contested,
   roll,
   attack,
-  situation,
+  eventRoll,
   applyEffects,
   recordUse,
 };

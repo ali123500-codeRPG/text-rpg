@@ -44,12 +44,12 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Point Blank (Light ranged) · A4
 
-*Story:* Most archers panic when a blade closes in. You just smile: with any ranged weapon you take no penalty for shooting while a hostile is in your zone.
+*Story:* Most archers panic when a blade closes in. You just smile: with any ranged weapon you take no penalty for shooting while a hostile is close enough to strike you.
 
 - **Kind:** Always on
 - **Trigger:** The owner makes a ranged attack.
-- **Conditions:** Any ranged attack, thrown included. A hostile actor is in the owner's zone.
-- **Effect:** The −10 ranged modifier for a hostile in the shooter's zone is not applied.
+- **Conditions:** Any ranged attack, thrown included. A hostile actor is within 2 m of the owner (HOSTILE_NEAR_M).
+- **Effect:** The −10 ranged modifier for a hostile close to the shooter is not applied.
 - **Lasts:** That attack.
 
 ### Hunter's Mark (Medium ranged) · A5
@@ -145,11 +145,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Keen Ear (Earshot) · A14
 
-*Story:* A whisper two rooms away might as well be a shout. Your hearing reaches one zone link further.
+*Story:* A whisper two rooms away might as well be a shout. You hear sounds 10 decibels quieter than most people can.
 
 - **Kind:** Always on
 - **Trigger:** A perception check for the owner by sound.
-- **Effect:** Sound reaches the owner one zone link further: both the clear and the half reach of every noise level go up one link (noiseReach). Nowhere is the step below the same zone, so a Silent sound is heard like a Hushed one, and a Quiet sound is heard clearly one link away.
+- **Effect:** The owner hears 10 dB quieter (hearingDb): every sound counts 10 dB louder for the owner in noiseReach, about one zone link farther. A Silent sound stays unheard.
 - **Lasts:** Always.
 
 ### Quick Word (Persuasion) · A15
@@ -832,9 +832,9 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Open:** The perception All-50 Night Eyes (T5e) is the one-step version of this; this two-step one is kept for the All-100 after it.
 - **Banked as:** an All-X candidate for the Perception tree, suggested for All-100
 
-## All-50 parts
+## All-X parts (All-50, All-100, All-150)
 
-Granted free once enough skills of the tree reach 50 true skill, by the tree's rating (inferior never, normal 3, superior 2, legendary 1): the tree's passive plus the part of each skill at 50; a further skill reaching 50 adds its part. Each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Fortitude All-50: Hard to Kill; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice.
+All-50, All-100 and All-150 work alike. Granted free once enough skills of the tree reach the step in true skill, by the tree's rating (inferior never, normal 3, superior 2, legendary 1): the tree's passive for that step plus the part of each skill at it; a further skill reaching the step adds its part. Each part once it is built. Bundles: Combat – Arms All-50: Warborn; Combat – Ranged All-50: Death from Afar; Combat – Unarmed All-50: Open Hand; Combat – Defense All-50: The Unbroken; Fortitude All-50: Hard to Kill; Perception All-50: Nothing Escapes; Stealth – Conventional All-50: One with the Dark; Speech All-50: Silver Voice; Perception All-150: Nothing Unwitnessed.
 
 ### Opening Strike (Combat – Arms, Heavy weapons) · T1a
 
@@ -1060,6 +1060,17 @@ Granted free once enough skills of the tree reach 50 true skill, by the tree's r
 - **Conditions:** The roll ends in Success or better.
 - **Effect:** Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.
 - **Lasts:** That roll.
+- **Built:** yes
+
+### Every Sense One (Perception, Eyesight) · T5-150
+
+*Story:* Your senses have run together. What you see, you hear, and what you hear, you see: a voice in the dark has a face, and a figure across the yard has a voice.
+
+- **Kind:** Always on
+- **Trigger:** The owner perceives an event, or makes a sight or hearing roll.
+- **Conditions:** The All-150 part of both Eyesight and Earshot: granted with the Perception All-150 when either of them is at 150.
+- **Effect:** The owner perceives every event as well as the better of its sight and its hearing would allow, and by both senses at once: whatever it hears, it sees as clearly (who and what), and whatever it sees, it hears (spoken words included). Every sight or hearing roll (by function) uses the best of the owner's sight and hearing skills, so light only matters when a sight skill is the one rolling.
+- **Lasts:** Always.
 - **Built:** yes
 
 ### Know the Step (Perception, Earshot) · T5f

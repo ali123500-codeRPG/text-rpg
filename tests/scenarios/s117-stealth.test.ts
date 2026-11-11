@@ -164,7 +164,7 @@ describe('117 stealth', () => {
     s.actors.find((a) => a.id === 'guard_1')!.core.perks.push({ perkId: PK.unblinking } as never);
     const calls = rig({ guard_1: [-1, 0] });
     turn(s, intent({ toZone: 'street_square' }, { type: 'vanish' }));
-    expect(calls.map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]);
+    expect(calls.filter(([, b]) => b.actorId === 'guard_1').map(([a]) => a.skill)).toEqual([SK.vanishing, SK.sneaking]); // the slimes in the field see it too now
     expect(['aware', 'tracking']).toContain(status(s, 'guard_1'));
   });
 });

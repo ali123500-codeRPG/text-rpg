@@ -7,9 +7,10 @@ import { intent, play } from './w4-kit';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
 import { actorById } from '../../src/engine/relations';
-import { applyHaggle, buy, coinWords, coins, warePrice } from '../../src/engine/trade';
+import { applyHaggle, buy, coinWords, coins, orderReach, warePrice } from '../../src/engine/trade';
+import { noiseReach } from '../../src/perception/noise';
 import { SV } from '../../src/library/serviceIds';
-import { CONFIG } from '../../src/config';
+import { CONFIG, resetConfig } from '../../src/config';
 import type { ContestResult, GameState } from '../../src/types';
 import { PK } from '../../src/library/perkIds';
 import { IT } from '../../src/library/itemIds';
@@ -108,28 +109,23 @@ it('133g a buy naming a ware of its seller passes legality; a ware the seller la
   expect(checkParserLegality(intent({ action: { type: 'barter', target: 'trader', item: `service:${SV.drink}` } }), view).illegal).toEqual([]);
 });
 
-// S1/S2: buy across the counter (seller one link away), and for someone up to two links from the buyer
-it('133h trade reach: seller within TRADE_SELLER_LINKS, recipient within TRADE_GIFT_LINKS', () => {
+// RD2: an order is called out, so the seller must hear a normal voice clearly; the one bought for must be as near the
+// buyer or the seller
+it('133h trade reach: as far as a called order is heard clearly (orderReach)', () => {
   const s = shop();
   const mags = actorById(s, 'trader')!;
   const wim = actorById(s, 'patron_1')!;
   mags.zone = 'tav_counter';
   s.player.zone = 'tav_common'; // one link from the counter
+  expect(orderReach()).toBe(noiseReach('normal')[0]);
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
-  wim.zone = 'tav_cellar'; // two links from the common room
+  wim.zone = 'tav_cellar'; // two links from the buyer, one from the seller
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim).ok).toBe(true);
-  s.player.zone = 'street_door'; // two links from the counter: too far to buy
+  wim.zone = 'street_square'; // two links from the buyer, three from the seller
+  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim)).toEqual({ ok: false, reason: 'not_here' });
+  s.player.zone = 'street_door'; // two links from the counter: the order isn't heard clearly
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1)).toEqual({ ok: false, reason: 'not_here' });
-  // both reaches are config values
-  const [seller, gift] = [CONFIG.TRADE_SELLER_LINKS, CONFIG.TRADE_GIFT_LINKS];
-  try {
-    (CONFIG as { TRADE_SELLER_LINKS: number }).TRADE_SELLER_LINKS = 2;
-    expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
-    s.player.zone = 'tav_common';
-    (CONFIG as { TRADE_GIFT_LINKS: number }).TRADE_GIFT_LINKS = 1;
-    expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim)).toEqual({ ok: false, reason: 'not_here' });
-  } finally {
-    (CONFIG as { TRADE_SELLER_LINKS: number }).TRADE_SELLER_LINKS = seller;
-    (CONFIG as { TRADE_GIFT_LINKS: number }).TRADE_GIFT_LINKS = gift;
-  }
+  CONFIG.ORDER_NOISE = 'loud'; // a shouted order carries farther
+  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
+  resetConfig();
 });

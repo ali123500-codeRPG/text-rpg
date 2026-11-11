@@ -26,6 +26,8 @@ export type ItemDef = {
     multiplier: number;
     weight: ArmorWeightKey;
     pools?: Record<string, number>;
+    /** RD7 how much it slows its wearer: flat m/s off the base speed, then a share off what is left. Default: CONFIG.ARMOR_SPEED by weight */
+    speed?: { flat: number; pct: number };
   };
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
@@ -34,7 +36,7 @@ export type ItemDef = {
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
 };
 
-export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'situation' | 'initiative';
+export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';
 
 export type ItemEffect = {
   kind: 'skill' | 'rollMod';
@@ -51,6 +53,9 @@ export type AttackMode = {
   tree: 'melee' | 'ranged' | 'unarmed';
   class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam' | 'grapple';
   skill?: LibraryRef; // unarmed only
+  /** how far the mode strikes or shoots, in metres, from real weapons (the library's item rows) */
+  reachM: number;
+  /** the metres it reaches in use: reachM, plus a thrown weapon's perk metres (ruleset/gear modeReach) */
   reach: number;
   hands: 0 | 1 | 2;
   thrown?: true;

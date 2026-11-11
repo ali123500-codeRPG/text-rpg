@@ -8,7 +8,7 @@ import { baneSkill, defeatsRoll, isBane } from './bane';
 import { skillName } from '../library/skillNames';
 import { PK } from '../library/perkIds';
 
-/** the types a situation roll's modifiers carry (situationMods in gear.ts), besides gear */
+/** the types a event roll's modifiers carry (eventRollMods in gear.ts), besides gear */
 export type SituationModType = 'perk' | 'status';
 export type StackedType = ModType | SituationModType;
 /** display names of the modifier types, in the order the viewer lists them */
@@ -21,8 +21,8 @@ export const MOD_TYPE_NAMES: Record<StackedType, string> = {
 export type ModFeed = { table: 'perks' | 'items' | 'achievements'; id: string; name: string; value: string };
 export type ModSource = {
   type: StackedType;
-  /** skill rolls (ruleset.roll) or the situation roll (ruleset.situation, no skill) */
-  roll: 'skill' | 'situation';
+  /** skill rolls (ruleset.roll) or the event roll (ruleset.eventRoll, no skill) */
+  roll: 'skill' | 'event';
   source: string;
   when: string;
   value: string;
@@ -35,8 +35,8 @@ const sg = (n: number) => `${n > 0 ? '+' : ''}${+n.toFixed(2)}`;
 const list = (o: Record<string, number>, skipZero = true) => Object.entries(o).filter(([, v]) => !skipZero || v).map(([k, v]) => `${k.replace(/_/g, ' ')} ${sg(v)}`).join(' · ');
 const W = () => CONFIG.SKILL_WEIGHT;
 const perk = (lib: Library, id: string): ModFeed[] => (lib.perks[id] ? [{ table: 'perks', id, name: lib.perks[id].name, value: '' }] : []);
-const itemRollMods = (lib: Library, situation: boolean): ModFeed[] => Object.values(lib.items).flatMap((i) => (i.effects ?? [])
-  .filter((e) => e.kind === 'rollMod' && (e.roll === 'situation') === situation)
+const itemRollMods = (lib: Library, eventRoll: boolean): ModFeed[] => Object.values(lib.items).flatMap((i) => (i.effects ?? [])
+  .filter((e) => e.kind === 'rollMod' && (e.roll === 'event') === eventRoll)
   .map((e) => ({ table: 'items' as const, id: i.id, name: i.name, value: `${sg(e.value)} ${e.roll} rolls · when ${e.active}` })));
 
 export const MOD_SOURCES: ModSource[] = [
@@ -88,10 +88,10 @@ export const MOD_SOURCES: ModSource[] = [
   // situational
   { type: 'situational', roll: 'skill', source: 'Light', at: 'src/ruleset/gear.ts', when: 'Rolls whose skill has a light tag (sight, stealth …): the tag\'s sign × the light where the action is.',
     value: list(CONFIG.LIGHT_MODS) },
-  { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by zones to the target.',
-    value: Object.entries(CONFIG.RANGE_MODS).filter(([d, v]) => +d >= 1 && v).map(([d, v]) => `${d} zone${+d === 1 ? '' : 's'} ${sg(v)}`).join(' · ') },
-  { type: 'situational', roll: 'skill', source: 'Hostile in zone', at: 'src/ruleset/index.ts', when: 'Ranged attacks while a hostile shares the shooter\'s zone (Point Blank removes it).',
-    value: sg(CONFIG.RANGE_MODS[0] ?? 0) },
+  { type: 'situational', roll: 'skill', source: 'Range', at: 'src/ruleset/index.ts', when: 'Ranged attacks, by the distance to the target as a share of the weapon\'s reach (both from real metres).',
+    value: CONFIG.RANGE_SHARE_MODS.map(([share, v]) => `up to ${Math.round(share * 100)}% ${sg(v)}`).join(' · ') },
+  { type: 'situational', roll: 'skill', source: 'Hostile close', at: 'src/ruleset/index.ts', when: `Ranged attacks with a hostile within ${CONFIG.HOSTILE_NEAR_M} m of the shooter, close enough to strike or grab (Point Blank removes it).`,
+    value: sg(CONFIG.HOSTILE_NEAR_MOD) },
   { type: 'situational', roll: 'skill', source: 'Outnumbered', at: 'src/ruleset/index.ts', when: 'Defense rolls after the first this turn (Blade Wall removes it for Parry with a medium weapon, Shield Wall for Block, Slip the Crowd for Dodge).',
     value: sg(CONFIG.OUTNUMBERED_MOD) },
   { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming.', value: sg(CONFIG.UNAWARE_MOD) },
@@ -105,14 +105,18 @@ export const MOD_SOURCES: ModSource[] = [
     when: 'Every roll against someone whose intimidation beat you, until your engagement ends.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },
   { type: 'status', roll: 'skill', source: 'Swayed', at: 'src/ruleset/pressure.ts',
     when: 'Every roll against someone whose persuasion beat you, until your engagement ends.', value: `−${CONFIG.SWAYED_PER_TIER} × tiers lost by` },
+  { type: 'situational', roll: 'skill', source: 'Travel pace', at: 'src/engine/travel.ts', when: 'The noticing roll on a road trip when something meets you, by pace (TV8).',
+    value: `slow ${sg(CONFIG.TRAVEL_NOTICE_MOD.slow)}, fast ${sg(CONFIG.TRAVEL_NOTICE_MOD.fast)}` },
   // aim
   { type: 'aim', roll: 'skill', source: 'Aimed part', at: 'src/ruleset/index.ts', when: 'Aimed attacks, by the size of the part aimed at.',
     value: list(CONFIG.AIM_PENALTY) },
-  // the situation roll (no skill)
-  { type: 'perk', roll: 'situation', source: 'Perk situation bonus', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for each perk with a situation value.',
-    value: 'the perk\'s situation value', feeds: (lib) => Object.values(lib.perks).filter((d) => d.situation).map((d) => ({ table: 'perks', id: d.id, name: d.name, value: sg(d.situation!) })) },
-  { type: 'gear', roll: 'situation', source: 'Item situation effects', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for each item effect that names the situation roll.',
+  // the event roll (no skill)
+  { type: 'perk', roll: 'event', source: 'Perk event-roll bonus', at: 'src/ruleset/gear.ts', when: 'Event rolls, for each perk with an event-roll value.',
+    value: 'the perk\'s event-roll value', feeds: (lib) => Object.values(lib.perks).filter((d) => d.eventRoll).map((d) => ({ table: 'perks', id: d.id, name: d.name, value: sg(d.eventRoll!) })) },
+  { type: 'gear', roll: 'event', source: 'Item event-roll effects', at: 'src/ruleset/gear.ts', when: 'Event rolls, for each item effect that names the event roll.',
     value: 'the effect\'s value', feeds: (lib) => itemRollMods(lib, true) },
-  { type: 'achievement', roll: 'situation', source: 'Achievement situation bonus', at: 'src/ruleset/gear.ts', when: 'Situation rolls, for the best current achievement with a situation value.',
-    value: 'the achievement\'s situation value', feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.situation).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(a.situation!) })) },
+  { type: 'achievement', roll: 'event', source: 'Achievement event-roll bonus', at: 'src/ruleset/gear.ts', when: 'Event rolls, for the best current achievement with an event-roll value.',
+    value: 'the achievement\'s event-roll value', feeds: (lib) => Object.entries(lib.achievements ?? {}).filter(([, a]) => a.eventRoll).map(([k, a]) => ({ table: 'achievements', id: k, name: a.name, value: sg(a.eventRoll!) })) },
+  { type: 'situational', roll: 'event', source: 'Night travel', at: 'src/engine/travel.ts', when: 'Event rolls for an encounter on a trip pressed on through dusk or night (TV4).',
+    value: sg(CONFIG.NIGHT_TRAVEL_EVENT_MOD) },
 ];

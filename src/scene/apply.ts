@@ -1,13 +1,15 @@
 // Applying a stage plan (Scene setup steps 4–8), the fallback stage, opening events.
 import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
-import { TIME_OF_DAY } from '../scales';
+import { ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
 import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
+import { placeAll } from '../engine/position';
 import { clockSet, startClock } from '../time';
-import { activity, getLibrary, itemDef } from '../library';
+import { activity, getLibrary, itemDef, npcTemplate } from '../library';
 import { spawnNpc } from '../library/spawn';
+import { personalityFrom } from '../ruleset/personality';
 import { installRoutines, desiredState, detectPlayer } from '../minds';
 import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
@@ -135,6 +137,14 @@ function endYields(state: GameState): void {
   }
 }
 
+/** TV3/TV4: a road is one long zone, ROAD_WIDTH_M wide, its length from the Weaver's word or km (an hour's walk when
+ * left out), with a danger (quiet when left out) */
+export function roadShape(length: string | number | undefined, danger: string | undefined): Pick<Zone, 'area' | 'aspect' | 'danger'> {
+  const km = typeof length === 'number' ? length : CONFIG.ROAD_LENGTH_KM[ROAD_LENGTHS.has(length) ? length : 'hour'];
+  const m = km * 1000, w = CONFIG.ROAD_WIDTH_M;
+  return { area: m * w, aspect: Math.max(1, m / w), danger: ROAD_DANGERS.has(danger) ? danger : 'quiet' };
+}
+
 export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext, opts: { entry: 'open' | 'stealthy'; degrade?: PlanError[] }, rng: Rng): void {
   const turn = state.turn;
   // T8: the story's first plan sets the clock (to the start of day if it names no time)
@@ -179,8 +189,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight };
     });
     const k = getLibrary().zoneKinds![z.kind]; // the validator checked it
-    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), ...(z.height ? { height: z.height } : z.height === 0 ? { height: 0 } : {}),
-      area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, z.edges?.[sd] ?? k.edge])), ...(k.aspect > 1 ? { aspect: k.aspect } : {}), groundItems: [] };
+    const road = k.road ? roadShape(z.length, z.danger) : {};
+    const zone: Zone = { id: zoneMap.get(z.key)!, placeId: placeRef(z.place), kind: z.kind, name: z.name, look: z.look, links, cover: z.cover ?? k.cover, light: z.light ?? k.light, ...(k.outdoor ? { outdoor: true as const } : {}), ...(z.height ? { height: z.height } : z.height === 0 ? { height: 0 } : {}),
+      area: z.area ?? CONFIG.ZONE_SIZE_M2[z.size ?? k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, z.edges?.[sd] ?? k.edge])), ...(k.aspect > 1 ? { aspect: k.aspect } : {}), ...road, groundItems: [] };
     state.places.find((p) => p.id === zone.placeId)!.zones.push(zone);
     putOnStage(state, zone);
     newZones.push(zone);
@@ -217,7 +228,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       a.label = c.label;
       // GAP: a reused actor keeps its names; the plan's name is ignored.
     } else {
-      a = spawnNpc(state, c.template!, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId }, rng);
+      const t = npcTemplate(state, c.template!);
+      const personality = c.personality ? personalityFrom(t.personality, c.personality) : undefined; // PL12
+      a = spawnNpc(state, c.template!, { id, zone: startZone, placeId: startPlace, bandId: bandRef(c.band), label: c.label, name: c.name, storyId: state.storyId, ...(personality ? { personality } : {}) }, rng);
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);
@@ -314,6 +327,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const actors = plan.cast.filter((c) => degraded.has(c.key)).map((c) => castMap.get(c.key)!);
     setFallbackFlags(state, 'routine_fallback', 'routine_fallback', opts.degrade!.filter((e) => e.routineOnly), actors);
   }
+  placeAll(state); // ZP1: the cast and anyone moved by the scene get spots in their zones
 }
 
 /** GAP: at story start the player's place has no node yet; a bare one is made so the Weaver's plan (and the fallback) can use its id. */

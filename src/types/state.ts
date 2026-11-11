@@ -2,7 +2,7 @@
 import type { ActorId, Band, FactId, GameEvent, LibraryRef, LogEntry, Mode, PlaceId, SlotKey, StoryId, Tier, Turn, Zone } from './core';
 import type { Actor, NameHistory } from './actor';
 import type { HiddenStore } from './hidden';
-import type { SituationResult } from './ruleset';
+import type { EventRollResult } from './ruleset';
 import type { AgentTurnLog } from './agents';
 import type { QuestRewardLevel, TimeOfDay } from '../scales';
 
@@ -16,7 +16,10 @@ export type StageInfo = {
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
-  breakCause?: 'rest' | 'story_beat' | 'time_skip' | 'knocked_out'; // P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere safe)
+  breakCause?: 'rest' | 'story_beat' | 'time_skip' | 'knocked_out' | 'encounter'; // P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere safe)
+  /** TV4: an encounter on the road: its event roll (the next scene's tier), whether the player saw it coming (TV8), and
+   * where on the road it stands; cleared at the start of the next turn */
+  encounter?: { eventRoll: import('./ruleset').EventRollResult; noticed: boolean; zone: string; at: { x: number; y: number } };
   /** OQ-27 (c): the NPC the player last spoke with this scene (sticky dialogue partner) */
   partner?: string;
 };
@@ -196,7 +199,7 @@ export type TurnRecord = {
   agentLog: AgentTurnLog[];
   events: GameEvent[];
   factsAdded: FactId[];
-  situation?: SituationResult;
+  eventRoll?: EventRollResult;
   log?: LogEntry[];
   aimed?: boolean;
   /** save schema the record was written under (absent before v5) */

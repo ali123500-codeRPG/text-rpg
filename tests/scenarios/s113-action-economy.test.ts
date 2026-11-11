@@ -32,10 +32,20 @@ describe('113 action economy', () => {
   it('a ranged attack out of reach gives way to the move', () => {
     const s = makeVillage();
     place(s, 'player', 'street_square');
+    place(s, 'slime_2', 'tav_common'); // the tavern door has no sight: out of the bow's reach from both zones
     bow(s);
     const ev = turn(s, intent({ toZone: 'gate_inner' }, { type: 'attack', target: 'slime_2' }));
     expect(s.player.zone).toBe('gate_inner');
     expect(ev.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(false);
+  });
+  it('ZP3: a shot costs the main action and a move slot; with a second move slot the move still goes one link', () => {
+    const s = makeVillage();
+    place(s, 'player', 'field_edge');
+    bow(s);
+    CONFIG.MOVE_SLOTS = 2;
+    const ev = turn(s, intent({ toZone: 'gate_inner' }, { type: 'attack', target: 'slime_1' }));
+    expect(ev.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(true);
+    expect(s.player.zone).toBe('gate_inner');
   });
   it('a move two links away with no action is a dash; a Crippled leg stops it', () => {
     const s = makeVillage();

@@ -1,4 +1,4 @@
-// Test 44: undoing the scene-start turn and redoing it makes a new situation roll and a new Weaver call.
+// Test 44: undoing the scene-start turn and redoing it makes a new event roll and a new Weaver call.
 // Goes green when W4 (resolveTurn) and W6 (src/scene/director.ts) land.
 import { describe, expect, it } from 'vitest';
 import { ScriptedClaude, createRng, makeVillage } from '../harness';
@@ -22,7 +22,7 @@ describe('44 Undo rerolls the hand', () => {
       const events = resolveTurn(state, { intent: null, aimed: false, agentOutputs: [], spokespeople: [] }, rng);
       const setup = await director.runSceneSetup(state, { claude, rng });
       state.rngState = rng.state;
-      return { rngBefore, situation: setup.situation, record: { storyId: 'test', turn: 1, libraryVersion: getLibrary().version, rngBefore, playerInput: 'I rest', agentLog: setup.agentLog, events: [...events, ...setup.events], factsAdded: [], situation: setup.situation } };
+      return { rngBefore, eventRoll: setup.eventRoll, record: { storyId: 'test', turn: 1, libraryVersion: getLibrary().version, rngBefore, playerInput: 'I rest', agentLog: setup.agentLog, events: [...events, ...setup.events], factsAdded: [], eventRoll: setup.eventRoll } };
     };
 
     const first = structuredClone((await loadStory(st, 'test', getLibrary())).state);
@@ -37,9 +37,9 @@ describe('44 Undo rerolls the hand', () => {
     expect(back.rngState).not.toBe(t1.rngBefore);
 
     const t2 = await sceneTurn(back);
-    expect(t2.rngBefore).not.toBe(t1.rngBefore); // a new situation roll, from new dice
+    expect(t2.rngBefore).not.toBe(t1.rngBefore); // a new event roll, from new dice
     expect(claude.callsFor('weaver')).toHaveLength(2); // and a new Weaver call
     await saveTurn(st, back, t2.record);
-    expect((await readTurnRecord(st, 'test', 1))!.situation).toEqual(t2.situation);
+    expect((await readTurnRecord(st, 'test', 1))!.eventRoll).toEqual(t2.eventRoll);
   });
 });

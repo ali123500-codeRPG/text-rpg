@@ -65,6 +65,10 @@ export type Zone = {
   edges?: Partial<Record<Side, string>>;
   /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
   aspect?: number;
+  /** the zone kind id (ZK) it was built from (Z2); hand-built test zones may have none */
+  kind?: string;
+  /** TV4 a road's danger (ROAD_DANGERS); only roads have one */
+  danger?: import('../scales').RoadDangerKey;
   /** set by code (src/scene/geometry.ts placeZones), never by Claude */
   rect?: Rect;
   groundItems: import('./items').ItemInstance[];
@@ -90,17 +94,19 @@ export type GameEvent = {
   actorId: string;
   kind: string; // 'attack','move','idle','speak','call_help','alarm','arrival','presence','item_dropped','give','wasted','search','hold','threshold_crossed','part_state_changed', ...
   zone: string;
+  pos?: { x: number; y: number }; // where in the zone it happened: the actor's point (step 2); absent = the zone's centre
   target?: string;
   tier?: Tier;
   effects: Effect[]; // structured; text is built per view, never stored
   noise: NoiseKey;
   visibility: VisibilityKey;
-  perception: Record<string, { level: Perception; cue: Cue }>; // absent = not perceived
+  perception: Record<string, { level: Perception; cue: Cue; heard?: true }>; // absent = not perceived; heard = the sound reached them (words need it)
   spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):
   line?: { text: string; volume: 'whisper' | 'normal' | 'shout'; introduces?: string[] };
   fromZone?: string; // moves
+  metres?: number; // moves (ZP2): metres walked on this leg; a leg inside one zone has no fromZone, and `target` when closing in
   vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
   activity?: string; // idle / presence: ActivityDef id
   itemId?: string; // item instance involved (gear, give, thrown, dropped)

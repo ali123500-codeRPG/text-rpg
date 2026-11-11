@@ -1,14 +1,14 @@
 // Shared by tests 44 and 45: scene setup inside a triggering turn, live (one Weaver call through Claude) and replayed
 // (the logged Weaver outputs, no call). Mirrors what the pipeline does: each Weaver call is one agent-log entry.
 import { ZK } from '../../src/library/tableIds';
-import type { AgentTurnLog, ClaudeClient, GameEvent, GameState, Rng, SituationResult, StagePlan, TurnRecord } from '../../src/types';
+import type { AgentTurnLog, ClaudeClient, GameEvent, GameState, Rng, EventRollResult, StagePlan, TurnRecord } from '../../src/types';
 import { SceneDirector, replaySceneStart } from '../../src/scene/director';
 import { openingEvents } from '../../src/scene';
 import { FITTING_GRADES, VirtualClock } from '../../src/scene/fixtures';
 import { TIERS } from '../../src/scales';
 
 export type SceneDirectorApi = {
-  runSceneSetup(state: GameState, deps: { claude: ClaudeClient; rng: Rng }): Promise<{ situation: SituationResult; events: GameEvent[]; agentLog: AgentTurnLog[] }>;
+  runSceneSetup(state: GameState, deps: { claude: ClaudeClient; rng: Rng }): Promise<{ eventRoll: EventRollResult; events: GameEvent[]; agentLog: AgentTurnLog[] }>;
   replaySceneSetup(state: GameState, record: TurnRecord, rng: Rng): GameEvent[];
 };
 
@@ -26,7 +26,7 @@ const director: SceneDirectorApi = {
     });
     const res = await d.startScene(state, rng);
     const events = openingEvents(state, rng);
-    return { situation: res.situation!, events, agentLog };
+    return { eventRoll: res.eventRoll!, events, agentLog };
   },
   replaySceneSetup(state, record, rng) {
     const outputs = record.agentLog.filter((l) => l.agent === 'weaver').map((l) => (l.output as StagePlan | null) ?? null);
@@ -54,7 +54,7 @@ export const MILL_PLAN: StagePlan = {
   hiddenTerms: ['nest'], weaverNote: 'the slimes come from the pond',
 };
 
-/** a scripted Weaver answer: MILL_PLAN with grades that fit whatever tier the situation roll dealt */
+/** a scripted Weaver answer: MILL_PLAN with grades that fit whatever tier the event roll dealt */
 export function millWeaver(req: import('../../src/types').ClaudeRequest): import('../../src/types').ClaudeResponse {
   const tier = (JSON.parse(req.input[1].content) as { view: { tier: string } }).view.tier;
   return { ok: true, value: { ...MILL_PLAN, event: { ...MILL_PLAN.event, ...FITTING_GRADES[TIERS.keyOf(tier)!] } } };

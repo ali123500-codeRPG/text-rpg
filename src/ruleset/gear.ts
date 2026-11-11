@@ -5,13 +5,14 @@ import { LIGHT } from '../scales';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
-import { hasPerk, standInAdd, trueSkill } from './perks';
+import { hasPerk, perkSum, standInAdd, trueSkill } from './perks';
 import { achievementStandIn, bestReward } from './achRewards';
 import { skillOpen } from './access';
 import { heldBy } from '../engine/relations';
 import { SK, SENSE_SKILL, CLASS_SKILL, DEFENSE_SKILL } from '../library/skillIds';
 import { requirement, requiredSkill } from './requirements';
 import { PK } from '../library/perkIds';
+import { FN } from '../library/functionIds';
 import { skillName } from '../library/skillNames';
 import { AM } from '../library/tableIds';
 
@@ -51,17 +52,18 @@ export function kitBonus(def: ItemDef, e: ItemEffect): number {
   return r ? CONFIG.EQUIP_FACTOR * r.need : e.value;
 }
 
-/** zones the throw action adds on top of the Throw row's reachBonus: perks' throwReach */
-export const perkThrowReach = (actor: Actor) => actor.core.perks.reduce((n, p) => n + (p.dormant ? 0 : getLibrary().perks[p.perkId]?.throwReach ?? 0), 0);
+/** a mode's reach in metres: its own (a throw mode's is its throw range) + extra metres (a thrown weapon's perks). The
+ * one reach equation: attacks, item value and the library all read it. */
+export const modeReach = (mode: AttackMode, extraM = 0): number => mode.reachM + extraM;
 
-/** an item's mode with its attack mode row's rules applied. Throw: reach + reachBonus (+ perks), and a combined roll of
+/** an item's mode with its attack mode row's rules applied. Throw: its own throw range (+ perks' throwReach metres), and a combined roll of
  * the weapon's own skill and the same class's ranged skill at the row's blend shares. */
 export function withRow(actor: Actor, def: ItemDef, mode: AttackMode): AttackMode {
   const row = getLibrary().attackModes?.[mode.id];
-  if (!row?.reachBonus && !row?.blend) return mode;
+  if (!row?.blend && !mode.thrown) return mode;
   const own = requiredSkill(def) ?? modeSkill(mode), ranged = CLASS_SKILL.ranged[mode.class];
-  return { ...mode, reach: mode.reach + (row.reachBonus ?? 0) + (mode.thrown ? perkThrowReach(actor) : 0),
-    ...(row.blend && ranged ? { skill: own, blend: [{ skill: own, share: row.blend.weapon }, { skill: ranged, share: row.blend.ranged }] } : {}) };
+  return { ...mode, reach: modeReach(mode, mode.thrown ? perkSum(actor, 'throwReach') : 0),
+    ...(row?.blend && ranged ? { skill: own, blend: [{ skill: own, share: row.blend.weapon }, { skill: ranged, share: row.blend.ranged }] } : {}) };
 }
 
 /** a combined roll's effective skill: each part's effectiveSkill (its own stand-ins and gear) × its share, summed */
@@ -126,7 +128,13 @@ export function standInShare(skill: string, id: string, table = standInTable(ski
 export const fnSkills = (fn: string): string[] => Object.values(getLibrary().skills).filter((s) => ((s.functions ?? []) as string[]).includes(fn)).map((s) => s.id);
 /** the skill a function roll will use: the best effective skill with `fn`. Callers read situational modifiers from it,
  * so light and Night Eyes follow the skill that rolls (Q3): Tremor ignores light. */
-export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: fnSkills(fn) }).skill;
+/** the skills a function roll counts at full value: the function's skills; for an owner of the Perception All-150 Every
+ * Sense One, a sight or hearing roll counts both senses' skills */
+export const rollFnSkills = (actor: Actor, fn: string): string[] => {
+  const senses: string[] = [FN.sight, FN.hearing];
+  return senses.includes(fn) && hasPerk(actor, PK.one_sense) ? senses.flatMap(fnSkills) : fnSkills(fn);
+};
+export const fnRoller = (state: GameState, actor: Actor, fn: SkillFunction): string => effectiveSkill(state, actor, (SENSE_SKILL as Record<string, string>)[fn] ?? fn, { fullValue: rollFnSkills(actor, fn) }).skill;
 
 /** Effective skill (Part 1 §3), with substitution: returns the skill actually used. */
 export function effectiveSkill(state: GameState, actor: Actor, skill: string, ctx: { itemId?: string; modeId?: string; fullValue?: string[]; standInFns?: string[]; rollKind?: RollKind } = {}) {
@@ -189,18 +197,18 @@ export function rollMods(state: GameState, actor: Actor, kind: RollKind, itemId?
     .map(({ e, source }) => ({ source, type: 'gear' as const, value: e.value }));
 }
 
-/** situation-roll modifiers from perks, gear and statuses naming the situation roll (one copy counts). */
-export function situationMods(state: GameState, actor: Actor): { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] {
+/** event-roll modifiers from perks, gear and statuses naming the event roll (one copy counts). */
+export function eventRollMods(state: GameState, actor: Actor): { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] {
   const perks = getLibrary().perks;
   const out: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[] = [];
   for (const p of actor.core.perks) {
     const def = perks[p.perkId];
-    if (!p.dormant && def?.situation) out.push({ source: def.name, type: 'perk', value: def.situation });
+    if (!p.dormant && def?.eventRoll) out.push({ source: def.name, type: 'perk', value: def.eventRoll });
   }
-  for (const m of rollMods(state, actor, 'situation')) out.push({ ...m, type: 'gear' });
-  const ach = bestReward(actor, 'situation'); // an achievement reward (Old Blood)
+  for (const m of rollMods(state, actor, 'event')) out.push({ ...m, type: 'gear' });
+  const ach = bestReward(actor, 'eventRoll'); // an achievement reward (Old Blood)
   if (ach) out.push({ source: ach.name, type: 'achievement', value: ach.value });
-  // GAP: statuses have no library entries yet, so none can name the situation roll
+  // GAP: statuses have no library entries yet, so none can name the event roll
   return out;
 }
 
@@ -238,7 +246,7 @@ export function modeIdOf(word: string): string {
   return Object.values(getLibrary().attackModes ?? {}).find((m) => m.id.toLowerCase() === w || m.name.toLowerCase() === w)?.id ?? word;
 }
 
-export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' };
+export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, hands: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {

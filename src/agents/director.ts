@@ -39,7 +39,7 @@ export function createDirector(clock: Clock): SceneDirector {
     async startStory(state: GameState, rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
       ctx = c;
       const r = await d.storyStart(state, rng);
-      (state.scratch ??= {}).situation = r.situation; // put on the turn record by the pipeline (spec: record holds the situation roll)
+      (state.scratch ??= {}).eventRoll = r.eventRoll; // put on the turn record by the pipeline (spec: record holds the event roll)
       return r.events;
     },
     async afterResolve(state: GameState, _events: GameEvent[], rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
@@ -49,7 +49,7 @@ export function createDirector(clock: Clock): SceneDirector {
         if (!state.stage.breakCause) return [];
         ctx = c;
         const r = await d.startScene(state, rng, 'open');
-        (state.scratch ??= {}).situation = r.situation;
+        (state.scratch ??= {}).eventRoll = r.eventRoll;
         return openingEvents(state, rng);
       }
       ctx = c;

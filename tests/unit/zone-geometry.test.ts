@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { CONFIG } from '../../src/config';
-import { EK, LY } from '../../src/library/tableIds';
+import { EK, LY, ZK } from '../../src/library/tableIds';
+import { roadShape } from '../../src/scene/apply';
 import { getLibrary } from '../../src/library';
 import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scene';
 import { toStoryStart, villageStagePlan } from '../../src/scene/fixtures';
@@ -80,5 +81,32 @@ describe('layouts (CO17)', () => {
         for (const [to] of z.links) expect(keys.has(to)).toBe(true);
       }
     }
+  });
+});
+
+describe('roads (TV3, TV4)', () => {
+  it('a road is one long zone: its length word or km sets the rectangle, ROAD_WIDTH_M wide, with its danger', () => {
+    const s = toStoryStart(makeVillage());
+    const plan = villageStagePlan();
+    plan.zones.push({ key: 'north_road', place: plan.zones.find((z) => z.key === 'street_door')!.place, kind: ZK.road, name: 'the north road', look: 'a rutted cart track',
+      length: 'day', danger: 'wild', links: [{ to: 'street_door', label: 'back to the village, south', sight: true }] });
+    plan.zones.find((z) => z.key === 'street_door')!.links.push({ to: 'north_road', label: 'the north road', sight: true });
+    expect(validateStagePlan(s, plan, ctx)).toEqual([]);
+    applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
+    const road = zoneOf(s, 'the north road')!;
+    expect(road.danger).toBe('wild');
+    expect(Math.max(road.rect!.w, road.rect!.d)).toBeCloseTo(30000);
+    expect(Math.min(road.rect!.w, road.rect!.d)).toBeCloseTo(CONFIG.ROAD_WIDTH_M);
+    expect(road.rect!.y).toBeGreaterThan(zoneOf(s, plan.zones.find((z) => z.key === 'street_door')!.name)!.rect!.y); // north of the street
+  });
+
+  it('only a road takes a length or danger; a bad word fails validation', () => {
+    const s = toStoryStart(makeVillage());
+    const plan = villageStagePlan();
+    plan.zones[0].length = 'hour';
+    plan.zones[1].danger = 'wild';
+    plan.zones.push({ key: 'r', place: plan.zones[0].place, kind: ZK.road, name: 'a road', look: 'a road', length: 'forever', danger: 'deadly', links: [] });
+    expect(validateStagePlan(s, plan, ctx).filter((e) => e.code === 'bad_zone')).toHaveLength(4);
+    expect(roadShape(2.5, undefined)).toEqual({ area: 2500 * CONFIG.ROAD_WIDTH_M, aspect: 2500 / CONFIG.ROAD_WIDTH_M, danger: 'quiet' });
   });
 });

@@ -7,6 +7,7 @@ import { h } from './kit';
 import { verticalOf } from '../scene/heights';
 import { EK } from '../library/tableIds';
 import { CONFIG } from '../config';
+import { distText } from '../views';
 /** CSS class of each edge kind's line on the To scale view */
 const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 import { worldTiles, compassOf, knownMap, type KnownMap, type MapPlace, type MapZone } from './mapData';
@@ -25,6 +26,8 @@ const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
 /** a height as the floor buttons and stair tips name it */
+/** TV7: how far along a road you are, e.g. "1.8 km from the west end of 4.5 km" */
+export const alongText = (a: NonNullable<MapZone['along']>) => `${distText(a.m)} from the ${a.from} end of ${distText(a.len)}`;
 export const floorName = (m: number) => (m === 0 ? 'Ground level' : `${Math.abs(m)} m ${m > 0 ? 'up' : 'down'}`);
 const mode = (xs: number[]) => { const c = new Map<number, number>(); for (const x of xs) c.set(x, (c.get(x) ?? 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1])[0][0]; };
 /** the `world` key of the World view (every top-level place as one tile) */
@@ -32,7 +35,7 @@ const WORLD = '*world*';
 type Pt = { x: number; y: number };
 type Node2 = Pt & { id: string; w: number; h: number; vx: number; vy: number; pinned: boolean };
 const tileW = (z: MapZone) => Math.max(132, Math.min(260, z.name.length * 8.4 + 40));
-const tileH = (z: MapZone) => (z.people.length ? TILE_H_PEOPLE : TILE_H);
+const tileH = (z: MapZone) => (z.people.length || z.along ? TILE_H_PEOPLE : TILE_H);
 
 /** deterministic force layout; zones laid out before keep their spots (they still settle a little) */
 export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): Map<string, Pt> {
@@ -140,7 +143,10 @@ export function mapPage(api: GameApi) {
     s('pattern', { id: 'map-dots', width: 28, height: 28, patternUnits: 'userSpaceOnUse' }, s('circle', { cx: 2, cy: 2, r: 1.2, class: 'map-dot' })),
     s('marker', { id: 'map-arrow', viewBox: '0 0 10 10', refX: 8, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, s('path', { d: 'M0 0 10 5 0 10z', class: 'map-arrowhead' })));
   const bg = s('rect', { x: -6000, y: -6000, width: 12000, height: 12000, fill: 'url(#map-dots)', class: 'map-bg' });
-  svg.append(defs, vp);
+  // to scale, your pin sits on its own layer at a fixed size, so it stays visible however far out a long road zooms (TV7)
+  const youLayer = s('g', { class: 'map-you' }) as SVGGElement;
+  let youAt: (Pt & { title: string }) | null = null;
+  svg.append(defs, vp, youLayer);
   const stage = h('div', { class: 'map-stage' });
   const side = h('aside', { class: 'map-side', 'aria-label': 'Map details' });
   const crumbs = h('nav', { class: 'map-crumbs', 'aria-label': 'Place' });
@@ -169,7 +175,11 @@ export function mapPage(api: GameApi) {
 
   // ---------- pan and zoom
   const view = () => views.get(world) ?? { x: 0, y: 0, k: 1 };
-  const apply = () => { const v = view(); vp.setAttribute('transform', `translate(${v.x} ${v.y}) scale(${v.k})`); };
+  const apply = () => {
+    const v = view();
+    vp.setAttribute('transform', `translate(${v.x} ${v.y}) scale(${v.k})`);
+    youLayer.replaceChildren(...(youAt ? [pin(v.x + youAt.x * v.k, v.y + youAt.y * v.k, youAt.title)] : []));
+  };
   const setView = (v: { x: number; y: number; k: number }) => { views.set(world, v); apply(); };
   function zoomBy(f: number, at?: Pt) {
     const v = view(), r = svg.getBoundingClientRect();
@@ -198,10 +208,13 @@ export function mapPage(api: GameApi) {
       setView({ k: NARROW_MIN_K, x: r.width / 2 - at.x * NARROW_MIN_K, y: top + (r.height - top - 70) / 2 - at.y * NARROW_MIN_K });
       return;
     }
-    setView({ k, x: r.width / 2 - (b.x0 + b.x1) / 2 * k, y: top + (r.height - top - 70) / 2 - (b.y0 + b.y1) / 2 * k });
+    // to scale on a road (kilometres long), the whole map can't fit: centre on where you stand instead (TV7)
+    const c = youAt && hereZone()?.along && inside(cur!.placeId, placeId) ? youAt : { x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2 };
+    setView({ k, x: r.width / 2 - c.x * k, y: top + (r.height - top - 70) / 2 - c.y * k });
   }
+  const hereZone = () => allZones().find((z) => z.id === cur?.zoneId);
   function centre(zoneId: string) {
-    const p = spots.get(world)?.get(zoneId), r = svg.getBoundingClientRect();
+    const p = (zoneId === cur?.zoneId && youAt) || spots.get(world)?.get(zoneId), r = svg.getBoundingClientRect();
     if (!p || !r.width) return;
     const k = view().k;
     setView({ k, x: r.width / 2 - p.x * k, y: r.height / 2 - p.y * k });
@@ -335,7 +348,9 @@ export function mapPage(api: GameApi) {
     g.append(s('text', { x: p.x, y: p.y - (z.people.length ? 6 : 0) + 4, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
       s('title', {}, `${z.name}: about ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²)`));
     z.people.slice(0, 6).forEach((who, i, all) => g.append(s('circle', { cx: p.x + (i - (all.length - 1) / 2) * 12, cy: p.y + 12, r: 4.5, class: `map-dot-who${who.now ? '' : ' last'}` }, s('title', {}, who.name))));
-    if (z.here) g.append(s('g', { class: 'map-pin' }, s('circle', { cx: x + w - 2, cy: y + 2, r: 9 }), s('circle', { cx: x + w - 2, cy: y + 2, r: 3.5, class: 'core' })));
+    // to scale you stand at your own point (Actor.pos), on a road too (TV7); with no position yet, at the corner
+    if (z.here && z.you) youAt = { x: z.you.x * PX_PER_M, y: -z.you.y * PX_PER_M, title: z.along ? alongText(z.along) : 'You are here' };
+    else if (z.here) g.append(pin(x + w - 2, y + 2));
     return g;
   }
   /** To scale: a 10 m bar under the plan, with the same length in paces */
@@ -355,12 +370,13 @@ export function mapPage(api: GameApi) {
     if (planned() && z.rect) return planTile(z, p);
     const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
     const cls = ['map-tile', world === WORLD ? 'world-place' : '', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
-    const status = sub ? sub : z.here ? 'You are here' : z.inView ? `In view${z.light ? ' · ' + z.light : ''}` : 'Remembered';
+    const status = sub && !z.along ? sub : z.along ? `${distText(z.along.m)} of ${distText(z.along.len)}` : z.here ? 'You are here' : z.inView ? `In view${z.light ? ' · ' + z.light : ''}` : 'Remembered';
     const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${status}` },
       s('rect', { x, y, width: w, height: hh, rx: 10, class: 'map-tile-box' }),
       s('text', { x: p.x, y: y + 24, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
       s('text', { x: p.x, y: y + 42, 'text-anchor': 'middle', class: 'map-tile-sub' }, status));
-    if (z.people.length) {
+    if (z.along) g.append(roadTrack(z.along, x, y + hh - 18, w)); // TV7: you, at your point along the road
+    else if (z.people.length) {
       const shown = z.people.slice(0, 6), r = 10, gap = 6, total = shown.length * (2 * r) + (shown.length - 1) * gap + (z.people.length > 6 ? 30 : 0);
       let cx = p.x - total / 2 + r;
       for (const who of shown) {
@@ -371,8 +387,21 @@ export function mapPage(api: GameApi) {
       }
       if (z.people.length > 6) g.append(s('text', { x: cx + 4, y: y + 68, class: 'map-tile-sub' }, `+${z.people.length - 6}`));
     }
-    if (z.here) g.append(s('g', { class: 'map-pin' }, s('circle', { cx: x + w - 2, cy: y + 2, r: 9 }), s('circle', { cx: x + w - 2, cy: y + 2, r: 3.5, class: 'core' })));
+    if (z.here && !z.along) g.append(pin(x + w - 2, y + 2));
     return g;
+  }
+  /** the "you are here" pin */
+  function pin(cx: number, cy: number, title?: string) {
+    const g = s('g', { class: 'map-pin' }, s('circle', { cx, cy, r: 9 }), s('circle', { cx, cy, r: 3.5, class: 'core' }));
+    if (title) g.append(s('title', {}, title));
+    return g;
+  }
+  /** TV7: a road drawn as a line from end to end with you at your point along it */
+  function roadTrack(a: NonNullable<MapZone['along']>, x: number, y: number, w: number) {
+    const x0 = x + 26, x1 = x + w - 26, at = x0 + (a.len ? a.m / a.len : 0) * (x1 - x0);
+    return s('g', { class: 'map-road-track' }, s('line', { x1: x0, y1: y, x2: x1, y2: y }),
+      s('text', { x: x0 - 8, y: y + 4, 'text-anchor': 'end' }, a.from[0].toUpperCase()), s('text', { x: x1 + 8, y: y + 4 }, a.to[0].toUpperCase()),
+      pin(at, y, alongText(a)));
   }
 
   function drawCrumbs() {
@@ -469,6 +498,7 @@ export function mapPage(api: GameApi) {
 
   function draw() {
     if (!cur) return;
+    youAt = null; // set again when a to-scale tile draws you at your own point
     tilesOfWorld = worldTiles(cur);
     if (world !== WORLD && !placeOf(world)) world = rootOf(cur.placeId);
     if (!placeOf(focus)) focus = cur.placeId;

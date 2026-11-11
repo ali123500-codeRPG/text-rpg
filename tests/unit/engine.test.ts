@@ -372,25 +372,25 @@ describe('gear and combat', () => {
     s.bands.find((b) => b.id === actor(s, id).bandId)!.relations.player_band = 'hostile';
   };
   it('reach counts links with sight; no sight is a wasted action', () => {
-    s.player.core.inventory.push({ id: 'sp', itemId: IT.spear });
+    s.player.core.inventory.push({ id: 'bw', itemId: IT.shortbow });
     s.player.core.inventory.forEach((i) => { if (i.equippedIn?.some((x) => x.startsWith('hand:'))) delete i.equippedIn; });
     s.player.zone = 'tav_common';
     // tav_counter linked with sight; street_door linked without sight
     place(s, 'patron_1', 'tav_counter');
     place(s, 'trader', 'street_door');
-    const r1 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'draw', item: 'sp' }], action: { type: 'attack', target: 'patron_1', mode: AM.thrust } }) }), createRng(1));
+    const r1 = resolveTurn(s, input({ intent: intent({ gear: [{ op: 'draw', item: 'bw' }], action: { type: 'attack', target: 'patron_1', mode: AM.shoot } }) }), createRng(1));
     expect(r1.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'attack', target: 'patron_1' });
     s.turn = 2;
-    const r2 = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'trader', mode: AM.thrust } }) }), createRng(1));
+    const r2 = resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'trader', mode: AM.shoot } }) }), createRng(1));
     expect(r2.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'wasted', target: 'trader' });
   });
   it('a thrown dagger lands on the target zone ground, hit or miss', () => {
     s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
     s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
-    place(s, 'patron_1', 'tav_counter');
+    place(s, 'patron_1', s.player.zone); // a knife throw (7 m) reaches its own zone
     F.defended = false;
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'dg', mode: AM.throw } }) }), createRng(1));
-    expect(s.zones.find((z) => z.id === 'tav_counter')!.groundItems.map((i) => i.id)).toEqual(['dg']);
+    expect(s.zones.find((z) => z.id === s.player.zone)!.groundItems.map((i) => i.id)).toEqual(['dg']);
     expect(s.player.core.inventory.some((i) => i.id === 'dg')).toBe(false);
   });
   it('a Destroyed sword arm drops the sword; pick up is free and returns it', () => {

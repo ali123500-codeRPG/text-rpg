@@ -28,7 +28,7 @@ it('20 Detection is individual: guard 2 stays unaware and on its routine until t
   // guard 1 shouts for help; guard 2 hears it
   const shout: GameEvent = {
     id: 'ev_2', turn: s.turn, actorId: 'guard_1', kind: 'call_help', zone: 'gate_inner', effects: [], noise: 'loud', visibility: 'normal',
-    line: { text: 'To me!', volume: 'shout' }, perception: { guard_2: { level: 'partial', cue: 'sound' } },
+    line: { text: 'To me!', volume: 'shout' }, perception: { guard_2: { level: 'partial', cue: 'sound', heard: true } },
   };
   updateBeliefs(s, { kind: 'event', event: shout });
   expect(g2.mind!.knowledge.player).toMatchObject({ status: 'suspicious', source: 'told' });

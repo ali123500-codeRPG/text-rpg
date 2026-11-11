@@ -4,7 +4,7 @@
 import { BT } from '../library/raceIds';
 import './styles.css';
 import './libraryViewer.css';
-import type { ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
+import type { Personality, ClassDef, HealingDef, FearDef, ComposureDef, AchievementDef, AchievementTag, BodyType, ItemDef, ItemEffect, Library, PerkDef, PerkWriteup, TreeAccess } from '../types';
 import { classTree, condName } from '../ruleset/access';
 import { baneSkill, defeatsRoll, isBane } from '../ruleset/bane';
 import { achLevel, achXp, rewardLines, rewardName } from '../ruleset/achRewards';
@@ -13,17 +13,18 @@ import { MOD_SOURCES, MOD_TYPE_NAMES, type ModSource, type StackedType } from '.
 import { modTotal, stackType } from '../ruleset';
 import { equations } from '../ruleset/equations';
 import { benefits, itemValue } from '../ruleset/value';
-import { fnSkills, kitBonus, modeName, standInShare, standInTable } from '../ruleset/gear';
+import { fnSkills, kitBonus, modeName, modeReach, standInShare, standInTable } from '../ruleset/gear';
 import { prototypeLibrary } from '../library/data';
 import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, type PartStateKey, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, type PartStateKey, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
 import { partFearCost } from '../ruleset/morale';
+import { nerveLine } from '../ruleset/personality';
 import { GRADES } from '../types/core';
 /** earnedAtText only reads state to name a granted kind; the library shows definitions, so it passes none */
 const NO_STATE = {} as GameState;
@@ -99,6 +100,15 @@ function val(v: unknown, depth = 0): Node | string {
 const SKILL_KEYED = new Set(['minimums', 'skills', 'trueSkillTo', 'gains', 'floors', 'unlock', 'unlockAny']);
 const named = (k: string, v: unknown): unknown => {
   if (k === 'skill' && typeof v === 'string') return skillName(v);
+  // personality points (PL1, PL15, PL16) in words: axis names, signed points, the Nerve line, values as links
+  if (k === 'personality' && v && typeof v === 'object') {
+    const sg = (n: number) => (n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0');
+    const pts = (o: Record<string, number>) => Object.entries(o).map(([a, n]) => `${a === 'nerve' ? 'Nerve' : lib.personalityAxes?.[a]?.name ?? a} ${sg(n)}`);
+    if (!('traits' in v)) return pts(v as Record<string, number>).join(', ') || none('none');
+    const p = v as Personality, line = nerveLine(p);
+    return { Nerve: h('span', {}, `${sg(p.nerve)} (`, link('nerve', line, `${label(line)} line`), ')'),
+      Traits: pts(p.traits).join(', ') || none('none'), Values: p.values.length ? p.values : none('none') };
+  }
   // fields that hold perk ids show each perk as a link that opens its details
   const perkLinks = (ids: string[]) => links('perks', ids.map((id) => [id, lib.perks[id]?.name ?? id]));
   if (k === 'unlockPerk' && typeof v === 'string') return perkLinks([v]);
@@ -151,7 +161,7 @@ function gearCard(i: ItemDef, id = i.id): HTMLElement {
     i.hands !== undefined ? row('Hands', String(i.hands)) : null,
     i.slot ? row('Slot', i.slot) : null,
     i.weapon ? row('Modes', h('div', { class: 'lv-plist' }, i.weapon.modes.map((m) => { const row = lib.attackModes?.[m.id]; return parts(modeName(m), [`${m.tree} ${m.class}`,
-      `reach ${m.reach}${row?.reachBonus ? ` + ${row.reachBonus} (${row.name})` : ''}`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
+      `${m.thrown ? 'thrown' : 'reach'} ${modeReach(m)} m`, `${m.hands} hand${m.hands === 1 ? '' : 's'}`,
       m.skill && skillName(m.skill), m.thrown && 'thrown', row?.blend && `combined roll (${row.blend.weapon} own skill + ${row.blend.ranged} ranged)`, m.hitAdj ? `hit ${m.hitAdj > 0 ? '+' : ''}${m.hitAdj}` : null]); }))) : null,
     i.armor ? h('div', { class: 'lv-armor' }, figure(humanoid, (p) => (covers.has(p) ? 'lv-on' : 'lv-off')),
       h('div', {}, row('Weight', i.armor.weight), row('Reduction', String(i.armor.reduction)), row('Multiplier', `×${i.armor.multiplier}`),
@@ -566,7 +576,7 @@ function achievements(): HTMLElement[] {
 /** classes, lowest tier first (CLASS_TIERS order), then by name */
 const byTier = (): ClassDef[] => Object.values(lib.classes ?? {}).sort((a, b) => CLASS_TIERS.pos(a.tier) - CLASS_TIERS.pos(b.tier) || a.name.localeCompare(b.name));
 /** every condition a class unlocks on, as one list (all must hold; an either-of group needs one of its skills) */
-const PERK_NUMBERS: Record<string, string> = { hearingReach: 'hearing reach' };
+const PERK_NUMBERS: Record<string, string> = { hearingDb: 'hears quieter (dB)' };
 function unlockRow(c: ClassDef): HTMLElement | null {
   const sk = ([id, n]: [string, number]) => [link('skills', id, skillName(id)), ` ${n}`];
   const lines: (Node | string)[][] = [
@@ -745,7 +755,7 @@ function stacking(): HTMLElement[] {
     h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'The rule'), h('div', { class: 'lv-grid wide' }, rule, outside)),
     ...panes([
       { key: 'skill', title: 'Skill rolls', n: n('skill'), content: [h('p', { class: 'hs-note' }, 'Attack, defense, sense and every other roll made with a skill (ruleset.roll).'), ...byType('skill')] },
-      { key: 'situation', title: 'Situation rolls', n: n('situation'), content: [h('p', { class: 'hs-note' }, 'The no-skill roll for luck and circumstance (ruleset.situation). Statuses will count here too once they have library entries.'), ...byType('situation')] },
+      { key: 'event', title: 'Event rolls', n: n('event'), content: [h('p', { class: 'hs-note' }, 'The no-skill roll for luck and circumstance (ruleset.eventRoll). Statuses will count here too once they have library entries.'), ...byType('event')] },
     ]),
   ];
 }
@@ -823,6 +833,42 @@ function questsView(): HTMLElement[] {
   ];
 }
 
+/** Nerve lines (PL2, PL3, PL20): one ordered scale per line; the tier comes from raw Resolve (NERVE_TIER_FROM), the line
+ * from Nerve points (PERSONALITY_LEAN) */
+function nerveView(): HTMLElement[] {
+  const from = CONFIG.NERVE_TIER_FROM, lines = Object.keys(NERVE_LINES) as NerveLine[], lean = CONFIG.PERSONALITY_LEAN;
+  const when: Record<NerveLine, string> = { cautious: `Nerve −${lean} or lower`, steady: `Nerve −${lean - 1} to +${lean - 1}`, daring: `Nerve +${lean} or higher` };
+  const tbl = h('table', { class: 'hs-tbl' }, h('thead', {}, h('tr', {}, h('th', {}, 'Raw Resolve'), lines.map((l) => h('th', {}, label(l))))),
+    h('tbody', {}, from.map((r, i) => h('tr', {}, h('td', {}, i + 1 < from.length ? `${r}–${from[i + 1] - 1}` : `${r}+`),
+      lines.map((l) => { const sc = NERVE_LINES[l] as Scale<string>; return h('td', {}, sc.name(sc.at(i))); })))));
+  return [
+    h('p', { class: 'hs-note' }, `A character's Nerve points pick its line; its raw Resolve picks the tier on that line. Past ${from[from.length - 1]} Resolve, every ${CONFIG.NERVE_BEYOND_STEP} more adds a + to the name (e.g. ${(NERVE_LINES.steady as Scale<string>).name((NERVE_LINES.steady as Scale<string>).at(from.length - 1))}+). A named line sets Nerve to ±${CONFIG.NERVE_LINE_POINTS}. The morale level is the mood; the tier never moves with it.`),
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Tiers by line'), tbl),
+    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Lines'), h('div', { class: 'lv-grid' },
+      lines.map((l) => card('nerve', l, { line: l, tiers: (NERVE_LINES[l] as Scale<string>).keys }, label(l), [],
+        row('When', when[l]), row('Tiers', (NERVE_LINES[l] as Scale<string>).keys.map((k) => (NERVE_LINES[l] as Scale<string>).name(k)).join(', ')))))),
+  ];
+}
+/** a named type's condition in words: "Pride 40 or more", "Resolve (raw) 40 or more" */
+const typeCond = (k: string, c: { min?: number; max?: number }) => {
+  const name = k === 'nerve' ? 'Nerve' : k === SK.resolve ? 'Resolve (raw)' : lib.personalityAxes?.[k]?.name ?? k;
+  const sign = (n: number) => (n > 0 && k !== SK.resolve ? `+${n}` : n < 0 ? `−${-n}` : String(n));
+  return `${name} ${c.min !== undefined && c.max !== undefined ? `${sign(c.min)} to ${sign(c.max)}` : c.min !== undefined ? `${sign(c.min)} or more` : `${sign(c.max!)} or less`}`;
+};
+function personalityTypesView(): HTMLElement[] {
+  return [h('p', { class: 'hs-note' }, `A character has a named type when every condition holds. The agent playing it is given at most ${CONFIG.PERSONALITY_TYPES_SHOWN}, strongest first.`),
+    h('div', { class: 'lv-grid' }, Object.values(lib.personalityTypes ?? {}).map((t) => card('personalityTypes', t.id, t, t.name, [],
+      row('When', h('ul', { class: 'lv-names' }, Object.entries(t.when).map(([k, c]) => h('li', {}, typeCond(k, c))))),
+      row('Acts', t.hint))))];
+}
+function personalityAxesView(): HTMLElement[] {
+  const words = CONFIG.TRAIT_WORDS.map(([n, w]) => (w.trim() ? `"${w.trim()}" from ${n}` : `no word from ${n}`)).join(', ');
+  return [h('p', { class: 'hs-note' }, `Each axis runs −100 to +100. A trait counts from ${CONFIG.PERSONALITY_LEAN} away from 0; the word before it comes from the distance: ${words}.`),
+    h('div', { class: 'lv-grid' }, Object.values(lib.personalityAxes ?? {}).map((a) => card('personalityAxes', a.id, a, a.name, [],
+      row('Low end', a.low), row('High end', a.high),
+      row('NPCs', ((ts) => ts.length ? links('templates', ts) : none('none lean here'))(Object.values(lib.templates).filter((t) => Math.abs(t.personality?.traits?.[a.id] ?? 0) >= CONFIG.PERSONALITY_LEAN).map((t): [string, string] => [t.id, t.label ?? t.id]))))))];
+}
+
 // ---------- Page ----------
 const CUSTOM: Section[] = [
   { key: 'gear', title: 'Gear', table: 'items', view: gear },
@@ -837,6 +883,9 @@ const CUSTOM: Section[] = [
   { key: 'healing', title: 'Healing', table: 'healing', view: healing },
   { key: 'composure', title: 'Composure', table: 'composure', view: composure },
   { key: 'fears', title: 'Fears', table: 'fears', view: fears },
+  { key: 'nerve', title: 'Nerve lines', table: 'perks', view: nerveView, count: Object.keys(NERVE_LINES).length },
+  { key: 'personalityAxes', title: 'Personality axes', table: 'personalityAxes', view: personalityAxesView },
+  { key: 'personalityTypes', title: 'Personality types', table: 'personalityTypes', view: personalityTypesView },
   { key: 'quests', title: 'Quests', table: 'perks', view: questsView, count: 4 + QUEST_STATES.length + GOAL_KINDS.length },
   { key: 'stacking', title: 'Stacking', table: 'perks', view: stacking, count: MOD_SOURCES.length },
   { key: 'equations', title: 'Equations', table: 'perks', view: equationsView, count: EQUATIONS.reduce((n, g) => n + g.equations.length, 0) },
@@ -883,7 +932,7 @@ function autoFacets(table: Record<string, Entry>): Facets {
   return (e: Entry) => keys.map((k) => [humanKey(k), typeof e[k] === 'string' ? typedId(e[k] as string)?.textContent ?? (e[k] as string) : (e[k] as string)]);
 }
 
-const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', noiseLevels: 'Noise levels', layouts: 'Layouts' };
+const NAMES: Partial<Record<keyof Library, string>> = { templates: 'NPCs', durations: 'Clock', routineSets: 'Routine sets', zoneKinds: 'Zone kinds', edgeKinds: 'Edge kinds', zoneSizes: 'Zone sizes', roadLengths: 'Road lengths', roadDangers: 'Road dangers', noiseLevels: 'Noise levels', visibilityLevels: 'Visibility levels', values: 'Values', layouts: 'Layouts' };
 const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[])
   .filter((k) => typeof lib[k] === 'object' && !CUSTOM.some((c) => c.table === k) && k !== 'trees' && Object.keys(lib[k] as object).length)
   .map((k) => ({ key: k, title: NAMES[k] ?? label(k), table: k }))];
@@ -891,7 +940,7 @@ const SECTIONS: Section[] = [...CUSTOM, ...(Object.keys(lib) as (keyof Library)[
 // the rail in three groups; a table not named here (a new one) lands in World
 const RAIL_GROUPS: [string, string[] | null][] = [
   ['Library', ['gear', 'gearClasses', 'perks', 'races', 'bodyTypes', 'classes', 'skills', 'achievements']],
-  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'composure', 'quests', 'fears', 'status']],
+  ['Rules', ['standIns', 'stacking', 'equations', 'healing', 'composure', 'quests', 'fears', 'nerve', 'personalityAxes', 'personalityTypes', 'values', 'status']],
   ['World', null],
 ];
 const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).length;
@@ -1282,7 +1331,7 @@ body.addEventListener('click', (e) => { const h2 = (e.target as Element).closest
 
 // Table view (VR1, VR2): flat tables read as one row per entry. The cards stay in the page (hidden), so search,
 // filters, colour and pins keep working on them; each row mirrors its card.
-const TABLE_FIRST = new Set(['gear', 'status', 'services', 'roles', 'durations', 'zoneKinds', 'edgeKinds', 'zoneSizes', 'noiseLevels', 'activities', 'routines', 'healing', 'classes', 'stacking']);
+const TABLE_FIRST = new Set(['gear', 'status', 'services', 'roles', 'durations', 'zoneKinds', 'edgeKinds', 'zoneSizes', 'roadLengths', 'roadDangers', 'noiseLevels', 'visibilityLevels', 'activities', 'routines', 'healing', 'classes', 'stacking']);
 const viewOfTable: Record<string, 'cards' | 'table'> = remember<Record<string, 'cards' | 'table'>>('lv-view', {});
 const modeOf = (key: string) => viewOfTable[key] ?? (TABLE_FIRST.has(key) ? 'table' : 'cards');
 const viewSwitch = h('div', { class: 'lv-seg', role: 'group', 'aria-label': 'Show entries as' });

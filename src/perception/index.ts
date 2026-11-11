@@ -3,6 +3,8 @@ import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackRes
 import { CONFIG } from '../config';
 import { AWARENESS } from '../scales';
 import { noiseReach } from './noise';
+import { sightLevel } from './sight';
+import { seeingM } from '../engine/position';
 export { noiseReach } from './noise';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
@@ -22,7 +24,9 @@ export type BeliefUpdate =
 export const isComm = (e: GameEvent) =>
   !e.bark && (['call_help', 'alarm', 'report'].includes(e.kind) || (['speak', 'talk'].includes(e.kind) && !!e.line));
 
-type Seen = { level: Perception; cue: Cue };
+type Seen = { level: Perception; cue: Cue; heard?: true };
+/** the words of a line reach only those its sound reaches: seeing someone talk across a field gives no words */
+export const hearsWords = (p: { heard?: true } | undefined): boolean => !!p?.heard;
 const better = (a: Seen | null, b: Seen | null): Seen | null => (!a ? b : !b ? a : b.level === 'full' && a.level !== 'full' ? b : a);
 
 /** links between two zones (stage only, no frontiers); null = unreachable */
@@ -31,20 +35,23 @@ function dist(state: GameState, from: string, to: string, sightOnly: boolean): n
   return p ? p.length : null;
 }
 
-// Each VISIBILITY level reaches [full, partial] zone links (CONFIG.SIGHT_REACH) and each NOISE level what noiseReach
-// works out from its decibels: sight counts sight links only, sound any links. Dark zone: sight at most partial.
+// Each VISIBILITY level is seen out to its metres (CONFIG.SIGHT_M) measured with sight from where the event happened
+// (seeingM); each NOISE level carries what noiseReach works out from its decibels, over any links. Dark zone: sight at most partial.
 // Sound heard only partly gives something, not who (test 4).
 // The event is perceived at its own zone (a move: the destination zone).
+/** NS2: how many metres a figure keeping still is made out clearly (the Low visibility level's clear metres) */
+const stillSeen = (): number => CONFIG.SIGHT_M.low![0];
+/** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres) */
+const lookReach = (): number => CONFIG.SIGHT_M.normal![0];
+
 function reach([full, partial]: [number, number], d: number | null): Perception | null {
   return d === null ? null : d <= full ? 'full' : d <= partial ? 'partial' : null;
 }
 
 /** how well a sound of this noise made in that zone reaches the observer (null: not heard).
- * Perks with hearingReach (A14 Keen Ear: 1) add links to both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed. */
+ * Perks with hearingDb (A14 Keen Ear: 10) make every sound that many dB louder for the owner (RD4). */
 function soundReach(state: GameState, observer: Actor, zone: string, noise: GameEvent['noise']): Perception | null {
-  const up = perkSum(observer, 'hearingReach');
-  const [full, heard] = noiseReach(noise);
-  return reach([full + up, heard + up], dist(state, observer.zone, zone, false));
+  return reach(noiseReach(noise, perkSum(observer, 'hearingDb')), dist(state, observer.zone, zone, false));
 }
 
 /** C1 Never Surprised: the owner can hear a sound of this noise made in that zone (fully or partly), stealth aside */
@@ -58,19 +65,24 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   if (observer.id === event.actorId) return { level: 'full', cue: 'sight' };
   const zone = zoneById(state, event.zone);
   let sight: Seen | null = null;
-  const sl = reach(CONFIG.SIGHT_REACH[event.visibility], dist(state, observer.zone, event.zone, true));
+  const at = { zone: event.zone, pos: event.pos };
+  const sl = sightLevel(event.visibility, seeingM(state, observer, at)); // step 2: metres from where it happened
   if (sl) sight = { level: zoneLight(state, zone) === 'dark' ? 'partial' : sl, cue: 'sight' };
   // Q17: someone the player saw clearly stays seen while they stay put (within the zones the player can see)
   if (observer.kind === 'player' && event.kind !== 'move' && event.kind !== 'flee' && observer.journal?.clearSight?.[event.actorId] === event.zone) {
-    const d = dist(state, observer.zone, event.zone, true);
-    if (d !== null && d <= 1) sight = { level: 'full', cue: 'sight' };
+    const d = seeingM(state, observer, at);
+    if (d !== null && d <= lookReach()) sight = { level: 'full', cue: 'sight' };
   }
   const nl = soundReach(state, observer, event.zone, event.noise);
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
+  // Perception All-150 Every Sense One: what the owner hears it sees, and what it sees it hears. The better sense sets the
+  // level for both: a full perception shows everything (read as sight), a partial one is heard too (its words come through)
+  const oneSense = !!best && hasPerk(observer, PK.one_sense);
+  if (best && oneSense) best = { level: best.level, cue: best.level === 'full' ? 'sight' : 'sound' };
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.
   if (event.target === observer.id) best = better(best, { level: 'partial', cue: 'touch' });
-  return best;
+  return best && (sound || oneSense) ? { ...best, heard: true } : best; // words need the sound, or Every Sense One
 }
 
 /** Q17: the player's clear sightings. A full sight of an actor records its zone; a move the player did not see clearly forgets it.
@@ -94,12 +106,12 @@ export function beliefStatus(state: GameState, o: Actor, about: Actor): BeliefSt
 }
 
 /** NS2: an actor turning stealthy shakes off no one who sees it (ST12). The player keeps it as far as they see it now:
- * in their zone or one sight link away, half seen in the dark. NPC observers keep their knowledge as it is. */
+ * as far as a still figure is made out (stillSeen), half seen in the dark. NPC observers keep their knowledge as it is. */
 export function stealthStart(state: GameState, a: Actor): void {
   const p = state.player;
   if (!p.journal || a.id === p.id) return;
-  const d = isActive(p) ? dist(state, p.zone, a.zone, true) : null;
-  const status: BeliefStatus = d === null || d > 1 ? 'unaware' : zoneLight(state, zoneById(state, a.zone)) === 'dark' ? 'suspicious' : 'aware';
+  const d = isActive(p) ? seeingM(state, p, a) : null;
+  const status: BeliefStatus = d === null || d > stillSeen() ? 'unaware' : zoneLight(state, zoneById(state, a.zone)) === 'dark' ? 'suspicious' : 'aware';
   (p.journal.stealthSeen ??= {})[a.id] = status;
 }
 /** NS2: an actor turning open is simply seen again */
@@ -112,7 +124,7 @@ export function noticeCue(skill: string): 'sight' | 'sound' | undefined {
   return getLibrary().skills[resolveAlias(skill)]?.cue;
 }
 
-/** Q17: a successful look shows everyone in the player's zone and the zones in sight of it clearly. */
+/** Q17: a successful look shows everyone in the player's zone and in sight of it, out to lookReach, clearly. */
 export function lookAround(state: GameState): string[] {
   const p = state.player;
   if (!p.journal) return [];
@@ -120,8 +132,8 @@ export function lookAround(state: GameState): string[] {
   const shown: string[] = [];
   for (const a of allActors(state)) {
     if (a.id === p.id) continue;
-    const d = dist(state, p.zone, a.zone, true);
-    if (d !== null && d <= 1) { cs[a.id] = a.zone; shown.push(a.id); }
+    const d = seeingM(state, p, a);
+    if (d !== null && d <= lookReach()) { cs[a.id] = a.zone; shown.push(a.id); }
   }
   return shown;
 }
@@ -214,7 +226,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
       const item = inst ? sender.core.inventory.find((i) => i.id === inst) : undefined;
       if (p.level === 'full' && item && itemDef(state, item.itemId).concealed) write(o, e.actorId, { revealed: [`item:${item.id}`] });
     }
-    if (isComm(e) && sender.mind) {
+    if (isComm(e) && sender.mind && hearsWords(p)) {
       for (const [about, sb] of Object.entries(sender.mind.knowledge)) {
         if (about === o.id || sb.status === 'unaware') continue;
         const mine = o.mind.knowledge[about];

@@ -1,6 +1,5 @@
 // 145 The throw action: gear classes are tagged melee or ranged; the Throw attack mode row carries the throw's rules for
-// every weapon that lists it. Reach = the weapon's own reach + the row's reachBonus (THROWN_REACH_BONUS) + perks'
-// throwReach. The roll is combined: the weapon's own skill × 0.75 + the same class's ranged skill × 0.25, each part with
+// every weapon that lists it. Reach = the throw mode's own range (CONFIG.THROW_M) + perks' throwReach metres, in links. The roll is combined: the weapon's own skill × 0.75 + the same class's ranged skill × 0.25, each part with
 // its own stand-ins; both parts learn.
 import { afterEach, describe, expect, it } from 'vitest';
 import { forcedRng, makeVillage } from '../harness';
@@ -29,19 +28,19 @@ describe('145 The throw action', () => {
     for (const c of gc) if (c.skill === SK.ranged_light || c.skill === SK.ranged_medium || c.skill === SK.ranged_heavy) expect(c.use).toBe('ranged');
   });
 
-  it('reach: gear keeps its own reach; the Throw row adds THROWN_REACH_BONUS, and perks add throwReach', () => {
+  it('reach: each throw mode has its own real range (THROW_M), and perks add throwReach metres', () => {
     const lib = getLibrary();
-    expect(lib.items[IT.dagger].weapon!.modes.find((m) => m.id === AM.throw)!.reach).toBe(0); // nothing coded into the gear
-    expect(lib.attackModes![AM.throw].reachBonus).toBe(CONFIG.THROWN_REACH_BONUS);
+    const dagger = lib.items[IT.dagger].weapon!.modes.find((m) => m.id === AM.throw)!;
+    expect(dagger.reachM).toBe(CONFIG.THROW_M.knife); // a throw mode's reach is its own throw range
     const s = withDagger();
-    expect(throwOf(s).reach).toBe(0 + CONFIG.THROWN_REACH_BONUS);
+    expect(throwOf(s).reach).toBe(CONFIG.THROW_M.knife); // metres
     s.player.core.inventory.push({ id: 'sp', itemId: IT.spear, equippedIn: ['hand:right_arm'] });
     s.player.core.inventory.find((i) => i.itemId === IT.arming_sword)!.equippedIn = undefined;
-    expect(throwOf(s, 'sp').reach).toBe(1 + CONFIG.THROWN_REACH_BONUS);
-    getLibrary().perks.far_arm = { id: 'far_arm', name: 'Far Arm', throwReach: 1 };
+    expect(throwOf(s, 'sp').reach).toBe(CONFIG.THROW_M.spear); // 17.5 m
+    getLibrary().perks.far_arm = { id: 'far_arm', name: 'Far Arm', throwReach: 8 }; // metres
     s.player.core.perks.push({ perkId: 'far_arm', source: 'class', gainedTurn: 0 });
-    expect(throwOf(s).reach).toBe(0 + CONFIG.THROWN_REACH_BONUS + 1);
-    expect(usableModes(s, s.player).find((m) => m.itemId === 'dg' && m.mode.id === AM.slash)!.mode.reach).toBe(0); // the slash is untouched
+    expect(throwOf(s).reach).toBe(CONFIG.THROW_M.knife + 8);
+    expect(usableModes(s, s.player).find((m) => m.itemId === 'dg' && m.mode.id === AM.slash)!.mode.reach).toBe(1); // the slash (1 m) is untouched
   });
 
   it('the roll is combined: own skill × 0.75 + same-class ranged × 0.25, each part with its own stand-ins and gear', () => {

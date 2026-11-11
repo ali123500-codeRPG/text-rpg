@@ -197,6 +197,26 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 .key .tick { height: 14px; border-left: 1px solid var(--muted); }
 .key .tick.cap { border-left: 2px solid var(--warn); }
 .msg { margin: 0; font-size: 13px; min-height: 18px; }
+/* PL14: personality picker on the creation screen */
+.pe { display: grid; gap: var(--space-3); }
+.pe .grp-h .hs-btn-text { min-height: 0; }
+.pe-note, .pe-read { margin: 0; color: var(--muted); font-size: 13px; }
+.pe-read { color: var(--text); font-family: var(--font-story); font-size: 15px; }
+.pe-top { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-8); align-items: center; }
+.pe-nerve, .pe-values { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.pe .hs-picker button { border: 1px solid var(--border); }
+.pe .hs-picker button:disabled { opacity: .45; cursor: default; }
+.pe-tierline { color: var(--muted); font-size: 13px; }
+.pe-tierline b { color: var(--text); }
+.pe-axes { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 0 var(--space-8); }
+.pe-axis { display: grid; grid-template-columns: minmax(130px, 11rem) minmax(0, 1fr); align-items: center; gap: var(--space-3); border-bottom: 1px solid var(--border); min-height: 44px; }
+.pe-axis .nm b { font-weight: 700; display: block; }
+.pe-word { font-size: 13px; color: var(--accent); font-weight: 600; }
+.pe-word.none { color: var(--faint); font-weight: 400; }
+.pe-ends { display: grid; grid-template-columns: 7.5rem minmax(60px, 1fr) 7.5rem; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--muted); }
+.pe-ends > span:first-child { text-align: right; }
+.cs-pe .cs-pe-v { color: var(--text); }
+
 .msg.ok { color: var(--ok); } .msg.bad { color: var(--warn); }
 
 /* Play screen */
@@ -806,3 +826,6 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .cs-sk .n small.off, small.off { display: inline; font-size: 11px; font-weight: 400; color: var(--faint); cursor: help; }
 /* a skill that went up this turn, under the turn's prose */
 .skill-up { color: var(--scene-mark); font-weight: 600; }
+/* TV7: a road tile's track, end to end, with you at your point along it */
+.map-road-track line { stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 10 6; }
+.map-road-track text { fill: var(--muted); font-size: 11px; font-weight: 700; }

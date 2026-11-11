@@ -76,11 +76,11 @@ export type RollResult = {
 };
 export type ContestResult = { a: RollResult; b: RollResult; gap: number; winner: 'a' | 'b' | 'tie' };
 
-export type SituationResult = {
+export type EventRollResult = {
   actorId: string;
   roll: number;
   tier: Tier;
-  modifiers: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement'; value: number }[];
+  modifiers: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement' | 'situational'; value: number }[]; // situational: night travel (TV4)
 };
 
 export type AttackRequest = {
@@ -133,7 +133,8 @@ export interface Ruleset {
   contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult;
   roll(req: RollRequest, state: GameState, rng: Rng): RollResult;
   attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult;
-  situation(actor: Actor, state: GameState, rng: Rng): SituationResult;
+  /** `extra`: modifiers the caller adds (night travel, TV4) */
+  eventRoll(actor: Actor, state: GameState, rng: Rng, extra?: EventRollResult['modifiers']): EventRollResult;
   applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[];
   recordUse(actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult, state: GameState): void;
 }
@@ -152,6 +153,7 @@ export type Order = {
   source: OrderSource;
   move?: string | null; // the turn's one move (toZone), resolved before the main action (player, or an NPC's Planner/Responder)
   moveAfter?: boolean; // AE3: the player's move comes after the main action
+  pace?: import('../scales').TravelPaceKey; // TV2: the player's travel pace on a road trip (normal when left out)
   vanish?: true; // ST13: the player's move is a Vanish
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;

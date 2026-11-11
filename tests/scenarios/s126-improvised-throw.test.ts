@@ -27,13 +27,13 @@ describe('126 improvised strike and throw', () => {
       expect(modes[1].thrown).toBe(true);
     }
   });
-  it('a throw at a foe one zone away: a Ranged skill stands in, an Arms skill does not', () => {
+  it('a throw: a Ranged skill stands in, an Arms skill does not', () => {
     const s = makeVillage();
     holdImprovised(s);
     place(s, 'player', 'tav_common');
-    place(s, 'patron_1', 'tav_counter');
+    place(s, 'patron_1', 'tav_common'); // an improvised throw (5 m) reaches only its own zone until positions exist
     setSkills(s, { [SK.ranged_light]: 80, [SK.melee_medium]: 90 });
-    const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
+    const r = ruleset.attack({ attackerId: 'player', targetId: 'patron_1', weaponId: 'vase', modeId: AM.throw, targetPart: null, aimed: false }, s, forcedRng([50, 50, 50, 50]));
     expect(r.modeId).toBe(AM.throw);
     expect(r.attack.skill).toBe(SK.ranged_light);
     expect(r.attack.asked).toBe(SK.unarmed_improvised);

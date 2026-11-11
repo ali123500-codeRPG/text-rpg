@@ -16,7 +16,7 @@ import type { Actor, GameEvent, GameState } from '../../src/types';
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'level', gainedTurn: 0 });
 /** guard_1 tells patron_1 a lie in the tavern; `heard` is how the player and trader perceive it */
 const lie = (s: GameState, heard: 'full' | 'sound' | 'none' = 'full'): GameEvent => {
-  const per = heard === 'none' ? { level: 'partial', cue: 'sight' } : heard === 'full' ? { level: 'full', cue: 'sight' } : { level: 'partial', cue: 'sound' };
+  const per = heard === 'none' ? { level: 'partial', cue: 'sight' } : heard === 'full' ? { level: 'full', cue: 'sight', heard: true } : { level: 'partial', cue: 'sound', heard: true };
   return { id: 'ev_lie', turn: s.turn, actorId: 'guard_1', kind: 'speak', zone: s.player.zone, target: 'patron_1', effects: [],
     noise: 'normal', visibility: 'normal', line: { text: 'The captain said you could go.', volume: 'normal' },
     perception: { player: per, patron_1: { level: 'full', cue: 'sight' }, trader: per } } as GameEvent;

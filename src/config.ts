@@ -1,5 +1,5 @@
 import type { DefenseKind, SkillFunction } from './types';
-import type { QuestRewardLevel } from './scales';
+import type { NoiseKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -29,7 +29,7 @@ const DEFAULTS = {
   } as Record<string, { fn: SkillFunction; k: number }[]>,
   /** Pairs of skills that never stand in for each other, even when they share a function (the three defenses) */
   NO_STAND_IN: [[SK.dodge, SK.block], [SK.block, SK.parry], [SK.dodge, SK.parry]] as [string, string][],
-  SITUATION_BASE: 50,
+  EVENT_BASE: 50,
   DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
@@ -111,14 +111,16 @@ const DEFAULTS = {
   INIT_UNAWARE: 0, // Q2: unaware actors act last
   OVERWHELM_TIERS: 3, // MR4 Overwhelm: an aura roll lost by this many tiers or more can overwhelm
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
-  AURA_REACH: 1, // I3: an engagement aura reaches the owner's zone and zones one link away (a further reach factor is parked, D-193)
+  AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (today's one zone link); the aura skill sets it once RD9's formula is chosen (D-193)
   ENGAGEMENT_END_TURNS: 3, // E1: an engagement ends after this many turns with no one engaged with the actor; YD6: hunting and engaged drop to tracking after this many turns with no blow or closing in
   SPAR_LIMIT: 'Critical', // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
-  RANGE_MODS: { 0: -10, 1: 0, 2: -5, 3: -10, 4: -15 } as Record<number, number>,
+  /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
+   * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
+  RANGE_SHARE_MODS: [[0.25, 0], [0.5, -5], [0.75, -10], [1, -15]] as [number, number][],
+  HOSTILE_NEAR_MOD: -10, // a ranged attack with a hostile within HOSTILE_NEAR_M of the shooter (Point Blank removes it)
+  HOSTILE_NEAR_M: 2, // RD5: close enough to strike or grab the shooter (a step and a blow)
   LIGHT_MODS: { bright: 0, dim: -5, dark: -10 } as Record<string, number>, // keyed by LIGHT key
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
-  // GAP (placeholders): zone links an event is seen, [full, partial], per VISIBILITY key. −1 = nowhere, the step
-  // below 0 (same zone), so a +1 link bonus turns nowhere into same zone. A dark zone caps sight at partial.
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
   /** hearing (perception noiseReach): a sound is heard while it is at least HEAR_DB at the listener (0 dB is the threshold
@@ -129,7 +131,11 @@ const DEFAULTS = {
   CLEAR_HEAR_DB: 25,
   SAME_ZONE_M: 1,
   LINK_SOUND_LOSS_DB: 12,
-  SIGHT_REACH: { unseen: [-1, -1], faint: [-1, 0], close: [0, 0], low: [0, 1], normal: [1, 2], high: [2, 3], glaring: [3, 4] } as Record<string, [number, number]>,
+  /** sight (perception sightReach): how far each VISIBILITY level is made out clearly (who and what) and glimpsed
+   * (something, not who), in metres, in daylight with a clear view, from real references (the library's
+   * visibilityLevels rows); null = nothing to see. Links come from the same metres-to-links conversion as reach; an
+   * event closer than SAME_ZONE_M can't be seen at that grade even in the same zone. A dark zone caps sight at partial. */
+  SIGHT_M: { unseen: null, faint: [0.5, 2], close: [6, 20], low: [15, 60], normal: [25, 200], high: [50, 500], glaring: [200, 2000] } as Record<string, [number, number] | null>,
   /** ST21: which situation tags each situational table reaches, and the sign (+ helps the roll's owner).
    * light adds sign × LIGHT_MODS[the light where the action is] to the roll; cover is sign × COVER_GAP[the zone's cover]
    * in tiers (a ranged attack: a gap shift). A skill's tags are in the library (SkillDef.tags); linking a table is a row here. */
@@ -138,8 +144,18 @@ const DEFAULTS = {
   /** max morale = MORALE_BASE + MORALE_PER_RESOLVE × Resolve (MB29), like HP from Endurance */
   MORALE_BASE: 50,
   MORALE_PER_RESOLVE: 1,
-  /** MB30: an NPC template's starting Resolve, by personality (MB4: fearless is 90, not immune) */
-  PERSONALITY_RESOLVE: { fearless: 90, bold: 70, steady: 50, timid: 30 } as Record<string, number>,
+  /** PL3, PL20: raw Resolve where each Nerve tier starts (one per NERVE_LINES row); 100 and up is superhuman */
+  NERVE_TIER_FROM: [0, 20, 40, 60, 80, 100],
+  /** PL20 [Proposed]: past the last tier, every this much more Resolve adds a + to its name */
+  NERVE_BEYOND_STEP: 50,
+  /** PL2, PL3: a Nerve or trait value leans (counts) at this distance from 0 or more */
+  PERSONALITY_LEAN: 20,
+  /** PL9: the word before a trait, from its distance from 0: [from, word] (below the first, the trait is left out) */
+  TRAIT_WORDS: [[20, 'a bit '], [40, ''], [70, 'very ']] as [number, string][],
+  /** PL10: at most this many named types are given to the agent, strongest first */
+  PERSONALITY_TYPES_SHOWN: 2,
+  /** PL12: the Nerve points a named line sets (− for cautious, + for daring) */
+  NERVE_LINE_POINTS: 40,
   /** [MORALE_LEVELS key, max % of max morale lost, roll penalty (type wounds, MB3)]; broken = out of the fight */
   MORALE_TRACK: [
     ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -5], ['afraid', 60, -5],
@@ -192,8 +208,7 @@ const DEFAULTS = {
    * reachZone: per zone of reach (its best attack mode); armorStop: per point of damage stopped, per part covered;
    * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
   ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
-  TRADE_SELLER_LINKS: 1, // S1: buy from a seller up to this many zone links away (across the counter); farther trades are parked (D-194)
-  TRADE_GIFT_LINKS: 2, // S2: buy for someone up to this many zone links from the buyer
+  ORDER_NOISE: 'normal' as NoiseKey, // RD2: an order is called out in a normal voice; the seller must hear it clearly (trade orderReach)
   WARES_CAP: 8, // goods lines plus services per seller
   // PY9: coin is one unit in the game; narration names it in these coins, largest first
   COIN_NAMES: [['gold', 100], ['silver', 10], ['copper', 1]] as [string, number][],
@@ -220,9 +235,12 @@ const DEFAULTS = {
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
   IMPROVISED_HIT_ADJ: -10,
-  /** the throw action adds this many zones to the weapon's own reach; perks add more (PerkDef.throwReach) */
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,
+  RANGED_MOVE_SLOTS: 1, // ZP3: move slots a ranged attack (shot or throw) costs besides the main action; a perk could lower it
+  /** RD7 worn armor's slowing by weight: flat m/s off the body type's speeds, then a share off what is left (an armor item's
+   * own `speed` overrides). Placeholders: no study gives speed loss directly; heavy is about a fifth, as asked */
+  ARMOR_SPEED: { light: { flat: 0, pct: 0 }, medium: { flat: 0.1, pct: 0.05 }, heavy: { flat: 0.2, pct: 0.15 } } as Record<string, { flat: number; pct: number }>,
   MAIN_SLOTS: 1,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
@@ -230,8 +248,37 @@ const DEFAULTS = {
   LINK_PACES: 8,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
+  /** TV3 road lengths in km (ROAD_LENGTHS): a walk of about 4.5 km an hour gives the time words their lengths */
+  ROAD_LENGTH_KM: { short_walk: 0.5, half_hour: 2, hour: 4.5, half_day: 15, day: 30, two_days: 60 } as Record<string, number>,
+  /** TV3 a road's width in metres: a cart track or Roman road, about 4 m (Roman viae ran about 4 to 6 m with the verges) */
+  ROAD_WIDTH_M: 4,
+  /** TV4 the chance in % per hour on the road that something meets you, by ROAD_DANGERS (placeholders) */
+  ROAD_ENCOUNTER_PCT: { safe: 2, quiet: 4, wild: 8, dangerous: 15 } as Record<string, number>,
+  /** TV2 travel paces as shares of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels slow 3, normal
+   * 4.5 and fast 6 km/h (D&D's 3.2 / 4.8 / 6.4 km/h, a brisk real walk about 5) */
+  TRAVEL_PACE_SHARE: { slow: 0.6, normal: 0.9, fast: 1.2 } as Record<string, number>,
+  /** TV8 the noticing roll's modifier by pace: slow notices more, fast less (placeholders) */
+  TRAVEL_NOTICE_MOD: { slow: 10, normal: 0, fast: -10 } as Record<string, number>,
+  /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
+  TRAVEL_LEG_MIN: 60,
+  TRAVEL_MAX_LEGS: 96, // a safety stop: four days on the road in one turn
+  /** TV4/TV5 pressing on in the dark: the event roll's modifier and the encounter chance's multiplier (placeholders) */
+  NIGHT_TRAVEL_EVENT_MOD: -15,
+  NIGHT_ENCOUNTER_MULT: 2,
+  /** TV4 how far ahead on the road an encounter stands when it starts: D&D's encounter distance in a forest, 2d6 × 10 ft
+   * (about 21 m on average) */
+  ENCOUNTER_M: 20,
+  /** ZP1 how far apart code places people in a zone when nothing says where they stand: arm's length, the far end of
+   * personal distance (Hall's proxemics, 0.45–1.2 m) */
+  PLACE_GAP_M: 1,
+  /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door) */
+  ENTER_M: 1,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
-  THROWN_REACH_BONUS: 2, // placeholder (loot L3)
+  /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
+   * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");
+   * a knife 7 (the longest standard distance in
+   * European knife-throwing rules, EuroThrowers 2019); an improvised object 5 (no source: a placeholder) */
+  THROW_M: { spear: 17.5, knife: 7, improvised: 5 }, // a throwing axe would be 12 (the francisca, Wikipedia "Francisca")
   /** the throw action is a combined roll: the weapon's own skill (a melee weapon's melee skill) and the ranged skill of
    * the same class, each with its own stand-ins, at these shares */
   THROW_BLEND: { weapon: 0.75, ranged: 0.25 },

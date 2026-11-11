@@ -1,18 +1,19 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, CP, DU, EK, FR, GC, HL, RL, ZK } from './tableIds';
+import { AM, CP, DU, EK, FR, GC, HL, PA, PY, RL, VL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import { LAYOUTS } from './layouts';
 import type { ArmorWeightKey } from '../scales';
-import { CLASS_TIERS, NOISE, ZONE_SIZES } from '../scales';
+import { CLASS_TIERS, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { noiseReach } from '../perception/noise';
+import { sightReach } from '../perception/sight';
 
-/** a zone link count in words, for the Noise levels table */
+/** a zone link count in words, for the Noise and Visibility levels tables */
 const links = (n: number) => (n < 0 ? 'nowhere' : n === 0 ? 'same zone' : n === 1 ? '1 link away' : `${n} links away`);
-import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
+import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
 import { BOOST_PERKS } from './boostPerks';
@@ -90,15 +91,16 @@ for (const [id, tags] of Object.entries(SITUATION_TAGS_OF)) SKILLS[id].tags = ta
 // SR1: intimidation is open to any race with the Speech tree; persuasion and barter need a speaking race
 for (const id of [SK.persuasion, SK.barter, SK.lying]) SKILLS[id].access = { must: [{ kind: 'raceTag', id: 'speaks' }] };
 
-const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'reach' | 'hands'>) => m;
+/** an attack mode with its reach in metres (real references) */
+const mode = (m: Partial<import('../types').AttackMode> & Pick<import('../types').AttackMode, 'id' | 'tree' | 'class' | 'hands'> & { reachM: number }) => ({ ...m, reach: m.reachM });
 const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25, active: 'held', scope: 'withItem', kit: true });
 /** armor numbers come from CONFIG (one source, Part 5 armor table) */
 /** Improvised weapons: a melee strike and a throw (like throwing a vase), both rolled with
  * Improvisation. Unarmed skills stand in for both (its own function); Arms skills also stand in for the strike,
  * Ranged skills for the throw. */
 const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
-  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reach: 0, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
-  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reach: 0, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
+  mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
+  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
 /** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
@@ -151,33 +153,33 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.dagger, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reach: 0, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reach: 0, hands: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, hands: 1, thrown: true })] } },
   { id: IT.arming_sword, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.6, hands: 1 })] } },
   { id: IT.greataxe, level: 'superior', gearClass: GC.melee_heavy, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 2.2, hands: 2 })] } },
   { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reach: 1, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reach: 1, hands: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, hands: 1, thrown: true })] } },
   { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reach: 3, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 50, hands: 2 })] } },
   { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reach: 4, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 90, hands: 2 })] } },
   { id: IT.crossbow, level: 'superior', gearClass: GC.ranged_heavy, kind: 'weapon', name: 'crossbow', look: 'a heavy crossbow', bulk: 3, value: 40, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 80, hands: 2 })] } },
   // SL12 test piece: a medium weapon whose basket hilt gives +5 Parry while held, apart from its requirement's skill
   { id: IT.basket_hilt_sword, level: 'fine', gearClass: GC.melee_medium, kind: 'weapon', name: 'basket-hilted sword', look: 'a sword with a caged steel hilt', bulk: 2, value: 25, hands: 1,
     effects: [KIT(), { kind: 'skill', skill: SK.parry, value: 5, active: 'held', scope: 'any' }],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.7, hands: 1 })] } },
   { id: IT.hidden_blade, level: 'fine', gearClass: GC.melee_light, kind: 'weapon', name: 'hidden blade', look: 'a slim blade', bulk: 1, value: 30, hands: 1, concealed: true, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 0.9, hands: 1 })] } },
   // Crude gear: level Crude needs 0. Only the clothes are in the starter kit; the crude weapons are library
   // items outside it. Clothes stop nothing and cost no Dodge (placeholders).
   { id: IT.crude_clothes, level: 'crude', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'rough clothes', look: 'rough homespun clothes', bulk: 1, value: 1, slot: 'armor',
     armor: { covers: ['general'], reduction: 0, multiplier: 1, weight: 'light' } },
   { id: IT.cudgel, level: 'crude', gearClass: GC.melee_medium, kind: 'weapon', name: 'cudgel', look: 'a knotted wooden cudgel', bulk: 2, value: 1, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.club, tree: 'melee', class: 'medium', reachM: 1.3, hands: 1 })] } },
   { id: IT.rusty_knife, level: 'crude', gearClass: GC.melee_light, kind: 'weapon', name: 'rusty knife', look: 'a rusty knife', bulk: 1, value: 1, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 0.9, hands: 1 })] } },
   { id: IT.gambeson, level: 'common', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'gambeson', look: 'a quilted gambeson', bulk: 2, value: 15, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light', 'common') } },
   { id: IT.mail_hauberk, level: 'fine', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'mail hauberk', look: 'a mail hauberk', bulk: 3, value: 60, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
@@ -188,21 +190,21 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   // Starter pairs: every gear class but improvised has a Common (need 25) and a Fine (need 50) starter piece;
   // creation gives the highest one met per class (starterKit). Superior and Masterwork gear stays out of the kit.
   { id: IT.short_sword, level: 'fine', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'short sword', look: 'a short, broad-bladed sword', bulk: 1, value: 15, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.stab, tree: 'melee', class: 'light', reachM: 1.3, hands: 1 })] } },
   { id: IT.hand_axe, level: 'common', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'hand axe', look: 'a bearded hand axe', bulk: 2, value: 8, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', reach: 0, hands: 1 })] } },
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'medium', reachM: 1.2, hands: 1 })] } },
   { id: IT.woodsman_axe, level: 'common', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: "woodsman's axe", look: 'a long-hafted felling axe', bulk: 3, value: 10, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 1.6, hands: 2 })] } },
   { id: IT.greatsword, level: 'fine', gearClass: GC.melee_heavy, tags: ['starter'], kind: 'weapon', name: 'greatsword', look: 'a two-handed sword', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reach: 0, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'heavy', reachM: 2.3, hands: 2 })] } },
   { id: IT.recurve_bow, level: 'fine', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', name: 'recurve bow', look: 'a horn-backed recurve bow', bulk: 2, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reach: 3, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 70, hands: 2 })] } },
   { id: IT.flatbow, level: 'common', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', name: 'flatbow', look: 'a plain flat-limbed bow', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reach: 4, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'medium', reachM: 60, hands: 2 })] } },
   { id: IT.light_crossbow, level: 'common', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', name: 'light crossbow', look: 'a light crossbow', bulk: 3, value: 25, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 60, hands: 2 })] } },
   { id: IT.stirrup_crossbow, level: 'fine', gearClass: GC.ranged_heavy, tags: ['starter'], kind: 'weapon', name: 'stirrup crossbow', look: 'a crossbow with a foot stirrup', bulk: 3, value: 35, hands: 2, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reach: 4, hands: 2 })] } },
+    weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'heavy', reachM: 70, hands: 2 })] } },
   { id: IT.boiled_leather, level: 'fine', gearClass: GC.armor_light, tags: ['starter'], kind: 'armor', name: 'boiled leather', look: 'a cuirass of hardened leather', bulk: 2, value: 30, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.light)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('light', 'fine') } },
   { id: IT.brigandine, level: 'common', gearClass: GC.armor_medium, tags: ['starter'], kind: 'armor', name: 'brigandine', look: 'a riveted brigandine', bulk: 3, value: 30, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.medium)],
@@ -214,7 +216,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, hands: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
-    effects: [{ kind: 'rollMod', roll: 'situation', value: 5, active: 'carried', scope: 'any' }] },
+    effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
     effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
   { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
@@ -233,8 +235,9 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
-    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reach: 0, hands: 0, name: 'fists' },
-      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reach: 0, hands: 0, name: 'grapple' }],
+    speed: { walk: 1.4, run: 5 }, // an everyday walk about 1.4 m/s; a run in kit about 5 m/s (a sprinter reaches 8–10)
+    naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, hands: 0, name: 'fists' },
+      { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: 0.6, hands: 0, name: 'grapple' }],
     parts: [
       { id: 'head', size: 'small', impact: 'essential', roles: [RL.sense, RL.speech], adjacent: ['general', 'neck'] },
       { id: 'left_arm', size: 'normal', impact: 'normal', roles: [RL.grip] },
@@ -262,12 +265,14 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // BR4: shape names, so later races can reuse them; Slime and Dragon are races
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
-    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reach: 0, hands: 0, name: 'slam' }],
+    speed: { walk: 0.5, run: 1 }, // no real reference: a placeholder for a creeping mass
+    naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: 0.5, hands: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [BT.winged_quadruped]: {
     id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
+    speed: { walk: 1.8, run: 12 }, // a horse on the ground: walk about 1.8 m/s, gallop about 12 m/s (flight not modelled)
     naturalAttacks: [],
     parts: [
       { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech] },
@@ -281,10 +286,13 @@ export const BODY_TYPES: Record<string, BodyType> = {
   },
 };
 
+/** PL11: a template's Nerve, trait and value points ([Proposed] numbers) */
+const pers = (nerve: number, traits: Record<string, number> = {}, values: string[] = []): Personality => ({ nerve, traits, values });
+
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
-    level: 0, bonusPoints: 0, focus: [], personality: 'steady', control: 'code', label: 'a slime',
+    level: 0, bonusPoints: 0, focus: [], resolve: 50, personality: pers(0), control: 'code', label: 'a slime',
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [TP.guard]: {
@@ -293,26 +301,26 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
     focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.parry }, { treeId: TR.perception, skill: SK.eyesight }],
-    personality: 'steady', loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
+    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
   },
   [TP.trader]: {
     id: TP.trader, raceId: RC.human, classId: CL.trader, generation: 'copy',
     minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
     focus: [{ treeId: TR.perception, skill: SK.earshot }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
-    personality: 'timid', control: 'code', label: 'the barkeep',
+    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.wealth]), control: 'code', label: 'the barkeep',
   },
   // NS7: a village thief, the first stealthy NPC
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
     minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
     focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
-    personality: 'timid', loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
+    resolve: 30, personality: pers(-40, { [PA.honesty]: -40 }, [VL.wealth]), loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
   },
   [TP.patron]: {
     id: TP.patron, raceId: RC.human, generation: 'copy',
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0,
     focus: [{ treeId: TR.unarmed, skill: SK.unarmed_strike }, { treeId: TR.defense, skill: SK.dodge }, { treeId: TR.perception, skill: SK.eyesight }],
-    personality: 'timid', control: 'code', label: 'a tavern patron',
+    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.pleasure]), control: 'code', label: 'a tavern patron',
   },
 };
 
@@ -425,7 +433,7 @@ export function prototypeLibrary(): Library {
       [CL.guard]: { id: CL.guard, name: 'Guard', tier: 'tier_1', label: 'a guard', story: 'Stand at the gate and listen for trouble.', floors: {},
         unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40, [SK.ranged_light]: 40, [SK.ranged_medium]: 40, [SK.ranged_heavy]: 40 },
           { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30, [SK.parry]: 30 }] as Record<string, number>[],
-        unlockPerkWith: { hearingReach: 1 } },
+        unlockPerkWith: { hearingDb: 1 } },
       [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
       [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
     },
@@ -462,6 +470,25 @@ export function prototypeLibrary(): Library {
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
     },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
+    // PL6: personality axes, with the words for each end; PL19: values; PL10: named types ([Proposed] until approved, PL21–PL27)
+    personalityAxes: {
+      [PA.honesty]: { id: PA.honesty, name: 'Honesty', low: 'deceitful', high: 'honest' },
+      [PA.pride]: { id: PA.pride, name: 'Pride', low: 'humble', high: 'proud' },
+      [PA.temper]: { id: PA.temper, name: 'Temper', low: 'patient', high: 'quick to anger' },
+      [PA.sociability]: { id: PA.sociability, name: 'Sociability', low: 'quiet', high: 'talkative' },
+      [PA.discipline]: { id: PA.discipline, name: 'Discipline', low: 'impulsive', high: 'disciplined' },
+      [PA.curiosity]: { id: PA.curiosity, name: 'Curiosity', low: 'set in its ways', high: 'curious' },
+    },
+    values: Object.fromEntries(Object.entries(VL).map(([k, id]) => [id, { id, name: k }])),
+    personalityTypes: {
+      [PY.prideful]: { id: PY.prideful, name: 'Prideful', when: { [PA.pride]: { min: 40 } }, hint: 'saves face, won\'t back down in front of others, takes insults personally' },
+      [PY.mature]: { id: PY.mature, name: 'Mature', when: { [PA.discipline]: { min: 40 }, [PA.temper]: { max: -20 }, [SK.resolve]: { min: 40 } }, hint: 'thinks before acting, keeps a cool head, owns their mistakes' },
+      [PY.childish]: { id: PY.childish, name: 'Childish', when: { [PA.discipline]: { max: -40 }, [PA.temper]: { min: 20 } }, hint: 'acts on impulse, sulks or lashes out when crossed' },
+      [PY.honourable]: { id: PY.honourable, name: 'Honourable', when: { [PA.honesty]: { min: 40 }, [PA.pride]: { min: 20 } }, hint: 'keeps their word and answers any insult to their name' },
+      [PY.schemer]: { id: PY.schemer, name: 'Schemer', when: { [PA.honesty]: { max: -40 }, [PA.discipline]: { min: 20 } }, hint: 'plans ahead, lies patiently, uses people' },
+      [PY.bully]: { id: PY.bully, name: 'Bully', when: { [PA.pride]: { min: 40 }, [PA.temper]: { min: 40 }, [PA.honesty]: { max: -20 } }, hint: 'picks on the weak, backs down from the strong' },
+      [PY.busybody]: { id: PY.busybody, name: 'Busybody', when: { [PA.sociability]: { min: 40 }, [PA.curiosity]: { min: 40 } }, hint: 'pokes into other people\'s business and passes on what they learn' },
+    },
     fears: {
       [FR.own_level]: { id: FR.own_level, name: 'Your health reaches a new level', cost: 25, rolled: true, health: { from: 'Injured', to: 'Mauled' } },
       [FR.own_critical]: { id: FR.own_critical, name: 'Your health reaches Critical', cost: 50, rolled: true, health: { from: 'Critical', to: 'Critical' } },
@@ -505,16 +532,19 @@ export function prototypeLibrary(): Library {
       [GC.armor_heavy, 'Heavy armor', SK.heavy_armor, 'armor'], [GC.shield, 'Shield', SK.block, 'shield'],
     ] as const).map(([id, name, skill, use]) => [id, { id, name, skill, use }])),
     // attack modes: what an attack does; weapon modes and natural attacks name one by id
-    // Throw carries the throw action's rules for every weapon that lists it: + reach, and a combined roll
+    // Throw carries the throw action's combined roll for every weapon that lists it; a throw mode's reachM is its own throw range (CONFIG.THROW_M)
     attackModes: Object.fromEntries(Object.entries(AM).map(([w, id]) => [id, { id, name: w[0].toUpperCase() + w.slice(1),
-      ...(id === AM.throw ? { reachBonus: CONFIG.THROWN_REACH_BONUS, blend: CONFIG.THROW_BLEND } : {}) }])),
+      ...(id === AM.throw ? { blend: CONFIG.THROW_BLEND } : {}) }])),
     // CO16 default size and CO15 default edge per kind: indoors walled, outdoors open
     zoneKinds: Object.fromEntries(([
       [ZK.room, 'Room', false, 'some', 'dim', 'room', 1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2],
       [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room', 1], [ZK.street, 'Street', true, 'none', 'dark', 'yard', 4], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1],
       [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
-      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1],
-    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall }])),
+      [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1],
+    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall, ...(id === ZK.road ? { road: true as const } : {}) }])),
+    // TV3/TV4: a road is one long zone; its length and danger words
+    roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
+    roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
     edgeKinds: Object.fromEntries(([
       [EK.wall, 'Wall', false, false, false, false, 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
       [EK.open, 'Open', true, true, true, false, 'Nothing in the way: walk and see across anywhere along it.'],
@@ -541,6 +571,15 @@ export function prototypeLibrary(): Library {
       loud: 'A shout, steel ringing on steel (about 88 dB)',
       blaring: 'A scream, a hammer on an anvil, a war horn (about 100 dB)',
       deafening: 'A thunderclap overhead, a church bell up close, an alarm bell (about 120 dB)',
+    } as Record<string, string>)[k] }])),
+    visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, clearTo: links(sightReach(k)[0]), glimpsedTo: links(sightReach(k)[1]), like: ({
+      unseen: 'Nothing to see: keeping still out of sight',
+      faint: 'A palmed coin, a hand slipping to a purse: made out within half a metre, glimpsed within 2 m',
+      close: 'A nod, a hand sign, a change of expression: read at about 6 m, noticed out to about 20 m',
+      low: 'Someone sitting still or resting: a face known at about 15 m (where witnesses stop naming faces reliably), a shape noticed at 60 m',
+      normal: 'Someone walking or talking: who it is at about 25 m, a figure moving across open ground at 200 m',
+      high: 'A fight, someone running or waving: who is who by build and clothes at 50 m, the movement caught at 500 m',
+      glaring: 'A fire, a torch or a lit window at night, sun flashing on steel: made out at 200 m, seen 2 km off',
     } as Record<string, string>)[k] }])),
     layouts: LAYOUTS,
     items: ITEMS,
@@ -733,7 +772,7 @@ export function prototypeLibrary(): Library {
       [ACH.deals_100]: { id: ACH.deals_100, name: 'Silver Tongue', level: 'iii', rule: 'deals', tags: ['social'], count: 100, after: ACH.deals_10, pricePct: 5 },
       [ACH.days_7]: { id: ACH.days_7, name: 'Still Breathing', level: 'i', rule: 'days', tags: ['survival'], count: 7 },
       [ACH.days_30]: { id: ACH.days_30, name: 'Seasoned', level: 'ii', rule: 'days', tags: ['survival'], count: 30, after: ACH.days_7, restPct: 10 },
-      [ACH.days_100]: { id: ACH.days_100, name: 'Old Blood', level: 'iii', rule: 'days', tags: ['survival'], count: 100, after: ACH.days_30, situation: 10 },
+      [ACH.days_100]: { id: ACH.days_100, name: 'Old Blood', level: 'iii', rule: 'days', tags: ['survival'], count: 100, after: ACH.days_30, eventRoll: 10 },
       [ACH.class_unlock]: { id: ACH.class_unlock, name: '{class} Awakened', level: 'i', rule: 'class_unlock', tags: ['progression'], count: 1, by: 'class' },
       // classes at their top level: in all, per class tier (one, then several in the same tier), and across tiers
       [ACH.class_max_1]: { id: ACH.class_max_1, name: 'Path Walked to Its End', level: 'i', rule: 'class_max', tags: ['progression'], count: 1 },

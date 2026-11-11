@@ -31,6 +31,7 @@ export function actorView(id = 'guard_1'): ActorView {
   return {
     turn: 3,
     time: { day: 1, timeOfDay: 'Day' },
+    personality: 'Nerve: Steady (Calm right now). Disciplined. Values: duty.',
     self: {
       id, label: 'a gate guard', name: 'Bertram', kind: 'npc', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch',
       health: 'Unhurt', parts: [], morale: 'Calm', active: true, broken: false, surrendered: false, control: 'agent', standingDefense: 'block',

@@ -5,7 +5,7 @@ import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { CLASS_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
-import { MARGIN_BANDS, SITUATION_BANDS, band, ladder, naturalEdge, stackType } from './index';
+import { MARGIN_BANDS, EVENT_BANDS, band, ladder, naturalEdge, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
 import { tierMult } from './gear';
@@ -55,14 +55,14 @@ export function equations(lib: Library): EquationGroup[] {
   const exLevel = rollLevel(ex.d, ex.eff);
   const quick = Object.values(lib.perks).filter((p) => p.improveRolls);
   return [
-    { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill situation roll.', equations: [
+    { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill event roll.', equations: [
       { name: 'True skill', at: 'trueSkill · src/ruleset/perks.ts',
         formula: 'true skill = raw + perk true skill + achievement true skill',
         terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), perks that add to every skill of a function (fnSkill), and linked perks that add to every aura skill (auraSkill, Crushing Presence)'], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
         notes: ['A dormant skill, or one in a tree the actor can\'t use, counts as 0.'] },
       { name: 'Effective skill', at: 'effectiveSkill · src/ruleset/gear.ts',
         formula: 'effective skill = best of ( true skill + gear ) × share × tier multiplier, over the skill and its stand-ins; + augments',
-        terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab; perks and achievements such as Master of the Moment add to it). A function roll counts every skill with the function at 1.`],
+        terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab; perks and achievements such as Master of the Moment add to it). A function roll counts every skill with the function at 1 (with the Perception All-150 Every Sense One, a sight or hearing roll counts the skills of both).`],
           ['gear', `skill effects of worn, held or carried items, also × share; a standard kit gives EQUIP_FACTOR (${n(CONFIG.EQUIP_FACTOR)}) × its need, shared once per roll (the best piece)`],
           ['augments', 'each skill that augments this one (SkillDef.augments) adds its true skill × its share (default 1) × its tier, on every roll of this skill or only the roll kinds it lists; its tree must be open (Shrewd Dealing augments Barter). A perk can give one too (PerkDef.augments: Grit, Endurance × ${n(CONFIG.GRIT_SHARE)} to Resolve)'],
           ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')]],
@@ -94,7 +94,7 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['NPCs roll speech at the player only with persuade, deceive, intimidate or barter; their plain talk does not roll, but a line they know is false is always given as deceive. A second Shaken or Swayed from the same speaker keeps the bigger one.'] },
       { name: 'Morale roll', at: 'moraleRoll · src/ruleset/index.ts; payFear · src/engine/morale.ts; fear · src/engine/resolve.ts',
         formula: `margin = d100 + ${n(W())} × Resolve + modifiers − ${n(NEED())}; morale lost = the fear's cost × the tier's multiplier`,
-        terms: [['max morale', `${CONFIG.MORALE_BASE} + ${CONFIG.MORALE_PER_RESOLVE} × Resolve; an NPC template's starting Resolve comes from its personality: ${Object.entries(CONFIG.PERSONALITY_RESOLVE).map(([k, v]) => `${k} ${v}`).join(', ')}`],
+        terms: [['max morale', `${CONFIG.MORALE_BASE} + ${CONFIG.MORALE_PER_RESOLVE} × Resolve; an NPC template sets its starting Resolve; raw Resolve also sets the Nerve tier (from ${CONFIG.NERVE_TIER_FROM.join(', ')})`],
           ['tier multiplier', `${TIERS.keys.map((k) => `${TIERS.name(k)} ×${CONFIG.MORALE_TIER_MULT[k]}`).join(' · ')}; each step below Critical Failure +${CONFIG.MORALE_BEYOND_CF}`],
           ['levels', CONFIG.MORALE_TRACK.map(([k, max, v]) => `${MORALE_LEVELS.name(k as MoraleLevel)}${max === Infinity ? ' 100 %+' : ` ≤${Math.round(max)} %`}${v ? ` ${v}` : ''}`).join(' · ')],
           ['modifiers', 'wounds: the health level, the morale level (fear feeds on itself) and a crippled essential part; the player\'s renown on every morale roll of a foe fighting the player; the player\'s rally on allies fighting beside the player']],
@@ -102,10 +102,10 @@ export function equations(lib: Library): EquationGroup[] {
           `×${(D100.reduce((t, d) => t + tierCostMult(rollLevel(d, m)), 0) / 100).toFixed(2)}`]) },
         notes: [`Fears are the library fears table: flat costs, a negative cost restores. Rolled fears count only while engaged; the player is engaged while someone is fighting them. A hit that leaves parts Crippled or worse rolls the Crippled fear once, paying each part's cost by its impact (non-essential, normal, essential) for a ${n(lib.fears?.[FR.own_part_crippled]?.refParts ?? 6)}-part body, scaled by ${n(lib.fears?.[FR.own_part_crippled]?.refParts ?? 6)} ÷ the body's part count; a part Destroyed rolls again at ${n(lib.fears?.[FR.own_part_destroyed]?.partCostOf?.mult ?? 1.5)} × those costs. Reaching Broken breaks an NPC (it flees), or makes it surrender when the roll that broke it was a Critical Failure or worse. The player at Broken cannot attack. Overwhelm: an aura that wins by ${CONFIG.OVERWHELM_TIERS}+ tiers against a target with max morale at most ${CONFIG.OVERWHELM_MORALE_SHARE * 100} % of the owner's takes all its morale, and an NPC surrenders.`,
           'Shares in the table are calm and unhurt, with no modifiers.'] },
-      { name: 'Situation roll (no skill)', at: 'situation · src/ruleset/index.ts',
-        formula: `margin = d100 ${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.SITUATION_BASE - 100)} + modifiers`,
-        terms: [[`${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.SITUATION_BASE - 100)}`, `situation base ${CONFIG.SITUATION_BASE} (CONFIG.SITUATION_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
-        table: { head: ['Tier', 'Margin'], rows: bandRows(SITUATION_BANDS) },
+      { name: 'Event roll (no skill)', at: 'eventRoll · src/ruleset/index.ts',
+        formula: `margin = d100 ${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.EVENT_BASE - 100)} + modifiers`,
+        terms: [[`${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.EVENT_BASE - 100)}`, `event base ${CONFIG.EVENT_BASE} (CONFIG.EVENT_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
+        table: { head: ['Tier', 'Margin'], rows: bandRows(EVENT_BANDS) },
         notes: ['The natural edge applies here too. There are no tier shifts.'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
         formula: `type total = biggest + ${n(CONFIG.STACK_RATIO)} × next + ${n(CONFIG.STACK_RATIO ** 2)} × next …, bonuses and penalties apart; types add in full`,
@@ -120,7 +120,7 @@ export function equations(lib: Library): EquationGroup[] {
         formula: 'attack roll (skill roll); below Near Miss it misses. Otherwise the defender makes a dodge, block or parry roll',
         terms: [['attack modifiers', 'weapon class hit + mode hitAdj, range, aim, light, perks'], ['defense modifiers', 'outnumbered, unaware (not with Never Surprised when the attack\'s noise reaches the defender), dodge vs missile, light, perks'], ['which defense', 'the standing defense, if it works: block needs a held shield, parry a held melee weapon (or Open-Hand Guard) and never stops a ranged attack; otherwise the usable one with the highest effective skill']] },
       { name: 'Throw (combined roll)', at: 'withRow · blendedSkill · src/ruleset/gear.ts',
-        formula: `throw skill = ${n(CONFIG.THROW_BLEND.weapon)} × the weapon's own effective skill + ${n(CONFIG.THROW_BLEND.ranged)} × the effective ranged skill of the same class; reach = the weapon's own reach + ${CONFIG.THROWN_REACH_BONUS} (THROWN_REACH_BONUS) + perks' throwReach`,
+        formula: `throw skill = ${n(CONFIG.THROW_BLEND.weapon)} × the weapon's own effective skill + ${n(CONFIG.THROW_BLEND.ranged)} × the effective ranged skill of the same class; reach = the throw mode's own range in metres (THROW_M: spear ${CONFIG.THROW_M.spear}, knife ${CONFIG.THROW_M.knife}, improvised ${CONFIG.THROW_M.improvised}) + perks' throwReach metres (modeReach), measured against the distance in metres`,
         terms: [["weapon's own skill", "the skill its gear class asks for (a dagger: Light weapons; an improvised weapon: Improvisation)"], ['ranged skill', 'Light, Medium or Heavy ranged, by the throw mode\'s class'], ['shares', 'CONFIG.THROW_BLEND, set on the Throw attack mode row']],
         notes: ['Each part is its own effective skill: it takes its own stand-ins and only the gear that boosts it (the weapon\'s kit bonus goes to its own skill). Both skills that rolled can learn. The thrown item lands on the ground of the target\'s zone, hit or miss.'] },
       { name: 'Gap', at: 'attack · src/ruleset/index.ts',

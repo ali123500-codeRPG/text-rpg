@@ -48,6 +48,7 @@ export type TreeDef = { id: string; name: string; skills: string[]; access?: Tre
 export type ServiceDef = { id: string; name: string; price: number; heals?: string };
 export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
+  personality?: PersonalityAdd; // PL16: points added while it is the current class
   /** the class's tier (CLASS_TIERS key): how strong it is next to other classes */
   tier: import('../scales').ClassTierKey;
   /** the public stranger label a player starting in this class has */
@@ -64,8 +65,8 @@ export type ClassDef = {
   unlock?: Record<string, number>;
   /** either-of unlocks: in each group, at least one of the skills must also reach its true skill */
   unlockAny?: Record<string, number>[];
-  /** unlocks only for a character with an active perk whose listed numbers reach these (Guard: hearingReach 1) */
-  unlockPerkWith?: { hearingReach?: number };
+  /** unlocks only for a character with an active perk whose listed numbers reach these (Guard: hearingDb, any perk that sharpens hearing) */
+  unlockPerkWith?: { hearingDb?: number };
   /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for D-159) */
   unlockClass?: Record<string, number | 'max'>;
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
@@ -89,9 +90,19 @@ export type BodyType = {
   naturalAttacks: AttackMode[];
   parts: PartDef[];
   fallback: { attackSkill: string };
+  /** RD7 base speeds in m/s, from real references: walk (a move slot) and run (a dash); worn armor lowers both (engine/speed) */
+  speed: { walk: number; run: number };
   /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
   figure?: { viewBox: string; parts: Record<string, string> };
 };
+
+/** PL6: one personality axis; `low` and `high` are the words for its two ends */
+export type PersonalityAxisDef = { id: string; name: string; low: string; high: string };
+/** PL10: a named type: every condition must hold. Keys are personality axes (PA…), 'nerve', or SK.resolve (raw); `hint`
+ * tells the agent how the type acts */
+export type PersonalityTypeDef = { id: string; name: string; when: Record<string, { min?: number; max?: number }>; hint: string };
+/** PL15, PL16: points a perk, class or achievement adds while held, by 'nerve' or personality axis (PA…) */
+export type PersonalityAdd = Record<string, number>;
 
 export type Library = {
   version: number;
@@ -110,6 +121,9 @@ export type Library = {
   healing?: Record<string, HealingDef>; // H1: one table of healing sources
   composure?: Record<string, ComposureDef>; // what restores morale, apart from healing so each tunes on its own
   fears?: Record<string, FearDef>; // MB21: what costs morale
+  personalityAxes?: Record<string, PersonalityAxisDef>; // PL6: PA…
+  values?: Record<string, { id: string; name: string }>; // PL19: VL…, what a character cares about
+  personalityTypes?: Record<string, PersonalityTypeDef>; // PL10: PY…, named mixes read from the points
   services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
@@ -117,10 +131,13 @@ export type Library = {
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
   edgeKinds?: Record<string, EdgeKind>; // CO15
   zoneSizes?: Record<string, ZoneSize>; // CO16
+  roadLengths?: Record<string, RoadLength>; // TV3
+  roadDangers?: Record<string, RoadDanger>; // TV4
   noiseLevels?: Record<string, NoiseLevel>;
+  visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' }>; // GC…: the skill an item of the class asks for
-  attackModes?: Record<string, { id: string; name: string; reachBonus?: number; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
+  attackModes?: Record<string, { id: string; name: string; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
 /** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
@@ -131,6 +148,8 @@ export type ZoneKind = {
   size: import('../scales').ZoneSizeKey; edge: string;
   /** long side ÷ short side of the zone's rectangle (1 = square) */
   aspect: number;
+  /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
+  road?: true;
 };
 /** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 export type LayoutDef = {
@@ -142,19 +161,23 @@ export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; 
 /** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
 /** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all (noiseReach) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
+export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string; clearTo: string; glimpsedTo: string };
+export type RoadLength = { id: import('../scales').RoadLengthKey; name: string; km: number };
+export type RoadDanger = { id: import('../scales').RoadDangerKey; name: string; encounterPct: number };
 export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };
 
 /** Perk page S1–S9: a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to
  * that skill (milestones 40/80/120); effect groups it in the "By effect" view. */
 export type PerkEffect = 'attack' | 'defense' | 'health' | 'speed' | 'senses' | 'speech' | 'stealth';
 export type PerkDef = {
-  id: string; name: string; text?: string; situation?: number;
+  id: string; name: string; text?: string; eventRoll?: number;
+  personality?: PersonalityAdd; // PL16: points added while owned
   /** MB21: moves a health fear's `from` level by `steps` (+ later, − sooner) */
   fearFrom?: { fear: string; steps: number };
-  /** zones added to the throw action's reach (on top of THROWN_REACH_BONUS) */
+  /** metres added to a thrown weapon's own range (CONFIG.THROW_M) */
   throwReach?: number;
-  /** zone links added to how far the owner hears (Keen Ear 1) */
-  hearingReach?: number;
+  /** decibels quieter the owner still hears (RD4 Keen Ear 10: sharp, attentive ears against average ones) */
+  hearingDb?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */
@@ -269,7 +292,7 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
-  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'situation' | 'freeLevels' | 'bonusLevels';
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -279,6 +302,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   quieter?: number; // the owner's moves are this many steps quieter on the noise scale
   readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
   skillAdd?: Record<string, number>; // true skill added to these skills
+  personality?: PersonalityAdd; // PL15: Nerve or trait points added while current
   renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
@@ -287,7 +311,7 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   pricePct?: number; // + this % off the owner's buying prices
   rally?: number; // allies fighting beside the owner get + this on their morale rolls
   restPct?: number; // + this % HP and part healing on each rest
-  situation?: number; // + this on the owner's situation rolls
+  eventRoll?: number; // + this on the owner's event rolls
   freeLevels?: number; // free levels: this many level-ups that cost no XP (taken like any level, src/engine/xp.ts spendXp)
   bonusLevels?: number; // bonus levels: this many character levels that no class gets (perk points on even levels; no class perks)
   firstSight?: IntelligenceKey; // members of the achievement's race or body type, up to this intelligence, meet the owner opposed instead of hostile

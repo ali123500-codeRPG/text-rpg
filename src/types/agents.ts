@@ -19,7 +19,7 @@ export const IMPROVISED_BASES = ['improvised_light', 'improvised_medium', 'impro
 export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
 
 export type Intent = {
-  move: { toZone: string; after?: boolean } | null; // after: the action first, then the move (AE3)
+  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey } | null; // after: the action first, then the move (AE3); pace: TV2 on a road trip
   action: {
     type: ParserActionType;
     skill: string;
@@ -81,8 +81,8 @@ export type StanceStep = { toward: string; step: 'friendlier' | 'colder' };
  * Incapacitated, only when every fighter accepted that (SP4) */
 export type SparMade = { sides: string[][]; cruel?: boolean };
 
-/** the NPC's one move beside its action, as the player's: toZone is where it heads (one zone toward it, two as a dash
- * with hold); after: act first, then move */
+/** the NPC's one move beside its action, as the player's: toZone is where it heads (it walks toward it; with hold it runs
+ * on, a dash); after: act first, then move */
 export type NpcMove = { toZone: string; after?: boolean };
 export type PlannerOutput = {
   action: NpcAction;
@@ -136,6 +136,8 @@ export type StagePlan = {
     size?: string; // CO16 a ZONE_SIZES word; the kind's default when left out
     area?: number; // CO16 m², instead of a size word
     edges?: Partial<Record<import('./core').Side, string>>; // CO15 edge kind ids by side; the kind's default when left out
+    length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
+    danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
     links: { to: string; label: string; sight: boolean }[];
   }[];
@@ -160,6 +162,8 @@ export type StagePlan = {
     motive: string;
     /** PY2: what a Trader-class seller sells: goods stocked into its inventory, and service ids */
     wares?: { items: { item: string; qty?: number }[]; services: string[] };
+    /** PL12: a new actor's Nerve line, up to two named types (PY…) and values (VL…), set on top of its template's points */
+    personality?: { nerve?: string; types?: string[]; values?: string[] };
   }[];
   seeds: { plans: (Plan & { ownerId: string })[]; triggers: Trigger[]; secrets: Secret[] };
   rewards: {

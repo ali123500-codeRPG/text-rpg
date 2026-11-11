@@ -7,6 +7,7 @@ import { benefits, itemValue } from '../../src/ruleset/value';
 import { effectiveSkill } from '../../src/ruleset/gear';
 import { itemDef } from '../../src/library';
 import { CONFIG } from '../../src/config';
+import { reachLinks } from '../../src/ruleset/range';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 
@@ -15,8 +16,8 @@ const val = (id: string) => itemValue(null, itemDef(null, id));
 
 it('144a weapons: kit bonus plus reach', () => {
   expect(val(IT.arming_sword)).toBe(20 * V.skillPoint); // kit 0.4 × need 50
-  expect(val(IT.shortbow)).toBe(10 * V.skillPoint + 3 * V.reachZone); // range counts (SL14)
-  expect(val(IT.dagger)).toBe(10 * V.skillPoint + CONFIG.THROWN_REACH_BONUS * V.reachZone); // its throw reaches melee reach 0 + THROWN_REACH_BONUS zones
+  expect(val(IT.shortbow)).toBe(10 * V.skillPoint + reachLinks(50) * V.reachZone); // range counts (SL14): 50 m in zone links
+  expect(val(IT.dagger)).toBe(10 * V.skillPoint + reachLinks(CONFIG.THROW_M.knife) * V.reachZone); // its throw: 7 m zones
   expect(val(IT.cudgel)).toBe(1); // crude: worth 1 (SL13)
   expect(val(IT.improvised_medium)).toBe(0);
 });
@@ -35,7 +36,7 @@ it('144c armor, shields and the lucky charm are priced from their numbers', () =
   const g = itemDef(null, IT.gambeson).armor!;
   expect(val(IT.gambeson)).toBe(Math.round((g.reduction * V.armorStop + (1 - g.multiplier) * 100 * V.armorCut) * g.covers.length));
   expect(val(IT.round_shield)).toBe(10 * V.skillPoint + itemDef(null, IT.round_shield).shield!.pool * V.poolPoint);
-  expect(val(IT.lucky_charm)).toBe((5 / CONFIG.SKILL_WEIGHT) * V.skillPoint); // +5 to situation rolls
+  expect(val(IT.lucky_charm)).toBe((5 / CONFIG.SKILL_WEIGHT) * V.skillPoint); // +5 to event rolls
   expect(val(IT.crude_clothes)).toBe(1);
 });
 

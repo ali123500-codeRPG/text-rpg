@@ -26,13 +26,13 @@ describe('111 coded perks, batch 1', () => {
     const aware = ruleset.attack({ ...req, context: {} }, s, forcedRng([50, 30, 20]));
     expect(aware.attack.tierShifts).toEqual([]);
   });
-  it('Point Blank: no "hostile in zone" penalty on a ranged attack', () => {
+  it('Point Blank: no "hostile close" penalty on a ranged attack', () => {
     const s = makeVillage();
     place(s, 'player', 'field_mid');
     for (const i of s.player.core.inventory) delete i.equippedIn;
     s.player.core.inventory.push({ id: 'bow', itemId: IT.shortbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
     const req = { attackerId: 'player', targetId: 'slime_1', weaponId: 'bow', targetPart: null, aimed: false };
-    const has = (r: ReturnType<typeof ruleset.attack>) => r.attack.modifiers.some((m) => m.source === 'hostile in zone');
+    const has = (r: ReturnType<typeof ruleset.attack>) => r.attack.modifiers.some((m) => m.source === 'hostile close');
     expect(has(ruleset.attack(req, s, forcedRng([50, 50, 50])))).toBe(true);
     give(s.player, PK.point_blank);
     expect(has(ruleset.attack(req, s, forcedRng([50, 50, 50])))).toBe(false);
@@ -87,7 +87,7 @@ describe('111 coded perks, batch 1', () => {
     wim.core.condition.hpLostPct = 20; // Hurt: still hidden
     expect(seen().health).toBeUndefined();
   });
-  it('Keen Ear: sound reaches one zone link further', () => {
+  it('Keen Ear: hears 10 dB quieter, about one zone link further; silence stays silent', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
     const far = npc(s, 'slime_2');
@@ -97,8 +97,7 @@ describe('111 coded perks, batch 1', () => {
     const after = perceptionOf(ev, s, s.player);
     expect(before).toBeNull();
     expect(after).toMatchObject({ level: 'partial', cue: 'sound' });
-    // nowhere is a step too: with Keen Ear a Silent sound in the owner's zone is heard like a Hushed one
     const here: GameEvent = { ...ev, zone: s.player.zone, noise: 'silent' };
-    expect(perceptionOf(here, s, s.player)).toEqual({ level: 'full', cue: 'sound' });
+    expect(perceptionOf(here, s, s.player)).toBeNull(); // no sound at all: nothing to hear
   });
 });

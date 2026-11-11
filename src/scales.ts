@@ -76,7 +76,7 @@ export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
  * and how far it carries comes from perception's noiseReach */
 export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['murmur', 'Murmur'], ['normal', 'Normal'], ['raised', 'Raised'], ['loud', 'Loud'], ['blaring', 'Blaring'], ['deafening', 'Deafening']]);
 export type NoiseKey = (typeof NOISE.keys)[number];
-/** how far an event is seen, least first; reach per level is CONFIG.SIGHT_REACH */
+/** how far an event is seen, least first; reach per level is CONFIG.SIGHT_M (perception sightReach) */
 export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];
 /** worn armor weight, lightest first (AN3); noise steps per weight are CONFIG.ARMOR_NOISE_STEPS */
@@ -90,6 +90,15 @@ export const COVER = scale([['none', 'none'], ['some', 'some'], ['heavy', 'heavy
 /** CO16 zone sizes, smallest first; the m² of each is CONFIG.ZONE_SIZE_M2 and its real or fantasy reference is the library's zoneSizes row */
 export const ZONE_SIZES = scale([['cramped', 'cramped'], ['small', 'small'], ['room', 'room'], ['hall', 'hall'], ['yard', 'yard'], ['open', 'open'], ['vast', 'vast']]);
 export type ZoneSizeKey = (typeof ZONE_SIZES.keys)[number];
+/** TV3 how long a road is, shortest first; the km of each is CONFIG.ROAD_LENGTH_KM */
+export const ROAD_LENGTHS = scale([['short_walk', 'a short walk'], ['half_hour', 'half an hour'], ['hour', "an hour's walk"], ['half_day', 'half a day'], ['day', "a day's walk"], ['two_days', 'two days']]);
+export type RoadLengthKey = (typeof ROAD_LENGTHS.keys)[number];
+/** TV4 how dangerous a road is, safest first; the encounter chance per hour of each is CONFIG.ROAD_ENCOUNTER_PCT */
+export const ROAD_DANGERS = scale([['safe', 'safe'], ['quiet', 'quiet'], ['wild', 'wild'], ['dangerous', 'dangerous']]);
+export type RoadDangerKey = (typeof ROAD_DANGERS.keys)[number];
+/** TV2 travel paces, slowest first; each is a share of the walking speed (CONFIG.TRAVEL_PACE_SHARE) */
+export const TRAVEL_PACES = scale([['slow', 'slow'], ['normal', 'normal'], ['fast', 'fast']]);
+export type TravelPaceKey = (typeof TRAVEL_PACES.keys)[number];
 
 /** Skill tiers: a skill's tier sets its final efficiency multiplier (CONFIG.SKILL_TIER_MULT). */
 export const SKILL_TIERS = scale([['tier_0', 'Tier 0'], ['tier_1', 'Tier 1'], ['tier_2', 'Tier 2']]);
@@ -106,3 +115,12 @@ export type ClassTierKey = (typeof CLASS_TIERS.keys)[number];
 /** a skill tree's rating, weakest first: sets how many of its skills at a step earn its All-XXX (CONFIG.ALL_STEP_SKILLS) */
 export const TREE_RATINGS = scale([['inferior', 'Inferior'], ['normal', 'Normal'], ['superior', 'Superior'], ['legendary', 'Legendary']]);
 export type TreeRatingKey = (typeof TREE_RATINGS.keys)[number];
+
+/** PL2, PL3, PL20: Nerve tiers, one ordered scale per Nerve line, lowest Resolve first. CONFIG.NERVE_TIER_FROM gives the
+ * raw Resolve each position starts at. Lines are unordered and named by their keys. Names are placeholders (PL18). */
+export const NERVE_LINES = {
+  cautious: scale([['skittish', 'Skittish'], ['timid', 'Timid'], ['careful', 'Careful'], ['prudent', 'Prudent'], ['cool_headed', 'Cool-headed'], ['imperturbable', 'Unflappable']]),
+  steady: scale([['jittery', 'Jittery'], ['settled', 'Settled'], ['steady', 'Steady'], ['stalwart', 'Stalwart'], ['unbreakable', 'Unbreakable'], ['adamant', 'Immovable']]),
+  daring: scale([['blustering', 'Blustering'], ['brash', 'Brash'], ['spirited', 'Spirited'], ['bold', 'Bold'], ['fearless', 'Fearless'], ['dauntless', 'Death-defying']]),
+} as const;
+export type NerveLine = keyof typeof NERVE_LINES;

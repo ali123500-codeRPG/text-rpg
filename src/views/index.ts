@@ -1,4 +1,5 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
+import { personalityText } from '../ruleset/personality';
 import type { Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
@@ -6,14 +7,15 @@ import type { Tier, TierRoll,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
-import { COVER, LIGHT } from '../scales';
+import { COVER, LIGHT, NERVE_LINES } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
+import { sightDistM } from '../engine/position';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { PERK_MOVES, hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
-import { beliefStatus, isComm } from '../perception';
+import { beliefStatus, hearsWords, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
 import { dueText, payText } from '../engine/quests';
@@ -47,6 +49,9 @@ const healthShows = (level: string, sharp: boolean) => LEVEL_POS(level) >= LEVEL
 
 // ---------- shared helpers ----------
 const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneById(state, id)).filter((z): z is Zone => !!z);
+
+/** a distance as the story and the Map say it: metres under 1 km, else km to one decimal (4.5 km) */
+export const distText = (m: number): string => (m >= 1000 ? `${Math.round(m / 100) / 10} km` : `${Math.round(m)} m`);
 
 export function zoneView(state: GameState, z: Zone): ZoneView {
   return {
@@ -148,6 +153,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const look = lookOf(events, viewer.id, a.id);
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
+      ...(a.pos && viewer.pos ? { distanceM: Math.round(sightDistM(state, viewer, a) * 10) / 10 } : {}),
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       ...(moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
@@ -192,7 +198,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(full && e.tier !== undefined && e.actorId === viewer.id ? { tier: tierName(e.tier) } : {}),
     level: p.level, cue: p.cue,
     ...(!full ? { where: whereLabel(state, viewer.zone, e.zone) } : {}),
-    ...(e.line && (full || p.cue === 'sound') ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
+    ...(e.line && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
@@ -220,6 +226,13 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     if (f.kind === 'aura_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by} and gives up` : `${who} falters before ${by}`); // NT14 auras: Dread Presence; MR4 Overwhelm
     if (f.kind === 'cry_took') out.push(f.data.overwhelmed ? `${who} is overwhelmed by ${by}'s roar and gives up` : `${who} falters at ${by}'s roar`); // I9 Battle Cry
     if (f.kind === 'rallied' && f.data.by !== f.actorId) out.push(`${who} takes heart at ${by}'s roar`); // the roarer's own rally goes untold
+    if (f.kind === 'travelled') { // TV7: one passage for the trip: how far, how long, how it ended
+      const d = f.data as { metres: number; minutes: number; pace: string; night: boolean; stop: string };
+      const km = distText(d.metres);
+      const h = Math.floor(d.minutes / 60), m = d.minutes % 60;
+      const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
+      out.push(`${who} travel${own ? '' : 's'} ${km} in ${[h ? `${h} h` : '', m || !h ? `${m} min` : ''].filter(Boolean).join(' ')} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);
+    }
     if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
   }
   return out;
@@ -308,7 +321,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   // never copy bark events into an NPC view (Leak prevention)
   const history = [...(state.recentEvents ?? []), ...state.events];
   const perceived = history.filter((e) => e.perception[a.id] && !e.bark).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
-  const told = history.filter((e) => e.perception[a.id] && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
+  const told = history.filter((e) => hearsWords(e.perception[a.id]) && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const said = history.filter((e) => e.actorId === a.id && e.line?.text && !e.bark).slice(-CONFIG.SAID_LINES).map((e) => e.line!.text);
   const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged', 'parried'].includes(e.attack.outcome));
   const scratchHits = state.scratch?.[a.id];
@@ -353,6 +366,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
+    personality: personalityText(a, moraleWord(a)),
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
@@ -421,8 +435,9 @@ export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): stri
   const name = (id: string) => (id === viewer.id ? 'you' : callName(state, viewer.id, id));
   const who = name(e.actorId);
   const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
-  const where = e.kind === 'move' || e.kind === 'flee' ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';
-  return `${who} ${e.kind.replace(/_/g, ' ')}${v.target ? ` ${name(v.target)}` : ''}${where}${v.outcome ? ` (${v.outcome})` : ''}${said}`;
+  const moving = e.kind === 'move' || e.kind === 'flee';
+  const where = moving && (e.fromZone || !v.target) ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';
+  return `${who} ${e.kind.replace(/_/g, ' ')}${v.target ? ` ${moving ? 'toward ' : ''}${name(v.target)}` : ''}${where}${v.outcome ? ` (${v.outcome})` : ''}${said}`;
 }
 
 export function buildOppositionView(state: GameState, actorId: string): OppositionView {
@@ -482,7 +497,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const changes = visibleChanges(state, e.effects, me);
     if ((e.kind === 'threshold_crossed' || e.kind === 'part_state_changed') && !changes.length) continue; // hidden change
     const speaker = full || knowsStep(state, p, e) ? callName(state, me, e.actorId) : undefined;
-    const hears = !!e.line && (full || per.cue === 'sound');
+    const hears = !!e.line && hearsWords(per);
     if (hears) heard.push({ speaker: speaker ?? 'someone', text: e.line!.text, volume: e.line!.volume });
     const look = full && e.activity ? activity(e.activity).look : undefined;
     const name = full && e.kind !== 'attack' ? (e.service ? getLibrary().services?.[e.service]?.name : e.itemId ? itemName(state, e.itemId) : undefined) : undefined;
@@ -503,6 +518,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(e.overheard?.includes(me) ? { overheard: tellFor(p) } : {}), // LI5a
       ...(item ? { item } : {}),
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
+      ...(full && e.metres ? { metres: e.metres } : {}),
       ...(forWhom ? { for: forWhom } : {}),
       ...(full && e.reason ? { reason: e.reason.replace(/_/g, ' ') } : {}),
       ...(changes.length && e.kind !== 'attack' ? { changes } : {}),
@@ -551,7 +567,8 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     tier: tierName(state.stage.tier),
     time: clockSet(state) ? timeView(state) : null,
     stakes: STAKES[state.stage.tier] ?? '',
-    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}) },
+    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
+      ...(target.kind === 'scene' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     stage: stageZones(state).map((z) => zoneView(state, z)),
     actors: onStage.map((a) => {
@@ -580,6 +597,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
       })),
       items: [...items.values()],
       skills: Object.keys(lib.skills).map((id) => ({ id, name: skillName(id) })),
+      personality: { nerve: Object.keys(NERVE_LINES), types: Object.values(lib.personalityTypes ?? {}).map((t) => ({ id: t.id, name: t.name, hint: t.hint })), values: Object.values(lib.values ?? {}).map((v) => ({ id: v.id, name: v.name })) },
       zoneKinds: Object.values(lib.zoneKinds ?? {}).map((k) => ({ ...k })),
       edgeKinds: Object.values(lib.edgeKinds ?? {}).map((k) => ({ ...k })),
       layouts: Object.values(lib.layouts ?? {}).map((l) => ({ id: l.id, name: l.name, building: l.building, entry: l.entry, zones: l.zones.map((z) => ({ key: z.key, name: z.name })) })),
@@ -601,7 +619,7 @@ function modeOf(state: GameState, attacker: Actor, weaponId: string, modeId: str
   return { mode, weapon: mode?.name ?? null };
 }
 
-/** the other side's deciding sources: only lucky/fumble, situation and aim, the weapon used, and gear the viewer can see (no health, wounds, perks or hidden gear) */
+/** the other side's deciding sources: only lucky/fumble, situational and aim, the weapon used, and gear the viewer can see (no health, wounds, perks or hidden gear) */
 function shownDeciding(state: GameState, list: string[], roll: RollResult, rollerId: string, viewerId: string): string[] {
   if (rollerId === viewerId) return [...list];
   const seen = new Set(seenGear(state, need(state, rollerId), need(state, viewerId).mind?.knowledge[rollerId]?.revealed ?? []).map((g) => g.name));
