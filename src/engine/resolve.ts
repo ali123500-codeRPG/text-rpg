@@ -58,6 +58,25 @@ export function isMajorAction(_event: GameEvent): boolean {
   return true;
 }
 
+type Slots = { move: number; main: number };
+/** CO13: the action slots an actor gets each turn; perks or body types that add slots read here */
+export const actionSlots = (_a: Actor): Slots => ({ move: CONFIG.MOVE_SLOTS, main: CONFIG.MAIN_SLOTS });
+const slotsOf = (ctx: Ctx, a: Actor): Slots => {
+  let s = ctx.slots.get(a.id);
+  if (!s) ctx.slots.set(a.id, (s = actionSlots(a)));
+  return s;
+};
+const hasMain = (ctx: Ctx, a: Actor): boolean => slotsOf(ctx, a).main > 0;
+/** spends a main slot; false when none is left */
+const useMain = (ctx: Ctx, a: Actor): boolean => { const s = slotsOf(ctx, a); if (s.main <= 0) return false; s.main--; return true; };
+/** CO13: a movement spends a move slot first and a main slot when no move slot is left; null when neither is */
+const useMoveSlot = (ctx: Ctx, a: Actor, mainToo: boolean): 'move' | 'main' | null => {
+  const s = slotsOf(ctx, a);
+  if (s.move > 0) { s.move--; return 'move'; }
+  if (mainToo && s.main > 0) { s.main--; return 'main'; }
+  return null;
+};
+
 type Ctx = {
   state: GameState;
   rng: Rng;
@@ -65,7 +84,8 @@ type Ctx = {
   events: GameEvent[];
   orders: Map<string, Order>;
   acted: Set<string>;
-  mainDone: Set<string>;
+  /** CO13: action slots left this turn, per actor (actionSlots fills them on first use) */
+  slots: Map<string, Slots>;
   surprised: Set<string>;
   defenses: Map<string, number>;
   exchangeEvents: GameEvent[];
@@ -639,20 +659,23 @@ function step(ctx: Ctx, id: string): void {
     if (inReach(state, a, o)) { logCode(state, 'move_dropped', { actorId: id, to: o.move, reason: 'ranged_attack' }); o.move = null; }
     else { logCode(state, 'order_dropped', { actorId: id, type: o.type, target: o.target, reason: 'ranged_after_move' }); o.type = 'hold'; o.target = null; }
   }
-  const move = () => {
-    if (o.move && !doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+  // CO13: each step toward the move's zone is one move; it spends a move slot, and with no main action planned (hold)
+  // a main slot too once the move slots run out. A move paid with a main slot is a dash (AE2): a lame actor can't.
+  const move = (mainToo: boolean) => {
+    if (!o.move) return;
+    for (let step = 0; a.zone !== o.move; step++) {
+      const zoneBefore = a.zone;
+      const paid = useMoveSlot(ctx, a, mainToo && step > 0);
+      if (!paid) return;
+      if (paid === 'main' && lame(state, a)) return logCode(state, 'dash_blocked', { actorId: id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' });
+      if (!doMove(ctx, a, o.move, o, false)) return logCode(state, 'move_dropped', { actorId: id, to: o.move });
+      if (a.zone === zoneBefore) return; // held, or a frontier crossing: the move is spent where it stands
+    }
   };
-  const from = a.zone;
-  if (!o.moveAfter) move();
-  // AE2: dash: anyone (player or NPC) with no main action who moved and is still short of the move's zone spends the action on a second link
-  if (!o.moveAfter && o.move && o.type === 'hold' && a.zone !== from && a.zone !== o.move && !ctx.mainDone.has(id)) {
-    ctx.mainDone.add(id);
-    if (lame(state, a)) logCode(state, 'dash_blocked', { actorId: id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' });
-    else if (!doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
-  }
+  if (!o.moveAfter) move(o.type === 'hold');
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
-  if (!ctx.mainDone.has(id)) doMain(ctx, a, o);
-  if (o.moveAfter) move(); // AE3: act, then move
+  if (useMain(ctx, a)) doMain(ctx, a, o);
+  if (o.moveAfter) move(false); // AE3: act, then move
 }
 
 /** AE5/AE8: a perk move; a free one resolves beside the main action, just before it */
@@ -668,7 +691,7 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
 function doBattleCry(ctx: Ctx, a: Actor): void {
   const { state, rng } = ctx;
   countPerkMove(state, a, PK.battle_cry, null);
-  ctx.mainDone.add(a.id);
+  useMain(ctx, a);
   const ev = mk(ctx, a, 'battle_cry');
   ev.perception = computePerception(ev, state, rng);
   emit(ctx, ev, undefined, true);
@@ -749,7 +772,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // the player first: a companion copies the player's new posture
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
-    state, rng, input, events: [], orders, acted: new Set(), mainDone: new Set(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(), parryStrikes: new Set(),
+    state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(), parryStrikes: new Set(),
   };
   // NT14/I4: engagement auras check each newly qualifying target before anyone acts
   for (const c of engagementAuras(state, rng, (a, id, gap, overwhelm) => fear(ctx, a, id, { gap, ...(overwhelm ? { overwhelm } : {}) }))) {
@@ -778,7 +801,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
     if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s && applySpeech(state.player, s, playerOrder.type, r.contest).status === 'shaken') fear(ctx, s, FR.lost_intimidation, { gap: r.contest.gap }); }
     if (input.quickWord) playerOrder.line = null; // A15: the line was said; the action follows in turn order
-    else ctx.mainDone.add(state.player.id);
+    else useMain(ctx, state.player);
     const spokes = new Set(input.spokespeople);
     for (const id of ordered) {
       const o = orders.get(id);
@@ -791,10 +814,10 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
         o.line = null;
       } else {
         // the reply is the main action; the actor still takes its turn in order for gear, defense and its move (Q2)
-        ctx.mainDone.add(id);
+        useMain(ctx, a);
         // move, then talk: the move comes first and the line is said from where it ends
         if (o.move && !o.moveAfter) {
-          if (!doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
+          if (useMoveSlot(ctx, a, false) && !doMove(ctx, a, o.move, o, false)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
           o.move = null;
         }
         doSpeak(ctx, a, o);

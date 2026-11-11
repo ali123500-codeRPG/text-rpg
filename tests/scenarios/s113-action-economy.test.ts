@@ -5,6 +5,8 @@ import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
 import type { GameState, Intent } from '../../src/types';
 import { IT } from '../../src/library/itemIds';
+import { CONFIG, resetConfig } from '../../src/config';
+import { afterEach } from 'vitest';
 
 const intent = (move: Intent['move'], action: Partial<NonNullable<Intent['action']>> | null = null): Intent => ({
   move, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -17,6 +19,7 @@ const bow = (s: GameState) => {
 };
 
 describe('113 action economy', () => {
+  afterEach(() => resetConfig());
   it('a ranged attack in reach drops the move', () => {
     const s = makeVillage();
     place(s, 'player', 'field_edge');
@@ -45,6 +48,18 @@ describe('113 action economy', () => {
     turn(c, intent({ toZone: 'gate_inner' }));
     expect(c.player.zone).toBe('street_square');
     expect(c.log.some((l) => l.code === 'dash_blocked')).toBe(true);
+  });
+  it('CO13: a movement spends move slots first, then the main slot, so more move slots walk farther', () => {
+    const s = makeVillage();
+    place(s, 'player', 'street_door');
+    CONFIG.MOVE_SLOTS = 2;
+    turn(s, intent({ toZone: 'field_edge' }));
+    expect(s.player.zone).toBe('field_edge'); // 2 move slots + the unused main slot = 3 links
+    const t = makeVillage();
+    place(t, 'player', 'street_door');
+    CONFIG.MOVE_SLOTS = 2; // makeVillage resets config
+    turn(t, intent({ toZone: 'field_edge' }, { type: 'attack', target: 'slime_1' }));
+    expect(t.player.zone).toBe('gate_inner'); // a main action planned: only the 2 move slots
   });
   it('"after" resolves the action before the move', () => {
     const s = makeVillage();
