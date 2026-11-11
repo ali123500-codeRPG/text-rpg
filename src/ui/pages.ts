@@ -19,6 +19,8 @@ import { charCard, invFocus, treeBars } from './charsheet';
 import { perksSection, refreshPerks } from './perks';
 import { healItems, quickHeal } from './healing';
 import { IT } from '../library/itemIds';
+import { gripParts } from '../engine/gear';
+import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -32,6 +34,7 @@ type Spec = {
   tileOf?: (s: GameState, row: TRow) => string;
   focus?: () => string | null; // a row to open on arrival (consumed once)
   top?: (redraw: () => void) => HTMLElement; // above the title: the page's sub-tabs
+  lead?: (s: GameState) => HTMLElement; // under the title, above the tiles: the Inventory's equipment panel
 };
 
 export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: () => void } {
@@ -70,6 +73,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     el.replaceChildren(
       ...(spec.top ? [spec.top(update)] : []),
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title), h('p', {}, spec.intro))),
+      spec.lead?.(s) ?? '',
       h('div', { class: 'sec' },
         all.length ? visTiles(spec.tiles?.(s) ?? all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
         h('p', { class: 'subline' }, spec.line(s)), how),
@@ -108,25 +112,136 @@ function where(a: Actor, slots: string[] | undefined): string {
   return slots.map((x) => x === 'armor' ? 'Worn' : x.startsWith('hand:') ? `Held · ${x.slice(5).replace('_arm', ' hand')}` : x.startsWith('acc:') ? 'Worn accessory' : x).join(', ');
 }
 
+/** an item's exact stats: the Inventory's side panel and the equipment panel's hover card share these rows */
+export function itemRows(s: GameState, it: { itemId: string }): PanelRow[] {
+  const d = safe(() => itemDef(s, it.itemId));
+  if (!d) return [];
+  const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
+  const rows: PanelRow[] = [{ k: 'Look', v: d.look }, { k: 'Kind', v: d.kind }];
+  if (d.hands) rows.push({ k: 'Hands', v: String(d.hands) });
+  for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach} m, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
+  if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
+  if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
+  for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
+  // EQ7: the requirement, red while the player is short, grey once met
+  const need = requirement(d);
+  if (need) {
+    const short = shortBy(s.player, d), steps = Math.ceil(short / CONFIG.EQUIP_SHORT_STEP);
+    const rolls = d.armor ? 'Dodge and stealth rolls while worn' : 'rolls with it';
+    rows.push({ k: 'Needs', v: h('span', { class: short > 0 ? 'tone-bad' : 'tone-muted' }, short > 0
+      ? `${needText(need)} (you have ${Math.round((need.need - short) * 10) / 10}: ${plural(steps, 'outcome step')} worse on ${rolls})`
+      : `${needText(need)} (met)`) });
+  }
+  rows.push({ k: 'Bulk', v: String(d.bulk) });
+  return rows;
+}
+
+// The equipment panel, laid out the way MMOs show equipped items: the slots the body has (one per hand,
+// the armor slot, the accessory slots) with what is in them, and the pack beside them as a grid of item icons.
+// Hovering or focusing an item shows its exact stats; Equip and Unequip send the same words the player could type,
+// so the turn rules hold (drawing and putting away are free, armor on or off is the turn's action).
+type InvItem = GameState['player']['core']['inventory'][number];
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/** the words an Equip or Unequip button sends; null: the item can't be equipped */
+export function gearWords(s: GameState, it: InvItem): { label: string; text: string } | null {
+  const d = safe(() => itemDef(s, it.itemId));
+  if (!d) return null;
+  const on = !!it.equippedIn?.length;
+  if (d.slot === 'armor' || d.slot === 'accessory') return on ? { label: 'Unequip', text: `I take off my ${d.name}` } : { label: 'Equip', text: `I put on my ${d.name}` };
+  // anything held can be put away; only weapons and shields offer Equip, so a draught or a bandage stays a pack item
+  if (d.hands && on) return { label: 'Unequip', text: `I put away my ${d.name}` };
+  if (d.hands && (d.kind === 'weapon' || d.kind === 'shield')) return { label: 'Equip', text: `I draw my ${d.name}` };
+  return null;
+}
+
+let tipEl: HTMLElement | null = null;
+function showTip(s: GameState, it: InvItem, at: HTMLElement) {
+  const d = safe(() => itemDef(s, it.itemId));
+  if (!d) return;
+  tipEl ??= document.body.appendChild(h('div', { class: 'itip', role: 'tooltip', hidden: true }));
+  tipEl.dataset.kind = d.kind;
+  tipEl.replaceChildren(h('p', { class: 'itip-name' }, cap(d.name), it.qty && it.qty > 1 ? h('span', {}, ` ×${it.qty}`) : ''),
+    h('dl', {}, ...itemRows(s, it).flatMap((r) => [h('dt', {}, r.k), h('dd', {}, r.v)])));
+  tipEl.hidden = false;
+  const r = at.getBoundingClientRect(), w = tipEl.offsetWidth, ht = tipEl.offsetHeight;
+  const left = r.right + 12 + w < innerWidth ? r.right + 12 : Math.max(12, r.left - 12 - w);
+  tipEl.style.left = `${left}px`;
+  tipEl.style.top = `${Math.max(12, Math.min(innerHeight - ht - 12, r.top))}px`;
+}
+const hideTip = () => { if (tipEl) tipEl.hidden = true; };
+
+function equipment(api: GameApi, s: GameState): HTMLElement {
+  hideTip(); // the panel is rebuilt on every change, so a card left open would point at nothing
+  const p = s.player, inv = p.core.inventory.filter((i) => i.itemId !== IT.coin);
+  const kindOf = (it: InvItem) => safe(() => itemDef(s, it.itemId))?.kind ?? 'misc';
+  const nameOf = (it: InvItem) => cap(safe(() => itemDef(s, it.itemId))?.name ?? it.itemId);
+  const locked = api.busy() || api.fell();
+  const status = h('p', { class: 'hs-note eq-status', role: 'status' });
+  const act = (w: { label: string; text: string }, it: InvItem) => h('button', {
+    type: 'button', class: w.label === 'Equip' ? 'hs-btn-main eq-act' : 'hs-btn-text eq-act', disabled: locked,
+    title: `Sends “${w.text}” as your turn`,
+    onclick: async () => { hideTip(); status.textContent = `${w.text}…`; await api.submit(w.text, { aimed: false }); },
+  }, w.label);
+  // hover or keyboard focus shows the stats; the item's name opens the side panel like the table does
+  const hover = (el: HTMLElement, it: InvItem) => {
+    el.addEventListener('pointerenter', () => showTip(s, it, el));
+    el.addEventListener('pointerleave', hideTip);
+    el.addEventListener('focusin', () => showTip(s, it, el));
+    el.addEventListener('focusout', hideTip);
+    return el;
+  };
+  const icon = (it: InvItem) => itemIcon(iconName(s, it.itemId), kindOf(it));
+  const blank = (n: IconName) => { const el = h('span', { class: 'iico blank' }); el.innerHTML = ICONS[n]; return el; };
+
+  // slots: a hand per gripping part, then armor, then the accessory slots
+  const hands = gripParts(s, p).map((part) => ({ id: `hand:${part}`, label: cap(part.replace(/_arm$/, '').replace(/_/g, ' ')) + ' hand', empty: 'sword' as IconName }));
+  const slots = [...hands, { id: 'armor', label: 'Body', empty: 'tunic' as IconName },
+    ...Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => ({ id: `acc:${n}`, label: `Accessory ${n + 1}`, empty: 'ring' as IconName }))];
+  const firstSlot = new Map<string, string>(); // a two-handed item shows once, in its first hand
+  const slotCards = slots.map((sl) => {
+    const it = inv.find((i) => i.equippedIn?.includes(sl.id));
+    if (!it) return h('div', { class: 'eq-slot empty' }, blank(sl.empty), h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-none' }, 'Empty')));
+    const again = firstSlot.has(it.id);
+    if (!again) firstSlot.set(it.id, sl.id);
+    const w = gearWords(s, it);
+    return hover(h('div', { class: `eq-slot${again ? ' again' : ''}`, tabindex: '0' }, icon(it),
+      h('div', { class: 'eq-txt' }, h('span', { class: 'hs-label' }, sl.label), h('span', { class: 'eq-name' }, again ? `${nameOf(it)} (both hands)` : nameOf(it))),
+      w && !again ? act(w, it) : ''), it);
+  });
+  // like an MMO bag, plain stacks of the same item show as one tile; worn or damaged pieces (pools) keep their own
+  const pack: InvItem[] = [];
+  for (const i of inv.filter((x) => !x.equippedIn?.length)) {
+    const same = !i.pools && pack.find((x) => x.itemId === i.itemId && !x.pools);
+    if (same) same.qty = (same.qty ?? 1) + (i.qty ?? 1); else pack.push(i.pools ? i : { ...i });
+  }
+  const packTiles = pack.map((it) => {
+    const w = gearWords(s, it);
+    return hover(h('div', { class: 'eq-item', tabindex: '0' },
+      h('span', { class: 'eq-ico' }, icon(it), it.qty && it.qty > 1 ? h('b', { class: 'eq-qty' }, `×${it.qty}`) : ''),
+      h('span', { class: 'eq-name' }, nameOf(it)), w ? act(w, it) : h('span', { class: 'eq-cant' }, 'Carried')), it);
+  });
+  return h('section', { class: 'eq', 'aria-label': 'Equipment' },
+    h('div', { class: 'eq-col' }, h('h2', { class: 'hs-section' }, 'Equipped'), h('div', { class: 'eq-slots' }, ...slotCards)),
+    h('div', { class: 'eq-col' }, h('h2', { class: 'hs-section' }, 'In your pack'),
+      pack.length ? h('div', { class: 'eq-pack' }, ...packTiles) : h('p', { class: 'empty' }, 'Everything you carry is equipped.')),
+    h('p', { class: 'hs-note eq-foot' }, locked ? 'Wait for the turn to finish before changing gear.' : 'Hover an item for its stats. Equip and Unequip take your turn, as if you typed them: drawing and putting away are free, putting armor on or off is your action.'),
+    status);
+}
+
 export function inventoryPage(api: GameApi) {
   return listPage(api, {
     title: 'Inventory', intro: 'What you carry. Same as /inv. Click an item for its stats.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'You carry nothing.',
     focus: () => { const id = invFocus.id; invFocus.id = null; return id; },
+    lead: (s) => equipment(api, s),
     detail: (s, id) => {
       const it = s.player.core.inventory.find((i) => i.id === id);
-      const d = it ? safe(() => itemDef(s, it.itemId)) : null;
-      if (!d) return [];
-      const sign = (n = 0) => (n >= 0 ? '+' : '') + n;
-      const rows: PanelRow[] = [{ k: 'Look', v: d.look }, { k: 'Kind', v: d.kind }];
-      if (d.hands) rows.push({ k: 'Hands', v: String(d.hands) });
-      for (const m of d.weapon?.modes ?? []) rows.push({ k: `Attack · ${modeName(m)}`, v: `${m.tree} ${m.class}, reach ${m.reach} m, damage ${sign(m.damageAdj)}, hit ${sign(m.hitAdj)}` });
-      if (d.armor) rows.push({ k: 'Armor', v: `${d.armor.weight}, covers ${d.armor.covers.join(', ')}, reduction ${d.armor.reduction}, multiplier ×${d.armor.multiplier}` });
-      if (d.shield) rows.push({ k: 'Shield pool', v: String(d.shield.pool) });
-      for (const e of d.effects ?? []) rows.push({ k: e.kit ? 'Standard kit' : 'Effect', v: `${sign(e.kit ? kitBonus(d, e) : e.value)} to ${e.kind === 'skill' ? (e.skill === '$mode' ? 'the attack skill' : skillName(e.skill ?? '')) : `${e.roll} rolls`} while ${e.active}${e.kit ? ' (kit pieces share one bonus per roll)' : ''}` });
-      const heal = healItems(s, s.player).find((x) => x.itemId === it!.itemId);
+      if (!it) return [];
+      const rows = itemRows(s, it);
+      const heal = healItems(s, s.player).find((x) => x.itemId === it.itemId);
       if (heal) {
         const r = heal.row;
-        rows.push({ k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}${r.inFight ? ', works in a fight' : ', not in a fight'}` });
+        rows.splice(rows.length - 1, 0, { k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}${r.inFight ? ', works in a fight' : ', not in a fight'}` });
         // H3 b: the player picks which healing item the quick slot beside Aim shows
         const btn = h('button', { type: 'button', class: 'hs-btn-text', style: 'min-height:0;padding:0' });
         const draw = () => {
@@ -136,18 +251,8 @@ export function inventoryPage(api: GameApi) {
         };
         btn.onclick = () => { if (s.player.progression) { s.player.progression.quickHeal = heal.itemId; draw(); } };
         draw();
-        rows.push({ k: 'Quick slot', v: btn });
+        rows.splice(rows.length - 1, 0, { k: 'Quick slot', v: btn });
       }
-      // EQ7: the requirement, red while the player is short, grey once met
-      const need = requirement(d);
-      if (need) {
-        const short = shortBy(s.player, d), steps = Math.ceil(short / CONFIG.EQUIP_SHORT_STEP);
-        const rolls = d.armor ? 'Dodge and stealth rolls while worn' : 'rolls with it';
-        rows.push({ k: 'Needs', v: h('span', { class: short > 0 ? 'tone-bad' : 'tone-muted' }, short > 0
-          ? `${needText(need)} (you have ${Math.round((need.need - short) * 10) / 10}: ${plural(steps, 'outcome step')} worse on ${rolls})`
-          : `${needText(need)} (met)`) });
-      }
-      rows.push({ k: 'Bulk', v: String(d.bulk) });
       return rows;
     },
     cols: [{ key: 'name', title: 'Item' }, { key: 'where', title: 'Where' }, { key: 'needs', title: 'Needs' }, { key: 'qty', title: 'Qty', right: true }, { key: 'cond', title: 'Condition' }],

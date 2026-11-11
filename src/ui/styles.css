@@ -866,3 +866,42 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .bug-table th, .bug-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .bug-table .bug-id { font-weight: 700; white-space: nowrap; }
 .bug-table .num { text-align: right; }
+
+/* Inventory: the equipment panel (MMO style). Slots on the left, the pack as an icon grid on the right; kind tints the icons */
+.iico { --ic: var(--c3); display: grid; place-items: center; width: 44px; height: 44px; padding: 7px; box-sizing: border-box; flex: none;
+  border-radius: var(--r-lg); color: var(--ic); background: color-mix(in oklch, var(--ic) 14%, transparent); border: 1px solid color-mix(in oklch, var(--ic) 45%, transparent); }
+.iico svg { width: 100%; height: 100%; display: block; }
+.iico[data-kind="weapon"] { --ic: var(--c10); } .iico[data-kind="shield"] { --ic: var(--c1); } .iico[data-kind="armor"] { --ic: var(--c12); }
+.iico[data-kind="accessory"] { --ic: var(--scene-mark); } .iico[data-kind="tool"] { --ic: var(--c15); } .iico[data-kind="consumable"] { --ic: var(--c2); }
+.iico.blank { --ic: var(--faint); opacity: .45; border-style: dashed; background: none; }
+.eq { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: var(--space-3) var(--space-8); align-items: start; padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
+.eq-col { display: grid; gap: var(--space-3); align-content: start; }
+.eq-slots { display: grid; gap: var(--space-2); }
+.eq-slot { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--r-lg); background: color-mix(in oklch, var(--surface) 70%, transparent); }
+.eq-slot.empty { border-style: dashed; background: none; }
+.eq-slot.again { opacity: .6; }
+.eq-slot:focus-visible, .eq-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eq-txt { display: grid; gap: 2px; min-width: 0; }
+.eq-name { color: var(--text); font-size: 14px; overflow-wrap: anywhere; }
+.eq-none, .eq-cant { color: var(--faint); font-size: 13px; }
+.eq-pack { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-2); }
+.eq-item { display: grid; justify-items: center; align-content: start; gap: var(--space-2); padding: var(--space-3) var(--space-2); text-align: center;
+  border: 1px solid var(--border); border-radius: var(--r-lg); background: color-mix(in oklch, var(--surface) 70%, transparent); }
+.eq-item .eq-name { font-size: 13px; }
+.eq-ico { position: relative; }
+.eq-item .iico { width: 56px; height: 56px; padding: 10px; }
+.eq-qty { position: absolute; right: -6px; bottom: -6px; padding: 0 5px; border-radius: var(--r-pill); background: var(--bg); border: 1px solid var(--border); font-size: 11px; font-weight: 700; color: var(--text); }
+.eq-act { min-height: 30px; padding: 0 12px; font-size: 13px; }
+.eq-foot, .eq-status { grid-column: 1 / -1; margin: 0; }
+.eq-status:empty { display: none; }
+/* the hover card with the item's exact stats */
+.itip { position: fixed; z-index: 70; width: max-content; max-width: 360px; padding: var(--space-3) var(--space-4); pointer-events: none;
+  border-radius: var(--r-lg); border: 1px solid var(--rule); background: var(--surface); box-shadow: var(--shadow-toast); font-size: 13px; }
+.itip[hidden] { display: none; }
+.itip-name { margin: 0 0 var(--space-2); font-weight: 700; color: var(--text); font-size: 14px; }
+.itip[data-kind="weapon"] .itip-name { color: var(--c10); } .itip[data-kind="shield"] .itip-name { color: var(--c1); } .itip[data-kind="armor"] .itip-name { color: var(--c12); }
+.itip[data-kind="accessory"] .itip-name { color: var(--scene-mark); }
+.itip dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px var(--space-3); margin: 0; }
+.itip dt { color: var(--faint); white-space: nowrap; }
+.itip dd { margin: 0; color: var(--text); }
