@@ -273,7 +273,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   async function submit(byAgent = false) {
     const text = input.value.trim();
-    if (!text || api.busy() || (auto.playing() && !byAgent)) return;
+    if (!text || api.busy() || (auto.playing() && !byAgent && !auto.asking())) return;
+    if (!byAgent && auto.asking() && !text.startsWith('/')) auto.playedTurn(); // GA15: a turn you play yourself answers the agent's question
     finishAll(); // M-12: sending finishes everything still moving
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
@@ -540,8 +541,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     notices.replaceChildren(...ns.map((n) => h('div', { class: 'hs-hl ' + (n.kind === 'stop_play' || n.kind === 'save_failed' ? 'bad' : 'ask'), role: 'status' },
       h('span', { class: 'hs-hl-b', 'data-kind': NOTICE_KIND[n.kind] }, n.text))));
     const stopped = ns.some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
-    input.disabled = stopped || busy || auto.playing(); // the autopilot has the box while it plays
-    send.disabled = stopped || busy || auto.playing();
+    input.disabled = stopped || busy || (auto.playing() && !auto.asking()); // the autopilot has the box while it plays, unless it asks you
+    send.disabled = stopped || busy || (auto.playing() && !auto.asking());
     auto.update();
     aimBtn.disabled = stopped;
     st.set(stealthy, stopped);

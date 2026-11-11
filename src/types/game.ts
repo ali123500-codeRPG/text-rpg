@@ -89,7 +89,8 @@ export interface GameApi {
   /** the open bugs, newest first */
   openBugs(): Promise<import('../save/bugs').FiledBug[]>;
   /** style: a VOICE_STYLES id; ja: the commentary in Japanese, for the 'japanese' style */
-  agentMove(persona?: string, style?: string): Promise<{ command: string; say: string; ja?: string } | null>;
+  /** guided: the guided mode's context (GA1–GA17); the move may then be a question for the watcher (ask, no command) */
+  agentMove(persona?: string, style?: string, guided?: import('../agents/crossroads').GuidedCtx): Promise<import('../agents/autopilot').Move | null>;
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
   reset(): Promise<void>; // confirmed by the UI first

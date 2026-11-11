@@ -26,6 +26,7 @@ import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK,
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { fameEntry } from './fame';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
+import type { GuidedCtx } from './crossroads';
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
 import { isComm, noticeCue } from '../perception';
@@ -584,9 +585,9 @@ export function createGame(deps: GameDeps): Game {
     reportBug: (note) => fileBug(store, clock.now(), { code: 'player_report', storyId: state?.storyId ?? '', turn: state?.turn ?? 0, note: note.slice(0, 2000),
       lastLines: lines.slice(-6).map((l) => `[${l.kind}] ${l.text}`.slice(0, 400)) }),
     openBugs: () => openBugs(store),
-    async agentMove(persona = '', style = '') {
-      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
-      const mv = r.ok ? readMove(r.value) : null;
+    async agentMove(persona = '', style = '', guided?: GuidedCtx) {
+      const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+      const mv = r.ok ? readMove(r.value, guided?.mustAsk?.kind) : null;
       if (mv?.say) agentSaid = [...agentSaid, mv.ja ? `${mv.ja} (${mv.say})` : mv.say].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
       return mv;
     },

@@ -1,6 +1,7 @@
 // Autopilot: an agent that plays the game while the player watches (the play screen's "Watch an agent play"), and the
 // personas the playtest script shares. Each turn it picks the next command and one short line of commentary, spoken aloud.
-import type { Actor, LogLine } from '../types';
+import type { Actor, GameState, LogLine } from '../types';
+import { type Ask, type GuidedCtx, guidedPrompt, readAsk } from './crossroads';
 import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
 
 /** playstyles: the playtest script's --persona and the autopilot's persona picker */
@@ -76,21 +77,24 @@ export const VOICE_STYLES: [string, string, string][] = [
 
 /** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
  *  own recent commentary, so it doesn't keep repeating itself */
-export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = []): string {
+export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
   const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}`;
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
 }
 
-/** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters */
-export function readMove(v: unknown): { command: string; say: string; ja?: string } | null {
+/** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters; in
+ *  guided play it may instead be a question for the watcher (ask, with no command) */
+export type Move = { command: string; say: string; ja?: string; ask?: Ask };
+export function readMove(v: unknown, mustKind?: string): Move | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
-  const command = typeof o.command === 'string' ? o.command.split('\n')[0].trim().slice(0, 200) : '';
-  if (!command) return null;
   const say = typeof o.say === 'string' ? o.say.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
   const ja = typeof o.ja === 'string' ? o.ja.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
-  return ja ? { command, say, ja } : { command, say };
+  const ask = o.ask !== undefined || mustKind ? readAsk(o.ask, mustKind) : null;
+  const command = ask ? '' : typeof o.command === 'string' ? o.command.split('\n')[0].trim().slice(0, 200) : '';
+  if (!command && !ask) return null;
+  return { command, say, ...(ja ? { ja } : {}), ...(ask ? { ask } : {}) };
 }
 
 /** the perk an agent playing its own save takes with a spare point: the open milestone of its highest skill */
