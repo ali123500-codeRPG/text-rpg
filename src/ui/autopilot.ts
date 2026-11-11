@@ -13,6 +13,11 @@ function readPrefs(): Prefs {
   try { return { persona: '', waitS: 5, voice: true, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }; } catch { return { persona: '', waitS: 5, voice: true }; }
 }
 const writePrefs = (p: Prefs) => { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* per-PC convenience only */ } };
+/** what the bar was doing, kept for this tab so a reload or a new version of the page carries on where it was */
+const RUN = 'rpg.autopilot.run';
+type Run = { open: boolean; playing: boolean; owner: 'player' | 'agent' };
+function readRun(): Run | null { try { return JSON.parse(sessionStorage.getItem(RUN) ?? 'null'); } catch { return null; } }
+const writeRun = (r: Run) => { try { sessionStorage.setItem(RUN, JSON.stringify(r)); } catch { /* per-tab convenience only */ } };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** el: the bar under Who's here (empty while closed); opener: the header switch beside Show rolls */
@@ -21,7 +26,8 @@ export type Autopilot = { el: HTMLElement; opener: HTMLElement; update: () => vo
 /** `typeAndSend` types the command into the action box, then sends it like the Send button (resolves when the turn is done) */
 export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promise<void>, redraw: () => void): Autopilot {
   const prefs = readPrefs();
-  let open = false, playing = false, stepping = false, switching = false;
+  let restore = readRun(); // carried on once the story has loaded
+  let open = !!restore?.open, playing = false, stepping = false, switching = false;
   let status = '', said = '';
   const el = h('section', { class: 'auto', 'aria-label': 'Watch an agent play' });
   const opener = h('button', { type: 'button', class: 'hs-btn-text auto-open', title: 'An agent plays while you watch, with spoken commentary',
@@ -80,6 +86,11 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   }
 
   function update() {
+    if (restore && api.state() && !api.busy() && !switching) {
+      const r = restore; restore = null;
+      void (async () => { await sleep(0); /* after the screen has finished building */ if (r.owner === 'agent' && !agentStory()) await useSave('agent'); if (r.playing) play(); })();
+    }
+    if (!restore && api.state()) writeRun({ open, playing: playing && !stepping, owner: agentStory() ? 'agent' : 'player' });
     if (document.activeElement?.tagName === 'SELECT' && el.contains(document.activeElement)) return; // don't close an open list
     const btn = (label: string, on: () => void, o: { pressed?: boolean; disabled?: boolean; main?: boolean; title?: string; agent?: boolean } = {}) => h('button', {
       type: 'button', class: (o.main ? 'hs-btn-main' : 'hs-btn-text') + (o.agent ? ' auto-agent' : ''), onclick: on, disabled: o.disabled, title: o.title,
