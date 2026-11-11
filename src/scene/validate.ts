@@ -16,29 +16,35 @@ const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reach
 
 const g = (x: Grade) => GRADES.indexOf(x);
 
-type Fit = { challenge: [Grade, Grade]; gain: [Grade, Grade]; gainNearChallenge?: number };
-/** Challenge and gain grades that fit each tier [Proposed scale] (G3: data, not code): lowest and highest grade
- * for each, and for the middle tiers gain within that many grades of the challenge. The Weaver prompt reads this too. */
+/** gainVsChallenge: for the middle tiers, the gain's grade minus the challenge's, lowest and highest */
+type Fit = { challenge: [Grade, Grade]; gain: [Grade, Grade]; gainVsChallenge?: [number, number] };
+/** Challenge and gain grades that fit each tier [Proposed scale] (G3: data, not code): lowest and highest grade for each,
+ * and for the middle tiers how far the gain sits from the challenge. The Weaver prompt reads this too. The tier sets the
+ * balance of gain against challenge, worst to best (ER1, ER2): trouble with little gain; a fair event tilted slightly
+ * bad (Near Miss: gain a step below the challenge); a matched one; good fortune (Great Success: major gain, little
+ * challenge); the best of it (Critical Success: extreme gain, at most a major challenge). */
 export const GRADES_FIT: Record<Tier, Fit> = {
   critical_failure: { challenge: ['major', 'extreme'], gain: ['none', 'minor'] },
   failure: { challenge: ['moderate', 'extreme'], gain: ['none', 'minor'] },
-  near_miss: { challenge: ['minor', 'major'], gain: ['none', 'extreme'], gainNearChallenge: 1 },
-  success: { challenge: ['minor', 'major'], gain: ['none', 'extreme'], gainNearChallenge: 1 },
-  great_success: { challenge: ['major', 'extreme'], gain: ['major', 'major'] },
-  critical_success: { challenge: ['extreme', 'extreme'], gain: ['extreme', 'extreme'] },
+  near_miss: { challenge: ['minor', 'major'], gain: ['none', 'moderate'], gainVsChallenge: [-1, -1] },
+  success: { challenge: ['minor', 'major'], gain: ['none', 'extreme'], gainVsChallenge: [-1, 1] },
+  great_success: { challenge: ['none', 'moderate'], gain: ['major', 'major'] },
+  critical_success: { challenge: ['none', 'major'], gain: ['extreme', 'extreme'] },
 };
 const within = (x: number, [lo, hi]: [Grade, Grade]) => x >= g(lo) && x <= g(hi);
 export function gradesFitTier(tier: Tier, challenge: Grade, gain: Grade): boolean {
   const c = g(challenge), n = g(gain), fit = GRADES_FIT[tier];
   if (c < 0 || n < 0 || !fit) return false;
-  return within(c, fit.challenge) && within(n, fit.gain) && (fit.gainNearChallenge === undefined || Math.abs(n - c) <= fit.gainNearChallenge);
+  const v = fit.gainVsChallenge;
+  return within(c, fit.challenge) && within(n, fit.gain) && (!v || (n - c >= v[0] && n - c <= v[1]));
 }
 /** GRADES_FIT in words, for the Weaver prompt */
 export function gradesFitText(): string {
   const range = ([lo, hi]: [Grade, Grade]) => (lo === hi ? lo : `${lo} to ${hi}`);
+  const vs = ([lo, hi]: [number, number]) => (lo === -1 && hi === -1 ? 'one step below it' : lo === -hi ? `within ${hi} step of it` : `${lo} to ${hi} steps from it`);
   return TIERS.keys.map((t) => {
     const f = GRADES_FIT[t];
-    return `${TIERS.name(t)} = challenge ${range(f.challenge)}, gain ${f.gainNearChallenge !== undefined ? `within ${f.gainNearChallenge} step of it` : range(f.gain)}`;
+    return `${TIERS.name(t)} = challenge ${range(f.challenge)}, gain ${f.gainVsChallenge ? vs(f.gainVsChallenge) : range(f.gain)}`;
   }).join('; ');
 }
 
