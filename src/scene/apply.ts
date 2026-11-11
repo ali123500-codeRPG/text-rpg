@@ -1,6 +1,6 @@
 // Applying a stage plan (Scene setup steps 4–8), the fallback stage, opening events.
 import { frameOf } from '../engine/sceneEnd';
-import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
+import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
 import { SIDES } from '../types';
@@ -53,6 +53,35 @@ function addBackLink(state: GameState, from: Zone, l: ZoneLink): void {
   if (l.frontier) return;
   const other = zoneById(state, l.to);
   if (other && other !== from && !other.links.some((b) => b.to === from.id)) other.links.push({ to: from.id, label: from.name, sight: l.sight });
+}
+
+/** SD3–SD5: the plan's barriers on ways, one record for both sides of each (a way the Weaver barred twice keeps the first);
+ * returns each with the key holders it names */
+function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) => string): { b: Barrier; keys: string[] }[] {
+  const out: { b: Barrier; keys: string[] }[] = [];
+  const taken = new Set(Object.keys(state.barriers ?? {}));
+  for (const z of plan.zones) for (const l of z.links) {
+    const spec = l.barrier;
+    const from = zoneById(state, zoneRef(z.key)), to = zoneById(state, zoneRef(l.to));
+    const k = spec && getLibrary().barrierKinds?.[spec.kind];
+    if (!spec || !k || !from || !to) continue;
+    const there = from.links.find((x) => x.to === to.id), back = to.links.find((x) => x.to === from.id);
+    if (!there || there.barrier || back?.barrier) continue;
+    const b: Barrier = {
+      id: freshId(`way_${from.id}_${to.id}`, taken), kind: k.id, grade: spec.grade ?? 'minor', scene: state.stage.sceneNumber,
+      ...(k.lock && spec.locked ? { lock: { locked: true } } : {}),
+      ...(k.bar && spec.barredFrom ? { bar: { side: zoneRef(spec.barredFrom), drawn: true } } : {}),
+      ...(k.blocked ? { blocked: true as const } : {}),
+      ...(spec.guarded ? { guarded: true as const } : {}),
+    };
+    // BA3: a door with keys but not locked now still has a lock
+    if (!b.lock && k.lock && spec.keys?.length) b.lock = { locked: false };
+    (state.barriers ??= {})[b.id] = b;
+    there.barrier = b.id;
+    if (back) back.barrier = b.id;
+    out.push({ b, keys: spec.keys ?? [] });
+  }
+  return out;
 }
 
 /** an extension's entry: links into the crossed frontier now lead to `entry`, and the player stands there. */
@@ -203,6 +232,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     newZones.push(zone);
   }
   ensureBackLinks(state, newZones);
+  const barriers = makeBarriers(state, plan, zoneRef);
   inferHeights(state, newZones);
   placeZones(state, newZones); // after heights: stairs stack zones straight above or below
   const firstZone = newZones[0]?.id;
@@ -305,6 +335,12 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
 
   // SP2: spars the scene opens with
   for (const sp of plan.spars ?? []) startSpar(state, sp.sides.map((x) => x.map(actorRef)), !!sp.cruel, 'weaver');
+
+  // BA3: keys to the plan's barriers, carried by the actors it names
+  for (const { b, keys } of barriers) for (const k of keys) {
+    const holder = actorById(state, actorRef(k));
+    if (holder) holder.core.inventory.push({ id: `key_${b.id}_${holder.id}`, itemId: IT.key, opens: [b.id] });
+  }
 
   // ---- rewards ----
   const { rewards, notes } = tidyRewards(state, plan);

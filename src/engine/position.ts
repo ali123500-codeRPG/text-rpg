@@ -8,8 +8,8 @@ import { getLibrary } from '../library';
 import { compassOf, doorway, edgeToward } from '../scene/geometry';
 import { heightOf } from '../scene/heights';
 import { linkM } from '../ruleset/range';
-import { actorById, allActors, shortestPath, zoneById } from './relations';
-import type { GameState, MoveSpot, Zone } from '../types';
+import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
+import type { Actor, GameState, MoveSpot, Zone } from '../types';
 
 export type Pos = { x: number; y: number };
 /** someone or something that stands somewhere: a zone, and a point in it once the zone has a rectangle */
@@ -72,8 +72,8 @@ function crossing(a: Zone, b: Zone): { out: Pos; at: Pos } {
 
 /** the walking route from A to B: the zones after A, each with the points where the walk leaves the zone before and enters
  * it (none without rectangles) */
-function route(state: GameState, A: Located, B: Located): { zone: Zone; at?: Pos; out?: Pos }[] | null {
-  const path = shortestPath(state, A.zone, B.zone);
+function route(state: GameState, A: Located, B: Located, walker?: Actor): { zone: Zone; at?: Pos; out?: Pos }[] | null {
+  const path = walker ? wayPath(state, A.zone, B.zone, walker) : shortestPath(state, A.zone, B.zone);
   if (!path) return null;
   let prev = zoneById(state, A.zone)!;
   return path.map((id) => {
@@ -140,7 +140,7 @@ export function sideFrom(viewer: { pos?: Pos; facing?: [number, number] }, at: P
  * walk ends ENTER_M past its doorway. At most `metres` are walked; a zone without rectangles is crossed whole for a zone
  * link of metres, and `fresh` (a slot not yet used) crosses it even when the slot is shorter. Returns the metres walked
  * (0: nothing left to walk), or null when there is no way. */
-export function walkLeg(state: GameState, a: Located & { placeId?: string }, goal: Located, metres: number, stopShort = 0, fresh = false): number | null {
+export function walkLeg(state: GameState, a: Located & { placeId?: string }, goal: Located, metres: number, stopShort = 0, fresh = false, walker?: Actor, halt = false): number | null {
   const A = spotOf(state, a);
   if (A.zone === goal.zone) {
     const B = goal.pos ? spotOf(state, goal) : undefined;
@@ -150,9 +150,11 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
     step(a, { x: A.pos.x + (B.pos.x - A.pos.x) * go / d, y: A.pos.y + (B.pos.y - A.pos.y) * go / d });
     return go;
   }
-  const r = route(state, A, goal);
+  const r = route(state, A, goal, walker);
   if (!r?.length) return null;
   const next = r[0];
+  // SD3–SD5 `halt`: a shut barrier is on the next way: walk only up to it (0 once there), never through
+  if (halt && (!A.pos || !next.at)) return 0;
   const enter = (at?: Pos) => {
     a.zone = next.zone.id;
     a.placeId = next.zone.placeId;
@@ -172,6 +174,11 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
     const k = metres / leg;
     step(a, { x: A.pos.x + (out.x - A.pos.x) * k, y: A.pos.y + (out.y - A.pos.y) * k });
     return metres;
+  }
+  if (halt) {
+    if (leg <= EPS) return 0;
+    step(a, out);
+    return leg;
   }
   // through the doorway; a walk to the zone itself goes ENTER_M on toward its centre
   let at = next.at, used = leg;

@@ -42,7 +42,29 @@ export type Band = {
 };
 
 /** drop (SD7): a window or ledge down to a lower zone: only jumped down, with fall damage from the drop; never walked or climbed */
-export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true; drop?: true };
+/** barrier: SD3–SD5 a barrier on this way, by its id in GameState.barriers (one record for both sides of the way) */
+export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true; drop?: true; barrier?: string };
+/** SD3–SD5, BA2–BA7: a door, gate, grate or blocked passage on a way. One record serves both sides; the links on each side
+ * name it by id. Breaking one (wear, material, thickness) belongs to the walls thread; this record leaves room for it. */
+export type WayDid = 'unlocked' | 'unbarred' | 'found_locked' | 'found_barred' | 'found_blocked' | 'lock' | 'unlock' | 'bar' | 'unbar'
+  | 'picked' | 'picking' | 'not_yet' | 'beyond' | 'pick_broke';
+export type Barrier = {
+  id: string;
+  kind: string; // a barrier kind id (BK, library barrierKinds)
+  grade: Grade; // how hard it is: a lock's picking penalty (BA2), how stout it is to break
+  lock?: { locked: boolean }; // BA3: opened or locked by a key naming this barrier (ItemInstance.opens), or picked (BA2)
+  bar?: { side: string; drawn: boolean }; // BA4: the zone the bolt is on; only that side draws or slides it, in a move slot
+  blocked?: true; // BA5: rubble or a cave-in; only clearing it (breaking, the walls thread) opens it
+  guarded?: true; // BA6: watched by people; a tag only, for the tier counts (BA8)
+  state?: import('../scales').PartStateKey; // walls thread: wear; Destroyed is open to all, Crippled to an amorphous body (BA7)
+  material?: string; thicknessCm?: number; // walls thread
+  scene?: number; // the scene that made it (BA8 counts)
+  tried?: string[]; // actors who found it shut by trying it: they know it is locked or barred
+  /** BA2: a picker's Failure leaves the lock beyond them until their Thievery (with tools) is higher than this */
+  beyond?: Record<string, number>;
+  /** BA2: seconds of picking done toward opening it in a fight, by picker */
+  work?: Record<string, number>;
+};
 /** a zone's four sides, by map compass */
 export type Side = 'n' | 'e' | 's' | 'w';
 export const SIDES: readonly Side[] = ['n', 'e', 's', 'w'];
@@ -111,6 +133,9 @@ export type GameEvent = {
   heading?: string; // BG-22: a leg that stays in its zone on the way to another: the zone it heads for
   metres?: number; // moves (ZP2): metres walked on this leg; a leg inside one zone has no fromZone, and `target` when closing in
   spot?: string; // BG-12: a move to a spot in a zone, in words ("to the north side", "away from the cellar steps")
+  /** SD3–SD5, BA2–BA4: something done at a barrier on the way to `to`: opened on the way through (unlocked, unbarred), found
+   * shut by trying it (locked, barred, blocked), turned or slid on purpose (lock, unlock, bar, unbar), or picked (BA2) */
+  way?: { to: string; barrier: string; did: WayDid };
   fall?: { metres: number; damage: number; landing: string }; // SD7: a jump down a drop link: the drop, the flat damage, the landing roll's tier name
   vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
   activity?: string; // idle / presence: ActivityDef id

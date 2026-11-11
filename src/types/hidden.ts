@@ -70,6 +70,8 @@ export type SceneRecord = {
   number: number; question: string; scale: SceneScale; tier: Tier;
   ending: SceneEnding; text: string; startTurn: number; endTurn: number;
   fallen: string[]; gained: string[]; inner?: true;
+  /** BA8: the barriers the scene's plans put on ways, to check the tier's lean in the GM view */
+  ways?: { barriers: number; locked: number; barred: number; blocked: number; guarded: number; grades: Partial<Record<import('./core').Grade, number>> };
 };
 
 export type MemoryEntry = { turn: number; text: string };

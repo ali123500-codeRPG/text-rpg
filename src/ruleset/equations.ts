@@ -5,7 +5,7 @@ import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { CLASS_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
-import { MARGIN_BANDS, band, ladder, naturalEdge, stackType } from './index';
+import { MARGIN_BANDS, band, ladder, naturalEdge, pickSeconds, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
 import { tierMult } from './gear';
@@ -29,6 +29,7 @@ export type EquationGroup = { key: string; title: string; about: string; equatio
 const n = (x: number) => `${+x.toFixed(2)}`;
 const sg = (x: number) => `${x > 0 ? '+' : ''}${n(x)}`;
 const pct = (k: number) => `${n(k)}%`;
+const list = (o: Record<string, number>) => Object.entries(o).map(([k, v]) => `${k} ${sg(v)}`).join(' · ');
 const D100 = Array.from({ length: 100 }, (_, i) => i + 1);
 const W = () => CONFIG.SKILL_WEIGHT, NEED = () => CONFIG.ROLL_NEEDED;
 
@@ -108,6 +109,11 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [[`${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.EVENT_BASE - 100)}`, `event base ${CONFIG.EVENT_BASE} (CONFIG.EVENT_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
         notes: ['It reads the same tier table as a skill roll. The natural edge applies here too. There are no tier shifts.', `The tier stops at Critical Success and Critical Failure unless perks or achievements open tiers past them (tierUnlocks, added up along a chain). Each tier opened above widens the natural critical range by ${CONFIG.EVENT_CRIT_NATURALS} (CONFIG.EVENT_CRIT_NATURALS): with one opened, d100 ${101 - CONFIG.EVENT_CRIT_NATURALS}–100 is Critical Success+ and ${101 - 2 * CONFIG.EVENT_CRIT_NATURALS}–${100 - CONFIG.EVENT_CRIT_NATURALS} Critical Success; with two, the next ${CONFIG.EVENT_CRIT_NATURALS} below that is Critical Success too and the top tier is ++. Tiers opened below work the same from 01 up.`] },
+      { name: 'Picking a lock', at: 'doPick · src/engine/resolve.ts; pickSeconds · src/ruleset/index.ts',
+        formula: `a Lockpicking function roll (Thievery; lockpicks in use add theirs) + the lock's grade; time = ${n(CONFIG.PICK_SECONDS_AT_50)} s × 2^((50 − effective) ÷ ${n(CONFIG.PICK_HALVING_PER)})`,
+        terms: [['grade', list(CONFIG.LOCK_GRADE_MOD)], ['effective', `the picker's effective Thievery with its tools${CONFIG.PICK_FAST_CAP === null ? '' : `, counted at most ${CONFIG.PICK_FAST_CAP} for the time (perks carry it further)`}`]],
+        table: { head: ['Effective skill', 'Time'], rows: [25, 50, 75, 100, 150, 200].map((k) => [String(k), `${n(pickSeconds(k))} s`]) },
+        notes: ['Success opens it once the time is done: out of a fight the time passes at once; in a fight each turn at it adds a fight turn of work. Near Miss: not yet, keep going. Failure: the lock is beyond the picker until its effective skill is higher than at that try. Critical Failure: the pick snaps and the lockpicks used are lost. Picking is a whisper (hushed).'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
         formula: `type total = biggest + ${n(CONFIG.STACK_RATIO)} × next + ${n(CONFIG.STACK_RATIO ** 2)} × next …, bonuses and penalties apart; types add in full`,
         notes: [`Example: three +10 of one type → ${n(stackType([10, 10, 10]))}.`] },

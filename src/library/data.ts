@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, CP, DU, EK, FR, GC, HL, PA, PY, RL, VL, ZK } from './tableIds';
+import { AM, BK, CP, DU, EK, FR, GC, HL, PA, PY, RL, VL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -76,7 +76,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
   sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
-  sk(SK.lockpicking, TR.tools, [], [RL.grip]),
+  sk(SK.thievery, TR.tools, [FN.lockpicking], [RL.grip]), // BA2: Lockpicking is one of Thievery's functions
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -218,7 +218,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
-    effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
+    effects: [{ kind: 'skill', skill: SK.thievery, value: 25, active: 'inUse', scope: 'withItem' }] },
   { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
   // generic bases for minted items with no close match, and for scene objects the player grabs (loot L2, L3)
   { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
@@ -229,6 +229,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
   { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
   { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
+  { id: IT.key, kind: 'misc', name: 'key', look: 'an iron key', bulk: 0, value: 1 }, // BA3: opens the barriers its instance names
   { id: IT.coin, kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
@@ -413,7 +414,7 @@ export function prototypeLibrary(): Library {
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', rating: 'inferior', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
-      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
+      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.thievery], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
@@ -554,6 +555,14 @@ export function prototypeLibrary(): Library {
       [EK.low, 'Low', false, true, true, true, 'A counter, fence or rail: see and reach across it, cross it by climbing.'],
       [EK.window, 'Window', false, true, false, false, 'See through it; no walking or reaching across.'],
     ] as const).map(([id, name, walk, see, reach, climb, text]) => [id, { id, name, walk, see, reach, climb, text }])),
+    // SD3–SD5: barriers on ways. A grate is bars you see through; rubble is a blockage only clearing opens (the walls thread)
+    barrierKinds: Object.fromEntries(([
+      [BK.door, 'Door', true, true, false, false, 'A wooden door: it may be locked with a key, or barred from one side.'],
+      [BK.gate, 'Gate', true, true, false, false, 'A gate in a wall or fence: locked, or barred from the inside.'],
+      [BK.grate, 'Grate', true, true, false, true, 'Iron bars across a way: you see through it, but it may be locked or barred.'],
+      [BK.hatch, 'Hatch', true, true, false, false, 'A trapdoor in a floor or ceiling: locked, or bolted from one side.'],
+      [BK.rubble, 'Rubble', false, false, true, false, 'A cave-in or fallen stone: no way through until it is cleared.'],
+    ] as const).map(([id, name, lock, bar, blocked, seeThrough, text]) => [id, { id, name, lock, bar, blocked, seeThrough, text }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',

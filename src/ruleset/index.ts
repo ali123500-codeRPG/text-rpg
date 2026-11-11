@@ -469,6 +469,10 @@ export function fallDamage(metres: number, step = 0): number {
 
 /** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
  * more; a tier past Critical Failure reads Critical Failure's row */
+/** BA2: seconds to pick a lock at effective Thievery `skill`: PICK_SECONDS_AT_50, halved per PICK_HALVING_PER points above 50
+ * (no faster past PICK_FAST_CAP) and doubled per PICK_HALVING_PER below */
+export const pickSeconds = (skill: number): number =>
+  CONFIG.PICK_SECONDS_AT_50 * 2 ** ((50 - (CONFIG.PICK_FAST_CAP === null ? skill : Math.min(skill, CONFIG.PICK_FAST_CAP))) / CONFIG.PICK_HALVING_PER);
 export const landingStep = (t: Tiered): number => (CONFIG.FALL_LANDING_STEP[t.tier] ?? 0) - Math.max(0, t.beyond ?? 0) * CONFIG.FALL_LANDING_PAST_STEP;
 
 /** SD7: a jump down a drop: a Dodge roll on landing (rollKind dodge) moves the fall a band (FALL_LANDING_STEP), and the damage

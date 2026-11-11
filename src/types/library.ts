@@ -130,6 +130,7 @@ export type Library = {
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
   edgeKinds?: Record<string, EdgeKind>; // CO15
+  barrierKinds?: Record<string, BarrierKind>; // SD3–SD5: what can stand on a way
   zoneSizes?: Record<string, ZoneSize>; // CO16
   roadLengths?: Record<string, RoadLength>; // TV3
   roadDangers?: Record<string, RoadDanger>; // TV4
@@ -151,6 +152,9 @@ export type ZoneKind = {
   /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
   road?: true;
 };
+/** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
+ * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
+export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; text: string };
 /** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;

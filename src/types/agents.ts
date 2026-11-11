@@ -10,7 +10,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
   | 'attack' | 'hide' | 'sneak' | 'vanish' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
-  | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep';
+  | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep' | 'pick'; // pick: BA2, a lock on the way to target
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
@@ -40,6 +40,8 @@ export type Intent = {
   } | null;
   /** AE5/AE8: an owned perk move by perk id (a free one resolves beside the main action) */
   perkMove?: { perk: string; target: string | null } | null;
+  /** BA3/BA4: lock or unlock the way to toZone with a key, or slide its bar across or back; it takes the move slot */
+  way?: { toZone: string; op: import('../engine/barriers').WayOp } | null;
   gear: GearOp[] | null;
   spoken: string | null;
   addressees: string[] | null; // actor ids, band ids or "everyone"
@@ -51,7 +53,7 @@ export type Intent = {
 // ---- Agent Planner / Responder / Voice ----
 export type NpcActionType =
   | 'attack' | 'move' | 'search' | 'hide' | 'sneak' | 'vanish' | 'hold' | 'call_help' | 'flee'
-  | 'talk' | 'persuade' | 'deceive' | 'intimidate' | 'barter' | 'use_item' | 'equip' | 'give' | 'other';
+  | 'talk' | 'persuade' | 'deceive' | 'intimidate' | 'barter' | 'use_item' | 'equip' | 'give' | 'pick' | 'other';
 export type NpcAction = {
   type: NpcActionType;
   target: string | null;
@@ -125,6 +127,10 @@ export type VoiceOutput = {
 export type NarratorOutput = { text: string; narrated: string[]; closing?: string };
 
 // ---- Agent Weaver: the stage plan ----
+/** SD3–SD5: a barrier the Weaver puts on a way: a kind from catalogs.barrierKinds; how hard (grade, default minor); locked
+ * (a lock, locked); barredFrom (the zone key the bolt is on, barred); guarded (a tag: guards placed on it); keys (cast keys or
+ * actor ids who carry its key). Breaking it is the walls thread's. */
+export type PlanBarrier = { kind: string; grade?: Grade; locked?: boolean; barredFrom?: string; guarded?: boolean; keys?: string[] };
 export type StagePlan = {
   event: { summary: string; challenge: Grade; gain: Grade };
   /** T8: when the story opens; after that, only the current time of day */
@@ -144,7 +150,7 @@ export type StagePlan = {
     length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
-    links: { to: string; label: string; sight: boolean; drop?: boolean }[];
+    links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];
   }[];
   frontiers: { key: string; label: string }[];
   bands: {

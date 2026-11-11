@@ -10,8 +10,11 @@ export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
 
 export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' };
-export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean }[]; groundItems: { id: string; name: string }[] };
-export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean }[] }; // geometry only, for code minds' pathing
+/** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
+export type WayView = { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
+export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string }[] };
+export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean; shut?: boolean }[] }; // geometry only, for code minds' pathing; shut: a barrier this actor can't open
 
 export type BeliefView = {
   about: ActorId;
@@ -198,6 +201,7 @@ export type NarrationEvent = {
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
   fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)
+  way?: { what: string; did: string; to: string }; // SD3–SD5, BA2: a barrier on the way to `to`: what kind, and what was done at it
   from?: string; // BG-22: a move that left a zone: the zone it left (where is the zone it entered)
   within?: true; // BG-22: a move that stayed inside `where` (across it, toward someone, a spot or its way out)
   heading?: string; // BG-22: a leg within `where` on the way to another zone: that zone's name
@@ -229,6 +233,7 @@ export type WeaverView = {
   /** null at story start: the Weaver picks the opening time of day (T8) */
   time: TimeView | null;
   stakes: string;
+  ways: string; // BA8: how the tier leans the ways in and out (locks, bars, guards), never a limit
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
   target: { kind: 'scene' | 'frontier' | 'checkin'; placeId: string; label?: string; frontierKey?: string; wake?: true;
     /** SC8: why this check-in was asked, and the running scene it is about */
@@ -260,6 +265,7 @@ export type WeaverView = {
     personality: { nerve: string[]; types: { id: string; name: string; hint: string }[]; values: { id: string; name: string }[] }; // PL12
     zoneKinds: import('./library').ZoneKind[]; // Z2
     edgeKinds: import('./library').EdgeKind[]; // CO15
+    barrierKinds: import('./library').BarrierKind[]; // SD3–SD5
     layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string }[] }[]; // CO17
   };
   grades: Grade[];

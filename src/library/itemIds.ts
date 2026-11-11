@@ -12,4 +12,5 @@ export const IT = {
   short_sword: 'IT27', hand_axe: 'IT28', woodsman_axe: 'IT29', greatsword: 'IT30', recurve_bow: 'IT31', flatbow: 'IT32',
   light_crossbow: 'IT33', stirrup_crossbow: 'IT34', boiled_leather: 'IT35', brigandine: 'IT36', lamellar_coat: 'IT37',
   half_plate: 'IT38', kite_shield: 'IT39',
+  key: 'IT40', // BA3: a key; the instance names the barriers it opens (ItemInstance.opens)
 } as const;
