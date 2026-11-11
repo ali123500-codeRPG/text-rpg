@@ -45,6 +45,22 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
   root.querySelectorAll('style').forEach((st) => document.head.append(st));
   // the rail goes last so Tab runs input, tools, sheet, then the rail; CSS puts it in the first column
   root.replaceChildren(view, panel, rail);
+  root.classList.add('icon-rail');
+  // the rail's tip: one floating label beside the hovered or focused item (the rail scrolls, so the tip lives outside it)
+  const tip = h('div', { class: 'rail-tip', role: 'tooltip', hidden: true });
+  root.append(tip);
+  const showTip = (e: Event) => {
+    const t = (e.target as Element).closest?.('[data-tip]') as HTMLElement | null;
+    if (!t || !rail.contains(t)) return;
+    const r = t.getBoundingClientRect();
+    tip.textContent = t.dataset.tip!;
+    tip.style.top = `${r.top + r.height / 2}px`; tip.style.left = `${r.right + 8}px`;
+    tip.hidden = false;
+  };
+  const hideTip = () => { tip.hidden = true; };
+  rail.addEventListener('mouseover', showTip); rail.addEventListener('focusin', showTip);
+  rail.addEventListener('mouseleave', hideTip); rail.addEventListener('focusout', hideTip); rail.addEventListener('scroll', hideTip);
+  rail.addEventListener('click', hideTip);
 
   const play = playScreen(api, (p) => go(p));
   const pages: Record<string, { el: HTMLElement; update: () => void }> = {
@@ -70,10 +86,11 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     const key = [page, started, gmOn, api.state()?.player.progression?.unspentPerkPoints ?? 0].join('|');
     if (key === railKey) return;
     railKey = key;
+    // icons only: the name is kept for screen readers and shown in a tip on hover or focus
     const item = (id: string, label: string, enabled: boolean) => h('a', {
       href: enabled ? '#' + id : undefined, 'aria-current': page === id ? 'page' : undefined, 'aria-disabled': enabled ? undefined : 'true',
-      title: enabled ? label : 'Opens once your swordsman is made',
-    }, icon(id), label, id === 'stats' ? pointsBadge() : null);
+      'data-tip': enabled ? label : `${label}: opens once your swordsman is made`,
+    }, icon(id), h('span', { class: 'rail-label' }, label), id === 'stats' ? pointsBadge() : null);
     // V2b: perk points waiting to be spent; after a turn the Play screen holds a new count back until its level-up lands (M-38)
     function pointsBadge() {
       const n = api.state()?.player.progression?.unspentPerkPoints ?? 0;
@@ -84,9 +101,9 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
       started ? '' : item('create', 'Create', true),
       ...PAGES.map(([id, label]) => item(id, label, started || id === 'fame' || id === 'bugs')),
       gmOn ? item('gm', 'GM', started) : '',
-      h('button', { class: 'foot', type: 'button', 'aria-pressed': String(gmOn), title: gmOn ? 'Turn the GM debug view off' : 'Turn the GM debug view on',
+      h('button', { class: 'foot', type: 'button', 'aria-pressed': String(gmOn), 'data-tip': gmOn ? 'GM on: turn the debug view off' : 'GM off: turn the debug view on',
         onclick: () => { gmOn = !gmOn; writeGm(gmOn); if (!gmOn && current() === 'play' && location.hash === '#gm') go('play'); render(); } },
-        icon('gm'), gmOn ? 'GM on' : 'GM off'),
+        icon('gm'), h('span', { class: 'rail-label' }, gmOn ? 'GM on' : 'GM off')),
     );
   }
 
