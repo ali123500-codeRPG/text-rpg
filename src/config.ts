@@ -156,6 +156,8 @@ const DEFAULTS = {
   PERSONALITY_TYPES_SHOWN: 2,
   /** PL12: the Nerve points a named line sets (− for cautious, + for daring) */
   NERVE_LINE_POINTS: 40,
+  /** AP2: personality points one achievement step is worth; rows write steps (+1, −1), so this one number scales them all */
+  ACH_PERSONALITY_STEP: 5,
   /** [MORALE_LEVELS key, max % of max morale lost, roll penalty (type wounds, MB3)]; broken = out of the fight */
   MORALE_TRACK: [
     ['calm', 0, 0], ['uneasy', 15, 0], ['tense', 30, 0], ['rattled', 45, -5], ['afraid', 60, -5],

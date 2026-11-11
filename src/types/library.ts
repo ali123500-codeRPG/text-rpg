@@ -292,7 +292,7 @@ export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_ti
 export type AchievementTag = 'combat' | 'stealth' | 'social' | 'exploration' | 'survival' | 'skill' | 'progression';
 /** a reward field of AchievementDef */
 export type AchievementReward = 'perk' | 'unawareShift' | 'quieter' | 'readsHealth' | 'skillAdd' | 'renown' | 'deathsDoor' | 'firstSight'
-  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality';
+  | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels' | 'personality' | 'personalityByKind';
 export type AchievementDef = { id: string; name: string; level: string; rule: AchievementRule; tags: AchievementTag[]; count?: number; by?: AchievementBy; after?: string; scar?: true;
   /** rewards beyond XP (src/ruleset/achRewards.ts). A level also gives every reward of the lower levels of its chain,
    * read from their rows; `excludes` names inherited rewards this level drops */
@@ -303,6 +303,8 @@ export type AchievementDef = { id: string; name: string; level: string; rule: Ac
   readsHealth?: true; // the owner sees the health level of every member of the achievement's body type or race
   skillAdd?: Record<string, number>; // true skill added to these skills
   personality?: PersonalityAdd; // PL15: Nerve or trait points added while current
+  /** AP12: extra points while current, only when earned for this kind (`of`, e.g. a skill id on a by-skill row): Lying wins add Honesty −1 step */
+  personalityByKind?: Record<string, PersonalityAdd>;
   renown?: number; // every foe fighting the owner takes this much off its morale rolls (MB24)
   deathsDoor?: number; // a charge: a hit that would take the owner Down leaves them at Critical; refills after this many game days
   excludes?: AchievementReward[]; // lower levels' rewards this level does not carry up
