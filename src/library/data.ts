@@ -741,7 +741,7 @@ export function prototypeLibrary(): Library {
       [ACH.class_max_5]: { id: ACH.class_max_5, name: 'Master of Many Paths', level: 'iii', rule: 'class_max', tags: ['progression'], count: 5, after: ACH.class_max_3 },
       [ACH.class_max_10]: { id: ACH.class_max_10, name: 'The Thousand-Faced', level: 'iv', rule: 'class_max', tags: ['progression'], count: 10, after: ACH.class_max_5 },
       [ACH.class_max_tier_1]: { id: ACH.class_max_tier_1, name: 'Peak of the {tier}', level: 'i', rule: 'class_max', tags: ['progression'], count: 1, by: 'class_tier' },
-      [ACH.class_max_tier_2]: { id: ACH.class_max_tier_2, name: 'Twin Peaks of the {tier}', level: 'ii', rule: 'class_max', tags: ['progression'], count: 2, by: 'class_tier' },
+      [ACH.class_max_tier_2]: { id: ACH.class_max_tier_2, name: 'Twin Peaks of the {tier}', level: 'ii', rule: 'class_max', tags: ['progression'], count: 2, by: 'class_tier', after: ACH.class_max_tier_1 },
       [ACH.class_max_tier_3]: { id: ACH.class_max_tier_3, name: 'Crown of the {tier}', level: 'iii', rule: 'class_max', tags: ['progression'], count: 3, by: 'class_tier', after: ACH.class_max_tier_2 },
       [ACH.class_tiers_2]: { id: ACH.class_tiers_2, name: 'Across Two Heights', level: 'ii', rule: 'class_max_tiers', tags: ['progression'], count: 2, freeLevels: 1 },
       [ACH.class_tiers_3]: { id: ACH.class_tiers_3, name: 'Across Three Heights', level: 'iii', rule: 'class_max_tiers', tags: ['progression'], count: 3, after: ACH.class_tiers_2, freeLevels: 2 },

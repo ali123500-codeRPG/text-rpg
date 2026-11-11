@@ -412,6 +412,8 @@ export function initiativeBonus(state: GameState, actor: Actor): number {
 
 function recordUse(actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult, state: GameState): void {
   state.log.push({ turn: state.turn, code: 'skill_use', detail: { actorId: actor.id, skill } });
+  const pr = actor.progression;
+  if (pr && !pr.used?.includes(skill)) (pr.used ??= []).push(skill);
   markUse(state, actor, skill, result);
 }
 
@@ -439,3 +441,10 @@ export function moraleRoll(state: GameState, actor: Actor, rng: Rng, shift = 0):
   const mods = [...renownMods(state, actor, actor !== state.player && hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor))];
   return roll({ actorId: actor.id, skill: SK.resolve, modifiers: mods, tierShifts: shift ? [{ source: 'fear', value: shift }] : [] }, state, rng);
 }
+
+/** skills the actor has rolled that are not on its sheet: shown with raw 0 so a fist fighter sees Unarmed strike */
+export function usedOffSheet(actor: Actor): string[] {
+  return (actor.progression?.used ?? []).filter((k) => actor.core.skills[k] === undefined);
+}
+/** the mark for a tagged skill, in /stats text and on the sheets (the play screen explains it on hover) */
+export const TAG_MARK = '✦';

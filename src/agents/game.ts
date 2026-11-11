@@ -22,7 +22,7 @@ import { actorById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
 import { achievementName, wearable, wornTitle } from '../engine/xp';
-import { defaultStandingDefense, healthLevel, isDownLevel, partStates, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk } from '../ruleset';
+import { defaultStandingDefense, healthLevel, isDownLevel, partStates, TAG_MARK, takePerk, tierAtLeast, tierLevel, tierName, tierPart, undoPerk, usedOffSheet } from '../ruleset';
 import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './call';
 import { fameEntry } from './fame';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
@@ -405,8 +405,13 @@ export function createGame(deps: GameDeps): Game {
     switch (cmd.toLowerCase()) {
       case 'stats': {
         const p = s.player;
-        const skills = Object.entries(p.core.skills).map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? '+' : v.state === 'flawed' ? '−' : ''}`);
-        return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`);
+        // ✦ marks a tagged skill, as on the Character page (the play screen shows "Tagged" on hover); − a flawed one
+        const sheet = Object.entries(p.core.skills);
+        const skills = sheet.map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? TAG_MARK : v.state === 'flawed' ? '−' : ''}`);
+        const off = usedOffSheet(p).map((k) => `${skillName(k)} 0`); // rolled but not on the sheet yet, e.g. fists use Strike
+        const key = [sheet.some(([, v]) => v.state === 'tagged') ? `${TAG_MARK} tagged` : '', sheet.some(([, v]) => v.state === 'flawed') ? '− flawed' : ''].filter(Boolean).join(', ');
+        return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`
+          + (off.length ? ` Also used, not on your sheet yet: ${off.join(', ')}.` : '') + (key ? ` (${key})` : ''));
       }
       case 'inv':
         return say(s.player.core.inventory.map((i) => `${nameOf(s, i.itemId)}${i.qty ? ` ×${i.qty}` : ''}${i.equippedIn?.length ? ` (${i.equippedIn.join(', ')})` : ''}`).join('; ') || 'You carry nothing.');

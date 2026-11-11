@@ -9,7 +9,7 @@ import { buildPlayerView, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
 import { questFocus } from './pages';
 import { tierGap } from '../agents/game';
-import { isDownLevel, tierAtLeast, tierName } from '../ruleset';
+import { isDownLevel, TAG_MARK, tierAtLeast, tierName } from '../ruleset';
 import { poolState } from '../ruleset/body';
 import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
@@ -19,7 +19,7 @@ import { h } from './kit';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
-import { shownValues, sideSheet, statusStrip, type ShownValues } from './charsheet';
+import { shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, motionOn, moving, ms, play, pulse, sentences, setMotion, slam, stamp } from './motion';
@@ -335,7 +335,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         h('table', { class: 'chg' }, h('tbody', {}, l.changes.map((x) => h('tr', {},
           h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,
       ...gear.map((g) => row('Gear', g)),
-      gains.length ? row('Skills', gains.map(([k, n]) => `${skillName(k)} +${n}`).join(' · ')) : null,
+      // a skill that went up this turn: "Strike +1" in gold, the same mark as the sheet's ▲ (playtest run 33)
+      gains.length ? row('Skills', ...gains.flatMap(([k, n], i) => [i ? ' · ' : '', h('b', { class: 'skill-up', title: 'Went up this turn' }, `▲ ${skillName(k)} +${n}`)])) : null,
       xp ? row('XP', `+${xp}`) : null,
       ...(l.heals ?? []).map(healCard),
       ...(l.wounds ?? []).filter((w) => !working(w.to as PartState)).map(woundCard),
@@ -361,6 +362,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (e) return e;
     if (l.kind === 'player') e = h('p', { class: 'ln-player' }, l.text, l.aimed ? h('span', { class: 'aimed' }, ' · aimed') : null);
     else if (l.kind === 'command' && l.text === UNDONE) e = h('p', { class: 'ln-command' }, `Turn ${l.turn} undone. Dice are not rolled back.`);
+    // a command's reply (/stats) marks tagged skills with ✦; on screen it is the sheet's mark, which says Tagged on hover
+    else if (l.kind === 'command') e = h('p', { class: 'ln-command' }, ...l.text.split(TAG_MARK).flatMap((x, i) => (i ? [tag(), x] : [x])));
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
       ((b) => b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scene') }, b))(breakFor(l, prev)),
