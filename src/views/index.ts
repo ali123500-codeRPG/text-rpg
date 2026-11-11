@@ -15,7 +15,7 @@ import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, per
 import { knownDestinations } from '../engine/trail';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
-import { PERK_MOVES, hasPerk, healthLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
+import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { beliefStatus, hearsWords, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
@@ -158,7 +158,8 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
-      ...(moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
+      // someone Down (incapacitated or dead) shows no mood
+      ...(!isDownLevel(h) && moraleShows(moraleLevel(a)) ? { morale: moraleWord(a) } : {}),
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),

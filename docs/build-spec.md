@@ -2980,6 +2980,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-25 | The player swung three times at a woman lying Incapacitated at 0.7 m; every blow was wasted in silence (attacks on anyone down were refused), and the Narrator made up a blade stuck in the floorboards and shaking hands (Ali's game, turns 11 to 14). Fixed: blows on someone down land with no defense, only the dead can't be struck, and a wasted action says why (Narrator rule 18) | Ali | Fixed | this PR |
 | BG-26 | The autopilot agent kept stopping to check how badly it was hurt ("let me check how bad I'm hurt") with /stats instead of acting (Ali's report, the agent's save, turn 15). Fixed: the agent is given its health, wounded parts, morale, coin and perk points every move, is told never to check its wounds, and a /stats move is re-asked once | Ali | Fixed | PR #445 |
 | BG-27 | Pressing Report bug only saved the report; the open bugs reached Claude only through a separate "Send open bugs to Claude" button, though Ali had asked that reporting sends them. Fixed: Report bug saves the report and sends every open bug to Claude at once (the send button stays for sending again) | Ali | Fixed | this PR |
+| BG-29 | Who's here showed "A sharp-eyed woman · Down · Terrified" for a dead woman: others' morale (MB16) was shown even when they were Down (Ali's report, the agent's save). Fixed: anyone Down shows no mood. | 11/11/2026 | fixed | this PR |
 
 ## Check on release
 
