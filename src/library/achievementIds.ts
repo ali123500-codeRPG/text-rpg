@@ -54,7 +54,7 @@ export const ACH = {
   won_above_100: 'AC165', won_above_250: 'AC166', won_above_500: 'AC167',
   won_pct_25: 'AC168', won_pct_50: 'AC169', won_pct_100: 'AC170',
   calmed_rest_100: 'AC171', calmed_rest_1000: 'AC172', calmed_rest_10000: 'AC173', calmed_natural_50: 'AC174', calmed_natural_500: 'AC175', calmed_natural_2500: 'AC176', calmed_perk_50: 'AC177', calmed_perk_500: 'AC178', calmed_perk_2500: 'AC179', hp_lost_100: 'AC180', hp_lost_1000: 'AC181', hp_lost_10000: 'AC182', morale_lost_100: 'AC183', morale_lost_1000: 'AC184', morale_lost_10000: 'AC185',
-  event_crit_1: 'AC186', event_crit_5: 'AC187', event_crit_15: 'AC188', event_crit_fail_1: 'AC189'
+  event_crit_1: 'AC186', event_crit_2: 'AC187', event_crit_3: 'AC188', event_crit_fail_1: 'AC189', event_crit_fail_2: 'AC190', event_crit_fail_3: 'AC191'
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -68,7 +68,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   zones: 'different zones entered', deals: 'deals struck with you', days: 'game days survived', class_unlock: 'class unlocked',
   flawless: 'fights won without losing HP, after at least one defense roll', outnumbered: `fights won against ${CONFIG.OUTNUMBERED_FOES}+ foes at once, with no one on your side`,
   brink: 'fights survived after reaching Critical health (once per fight)',
-  event_crits: 'event rolls at Critical Success', event_crit_fails: 'event rolls at Critical Failure',
+  event_crits: 'tiers of Critical Success reached on an event roll (1 = Critical Success, 2 = Critical Success+, 3 = ++)', event_crit_fails: 'tiers of Critical Failure reached on an event roll (1 = Critical Failure, 2 = Critical Failure−, 3 = −−)',
   held_line: 'fights won beside at least one ally, while the foes outnumbered your side',
   quests_done: 'quests finished', quests_abandoned: 'quests you gave up',
   clean_defense: 'dodges or blocks that stopped a hit completely', unseen_moves: 'sneaks into a zone where someone was suspicious of you, and no one there saw you',
