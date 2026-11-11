@@ -55,7 +55,7 @@ export type AttackMode = {
   skill?: LibraryRef; // unarmed only
   /** how far the mode strikes or shoots, in metres, from real weapons (the library's item rows) */
   reachM: number;
-  /** the zone links it reaches: reachLinks(reachM) (src/ruleset/range.ts), worked out when the library is built */
+  /** the metres it reaches in use: reachM, plus a thrown weapon's perk metres (ruleset/gear modeReach) */
   reach: number;
   hands: 0 | 1 | 2;
   thrown?: true;

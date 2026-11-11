@@ -3,7 +3,6 @@
 import { CONFIG } from '../config';
 import { DU } from '../library/tableIds';
 import { actorBody, getLibrary, itemDef } from '../library';
-import { reachLinks } from '../ruleset/range';
 import type { Actor, GameState } from '../types';
 
 /** the movement speed factor: every speed is multiplied by it (1 until movement speed effects exist) */
@@ -20,10 +19,10 @@ export function moveSpeed(state: GameState, a: Actor): { walk: number; run: numb
   return { walk: at(base.walk), run: at(base.run) };
 }
 
-/** CO13/ZP2: the zone links one slot of movement covers in a fight turn (the Fight turn duration). A move slot walks; a
- * main slot spent moving (a dash: the move costs both actions) runs the rest of the turn (run − walk). At least one link. */
-export function slotLinks(state: GameState, a: Actor, paid: 'move' | 'main'): number {
+/** CO13/ZP2: the metres one slot of movement covers in a fight turn (the Fight turn duration). A move slot walks; a main
+ * slot spent moving (a dash: the move costs both actions) runs the rest of the turn (run − walk). */
+export function slotMetres(state: GameState, a: Actor, paid: 'move' | 'main'): number {
   const seconds = (getLibrary().durations?.[DU.fight_turn]?.minutes ?? 0.1) * 60;
   const s = moveSpeed(state, a);
-  return Math.max(1, reachLinks((paid === 'move' ? s.walk : s.run - s.walk) * seconds));
+  return (paid === 'move' ? s.walk : s.run - s.walk) * seconds;
 }

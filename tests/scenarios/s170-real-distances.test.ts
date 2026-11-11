@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
-import { moveSpeed, slotLinks } from '../../src/engine/speed';
+import { moveSpeed, slotMetres } from '../../src/engine/speed';
 import { getLibrary } from '../../src/library';
 import { IT } from '../../src/library/itemIds';
 import { BT } from '../../src/library/raceIds';
@@ -30,8 +30,8 @@ describe('170 real distances', () => {
     const s = makeVillage();
     for (const i of s.player.core.inventory) if (i.equippedIn?.includes('armor')) delete i.equippedIn;
     expect(moveSpeed(s, s.player)).toEqual({ walk: 1.4, run: 5 });
-    expect(slotLinks(s, s.player, 'move')).toBe(1); // 1.4 m/s × 6 s = 8.4 m
-    expect(slotLinks(s, s.player, 'main')).toBe(2); // (5 − 1.4) m/s × 6 s = 21.6 m
+    expect(slotMetres(s, s.player, 'move')).toBeCloseTo(8.4); // 1.4 m/s × 6 s
+    expect(slotMetres(s, s.player, 'main')).toBeCloseTo(21.6); // (5 − 1.4) m/s × 6 s
     place(s, 'player', 'street_door');
     turn(s, intent({ toZone: 'field_mid' })); // 4 links: a dash reaches 3
     expect(s.player.zone).toBe('field_edge');
@@ -46,12 +46,12 @@ describe('170 real distances', () => {
   });
 
   it('range penalty: by the distance as a share of the reach, so a longbow is barely stretched where a shortbow is at its limit', () => {
-    expect(rangeMod(0, 6)).toBe(0);
-    expect(rangeMod(1, 6)).toBe(0);
-    expect(rangeMod(3, 6)).toBe(-5);
-    expect(rangeMod(6, 6)).toBe(-15);
-    expect(rangeMod(6, 11)).toBe(-10); // a longbow (90 m) at the same 48 m
-    expect(rangeMod(2, 2)).toBe(-15); // a throw at its full 16 m
+    expect(rangeMod(0, 50)).toBe(0);
+    expect(rangeMod(8, 50)).toBe(0);
+    expect(rangeMod(24, 50)).toBe(-5);
+    expect(rangeMod(48, 50)).toBe(-15);
+    expect(rangeMod(48, 90)).toBe(-10); // a longbow at the same 48 m
+    expect(rangeMod(17.5, 17.5)).toBe(-15); // a spear thrown at its full range
   });
 
   it('words carry only by sound: a talker seen three zones off is seen, not heard', () => {

@@ -5,6 +5,7 @@ import { TIME_OF_DAY } from '../scales';
 import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
+import { placeAll } from '../engine/position';
 import { clockSet, startClock } from '../time';
 import { activity, getLibrary, itemDef } from '../library';
 import { spawnNpc } from '../library/spawn';
@@ -314,6 +315,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const actors = plan.cast.filter((c) => degraded.has(c.key)).map((c) => castMap.get(c.key)!);
     setFallbackFlags(state, 'routine_fallback', 'routine_fallback', opts.degrade!.filter((e) => e.routineOnly), actors);
   }
+  placeAll(state); // ZP1: the cast and anyone moved by the scene get spots in their zones
 }
 
 /** GAP: at story start the player's place has no node yet; a bare one is made so the Weaver's plan (and the fallback) can use its id. */

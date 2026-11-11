@@ -4,13 +4,18 @@
 import type { GameState, Zone } from '../types';
 import { CONFIG } from '../config';
 
-const UP = new Set(['up', 'upstairs', 'upward', 'upwards', 'above', 'loft', 'attic', 'roof', 'rooftop', 'climb', 'ascend']);
-const DOWN = new Set(['down', 'downstairs', 'downward', 'downwards', 'below', 'cellar', 'basement', 'descend', 'underground']);
+const UP = new Set(['upstairs', 'upward', 'upwards', 'above', 'loft', 'attic', 'roof', 'rooftop', 'climb', 'ascend']);
+const DOWN = new Set(['downstairs', 'downward', 'downwards', 'below', 'cellar', 'basement', 'descend', 'underground']);
+/** BG-6: a bare "up" or "down" goes up or down a storey only beside a way to climb ("the stairs up", "down the ladder");
+ * "down the street" and "up the road" stay level */
+const CLIMB = new Set(['stairs', 'stair', 'staircase', 'stairway', 'steps', 'ladder', 'hatch', 'trapdoor', 'rope', 'shaft', 'well', 'flight']);
 
 /** +1 when an exit's words go up a storey, -1 down, 0 when they name neither */
 export function verticalOf(label: string): -1 | 0 | 1 {
+  const words = label.toLowerCase().split(/[^a-z]+/);
+  const climb = words.some((w) => CLIMB.has(w));
   let v = 0;
-  for (const w of label.toLowerCase().split(/[^a-z]+/)) { if (UP.has(w)) v++; else if (DOWN.has(w)) v--; }
+  for (const w of words) { if (UP.has(w) || (climb && w === 'up')) v++; else if (DOWN.has(w) || (climb && w === 'down')) v--; }
   return v > 0 ? 1 : v < 0 ? -1 : 0;
 }
 

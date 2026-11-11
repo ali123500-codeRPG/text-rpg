@@ -5,6 +5,7 @@ import type { GameState, ItemDef } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary, itemDef } from '../library';
 import { kitBonus, modeReach } from './gear';
+import { reachLinks } from './range';
 
 const V = () => CONFIG.ITEM_VALUE;
 
@@ -19,7 +20,7 @@ export function benefits(def: ItemDef): { what: string; coin: number }[] {
       ? { what: `+${v} to ${e.roll} rolls`, coin: (v / CONFIG.SKILL_WEIGHT) * V().skillPoint }
       : { what: `+${v} ${e.kit ? 'kit bonus' : 'skill bonus'}`, coin: v * V().skillPoint });
   }
-  const reach = Math.max(0, ...(def.weapon?.modes ?? []).map((m) => modeReach(m))); // a throw counts at its own range
+  const reach = Math.max(0, ...(def.weapon?.modes ?? []).map((m) => reachLinks(modeReach(m)))); // whole zone links; a throw counts at its own range
   if (reach > 0) out.push({ what: `reach ${reach}`, coin: reach * V().reachZone });
   if (def.armor) {
     const parts = def.armor.covers.length;

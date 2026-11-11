@@ -2,7 +2,6 @@
 import type { Actor, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
 import { LIGHT } from '../scales';
-import { reachLinks } from './range';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { partPct, poolState, usableGrips, working } from './body';
@@ -53,9 +52,9 @@ export function kitBonus(def: ItemDef, e: ItemEffect): number {
   return r ? CONFIG.EQUIP_FACTOR * r.need : e.value;
 }
 
-/** a mode's reach in zone links: its own metres (a throw mode's is its throw range) + extra metres (a thrown weapon's
- * perks), turned into links once. The one reach equation: attacks, item value and the library all read it. */
-export const modeReach = (mode: AttackMode, extraM = 0): number => reachLinks(mode.reachM + extraM);
+/** a mode's reach in metres: its own (a throw mode's is its throw range) + extra metres (a thrown weapon's perks). The
+ * one reach equation: attacks, item value and the library all read it. */
+export const modeReach = (mode: AttackMode, extraM = 0): number => mode.reachM + extraM;
 
 /** an item's mode with its attack mode row's rules applied. Throw: its own throw range (+ perks' throwReach metres), and a combined roll of
  * the weapon's own skill and the same class's ranged skill at the row's blend shares. */
@@ -247,7 +246,7 @@ export function modeIdOf(word: string): string {
   return Object.values(getLibrary().attackModes ?? {}).find((m) => m.id.toLowerCase() === w || m.name.toLowerCase() === w)?.id ?? word;
 }
 
-export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: reachLinks(0.7), hands: 0, name: 'fists' };
+export const UNARMED_MODE: AttackMode = { id: AM.unarmed, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: 0.7, hands: 0, name: 'fists' };
 
 /** attack modes the actor can use now: held weapon modes, then natural/unarmed. */
 export function usableModes(state: GameState, actor: Actor): { itemId: string; mode: AttackMode }[] {

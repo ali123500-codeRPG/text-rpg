@@ -310,10 +310,10 @@ The tier names are the six tiers of Part 1 §4; the ruleset still owns them.
 
 Settled by Ali 07/11/2026 ("Action economy: options", AE1–AE12; settles D-19, D-60, D-83).
 
-- **Slots (AE1).** A turn is one move (one zone link), one main action, and free things: gear ops, defenses (each after the first in a turn takes the outnumbered modifier) and barks. Perks and class skills change a slot: add one, swap one, or make one free. A fight turn stays 6 seconds whatever it holds (AE12).
+- **Slots (AE1).** A turn is one move (a walk: 8.4 m for an unarmored human), one main action, and free things: gear ops, defenses (each after the first in a turn takes the outnumbered modifier) and barks. Perks and class skills change a slot: add one, swap one, or make one free. A fight turn stays 6 seconds whatever it holds (AE12).
 - **Ranged (AE1, ZP3).** A ranged attack (a shot or a throw) costs the main action and CONFIG.RANGED\_MOVE\_SLOTS move slots (1) by default. If the attack reaches from where the actor stands, it takes its move slot first and a move goes only on the move slots left (with one move slot the move is dropped: move\_dropped, ranged\_attack); otherwise the move stands and the attack is dropped. Shoot and Move (B4, banked) would lower the cost.
-- **Action slots (CO13).** Each actor gets CONFIG.MOVE\_SLOTS move slots (1) and CONFIG.MAIN\_SLOTS main slots (1) a turn (engine actionSlots, the one place a perk or body type would add slots). A movement spends a move slot first and, when no move slot is left, a main slot, but only when no main action is planned. How far a slot goes comes from real speeds over the Fight turn duration (6 s, engine/speed `slotLinks`): a move slot walks and a main slot spent moving (a dash: the move costs both actions) runs the rest of the turn. Speeds (RD7, `moveSpeed`) come from the body type (`BodyType.speed`, m/s): humanoid walk 1.4, run 5 (a run in kit); winged quadruped 1.8 and 12 (a horse on the ground); amorphous 0.5 and 1 (placeholder). Worn armor slows both: a flat m/s off, then a share off what is left (`armor.speed`, default CONFIG.ARMOR\_SPEED by weight: light 0 and 0%, medium 0.1 and 5%, heavy 0.2 and 15%, placeholders), and a movement speed factor (`speedFactor`, 1 today) multiplies the result for later perks, statuses and mounts. An unarmored humanoid walks 8.4 m (1 link) and a dash adds 21.6 m (2 links): 30 m in all. Every slot covers at least one link. An actor with more move slots walks farther.
-- **Dash (AE2).** Anyone (player or NPC) with no main action whose move's zone is more than one link away spends the main slot to run the next links. A Crippled or Destroyed part with the move role stops a dash (dash\_blocked), and so does Leg Bolt's slow.
+- **Action slots (CO13).** Each actor gets CONFIG.MOVE\_SLOTS move slots (1) and CONFIG.MAIN\_SLOTS main slots (1) a turn (engine actionSlots, the one place a perk or body type would add slots). A movement spends a move slot first and, when no move slot is left, a main slot, but only when no main action is planned. How far a slot goes comes from real speeds over the Fight turn duration (6 s, engine/speed `slotMetres`): a move slot walks and a main slot spent moving (a dash: the move costs both actions) runs the rest of the turn. Speeds (RD7, `moveSpeed`) come from the body type (`BodyType.speed`, m/s): humanoid walk 1.4, run 5 (a run in kit); winged quadruped 1.8 and 12 (a horse on the ground); amorphous 0.5 and 1 (placeholder). Worn armor slows both: a flat m/s off, then a share off what is left (`armor.speed`, default CONFIG.ARMOR\_SPEED by weight: light 0 and 0%, medium 0.1 and 5%, heavy 0.2 and 15%, placeholders), and a movement speed factor (`speedFactor`, 1 today) multiplies the result for later perks, statuses and mounts. An unarmored humanoid walks 8.4 m and a dash adds 21.6 m: 30 m in all. Without zone rectangles a fresh slot always crosses at least one link. An actor with more move slots walks farther.
+- **Dash (AE2).** Anyone (player or NPC) with no main action whose move hasn't reached its zone when the move slot runs out spends the main slot to run on. A Crippled or Destroyed part with the move role stops a dash (dash\_blocked), and so does Leg Bolt's slow.
 - **Order (AE3).** The move comes first unless the Parser marks it `after` ("strike, then step back"). NPCs keep move first for now (parked as D-185: the Planner would need the same field).
 - **Extra attacks (AE4)** come only from perks and class skills (Flurry: a second attack at tier shift −1), never from a high skill alone.
 - **Free actions (AE5)** stay as above; a perk can make one action free a limited number of times per engagement (Dirt in the Eyes).
@@ -325,7 +325,7 @@ Settled by Ali 07/11/2026 ("Action economy: options", AE1–AE12; settles D-19, 
 
 ### Game state model
 
-The save is the set of pages defined in Part 4. On load, the engine builds one in-memory GameState from those pages; it is never saved as one document. Positions are abstract zones. Each zone belongs to one place, and the stage may hold zones from several places. Knowledge lives on the observer: the guard's belief about the player is `guard.mind.knowledge.player`, and it can be wrong.
+The save is the set of pages defined in Part 4. On load, the engine builds one in-memory GameState from those pages; it is never saved as one document. Everyone is in a zone and stands at a point in metres in it (step 2, below). Each zone belongs to one place, and the stage may hold zones from several places. Knowledge lives on the observer: the guard's belief about the player is `guard.mind.knowledge.player`, and it can be wrong.
 
 ```ts
 type Perception = 'full' | 'partial';
@@ -365,7 +365,8 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // Height: a zone's height is metres above the ground outside (0 when unset). Stairs change height, never distance north,
 // south, east or west. The Weaver may give it; when it doesn't, code infers it from the exits (src/scene/heights.ts): a
 // link whose words go up (up, upstairs, loft, roof...) climbs CONFIG.STOREY_HEIGHT (3 m, placeholder), one that goes down
-// (down, downstairs, cellar, below...) drops it, any other keeps it; a story's first zones stand at 0. The Map page shows
+// (downstairs, cellar, below...) drops it, any other keeps it; a bare "up" or "down" counts only beside a way to climb
+// (stairs, steps, ladder, hatch...), so "down the street" stays level (BG-6); a story's first zones stand at 0. The Map page shows
 // one height (floor) at a time, with floor buttons and stair badges, and zones on other floors straight above or below.
 // Metres (CO1–CO19, Ali, 11/11/2026; step 1, no rule reads these yet): the range unit is the pace, CONFIG.PACE_M (1 m,
 // about one stride; 1.5 m until 11/11/2026), with CONFIG.LINK_PACES (8, so a link stays about 8 m) converting today's link-based tables. A zone's area is m²: the Weaver
@@ -386,11 +387,20 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // links its own zones to placeKey.<entry>. An unknown layout is a bad_place. LY1 village tavern (common room with a counter
 // on its north side, behind the counter, kitchen, back yard, upstairs landing, cellar), LY2 cottage, LY3 shop, LY4 smithy
 // (open to the street on its south side), LY5 gatehouse. A building type may have several; a new layout is a new row.
-// Step 2 gives every character a position in metres and measures moves and ranges in paces (CO11–CO13); step 3 is travel
-// along a road that is one long zone (CO18, its own deep dive).
+// Positions (step 2, ZP1–ZP6, src/engine/position.ts): everyone stands at a point (Actor.pos, metres in the rectangles'
+// frame). Code places them (placeAll, at scene setup and each turn's start): anyone whose point is missing or outside its
+// zone gets the zone's centre, else the nearest free point on a CONFIG.PLACE_GAP_M (1 m, arm's length) grid around it.
+// Distance (distM): a straight line when there is sight between the zones (the same zone, or a path of sight links;
+// sightDistM, which attacks use: a blow or shot never goes round a wall), else the walking path through the doorways,
+// adding any climb. A move walks one leg at a time (walkLeg): to the next zone's doorway, then on; a move to a zone ends
+// CONFIG.ENTER_M (1 m) past its doorway. A zone with no rectangle (a hand-built test world) is a point, and each link costs
+// LINK_PACES × PACE_M metres, as before positions. The narration and views carry metres (a move's `metres`, a seen
+// actor's distanceM). PR 2 moves sight and sound to metres; PR 3 the hostile-within-2 m shot rule and the aura. Step 3
+// is travel along a road that is one long zone (CO18, its own deep dive).
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
               links: ZoneLink[]; cover: 'none' | 'some' | 'heavy'; light: 'bright' | 'dim' | 'dark';      // zone ids unique within a story
               height?: number;                                           // metres above the ground outside
+              rect?: Rect;                                               // set by code (placeZones): metres on the map
               area?: number; edges?: Partial<Record<'n' | 'e' | 's' | 'w', string>>; // CO16 m², CO15 edge kind ids by side
               groundItems: ItemInstance[] };                             // Part 5 §4
 type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true };
@@ -638,7 +648,7 @@ Rules:
 11. If the player goes to someone who is not in PLAYER_VIEW to talk to them or act on them, give only
    the move toward where they are and put what they meant to say or do in "deferred". Do not ask who they mean.
 12. Passing time is "wait" (put the time of day to wait for in "target": "dawn", "day", "dusk" or "night"; null waits until the next one) or "sleep". A short rest to recover is "rest".
-13. The move comes before the action unless the player acts first and then moves ("strike, then step back"): then set "after": true on the move. A zone two links away with no action is a dash. A ranged attack and a move cannot share a turn.
+13. The move comes before the action unless the player acts first and then moves ("strike, then step back"): then set "after": true on the move. A move walks toward the zone named; with no action it runs on (a dash). An attack on someone in sight needs no move: the character closes in by itself. A ranged attack and a move cannot share a turn.
 14. If the player uses one of PLAYER_VIEW's perkMoves (by its name or by what it does, e.g. "throw dirt in his eyes"), put it in "perkMove" with its target, beside any move and action.
 
 Return only JSON matching the schema.
@@ -919,7 +929,8 @@ Perception rules:
 
 Rules for simultaneous orders, because the Parser and the Planner worked without seeing each other:
 
-- **Target moved first.** An attack resolves against the target's new zone if it is still within the weapon's reach; otherwise it becomes a wasted-action event ("swings at empty air"). Reach comes from the attack mode, in zone links with sight (Part 5 §5).
+- **Target moved first.** An attack resolves against where the target stands now if it is still within the weapon's reach; otherwise it becomes a wasted-action event ("swings at empty air"). Reach comes from the attack mode, in metres with sight (Part 5 §5).
+- **Closing in (ZP3).** A melee attack on someone out of reach, with no other move planned before it (none, or a move to the target's zone), walks at the target on the move slot first and stops just inside the weapon's reach (a move event with `target` and no fromZone). Still out of reach, the blow is lost (a wasted action). A ranged attack never closes in.
 - **Moves.** A move resolves at its actor's initiative like any other action. Provisional: how many actions a turn holds is part of the action-economy discussion.
 - **Same target or object.** Earlier initiative acts first; the later actor gets a contested check or a wasted action.
 - **Stealth.** A hide or sneak is contested once per observer in perception range. Each result sets that observer's belief separately. A hide or sneak also sets the player's posture to stealthy.
@@ -2295,7 +2306,7 @@ type AttackMode = {
   class: 'light' | 'medium' | 'heavy' | 'punch' | 'slam' | 'grapple';   // natural attacks use their own class; unarmed with no class: the unarmed profile
   skill?: LibraryRef;                    // unarmed only: which placeholder skill
   reachM: number;                        // metres, from real weapons
-  reach: number;                         // zone links: reachLinks(reachM); 0 = same zone
+  reach: number;                         // metres in use: reachM + a thrown weapon's perk metres (modeReach)
   hands: 0 | 1 | 2;                      // 0 for natural attacks
   thrown?: true;
   damageAdj?: number;
@@ -2620,7 +2631,7 @@ Every gear modifier enters the check or roll request as its own entry, naming it
 - **Class table.** In Part 3, Weapons, armor and shields (ruleset config): damage and hit by class, and block's tier gap counts one less against heavy.
 - **Skills.** Combat-Melee, Combat-Ranged and Combat-Unarmed trees, each with three skills. The skill of an attack is the tree plus the class (melee\_heavy, ranged\_light). The three Combat-Unarmed skills are placeholders that behave the same for now, sharing one unarmed profile (*placeholder*: 15 damage, +10 hit). A natural attack uses its own class's damage and hit instead (Part 3, Weapons, armor and shields): the humanoid's punch is class punch, the slime's slam is class slam. Worn hand gear such as gauntlets may change unarmed damage later (D-97).
 - **Attack modes.** A weapon lists one or more modes, each with its own tree, class, reach and hands, plus optional bonuses on top of the class table (damageAdj, hitAdj). Dagger: melee light, and Throw. **The Throw action** (Ali, 10/11/2026): the throw's rules live on the Throw row of the attack modes table (`attackModes`), so every weapon that lists Throw gets them and nothing is coded into the gear. Reach (RD6, Ali 11/11/2026): each throw mode's own throw range in metres (CONFIG.THROW\_M), aimed at a man-sized target: spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m), knife 7 (the longest standard distance in European knife-throwing rules), improvised 5 (placeholder, no source); a throwing axe would be 12 (the francisca). Perks' `throwReach` adds metres, and gear `modeReach` turns it into links once: spear 2, knife and improvised 0 (their own zone until positions exist). Roll: the first **combined skills roll**: THROW\_BLEND weapon (0.75) × the weapon's own effective skill (its gear class skill: a dagger Light weapons) + THROW\_BLEND ranged (0.25) × the effective ranged skill of the same class (Light ranged). Each part takes its own stand-ins and only the gear that boosts its own skill, and both skills that rolled can learn. `AttackMode.blend` carries a combined roll, so later actions can use one too. A thrown item leaves the thrower's hands and lands on the ground of the target's zone, hit or miss (item\_landed), where anyone can pick it up. \[Proposed\]
-- **Reach.** Each mode has a real reach in metres (`reachM`, from real weapons): fist 0.7, dagger 1.0, short sword 1.3, arming sword 1.6, greataxe 2.2, greatsword 2.3, spear 2.8; shortbow 50, flatbow and light crossbow 60, recurve and stirrup crossbow 70, crossbow 80, longbow 90 (effective ranges against a man, not the longest shot). Zone links come from one conversion (ruleset/range `reachLinks`: floor(metres ÷ (LINK\_PACES × PACE\_M))): 0 = same zone; N = up to N links, every link with sight. Until step 2's positions, every melee weapon reaches only its own zone, and bows reach 6–11 links. Ranged modes take the range modifiers in Part 3 (Reach, range, cover and light). Item value counts the links. \[Proposed\]
+- **Reach.** Each mode has a real reach in metres (`reachM`, from real weapons): fist 0.7, dagger 1.0, short sword 1.3, arming sword 1.6, greataxe 2.2, greatsword 2.3, spear 2.8; shortbow 50, flatbow and light crossbow 60, recurve and stirrup crossbow 70, crossbow 80, longbow 90 (effective ranges against a man, not the longest shot). Reach is compared in metres with the distance to the target with sight between them (sightDistM): a spear reaches 2.8 m into the next zone across a doorway, a sword only 1.6 m. Ranged modes take the range modifiers in Part 3 (Reach, range, cover and light). Item value counts whole zone links of reach (ruleset/range `reachLinks`). \[Proposed\]
 - **Thrown.** A thrown mode moves the item to the ground of the target's zone. There is no other ammunition.
 - **Natural attacks.** A body type lists the natural attack modes its shape always has, and a race may add its own (BR3). A mode tied to a Strike part follows Part 3's Strike role (Damaged −10, Crippled unavailable). A humanoid's unarmed mode has no part. \[Proposed\]
 - **Blocking.** Any held melee mode can block, which meets the "shield or weapon" rule. Ranged, thrown and unarmed modes can't.
@@ -2899,6 +2910,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-3 | "I await the outcome" after a yield got a clarify ("Nothing is pending"): the Parser had no way to let a moment pass | Play | Fixed | PR #375 |
 | BG-4 | "I yield" asked a hostile who never fought the player (waiting in another room), and the sheet's "Deciding" list revealed him; he also counts in the fight log | Play | Fixed | PR #387 (YD1–YD3, YD6, YD7) |
 | BG-5 | The player's fight never ended after they left it: the slimes stayed hostile and aware while fighting the guard, so fightingWith kept the engagement open and the end-of-engagement skill-up rolls never came (playtest run 31) | Playtest | Fixed | PR #387 (YD6) |
+| BG-6 | Zone placement read "down the street" and "up the road" as stairs, so level street zones were stacked on top of each other | Thread | Fixed | step 2 PR 1 |
 
 ## Check on release
 
