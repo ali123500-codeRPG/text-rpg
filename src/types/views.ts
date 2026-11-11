@@ -234,6 +234,7 @@ export type WeaverView = {
     items: { id: string; name: string; kind: string; boon: number }[]; // boon: worth as a reward (loot V8)
     skills: { id: string; name: string }[];
     zoneKinds: import('./library').ZoneKind[]; // Z2
+    edgeKinds: import('./library').EdgeKind[]; // CO15
   };
   grades: Grade[];
 };

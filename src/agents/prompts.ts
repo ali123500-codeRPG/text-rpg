@@ -7,7 +7,7 @@ import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scene/validate';
 import { GRADES, ORDER_TYPES } from '../types';
-import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, type Scale } from '../scales';
+import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, type Scale } from '../scales';
 /** a scale's levels as the JSON choices Claude may write (G4) */
 const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.stringify(sc.name(k))).join('|');
 /** V7 (flavor voice): the story's tone colors NPC speech without overriding character */
@@ -87,7 +87,7 @@ export const NARRATOR_SHAPE = '{"text":string,"narrated":[event_id]}';
 export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain":grade},
  "places":[{"key","name","kind","parent":placeKey|placeId|null}],
  "timeOfDay"?:${words(TIME_OF_DAY)},
- "zones":[{"key","place","kind":zone kind id from catalogs.zoneKinds,"name","look","cover"?:${words(COVER)},"light"?:${words(LIGHT)},"height"?:metres,"links":[{"to","label","sight":boolean}]}],
+ "zones":[{"key","place","kind":zone kind id from catalogs.zoneKinds,"name","look","cover"?:${words(COVER)},"light"?:${words(LIGHT)},"height"?:metres,"size"?:${words(ZONE_SIZES)},"area"?:m²,"edges"?:{"n"|"e"|"s"|"w":edge kind id from catalogs.edgeKinds},"links":[{"to","label","sight":boolean}]}],
  "frontiers":[{"key","label"}],
  "bands":[{"key","name","goals","temperament","tactics":${words(TACTICS)},"lethal":boolean,"relations":{bandKey:${words(STANCES)}}}],
  "cast":[{"template"?:templateId,"actor"?:actorId,"label","name","appearance","pronouns":"he"|"she"|"they"|"it","knownOnSight"?:true,"knows"?:[{"id","text"}],"key","band","routineSetId",
@@ -111,7 +111,7 @@ No word or phrase from hiddenTerms or any secret's leakTerms may appear in publi
 Terms match whole words only.
 Grades must fit the tier: ${gradesFitText()}.
 A zone is one open space with nothing in the way inside it: anyone in it can reach anyone else in a step or two, at most about a room (5 to 10 paces) across. A barrier (wall, counter, door, gate, steps) or more distance starts a new zone. Build a bigger space (a square, a field, a hall) as several zones of the same kind joined by sight links.
-Every zone has a kind from catalogs.zoneKinds. The kind sets indoor or outdoor and the default cover and light; give cover or light only to change them.\nA zone's height is metres above the ground outside. Leave it out: code works it out from the exits (a link labelled with up, upstairs, loft or roof climbs a storey; down, downstairs, cellar or below goes down one; any other link keeps the height). Give it only when the words would get it wrong, such as a tower top or a deep mine.
+Every zone has a kind from catalogs.zoneKinds. The kind sets indoor or outdoor and the default cover and light; give cover or light only to change them.\nA zone's height is metres above the ground outside. Leave it out: code works it out from the exits (a link labelled with up, upstairs, loft or roof climbs a storey; down, downstairs, cellar or below goes down one; any other link keeps the height). Give it only when the words would get it wrong, such as a tower top or a deep mine.\nThe kind also sets the zone's size and its sides (indoors walled, outdoors open). Give size (${ZONE_SIZES.list()}) or area in m² only when the place is clearly bigger or smaller than its kind. Give edges only for a side that differs: a bar's floor with a counter on its north side is \"edges\":{\"n\": the low edge id}. North is the map's north, as in the exits' compass words.
 In a dark zone people are only half seen. A zone's light is its own light (hearths and lamps are bright or dim, cellars are dark). Outdoor zones' light is only their lamps or fires: code adds daylight by the time of day (day bright, dawn and dusk dim).
 If WEAVER_VIEW.target.wake is set, the player was knocked out and comes to now, at Critical health: plan a new place whose first zone is where they wake, somewhere safe (a bed, a healer's cot, a quiet corner) with no threat in reach, and say in event.summary how they got there.
 WEAVER_VIEW.time is the day and time of day. If it is null the story is starting: set "timeOfDay" to when it opens (${words(TIME_OF_DAY)}). Otherwise leave "timeOfDay" out or give the current one.
