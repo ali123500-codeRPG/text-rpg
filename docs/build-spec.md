@@ -2936,6 +2936,8 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 
 ## Bug log
 
+The play page's Bugs page (Ali, 11/11/2026): Report bug files the player's note as code player_report with the story, turn and last six lines; the list shows open bugs only, newest first; Send open bugs to Claude posts a comment sent to Claude that wakes the build thread, which triages each bug to the thread that owns it.
+
 Every bug found or reported, in any thread or in play, gets a fixed number (BG-n). Numbers come from one counter, `bugs_meta/counter` in the play page's db: the game takes the next one when it files a bug, and a thread that finds a bug takes the next one there too (read the counter, write next + 1 pinned to the version read), so a number is never shared or reused. Always mention a bug by its BG-n.
 
 The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: any `invalid_` code, and view\_leak, invalid\_target, unlisted\_reveal, planner\_late, agent\_fallback, call\_failed, refused, invalid\_json, weaver\_off\_catalog, weaver\_fallback, weaver\_timeout, routine\_fallback, routine\_skip, reward\_repaired and quest\_goal\_gap (src/save/bugs.ts BUG\_CODES). Plain game outcomes, such as a blocked move or a refused sale, are not bugs. A build thread that reviews a filed bug adds it to this table, sets its db status (open, fixed or wont\_fix), and names the PR that fixes it.

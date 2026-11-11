@@ -84,6 +84,10 @@ export interface GameApi {
   resume(owner?: import('./state').StoryOwner): Promise<boolean>;
   /** autopilot: the agent's next command and one short line of commentary, or null when the call failed */
   hallOfFame(): Promise<FallenCharacter[]>; // archived stories whose character fell, newest first
+  /** files the player's own bug report (code player_report) with the story, turn and last lines; resolves to its BG id */
+  reportBug(note: string): Promise<string | null>;
+  /** the open bugs, newest first */
+  openBugs(): Promise<import('../save/bugs').FiledBug[]>;
   agentMove(persona?: string): Promise<{ command: string; say: string } | null>;
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;

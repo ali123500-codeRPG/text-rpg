@@ -18,6 +18,13 @@ export type FiledBug = BugReport & { id: string; status: 'open' | 'fixed' | 'won
 
 const queues = new WeakMap<Store, Promise<unknown>>();
 
+/** the open bugs, newest number first (the play page's bug list) */
+export async function openBugs(store: Store): Promise<FiledBug[]> {
+  const docs = await Promise.all((await store.list('bugs')).map((p) => store.get<FiledBug>(p)));
+  const num = (b: FiledBug) => Number(String(b.id).replace(/^BG-/, '')) || 0;
+  return docs.filter((b): b is FiledBug => !!b && b.status === 'open').sort((a, b) => num(b) - num(a));
+}
+
 /** files a bug as `bugs/BG-<n>` with status open; resolves to its id, or null when the store refused */
 export function fileBug(store: Store, now: number, bug: BugReport): Promise<string | null> {
   const run = async (): Promise<string | null> => {
