@@ -27,6 +27,7 @@ import { StopPlay, callGate, modelFor, type AgentCtx, type RunResult } from './c
 import { fameEntry } from './fame';
 import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from './autopilot';
 import type { GuidedCtx } from './crossroads';
+
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
 import { isComm, noticeCue } from '../perception';
@@ -34,6 +35,8 @@ import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
+
+const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
 /**
  * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
@@ -79,7 +82,7 @@ export function createGame(deps: GameDeps): Game {
   let savedLines = 0; // Q18: lines[0..savedLines) are in the story's saved history
   let notices: Notice[] = [];
   let busy = false;
-  let agentSaid: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
+  let agentSaid: string[] = [], agentCmds: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
   let stopped = false;
   let rateLimited = false;
   let aimNext = false;
@@ -587,7 +590,13 @@ export function createGame(deps: GameDeps): Game {
     openBugs: () => openBugs(store),
     async agentMove(persona = '', style = '', guided?: GuidedCtx) {
       const r = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined) }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
-      const mv = r.ok ? readMove(r.value, guided?.mustAsk?.kind) : null;
+      let mv = r.ok ? readMove(r.value, guided?.mustAsk?.kind) : null;
+      // BG-25: it kept checking its sheet instead of acting; a second look within AUTOPILOT_INFO_EVERY moves is asked again once
+      if (mv && INFO_COMMAND.test(mv.command) && agentCmds.some((c) => INFO_COMMAND.test(c))) {
+        const again = await counted.call({ agent: 'autopilot', input: [{ role: 'user', content: AUTOPILOT_BRIEF }, { role: 'user', content: `${autopilotTurn(lines, persona, style, agentSaid, guided ? { state, ctx: guided } : undefined)}\n\nYou looked at your sheet only a few moves ago: do not check it again now. Act.` }], json: true, signal: AbortSignal.timeout(CONFIG.AUTOPILOT_TIMEOUT_MS), ...modelFor('autopilot') });
+        mv = again.ok ? readMove(again.value, guided?.mustAsk?.kind) ?? mv : mv;
+      }
+      if (mv?.command) agentCmds = [...agentCmds, mv.command].slice(-CONFIG.AUTOPILOT_INFO_EVERY);
       if (mv?.say) agentSaid = [...agentSaid, mv.ja ? `${mv.ja} (${mv.say})` : mv.say].slice(-CONFIG.AUTOPILOT_SAID_KEPT);
       return mv;
     },
