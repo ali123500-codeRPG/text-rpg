@@ -127,6 +127,7 @@ export function mapPage(api: GameApi) {
   // each inner place drawn as an outlined area. `focus` is the place picked in the list or the crumbs.
   let focus = '', selected = '', lastHere = '';
   const spots = new Map<string, Map<string, Pt>>(); // per world
+  const separated = new WeakSet<Map<string, Pt>>(); // layouts already pushed apart (separate)
   const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
   let cur: KnownMap | null = null, world = '';
   const floors = new Map<string, number>(); // per world: the height shown
@@ -248,6 +249,45 @@ export function mapPage(api: GameApi) {
   svg.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(e.target as Element); } });
 
   // ---------- drawing
+  type Box = { x0: number; y0: number; x1: number; y1: number };
+  /** an inner place's outline: its known zones' tiles plus a margin that grows for outer places, and a strip on top for its name */
+  function areaBox(p: { depth: number }, zs: MapZone[], sp: Map<string, Pt>, maxDepth: number): Box | null {
+    if (!zs.length) return null;
+    const pad = 30 + (maxDepth - p.depth) * 18;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const z of zs) { const c = sp.get(z.id); if (!c) continue; x0 = Math.min(x0, c.x - tw(z) / 2); x1 = Math.max(x1, c.x + tw(z) / 2); y0 = Math.min(y0, c.y - th(z) / 2); y1 = Math.max(y1, c.y + th(z) / 2); }
+    return x0 === Infinity ? null : { x0: x0 - pad, y0: y0 - pad - 22, x1: x1 + pad, y1: y1 + pad };
+  }
+  /** the free layout knows zones, not places, so two places' outlines (or a place and a loose zone) can overlap. Push
+   *  apart every pair of groups that overlap: each top place below the map's root with its zones, and each zone that
+   *  sits in no inner place. The group holding the player stays put; the other moves the short way out, plus a gap. */
+  function separate(sp: Map<string, Pt>, every: MapZone[]) {
+    const GAP = 28;
+    const inner = (cur?.places ?? []).filter((p) => rootOf(p.id) === world && p.id !== world);
+    const maxDepth = Math.max(0, ...inner.map((p) => p.depth));
+    const tops = inner.filter((p) => !p.parentId || p.parentId === world || !inner.some((q) => q.id === p.parentId));
+    const groups = [
+      ...tops.map((p) => ({ zs: every.filter((z) => inside(z.placeId, p.id)), box: () => areaBox(p, every.filter((z) => inside(z.placeId, p.id)), sp, maxDepth) })),
+      ...every.filter((z) => !tops.some((p) => inside(z.placeId, p.id))).map((z) => ({ zs: [z], box: (): Box | null => { const c = sp.get(z.id); return c ? { x0: c.x - tw(z) / 2, y0: c.y - th(z) / 2, x1: c.x + tw(z) / 2, y1: c.y + th(z) / 2 } : null; } })),
+    ].filter((g) => g.zs.length);
+    const anchored = (g: { zs: MapZone[] }) => g.zs.some((z) => z.id === cur?.zoneId);
+    for (let pass = 0; pass < 12; pass++) {
+      let moved = false;
+      for (let i = 0; i < groups.length; i++) for (let j = i + 1; j < groups.length; j++) {
+        const a = groups[i].box(), b = groups[j].box();
+        if (!a || !b) continue;
+        const ox = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0) + GAP, oy = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0) + GAP;
+        if (ox <= 0 || oy <= 0) continue;
+        const [still, ms] = anchored(groups[j]) ? [b, groups[i]] as const : [a, groups[j]] as const;
+        const mBox = ms.box()!, sx = (mBox.x0 + mBox.x1) / 2 - (still.x0 + still.x1) / 2, sy = (mBox.y0 + mBox.y1) / 2 - (still.y0 + still.y1) / 2;
+        const d = ox < oy ? { x: (sx < 0 ? -1 : 1) * ox, y: 0 } : { x: 0, y: (sy < 0 ? -1 : 1) * oy };
+        for (const z of ms.zs) { const c = sp.get(z.id); if (c) sp.set(z.id, { x: c.x + d.x, y: c.y + d.y }); }
+        moved = true;
+      }
+      if (!moved) break;
+    }
+  }
+
   function drawMap() {
     const every = worldZones(), zones = floorZones();
     const prev = spots.get(world) ?? new Map<string, Pt>();
@@ -255,6 +295,7 @@ export function mapPage(api: GameApi) {
     if (planned()) { sp = new Map(every.map((z) => [z.id, { x: z.rect!.x * PX_PER_M, y: -z.rect!.y * PX_PER_M }])); spots.set(world, sp); }
     else if ([...prev.keys()].sort().join('|') !== every.map((z) => z.id).sort().join('|') || plannedLast.has(world)) { sp = layout(every, world === WORLD ? rootOf(cur!.placeId) : cur!.zoneId, plannedLast.has(world) ? new Map() : prev); spots.set(world, sp); }
     if (planned()) plannedLast.add(world); else plannedLast.delete(world);
+    if (!planned() && world !== WORLD && !separated.has(sp)) { separate(sp, every); separated.add(sp); }
     const byId = new Map(zones.map((z) => [z.id, z]));
     const centroid = zones.reduce((a, z) => ({ x: a.x + sp.get(z.id)!.x / zones.length, y: a.y + sp.get(z.id)!.y / zones.length }), { x: 0, y: 0 });
     const areas = s('g', { class: 'map-areas' }), links = s('g', { class: 'map-links' }), tiles = s('g', { class: 'map-tiles' }), labels = s('g', { class: 'map-labels' });
@@ -263,14 +304,12 @@ export function mapPage(api: GameApi) {
     const maxDepth = Math.max(0, ...inner.map((p) => p.depth));
     for (const p of inner) {
       const zs = zones.filter((z) => inside(z.placeId, p.id));
-      if (!zs.length) continue;
-      const pad = 30 + (maxDepth - p.depth) * 18;
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      for (const z of zs) { const c = sp.get(z.id)!; x0 = Math.min(x0, c.x - tw(z) / 2); x1 = Math.max(x1, c.x + tw(z) / 2); y0 = Math.min(y0, c.y - th(z) / 2); y1 = Math.max(y1, c.y + th(z) / 2); }
+      const b = areaBox(p, zs, sp, maxDepth);
+      if (!b) continue;
       const on = p.id === focus, mine = inside(cur!.placeId, p.id);
       areas.append(s('g', { class: `map-area${on ? ' on' : ''}${mine ? ' mine' : ''}`, 'data-area': p.id, tabindex: 0, role: 'button', 'aria-label': `${p.name}, ${zs.length} zones known` },
-        s('rect', { x: x0 - pad, y: y0 - pad - 22, width: x1 - x0 + 2 * pad, height: y1 - y0 + 2 * pad + 22, rx: 18 }),
-        s('text', { x: x0 - pad + 16, y: y0 - pad - 2, class: 'map-area-name' }, p.name)));
+        s('rect', { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0, rx: 18 }),
+        s('text', { x: b.x0 + 16, y: b.y0 + 20, class: 'map-area-name' }, p.name)));
     }
     const done = new Set<string>();
     const stairs: { z: MapZone; l: MapZone['links'][number]; up: boolean; other?: MapZone }[] = [];
