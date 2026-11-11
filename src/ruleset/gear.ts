@@ -53,19 +53,18 @@ export function kitBonus(def: ItemDef, e: ItemEffect): number {
   return r ? CONFIG.EQUIP_FACTOR * r.need : e.value;
 }
 
-/** a mode's reach in zone links: its own metres + its attack mode row's reachBonusM + extra metres (a thrown weapon's
+/** a mode's reach in zone links: its own metres (a throw mode's is its throw range) + extra metres (a thrown weapon's
  * perks), turned into links once. The one reach equation: attacks, item value and the library all read it. */
-export const modeReach = (mode: AttackMode, extraM = 0): number =>
-  reachLinks(mode.reachM + (getLibrary().attackModes?.[mode.id]?.reachBonusM ?? 0) + extraM);
+export const modeReach = (mode: AttackMode, extraM = 0): number => reachLinks(mode.reachM + extraM);
 
-/** an item's mode with its attack mode row's rules applied. Throw: reach from weapon + row metres (+ perks' throwReach), and a combined roll of
+/** an item's mode with its attack mode row's rules applied. Throw: its own throw range (+ perks' throwReach metres), and a combined roll of
  * the weapon's own skill and the same class's ranged skill at the row's blend shares. */
 export function withRow(actor: Actor, def: ItemDef, mode: AttackMode): AttackMode {
   const row = getLibrary().attackModes?.[mode.id];
-  if (!row?.reachBonusM && !row?.blend) return mode;
+  if (!row?.blend && !mode.thrown) return mode;
   const own = requiredSkill(def) ?? modeSkill(mode), ranged = CLASS_SKILL.ranged[mode.class];
   return { ...mode, reach: modeReach(mode, mode.thrown ? perkSum(actor, 'throwReach') : 0),
-    ...(row.blend && ranged ? { skill: own, blend: [{ skill: own, share: row.blend.weapon }, { skill: ranged, share: row.blend.ranged }] } : {}) };
+    ...(row?.blend && ranged ? { skill: own, blend: [{ skill: own, share: row.blend.weapon }, { skill: ranged, share: row.blend.ranged }] } : {}) };
 }
 
 /** a combined roll's effective skill: each part's effectiveSkill (its own stand-ins and gear) × its share, summed */

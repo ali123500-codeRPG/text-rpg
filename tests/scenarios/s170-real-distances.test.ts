@@ -4,7 +4,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createRng, makeVillage, place } from '../harness';
 import { resolveTurn } from '../../src/engine';
-import { slotLinks } from '../../src/engine/resolve';
+import { moveSpeed, slotLinks } from '../../src/engine/speed';
+import { getLibrary } from '../../src/library';
+import { IT } from '../../src/library/itemIds';
+import { BT } from '../../src/library/raceIds';
 import { rangeMod } from '../../src/ruleset';
 import { reachLinks } from '../../src/ruleset/range';
 import { hearsWords, perceptionOf } from '../../src/perception';
@@ -23,19 +26,23 @@ describe('170 real distances', () => {
     expect(reachLinks(50)).toBe(6); // a shortbow
   });
 
-  it('a fight turn walks 1 link and a dash runs 2 more (30 m in 6 s); MOVE_SLOTS still adds walks', () => {
-    expect(slotLinks('move')).toBe(1); // 1.4 m/s × 6 s = 8.4 m
-    expect(slotLinks('main')).toBe(2); // (5 − 1.4) m/s × 6 s = 21.6 m
+  it('speed comes from the body type, less worn armor (flat, then a share); a walk is 1 link and a dash 2 more', () => {
     const s = makeVillage();
+    for (const i of s.player.core.inventory) if (i.equippedIn?.includes('armor')) delete i.equippedIn;
+    expect(moveSpeed(s, s.player)).toEqual({ walk: 1.4, run: 5 });
+    expect(slotLinks(s, s.player, 'move')).toBe(1); // 1.4 m/s × 6 s = 8.4 m
+    expect(slotLinks(s, s.player, 'main')).toBe(2); // (5 − 1.4) m/s × 6 s = 21.6 m
     place(s, 'player', 'street_door');
     turn(s, intent({ toZone: 'field_mid' })); // 4 links: a dash reaches 3
     expect(s.player.zone).toBe('field_edge');
-    CONFIG.RUN_M_S = 3; // a slow runner: (3 − 1.4) × 6 = 9.6 m, one link
+    // heavy armor: (5 − 0.2) × 0.85 = 4.08 m/s run
     const t = makeVillage();
-    place(t, 'player', 'street_door');
-    CONFIG.RUN_M_S = 3; // makeVillage resets config
-    turn(t, intent({ toZone: 'field_mid' }));
-    expect(t.player.zone).toBe('gate_inner');
+    for (const i of t.player.core.inventory) if (i.equippedIn?.includes('armor')) delete i.equippedIn;
+    const heavy = Object.values(getLibrary().items).find((d) => d.armor?.weight === 'heavy')!;
+    t.player.core.inventory.push({ id: 'hv', itemId: heavy.id, equippedIn: ['armor'] });
+    const h = CONFIG.ARMOR_SPEED.heavy;
+    expect(moveSpeed(t, t.player).run).toBeCloseTo((5 - h.flat) * (1 - h.pct));
+    expect(getLibrary().bodyTypes[BT.amorphous].speed.walk).toBeLessThan(1.4); // a slime creeps
   });
 
   it('range penalty: by the distance as a share of the reach, so a longbow is barely stretched where a shortbow is at its limit', () => {

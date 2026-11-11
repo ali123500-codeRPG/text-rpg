@@ -17,7 +17,7 @@ const val = (id: string) => itemValue(null, itemDef(null, id));
 it('144a weapons: kit bonus plus reach', () => {
   expect(val(IT.arming_sword)).toBe(20 * V.skillPoint); // kit 0.4 × need 50
   expect(val(IT.shortbow)).toBe(10 * V.skillPoint + reachLinks(50) * V.reachZone); // range counts (SL14): 50 m in zone links
-  expect(val(IT.dagger)).toBe(10 * V.skillPoint + reachLinks(1 + CONFIG.THROWN_REACH_M) * V.reachZone); // its throw: 1 m + THROWN_REACH_M zones
+  expect(val(IT.dagger)).toBe(10 * V.skillPoint + reachLinks(CONFIG.THROW_M.knife) * V.reachZone); // its throw: 7 m zones
   expect(val(IT.cudgel)).toBe(1); // crude: worth 1 (SL13)
   expect(val(IT.improvised_medium)).toBe(0);
 });

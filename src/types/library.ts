@@ -64,8 +64,8 @@ export type ClassDef = {
   unlock?: Record<string, number>;
   /** either-of unlocks: in each group, at least one of the skills must also reach its true skill */
   unlockAny?: Record<string, number>[];
-  /** unlocks only for a character with an active perk whose listed numbers reach these (Guard: hearingReach 1) */
-  unlockPerkWith?: { hearingReach?: number };
+  /** unlocks only for a character with an active perk whose listed numbers reach these (Guard: hearingDb, any perk that sharpens hearing) */
+  unlockPerkWith?: { hearingDb?: number };
   /** class levels other classes must reach before this class unlocks; 'max' = that class's top level (kept for D-159) */
   unlockClass?: Record<string, number | 'max'>;
   /** the default class: unlocked for a player whose current class reaches its top level, so banked XP has somewhere to go */
@@ -89,6 +89,8 @@ export type BodyType = {
   naturalAttacks: AttackMode[];
   parts: PartDef[];
   fallback: { attackSkill: string };
+  /** RD7 base speeds in m/s, from real references: walk (a move slot) and run (a dash); worn armor lowers both (engine/speed) */
+  speed: { walk: number; run: number };
   /** optional body figure for the sheet: an SVG path per part id ('general' for the general area) */
   figure?: { viewBox: string; parts: Record<string, string> };
 };
@@ -121,7 +123,7 @@ export type Library = {
   visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
   gearClasses?: Record<string, { id: string; name: string; skill: string; use: 'melee' | 'ranged' | 'improvised' | 'armor' | 'shield' }>; // GC…: the skill an item of the class asks for
-  attackModes?: Record<string, { id: string; name: string; reachBonusM?: number; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
+  attackModes?: Record<string, { id: string; name: string; blend?: { weapon: number; ranged: number } }>; // attack modes by fixed ID (AM…); AttackMode.id names one
 };
 
 /** Z1–Z3: a zone is one open space with nothing in the way inside it, about a room across. A kind fixes
@@ -153,10 +155,10 @@ export type PerkDef = {
   id: string; name: string; text?: string; situation?: number;
   /** MB21: moves a health fear's `from` level by `steps` (+ later, − sooner) */
   fearFrom?: { fear: string; steps: number };
-  /** metres added to the throw action's reach (on top of THROWN_REACH_M) */
+  /** metres added to a thrown weapon's own range (CONFIG.THROW_M) */
   throwReach?: number;
-  /** zone links added to how far the owner hears (Keen Ear 1) */
-  hearingReach?: number;
+  /** decibels quieter the owner still hears (RD4 Keen Ear 10: sharp, attentive ears against average ones) */
+  hearingDb?: number;
   ladder?: { skill: string; milestone: number }; trueSkill?: number; effect?: PerkEffect;
   /** 40/80/120 perks (40/80/120): true skill added to other skills, +functionBoost to the ladder skill itself and every other
    * skill sharing a group with it (F1), and the ladder skill's own numbers (src/library/boostPerks.ts) */

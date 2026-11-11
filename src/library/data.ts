@@ -101,7 +101,7 @@ const KIT = (skill = '$mode'): ItemEffect => ({ kind: 'skill', skill, value: 25,
  * Ranged skills for the throw. */
 const IMPROVISED_MODES = (cls: 'light' | 'medium' | 'heavy', hands: 1 | 2) => [
   mode({ id: AM.strike, tree: 'melee', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, hands, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.arms] }),
-  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: 1.2, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
+  mode({ id: AM.throw, tree: 'ranged', class: cls, skill: SK.unarmed_improvised, reachM: CONFIG.THROW_M.improvised, hands, thrown: true, hitAdj: CONFIG.IMPROVISED_HIT_ADJ, standInFns: [FN.ranged] }),
 ];
 /** QE4/QE5: armor stops ARMOR_FACTOR × need; a shield's pool is POOL_BASE + POOL_FACTOR × need (gear stats scale with need) */
 const ARMOR = (w: ArmorWeightKey, level: string) => ({ reduction: CONFIG.ARMOR_FACTOR * CONFIG.EQUIP_NEED[level], multiplier: CONFIG.ARMOR_MULTIPLIER[w], weight: w });
@@ -154,13 +154,13 @@ const CLASS_PERKS: Record<string, PerkDef> = {
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.dagger, level: 'common', gearClass: GC.melee_light, tags: ['starter'], kind: 'weapon', name: 'dagger', look: 'a plain dagger', bulk: 1, value: 5, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: 1, hands: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.slash, tree: 'melee', class: 'light', reachM: 1, hands: 1 }), mode({ id: AM.throw, tree: 'ranged', class: 'light', reachM: CONFIG.THROW_M.knife, hands: 1, thrown: true })] } },
   { id: IT.arming_sword, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'arming sword', look: 'a straight arming sword', bulk: 2, value: 20, hands: 1, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.cut, tree: 'melee', class: 'medium', reachM: 1.6, hands: 1 })] } },
   { id: IT.greataxe, level: 'superior', gearClass: GC.melee_heavy, kind: 'weapon', name: 'greataxe', look: 'a heavy two-handed axe', bulk: 3, value: 30, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.chop, tree: 'melee', class: 'heavy', reachM: 2.2, hands: 2 })] } },
   { id: IT.spear, level: 'fine', gearClass: GC.melee_medium, tags: ['starter'], kind: 'weapon', name: 'spear', look: 'an ash-shafted spear', bulk: 3, value: 10, hands: 1, effects: [KIT()],
-    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: 2.8, hands: 1, thrown: true })] } },
+    weapon: { modes: [mode({ id: AM.thrust, tree: 'melee', class: 'medium', reachM: 2.8, hands: 2 }), mode({ id: AM.throw, tree: 'ranged', class: 'medium', reachM: CONFIG.THROW_M.spear, hands: 1, thrown: true })] } },
   { id: IT.shortbow, level: 'common', gearClass: GC.ranged_light, tags: ['starter'], kind: 'weapon', name: 'shortbow', look: 'a short hunting bow', bulk: 2, value: 25, hands: 2, effects: [KIT()],
     weapon: { modes: [mode({ id: AM.shoot, tree: 'ranged', class: 'light', reachM: 50, hands: 2 })] } },
   { id: IT.longbow, level: 'fine', gearClass: GC.ranged_medium, tags: ['starter'], kind: 'weapon', name: 'longbow', look: 'a tall longbow', bulk: 3, value: 35, hands: 2, effects: [KIT()],
@@ -236,6 +236,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
 export const BODY_TYPES: Record<string, BodyType> = {
   [BT.humanoid]: {
     id: BT.humanoid, name: 'Humanoid', general: { name: 'torso', size: 'normal' },
+    speed: { walk: 1.4, run: 5 }, // an everyday walk about 1.4 m/s; a run in kit about 5 m/s (a sprinter reaches 8–10)
     naturalAttacks: [{ id: AM.punch, tree: 'unarmed', class: 'punch', skill: SK.unarmed_strike, reachM: 0.7, reach: reachLinks(0.7), hands: 0, name: 'fists' },
       { id: AM.grapple, tree: 'unarmed', class: 'grapple', skill: SK.unarmed_grapple, reachM: 0.6, reach: reachLinks(0.6), hands: 0, name: 'grapple' }],
     parts: [
@@ -265,12 +266,14 @@ export const BODY_TYPES: Record<string, BodyType> = {
   // BR4: shape names, so later races can reuse them; Slime and Dragon are races
   [BT.amorphous]: {
     id: BT.amorphous, name: 'Amorphous', general: { name: 'body', size: 'normal' },
+    speed: { walk: 0.5, run: 1 }, // no real reference: a placeholder for a creeping mass
     naturalAttacks: [{ id: AM.slam, tree: 'unarmed', class: 'slam', skill: SK.unarmed_natural, reachM: 0.5, reach: reachLinks(0.5), hands: 0, name: 'slam' }],
     parts: [],
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [BT.winged_quadruped]: {
     id: BT.winged_quadruped, name: 'Winged quadruped', general: { name: 'body', size: 'big' },
+    speed: { walk: 1.8, run: 12 }, // a horse on the ground: walk about 1.8 m/s, gallop about 12 m/s (flight not modelled)
     naturalAttacks: [],
     parts: [
       { id: 'head', size: 'normal', impact: 'essential', roles: [RL.sense, RL.strike, RL.speech] },
@@ -428,7 +431,7 @@ export function prototypeLibrary(): Library {
       [CL.guard]: { id: CL.guard, name: 'Guard', tier: 'tier_1', label: 'a guard', story: 'Stand at the gate and listen for trouble.', floors: {},
         unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40, [SK.melee_heavy]: 40, [SK.ranged_light]: 40, [SK.ranged_medium]: 40, [SK.ranged_heavy]: 40 },
           { [SK.light_armor]: 40, [SK.medium_armor]: 40, [SK.heavy_armor]: 40 }, { [SK.block]: 30, [SK.dodge]: 30, [SK.parry]: 30 }] as Record<string, number>[],
-        unlockPerkWith: { hearingReach: 1 } },
+        unlockPerkWith: { hearingDb: 1 } },
       [CL.trader]: { id: CL.trader, name: 'Trader', tier: 'tier_0', label: 'a trader', story: 'Buy low, sell higher.', floors: {}, unlock: { [SK.barter]: 20 }, capstone: [PK.known_at_every_stall] },
       [CL.merchant]: { id: CL.merchant, name: 'Merchant', tier: 'tier_1', label: 'a merchant', story: 'A trader who owns the stall.', floors: {}, unlockPerk: PK.known_at_every_stall }, // the Trader capstone
     },
@@ -508,9 +511,9 @@ export function prototypeLibrary(): Library {
       [GC.armor_heavy, 'Heavy armor', SK.heavy_armor, 'armor'], [GC.shield, 'Shield', SK.block, 'shield'],
     ] as const).map(([id, name, skill, use]) => [id, { id, name, skill, use }])),
     // attack modes: what an attack does; weapon modes and natural attacks name one by id
-    // Throw carries the throw action's rules for every weapon that lists it: + reach in metres, and a combined roll
+    // Throw carries the throw action's combined roll for every weapon that lists it; a throw mode's reachM is its own throw range (CONFIG.THROW_M)
     attackModes: Object.fromEntries(Object.entries(AM).map(([w, id]) => [id, { id, name: w[0].toUpperCase() + w.slice(1),
-      ...(id === AM.throw ? { reachBonusM: CONFIG.THROWN_REACH_M, blend: CONFIG.THROW_BLEND } : {}) }])),
+      ...(id === AM.throw ? { blend: CONFIG.THROW_BLEND } : {}) }])),
     // CO16 default size and CO15 default edge per kind: indoors walled, outdoors open
     zoneKinds: Object.fromEntries(([
       [ZK.room, 'Room', false, 'some', 'dim', 'room', 1], [ZK.corridor, 'Corridor', false, 'none', 'dim', 'small', 4], [ZK.stairs, 'Stairs', false, 'none', 'dim', 'cramped', 2],

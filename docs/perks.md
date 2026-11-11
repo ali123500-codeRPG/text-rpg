@@ -145,11 +145,11 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Keen Ear (Earshot) · A14
 
-*Story:* A whisper two rooms away might as well be a shout. Your hearing reaches one zone link further.
+*Story:* A whisper two rooms away might as well be a shout. You hear sounds 10 decibels quieter than most people can.
 
 - **Kind:** Always on
 - **Trigger:** A perception check for the owner by sound.
-- **Effect:** Sound reaches the owner one zone link further: both the clear and the half reach of every noise level go up one link (noiseReach). Nowhere is the step below the same zone, so a Silent sound is heard like a Hushed one, and a Quiet sound is heard clearly one link away.
+- **Effect:** The owner hears 10 dB quieter (hearingDb): every sound counts 10 dB louder for the owner in noiseReach, about one zone link farther. A Silent sound stays unheard.
 - **Lasts:** Always.
 
 ### Quick Word (Persuasion) · A15

@@ -48,11 +48,9 @@ function reach([full, partial]: [number, number], d: number | null): Perception 
 }
 
 /** how well a sound of this noise made in that zone reaches the observer (null: not heard).
- * Perks with hearingReach (A14 Keen Ear: 1) add links to both reaches. "Nowhere" (−1) is a step like any other: Silent becomes Hushed. */
+ * Perks with hearingDb (A14 Keen Ear: 10) make every sound that many dB louder for the owner (RD4). */
 function soundReach(state: GameState, observer: Actor, zone: string, noise: GameEvent['noise']): Perception | null {
-  const up = perkSum(observer, 'hearingReach');
-  const [full, heard] = noiseReach(noise);
-  return reach([full + up, heard + up], dist(state, observer.zone, zone, false));
+  return reach(noiseReach(noise, perkSum(observer, 'hearingDb')), dist(state, observer.zone, zone, false));
 }
 
 /** C1 Never Surprised: the owner can hear a sound of this noise made in that zone (fully or partly), stealth aside */

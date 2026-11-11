@@ -1,5 +1,5 @@
 import type { DefenseKind, SkillFunction } from './types';
-import type { QuestRewardLevel } from './scales';
+import type { NoiseKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -197,8 +197,7 @@ const DEFAULTS = {
    * reachZone: per zone of reach (its best attack mode); armorStop: per point of damage stopped, per part covered;
    * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
   ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
-  TRADE_SELLER_LINKS: 1, // S1: buy from a seller up to this many zone links away (across the counter); farther trades are parked (D-194)
-  TRADE_GIFT_LINKS: 2, // S2: buy for someone up to this many zone links from the buyer
+  ORDER_NOISE: 'normal' as NoiseKey, // RD2: an order is called out in a normal voice; the seller must hear it clearly (trade orderReach)
   WARES_CAP: 8, // goods lines plus services per seller
   // PY9: coin is one unit in the game; narration names it in these coins, largest first
   COIN_NAMES: [['gold', 100], ['silver', 10], ['copper', 1]] as [string, number][],
@@ -227,10 +226,10 @@ const DEFAULTS = {
   IMPROVISED_HIT_ADJ: -10,
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,
-  /** CO13 how far movement goes in a fight turn (the Fight turn duration): a move slot walks at WALK_M_S (an everyday
-   * walk, about 1.4 m/s), a main slot spent moving (a dash) adds the rest of a run at RUN_M_S (a run in kit, about 5 m/s) */
-  WALK_M_S: 1.4,
-  RUN_M_S: 5,
+  RANGED_MOVE_SLOTS: 1, // ZP3: move slots a ranged attack (shot or throw) costs besides the main action; a perk could lower it
+  /** RD7 worn armor's slowing by weight: flat m/s off the body type's speeds, then a share off what is left (an armor item's
+   * own `speed` overrides). Placeholders: no study gives speed loss directly; heavy is about a fifth, as asked */
+  ARMOR_SPEED: { light: { flat: 0, pct: 0 }, medium: { flat: 0.1, pct: 0.05 }, heavy: { flat: 0.2, pct: 0.15 } } as Record<string, { flat: number; pct: number }>,
   MAIN_SLOTS: 1,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
@@ -239,9 +238,11 @@ const DEFAULTS = {
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */
   ZONE_SIZE_M2: { cramped: 9, small: 25, room: 60, hall: 225, yard: 400, open: 1600, vast: 10000 } as Record<string, number>,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
-  /** the throw action adds these metres to the weapon's own reach (perks add PerkDef.throwReach metres): a javelin,
-   * hatchet or knife thrown by hand is aimed at a man-sized target out to about 15 m */
-  THROWN_REACH_M: 15,
+  /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
+   * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");
+   * a knife 7 (the longest standard distance in
+   * European knife-throwing rules, EuroThrowers 2019); an improvised object 5 (no source: a placeholder) */
+  THROW_M: { spear: 17.5, knife: 7, improvised: 5 }, // a throwing axe would be 12 (the francisca, Wikipedia "Francisca")
   /** the throw action is a combined roll: the weapon's own skill (a melee weapon's melee skill) and the ranged skill of
    * the same class, each with its own stand-ins, at these shares */
   THROW_BLEND: { weapon: 0.75, ranged: 0.25 },
