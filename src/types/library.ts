@@ -119,6 +119,8 @@ export type Library = {
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
   edgeKinds?: Record<string, EdgeKind>; // CO15
   zoneSizes?: Record<string, ZoneSize>; // CO16
+  roadLengths?: Record<string, RoadLength>; // TV3
+  roadDangers?: Record<string, RoadDanger>; // TV4
   noiseLevels?: Record<string, NoiseLevel>;
   visibilityLevels?: Record<string, VisibilityLevel>;
   layouts?: Record<string, LayoutDef>; // CO17
@@ -134,6 +136,8 @@ export type ZoneKind = {
   size: import('../scales').ZoneSizeKey; edge: string;
   /** long side ÷ short side of the zone's rectangle (1 = square) */
   aspect: number;
+  /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
+  road?: true;
 };
 /** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 export type LayoutDef = {
@@ -146,6 +150,8 @@ export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; 
 /** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all (noiseReach) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
 export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string; clearTo: string; glimpsedTo: string };
+export type RoadLength = { id: import('../scales').RoadLengthKey; name: string; km: number };
+export type RoadDanger = { id: import('../scales').RoadDangerKey; name: string; encounterPct: number };
 export type ZoneSize = { id: import('../scales').ZoneSizeKey; name: string; m2: number; like: string };
 
 /** Perk page S1–S9: a ladder perk sits on one milestone of one skill; trueSkill is its flat boost to

@@ -397,11 +397,17 @@ type Band = {                   // a small group: a guard post, a gang, a househ
 // LINK_PACES × PACE_M metres, as before positions. The narration and views carry metres (a move's `metres`, a seen
 // actor's distanceM). PR 2 moves sight and sound to metres; PR 3 the hostile-within-2 m shot rule and the aura. Step 3
 // is travel along a road that is one long zone (CO18, its own deep dive).
+// Roads (TV3, TV4): a road between places is ONE zone of the road kind (ZK11), however long. The Weaver gives it a length
+// (a ROAD_LENGTHS word: a short walk 0.5 km, half an hour 2, an hour's walk 4.5, half a day 15, a day's walk 30, two days
+// 60, CONFIG.ROAD_LENGTH_KM; or km) and a danger (ROAD_DANGERS: safe, quiet, wild, dangerous; the chance per hour that
+// something meets you is CONFIG.ROAD_ENCOUNTER_PCT 2/4/8/15 %, placeholders). Code makes its rectangle that long and
+// ROAD_WIDTH_M (4 m) wide. Left out: an hour's walk, quiet.
 type Zone = { id: string; placeId: PlaceId; name: string; look: string;   // look: public text
               links: ZoneLink[]; cover: 'none' | 'some' | 'heavy'; light: 'bright' | 'dim' | 'dark';      // zone ids unique within a story
               height?: number;                                           // metres above the ground outside
               rect?: Rect;                                               // set by code (placeZones): metres on the map
               area?: number; edges?: Partial<Record<'n' | 'e' | 's' | 'w', string>>; // CO16 m², CO15 edge kind ids by side
+              danger?: 'safe' | 'quiet' | 'wild' | 'dangerous';          // TV4 roads only (ROAD_DANGERS)
               groundItems: ItemInstance[] };                             // Part 5 §4
 type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true };
                                                    // label: how the linked zone reads from here, e.g. 'left of the gate'

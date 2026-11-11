@@ -136,6 +136,8 @@ export type StagePlan = {
     size?: string; // CO16 a ZONE_SIZES word; the kind's default when left out
     area?: number; // CO16 m², instead of a size word
     edges?: Partial<Record<import('./core').Side, string>>; // CO15 edge kind ids by side; the kind's default when left out
+    length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
+    danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
     links: { to: string; label: string; sight: boolean }[];
   }[];
