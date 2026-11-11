@@ -23,6 +23,8 @@ export type Actor = {
   zone: string;
   /** ZP1 where it stands in metres on the map (the frame of Zone.rect); code keeps it inside `zone` (engine/position.ts) */
   pos?: { x: number; y: number };
+  /** the way it last walked, a unit [east, north]: what its left and right are (BG-18) */
+  facing?: [number, number];
   posture?: 'open' | 'stealthy'; // NS1: any actor can be stealthy
   bandId: string;
   core: Core;

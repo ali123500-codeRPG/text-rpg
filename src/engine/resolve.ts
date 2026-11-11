@@ -251,7 +251,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   const from = a.zone;
   const walked = walkLeg(state, a, goal, metres, stopShort, fresh);
   if (walked === null) return null;
-  if (walked <= 0) return 0;
+  if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone
   const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward } : {}), ...(spot && a.zone === goal.zone ? { spot } : {}) };
