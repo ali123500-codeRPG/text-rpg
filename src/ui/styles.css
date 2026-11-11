@@ -542,10 +542,10 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 
 /* Play screen, layout A "Book with a status strip": fixed rows (header, who's here, story and input), one reading column
    filling the space on the left with each turn's results under its prose, and the status strip or the full sheet on the right */
-.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto var(--control-h) auto minmax(0, 1fr); padding-bottom: 0; }
+.playmain { height: var(--vh); box-sizing: border-box; grid-template-rows: auto auto minmax(0, 1fr); padding-bottom: 0; }
 /* the bottom gap sits inside the columns, so the sheet's divider runs to the foot of the screen */
 .playmain > .play-wrap > .play, .playmain > .play-wrap > .cs-side, .playmain > .fell { padding-bottom: 48px; }
-.playmain > .fell { grid-row: 4; }
+.playmain > .fell { grid-row: 3; }
 .play-wrap { display: grid; grid-template-columns: minmax(0, 1fr) calc(var(--tile-min) + var(--space-6)); gap: var(--space-6); min-height: 0; }
 .play-wrap.sheet-open { grid-template-columns: minmax(0, 1fr) clamp(var(--panel-w), 30vw, 600px); } /* the open sheet grows with the screen */
 .play { display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-height: 0; min-width: 0; }
@@ -598,7 +598,8 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .earlier { justify-self: start; }
 .working { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); margin: var(--space-4) 0 0; }
 /* who's here: one row that keeps its height, empty or full */
-.who { display: flex; align-items: center; gap: var(--space-2) var(--space-4); flex-wrap: nowrap; overflow: hidden; min-width: 0; height: var(--control-h); }
+/* Who's here ends the header's place line: "Turn 3 · Common room · the Crooked Kettle   WHO'S HERE  [A village guard]" */
+.who { display: inline-flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-left: var(--space-6); vertical-align: middle; color: var(--text); }
 .who .pp { flex: none; }
 /* input: the box takes the column's width, the tools sit in one row under it */
 .inbar { display: grid; gap: var(--space-2); }

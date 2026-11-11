@@ -228,7 +228,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     for (const ch of text) { input.value += ch; await new Promise((r) => setTimeout(r, Math.min(35, 1500 / text.length))); }
     await submit(true);
   }, () => update());
-  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell, edge);
+  const el = h('main', { class: 'playmain' }, title, auto.el, wrap, fell, edge);
   applyMotion();
   if (typeof matchMedia === 'function') matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', () => { applyMotion(); if (el.isConnected) update(); });
   // M-12: a click on the story finishes everything still moving
@@ -462,13 +462,15 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const mh = <T extends Element | null>(key: string, x: T): T => { x?.setAttribute('data-mh', key); return x; };
     // the agent button is one live element: a stand-in copy is compared, so a header that isn't redrawn keeps the real one
     const openerSlot = s ? auto.opener.cloneNode(true) as HTMLElement : null;
+    // Who's here sits at the end of the place line; it is one live element, so an empty stand-in is compared and the real row moves in only on a redraw
+    const whoSlot = h('span', { class: 'who-slot' });
     const titleKids = [h('div', {}, h('h1', {}, s?.meta.title ?? 'Play', mh('tod', s ? todBadge(timeView(s).day, timeOfDay(now(s))) : null), mh('stealth', stealthy ? stealthBadge() : null), mh('deals', dealChip)),
-      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv)] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', motionBtn)];
+      h('p', {}, s ? [`Turn ${lastTurn}`, ...placeLine(s, pv), whoSlot] : 'No story yet'), mh('quest', s ? questLine(s, (id) => { questFocus.id = id; nav('quests'); }) : null)), h('div', { class: 'title-tools' }, openerSlot ?? '', rollsBtn ?? '', motionBtn)];
     const titleNow = titleKids.map((k) => k.outerHTML).join('');
-    if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); title.replaceChildren(...titleKids); titleHtml = titleNow; }
+    if (!frozen && titleNow !== titleHtml) { openerSlot?.replaceWith(auto.opener); whoSlot.replaceWith(who); title.replaceChildren(...titleKids); titleHtml = titleNow; }
     story.classList.toggle('no-rolls', !show);
 
-    // who's here: one fixed-height row; only actors the character fully perceives (PlayerView); others' health from Wounded down
+    // who's here: on the place line; only actors the character fully perceives (PlayerView); others' health from Wounded down
     const seen = pv?.actors.filter((a) => a.level === 'full') ?? [];
     const whoKids = [h('span', { class: 'hs-label' }, 'Who’s here'), ...(seen.length ? seen.map((a) => h('span', { class: 'pp', 'data-who': cap(a.name ?? a.label) }, h('b', {}, cap(a.name ?? a.label)),
       a.health ? h('span', { class: isDownLevel(a.health) ? 'st down' : 'st warn' }, isDownLevel(a.health) ? 'Down' : a.health)
