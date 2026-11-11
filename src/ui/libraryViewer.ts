@@ -745,7 +745,7 @@ function stacking(): HTMLElement[] {
     h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'The rule'), h('div', { class: 'lv-grid wide' }, rule, outside)),
     ...panes([
       { key: 'skill', title: 'Skill rolls', n: n('skill'), content: [h('p', { class: 'hs-note' }, 'Attack, defense, sense and every other roll made with a skill (ruleset.roll).'), ...byType('skill')] },
-      { key: 'situation', title: 'Situation rolls', n: n('situation'), content: [h('p', { class: 'hs-note' }, 'The no-skill roll for luck and circumstance (ruleset.situation). Statuses will count here too once they have library entries.'), ...byType('situation')] },
+      { key: 'event', title: 'Event rolls', n: n('event'), content: [h('p', { class: 'hs-note' }, 'The no-skill roll for luck and circumstance (ruleset.eventRoll). Statuses will count here too once they have library entries.'), ...byType('event')] },
     ]),
   ];
 }

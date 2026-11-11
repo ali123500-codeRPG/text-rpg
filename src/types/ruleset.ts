@@ -76,7 +76,7 @@ export type RollResult = {
 };
 export type ContestResult = { a: RollResult; b: RollResult; gap: number; winner: 'a' | 'b' | 'tie' };
 
-export type SituationResult = {
+export type EventRollResult = {
   actorId: string;
   roll: number;
   tier: Tier;
@@ -133,7 +133,7 @@ export interface Ruleset {
   contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult;
   roll(req: RollRequest, state: GameState, rng: Rng): RollResult;
   attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult;
-  situation(actor: Actor, state: GameState, rng: Rng): SituationResult;
+  eventRoll(actor: Actor, state: GameState, rng: Rng): EventRollResult;
   applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[];
   recordUse(actor: Actor, skill: string, result: CheckResult | ContestResult | AttackResult, state: GameState): void;
 }

@@ -2,7 +2,7 @@
 import type { ActorId, Band, FactId, GameEvent, LibraryRef, LogEntry, Mode, PlaceId, SlotKey, StoryId, Tier, Turn, Zone } from './core';
 import type { Actor, NameHistory } from './actor';
 import type { HiddenStore } from './hidden';
-import type { SituationResult } from './ruleset';
+import type { EventRollResult } from './ruleset';
 import type { AgentTurnLog } from './agents';
 import type { QuestRewardLevel, TimeOfDay } from '../scales';
 
@@ -196,7 +196,7 @@ export type TurnRecord = {
   agentLog: AgentTurnLog[];
   events: GameEvent[];
   factsAdded: FactId[];
-  situation?: SituationResult;
+  eventRoll?: EventRollResult;
   log?: LogEntry[];
   aimed?: boolean;
   /** save schema the record was written under (absent before v5) */

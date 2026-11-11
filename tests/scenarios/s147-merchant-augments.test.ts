@@ -38,10 +38,10 @@ describe('147 Merchant and skill augments', () => {
   it('an augment limited to roll kinds applies only to those rolls', () => {
     const s = makeVillage(), p = s.player;
     const lib = getLibrary();
-    lib.skills[SK.shrewd_dealing].augments = [{ skill: SK.barter, share: 0.5, rollKinds: ['situation'] }];
+    lib.skills[SK.shrewd_dealing].augments = [{ skill: SK.barter, share: 0.5, rollKinds: ['event'] }];
     p.core.skills[SK.shrewd_dealing] = { raw: 20, state: 'normal' };
     p.core.classes.push({ classId: CL.merchant, state: 'current', level: 1 });
     expect(augmentsOf(p, SK.barter)).toEqual([]);
-    expect(augmentsOf(p, SK.barter, 'situation').map((a) => a.value)).toEqual([10]);
+    expect(augmentsOf(p, SK.barter, 'event').map((a) => a.value)).toEqual([10]);
   });
 });

@@ -25,7 +25,7 @@ describe('45 Replay of a scene start', () => {
     live.rngState = rng.state;
     await saveTurn(st, live, {
       storyId: 'test', turn: 1, libraryVersion: getLibrary().version, rngBefore, playerInput: 'I rest',
-      agentLog: setup.agentLog, events: [...events, ...setup.events], factsAdded: [], situation: setup.situation,
+      agentLog: setup.agentLog, events: [...events, ...setup.events], factsAdded: [], eventRoll: setup.eventRoll,
     });
     expect(claude.callsFor('weaver')).toHaveLength(1);
 

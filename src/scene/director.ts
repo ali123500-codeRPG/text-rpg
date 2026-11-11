@@ -1,8 +1,8 @@
-// Scene orchestration: scene start (situation roll, Weaver, repair retry, WEAVER_TIMEOUT), background stage
+// Scene orchestration: scene start (event roll, Weaver, repair retry, WEAVER_TIMEOUT), background stage
 // extensions held in memory per frontier, crossing (waits for a late extension), saved-zone re-entry.
 // The pipeline (W7) injects `weave`, which wraps the real Agent Weaver call and logs it.
 import { noteLeft } from '../engine/trail';
-import type { Clock, GameEvent, GameState, Rng, SituationResult, StagePlan, WeaverView } from '../types';
+import type { Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView } from '../types';
 import { CONFIG } from '../config';
 import { ruleset } from '../ruleset';
 import { buildWeaverView } from '../views';
@@ -22,7 +22,7 @@ export type SceneResult = {
   plan: StagePlan | null;
   errors: PlanError[];
   /** set on a scene start only; the pipeline puts it on the turn record */
-  situation?: SituationResult;
+  eventRoll?: EventRollResult;
 };
 
 /** errors that need the repair call: repaired notes don't count */
@@ -35,7 +35,7 @@ const TIMEOUT: unique symbol = Symbol('timeout');
 export class SceneDirector {
   /** background extensions, keyed by frontier; held for the rest of the scene, never saved */
   private held = new Map<string, Held>();
-  lastSituation: SituationResult | null = null;
+  lastEventRoll: EventRollResult | null = null;
 
   constructor(private readonly opts: { weave: Weave; clock: Clock }) {}
 
@@ -43,20 +43,20 @@ export class SceneDirector {
     return [...this.held.keys()];
   }
 
-  /** Scene setup (steps 1–8 minus the save): one situation roll, one Weaver call (+ one repair), apply or fallback. */
+  /** Scene setup (steps 1–8 minus the save): one event roll, one Weaver call (+ one repair), apply or fallback. */
   async startScene(state: GameState, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
     const placeId = state.player.placeId; // step 1
     ensurePlace(state, placeId);
-    const situation = ruleset.situation(state.player, state, rng); // step 2
-    this.lastSituation = situation;
+    const eventRoll = ruleset.eventRoll(state.player, state, rng); // step 2
+    this.lastEventRoll = eventRoll;
     this.held.clear();
     const wake = state.stage.breakCause === 'knocked_out'; // D-54
-    beginScene(state, situation.tier);
-    const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
+    beginScene(state, eventRoll.tier);
+    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
     // GAP: WEAVER_TIMEOUT bounds the whole scene-start wait (first call and repair together).
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
     const planned = await this.plan(state, ctx, { kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) }, deadline);
-    return { ...this.finish(state, ctx, planned, rng, entry), situation };
+    return { ...this.finish(state, ctx, planned, rng, entry), eventRoll };
   }
 
   /** Story start: setup alone, as turn 0; returns the opening events (also pushed to state.events). The pipeline saves turn 0 and makes the one Narrator call. */
@@ -79,7 +79,7 @@ export class SceneDirector {
     return started;
   }
 
-  /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no situation roll. */
+  /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no event roll. */
   async cross(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
     const from = state.player.zone;
     const res = await this.crossTo(state, key, rng, entry);
@@ -168,10 +168,10 @@ function finish(state: GameState, ctx: PlanContext, p: Planned, rng: Rng, entry:
 export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | null)[], rng: Rng, entry: 'open' | 'stealthy' = 'open'): SceneResult {
   const placeId = state.player.placeId;
   ensurePlace(state, placeId);
-  const situation = ruleset.situation(state.player, state, rng);
+  const eventRoll = ruleset.eventRoll(state.player, state, rng);
   const wake = state.stage.breakCause === 'knocked_out'; // D-54
-  beginScene(state, situation.tier);
-  const ctx: PlanContext = { tier: situation.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
+  beginScene(state, eventRoll.tier);
+  const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
   const [first, second] = weaverOutputs;
   let planned: Planned;
   if (!first) planned = { plan: null, errors: [], reason: 'call_failed' };
@@ -181,5 +181,5 @@ export function replaySceneStart(state: GameState, weaverOutputs: (StagePlan | n
     else if (!second) planned = { plan: first, errors, reason: 'call_failed' };
     else planned = { plan: second, errors: validateStagePlan(state, second, ctx), reason: 'invalid_plan' };
   }
-  return { ...finish(state, ctx, planned, rng, entry), situation };
+  return { ...finish(state, ctx, planned, rng, entry), eventRoll };
 }

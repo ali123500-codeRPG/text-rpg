@@ -11,7 +11,7 @@ import { villageStagePlan, VirtualClock } from '../../src/scene/fixtures';
 
 describe('34 Fallback is flagged', () => {
   it('two failed plans give the flagged fallback stage until the next scene start', async () => {
-    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
+    const roll = vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const s = makeVillage();
     s.turn = 5;
     const bad: StagePlan = { ...villageStagePlan('success'), event: { summary: 'x', challenge: 'none', gain: 'extreme' } };

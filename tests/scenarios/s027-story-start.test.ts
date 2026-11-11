@@ -1,4 +1,4 @@
-// 27 Story start: turn 0 makes one situation roll, one Weaver call (and one Narrator call), and is saved as turn 0.
+// 27 Story start: turn 0 makes one event roll, one Weaver call (and one Narrator call), and is saved as turn 0.
 // W6 part: the director runs setup alone as turn 0. The Narrator call and the save belong to the pipeline (W7).
 import { TIERS } from '../../src/scales';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,8 +8,8 @@ import { SceneDirector } from '../../src/scene';
 import { toStoryStart, villageStagePlan, VirtualClock } from '../../src/scene/fixtures';
 
 describe('27 Story start', () => {
-  it('turn 0: one situation roll, one Weaver call, the village stage, opening events', async () => {
-    const roll = vi.spyOn(ruleset, 'situation');
+  it('turn 0: one event roll, one Weaver call, the village stage, opening events', async () => {
+    const roll = vi.spyOn(ruleset, 'eventRoll');
     const weave = vi.fn(async (view: { tier: string }) => villageStagePlan(TIERS.keyOf(view.tier)!));
     const s = toStoryStart(makeVillage());
     const d = new SceneDirector({ weave, clock: new VirtualClock() });
@@ -20,7 +20,7 @@ describe('27 Story start', () => {
     expect(s.turn).toBe(0);
     expect(s.stage.sceneStartTurn).toBe(0);
     expect(s.player.zone).toBe('tav_common');
-    expect(r.situation).toBe(d.lastSituation);
+    expect(r.eventRoll).toBe(d.lastEventRoll);
     expect(r.events[0].kind).toBe('arrival');
     expect(s.events).toEqual(r.events);
     roll.mockRestore();

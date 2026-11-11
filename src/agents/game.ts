@@ -39,7 +39,7 @@ import { fileBug, isBugCode } from '../save/bugs';
  * W6 makes its Weaver calls through callWeaver with the ctx handed in.
  */
 export interface SceneDirector {
-  /** story start (turn 0): place the player, situation roll, Weaver, apply plan or fallback stage; returns the opening events */
+  /** story start (turn 0): place the player, event roll, Weaver, apply plan or fallback stage; returns the opening events */
   startStory(state: GameState, rng: Rng, ctx: AgentCtx): Promise<GameEvent[]>;
   /** inside a turn, after resolveTurn and before the save: scene setup on sceneBreak, or a frontier crossing; returns added events */
   afterResolve(state: GameState, events: GameEvent[], rng: Rng, ctx: AgentCtx): Promise<GameEvent[]>;
@@ -333,9 +333,9 @@ export function createGame(deps: GameDeps): Game {
     const record: TurnRecord = {
       storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, schemaVersion: CONFIG.SCHEMA_VERSION, rngBefore: rec.rngBefore, playerInput: rec.playerInput,
       agentLog: s.agentLog, events, factsAdded: [], log: s.log, aimed: rec.aimed,
-      ...(s.scratch?.situation ? { situation: s.scratch.situation as TurnRecord['situation'] } : {}),
+      ...(s.scratch?.eventRoll ? { eventRoll: s.scratch.eventRoll as TurnRecord['eventRoll'] } : {}),
     };
-    if (s.scratch) delete s.scratch.situation;
+    if (s.scratch) delete s.scratch.eventRoll;
     // save step 1: hold the turn lock. Re-acquiring renews the lease, so a long turn (Weaver wait, slow calls) or the
     // first save of a new story still writes under the lock.
     if (!(await save.acquireTurnLock(store, s.storyId, owner))) {

@@ -1,4 +1,4 @@
-// 31 Crossing reuses the tier: crossing applies the held extension with the scene's tier; no situation roll is made.
+// 31 Crossing reuses the tier: crossing applies the held extension with the scene's tier; no event roll is made.
 import { TIERS } from '../../src/scales';
 import { describe, expect, it, vi } from 'vitest';
 import { makeVillage, createRng } from '../harness';
@@ -11,7 +11,7 @@ describe('31 Crossing reuses the tier', () => {
   it('applies the held plan under the scene tier', async () => {
     const s = makeVillage({ playerZone: 'field_far' });
     s.stage.tier = 'failure';
-    const roll = vi.spyOn(ruleset, 'situation');
+    const roll = vi.spyOn(ruleset, 'eventRoll');
     const weave = vi.fn(async (v: WeaverView) => grovePlan(TIERS.keyOf(v.tier)!));
     const d = new SceneDirector({ weave, clock: new VirtualClock() });
     d.afterSave(s);

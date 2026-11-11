@@ -5,7 +5,7 @@ import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { CLASS_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
-import { MARGIN_BANDS, SITUATION_BANDS, band, ladder, naturalEdge, stackType } from './index';
+import { MARGIN_BANDS, EVENT_BANDS, band, ladder, naturalEdge, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
 import { tierMult } from './gear';
@@ -55,7 +55,7 @@ export function equations(lib: Library): EquationGroup[] {
   const exLevel = rollLevel(ex.d, ex.eff);
   const quick = Object.values(lib.perks).filter((p) => p.improveRolls);
   return [
-    { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill situation roll.', equations: [
+    { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill event roll.', equations: [
       { name: 'True skill', at: 'trueSkill · src/ruleset/perks.ts',
         formula: 'true skill = raw + perk true skill + achievement true skill',
         terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), perks that add to every skill of a function (fnSkill), and linked perks that add to every aura skill (auraSkill, Crushing Presence)'], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
@@ -102,10 +102,10 @@ export function equations(lib: Library): EquationGroup[] {
           `×${(D100.reduce((t, d) => t + tierCostMult(rollLevel(d, m)), 0) / 100).toFixed(2)}`]) },
         notes: [`Fears are the library fears table: flat costs, a negative cost restores. Rolled fears count only while engaged; the player is engaged while someone is fighting them. A hit that leaves parts Crippled or worse rolls the Crippled fear once, paying each part's cost by its impact (non-essential, normal, essential) for a ${n(lib.fears?.[FR.own_part_crippled]?.refParts ?? 6)}-part body, scaled by ${n(lib.fears?.[FR.own_part_crippled]?.refParts ?? 6)} ÷ the body's part count; a part Destroyed rolls again at ${n(lib.fears?.[FR.own_part_destroyed]?.partCostOf?.mult ?? 1.5)} × those costs. Reaching Broken breaks an NPC (it flees), or makes it surrender when the roll that broke it was a Critical Failure or worse. The player at Broken cannot attack. Overwhelm: an aura that wins by ${CONFIG.OVERWHELM_TIERS}+ tiers against a target with max morale at most ${CONFIG.OVERWHELM_MORALE_SHARE * 100} % of the owner's takes all its morale, and an NPC surrenders.`,
           'Shares in the table are calm and unhurt, with no modifiers.'] },
-      { name: 'Situation roll (no skill)', at: 'situation · src/ruleset/index.ts',
-        formula: `margin = d100 ${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.SITUATION_BASE - 100)} + modifiers`,
-        terms: [[`${CONFIG.SITUATION_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.SITUATION_BASE - 100)}`, `situation base ${CONFIG.SITUATION_BASE} (CONFIG.SITUATION_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
-        table: { head: ['Tier', 'Margin'], rows: bandRows(SITUATION_BANDS) },
+      { name: 'Event roll (no skill)', at: 'eventRoll · src/ruleset/index.ts',
+        formula: `margin = d100 ${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.EVENT_BASE - 100)} + modifiers`,
+        terms: [[`${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.EVENT_BASE - 100)}`, `event base ${CONFIG.EVENT_BASE} (CONFIG.EVENT_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
+        table: { head: ['Tier', 'Margin'], rows: bandRows(EVENT_BANDS) },
         notes: ['The natural edge applies here too. There are no tier shifts.'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
         formula: `type total = biggest + ${n(CONFIG.STACK_RATIO)} × next + ${n(CONFIG.STACK_RATIO ** 2)} × next …, bonuses and penalties apart; types add in full`,

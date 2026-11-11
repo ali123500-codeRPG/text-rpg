@@ -36,7 +36,7 @@ it('144c armor, shields and the lucky charm are priced from their numbers', () =
   const g = itemDef(null, IT.gambeson).armor!;
   expect(val(IT.gambeson)).toBe(Math.round((g.reduction * V.armorStop + (1 - g.multiplier) * 100 * V.armorCut) * g.covers.length));
   expect(val(IT.round_shield)).toBe(10 * V.skillPoint + itemDef(null, IT.round_shield).shield!.pool * V.poolPoint);
-  expect(val(IT.lucky_charm)).toBe((5 / CONFIG.SKILL_WEIGHT) * V.skillPoint); // +5 to situation rolls
+  expect(val(IT.lucky_charm)).toBe((5 / CONFIG.SKILL_WEIGHT) * V.skillPoint); // +5 to event rolls
   expect(val(IT.crude_clothes)).toBe(1);
 });
 

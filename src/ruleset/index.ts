@@ -3,7 +3,7 @@
 import { RL } from '../library/tableIds';
 import type {
   Actor, AttackRequest, DefenseKind, AttackResult, CheckRequest, CheckResult, ContestResult, Effect, GameState, Mod,
-  PartState, Rng, RollRequest, RollResult, Ruleset, SituationResult, Tier, TierRoll, TierShift,
+  PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
 import { COVER, TIERS } from '../scales';
@@ -21,7 +21,7 @@ import { afterRollShifts, foeMods } from './allSteps';
 import { markShifts } from '../engine/perkMarks';
 import { rollFeats, tally } from '../engine/xp';
 import { shortShifts } from './requirements';
-import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, situationMods, tagSign } from './gear';
+import { blendedSkill, defenseItem, usableDefense, isHeld, openHandArm, effectiveSkill, fnSkills, rollFnSkills, handsOf, modeSkill, pickTool, resolveMode, rollMods, rollTags, situational, eventRollMods, tagSign } from './gear';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { FN } from '../library/functionIds';
@@ -31,7 +31,7 @@ export { improveMarked, clearMarkCounts, markEndurance, markUse } from './improv
 export { meltAwayHere } from './perks';
 export { MILESTONES, ALL_STEPS, PERKS_NEEDED, PERK_MOVES, ownPerkMoves, hasPerk, boostMult, boostAdd, ladderPerksIn, trueSkill, milestonePerk, milestoneState, canTake, takePerk, canUndo, undoPerk } from './perks';
 export type { MilestoneState } from './perks';
-export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, situationMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, modeReach, augmentsOf } from './gear';
+export { defaultStandingDefense, effectiveSkill, usableModes, defaultMode, modeSkill, eventRollMods, pickTool, situational, fnRoller, fnSkills, withRow, blendedSkill, modeReach, augmentsOf } from './gear';
 
 // Tiers are keys of the TIERS table (src/scales.ts). Arithmetic (shifts, gaps) works on a tier's level: its row
 // position plus `beyond`, the steps a shifted roll went past either end (Part 1 §4: shifted tiers are not clamped).
@@ -158,12 +158,12 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
 }
 
 // Part 1 §4 table on totals (d100 + modifiers), read on the margin: total − 50 with the placeholder base
-export const SITUATION_BANDS = [-50, -25, 0, 25, 50];
-function situation(actor: Actor, state: GameState, rng: Rng): SituationResult {
-  const modifiers = situationMods(state, actor);
+export const EVENT_BANDS = [-50, -25, 0, 25, 50];
+function eventRoll(actor: Actor, state: GameState, rng: Rng): EventRollResult {
+  const modifiers = eventRollMods(state, actor);
   const d = rng.d100();
-  const margin = d + CONFIG.SITUATION_BASE + modTotal(modifiers) - 100;
-  const tier = TIERS.at(SITUATION_BANDS.filter((t) => margin >= t).length + naturalEdge(d));
+  const margin = d + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
+  const tier = TIERS.at(EVENT_BANDS.filter((t) => margin >= t).length + naturalEdge(d));
   return { actorId: actor.id, roll: d, tier, modifiers };
 }
 
@@ -432,7 +432,7 @@ export const ruleset: Ruleset = {
   contested,
   roll,
   attack,
-  situation,
+  eventRoll,
   applyEffects,
   recordUse,
 };

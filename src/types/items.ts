@@ -36,7 +36,7 @@ export type ItemDef = {
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
 };
 
-export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'situation' | 'initiative';
+export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';
 
 export type ItemEffect = {
   kind: 'skill' | 'rollMod';

@@ -60,7 +60,7 @@ describe('105 Story pacing', () => {
     expect(s.stage.breakCause).toBe('story_beat');
   });
   it('the director starts a new scene on a break and resets the clock', async () => {
-    const roll = vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
+    const roll = vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const s = calm();
     s.stage.breakCause = 'rest';
     s.stage.quiet = 5;

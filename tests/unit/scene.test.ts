@@ -374,10 +374,10 @@ describe('stage', () => {
 });
 
 describe('SceneDirector', () => {
-  const situation = (tier: Tier) => vi.spyOn(ruleset, 'situation').mockReturnValue({ actorId: 'player', roll: 50, tier, modifiers: [] });
+  const eventRoll = (tier: Tier) => vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 50, tier, modifiers: [] });
 
   it('scene start: one roll, repair retry with errors, then applies', async () => {
-    situation('failure');
+    eventRoll('failure');
     const bad = villageStagePlan('success');
     const good = villageStagePlan('failure');
     const weave = vi.fn().mockResolvedValueOnce(bad).mockResolvedValueOnce(good);
@@ -385,16 +385,16 @@ describe('SceneDirector', () => {
     const s = fresh();
     const r = await d.storyStart(s, createRng(1));
     expect(r.outcome).toBe('applied');
-    expect(ruleset.situation).toHaveBeenCalledTimes(1);
+    expect(ruleset.eventRoll).toHaveBeenCalledTimes(1);
     expect(weave).toHaveBeenCalledTimes(2);
     expect(weave.mock.calls[1][1]).toEqual([expect.objectContaining({ code: 'grades_misfit' })]);
     expect(s.turn).toBe(0);
     expect(s.stage).toMatchObject({ tier: 'failure', sceneNumber: 1, sceneStartTurn: 0 });
     expect(r.events.map((e) => e.kind)).toEqual(['arrival', 'presence']);
-    expect(r.situation!.tier).toBe('failure');
+    expect(r.eventRoll!.tier).toBe('failure');
   });
   it('scene start past WEAVER_TIMEOUT gives the fallback', async () => {
-    situation('success');
+    eventRoll('success');
     const clock = new VirtualClock();
     const weave = vi.fn(() => clock.sleep(CONFIG.WEAVER_TIMEOUT_MS + 1).then(() => villageStagePlan()));
     const d = new SceneDirector({ weave, clock });
@@ -411,7 +411,7 @@ describe('SceneDirector', () => {
     const ext: StagePlan = { ...villageStagePlan(), places: [], bands: [], cast: [], rewards: [], frontiers: [],
       zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove', cover: 'some', light: 'dim', links: [{ to: 'field_far', label: 'back', sight: true }] }] };
     const weave = vi.fn(() => clock.sleep(5000).then(() => ext));
-    const spy = vi.spyOn(ruleset, 'situation');
+    const spy = vi.spyOn(ruleset, 'eventRoll');
     const d = new SceneDirector({ weave, clock });
     expect(d.afterSave(s)).toEqual(['woods']);
     expect(d.afterSave(s)).toEqual([]);
