@@ -495,8 +495,57 @@ function achievements(): HTMLElement[] {
           : row('Earned at', `${at}${d.by && !d.only ? `, once per ${d.by.replace('_', ' ')}` : ''}`); })(),
       row('Granted id', d.by || d.rule === 'mastery' ? `${d.id}:<${d.by ?? 'tree'}>` : d.every ? `${d.id}:<level>` : d.id));
   };
-  const section = (title: string, list: [string, AchievementDef][]) =>
-    h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, title), h('div', { class: 'lv-grid' }, list.map(achCard)));
+  // a medal: the card stays whole (search, filters, table view and the pop-up read it) and shows only its face on the
+  // page: the count it asks for leads, then the reward level, name and the gist of its reward. Clicking opens the full card.
+  const medal = ([key, d]: [string, AchievementDef]) => {
+    const c = achCard([key, d]);
+    const lv = `Level ${rewardName(d.level)}`, tone = toneFor('Level', lv);
+    const kind = d.by === 'body_type' ? 'body type' : 'race';
+    const bane = isBane(d) ? baneSkill(key) : 0, total = d.rule === 'defeats' && !d.by ? defeatsRoll(key) : 0;
+    const gist = [...(bane ? [`+${bane} skill vs that ${kind}`] : []), ...(total ? [`+${total} on attack and defense rolls`] : []), ...rewardLines(d)];
+    // an every-N row with a name per level (Woven Past Counting) is one library row but a chain in play: its card stands
+    // for the first level and each later level gets a medal of its own, opening the same card
+    const named = d.every && d.names ? Object.entries(d.names).sort(([a], [b]) => Number(a) - Number(b)) : [];
+    c.classList.add('lv-medal');
+    if (d.scar) c.classList.add('lv-scarmedal');
+    if (tone) c.style.setProperty('--gem', `var(${tone})`);
+    c.prepend(h('div', { class: 'lv-face', 'aria-hidden': 'true' },
+      h('span', { class: 'lv-gem' }, rewardName(d.level)), d.scar ? h('span', { class: 'lv-scartag' }, 'Scar') : null, h('span', { class: 'lv-xp' }, `${fmtNum(achXp(d))} XP`),
+      h('b', { class: 'lv-count' }, named.length ? fmtNum(Number(named[0][0])) : d.every ? `every ${fmtNum(d.every)}` : fmtNum(d.count ?? 1))));
+    if (gist.length) c.querySelector(':scope > header')!.after(h('p', { class: 'lv-gist' }, `${gist[0]}${gist.length > 1 ? ` · +${gist.length - 1} more` : ''}`)); // XP only: the XP says it
+    if (!named.length) return [c];
+    if (d.levelStep) { const lv0 = rewardName(achLevel(d, named[0][0])); c.querySelector('.lv-gem')!.textContent = lv0; const t = toneFor('Level', `Level ${lv0}`); if (t) c.style.setProperty('--gem', `var(${t})`); }
+    c.querySelector('.lv-xp')!.textContent = `${fmtNum(achXp(d, named[0][0]))} XP`;
+    c.querySelector('a.lv-title')!.textContent = named[0][1];
+    const after = Number(named[named.length - 1][0]) + d.every!;
+    const ghost = (k: string, count: string, title: string) => {
+      const lv = rewardName(achLevel(d, k)), t = toneFor('Level', `Level ${lv}`);
+      return h('div', { class: 'lv-medal lv-ghost', style: t ? `--gem: var(${t})` : undefined },
+        h('div', { class: 'lv-face', 'aria-hidden': 'true' }, h('span', { class: 'lv-gem' }, lv), h('span', { class: 'lv-xp' }, `${fmtNum(achXp(d, k))} XP`), h('b', { class: 'lv-count' }, count)),
+        h('header', {}, h('h3', {}, h('a', { class: 'lv-title', href: `#achievements/${key}` }, title))));
+    };
+    return [c, ...named.slice(1).map(([k, n]) => ghost(k, fmtNum(Number(k)), n)),
+      ghost(String(after), `${fmtNum(after)}+`, `${d.name.replace('{level}', String(after))}, and on every ${d.every}`)];
+  };
+  const fmtNum = (n: number) => n.toLocaleString('en');
+  const section = (title: string, list: [string, AchievementDef][]) => {
+    const xp = list.reduce((n, [, d]) => n + achXp(d), 0);
+    return h('section', { class: 'lv-group lv-chain' }, h('h2', { class: 'hs-section' }, title,
+      h('span', { class: 'lv-chainmeta' }, ` (${list.length} level${list.length === 1 ? '' : 's'}, ${fmtNum(xp)} XP)`)),
+      ...chainsOf(list).map(([label, rows]) => [label ? h('h3', { class: 'lv-chainlabel' }, label) : null,
+        ((ms) => h('div', { class: 'lv-grid lv-track', style: `--n: ${Math.min(ms.length, 6)}` }, ms))(rows.flatMap(medal))]).flat().filter((x) => !!x) as HTMLElement[]);
+  };
+  // one line can hold several chains (one per healing source, say): follow `after` from each root so a medal's rail
+  // always leads to the level that builds on it; a line with no `after` links stays one track in count order
+  const chainsOf = (list: [string, AchievementDef][]): [string, [string, AchievementDef][]][] => {
+    const ids = new Set(list.map(([k]) => k));
+    const roots = list.filter(([, d]) => !d.after || !ids.has(d.after));
+    const chains = roots.map((r) => { const out = [r]; for (let cur = r, i = 0; i < 50; i++) { const next = list.find(([, d]) => d.after === cur[0]); if (!next || out.includes(next)) break; out.push(next); cur = next; } return out; });
+    if (!chains.some((c) => c.length > 1) || chains.length === 1) return [['', list]];
+    const linked = chains.filter((c) => c.length > 1), loose = chains.filter((c) => c.length === 1).flat();
+    const label = (c: [string, AchievementDef][]) => { const d = c[0][1]; return d.only ? `From ${sourceRowName(d, d.only)}` : `${c[0][1].name} chain`; };
+    return [...linked.map((c): [string, [string, AchievementDef][]] => [label(c), c]), ...(loose.length ? [['Single levels', loose] as [string, [string, AchievementDef][]]] : [])];
+  };
   // a line: one rule counted one way (rule + by), its levels in count order; each line folds on its own
   const lineOf = (d: AchievementDef) => `${d.rule}|${d.by ?? ''}`;
   const lineTitle = (k: string) => { const [rule, by] = k.split('|'); const t = ACH_RULE_TEXT[rule as AchievementDef['rule']] ?? rule; return `${t[0].toUpperCase()}${t.slice(1)}${by ? ` (per ${by.replace('_', ' ')})` : ''}`; };
@@ -798,6 +847,8 @@ const treeOf = (skill?: string) => (skill ? lib.trees[lib.skills[skill]?.treeId]
 const perkSkills = (d: PerkDef & { skill?: string }): string[] => [...new Set([d.ladder?.skill, d.skill, d.allStep?.skill,
   ...Object.keys(d.trueSkillTo ?? {}), ...(d.fnSkill ? fnSkills(d.fnSkill.fn) : []), ...(d.augments ?? []).flatMap((a) => [a.from, a.skill])]
   .filter((x): x is string => !!x && !!lib.skills[x]))];
+/** an achievement gives more than XP: a Bane skill bonus, the defeats roll bonus, or any reward line (free levels, perks…) */
+const specialReward = (d: AchievementDef): boolean => (isBane(d) && baneSkill(d.id) > 0) || (d.rule === 'defeats' && !d.by && defeatsRoll(d.id) > 0) || rewardLines(d).length > 0;
 const FACETS: Record<string, Facets> = {
   composure: (d: ComposureDef) => [['In fight', d.inFight ? 'yes' : 'no'], ['Kind', d.countOnly ? 'tally only' : d.hourly ? 'hourly' : 'one-off']],
   fears: (f: FearDef) => [['Roll', f.rolled ? 'rolled' : 'flat'], ['Cost', f.partCost || f.partCostOf ? 'by part' : f.perTier ? 'per tier' : f.cost < 0 ? 'restores' : 'flat cost'], ['Part', f.part && PART_STATES.name(f.part as PartStateKey)]],
@@ -815,7 +866,8 @@ const FACETS: Record<string, Facets> = {
   perks: (d: PerkDef & { place?: string; skill?: string; bankedAs?: string }) => [['Banked as', d.bankedAs && ({ milestone: 'milestone perk', allX: 'All-X candidate', other: 'other' } as Record<string, string>)[d.bankedAs]], ['Milestone', d.ladder ? ms(d) : d.place && label(d.place)], ['Effect', d.effect], ['State', d.built === undefined ? 'written only' : d.built ? 'built' : 'not built'],
     ['State', d.quirk ? 'quirk' : undefined], ['Tree', d.allStep ? lib.trees[d.allStep.treeId]?.name : treeOf(d.ladder?.skill ?? d.skill)],
     ...perkSkills(d).map((sk): [string, string] => ['Skill', skillName(sk)])],
-  achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${rewardName(d.level)}`]],
+  achievements: (d: AchievementDef) => [...achTags(d).map((t): [string, string] => ['Tag', achTagName(t)]), ['Kind', d.scar ? 'scar' : 'achievement'], ['Level', `Level ${rewardName(d.level)}`],
+    ['Reward', specialReward(d) ? 'special reward' : 'XP only']],
   bodyTypes: (c: BodyType) => [['Size', c.general.size], ['Figure', c.figure ? 'has figure' : 'no figure']],
   skills: (t: { skills?: string[]; access?: TreeAccess }) => [['Access', classTree(t.access) ? 'class tree' : t.access?.must?.length || t.access?.either?.length ? 'needs a source' : 'general'],
     ...(t.access?.blockedBy ?? []).map((c): [string, string] => ['Blocked by', condName(c)]),
@@ -846,7 +898,8 @@ const sizeOf = (s: Section) => s.count ?? Object.keys(lib[s.table] as object).le
 const rail = h('nav', { class: 'hs-rail', 'aria-label': 'Library tables' }, h('div', { class: 'hs-brand' }, 'LIB', h('span', { class: 'ar' }, `v${lib.version}`)),
   RAIL_GROUPS.flatMap(([g, keys]) => {
     const list = keys ? keys.flatMap((k) => SECTIONS.filter((s) => s.key === k)) : SECTIONS.filter((s) => !RAIL_GROUPS.some(([, k]) => k?.includes(s.key)));
-    return list.length ? [h('div', { class: 'lv-railgroup', 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
+    const grp = g.toLowerCase(); // each group has its own colour (CSS [data-group]), so the breaks between them read at a glance
+    return list.length ? [h('div', { class: 'lv-railgroup', 'data-group': grp, 'aria-hidden': 'true' }, g), ...list.map((s) => { const n = sizeOf(s); return h('a', { href: `#${s.key}`, 'data-sec': s.key, 'data-group': grp, 'aria-label': `${s.title}, ${n} entries` }, s.title, h('span', { class: 'lv-n', 'aria-hidden': 'true' }, String(n))); })] : [];
   }));
 const picks = new Map<string, 'shown' | 'out'>();
 // each table keeps its own filter picks, remembered across visits and reloads (this browser only)
@@ -1210,7 +1263,7 @@ function fold(head: Element, open?: boolean, save = true): void {
   head.querySelector(':scope > .lv-foldbtn')?.setAttribute('aria-expanded', String(!folded));
 }
 // tables whose sections start folded until opened; for them the remembered choice is which sections are open
-const FOLDED_FIRST = new Set(['achievements']);
+const FOLDED_FIRST = new Set<string>([]); // achievements read as compact medal tracks now, so they open unfolded
 const openedSet = new Set<string>(remember<string[]>('lv-opened', []));
 const savedFolded = (k: string): boolean => (FOLDED_FIRST.has(shown) ? !openedSet.has(k) : foldedSet.has(k));
 // keyed by tab and title without its count ("Perk (3 sources)" → "Perk"), so a fold survives the numbers changing in a new
