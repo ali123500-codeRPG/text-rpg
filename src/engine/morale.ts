@@ -11,6 +11,10 @@ import { markResolve } from '../ruleset/improve';
 import { maxMorale, moraleLevel, moraleLost, setMoraleLost, tierCostMult } from '../ruleset/morale';
 import { isActive } from './relations';
 import { logCode } from './effects';
+import { tally } from './xp';
+
+/** achievements count the player's morale lost, in flat points */
+const creditLost = (state: GameState, a: Actor, paid: number) => { if (a === state.player && paid > 0) tally(state, 'morale_lost', { add: paid }); };
 
 
 /** pays fear `id` (cost overrides the row's cost: a part fear's sum, partFearCost): gap = the contest's tier gap (perTier rows), mult and shift = a perk's extra (Make an Example, MB26),
@@ -22,6 +26,7 @@ export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { g
   if (o.overwhelm) {
     const from = moraleLevel(a), paid = setMoraleLost(a, maxMorale(a));
     if (paid) markResolve(state, a, (100 * paid) / maxMorale(a));
+    creditLost(state, a, paid);
     logCode(state, 'morale', { actorId: a.id, fear: id, paid, overwhelm: true, from, to: moraleLevel(a) });
     return from === 'broken' ? undefined : 'surrendered';
   }
@@ -40,6 +45,7 @@ export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { g
   if (!paid) return undefined;
   const to = moraleLevel(a);
   markResolve(state, a, (100 * paid) / maxMorale(a));
+  creditLost(state, a, paid);
   logCode(state, 'morale', { actorId: a.id, fear: id, paid, ...(level === undefined ? {} : { tier: level }), from, to });
   if (to !== 'broken' || from === 'broken') return undefined;
   return level !== undefined && level <= TIERS.pos('critical_failure') ? 'surrendered' : 'broken';
