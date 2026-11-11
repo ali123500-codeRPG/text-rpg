@@ -2986,6 +2986,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-27 | Pressing Report bug only saved the report; the open bugs reached Claude only through a separate "Send open bugs to Claude" button, though Ali had asked that reporting sends them. Fixed: Report bug saves the report and sends every open bug to Claude at once (the send button stays for sending again) | Ali | Fixed | PR #446 |
 | BG-28 | "I strike the innkeeper behind the counter" moved the player behind the counter and struck no one, and the next turn answered "No innkeeper is in sight". The barkeep had been seen, then only heard running off to the kitchen; that unseen move wiped her from the player's clear sightings, so the Parser had no trace of her. Fixed: lastSeen keeps everyone seen or heard at the last zone known (Journal lastKnown), and the Parser never asks who someone in it is | Ali | Fixed | this PR |
 | BG-29 | Who's here showed "A sharp-eyed woman · Down · Terrified" for a dead woman: others' morale (MB16) was shown even when they were Down (Ali's report, the agent's save). Fixed: anyone Down shows no mood. | 11/11/2026 | fixed | this PR |
+| BG-31 | "Walk to Tavern Lane, the street door" came as a move to the lane with a spot near the common room; the lane was out of view, so the spot couldn't be checked and the player was asked "Where in common room do you want to go?" twice (playtest run 40). Fixed: on a move to another zone, a spot that doesn't fit is dropped and the move goes on. | 11/11/2026 | fixed | this PR |
 
 ## Check on release
 
