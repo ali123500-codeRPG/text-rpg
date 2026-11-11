@@ -26,6 +26,17 @@ import { PERSONAS, autoPerk } from '../src/agents/autopilot';
 (CONFIG as { WEAVER_TIMEOUT_MS: number }).WEAVER_TIMEOUT_MS = 360_000;
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
+// --set KEY=VALUE (repeatable): a config override for this run only, e.g. --set SKILL_UP_INSTANT=true
+process.argv.forEach((x, i) => {
+  if (x !== '--set') return;
+  const [k, v] = process.argv[i + 1].split('=');
+  (CONFIG as Record<string, unknown>)[k] = v === 'true' ? true : v === 'false' ? false : Number.isNaN(Number(v)) ? v : Number(v);
+  console.log(`config ${k} = ${v}`);
+});
+/** --mechanics: the player agent also reads each line's mechanics (what the screen shows with mechanics on: rolls, skill-ups) */
+const MECHANICS = process.argv.includes('--mechanics');
+/** --debrief: after the run, the player agent answers DEBRIEF about how it felt to play */
+const DEBRIEF = arg('debrief', '');
 const TURNS = Number(arg('turns', '50'));
 /** --max N: after --turns, keep going 10 turns at a time until a level-up and a perk have happened, or N turns */
 const MAX = Number(arg('max', String(TURNS)));
@@ -121,13 +132,14 @@ async function main() {
     const stop = game.notices().find((n) => n.kind === 'stop_play');
     if (stop) { console.log('stop_play:', stop.text); break; }
     // spoken lines are shown under the narration on screen (the Narrator does not quote them), so the player sees them too
-    const recent = game.lines().slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
+    const recent = game.lines().slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`), ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
     const pick = await claudeCli(`${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n\nThe story so far (latest last):\n${recent}`, 'claude-sonnet-5-5');
     const input = (pick.text || 'I look around.').split('\n')[0].trim().slice(0, 200);
     const aimed = input.startsWith('/aim');
     console.log(`turn ${t}: ${input}`);
     await game.submit(input, { aimed });
     spendPerkPoints(game, t);
+    for (const l of game.gm().log.filter((x) => x.code === 'skill_improved' && x.turn === game.state()?.turn)) { const d = l.detail as { skill: string; from: number; to: number }; skillUps.push(`turn ${t}: ${d.skill} ${d.from} -> ${d.to}`); }
     const gm = game.gm();
     appendFileSync(agentLog, JSON.stringify({ step: t, input, notices: game.notices(), agentLog: gm.agentLog }) + '\n');
     tracePacing(game, t, input);
@@ -135,6 +147,11 @@ async function main() {
   }
   await game.settle();
   writeTranscript(game, storyId!, t0);
+  if (DEBRIEF) {
+    const story = game.lines().map((l) => [`[${l.kind}] ${l.text}`, ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
+    const r = await claudeCli(`${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}\n\nYou have finished playing. The whole story you played:\n${story}\n\n${DEBRIEF}\nAnswer as the player, honestly and specifically, in plain prose.`, 'claude-sonnet-5-5');
+    writeFileSync(join(OUT, 'debrief.md'), `# Debrief\n\nQuestion: ${DEBRIEF}\n\n${r.text || r.error}\n\nSkill-ups this run (${skillUps.length}):\n${skillUps.map((x) => `- ${x}`).join('\n')}\n`);
+  }
   writeFileSync(join(OUT, 'final-state.json'), JSON.stringify(game.state(), null, 1));
   console.log(`done: ${calls} game calls, ${Math.round((Date.now() - t0) / 60000)} min`);
 }
@@ -154,6 +171,7 @@ function tracePacing(game: ReturnType<typeof createGame>, step: number, input: s
 
 /** The test player can't open the Perks page, so it spends each perk point at once on the open milestone of its highest skill. */
 const progress: string[] = [];
+const skillUps: string[] = [];
 let levelUpsSeen = 0;
 function spendPerkPoints(game: ReturnType<typeof createGame>, turn: number) {
   const st = game.state();
