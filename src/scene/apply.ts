@@ -106,8 +106,9 @@ export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['
 }
 
 /** reset scene-scoped records at a scene start (Scenes: Start). */
-export function beginScene(state: GameState, tier: Tier): void {
+export function beginScene(state: GameState, tier: Tier, beyond?: number): void {
   state.stage.tier = tier;
+  if (beyond) state.stage.tierBeyond = beyond; else delete state.stage.tierBeyond;
   state.stage.sceneNumber += 1;
   state.stage.sceneStartTurn = state.turn;
   delete state.stage.fallback;

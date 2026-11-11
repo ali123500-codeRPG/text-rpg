@@ -106,7 +106,7 @@ export function equations(lib: Library): EquationGroup[] {
         formula: `margin = d100 ${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.EVENT_BASE - 100)} + modifiers`,
         terms: [[`${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.EVENT_BASE - 100)}`, `event base ${CONFIG.EVENT_BASE} (CONFIG.EVENT_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
-        notes: ['It reads the same tier table as a skill roll. The natural edge applies here too. There are no tier shifts.'] },
+        notes: ['It reads the same tier table as a skill roll. There are no tier shifts.', `The natural edge counts ×${n(CONFIG.EVENT_EDGE_SCALE)} (CONFIG.EVENT_EDGE_SCALE): d100 1 ${n(-2 * CONFIG.EVENT_EDGE_SCALE)}, 2–5 ${n(-CONFIG.EVENT_EDGE_SCALE)}, 96–99 +${n(CONFIG.EVENT_EDGE_SCALE)}, 100 +${n(2 * CONFIG.EVENT_EDGE_SCALE)}.`, 'The tier stops at Critical Success and Critical Failure unless an achievement opens steps past them (tierUnlocks on perks and achievements, added up along a chain): then it can reach Critical Success+ and beyond, or Critical Failure− and below.'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
         formula: `type total = biggest + ${n(CONFIG.STACK_RATIO)} × next + ${n(CONFIG.STACK_RATIO ** 2)} × next …, bonuses and penalties apart; types add in full`,
         notes: [`Example: three +10 of one type → ${n(stackType([10, 10, 10]))}.`] },

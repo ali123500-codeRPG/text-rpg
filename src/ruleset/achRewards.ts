@@ -2,7 +2,7 @@
 // count (a replaced level gives nothing itself), but a level's rewards include every reward of the lower levels of its
 // chain, read from their rows, so changing a lower level changes every level above it. A level drops an inherited
 // reward only by naming it in its own `excludes`.
-import type { AchievementDef, AchievementReward, Actor, GameState, Mod } from '../types';
+import type { AchievementDef, AchievementReward, Actor, GameState, Mod, RollKind, TierUnlock } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { dayOf, now } from '../time';
@@ -11,7 +11,7 @@ import { INTELLIGENCE, REWARD_LEVELS } from '../scales';
 import { groupsOf } from '../library/functionNames';
 
 type Reward = 'unawareShift' | 'quieter' | 'deathsDoor' | 'renown' | 'standIn' | 'reqLower' | 'pricePct' | 'rally' | 'restPct' | 'eventRoll' | 'freeLevels' | 'bonusLevels';
-const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind'];
+const FIELDS: AchievementReward[] = ['perk', 'unawareShift', 'quieter', 'readsHealth', 'skillAdd', 'renown', 'deathsDoor', 'firstSight', 'standIn', 'reqLower', 'pricePct', 'rally', 'restPct', 'eventRoll', 'freeLevels', 'bonusLevels', 'personality', 'personalityByKind', 'tierUnlocks'];
 
 /** the actor's current achievements (not replaced), with their library rows */
 export function currentAchievements(a: Actor): { key: string; of?: string; d: AchievementDef }[] {
@@ -104,6 +104,23 @@ export function renownMods(state: GameState, foe: Actor, fightingPlayer: boolean
   return r ? [{ source: `renown: ${r.name}`, type: 'achievement', value: -r.value }] : [];
 }
 
+/** a tier unlock as a reward line */
+export function tierUnlockLine(u: TierUnlock): string {
+  const rolls = u.roll === 'any' ? 'all your rolls' : u.roll === 'event' ? 'your event rolls' : `your ${u.roll} rolls`;
+  return u.side === 'up' ? `${rolls} can go +${u.steps} tier${u.steps === 1 ? '' : 's'} past Critical Success`
+    : `${rolls} can fall +${u.steps} tier${u.steps === 1 ? '' : 's'} below Critical Failure`;
+}
+/** how many tiers past Critical Success (up) and below Critical Failure (down) the actor has opened on one kind of roll:
+ * every current achievement's tierUnlocks along its chain, plus every active owned perk's, for that kind or 'any' */
+export function tierReach(a: Actor, roll: RollKind): { up: number; down: number } {
+  const perks = getLibrary().perks ?? {};
+  const all: TierUnlock[] = [
+    ...currentAchievements(a).flatMap((x) => chainRewards(x.d).filter((e) => e.field === 'tierUnlocks').flatMap((e) => e.from.tierUnlocks ?? [])),
+    ...a.core.perks.filter((p) => !p.dormant).flatMap((p) => perks[p.perkId]?.tierUnlocks ?? []),
+  ].filter((u) => u.roll === roll || u.roll === 'any');
+  const sum = (side: TierUnlock['side']) => all.filter((u) => u.side === side).reduce((n, u) => n + u.steps, 0);
+  return { up: sum('up'), down: sum('down') };
+}
 /** free or bonus levels earned: every current achievement's along its chain, plus every active owned perk's.
  * Free levels are level-ups that cost no XP (into a class); bonus levels are character levels no class gets. */
 export function levelsEarned(a: Actor, f: 'freeLevels' | 'bonusLevels'): number {
@@ -137,6 +154,7 @@ function linesOf(d: AchievementDef, f: AchievementReward): string[] {
     case 'rally': return [`allies fighting beside you get +${d.rally} on their morale rolls`];
     case 'restPct': return [`+${d.restPct}% healing on each rest`];
     case 'eventRoll': return [`+${d.eventRoll} on your event rolls`];
+    case 'tierUnlocks': return (d.tierUnlocks ?? []).map((u) => tierUnlockLine(u));
     case 'freeLevels': return [`+${steps(d.freeLevels!, 'free level')} (levels that cost no XP)`];
     case 'bonusLevels': return [`+${steps(d.bonusLevels!, 'bonus level')} (character levels no class gets: perk points, no class perks)`];
     case 'perk': return [`grants the perk ${getLibrary().perks?.[d.perk!]?.name ?? d.perk}`];
