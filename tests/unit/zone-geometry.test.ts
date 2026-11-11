@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { CONFIG } from '../../src/config';
-import { EK } from '../../src/library/tableIds';
+import { EK, LY } from '../../src/library/tableIds';
 import { getLibrary } from '../../src/library';
 import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scene';
 import { toStoryStart, villageStagePlan } from '../../src/scene/fixtures';
@@ -41,5 +41,44 @@ describe('zone sizes and edges', () => {
     plan.zones[0].size = 'huge';
     plan.zones[1].edges = { n: 'EK99' };
     expect(validateStagePlan(s, plan, ctx).filter((e) => e.code === 'bad_zone')).toHaveLength(2);
+  });
+});
+
+describe('layouts (CO17)', () => {
+  it('a place that names a layout gets its zones, keyed placeKey.zoneKey, sized, sided and placed; they skip the zone cap', () => {
+    const s = toStoryStart(makeVillage());
+    CONFIG.PLAN_CAPS = { ...CONFIG.PLAN_CAPS, places: 5 }; // the fixture plan already uses 4 places
+    const plan = villageStagePlan();
+    plan.places.push({ key: 'smithy', name: 'Hob\'s Smithy', kind: 'place', parent: 'village', layout: LY.smithy, names: { forge: 'Hob\'s forge' } });
+    plan.zones.find((z) => z.key === 'street_door')!.links.push({ to: 'smithy.forge', label: 'the smithy, east', sight: true });
+    expect(validateStagePlan(s, plan, ctx)).toEqual([]);
+    expect(plan.zones.filter((z) => z.fromLayout)).toHaveLength(getLibrary().layouts![LY.smithy].zones.length);
+    applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));
+    const forge = zoneOf(s, 'Hob\'s forge')!, coal = zoneOf(s, 'coal store')!;
+    expect(forge.edges!.s).toBe(EK.open);
+    expect(forge.rect && coal.rect).toBeTruthy();
+    expect(coal.rect!.x).toBeGreaterThan(forge.rect!.x); // "the coal store, east"
+    expect(forge.links.some((l) => l.to === zoneOf(s, 'outside the tavern')!.id)).toBe(true); // back link added
+  });
+
+  it('an unknown layout fails validation', () => {
+    const s = toStoryStart(makeVillage());
+    const plan = villageStagePlan();
+    plan.places.push({ key: 'x', name: 'X', kind: 'place', parent: 'village', layout: 'LY99' });
+    expect(validateStagePlan(s, plan, ctx).some((e) => e.code === 'bad_place')).toBe(true);
+  });
+
+  it('every layout is well formed: kinds, sizes, edges and links resolve, and the entry exists', () => {
+    const lib = getLibrary();
+    for (const l of Object.values(lib.layouts!)) {
+      const keys = new Set(l.zones.map((z) => z.key));
+      expect(keys.has(l.entry)).toBe(true);
+      for (const z of l.zones) {
+        expect(lib.zoneKinds![z.kind]).toBeDefined();
+        if (z.size) expect(CONFIG.ZONE_SIZE_M2[z.size]).toBeGreaterThan(0);
+        for (const ek of Object.values(z.edges ?? {})) expect(lib.edgeKinds![ek!]).toBeDefined();
+        for (const [to] of z.links) expect(keys.has(to)).toBe(true);
+      }
+    }
   });
 });

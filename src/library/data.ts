@@ -5,6 +5,7 @@ import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
 import { CONFIG } from '../config';
+import { LAYOUTS } from './layouts';
 import type { ArmorWeightKey } from '../scales';
 import { CLASS_TIERS, ZONE_SIZES } from '../scales';
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
@@ -525,6 +526,7 @@ export function prototypeLibrary(): Library {
       open: 'A village green or small market (about 40 × 40 m)',
       vast: 'A city market square (Kraków\'s is about 200 × 200 m, four of these)',
     } as Record<string, string>)[k] }])),
+    layouts: LAYOUTS,
     items: ITEMS,
     templates: TEMPLATES,
     activities: ACTIVITIES,

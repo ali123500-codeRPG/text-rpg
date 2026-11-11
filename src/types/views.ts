@@ -235,6 +235,7 @@ export type WeaverView = {
     skills: { id: string; name: string }[];
     zoneKinds: import('./library').ZoneKind[]; // Z2
     edgeKinds: import('./library').EdgeKind[]; // CO15
+    layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string }[] }[]; // CO17
   };
   grades: Grade[];
 };
