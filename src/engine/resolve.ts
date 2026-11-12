@@ -15,7 +15,7 @@ import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type Passage } f
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
-import { travel, tripGoal } from './travel';
+import { travel, travelSpeed, tripGoal } from './travel';
 import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, wayLeftM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
@@ -23,7 +23,7 @@ import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, 
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
@@ -342,6 +342,7 @@ function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 
     if (r === 'spent') return true;
     if (r === 0) { if (fresh) return true; left = 0; continue; }
     left -= r;
+    noteWalked(state, a, r); // NW11: what this turn's own moves already walked
     fresh = false;
   }
   return true;
@@ -874,6 +875,7 @@ function step(ctx: Ctx, id: string): void {
 function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof tripGoal>>): void {
   const { state } = ctx;
   const trip = travel(state, a, t.goal, o, ctx.rng);
+  for (const id of [a.id, ...trip.companions]) noteWalked(state, { id } as Actor, Infinity); // NW11: they spent the turn on the road
   if (a.zone !== trip.fromZone) noteLeft(state, trip.fromZone);
   const detail = { metres: Math.round(trip.metres), minutes: Math.round(trip.minutes), pace: trip.pace, night: trip.night, stop: trip.stop, companions: trip.companions };
   logCode(state, 'travelled', { actorId: a.id, ...detail });
@@ -959,11 +961,41 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 
 // ---------- the turn ----------
 
+/** NW11: metres an actor walked on this turn's own moves (scratch.walked, reset each turn) */
+function noteWalked(state: GameState, a: Actor, m: number): void {
+  const w = ((state.scratch ??= {}).walked ??= {}) as Record<string, number>;
+  w[a.id] = (w[a.id] ?? 0) + m;
+}
+
+/** NW11: the time a turn took moves everyone on. Each NPC not in a fight goes toward where its routine puts it at the new
+ * time, as far as it could walk in that time at the travel pace (travelSpeed), less what its own move already walked:
+ * one jump, no Claude calls. It stops at a shut way or an unbuilt frontier, and a road is walked by its length. Healing
+ * already counts minutes. GAP: a way it holds the key to stops it too (it would need to open and shut it unseen). */
+export function catchUp(state: GameState, minutes: number, agentRun: Set<string> = new Set()): void {
+  if (minutes <= 0) return;
+  const walked = (state.scratch?.walked ?? {}) as Record<string, number>;
+  for (const a of [...state.actors].sort((x, y) => x.id.localeCompare(y.id))) {
+    const m = a.mind;
+    // an NPC whose agent chose its move this turn keeps it: the catch-up is for routine time
+    if (!m?.routine || agentRun.has(a.id) || !isActive(a) || isEngaged(state, a) || a.heldBy || m.moraleState) continue;
+    const d = desiredState(buildActorView(state, a.id));
+    if (!d || d.zone === a.zone) continue;
+    let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
+    for (let i = 0; i < 100 && left > 0.01 && a.zone !== d.zone; i++) {
+      if (gateAhead(state, a, d.zone)) break; // a way that is not simply open
+      const r = walkLeg(state, a, { zone: d.zone }, left, 0, false, a);
+      if (!r) break;
+      left -= r;
+    }
+  }
+}
+
 /** NW3/NW8: an NPC that walked into a frontier this turn and waits at its edge (scratch.frontierWaits, reset each turn) */
 export type FrontierWait = { actorId: string; frontier: string };
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
-  if (state.scratch) delete state.scratch.frontierWaits; // NW3: this turn's waits only
+  if (state.scratch) { delete state.scratch.frontierWaits; delete state.scratch.walked; } // NW3/NW11: this turn's only
+  const clockStart = now(state);
   noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
   placeAll(state); // ZP1: anyone new on stage, or moved by a scenario, gets a spot in their zone
   delete state.stage.encounter; // TV4: an encounter's scenario has placed its people by now
@@ -1073,6 +1105,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const defeated = payDefeats(state, ctx.events);
   updatePacing(state, ctx.events, learnedBefore);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
+  catchUp(state, now(state) - clockStart, new Set(usableAgentOutputs(input).map((o) => o.actorId))); // NW11: the turn's time moves everyone on toward their schedule
+  headArrivals(state); // NW2: a head_to walk the catch-up brought there
   updateQuests(state, ctx.events, defeated);
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);

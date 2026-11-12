@@ -139,7 +139,9 @@ export type Routine = {
   brief: string;
   kind: 'schedule' | 'follow' | 'wait' | 'head'; // head (NW2): walk to slot 'dest', then back to the routine before it
   loop: boolean;
-  steps: RoutineStep[]; // schedule only; [] otherwise
+  steps: RoutineStep[]; // schedule only; [] otherwise. NW10: the steps at any time of day `times` does not name
+  /** NW10: the steps at a time of day (dawn, day, dusk, night), when they differ from `steps` */
+  times?: Partial<Record<import('../scales').TimeOfDay, RoutineStep[]>>;
   activity?: string; // follow, wait and head only
   alert?: string;
   onAlert: OrderTemplate | null;

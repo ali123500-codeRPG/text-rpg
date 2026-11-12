@@ -8,7 +8,7 @@ it('63 Route expands: each stop in order for the step duration, then loops', () 
   const route = ['gate_inner', 'street_square', 'street_door'];
   installRoutines(actor(s, 'guard_1'), 'patrol_guard', { route }, 'route', 0, createRng(1));
   const zones: string[] = [];
-  for (s.turn = 0; s.turn < 12; s.turn++) zones.push(desiredState(buildActorView(s, 'guard_1'))!.zone);
-  // short = 3 turns per stop, 9-turn loop
+  // NW10: on the clock, every 10 game minutes for two hours: short = 30 minutes per stop, a 90-minute loop
+  for (let m = 0; m < 120; m += 10) { s.clocks.time = 420 + m; zones.push(desiredState(buildActorView(s, 'guard_1'))!.zone); }
   expect(zones).toEqual([...route.flatMap((z) => [z, z, z]), 'gate_inner', 'gate_inner', 'gate_inner']);
 });

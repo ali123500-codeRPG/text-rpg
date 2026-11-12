@@ -24,7 +24,7 @@ const turn = (s: GameState, outputs: { actorId: string; output: Partial<PlannerO
 const guard = (s: GameState) => s.actors.find((a) => a.id === 'guard_1')!;
 
 describe('207 head_to (NW2, NW7, NW1)', () => {
-  it('NW2: the agent names headTo; code walks the guard there turn by turn, then it goes back to its routine', () => {
+  it('NW2: the agent names headTo; code walks the guard there on later turns, then it goes back to its routine', () => {
     const s = away();
     const g = guard(s);
     const before = { ...g.mind!.routine! };
@@ -32,9 +32,11 @@ describe('207 head_to (NW2, NW7, NW1)', () => {
     expect(g.mind!.routine!.id).toBe(HEAD_TO);
     expect(g.mind!.slots!.dest).toBe('tav_cellar');
     expect(g.mind!.headBack).toEqual(before);
-    const path: string[] = [];
-    for (let i = 0; i < 8 && g.mind!.routine!.id === HEAD_TO; i++) { turn(s); path.push(g.zone); }
-    expect(path).toEqual(['street_square', 'street_door', 'tav_common', 'tav_counter', 'tav_cellar']);
+    // NW11: a minute's turn is time enough to walk the five ways there (the village's zones have no size, so each way is
+    // one link of metres); it arrives within the turn
+    expect(g.zone).toBe('gate_inner');
+    turn(s);
+    expect(s.log.some((l) => l.code === 'head_to_arrived' && l.detail?.zone === 'tav_cellar')).toBe(true);
     // arrived: back on its own routine (the old anchor kept), dest unbound; from there the routine walks it home
     expect(g.mind!.routine).toEqual(before);
     expect(g.mind!.slots!.dest).toBeUndefined();

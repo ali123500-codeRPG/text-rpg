@@ -162,14 +162,18 @@ export type Mind = {
   knowledge: Record<ActorId, Belief>;
   overrides?: Record<ActorId, Stance>;
   knows: Fact[];
-  routine?: { id: string; anchorTurn: Turn };
+  /** at (NW10): the game minute the routine started; its steps run on the clock from there */
+  routine?: RoutineRun;
   /** NW2: on head_to, the routine it goes back to once it gets there */
-  headBack?: { id: string; anchorTurn: Turn };
+  headBack?: RoutineRun;
   routines?: string[];
   routineSetId?: LibraryRef;
   slots?: Record<string, string | string[]>;
-  alarm?: { armed: boolean; lastAlarmTurn?: Turn; returnTo?: { id: string; anchorTurn: Turn }; onAlertDue?: string /* routine id whose onAlert is still to fire (W5) */ };
+  alarm?: { armed: boolean; lastAlarmTurn?: Turn; returnTo?: RoutineRun; onAlertDue?: string /* routine id whose onAlert is still to fire (W5) */ };
 };
+
+/** a routine an NPC is running: anchorTurn the turn it started, at (NW10) the game minute it started */
+export type RoutineRun = { id: string; anchorTurn: Turn; at: number };
 
 export type NpcTemplate = {
   id: LibraryRef;

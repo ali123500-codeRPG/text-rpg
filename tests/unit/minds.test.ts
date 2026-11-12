@@ -30,25 +30,26 @@ describe('desired state', () => {
   it('schedule loops over expanded route stops', () => {
     const s = makeVillage();
     const sl = actor(s, 'slime_1'); // roam_field: route[field_mid, field_far] short ooze, post field_far medium rest
-    sl.mind!.routine = { id: 'roam_field', anchorTurn: 0 };
-    const at = (t: number) => { s.turn = t; return desiredState(fakeView(s, 'slime_1')); };
+    sl.mind!.routine = { id: 'roam_field', anchorTurn: 0, at: 420 };
+    // NW10: steps run on the clock: short 30 minutes each route stop, medium 120 at the post, 180 in all
+    const at = (m: number) => { s.clocks.time = 420 + m; return desiredState(fakeView(s, 'slime_1')); };
     expect(at(0)).toEqual({ zone: 'field_mid', activity: 'ooze' });
-    expect(at(3)).toEqual({ zone: 'field_far', activity: 'ooze' });
-    expect(at(6)).toEqual({ zone: 'field_far', activity: 'rest' });
-    expect(at(12)).toEqual({ zone: 'field_mid', activity: 'ooze' });
+    expect(at(30)).toEqual({ zone: 'field_far', activity: 'ooze' });
+    expect(at(60)).toEqual({ zone: 'field_far', activity: 'rest' });
+    expect(at(180)).toEqual({ zone: 'field_mid', activity: 'ooze' });
   });
   it('non-looping schedule holds its last step', () => {
     const s = makeVillage();
     const p = actor(s, 'patron_1');
-    p.mind!.routine = { id: 'leave_by_exit', anchorTurn: 0 };
-    s.turn = 500;
+    p.mind!.routine = { id: 'leave_by_exit', anchorTurn: 0, at: 420 };
+    s.clocks.time = 420 + 5000;
     expect(desiredState(fakeView(s, 'patron_1'))).toEqual({ zone: 'street_door', activity: 'rest' });
   });
   it('reads DURATIONS at call time', () => {
     const s = makeVillage();
-    actor(s, 'slime_1').mind!.routine = { id: 'roam_field', anchorTurn: 0 };
-    CONFIG.DURATIONS.short = 5;
-    s.turn = 4;
+    actor(s, 'slime_1').mind!.routine = { id: 'roam_field', anchorTurn: 0, at: 420 };
+    CONFIG.DURATIONS.short = 50;
+    s.clocks.time = 420 + 40;
     expect(desiredState(fakeView(s, 'slime_1'))!.zone).toBe('field_mid');
   });
   it('follow reads the belief, wait reads here', () => {
@@ -156,12 +157,12 @@ describe('install and switch', () => {
     const s = makeVillage();
     const g = actor(s, 'guard_1');
     installRoutines(g, 'patrol_guard', { route: ['street_square', 'gate_inner', 'street_door'] }, 'route', 20, createRng(1));
-    expect(g.mind!.routine).toEqual({ id: 'patrol', anchorTurn: 20 });
+    expect(g.mind!.routine).toEqual({ id: 'patrol', anchorTurn: 20, at: 420 });
     const sl = actor(s, 'slime_1');
     installRoutines(sl, 'slime_wander', { route: ['field_mid', 'field_far'], post: 'field_edge' }, 'post', 20, createRng(1));
-    expect(sl.mind!.routine).toEqual({ id: 'roam_field', anchorTurn: 14 });
+    expect(sl.mind!.routine).toEqual({ id: 'roam_field', anchorTurn: 20, at: 420 - 60 }); // NW10: started back past two 30-minute route stops
     installRoutines(g, 'gate_guard', { post: 'gate_inner' }, undefined, 20, forcedRng([5]));
-    expect(g.mind!.routine).toEqual({ id: 'guard_post', anchorTurn: 15 });
+    expect(g.mind!.routine).toEqual({ id: 'guard_post', anchorTurn: 20, at: 415 });
   });
   it('invalid switches log and keep the routine', () => {
     const s = makeVillage();
@@ -174,7 +175,7 @@ describe('install and switch', () => {
     expect(switchRoutine(s, t, 'flee_to_refuge_alert', 'agent')).toBe(false);
     s.turn = 9;
     expect(switchRoutine(s, t, 'wait', 'agent')).toBe(true);
-    expect(t.mind!.routine).toEqual({ id: 'wait', anchorTurn: 9 });
+    expect(t.mind!.routine).toEqual({ id: 'wait', anchorTurn: 9, at: 420 });
   });
   it('calm bandmates who heard switch; others keep theirs; skip logs', () => {
     const s = makeVillage();
@@ -193,11 +194,11 @@ describe('alarm', () => {
   it('onAlert once, alert variant, calm return with saved anchor', () => {
     const s = makeVillage();
     const g = actor(s, 'guard_1');
-    g.mind!.routine = { id: 'guard_post', anchorTurn: 3 };
+    g.mind!.routine = { id: 'guard_post', anchorTurn: 3, at: 420 };
     s.turn = 10;
     updateAlarms(s, [ev(s, 'attack', 'player', 'gate_inner', ['guard_1'])]);
-    expect(g.mind!.routine).toEqual({ id: 'hold_post_alert', anchorTurn: 10 });
-    expect(g.mind!.alarm!.returnTo).toEqual({ id: 'guard_post', anchorTurn: 3 });
+    expect(g.mind!.routine).toEqual({ id: 'hold_post_alert', anchorTurn: 10, at: 420 });
+    expect(g.mind!.alarm!.returnTo).toEqual({ id: 'guard_post', anchorTurn: 3, at: 420 });
     const orders = alertOrders(s, [fakeView(s, 'guard_1')]);
     expect(orders).toEqual([expect.objectContaining({ actorId: 'guard_1', type: 'call_help', source: 'onAlert' })]);
     expect(alertOrders(s, [fakeView(s, 'guard_1')])).toEqual([]);
@@ -208,7 +209,7 @@ describe('alarm', () => {
     expect(g.mind!.routine!.id).toBe('hold_post_alert');
     s.turn = 17;
     updateAlarms(s, []);
-    expect(g.mind!.routine).toEqual({ id: 'guard_post', anchorTurn: 3 });
+    expect(g.mind!.routine).toEqual({ id: 'guard_post', anchorTurn: 3, at: 420 });
     expect(g.mind!.alarm!.armed).toBe(false);
   });
   it('first leaving unaware of an opposed actor raises the alarm', () => {
