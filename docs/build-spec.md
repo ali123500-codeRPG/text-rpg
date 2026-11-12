@@ -3141,6 +3141,8 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-77 | Following the watchman into the tavern while talking to him: the talk-move rule (BG-62) turned the move through the door into a step beside him in the lane; a move through a doorway to another room now stands, only a step over a counter, fence or rail (or a move aimed at them) ends beside them | 12/11/2026 | fixed | this PR |
 | BG-78 | Renting a bed from the barkeep across the busy tavern was refused as 'not here' and narrated as 'not sold under this roof'; buying and selling now step up to the seller like talking (BG-74), and an order the seller cannot hear clearly is refused as out of earshot | 12/11/2026 | fixed | this PR |
 | BG-79 | 'Order a drink, then take a table by the hearth': the Parser deferred the move though the turn's move slot was free; Parser rule 2 now says a place asked for beside the action fills the move, and a spot with no id is named by someone there or a side | 12/11/2026 | fixed | this PR |
+| BG-80 | Nearness was fixed action by action (talk BG-74, buy BG-78): NPCs never stepped up and give needed the same zone though a counter is see-and-reach-across. One rule now (engine/merge.ts approachMove, NEEDS voice/hand) covers talking, trading and handing over, for the player and NPCs; give works across a counter, fence or rail | 12/11/2026 | fixed | this PR |
+| BG-81 | A walk that reached its spot (the bridge gate) still told the narrator 'toward the bridge gate', so narration kept the gate 'a stretch away'; spot words now say 'at …' once there and 'toward …' on the way, and a walk up to a person says it reached them | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 

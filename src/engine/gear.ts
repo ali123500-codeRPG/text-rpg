@@ -6,7 +6,7 @@ import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
 import { working } from '../ruleset/body';
-import { actorById, isActive, zoneById } from './relations';
+import { actorById, isActive, reachesAcross, zoneById } from './relations';
 import { summon } from '../ruleset/threadboundItems';
 import { freeAccSlot } from '../ruleset/gear';
 
@@ -110,7 +110,8 @@ export function dropToGround(state: GameState, actor: Actor, instId: string, zon
 export function giveItem(state: GameState, actor: Actor, instId: string | null | undefined, targetId: string | null, qty?: number | null): { id: string; qty: number } | null {
   const to = targetId ? actorById(state, targetId) : undefined;
   const i = actor.core.inventory.findIndex((x) => x.id === instId);
-  if (!to || to === actor || !isActive(to) || to.zone !== actor.zone || i < 0) return null;
+  // BG-80: handed over in the same zone or across a counter, fence or rail (see and reach across it)
+  if (!to || to === actor || !isActive(to) || (to.zone !== actor.zone && !reachesAcross(state, actor.zone, to.zone)) || i < 0) return null;
   const it = actor.core.inventory[i];
   const have = it.qty ?? 1;
   const stackable = itemDef(state, it.itemId).stackable;

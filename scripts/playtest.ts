@@ -5,7 +5,7 @@
 // own system prompt and picks the model per tier, so read prompt-behaviour results from playtests with that in mind.
 //   npm run playtest -- --turns 50 --out playtest-out [--class late_bloomer]
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, appendFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ClaudeClient, ClaudeRequest, ClaudeResponse } from '../src/types';
 import { createGame, parseTolerant, realClock } from '../src/agents';
@@ -61,6 +61,9 @@ const TURNS = Number(arg('turns', '50'));
 /** --max N: after --turns, keep going 10 turns at a time until a level-up and a perk have happened, or N turns */
 const MAX = Number(arg('max', String(TURNS)));
 const OUT = arg('out', 'playtest-out');
+/** --resume DIR: carry on a stopped run from the end of its last finished turn (its store.json), on today's code; the new
+ * run's files go to --out and its turns keep counting from where DIR stopped */
+const RESUME = arg('resume', '');
 // GAP: the artifact's `sample` picks the model per tier on claude.ai; this mapping is ours.
 const TIER_MODEL: Record<string, string> = { quick: 'claude-haiku-5-5', default: 'claude-sonnet-5-5', complex: 'claude-opus-5-5' };
 
@@ -164,10 +167,20 @@ async function main() {
       return ev;
     },
     afterResolve: (st, ev, rng, ctx) => inner.afterResolve(st, ev, rng, ctx), afterSave: (st, ctx) => inner.afterSave(st, ctx) };
-  const game = createGame({ client: cliClient, clock: realClock, store: memoryStore(Date.now), director });
+  const store = memoryStore(Date.now);
+  const game = createGame({ client: cliClient, clock: realClock, store, director });
+  /** after every turn: the whole save, so a stopped run can be resumed (--resume) once its bug is fixed */
+  const dumpStore = (step: number) => writeFileSync(join(OUT, 'store.json'), JSON.stringify({ step, docs: Object.fromEntries(store.docs) }));
   // --class late_bloomer starts an Unwritten Legend; the default is the Swordsman. Both use the class's recommended build.
   const pers = characterPersonality();
-  await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden', ...(pers ? { personality: pers } : {}) });
+  let firstTurn = 1;
+  if (RESUME) {
+    const saved = JSON.parse(readFileSync(join(RESUME, 'store.json'), 'utf8')) as { step: number; docs: Record<string, string> };
+    for (const [k, v] of Object.entries(saved.docs)) store.docs.set(k, v);
+    if (!(await game.resume())) throw new Error(`could not resume the story saved in ${RESUME}`);
+    firstTurn = saved.step + 1;
+    console.log(`resumed ${RESUME} after turn ${saved.step}`);
+  } else await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden', ...(pers ? { personality: pers } : {}) });
   const storyId = game.state()?.storyId;
   // the Character page shows the personality; the agent reads it as a player would, but plays as its persona
   if (pers) charLine = `\nYour character's sheet describes their personality as: ${personalityText(game.state()!.player, 'steady')} You may play differently from it; play the way your persona says.`;
@@ -180,7 +193,7 @@ async function main() {
   const agentLog = join(OUT, 'agent-log.jsonl');
   writeFileSync(agentLog, '');
   const tested = () => progress.some((x) => x.includes('level up')) && progress.some((x) => x.includes('took perk'));
-  for (let t = 1; t <= MAX; t++) {
+  for (let t = firstTurn; t <= MAX; t++) {
     if (t > TURNS && (t - TURNS - 1) % 10 === 0) {
       if (tested()) { console.log(`level-up and perk seen by turn ${t - 1}; stopping`); break; }
       console.log(`turn ${t - 1}: no level-up and perk yet, playing 10 more`);
@@ -210,6 +223,7 @@ async function main() {
     appendFileSync(agentLog, JSON.stringify({ step: t, input, notices: game.notices(), agentLog: gm.agentLog }) + '\n');
     tracePacing(game, t, input);
     writeTranscript(game, storyId!, t0);
+    dumpStore(t); // the turn's own save (background calls that finish later land in the next turn's)
   }
   await game.settle();
   writeTranscript(game, storyId!, t0);

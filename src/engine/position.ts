@@ -241,6 +241,12 @@ export function frontierPoint(z: Zone, label: string, from: Pos): Pos {
  * edge straight across from someone or a way out (`awayFrom`); or the middle of the side a compass word names (`side`).
  * Points stand ENTER_M (a step) inside the edge. null: the zone has no rectangle, or the spot names nothing there. `toward` is the
  * actor walked to; `words` says the spot for the story ("to the north side", "away from the cellar steps"). */
+/** BG-81: a spot's words (said as reached: "at the gate", "away from the door", "on the north side") for a walk that
+ * stopped before it: "toward the gate", "heading away from the door", "toward the north side" */
+export function spotOnTheWay(words: string): string {
+  return words.startsWith('at ') ? `toward ${words.slice(3)}` : words.startsWith('on the ') ? `toward the ${words.slice(7)}` : `heading ${words}`;
+}
+
 export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from: Located): { pos: Pos; stopShort: number; toward?: string; words?: string } | null {
   const z = zoneById(state, zoneId);
   if (!z?.rect) return null;
@@ -263,7 +269,7 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
   if (spot.near) {
     const p = point(spot.near);
     if (!p || (p.actor && !p.here)) return null; // someone elsewhere is a move to their zone, not a spot in this one
-    return p.actor ? { pos: p.at, stopShort: CONFIG.PLACE_GAP_M, toward: p.actor } : { pos: inset(p.at), stopShort: 0, words: `toward ${p.label}` };
+    return p.actor ? { pos: p.at, stopShort: CONFIG.PLACE_GAP_M, toward: p.actor } : { pos: inset(p.at), stopShort: 0, words: `at ${p.label}` };
   }
   if (spot.awayFrom) {
     const p = point(spot.awayFrom);
@@ -275,5 +281,5 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
     return { pos: inset(edgeToward(r, d)), stopShort: 0, words: `away from ${p.label}` };
   }
   const d = spot.side ? compassOf(spot.side) : null;
-  return d ? { pos: inset(edgeToward(r, d)), stopShort: 0, words: `to the ${spot.side!.toLowerCase()} side` } : null;
+  return d ? { pos: inset(edgeToward(r, d)), stopShort: 0, words: `on the ${spot.side!.toLowerCase()} side` } : null;
 }
