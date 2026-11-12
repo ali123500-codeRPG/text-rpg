@@ -149,6 +149,11 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
+  [PK.always_yours]: {
+    id: PK.always_yours, name: 'What Was Always Yours', built: true, classLevel: { classId: CL.threadbounded, level: 1 }, grantsThreadbound: true,
+    story: 'Something was tied to you before you can remember. It has never once left your side for long.',
+    rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: ['a Threadbound item is not yet in the world'], effect: 'the owner gets one such item at random, bound to them and worn', lasts: 'once' },
+  },
   // D-218: the Gambler's Loop's abilities, given while its owner wears it and holds the achievement its grant names.
   // They widen the event roll both ways and never move its middle.
   [PK.loose_odds]: {
@@ -462,6 +467,8 @@ export function prototypeLibrary(): Library {
       [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
+      // TB7: the Threadbound start (50 points, level 1); its level 1 perk gives a random Threadbound item. No unlock: creation only
+      [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_2', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, creation: { points: 50, level: 1, name: 'The Threadbound' }, levelPerks: { 1: [PK.always_yours] } },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },

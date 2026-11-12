@@ -56,7 +56,7 @@ export type ClassDef = {
   /** flavor text shown with the class; its grandeur grows with the class's tier */
   story?: string;
   /** a creation option: points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
-  creation?: { points?: number; level?: number };
+  creation?: { points?: number; level?: number; name?: string }; // name: the start's name on the creation screen (default: the class name)
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
   levelPerks?: Record<number, string[]>;
   /** the default capstone: perk ids granted when the class reaches its top level (classMaxLevel, set by its tier) */
@@ -225,6 +225,8 @@ export type PerkDef = {
   /** D-218 active ability (a free perk move): arms the owner's next event roll. 'farther': roll twice, keep the die
    * farther from the middle; 'all_or_nothing': 51–100 is Critical Success, 1–50 Critical Failure. cooldownMin: game minutes */
   eventArm?: { kind: 'farther' | 'all_or_nothing'; cooldownMin: number };
+  /** TB7: owning it gives a random Threadbound item not yet in the world, bound to the owner and worn (once) */
+  grantsThreadbound?: true;
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };

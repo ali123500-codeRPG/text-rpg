@@ -27,7 +27,7 @@ import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks
 import { battleCry, engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
-import { syncThreadbound } from '../ruleset/threadbound';
+import { grantThreadbound, syncThreadbound } from '../ruleset/threadbound';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { armThreadbound, countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, bandById, foe, isActive, isEngaged, hostile, shortestPath, sparBetween, wayPath, zoneById } from './relations';
@@ -787,6 +787,7 @@ function step(ctx: Ctx, id: string): void {
   if (o.defense) a.core.standingDefense = o.defense;
   const g = applyGearOps(state, a, o.gear); // free, before the action
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
+  for (const id of g.summoned) emit(ctx, mk(ctx, a, 'summon', { itemId: id })); // TB6
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
   // TV1: a move along a road with nothing else going on is a trip, walked in one turn
   const trip = tripGoal(state, a, o);
@@ -1036,7 +1037,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (ended || state.stage.breakCause || CONFIG.SKILL_UP_INSTANT) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
-  for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); syncThreadbound(x, state.turn); } // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
+  for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); syncThreadbound(x, state.turn); } grantThreadbound(state.player, CONFIG.ACCESSORY_SLOTS, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
   if (state.stage.breakCause) closeScene(state); // SC6: record the scene; SC4: an inner scene's end resumes the bigger one

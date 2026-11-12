@@ -27,7 +27,7 @@ export const TREE_VIEW: { id: string; c: string; locked?: [string, string] }[] =
 const STEP = 5;
 
 /** the starting options: the swordsman, and the late bloomer's unique class */
-const STARTS: string[] = [CL.swordsman, CL.late_bloomer, CL.a_nobody];
+const STARTS: string[] = [CL.swordsman, CL.late_bloomer, CL.a_nobody, CL.threadbounded];
 
 /** The creation screen. Switching the starting class swaps the screen inside one wrapper, so the app's
  * reference to this element stays valid and a later redraw never brings back the old class's screen. */
@@ -168,7 +168,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     h('button', { class: id === classId ? 'hs-btn-main' : 'hs-btn-text', type: 'button', 'aria-pressed': String(id === classId),
       title: [`${creationPoints(id)} points, level ${startLevel(id)}`, ...perkNames(id)].join(' · '),
       onclick: () => { if (id !== classId) switchTo(id); } },
-    `${lib.classes[id].name} · ${CLASS_TIERS.name(lib.classes[id].tier)} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
+    `${lib.classes[id].creation?.name ?? lib.classes[id].name} · ${CLASS_TIERS.name(lib.classes[id].tier)} · ${creationPoints(id)} pts · level ${startLevel(id)}`)));
   function whoRow(): HTMLElement {
     const gender = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Gender' }, GENDERS.map(([p, label]) =>
       h('button', { type: 'button', 'aria-pressed': String(identity.pronouns === p), title: `Others speak of you as “${p}”`,

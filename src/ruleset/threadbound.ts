@@ -3,6 +3,7 @@
 // lower level still counts as earned). In anyone else's hands it gives nothing. Runs at the end of every turn.
 import type { Actor, GameState, ItemDef, ItemInstance, Turn } from '../types';
 import { getLibrary } from '../library';
+import { createRng } from '../rng';
 import { isWorn } from './gear';
 
 const libItem = (id: string): ItemDef | undefined => getLibrary().items[id];
@@ -31,6 +32,43 @@ export const threadboundOf = (a: Actor, perk: string): ItemInstance | undefined 
   ownThreadbound(a).find((i) => libItem(i.itemId)!.threadbound!.grants.some((g) => g.perk === perk));
 
 /** a Threadbound item is one of a kind: true when one is already carried by anyone or lies on any ground */
-export const inWorld = (state: GameState, itemId: string): boolean =>
-  [state.player, ...state.actors].some((a) => a.core.inventory.some((i) => i.itemId === itemId))
-  || state.places.some((p) => p.zones.some((z) => z.groundItems.some((i) => i.itemId === itemId)));
+export const inWorld = (state: GameState, itemId: string): boolean => holders(state).some((l) => l.some((i) => i.itemId === itemId));
+
+/** every place an item instance can be: each actor's inventory and each zone's ground, in every place */
+function holders(state: GameState): ItemInstance[][] {
+  return [...[state.player, ...state.actors].map((a) => a.core.inventory), ...state.places.flatMap((p) => p.zones.map((z) => z.groundItems))];
+}
+
+/** TB6: the actor's bound Threadbound items it is not carrying */
+export const summonable = (state: GameState, a: Actor): ItemInstance[] =>
+  holders(state).filter((l) => l !== a.core.inventory).flat().filter((i) => i.boundTo === a.id && libItem(i.itemId)?.threadbound);
+
+/** TB6: brings the actor's own Threadbound item to it from wherever it is (stowed); false if it isn't theirs */
+export function summon(state: GameState, a: Actor, instId: string): boolean {
+  for (const list of holders(state)) {
+    const i = list.findIndex((x) => x.id === instId);
+    if (i < 0) continue;
+    if (list === a.core.inventory || list[i].boundTo !== a.id || !libItem(list[i].itemId)?.threadbound) return false;
+    const [it] = list.splice(i, 1);
+    delete it.equippedIn;
+    a.core.inventory.push(it);
+    return true;
+  }
+  return false;
+}
+
+/** TB7: each owned perk with grantsThreadbound gives, once, a random Threadbound item not yet in the world (state given),
+ * bound to the owner and worn in a free accessory slot. The pick is seeded by the story id, so a replay gives the same. */
+export function grantThreadbound(a: Actor, slots: number, state?: GameState): void {
+  const lib = getLibrary();
+  for (const p of a.core.perks) {
+    if (p.dormant || p.granted || !lib.perks[p.perkId]?.grantsThreadbound) continue;
+    const free = Object.values(lib.items).filter((d) => d.threadbound && !(state && inWorld(state, d.id)) && !a.core.inventory.some((i) => i.itemId === d.id));
+    if (!free.length) continue;
+    const pick = free[createRng([...a.storyId].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1).int(0, free.length - 1)];
+    const used = new Set(a.core.inventory.flatMap((i) => i.equippedIn ?? []));
+    const slot = Array.from({ length: slots }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
+    a.core.inventory.push({ id: `${pick.id}_${a.id}`, itemId: pick.id, boundTo: a.id, ...(slot ? { equippedIn: [slot] } : {}) });
+    p.granted = pick.id;
+  }
+}

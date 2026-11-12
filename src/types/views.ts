@@ -82,6 +82,7 @@ export type PlayerView = {
     id: 'player'; name: string; classes: { id: string; name: string }[];
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
+    summonable?: { id: string; name: string }[]; // TB6: the player's Threadbound items not on them (gear op summon)
     perkMoves?: { id: string; name: string; does: string; action?: true }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action
     health: HealthLevel; parts: { id: string; state: PartState }[];
     morale: string; // the morale bar's level (MB11)
