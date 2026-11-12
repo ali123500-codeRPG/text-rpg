@@ -8,6 +8,7 @@ import { placeAll } from '../../src/engine/position';
 import { placeZones } from '../../src/scenario/geometry';
 import { noteFighting } from '../../src/engine/engagement';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
+import { selectSpokespeople } from '../../src/engine/speech';
 import type { Actor, AttackResult, GameEvent, GameState } from '../../src/types';
 import { intent, play } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
@@ -116,5 +117,15 @@ describe('213 zones are not distances', () => {
     delete foe.pos;
     placeAll(s);
     expect(perkMoveBlock(s, s.player, PK.bluff, foe.id)).toBe('no_target');
+  });
+
+  it('BG-103: talking to a band, the nearest member in metres answers, not the first by id among those in one zone', () => {
+    const s = mapped();
+    besidePlayer(s, 'trader', 6); // Mags, tavern folk, 6 m off
+    besidePlayer(s, 'patron_1', 2); // Old Wim, tavern folk, 2 m off
+    const ask = intent({ action: { type: 'talk', target: null }, spoken: 'Evening, all.', addressees: ['tavern_folk'] });
+    expect(selectSpokespeople(s, ask)).toEqual(['patron_1']);
+    s.actors.find((a) => a.id === 'patron_1')!.pos!.x -= 10; // now 8 m off, the other way
+    expect(selectSpokespeople(s, ask)).toEqual(['trader']);
   });
 });
