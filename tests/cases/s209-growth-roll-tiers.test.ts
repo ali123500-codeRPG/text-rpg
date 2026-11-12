@@ -8,7 +8,7 @@ import { SK } from '../../src/library/skillIds';
 import { growthRoll, payRolls, skillCap } from '../../src/ruleset/improve';
 
 const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
-const odds = (raw: number, state: 'normal' | 'tagged') => { let any = 0; for (let d = 1; d <= 100; d++) if (growthRoll(d, { raw, state }, 0).gain) any++; return any; };
+const odds = (raw: number, state: 'normal' | 'tagged' | 'flawed') => { let any = 0; for (let d = 1; d <= 100; d++) if (growthRoll(d, { raw, state }, 0).gain) any++; return any; };
 
 describe('209 improvement roll on the tier table', () => {
   it('reads the gain off the tier: a miss 0, Success +1, Great +2, Critical +3', () => {
@@ -43,6 +43,20 @@ describe('209 improvement roll on the tier table', () => {
     expect(growthRoll(100, { raw: 99, state: 'normal' }, 0).gain).toBe(1);
     expect(growthRoll(100, { raw: 100, state: 'normal' }, 0).gain).toBe(0);
     expect(growthRoll(100, { raw: 124, state: 'tagged' }, 0).gain).toBe(1);
+  });
+
+  it('a flawed skill caps at 75 and the cap is in its roll; tags and flaws roll one die like any skill', () => {
+    expect(skillCap({ state: 'flawed' })).toBe(CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY);
+    expect(odds(50, 'flawed')).toBe(odds(75, 'normal')); // the room left counts from 75
+    expect(growthRoll(100, { raw: 74, state: 'flawed' }, 0).gain).toBe(1);
+    expect(growthRoll(100, { raw: 75, state: 'flawed' }, 0).gain).toBe(0);
+    expect(growthRoll(100, { raw: 80, state: 'flawed' }, 0).gain).toBe(0); // flawed above its cap: keeps its raw, gains nothing
+    const s = makeVillage();
+    s.player.core.skills[SK.dodge] = { raw: 40, state: 'flawed' };
+    let calls = 0;
+    const rng: Rng = { state: 1, next: () => 0, int: (lo) => lo, d100: () => { calls++; return 100; } };
+    expect(payRolls(s, rng, [[SK.dodge, 1]])).toMatchObject([{ from: 40, to: 42 }]); // one d100: 100 + (75 − 40) − 90 = 45, Great Success: +2
+    expect(calls).toBe(1);
   });
 
   it('payRolls adds the tier gain and stops at the cap', () => {
