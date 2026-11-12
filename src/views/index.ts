@@ -552,6 +552,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.way && state.barriers?.[e.way.barrier] ? { way: { what: barrierName(state.barriers[e.way.barrier]), did: WAY_WORDS[e.way.did], to: zoneById(state, e.way.to)?.name ?? e.way.to } } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
       ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
+      ...(full && e.heading && e.toGo ? { toGo: e.toGo } : {}),
       ...(forWhom ? { for: forWhom } : {}),
       ...(full && e.reason ? { reason: e.reason.replace(/_/g, ' ') } : {}),
       ...(changes.length && e.kind !== 'attack' ? { changes } : {}),

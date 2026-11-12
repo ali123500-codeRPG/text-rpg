@@ -16,7 +16,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, tripGoal } from './travel';
-import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, type Located } from './position';
+import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, wayLeftM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { TIERS } from '../scales';
 import { defaultMode, effectiveSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -277,11 +277,17 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone
-  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from, ...(fromPos ? { fromPos } : {}) } : toward ? { target: toward } : goal.zone !== a.zone ? { heading: goal.zone } : {}), ...(spot && a.zone === goal.zone ? { spot } : {}) };
+  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from, ...(fromPos ? { fromPos } : {}) } : toward ? { target: toward } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return walked;
+}
+
+/** BG-47: on a leg that stops short of the way to another zone, how far that way still is (whole metres; none once there) */
+function toGo(state: GameState, a: Actor, goal: string): { toGo?: number } {
+  const m = wayLeftM(state, a, goal, a);
+  return m !== undefined && m >= 1 ? { toGo: Math.round(m) } : {};
 }
 
 /** SD3–SD5: the barrier on the next way of `a`'s walk to `goal`, when it is not simply open to `a` */

@@ -135,6 +135,7 @@ export type GameEvent = {
   fromZone?: string; // moves
   fromPos?: { x: number; y: number }; // BG-23: a leg that left a zone: where in fromZone it set off
   heading?: string; // BG-22: a leg that stays in its zone on the way to another: the zone it heads for
+  toGo?: number; // BG-47: with heading, the metres still left to the way into that zone
   metres?: number; // moves (ZP2): metres walked on this leg; a leg inside one zone has no fromZone, and `target` when closing in
   spot?: string; // BG-12: a move to a spot in a zone, in words ("to the north side", "away from the cellar steps")
   /** SD3–SD5, BA2–BA4: something done at a barrier on the way to `to`: opened on the way through (unlocked, unbarred), found

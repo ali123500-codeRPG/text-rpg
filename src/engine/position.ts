@@ -190,6 +190,15 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
   return used;
 }
 
+/** BG-47: metres still to walk from `a` to the way out of its zone toward `goal` (undefined without positions or a way) */
+export function wayLeftM(state: GameState, a: Located, goal: string, walker?: Actor): number | undefined {
+  const A = spotOf(state, a);
+  if (!A.pos || A.zone === goal) return undefined;
+  const next = route(state, A, { zone: goal }, walker)?.[0];
+  const out = next?.out ?? next?.at;
+  return out ? flat(A.pos, out) : undefined;
+}
+
 /** TV3: where a frontier off a road is: the middle of the road's side its label's compass names, else the far end of the
  * road from `from` */
 export function frontierPoint(z: Zone, label: string, from: Pos): Pos {
