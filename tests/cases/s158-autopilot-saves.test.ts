@@ -6,6 +6,7 @@ import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agent
 import { memoryStore, saveTurn } from '../../src/save';
 import { autopilotTurn, readMove } from '../../src/agents/autopilot';
 import type { GameState, TurnRecord } from '../../src/types';
+import { SK } from '../../src/library/skillIds';
 
 const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
 const idle: ScenarioDirector = { startStory: () => new Promise(() => {}), afterResolve: async () => [], afterSave: () => {} };
@@ -29,6 +30,18 @@ describe('158 autopilot saves', () => {
     expect(g.state()?.meta.owner).toBe('agent');
     expect(await g.resume('player')).toBe(true);
     expect(g.state()?.storyId).toBe('mine');
+  });
+
+  it('BG-63: no switching stories while an opening is still being written', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    await saveTurn(store, story('mine', '2026-11-10T10:00:00Z'), rec(story('mine', '2026-11-10T10:00:00Z')));
+    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: idle });
+    const build = { name: 'Wren', skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
+    void g.newStory(build, { owner: 'agent' }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 0));
+    expect(g.busy()).toBe(true);
+    await expect(g.resume('player')).rejects.toThrow('still being written');
+    expect(g.state()?.meta.owner).toBe('agent'); // the opening keeps its own story
   });
 
   it('with no agent story yet, resume(agent) finds nothing and leaves room for a new one', async () => {
