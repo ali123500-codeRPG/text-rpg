@@ -89,9 +89,16 @@ export type HealthLevelKey = (typeof HEALTH_LEVELS.keys)[number];
 /** the player's posture (ST5: not named like the Sneaking skill) */
 export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
 /** how loud an event is, quietest first; each level's decibels are CONFIG.NOISE_DB, its real reference the library's noiseLevels row,
- * and how far it carries comes from perception's noiseReach */
+ * and how well it is heard comes from perception/noise.ts (hearingOf) */
 export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['murmur', 'Murmur'], ['normal', 'Normal'], ['raised', 'Raised'], ['loud', 'Loud'], ['blaring', 'Blaring'], ['deafening', 'Deafening']]);
 export type NoiseKey = (typeof NOISE.keys)[number];
+/** HB2: how loud a place is anyway, quietest first; each level's decibels are CONFIG.BACKGROUND_DB. A sound under the
+ * listener's background is lost in it; one CLEAR_ABOVE_BACKGROUND_DB over it is heard clearly (perception/noise.ts) */
+export const BACKGROUND = scale([['still', 'Still'], ['hush', 'Hush'], ['calm', 'Calm'], ['quiet', 'Quiet'], ['lived_in', 'Lived-in'], ['busy', 'Busy'], ['street', 'Street'], ['crowded', 'Crowded']]);
+export type BackgroundKey = (typeof BACKGROUND.keys)[number];
+/** HB4: what sound loses crossing between two zones, least first; the decibels of each are CONFIG.SOUND_LOSS_DB */
+export const SOUND_LOSS = scale([['open', 'Open gap'], ['window', 'Shut window'], ['door', 'Shut door'], ['wall', 'Wall']]);
+export type SoundLossKey = (typeof SOUND_LOSS.keys)[number];
 /** how far an event is seen, least first; reach per level is CONFIG.SIGHT_M (perception sightReach) */
 export const VISIBILITY = scale([['unseen', 'Unseen'], ['faint', 'Faint'], ['close', 'Close'], ['low', 'Low'], ['normal', 'Normal'], ['high', 'High'], ['glaring', 'Glaring']]);
 export type VisibilityKey = (typeof VISIBILITY.keys)[number];

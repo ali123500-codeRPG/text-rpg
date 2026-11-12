@@ -151,19 +151,21 @@ export type ZoneKind = {
   aspect: number;
   /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
   road?: true;
+  /** HB3 how loud a zone of this kind is anyway, unless the zone names its own (Zone.background) */
+  background: import('../scales').BackgroundKey;
 };
 /** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
  * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
-export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; text: string };
+export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
 /** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;
-  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; edges?: Partial<Record<import('./core').Side, string>>; links: [string, string, boolean][] }[];
+  zones: { key: string; kind: string; name: string; look: string; size?: import('../scales').ZoneSizeKey; background?: import('../scales').BackgroundKey; edges?: Partial<Record<import('./core').Side, string>>; links: [string, string, boolean][] }[];
 };
 /** CO15 what one side of a zone is: walk = cross it anywhere, see = see across, reach = strike or hand over across it, climb = cross it by climbing */
-export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; text: string };
+export type EdgeKind = { id: string; name: string; walk: boolean; see: boolean; reach: boolean; climb: boolean; /** HB4 what sound loses crossing it */ sound: import('../scales').SoundLossKey; text: string };
 /** CO16 a zone size row: area in m² (CONFIG.ZONE_SIZE_M2) and what it is like, in the real world and in fantasy */
-/** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all (noiseReach) */
+/** a NOISE level: its decibels at 1 m (CONFIG.NOISE_DB), a real reference, and how far it carries clearly and at all in the open in a quiet place (openAirReachM) */
 export type NoiseLevel = { id: import('../scales').NoiseKey; name: string; decibels: number | null; like: string; clearTo: string; heardTo: string };
 export type VisibilityLevel = { id: import('../scales').VisibilityKey; name: string; clearM: number | null; glimpsedM: number | null; like: string; clearTo: string; glimpsedTo: string };
 export type RoadLength = { id: import('../scales').RoadLengthKey; name: string; km: number };

@@ -92,6 +92,8 @@ export type Zone = {
   edges?: Partial<Record<Side, string>>;
   /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
   aspect?: number;
+  /** HB3 how loud it is anyway, when not its kind's (a tavern's busy common room) */
+  background?: import('../scales').BackgroundKey;
   /** the zone kind id (ZK) it was built from (Z2); hand-built test zones may have none */
   kind?: string;
   /** TV4 a road's danger (ROAD_DANGERS); only roads have one */

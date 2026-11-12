@@ -7,8 +7,7 @@ import { intent, play } from './w4-kit';
 import { buildNarrationView, buildPlayerView } from '../../src/views';
 import { checkParserLegality } from '../../src/agents/legality';
 import { actorById } from '../../src/engine/relations';
-import { applyHaggle, buy, coinWords, coins, orderReach, warePrice } from '../../src/engine/trade';
-import { noiseReach } from '../../src/perception/noise';
+import { applyHaggle, buy, coinWords, coins, hearsOrder, warePrice } from '../../src/engine/trade';
 import { SV } from '../../src/library/serviceIds';
 import { CONFIG, resetConfig } from '../../src/config';
 import type { ContestResult, GameState } from '../../src/types';
@@ -109,23 +108,23 @@ it('133g a buy naming a ware of its seller passes legality; a ware the seller la
   expect(checkParserLegality(intent({ action: { type: 'barter', target: 'trader', item: `service:${SV.drink}` } }), view).illegal).toEqual([]);
 });
 
-// RD2: an order is called out, so the seller must hear a normal voice clearly; the one bought for must be as near the
-// buyer or the seller
-it('133h trade reach: as far as a called order is heard clearly (orderReach)', () => {
+// RD2, BG-57: an order is called out, so the seller must hear a normal voice clearly where they stand (real metres, a
+// shut door costs 30 dB); the one bought for must be in clear call of the buyer or the seller
+it('133h trade reach: as far as a called order is heard clearly (hearsOrder)', () => {
   const s = shop();
   const mags = actorById(s, 'trader')!;
   const wim = actorById(s, 'patron_1')!;
   mags.zone = 'tav_counter';
-  s.player.zone = 'tav_common'; // one link from the counter
-  expect(orderReach()).toBe(noiseReach('normal')[0]);
+  s.player.zone = 'tav_common'; // 8 m across the open bar: 42 dB, clear over the quiet room's 20
+  expect(hearsOrder(s, s.player, mags)).toBe(true);
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
-  wim.zone = 'tav_cellar'; // two links from the buyer, one from the seller
+  wim.zone = 'tav_common'; // beside the buyer
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim).ok).toBe(true);
-  wim.zone = 'street_square'; // two links from the buyer, three from the seller
+  wim.zone = 'tav_cellar'; // behind the shut cellar door from the seller, farther from the buyer
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim)).toEqual({ ok: false, reason: 'not_here' });
-  s.player.zone = 'street_door'; // two links from the counter: the order isn't heard clearly
+  s.player.zone = 'street_door'; // 16 m and the shut front door from the counter: not heard clearly
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1)).toEqual({ ok: false, reason: 'not_here' });
-  CONFIG.ORDER_NOISE = 'loud'; // a shouted order carries farther
+  CONFIG.ORDER_NOISE = 'blaring'; // a bellowed order carries through
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
   resetConfig();
 });

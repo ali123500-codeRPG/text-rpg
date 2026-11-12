@@ -2,10 +2,11 @@
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS } from '../scales';
-import { noiseReach } from './noise';
+import { hearingOf } from './noise';
+import type { Located } from '../engine/position';
 import { sightLevel } from './sight';
 import { seeingM } from '../engine/position';
-export { noiseReach } from './noise';
+export { backgroundDb, backgroundOf, hearingOf, openAirReachM, soundDb } from './noise';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
@@ -32,14 +33,8 @@ export const barkOnly = (e: { bark?: boolean; kind: string }): boolean => !!e.ba
 export const hearsWords = (p: { heard?: true } | undefined): boolean => !!p?.heard;
 const better = (a: Seen | null, b: Seen | null): Seen | null => (!a ? b : !b ? a : b.level === 'full' && a.level !== 'full' ? b : a);
 
-/** links between two zones (stage only, no frontiers); null = unreachable */
-function dist(state: GameState, from: string, to: string, sightOnly: boolean): number | null {
-  const p = shortestPath(state, from, to, sightOnly);
-  return p ? p.length : null;
-}
-
 // Each VISIBILITY level is seen out to its metres (CONFIG.SIGHT_M) measured with sight from where the event happened
-// (seeingM); each NOISE level carries what noiseReach works out from its decibels, over any links. Dark zone: sight at most partial.
+// (seeingM); a sound is heard by its decibels where the listener stands against their zone's background (hearingOf). Dark zone: sight at most partial.
 // Sound heard only partly gives something, not who (test 4).
 // The event is perceived at its own zone (a move: the destination zone).
 /** NS2: how many metres a figure keeping still is made out clearly (the Low visibility level's clear metres) */
@@ -47,19 +42,15 @@ const stillSeen = (): number => CONFIG.SIGHT_M.low![0];
 /** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres) */
 const lookReach = (): number => CONFIG.SIGHT_M.normal![0];
 
-function reach([full, partial]: [number, number], d: number | null): Perception | null {
-  return d === null ? null : d <= full ? 'full' : d <= partial ? 'partial' : null;
+/** how well a sound of this noise made there reaches the observer (null: not heard). Perks with hearingDb (A14 Keen Ear:
+ * 10) make every sound that many dB louder for the owner (RD4). */
+function soundReach(state: GameState, observer: Actor, at: Located, noise: GameEvent['noise'], leanIn = false): Perception | null {
+  return hearingOf(state, noise, at, observer, perkSum(observer, 'hearingDb'), leanIn);
 }
 
-/** how well a sound of this noise made in that zone reaches the observer (null: not heard).
- * Perks with hearingDb (A14 Keen Ear: 10) make every sound that many dB louder for the owner (RD4). */
-function soundReach(state: GameState, observer: Actor, zone: string, noise: GameEvent['noise']): Perception | null {
-  return reach(noiseReach(noise, perkSum(observer, 'hearingDb')), dist(state, observer.zone, zone, false));
-}
-
-/** C1 Never Surprised: the owner can hear a sound of this noise made in that zone (fully or partly), stealth aside */
-export function hears(state: GameState, observer: Actor, zone: string, noise: GameEvent['noise']): boolean {
-  return isActive(observer) && soundReach(state, observer, zone, noise) !== null;
+/** C1 Never Surprised: the owner can hear a sound of this noise made there (a zone, or a point in it), stealth aside */
+export function hears(state: GameState, observer: Actor, at: string | Located, noise: GameEvent['noise']): boolean {
+  return isActive(observer) && soundReach(state, observer, typeof at === 'string' ? { zone: at } : at, noise) !== null;
 }
 
 /** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
@@ -81,7 +72,9 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     const d = seeingM(state, observer, at);
     if (d !== null && d <= lookReach()) sight = { level: 'full', cue: 'sight' };
   }
-  const nl = soundReach(state, observer, event.zone, event.noise);
+  // HB8: a whisper said to this observer (its target or one it was addressed to) is said leaning in
+  const toMe = event.target === observer.id || !!event.speech?.addressees.includes(observer.id);
+  const nl = soundReach(state, observer, at, event.noise, event.noise === 'hushed' && toMe && (['speak', 'talk'].includes(event.kind) || !!event.speech));
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // Perception All-150 Every Sense One: what the owner hears it sees, and what it sees it hears. The better sense sets the
@@ -90,7 +83,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   if (best && oneSense) best = { level: best.level, cue: best.level === 'full' ? 'sight' : 'sound' };
   // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.
   if (event.target === observer.id) best = better(best, { level: 'partial', cue: 'touch' });
-  // words need the sound heard clearly (CLEAR_HEAR_DB: who and what; a sound heard only partly is a voice without its
+  // words need the sound heard clearly (CLEAR_ABOVE_BACKGROUND_DB over the background: who and what; a sound heard only partly is a voice without its
   // words), or Every Sense One
   return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;
 }
