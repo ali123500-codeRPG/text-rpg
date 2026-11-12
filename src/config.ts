@@ -34,7 +34,9 @@ const DEFAULTS = {
   EVENT_CRIT_NATURALS: 5,
   /** D-211: width of each extra margin band a tier unlock opens past either end of the skill-roll table */
   TIER_EXTRA_BAND: 50,
-  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
+  /** task grades: the skill that just manages a task (D-7 placeholders). mortal_limit and up are tasks past what a human
+   * body can do (CR4); they are challenge rows only (CR12): no gain, lock or Weaver use until D-219 says when they apply */
+  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, divine: 300 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
   /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … */
