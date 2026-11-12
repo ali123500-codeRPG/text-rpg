@@ -218,6 +218,14 @@ export function shake(els: (HTMLElement | null | undefined)[], amount: number, d
   running.add(wait);
 }
 
+/** a step that only moves the view (a scroll) at its time; skipping drops it, since the final state never depends on it */
+export function later(fn: () => void, delay: number): void {
+  if (!motionOn()) return;
+  const r: Running = { finish: () => { clearTimeout(timer); running.delete(r); } };
+  const timer = setTimeout(() => { running.delete(r); fn(); }, delay);
+  running.add(r);
+}
+
 /** a run of steps that each start a fixed gap after the last, capped: past the cap the rest start together (M-11, M-21) */
 export function timeline(start: number, gap: number, cap: number): () => number {
   let i = 0;

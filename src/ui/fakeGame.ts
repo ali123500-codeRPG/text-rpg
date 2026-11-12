@@ -63,6 +63,25 @@ function earnTurn(st: GameState, keys: string[]): Partial<LogLine> {
   return { achievements: (pr?.achievements ?? []).filter((a) => !had.has(a.id)).map((a) => achievementInfo(st, a)) };
 }
 
+/** "end" ends the scenario with a full set of gains, to show the scenario-end gains moment (D-226) */
+function endTurn(st: GameState): Partial<LogLine> {
+  const p = st.player;
+  const raise = (k: string, by: number) => { const sk = p.core.skills[k]; const from = sk?.raw ?? 0; if (sk) sk.raw += by; else p.core.skills[k] = { raw: by, state: 'normal' } as typeof p.core.skills[string]; return { skill: k, from, to: from + by }; };
+  const skills = [raise(SK.melee_medium, 3), raise(SK.block, 4), raise(SK.dodge, 2)];
+  const fromLevel = p.core.classes[0]?.level ?? 1;
+  const lvl = levelTurn(st);
+  const earned = earnTurn(st, [ACH.flawless_1, ACH.brink_1]);
+  st.stage.scenarioNumber = (st.stage.scenarioNumber ?? 1) + 1;
+  return {
+    text: 'Dawn finds you on the far bank. The new road climbs west toward a town you have only heard of.',
+    scenarioEnd: { as: 'resolved', name: 'resolved', closing: 'The cellar is quiet now, and the job is done.' },
+    scenarioGains: {
+      skills, perks: [{ skill: SK.block, milestone: 20 }], allPerks: [{ tree: 'TR1', step: 50, name: 'All-50: Melee' }],
+      achievements: earned.achievements ?? [], xp: { gained: 180, fromLevel, fromPct: 62, toLevel: fromLevel + 1, toPct: 30 }, levelUps: lvl.levelUps ?? [],
+    },
+  };
+}
+
 export const validateBuildLocal = (b: CreationBuild): string[] => validateBuild(b);
 
 // the fake world for the Map page: a village, the tavern inside it and the field east of it (the cellar and the north road unexplored)
@@ -99,6 +118,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
   const KETTLE = { id: 'tavern', name: 'The Crooked Kettle' };
   const placeOf = (st: GameState) => ({ id: st.player.placeId, name: placeName(st) });
   let busy = false, fell = !!opts.fell, n = 0, asks = 0;
+  let ending: import('../types').ScenarioEndNote | null = null;
   const notices: Notice[] = opts.notices ?? [];
   const subs = new Set<() => void>();
   const emit = () => subs.forEach((f) => f());
@@ -151,7 +171,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     lines: () => lines,
     notices: () => notices,
     busy: () => busy,
-    scenarioEnding: () => null,
+    scenarioEnding: () => ending,
     fell: () => fell,
     subscribe(cb) { subs.add(cb); return () => subs.delete(cb); },
     validateBuild: validateBuildLocal,
@@ -177,8 +197,12 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       const t = state.turn;
       if (text === '/undo') { fell = false; state.turn = Math.max(1, t - 1); lines = [...lines, { turn: state.turn, kind: 'command', text: 'Turn undone.' }]; emit(); return; }
       lines = [...lines, { turn: t, kind: text.startsWith('/') ? 'command' : 'player', text, ...(o?.aimed ? { aimed: true } : {}) }];
-      busy = true; emit();
+      busy = true;
+      if (/^end\b/i.test(text)) ending = { as: 'resolved', name: 'resolved' }; // the ending's rule draws while the turn runs (SD1)
+      emit();
       await new Promise((r) => setTimeout(r, 600));
+      ending = null;
+      const ended = /^end\b/i.test(text) ? endTurn(state) : null;
       state.turn = t + 1;
       if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
@@ -202,7 +226,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
       const earned = hurt || /^spar\b/i.test(text) ? earnTurn(state, hurt ? [ACH.crippled_1] : [ACH.spar_losses_1]) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}) }];
+        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
