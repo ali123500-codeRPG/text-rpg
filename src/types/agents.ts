@@ -156,6 +156,7 @@ export type StagePlan = {
   bands: {
     key: string; name: string; goals: string; temperament: string;
     tactics: Tactics; lethal: boolean; relations: Record<string, Stance>;
+    chase?: import('../scales').ChaseRange; // CH5
   }[];
   cast: {
     template?: string; actor?: string;

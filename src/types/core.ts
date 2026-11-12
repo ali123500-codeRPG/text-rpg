@@ -39,6 +39,8 @@ export type Band = {
   tactics: Tactics;
   lethal: boolean;
   relations: Record<string, Stance>;
+  /** CH5: how far its code-run members chase the player (none: the template's, else CONFIG.CHASE_RANGE_DEFAULT) */
+  chase?: import('../scales').ChaseRange;
 };
 
 /** drop (SD7): a window or ledge down to a lower zone: only jumped down, with fall damage from the drop; never walked or climbed */
@@ -104,6 +106,8 @@ export type Belief = {
   source: 'seen' | 'heard' | 'told';
   /** YD6: the last turn either side attacked or closed in on the other, which keeps hunting and engaged alive */
   closedTurn?: number;
+  /** CH7: the turn a chase after this actor was lost; the chaser goes back to its routine until it sees or hears them again */
+  lostTurn?: number;
   revealed: string[]; // e.g. 'has_crossbow', 'item:<instanceId>' for revealed concealed items
 };
 

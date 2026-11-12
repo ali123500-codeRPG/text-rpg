@@ -26,6 +26,7 @@ export type BeliefView = {
   stance: Stance; // RS5: self's stance toward this actor; yielded (Q1/Q4): self broke or surrendered before it, and still flees from it
   hostile: boolean; // hostile(self, about): attacks on sight
   sparring?: true; // SP1: self and this actor are on different sides of a live spar
+  lost?: true; // CH7: self chased this actor and lost them; it has not seen or heard them since
   active: boolean;
   label: string; // public label or known name
   title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
@@ -140,6 +141,7 @@ export type ActorView = {
     playerYielded?: true; // MB41: the player yielded to self and awaits an answer (acceptYield)
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
     offers?: OfferView[]; // SL9: what it would pay for the player's items
+    chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
@@ -246,7 +248,7 @@ export type WeaverView = {
   actors: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[];
   quests: { id: string; state: string; text: string }[];
   flags: Record<string, string | number | boolean>;
-  bands: { id: string; name: string; goals: string; relations: Record<string, Stance> }[];
+  bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
   player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel };
   previousNote: string;
   /** SC6: how the last few scenes went, oldest first (question, scale, tier, ending, who fell, what the player gained) */

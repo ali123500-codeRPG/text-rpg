@@ -181,7 +181,8 @@ const weaver = obj<StagePlan>({
     tactics: level(TACTICS),
     lethal: (v, p, e) => (v === undefined || v === null ? true : bool(v, p, e)),
     relations: (v, p, e) => (v === undefined || v === null ? {} : record(STANCE_WORD)(v, p, e)),
-  })),
+    chase: str as V<NonNullable<StagePlan['bands'][number]['chase']>>, // CH5: the validator checks the word
+  }, ['chase'])),
   cast: arr(obj<Cast>({
     template: str, actor: str, label: str, name: str, appearance: str, pronouns: oneOf(['he', 'she', 'they', 'it'] as const),
     knownOnSight: bool, knows: arr(obj<{ id: string; text: string }>({ id: str, text: str })),

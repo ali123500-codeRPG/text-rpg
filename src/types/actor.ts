@@ -180,6 +180,8 @@ export type NpcTemplate = {
   fallback?: { attackSkill: LibraryRef }; // overrides the body type's (Fallback behavior)
   /** perks every NPC made from this template has (any patrolling template has Keen Ear) */
   perks?: LibraryRef[];
+  /** CH5: how far NPCs made from it chase the player when their band names no range */
+  chase?: import('../scales').ChaseRange;
 };
 
 export type Journal = {
