@@ -202,8 +202,7 @@ describe('190 chases and free roam', () => {
 
   it('SD2 a: free roam runs no beats and never stalls; a turn of talk starts a scenario after it', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    s.turn = CONFIG.ROAM_MIN_TURNS;
-    s.stage.roam = { since: 0 };
+    s.stage.roam = { since: s.pending.turn - CONFIG.ROAM_MIN_TURNS };
     s.stage.quiet = 50;
     expect(triggerHolds(s, { id: 'b', ownerId: 'trader', when: { type: 'quiet_turns', turns: 1 }, then: { type: 'idle', target: null, skill: null, intent: '' }, once: true }, actor(s, 'trader'), [], 'start', s.turn)).toBe(false);
     play(s);
