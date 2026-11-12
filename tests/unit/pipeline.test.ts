@@ -14,6 +14,7 @@ const H = vi.hoisted(() => ({
   resolved: [] as { at: number; input: TurnInput }[],
   clockNow: (): number => 0,
   firedOrders: [] as unknown[],
+  beat: [] as string[],
   secrets: [] as unknown[],
   sets: [] as [string, unknown][],
   onResolve: null as ((s: GameState) => void) | null,
@@ -27,6 +28,8 @@ vi.mock('../../src/engine', () => ({
   quickWord: () => false,
   resolveSpeech: () => ({ skill: SK.persuasion, playerTier: 'success', impression: 'convincing', perSpokesperson: {} }),
   firedOrders: () => H.firedOrders,
+  beatSpeakers: () => H.beat,
+  BEAT_OPENING: '(you speak first)',
   resolveTurn: (s: GameState, input: TurnInput) => {
     H.resolved.push({ at: H.clockNow(), input });
     H.onResolve?.(s);
@@ -79,6 +82,7 @@ beforeEach(() => {
   H.engagedNext = [];
   H.resolved = [];
   H.firedOrders = [];
+  H.beat = [];
   H.secrets = [];
   H.sets = [];
   H.onResolve = null;
@@ -181,6 +185,20 @@ describe('clarify and dialogue', () => {
     expect(out.agent === 'responder' && out.output.reveals).toEqual(['s_bribe']);
     const bug = H.sets.find(([p]) => p.startsWith('bugs/'));
     expect(bug?.[1]).toMatchObject({ code: 'unlisted_reveal', actorId: 'guard_1', secretIds: ['s_bribe'], line: 'The bribe was small.' });
+  });
+  it('BG-50: a fired talk beat at the player gets a Responder line, and only that output counts for its owner', async () => {
+    start();
+    H.firedOrders = [{ actorId: 'guard_1', type: 'talk', target: 'player', skill: null, intent: '', source: 'trigger', triggerId: 't_beat' }];
+    H.beat = ['guard_1'];
+    claude.push('parser', intentOf({ action: null }))
+      .push('responder', { ...plannerOut({ type: 'talk', target: 'player' }), dialogue: { line: 'Fancy a bout?', volume: 'normal' }, reveals: [] })
+      .push('narrator', narr);
+    await game.submit('I wait.', { aimed: false });
+    const call = claude.calls.find((c) => c.agent === 'responder');
+    expect(call && sentText(call)).toContain('you speak first');
+    const input = H.resolved[0].input;
+    expect(input.beatSpeakers).toEqual(['guard_1']);
+    expect(input.agentOutputs.some((o) => o.actorId === 'guard_1' && o.agent === 'responder')).toBe(true);
   });
 });
 

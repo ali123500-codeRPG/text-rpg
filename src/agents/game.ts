@@ -314,12 +314,28 @@ export function createGame(deps: GameDeps): Game {
       const inputFor = (id: string): DialogueInput => (exchange!.perSpokesperson[id]?.tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.tellFor(s.actors.find((x) => x.id === id))}` }] : input);
       agentOutputs.push(...(await Promise.all(spokespeople.map((id) => dialogueCall(s, id, inputFor(id), exchange!, agenda.get(id)!, ctx, world)))));
     }
+    // BG-50: a beat that has an agent-run NPC speak to the player gets its words from that NPC's Responder (COMMITTED: the beat)
+    const beat = engine.beatSpeakers(s, spokespeople);
+    if (beat.length) {
+      for (const id of beat) {
+        const bg = background.get(id);
+        if (bg && !bg.collected) drop(bg, 'unused');
+      }
+      const world = worldIds(s);
+      const opening: DialogueInput = [{ spoken: engine.BEAT_OPENING, impression: null }];
+      agentOutputs.push(...(await Promise.all(beat.map(async (id): Promise<AcceptedAgentOutput> => {
+        const fired = s.hidden.firedLog.filter((f) => f.turn === s.turn && f.ownerId === id).map((f) => f.triggerId);
+        const r = await callResponder(views.buildOppositionView(s, id), opening, ctx, { world, committed: fired.length ? committedText(s, id, fired[0]) : null });
+        if (r.unlisted.length) reportUnlisted(s, id, r.unlisted, r.output.dialogue?.line ?? '');
+        return { agent: 'responder', actorId: id, output: r.output };
+      }))));
+    }
     // timing rule: resolution never before the previous display plus BACKGROUND_WINDOW, in every mode
     await clock.sleep(lastDisplayAt + CONFIG.BACKGROUND_WINDOW_MS - clock.now());
     if (stopped) return;
-    agentOutputs.push(...collectPlanners(spokespeople));
+    agentOutputs.push(...collectPlanners([...spokespeople, ...beat]));
     agentOutputs.sort((a, b) => (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0));
-    const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(exchange ? { exchange } : {}), ...(quick && exchange ? { quickWord: true } : {}) };
+    const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(beat.length ? { beatSpeakers: beat } : {}), ...(exchange ? { exchange } : {}), ...(quick && exchange ? { quickWord: true } : {}) };
     const events = engine.resolveTurn(s, input, rng);
     s.rngState = rng.state; // plan updates were applied (with triggers sanitized) inside resolveTurn
     // SD1: the play page can start the ending moment now, while the next scenario's Weaver and the Narrator run

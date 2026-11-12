@@ -54,11 +54,12 @@ export function agentLine(o: AcceptedAgentOutput): Order['line'] {
   return o.output.dialogue ? { text: o.output.dialogue.line, volume: o.output.dialogue.volume, introduces: o.output.dialogue.introduces } : null;
 }
 
-/** the agent outputs that count this turn: dialogue calls for spokespeople, Planner for the rest; actor-id order. */
+/** the agent outputs that count this turn: dialogue calls for spokespeople, the Responder for beat speakers (BG-50), Planner for
+ * the rest; actor-id order. */
 export function usableAgentOutputs(input: TurnInput): AcceptedAgentOutput[] {
-  const sp = new Set(input.spokespeople);
+  const sp = new Set(input.spokespeople), beat = new Set(input.beatSpeakers ?? []);
   return [...input.agentOutputs]
-    .filter((o) => (sp.has(o.actorId) ? o.agent !== 'planner' : o.agent === 'planner'))
+    .filter((o) => (sp.has(o.actorId) ? o.agent !== 'planner' : beat.has(o.actorId) ? o.agent === 'responder' : o.agent === 'planner'))
     .sort((a, b) => (a.actorId < b.actorId ? -1 : a.actorId > b.actorId ? 1 : 0));
 }
 
