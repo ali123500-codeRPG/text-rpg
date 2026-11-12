@@ -359,10 +359,11 @@ type Band = {                   // a small group: a guard post, a gang, a househ
   relations: Record<string, 'hostile' | 'opposed' | 'neutral' | 'friendly'>;  // default stance toward other bands
 };
 
-// What a zone is (Z1–Z5, Ali, 08/11/2026): one open space with nothing in the way inside it, where anyone can reach anyone
-// else in a step or two, at most about a room (5 to 10 paces) across. A barrier (wall, counter, door, gate, steps) or more
-// distance starts a new zone, so every link is about one room of distance. A bigger space (a square, a field, a hall) is
-// several zones of the same kind joined by sight links. There are no positions inside a zone. Every Weaver zone names a
+// What a zone is (Z1–Z5, Ali, 08/11/2026; rewritten for CS3, 12/11/2026): one open space, however big: a room, a yard, a
+// hall, a square, a field (a road is one zone too, see Travel). Each open space is ONE zone with a size (Metres, below),
+// never split to show distance. A barrier between two parts (wall, door, gate, counter, fence, steps) starts a new zone,
+// so a link is a way between two spaces, not a measure of distance. People stand at real positions in metres inside a
+// zone (src/engine/position.ts, Spots in a zone), and distance is measured between positions. Every Weaver zone names a
 // zone kind from the library (zoneKinds: room, corridor, stairs, cellar, street, square, gate, yard, field, woods); the kind
 // fixes indoor or outdoor and gives the default cover and light, which the plan may change. An unknown kind is a bad_zone.
 // Height: a zone's height is metres above the ground outside (0 when unset). Stairs change height, never distance north,
@@ -3117,6 +3118,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-64 | Spotting a sneaking NPC gave achievements but the story never said whom you spotted | 12/11/2026 | fixed | this PR |
 | BG-65 | Checking a door said nothing about whether it was locked | 12/11/2026 | fixed | this PR |
 | BG-66 | A step already taken was also offered as 'put off to next turn' | 12/11/2026 | fixed | this PR |
+| BG-67 | 'Tell her' went to the barkeep instead of the woman you were talking to | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 

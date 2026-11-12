@@ -1,7 +1,7 @@
 // Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group),
 // figures that can't be filtered in a text line under them, then the grouped table.
 import { PART_STATES } from '../scales';
-import type { Actor, GameApi, GameState, Quest } from '../types';
+import type { GameApi, GameState, Quest } from '../types';
 import { QUEST_STATES } from '../types';
 import { QUEST_STATE_NAME, dueText, isOpen, payText, questChain } from '../engine/quests';
 import { getLibrary, itemDef } from '../library';
@@ -103,14 +103,10 @@ export function characterPage(api: GameApi) {
 
 const KIND_GROUP: Record<string, [string, string, string]> = {
   weapon: ['weapons', 'Weapons', 'c10'], shield: ['shields', 'Shields', 'c1'], armor: ['armor', 'Armor', 'c12'],
+  accessory: ['accessories', 'Accessories', 'c5'], consumable: ['consumables', 'Consumables', 'c6'], tool: ['tools', 'Tools', 'c4'],
 };
 /** EQ7: "Medium Weapons 50" */
 const needText = (r: { skill: string; need: number }) => `${skillName(r.skill)} ${r.need}`;
-
-function where(a: Actor, slots: string[] | undefined): string {
-  if (!slots?.length) return 'Carried';
-  return slots.map((x) => x === 'armor' ? 'Worn' : x.startsWith('hand:') ? `Held · ${x.slice(5).replace('_arm', ' hand')}` : x.startsWith('acc:') ? 'Worn accessory' : x).join(', ');
-}
 
 /** an item's exact stats: the Inventory's side panel and the equipment panel's hover card share these rows */
 export function itemRows(s: GameState, it: { itemId: string }): PanelRow[] {
@@ -231,7 +227,7 @@ function equipment(api: GameApi, s: GameState): HTMLElement {
 
 export function inventoryPage(api: GameApi) {
   return listPage(api, {
-    title: 'Inventory', intro: 'What you carry. Same as /inv. Click an item for its stats.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'You carry nothing.',
+    title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
     focus: () => { const id = invFocus.id; invFocus.id = null; return id; },
     lead: (s) => equipment(api, s),
     detail: (s, id) => {
@@ -255,26 +251,26 @@ export function inventoryPage(api: GameApi) {
       }
       return rows;
     },
-    cols: [{ key: 'name', title: 'Item' }, { key: 'where', title: 'Where' }, { key: 'needs', title: 'Needs' }, { key: 'qty', title: 'Qty', right: true }, { key: 'cond', title: 'Condition' }],
+    cols: [{ key: 'name', title: 'Item' }, { key: 'needs', title: 'Needs' }, { key: 'qty', title: 'Qty', right: true }, { key: 'cond', title: 'Condition' }],
     groups: (s) => {
       const p = s.player, groups = new Map<string, TGroup & { sub: string; value: string; unit: string; how: string }>();
-      p.core.inventory.filter((i) => i.itemId !== IT.coin).forEach((it, n) => {
+      // worn and held gear shows in the Equipped panel above, so the table lists only what is in the pack
+      p.core.inventory.filter((i) => i.itemId !== IT.coin && !i.equippedIn?.length).forEach((it, n) => {
         const d = safe(() => itemDef(s, it.itemId));
         const [id, title, color] = KIND_GROUP[d?.kind ?? ''] ?? ['other', 'Other', 'c3'];
         const g = groups.get(id) ?? { id, title, color, rows: [], combined: {}, value: '', unit: 'items', sub: '', how: `Everything of this kind you carry.` };
         const pools = it.pools ? Object.entries(it.pools).map(([k, v]) => `${k} ${v}%`).join(', ') : 'Whole';
         const need = d ? requirement(d) : null;
         const needs = need ? `Needs ${needText(need)}` : '';
-        g.rows.push({ id: it.id, sortKey: n, cells: { name: d?.name ?? it.itemId, where: where(p, it.equippedIn), needs, qty: String(it.qty ?? 1), cond: pools },
+        g.rows.push({ id: it.id, sortKey: n, cells: { name: d?.name ?? it.itemId, needs, qty: String(it.qty ?? 1), cond: pools },
           ...(need ? { tones: { needs: shortBy(p, d!) > 0 ? 'bad' as const : 'muted' as const } } : {}) });
         groups.set(id, g);
       });
       return [...groups.values()].map((g) => {
         const qty = g.rows.reduce((a, r) => a + +r.cells.qty, 0);
-        const ws = [...new Set(g.rows.map((r) => r.cells.where))], cs = [...new Set(g.rows.map((r) => r.cells.cond))];
+        const cs = [...new Set(g.rows.map((r) => r.cells.cond))];
         const ns = [...new Set(g.rows.map((r) => r.cells.needs))], ts = [...new Set(g.rows.map((r) => r.tones?.needs))];
-        const equipped = g.rows.filter((r) => r.cells.where !== 'Carried').length;
-        return { ...g, value: String(qty), unit: unitOf(qty, 'item'), sub: `${equipped} in use`, combined: { qty: String(qty), where: ws.length === 1 ? ws[0] : 'Mixed', cond: cs.length === 1 ? cs[0] : 'Mixed', needs: ns.length === 1 ? ns[0] : '' },
+        return { ...g, value: String(qty), unit: unitOf(qty, 'item'), sub: 'in your pack', combined: { qty: String(qty), cond: cs.length === 1 ? cs[0] : 'Mixed', needs: ns.length === 1 ? ns[0] : '' },
           ...(ns.length === 1 && ts.length === 1 && ts[0] ? { combinedTones: { needs: ts[0] } } : {}) };
       }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title));
     },
