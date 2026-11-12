@@ -51,3 +51,13 @@ it('BG-77: talking to someone beside you while going through a doorway to anothe
   expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter' }))).toMatchObject({ toZone: 'tav_counter' });
   expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter', spot: { near: 'patron_1' } }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
 });
+
+it('BG-78: buying from someone in view who would not hear the order clearly steps up to them first', () => {
+  const s = village();
+  s.zones.find((x) => x.id === 'tav_common')!.background = 'busy';
+  const p = s.actors.find((a) => a.id === 'patron_1')!;
+  p.zone = 'tav_common'; s.player.zone = 'tav_common';
+  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 };
+  const buy = intent({ action: { type: 'buy', target: 'patron_1', item: 'service:SV3' }, move: null as never });
+  expect(talkMove(s, buy)).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
+});
