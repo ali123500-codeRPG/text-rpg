@@ -308,6 +308,23 @@ const DEFAULTS = {
   /** EG10 b: a scenario that marked anything pays this many extra rolls while the character level is below GROWTH_LOW_LEVEL_BELOW */
   GROWTH_LOW_LEVEL_BONUS: 1,
   GROWTH_LOW_LEVEL_BELOW: 5,
+  /** growth proposal 2 (essences; placeholders). Points = max(1, round(ESSENCE_SHARE × source skill × grade multiplier)) */
+  ESSENCE_SHARE: 0.07,
+  ESSENCE_GRADE_MULT: { common: 1, fine: 1.5, rare: 2.5, epic: 4, legendary: 6 } as Record<string, number>,
+  /** each grade past the last row multiplies the last row's multiplier by this */
+  ESSENCE_GRADE_PAST_MULT: 1.5,
+  /** a beaten foe is notable (may offer) when its power is at least this share of the player's, or its template is notable or unique */
+  ESSENCE_NOTABLE_SHARE: 0.75,
+  /** the offer roll: margin = d100 + base − ESSENCE_ROLL_NEEDED on the tier table (base 80: offers 31%; 100: 51%) */
+  ESSENCE_ROLL_NEEDED: 150,
+  ESSENCE_ROLL_BASE: { foe: 80, great_success: 80, critical_success: 100 } as Record<string, number>,
+  /** EG2: room for essences = ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels (2 at 7, 3 at 14), no top */
+  ESSENCE_SLOTS_BASE: 1,
+  ESSENCE_SLOT_EVERY: 7,
+  /** an offer waits this many turns (or until a new scenario starts) */
+  ESSENCE_OFFER_TURNS: 10,
+  /** EG3 b + EG15 b: removing a held essence (at rest) costs this many levels' worth of XP; the bar may go into debt */
+  ESSENCE_REMOVE_LEVELS: 1,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */

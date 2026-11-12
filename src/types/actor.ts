@@ -146,9 +146,16 @@ export type Progression = {
   freeLevelsTaken?: number; // free levels already taken (owed = levelsEarned(a, 'freeLevels') − this)
   bonusLevelsTaken?: number; // bonus levels already taken: character levels outside every class (owed = levelsEarned(a, 'bonusLevels') − this)
   nextClass?: LibraryRef; // X9: the class the next level goes to (current or unlocked); absent = current
+  /** growth proposal 2.5: essences held (at most essenceSlots), and essences on offer (each until its turn, or a new scenario) */
+  essences?: HeldEssence[];
+  essenceOffers?: EssenceOffer[];
   quickHeal?: LibraryRef; // H3: the healing item (item def id) the quick slot shows; absent = the strongest
 };
 
+/** an essence: its row, the grade its offer roll gave, and the true skill it adds (its points, split by the row's weights) */
+export type HeldEssence = { essence: LibraryRef; grade: import('../scales').EssenceGradeKey; points: Record<LibraryRef, number>; turn: Turn; from?: string };
+/** an essence on offer: where it came from (a beaten foe's name, or the scenario's ending) and the last turn it can be taken */
+export type EssenceOffer = HeldEssence & { source: 'foe' | 'ending'; until: Turn };
 export type XpAward = { source: string; amount: number; turn: Turn; levelUp?: { classId: LibraryRef; level: number } };
 
 export type Mind = {
@@ -159,6 +166,7 @@ export type Mind = {
   hitByPlayer?: true; // X5: the player has hit it
   hitUnaware?: true; // the player's last damaging hit landed while it was unaware
   xpPaid?: true; // its defeat has paid XP (B4)
+  essenceRolled?: true; // growth proposal 2.3: its defeat has rolled for an essence (one offer per foe, ever)
   knowledge: Record<ActorId, Belief>;
   overrides?: Record<ActorId, Stance>;
   knows: Fact[];
@@ -193,6 +201,8 @@ export type NpcTemplate = {
   chase?: import('../scales').ChaseRange;
   /** AG13: the life stages NPCs made from it are drawn from; left out = CONFIG.NPC_AGE_STAGES */
   ageStages?: import('../scales').LifeStageKey[];
+  /** growth proposal 2.3: a leader or other notable NPC: beating it may offer an essence whatever its power */
+  notable?: true;
 };
 
 export type Journal = {

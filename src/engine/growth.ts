@@ -10,6 +10,8 @@ import { grantAllSteps } from '../ruleset/allSteps';
 import { owedBySkill, payRolls } from '../ruleset/improve';
 import { achievementInfo, atScenarioEnd, charLevel, grantAchievement, spendXp, unlockClasses, xpToNext } from './xp';
 import { logCode } from './effects';
+import { offerAtEnding } from './essence';
+import { ESSENCE_GRADES } from '../scales';
 
 type Part = NonNullable<ScenarioFrame['gains']>;
 const empty = (): Part => ({ skills: [], perks: [], allPerks: [] });
@@ -17,7 +19,7 @@ const empty = (): Part => ({ skills: [], perks: [], allPerks: [] });
 /** the sheet's XP bar: level and fill (as the character sheet shows it) */
 export function xpBar(state: GameState): { level: number; pct: number } {
   const p = state.player, need = xpToNext(p), xp = p.progression?.xp ?? 0;
-  return { level: charLevel(p), pct: need > 0 ? Math.min(100, (xp / need) * 100) : 100 };
+  return { level: charLevel(p), pct: need > 0 ? Math.max(0, Math.min(100, (xp / need) * 100)) : 100 }; // XP debt (EG15) shows as an empty bar
 }
 
 /** reads this turn's log (from index `from`) into the gains: skill raises, milestone unlocks and the player's All-XXX */
@@ -74,15 +76,16 @@ export function dealRolls(owed: [string, number][], rolls: number): [string, num
 }
 
 /** EG7: the scenario's payout: its owed rolls become improvement rolls (scenarioRolls), dealt by marks and made in rounds */
-export function payScenario(state: GameState, rng: Rng, f: ScenarioFrame, as: ScenarioEnding): void {
+export function payScenario(state: GameState, rng: Rng, f: ScenarioFrame, as: ScenarioEnding): [string, number][] {
   const pr = state.player.progression;
-  if (!pr || !pr.marks.length) return;
+  if (!pr || !pr.marks.length) return [];
   const owed = owedBySkill(state.player);
   const rolls = scenarioRolls(state, pr.marks.length, f.tier, f.beyond, as);
   const dealt = dealRolls(owed, rolls);
   pr.marks = [];
   logCode(state, 'growth_paid', { owed: owed.reduce((n, [, m]) => n + m, 0), rolls, tier: f.tier, as, dealt });
   payRolls(state, rng, dealt);
+  return owed;
 }
 
 /** the scenario `f` ends with `as`: pay its rolls, take levels, grant everything that waited, and leave the summary on stage.gains */
@@ -95,7 +98,8 @@ function flush(state: GameState, f: ScenarioFrame, as: ScenarioEnding, rng?: Rng
   const start = f.xpStart ?? xpBar(state);
   const ids: string[] = [];
   if (pr) {
-    if (rng) payScenario(state, rng, f, as);
+    const owed = rng ? payScenario(state, rng, f, as) : [];
+    if (rng) offerAtEnding(state, f, as, rng, owed); // growth proposal 2.3: a resolved ending at Great Success or better may offer an essence
     spendXp(state); // EG8: levels waited for this moment
     unlockClasses(state);
     const q = pr.pendingAchievements ?? [];
@@ -113,6 +117,8 @@ function flush(state: GameState, f: ScenarioFrame, as: ScenarioEnding, rng?: Rng
     ...g, achievements, number: f.number, turn: state.turn,
     xp: { gained: since.reduce((n, x) => n + x.amount, 0), fromLevel: start.level, fromPct: start.pct, toLevel: end.level, toPct: end.pct, parts: xpParts(state, since, achievements) },
     levelUps: since.filter((x) => x.levelUp).map((x) => ({ classId: x.levelUp!.classId, level: x.levelUp!.level })),
+    ...((offers) => offers.length ? { essences: offers } : {})((pr?.essenceOffers ?? []).filter((o) => o.turn === state.turn)
+      .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, grade: ESSENCE_GRADES.name(o.grade) }))),
   };
 }
 

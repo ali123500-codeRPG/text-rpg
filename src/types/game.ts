@@ -59,6 +59,8 @@ export type ScenarioGains = {
     /** where gained came from, in the order first earned: foes defeated together in one row, each achievement and quest its own */
     parts?: XpPart[] };
   levelUps: { classId: string; level: number }[];
+  /** growth proposal 2.5: essences offered at this ending moment (name and grade; take or pass with /essence) */
+  essences?: { name: string; grade: string }[];
 };
 
 /** a hall-of-fame row: the fallen character, whose story it was, and its story id */
