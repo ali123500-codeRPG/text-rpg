@@ -144,3 +144,22 @@ describe('185 the GM ends a scenario (SC15)', () => {
     expect(s.hidden.scenarios?.at(-1)).toMatchObject({ ending: 'interrupted', text: 'ended from the GM view' });
   });
 });
+
+describe('185 BG-41 the check-in sees what happened', () => {
+  it('spars, yields, gives and memory lines since the scenario began reach the check-in view', async () => {
+    const { noteHappened } = await import('../../src/engine/happened');
+    const { buildWeaverView } = await import('../../src/views');
+    const s = calm();
+    frame(s);
+    s.turn += 9;
+    s.log.push({ turn: s.turn, code: 'spar_out', detail: { id: 'sp1', actorId: 'patron_1', reason: 'yielded' } });
+    s.log.push({ turn: s.turn, code: 'spar_ended', detail: { id: 'sp1', cause: 'yielded', winners: ['player'] } });
+    const coin = s.player.core.inventory.find((i) => i.id === 'player_coin')!;
+    noteHappened(s, [{ id: 'g', turn: s.turn, actorId: 'player', kind: 'give', target: 'trader', itemId: coin.id, zone: s.player.zone, effects: [], noise: 'normal', visibility: 'normal', perception: {} }], []);
+    s.hidden.memory.patron_1 = [{ turn: s.turn - 20, text: 'old' }, { turn: s.turn, text: 'The stranger beat me fairly in a bout.' }];
+    const v = buildWeaverView(s, { kind: 'checkin', placeId: s.player.placeId, reason: 'judged' });
+    expect(v.target.scenario!.happened.map((h) => h.text)).toEqual(['the player gave Mags coin', 'Old Wim yielded in the spar', 'the spar ended: won by the player']);
+    expect(v.target.scenario!.remembered).toEqual([{ who: 'patron_1', turn: s.turn, text: 'The stranger beat me fairly in a bout.' }]);
+    expect(FIXED.checkin).toContain('Never add a beat for something that already happened');
+  });
+});
