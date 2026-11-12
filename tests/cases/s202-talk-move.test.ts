@@ -61,3 +61,29 @@ it('BG-78: buying from someone in view who would not hear the order clearly step
   const buy = intent({ action: { type: 'buy', target: 'patron_1', item: 'service:SV3' }, move: null as never });
   expect(talkMove(s, buy)).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
 });
+
+it('BG-80: one approach rule for every actor: an NPC talking to the player from too far steps up the same way', async () => {
+  const { approachMove } = await import('../../src/engine/merge');
+  const s = village();
+  s.zones.find((x) => x.id === 'tav_common')!.background = 'busy';
+  const p = s.actors.find((a) => a.id === 'patron_1')!;
+  p.zone = 'tav_common'; s.player.zone = 'tav_common';
+  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 };
+  expect(approachMove(s, p, { type: 'talk', target: s.player.id }, null)).toMatchObject({ toZone: 'tav_common', spot: { near: s.player.id } });
+  expect(approachMove(s, p, { type: 'talk', target: s.player.id, volume: 'shout' }, null)).toBeNull();
+});
+
+it('BG-80: handing something over: across a counter needs no move and is allowed; someone through a doorway in view is walked to', async () => {
+  const { approachMove } = await import('../../src/engine/merge');
+  const { giveItem } = await import('../../src/engine/gear');
+  const s = village();
+  s.player.zone = 'tav_common';
+  const trader = s.actors.find((a) => a.id === 'trader')!; // behind the counter (tav_counter)
+  expect(approachMove(s, s.player, { type: 'give', target: 'trader' }, null)).toBeNull();
+  s.player.core.inventory.push({ id: 'coin_x', itemId: s.player.core.inventory[0]?.itemId ?? 'IT1' } as never);
+  expect(giveItem(s, s.player, 'coin_x', 'trader')).not.toBeNull();
+  expect(trader.core.inventory.some((i) => i.id === 'coin_x' || i.itemId === s.player.core.inventory[0]?.itemId)).toBe(true);
+  s.zones.find((x) => x.id === 'tav_common')!.edges!.n = EK.wall; // now a doorway, not a counter
+  s.zones.find((x) => x.id === 'tav_common')!.links.find((l) => l.to === 'tav_counter')!.sight = true;
+  expect(approachMove(s, s.player, { type: 'give', target: 'trader' }, null)).toMatchObject({ toZone: 'tav_counter' });
+});

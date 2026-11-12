@@ -140,6 +140,7 @@ export type GameEvent = {
   // structured payload (code only; views decide what to copy):
   line?: { text: string; volume: import('./agents').Volume; introduces?: string[] };
   fromZone?: string; // moves
+  beside?: true; // BG-81: a walk at someone (target) that reached them
   fromPos?: { x: number; y: number }; // BG-23: a leg that left a zone: where in fromZone it set off
   heading?: string; // BG-22: a leg that stays in its zone on the way to another: the zone it heads for
   toGo?: number; // BG-47/BG-48: a leg toward another zone (heading, or a target there): the metres still left to the way out

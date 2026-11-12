@@ -10,7 +10,7 @@ import { CONFIG } from '../config';
 import { distText } from '../views';
 /** CSS class of each edge kind's line on the To scale view */
 const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
-import { worldTiles, compassOf, knownMap, type KnownMap, type MapPlace, type MapZone } from './mapData';
+import { worldTiles, compassOf, knownMap, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (Node | string)[]) => {
@@ -38,6 +38,20 @@ const tileW = (z: MapZone) => Math.max(132, Math.min(260, z.name.length * 8.4 + 
 const tileH = (z: MapZone) => (z.people.length || z.along ? TILE_H_PEOPLE : TILE_H);
 
 /** deterministic force layout; zones laid out before keep their spots (they still settle a little) */
+/** a barrier on an exit in words: "door, locked", "gate, locked: you hold its key", "door, standing open" */
+export function wayWords(w: MapWay): string {
+  return w.shut === 'locked' && w.key ? `${w.kind}, locked: you hold its key` : w.shut ? `${w.kind}, ${w.shut}` : w.open ? `${w.kind}, standing open` : w.kind;
+}
+/** the marks drawn inside a barrier badge centred on x, y */
+function wayGlyph(x: number, y: number, shut: NonNullable<MapWay['shut']>): SVGElement[] {
+  return shut === 'locked' ? [s('rect', { x: x - 4.5, y: y - 1, width: 9, height: 7, rx: 1.5 }), s('path', { d: `M${x - 2.75} ${y - 1}v-2.5a2.75 2.75 0 0 1 5.5 0v2.5`, fill: 'none' })]
+    : shut === 'barred' ? [s('rect', { x: x - 4, y: y - 5.5, width: 8, height: 11, rx: 1, fill: 'none' }), s('line', { x1: x - 6.5, y1: y, x2: x + 6.5, y2: y })]
+    : [s('line', { x1: x - 4, y1: y - 4, x2: x + 4, y2: y + 4 }), s('line', { x1: x + 4, y1: y - 4, x2: x - 4, y2: y + 4 })];
+}
+/** a barrier badge for the map's key */
+const wayKey = (cls: string) => s('svg', { class: `k-way map-way ${cls}`, width: 20, height: 20, viewBox: '-10 -10 20 20', 'aria-hidden': 'true' },
+  s('circle', { cx: 0, cy: 0, r: 9 }), ...wayGlyph(0, 0, cls.split(' ')[0] as NonNullable<MapWay['shut']>));
+
 export function layout(zones: MapZone[], start: string, prev: Map<string, Pt>): Map<string, Pt> {
   const byPlace = new Map<string, string[]>(), place = new Map(zones.map((z) => [z.id, z.placeId]));
   // floors: zones at another height sit right above or below the zone their stairs reach, and never push each other
@@ -130,6 +144,8 @@ export function mapPage(api: GameApi) {
   const separated = new WeakSet<Map<string, Pt>>(); // layouts already pushed apart (separate)
   const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
   let cur: KnownMap | null = null, world = '';
+  /** the key lists the barrier marks only once the map shows one */
+  const anyShut = () => !!cur?.places.some((p) => p.zones.some((z) => z.links.some((l) => l.way?.shut)));
   const floors = new Map<string, number>(); // per world: the height shown
   // To scale (CO1): each zone as its own rectangle in metres, sides drawn by edge kind, in place of the exit tiles
   let plan = false;
@@ -330,9 +346,12 @@ export function mapPage(api: GameApi) {
           const road = world === WORLD;
           links.append(s('line', { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, class: road ? 'map-link road' : `map-link${l.sight ? '' : ' hidden-view'}${hot ? ' hot' : ''}` },
             s('title', {}, road ? `${l.label}: ${z.name} ↔ ${to.name}` : `${l.label}: ${z.name} ↔ ${to.name}${l.sight ? ' · you can see across' : ' · the far side is out of sight'}`)));
+          // a barrier you know stops you sits on the middle of its line; the exit's name then sits just above it
+          const shut = [l, to.links.find((m) => m.to === z.id)].find((x) => x?.way?.shut);
+          if (shut && !road) labels.append(wayMark((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, shut, z.name, to.name));
           const lab = z.id === selected ? l.label : to.links.find((m) => m.to === z.id)?.label ?? l.label;
           // the exit's name sits on the line only where the line is long enough to hold it; its tooltip always has it
-          if ((hot || road) && Math.hypot(p2.x - p1.x, p2.y - p1.y) > Math.min(lab.length * 6.6 + 18, Math.abs(p2.y - p1.y) > Math.abs(p2.x - p1.x) ? 60 : lab.length * 6.6 + 40)) labels.append(pill((p1.x + p2.x) / 2, (p1.y + p2.y) / 2, lab));
+          if ((hot || road) && Math.hypot(p2.x - p1.x, p2.y - p1.y) > Math.min(lab.length * 6.6 + 18, Math.abs(p2.y - p1.y) > Math.abs(p2.x - p1.x) ? 60 : lab.length * 6.6 + 40)) labels.append(pill((p1.x + p2.x) / 2, (p1.y + p2.y) / 2 - (shut && !road ? 24 : 0), lab));
           return;
         }
         // stairs: a badge on the tile, never a line across the floor; a known far end opens its floor
@@ -352,6 +371,7 @@ export function mapPage(api: GameApi) {
         const text = away ? `${l.label} · to ${awayName}` : `${l.label} · unexplored`;
         links.append(s('line', { x1: p1.x, y1: p1.y, x2: far.x, y2: far.y, class: `map-stub${away ? ' away' : ''}${hot ? ' hot' : ''}`, 'marker-end': 'url(#map-arrow)', ...(away ? { 'data-goto': away.id } : {}) },
           s('title', {}, away ? `${l.label}: to ${away.name} (${awayName}) · click to open that map` : `${l.label}: unexplored`)));
+        if (l.way?.shut) labels.append(wayMark((p1.x + far.x) / 2, (p1.y + far.y) / 2, l, z.name, away?.name ?? ''));
         if (hot || away) { const pl = pill(far.x + Math.cos(ang) * 14, far.y + Math.sin(ang) * 14, text, away ? 'away' : 'unknown', Math.cos(ang)); if (away) pl.setAttribute('data-goto', away.id); labels.append(pl); }
       });
     }
@@ -404,6 +424,13 @@ export function mapPage(api: GameApi) {
     const w = text.length * 6.6 + 18;
     const x0 = lean > 0.3 ? x : lean < -0.3 ? x - w : x - w / 2;
     return s('g', { class: `map-pill ${tone}` }, s('rect', { x: x0, y: y - 11, width: w, height: 22, rx: 11 }), s('text', { x: x0 + w / 2, y: y + 4, 'text-anchor': 'middle' }, text));
+  }
+  /** a barrier you know stops you, as a small badge on its exit: a padlock (locked; green when you hold its key), a door with
+   *  its bolt across (barred) or a cross (blocked) */
+  function wayMark(x: number, y: number, l: MapLink, from: string, to: string) {
+    const w = l.way!, shut = w.shut!;
+    const said = `${l.label}: ${wayWords(w)}${to ? ` · ${from} to ${to}` : ''}`;
+    return s('g', { class: `map-way ${shut}${w.key ? ' key' : ''}`, role: 'img', 'aria-label': said }, s('circle', { cx: x, cy: y, r: 10 }), ...wayGlyph(x, y, shut), s('title', {}, said));
   }
   function tile(z: MapZone, p: Pt, sub?: string) {
     if (planned() && z.rect) return planTile(z, p);
@@ -476,7 +503,8 @@ export function mapPage(api: GameApi) {
       h('p', { class: 'hs-label' }, 'Exits'),
       h('ul', { class: 'map-exits' }, z.links.map((l) => h('li', {},
         h('span', {}, l.label),
-        h('span', { class: 'to' }, l.known ? `to ${zoneName(l.to) ?? 'a known zone'}${l.otherPlace ? ` (${l.otherPlace})` : ''}${climb(z, l.to)}` : 'unexplored'),
+        h('span', { class: 'to' }, l.known ? `to ${zoneName(l.to) ?? 'a known zone'}${l.otherPlace ? ` (${l.otherPlace})` : ''}${climb(z, l.to)}` : 'unexplored',
+          l.way ? h('span', { class: `map-exit-way${l.way.shut ? ` ${l.way.shut}` : ''}${l.way.key ? ' key' : ''}` }, ` · ${wayWords(l.way)}`) : ''),
         l.known ? h('button', { type: 'button', class: 'map-go', title: 'Show this zone', 'aria-label': `Show ${zoneName(l.to) ?? 'this zone'}`, onclick: () => goTo(l.to) }, '›') : ''))),
       z.people.length ? h('div', {}, h('p', { class: 'hs-label' }, 'People'), h('p', {}, ...z.people.map((p) => h('span', { class: 'hs-tg' + (p.now ? '' : ' faded') }, p.now ? p.name : `${p.name} (last seen)`)))) : '',
       z.items.length ? h('div', {}, h('p', { class: 'hs-label' }, 'On the ground'), h('p', {}, ...z.items.map((x) => h('span', { class: 'hs-tg' }, x)))) : '')
@@ -494,6 +522,7 @@ export function mapPage(api: GameApi) {
         h('li', {}, h('i', { class: 'k-line' }), 'You can see across'), h('li', {}, h('i', { class: 'k-line dashed' }), 'The far side is hidden'),
         h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'), h('li', {}, h('i', { class: 'k-line away' }), 'Road to another map'), h('li', {}, h('i', { class: 'k-stair' }, '▲'), 'Stairs up or down: click to change floor'),
         ...(planned() ? [h('li', {}, h('i', { class: 'k-edge wall' }), 'Wall'), h('li', {}, h('i', { class: 'k-edge low' }), 'Counter or fence'), h('li', {}, h('i', { class: 'k-edge window' }), 'Window'), h('li', {}, h('i', { class: 'k-edge open' }), 'Open side')] : []),
+        ...(anyShut() ? [h('li', {}, wayKey('locked'), 'Locked'), h('li', {}, wayKey('locked key'), 'Locked, you hold its key'), h('li', {}, wayKey('barred'), 'Barred'), h('li', {}, wayKey('blocked'), 'Blocked')] : []),
         h('li', {}, h('i', { class: 'k-who' }), 'Someone there now'), h('li', {}, h('i', { class: 'k-who last' }), 'Last seen there')));
     side.replaceChildren(card, facts, placeList, legend);
   }

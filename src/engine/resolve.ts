@@ -16,7 +16,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, wayLeftM, type Located } from './position';
+import { distM, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -44,6 +44,7 @@ import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
+import { expireOffers, offersFromDefeats } from './essence';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
 import { answerYield, playerYields, yieldBars } from './yield';
@@ -288,11 +289,16 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone
-  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from, ...(fromPos ? { fromPos } : {}) } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot } : {}) };
+  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from, ...(fromPos ? { fromPos } : {}) } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot) } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return walked;
+}
+
+/** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding) */
+function reachedSpot(a: Actor, goal: Located, stopShort: number): boolean {
+  return !goal.pos || !a.pos || Math.hypot(a.pos.x - goal.pos.x, a.pos.y - goal.pos.y) <= stopShort + 0.1;
 }
 
 /** BG-47: on a leg that stops short of the way to another zone, how far that way still is (whole metres; none once there) */
@@ -589,7 +595,8 @@ function restRow(state: GameState, a: Actor): string {
   return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? HL.rest;
 }
 
-const threatHere = (state: GameState, a: Actor): boolean =>
+/** an active hostile shares the zone with `a` (what blocks a rest) */
+export const threatHere = (state: GameState, a: Actor): boolean =>
   allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
 
 /** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
@@ -1103,6 +1110,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (input.intent?.yields && isActive(state.player)) (sparOf(state, state.player.id) ? yieldSpar(state, state.player) : playerYields(state));
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   const defeated = payDefeats(state, ctx.events);
+  offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence
+  expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   catchUp(state, now(state) - clockStart, new Set(usableAgentOutputs(input).map((o) => o.actorId))); // NW11: the turn's time moves everyone on toward their schedule

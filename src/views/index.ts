@@ -476,7 +476,7 @@ export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): stri
   const said = v.line ? `: "${v.line.text.length > 80 ? `${v.line.text.slice(0, 77)}...` : v.line.text}"` : '';
   const moving = e.kind === 'move' || e.kind === 'flee';
   const where = moving && (e.fromZone || !v.target) ? ` to ${zoneById(state, e.zone)?.name ?? e.zone}` : '';
-  return `${who} ${e.kind.replace(/_/g, ' ')}${v.target ? ` ${moving ? 'toward ' : ''}${name(v.target)}` : ''}${where}${v.outcome ? ` (${v.outcome})` : ''}${said}`;
+  return `${who} ${e.kind.replace(/_/g, ' ')}${v.target ? ` ${moving ? (e.beside ? 'up to ' : 'toward ') : ''}${name(v.target)}` : ''}${where}${v.outcome ? ` (${v.outcome})` : ''}${said}`;
 }
 
 export function buildOppositionView(state: GameState, actorId: string): OppositionView {
@@ -561,6 +561,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.price ? { price: coinWords(e.price) } : {}),
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
+      ...(full && e.beside ? { spot: 'beside them' } : {}), // BG-81: the walk at its target reached them
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
       ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: { what: e.way.barrier ? barrierName(state.barriers![e.way.barrier]) : 'way', did: WAY_WORDS[e.way.did], to: zoneById(state, e.way.to)?.name ?? e.way.to } } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
@@ -585,6 +586,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
+    // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)
+    ...((offered) => offered.length ? { essences: offered } : {})((p.progression?.essenceOffers ?? []).filter((o) => o.turn === state.turn)
+      .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, story: getLibrary().essences?.[o.essence]?.story ?? '' }))),
   };
 }
 

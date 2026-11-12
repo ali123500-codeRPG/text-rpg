@@ -1,4 +1,5 @@
 // Applying a stage plan (Scenario setup steps 4–8), the fallback stage, opening events.
+import { expireOffers } from '../engine/essence';
 import { frameOf } from '../engine/scenarioEnd';
 import { qualityMult } from '../ruleset/quality';
 import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
@@ -152,6 +153,7 @@ export function beginScenario(state: GameState, tier: Tier, beyond?: number): vo
   state.stage.quiet = 0;
   delete state.stage.breakCause;
   delete state.stage.roam; // SD2 a: free roam ends when a scenario starts
+  expireOffers(state, true); // growth proposal 2.5: an essence offer lasts until a new scenario starts
   state.scenarioCaps = { promotions: 0, minted: 0 };
   endYields(state);
 }

@@ -31,30 +31,32 @@ describe('109 skill progression', () => {
     markEndurance(s, s.player, CONFIG.ENDURANCE_MARK_PCT);
     expect(s.player.progression!.marks).toEqual([SK.endurance]);
   });
-  it('marked skills roll once: a roll over the target adds 1d5 and shows; a failed roll shows nothing', () => {
+  it('marked skills roll once: the tier sets the gain (SG1 C) and shows; a failed roll shows nothing', () => {
     const s = makeVillage();
     const p = s.player;
     p.core.skills[SK.eyesight] = { raw: 38, state: 'tagged' };
-    p.core.skills[SK.earshot] = { raw: 30, state: 'tagged' };
+    p.core.skills[SK.earshot] = { raw: 30, state: 'normal' };
     p.progression!.marks = [SK.eyesight, SK.earshot];
-    const gains = improveMarked(s, forcedRng([90, 3, 10])); // sight 90 > 38: +3; hearing 10 ≤ 30: nothing
-    expect(gains).toEqual([{ skill: SK.eyesight, from: 38, to: 41, milestone: 40 }]);
-    expect(p.core.skills[SK.eyesight].raw).toBe(41);
+    // sight: 50 + (125 − 38) − 90 = 47, Great Success: +2; hearing: 10 + (100 − 30 − burden) − 90 is below 0: nothing
+    const gains = improveMarked(s, forcedRng([50, 10]));
+    expect(gains).toEqual([{ skill: SK.eyesight, from: 38, to: 40, milestone: 40 }]);
+    expect(p.core.skills[SK.eyesight].raw).toBe(40);
     expect(p.core.skills[SK.earshot].raw).toBe(30);
     expect(p.progression!.marks).toEqual([]);
     const lines = mechanicsLines(s, []);
-    expect(lines).toContain('Eyesight 38 → 41');
+    expect(lines).toContain('Eyesight 38 → 40');
     expect(lines).toContain('New perk unlocked: Eyesight 40');
     expect(lines.some((l) => l.startsWith('Earshot'))).toBe(false);
   });
-  it('no natural roll forces a gain: a 99 or 00 that does not beat the target improves nothing', () => {
+  it('raw never passes its cap: 100, or 125 tagged, whatever the die shows', () => {
     const s = makeVillage();
     const p = s.player;
-    p.core.skills[SK.eyesight] = { raw: 99, state: 'tagged' };
-    p.core.skills[SK.earshot] = { raw: 100, state: 'tagged' };
+    p.core.skills[SK.eyesight] = { raw: 100, state: 'normal' };
+    p.core.skills[SK.earshot] = { raw: 125, state: 'tagged' };
     p.progression!.marks = [SK.eyesight, SK.earshot];
-    expect(improveMarked(s, forcedRng([99, 100]))).toEqual([]); // sight 99 ≤ 99, hearing 100 ≤ 100
-    p.progression!.marks = [SK.eyesight];
-    expect(improveMarked(s, forcedRng([100, 1]))).toMatchObject([{ skill: SK.eyesight, from: 99, to: 100 }]); // 100 > 99 still beats it
+    expect(improveMarked(s, forcedRng([100, 100]))).toEqual([]);
+    p.core.skills[SK.earshot].raw = 124;
+    p.progression!.marks = [SK.earshot];
+    expect(improveMarked(s, forcedRng([100]))).toMatchObject([{ skill: SK.earshot, from: 124, to: 125 }]); // margin 11: Success, +1
   });
 });
