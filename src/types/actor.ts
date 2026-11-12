@@ -25,7 +25,7 @@ export type Actor = {
   pos?: { x: number; y: number };
   /** the way it last walked, a unit [east, north]: what its left and right are (BG-18) */
   facing?: [number, number];
-  posture?: 'open' | 'stealthy'; // NS1: any actor can be stealthy
+  posture?: (typeof import('../scales').POSTURES.keys)[number]; // NS1: any actor can be stealthy
   bandId: string;
   core: Core;
   progression?: Progression;
@@ -125,6 +125,8 @@ export type Progression = {
   /** earned, each once (B4, X6). key = the library achievements table row, of = the body type, race or tree it names;
    * the name and XP level live only in that table. name is only on entries from older saves. */
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string; reached?: number }[]; // reached: the tally that earned it
+  /** D-226: achievements earned while a scenario runs, granted at its end (grantAchievement queues them) */
+  pendingAchievements?: { key: string; of?: string; reached?: number }[];
   title?: string; // T18: the id of the earned achievement worn as a title (wornTitle in src/engine/xp.ts)
   /** achievement tallies: '<rule>' or '<rule>:<by>:<of>' (a count, or the best reached for days, zones and beyond_crit) */
   tally?: Record<string, number>;

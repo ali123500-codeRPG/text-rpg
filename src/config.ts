@@ -292,6 +292,9 @@ const DEFAULTS = {
   /** FR1 b (placeholder): a calm start (talk, trade, a quest goal reached) starts a scenario only once free roam has lasted this
    * many turns; danger (an attack, a hostile spotting the player), road encounters and unbuilt frontiers never wait */
   ROAM_MIN_TURNS: 5,
+  /** D-226 (LF3): while a scenario runs, the player's achievements and All-XXX steps wait for the scenario's end and are
+   * granted there together (one gains summary for the ending moment); in free roam they come at once. false: at once always */
+  GROWTH_AT_SCENARIO_END: true,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
@@ -385,6 +388,8 @@ const DEFAULTS = {
   /** each skill group's XP factor level in the defeat-XP rating */
   XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full' } as Record<string, string>,
   DEFEAT_XP_MULT: 1, // X20: ×1 for now
+  /** training effort scale in the rating: effort(s) = EFFORT_SCALE × ln(100 ÷ (100 − s)). 100/3 came from the old 1d5 gain (LF10); the curve is being revisited */
+  EFFORT_SCALE: 100 / 3,
   /** held and worn gear adds this × its coin value to the rating, on both sides (the foe's and the player's) */
   GEAR_RATING_FACTOR: 0.25,
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (LEVEL_XP × L(L−1)/2) */

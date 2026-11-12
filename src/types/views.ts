@@ -1,6 +1,6 @@
 // The six views (Part 2, Game state model). Every builder copies whitelisted fields into a new object.
 // No view holds a gear number, a pool, HP, a roll or a margin.
-import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, Tier, TierName, Grade, Fact } from './core';
+import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, TierName, Grade, Fact } from './core';
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
 import type { DefenseKind } from './actor';
@@ -69,8 +69,8 @@ export type SeenActor = {
   /** BG-18: where it stands by the way the viewer faces (engine/position.ts sideFrom) */
   side?: 'ahead' | 'left' | 'right' | 'behind';
   distanceM?: number; // ZP5: metres from the viewer, once both stand at points on the map (to 0.1 m)
-  health?: HealthLevel; // others: only from Wounded down
-  morale?: string; // MB16: others' morale level, only from Afraid down
+  health?: HealthLevel; // others: only from CONFIG.HEALTH_SHOWN_FROM down
+  morale?: string; // MB16: others' morale level, only from CONFIG.MORALE_SHOWN_FROM down
   stance?: string; // LI2b Read Their Face: a speaker's stance toward the viewer
   crippled?: string[]; destroyed?: string[];
   damaged?: string[]; // A13 Read Wounds: a foe's Damaged parts

@@ -57,6 +57,10 @@ export type ScenarioFrame = {
   ground?: string[];
   /** BG-41: what happened in it, one short hidden line per notable thing (spars, yields, defeats, gives, trades, jobs, deals) */
   happened?: { turn: number; text: string }[];
+  /** D-226: the player's raises and All-XXX so far in it, for the ending moment's summary (engine/growth.ts) */
+  gains?: Pick<import('./game').ScenarioGains, 'skills' | 'perks' | 'allPerks'>;
+  /** D-226: the player's XP log length, level and XP bar fill when it began (the summary's XP and levels count from there) */
+  xpFrom?: number; xpStart?: { level: number; pct: number };
 };
 /** SC8/SC15: why a Weaver check-in is asked */
 export type CheckinReason = 'beat' | 'budget' | 'judged' | 'stuck';

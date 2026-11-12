@@ -3,7 +3,7 @@ import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
 import { ageText, stageOf } from '../ruleset/age';
-import type { ScenarioFrame, Tier, TierRoll,
+import type { ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
@@ -12,7 +12,7 @@ import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
-import { wornTitle } from '../engine/xp';
+import { charLevel, wornTitle } from '../engine/xp';
 import { sideFrom, sightDistM } from '../engine/position';
 import { chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
@@ -129,7 +129,6 @@ function lookOf(events: GameEvent[], viewerId: string, actorId: string): string 
   return e?.activity ? activity(e.activity).look : undefined;
 }
 
-/** the viewer fully perceived an event by `aboutId` since the scenario began (recent history included) */
 /** LI2b Read Their Face: the viewer sees the stance toward it of anyone who spoke to it this scenario */
 function readsFace(state: GameState, viewer: Actor, a: Actor): boolean {
   return hasPerk(viewer, PK.read_their_face) && !!a.mind && [...(state.recentEvents ?? []), ...state.events].some((e) =>
@@ -137,6 +136,7 @@ function readsFace(state: GameState, viewer: Actor, a: Actor): boolean {
     && (e.target === viewer.id || !!e.speech?.addressees?.includes(viewer.id)));
 }
 
+/** the viewer fully perceived an event by `aboutId` since the scenario began (recent history included) */
 function seenClearly(state: GameState, viewerId: string, aboutId: string): boolean {
   return [...(state.recentEvents ?? []), ...state.events].some((e) =>
     e.actorId === aboutId && e.turn >= state.stage.scenarioStartTurn && e.perception[viewerId]?.level === 'full');
@@ -224,7 +224,8 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
   };
 }
 
-/** visible condition changes as text: the player's own always; others' only Wounded down and Crippled/Destroyed */
+/** visible condition changes as text: the player's own always; others' only from CONFIG.HEALTH_SHOWN_FROM down (a step earlier
+ * with Read Wounds) and parts Crippled or worse */
 function visibleChanges(state: GameState, effects: Effect[], viewerId: string): string[] {
   const out: string[] = [];
   for (const f of effects) {
@@ -665,7 +666,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
-    player: { level: state.player.core.classes.reduce((n, c) => n + c.level, 0), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player) },
+    player: { level: charLevel(state.player), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player) },
     previousNote: state.hidden.weaverNote,
     lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),
     ...(state.stage.outer ? { outerScenario: { question: state.stage.outer.question, scale: SCENARIO_SCALES.name(state.stage.outer.scale) } } : {}),
@@ -713,7 +714,8 @@ function shownDeciding(state: GameState, list: string[], roll: RollResult, rolle
     (s.startsWith('Gear (') && seen.has(s.slice(s.indexOf('): ') + 3))));
 }
 
-/** Part 3 packet: no numbers. Others' Healthy→Damaged and Bruised–Injured stay hidden; the player's own condition is always visible. */
+/** Part 3 packet: no numbers. Others' health above CONFIG.HEALTH_SHOWN_FROM and their Damaged parts stay hidden (Read Wounds
+ * aside); the player's own condition is always visible. */
 export function buildCombatPacket(state: GameState, event: GameEvent, viewerId: string): CombatPacket {
   const r = event.attack;
   if (!r) throw new Error(`event ${event.id} is not an attack`);

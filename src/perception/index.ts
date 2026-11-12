@@ -9,7 +9,7 @@ import { sightLevel } from './sight';
 import { seeingM } from '../engine/position';
 export { backgroundDb, backgroundOf, hearingOf, openAirReachM, soundDb } from './noise';
 import { zoneLight } from '../time';
-import { actorById, allActors, atLeast, isActive, shortestPath, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, isActive, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk, perkSum } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
@@ -27,10 +27,10 @@ export const isComm = (e: GameEvent) =>
   !e.bark && (['call_help', 'alarm', 'report'].includes(e.kind) || (['speak', 'talk'].includes(e.kind) && !!e.line));
 
 type Seen = { level: Perception; cue: Cue; heard?: true };
-/** the words of a line reach only those its sound reaches: seeing someone talk across a field gives no words */
 /** BG-59: a bark is a line said beside a deed. Only a bark that is nothing but words is left out of NPC views and history;
  * a deed with a bark (a give, an attack) still counts, its line dropped (eventView) */
 export const barkOnly = (e: { bark?: boolean; kind: string }): boolean => !!e.bark && ['speak', 'talk'].includes(e.kind);
+/** the words of a line reach only those its sound reaches: seeing someone talk across a field gives no words */
 export const hearsWords = (p: { heard?: true } | undefined): boolean => !!p?.heard;
 const better = (a: Seen | null, b: Seen | null): Seen | null => (!a ? b : !b ? a : b.level === 'full' && a.level !== 'full' ? b : a);
 
@@ -43,8 +43,8 @@ const stillSeen = (): number => CONFIG.SIGHT_M.low![0];
 /** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres) */
 const lookReach = (): number => CONFIG.SIGHT_M.normal![0];
 
-/** how well a sound of this noise made there reaches the observer (null: not heard). Perks with hearingDb (A14 Keen Ear:
- * 10) make every sound that many dB louder for the owner (RD4). */
+/** how well a sound of this noise made there reaches the observer (null: not heard). Perks with hearingDb (A14 Keen Ear)
+ * make every sound that many dB louder for the owner (RD4). */
 function soundReach(state: GameState, observer: Actor, at: Located, noise: GameEvent['noise'], leanIn = false): Perception | null {
   return hearingOf(state, noise, at, observer, perkSum(observer, 'hearingDb'), leanIn);
 }
