@@ -11,8 +11,7 @@ export { boon, gradesFitTier, tidyRewards, validateStagePlan } from './validate'
  *  applyFallbackStage: flagged fallback stage: the place's saved zones, or one empty zone per frontier label; grades none/none.
  *  openingEvents: arrival + presence events for the player's perception (scenario setup step 8). */
 export { applyStagePlan, applyFallbackStage, openingEvents, beginScenario } from './apply';
-/** trimStage [Proposed]: past MAX_STAGE_ZONES drop the farthest zones without engaged actors; links into them become frontiers.
- *  frontiersNearPlayer: unbuilt frontier keys linked from the player's zone. */
-export { trimStage, frontiersNearPlayer, loadSavedZone, isSavedZone } from './stage';
+/** frontiersNearPlayer: unbuilt frontier keys linked from the player's zone. */
+export { frontiersNearPlayer, loadSavedZone, isSavedZone } from './stage';
 export { ScenarioDirector } from './director';
 export type { Weave, ScenarioResult, ScenarioOutcome } from './director';

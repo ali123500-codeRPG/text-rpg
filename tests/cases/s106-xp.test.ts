@@ -6,7 +6,7 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, effort, gearRating, killXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, effort, gearRating, defeatXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
@@ -26,8 +26,8 @@ describe('106 XP and levels', () => {
     expect(rating(slime)).toBeCloseTo(effort(30) + xpGroupFactor(GR.notice) * effort(25) + xpGroupFactor(GR.will) * effort(50), 5);
     const g = actor(s, 'guard_1');
     expect(rating(g)).toBeGreaterThan(rating(slime));
-    const t = Math.min(1, CONFIG.KILL_XP_TAPER * rating(slime) / (rating(s.player) + gearRating(s, s.player))); // the player's gear counts too
-    expect(killXp(s, slime)).toBeCloseTo(rating(slime) * t * CONFIG.KILL_XP_MULT, 1);
+    const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * rating(slime) / (rating(s.player) + gearRating(s, s.player))); // the player's gear counts too
+    expect(defeatXp(s, slime)).toBeCloseTo(rating(slime) * t * CONFIG.DEFEAT_XP_MULT, 1);
     s.player.core.skills[SK.barter] = { raw: 90, state: 'normal' }; // influence counts at 0.25×
     const before = rating(s.player);
     s.player.core.skills[SK.thievery] = { raw: 90, state: 'normal' }; // BA2: Thievery's Lockpicking function sits in Stealth, so it counts
@@ -72,10 +72,10 @@ describe('106 XP and levels', () => {
     const got = s.player.progression!.achievements!;
     expect(got.map((x) => [x.id, achievementName(s, x)])).toEqual([[`${ACH.first_defeat_body_type}:${BT.amorphous}`, 'First Amorphous Felled'], [`${ACH.first_defeat_race}:${RC.elf}`, 'First of Elfkind Felled']]);
   });
-  it('a slime the player hit and downed pays its kill XP once, plus a first-defeat achievement', () => {
+  it('a slime the player hit and downed pays its defeat XP once, plus a first-defeat achievement', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
-    const xp = killXp(s, slime);
+    const xp = defeatXp(s, slime);
     payDefeats(s, [hit('slime_1')]);
     expect(s.player.progression!.xp).toBe(0); // still up: nothing yet
     slime.core.condition.hpLostPct = 100;

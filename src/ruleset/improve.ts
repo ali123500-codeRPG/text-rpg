@@ -137,6 +137,9 @@ export function markResolve(state: GameState, actor: Actor, lostPct: number): vo
   if (actor.id === state.player.id && lostPct >= CONFIG.RESOLVE_MARK_PCT) mark(actor, SK.resolve);
 }
 
+/** Part 1 §6: an improvement roll passes above its target, or at IMPROVE_AUTO_PASS or more */
+export const improves = (roll: number, target: number) => roll > target || roll >= CONFIG.IMPROVE_AUTO_PASS;
+
 /** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit */
 function improveRolls(a: Actor, raw: number): number {
   const perks = getLibrary().perks;
@@ -159,7 +162,7 @@ export function improveMarked(state: GameState, rng: Rng): { skill: string; from
     const target = s.state === 'tagged' ? s.raw : s.raw + burden;
     for (let n = improveRolls(a, s.raw); n > 0; n--) { // Quick Study: two rolls below 15, each with its own gain
       const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
-      if (!(roll > target || roll >= 99)) continue;
+      if (!improves(roll, target)) continue;
       const from = s.raw, trueBefore = trueSkill(a, id);
       s.raw += rng.int(1, CONFIG.SKILL_GAIN_DIE);
       a.core.skills[id] = s;
