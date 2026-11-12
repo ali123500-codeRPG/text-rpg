@@ -980,6 +980,15 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // exchange slot: the player's speech, then spokespeople's spoken replies in initiative order
   const ex = input.exchange;
   if (ex && isActive(state.player) && (isSpeech(playerOrder.type) || input.quickWord)) {
+    // BG-58: walk over, then speak: the player's move comes first and the words are said from where it ends, as an NPC's
+    const po = playerOrder;
+    if (po.move && !po.moveAfter && !po.way && !input.quickWord) {
+      const sp = po.moveSpot ? spotPoint(state, po.move, po.moveSpot, state.player) : null;
+      const goal: Located = sp ? { zone: po.move, pos: sp.pos } : { zone: po.move };
+      const opts = sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {};
+      if (!walk(ctx, state.player, goal, po, (n) => (n === 0 ? useMoveSlot(ctx, state.player, false) : null), opts)) logCode(state, 'move_dropped', { actorId: state.player.id, to: po.move });
+      po.move = null;
+    }
     const ev = mk(ctx, state.player, 'speak', {
       // a wordless opening (talk with no line) has no line to show or remember
       ...(input.intent?.spoken?.trim() ? { line: { text: input.intent.spoken, volume: 'normal' as const } } : {}), tier: ex.playerTier,
