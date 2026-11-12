@@ -12,7 +12,8 @@ import { clockSet, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate } from '../library';
 import { spawnNpc } from '../library/spawn';
 import { personalityFrom } from '../ruleset/personality';
-import { installRoutines, desiredState, detectPlayer } from '../minds';
+import { installRoutines, desiredState, detectPlayer, headTo } from '../minds';
+import { perceivesNow } from '../engine/yield';
 import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
 import { actorById, isActive, zoneById } from '../engine/relations';
@@ -154,7 +155,7 @@ export function beginScenario(state: GameState, tier: Tier, beyond?: number): vo
 
 /** Q1 (option A): when the scenario ends, a yielded actor holds a grudge (opposed) toward those it
  * yielded to, its surrender ends (Morale: it lasts the scenario), and it leaves for its exit slot if it has one.
- * GAP: there is no off-stage yet (D-46, D-67), so "leaves" means it goes to its exit zone. */
+ * NW1: nobody leaves the world; it walks to its exit zone (head_to, NW2) and its routine carries on from there. */
 function endYields(state: GameState): void {
   // Q4: broken and surrendered last only the scenario (Morale); MB9: a bar still at Broken moves up to Panicking, one point short of Broken
   for (const a of state.actors) if (a.mind?.moraleState) delete a.mind.moraleState;
@@ -166,7 +167,7 @@ function endYields(state: GameState): void {
     for (const k of Object.keys(o)) if (o[k] === 'yielded') o[k] = 'opposed';
     const slot = a.mind!.slots?.exit;
     const exit = Array.isArray(slot) ? slot[0] : slot;
-    if (isActive(a) && exit && zoneById(state, exit) && exit !== a.zone) moveTo(state, a, exit);
+    if (isActive(a) && exit && zoneById(state, exit) && exit !== a.zone) headTo(state, a, exit, 'yield');
   }
 }
 
@@ -259,6 +260,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // ---- cast ----
   const degraded = new Set((opts.degrade ?? []).filter((e) => e.routineOnly && e.castKey !== undefined).map((e) => e.castKey!));
   const castActors: Actor[] = [];
+  const reused = new Set<Actor>(); // NW7: actors already in the world never jump; they walk
   for (const c of plan.cast) {
     const id = castMap.get(c.key)!;
     const boundZones = Object.values(c.slots ?? {}).flat().filter((z) => typeof z === 'string' && isZoneRef(z)).map(zoneRef);
@@ -267,6 +269,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     let a: Actor;
     if (c.actor) {
       a = actorById(state, c.actor)!;
+      reused.add(a);
       a.label = c.label;
       // GAP: a reused actor keeps its names; the plan's name is ignored.
     } else {
@@ -281,7 +284,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     if (c.knownOnSight) a.knownOnSight = true;
     a.mind!.knows = (c.knows ?? []).map((f) => ({ id: f.id, text: f.text }));
     if (c.wares) stockWares(state, a, c.wares, turn);
-    moveTo(state, a, startZone);
+    if (!reused.has(a)) moveTo(state, a, startZone);
     castActors.push(a);
   }
   plan.cast.forEach((c, i) => {
@@ -294,9 +297,16 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       const slots = Object.fromEntries(Object.entries(c.slots ?? {}).map(([k, v]) => [k, Array.isArray(v) ? v.map(zoneRef) : zoneRef(v)]));
       installRoutines(a, c.routineSetId, slots, c.startAt, turn, rng);
     }
+    // NW7: a reused actor stays where it is. One the player can't perceive walks to its start (head_to), then takes up
+    // its new routine; one the player perceives is not sent anywhere, and its new routine walks it on from where it stands.
+    if (reused.has(a)) {
+      const d = desiredState(buildActorView(state, a.id));
+      if (d && d.zone !== a.zone && !perceivesNow(state, state.player, a, 'faint')) headTo(state, a, d.zone, 'weaver');
+    }
   });
   // step 5: each actor stands in its default routine's desired zone for the current turn (SC12: arrivals walk in instead)
   if (ctx.kind !== 'checkin') for (const a of castActors) {
+    if (reused.has(a)) continue; // NW7
     const d = desiredState(buildActorView(state, a.id));
     if (d) moveTo(state, a, d.zone);
   }

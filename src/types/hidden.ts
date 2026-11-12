@@ -132,10 +132,10 @@ export type RoutineStep = { slot: string; duration: DurationId; activity: string
 export type Routine = {
   id: string;
   brief: string;
-  kind: 'schedule' | 'follow' | 'wait';
+  kind: 'schedule' | 'follow' | 'wait' | 'head'; // head (NW2): walk to slot 'dest', then back to the routine before it
   loop: boolean;
   steps: RoutineStep[]; // schedule only; [] otherwise
-  activity?: string; // follow and wait only
+  activity?: string; // follow, wait and head only
   alert?: string;
   onAlert: OrderTemplate | null;
   posture?: 'stealthy'; // NS: the actor keeps stealthy while on this routine (the thief's prowl)

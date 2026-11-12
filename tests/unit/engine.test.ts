@@ -17,6 +17,7 @@ const F = vi.hoisted(() => ({
   surprise: true,
   morale: 'steady' as 'steady' | 'broken' | 'surrendered',
   alerts: [] as Order[],
+  headTo: [] as unknown[][],
   attacks: [] as AttackRequest[],
 }));
 
@@ -116,6 +117,8 @@ vi.mock('../../src/minds', () => {
     }),
     alertOrders: (_s: GameState, views: { self: { id: string } }[]) => F.alerts.filter((a) => views.some((v) => v.self.id === a.actorId)),
     updateAlarms: () => {},
+    headArrivals: () => {},
+    headTo: (...a: unknown[]) => (F.headTo.push(a), true),
     detectPlayer: () => {},
     resolveAmbush: () => ({ surprised: F.surprise }),
     switchRoutine: (state: GameState, a: Actor, id: string) => {
@@ -443,13 +446,15 @@ describe('gear and combat', () => {
     s.player.core.condition.hpLostPct = 50;
     resolveTurn(s, input({ intent: intent({ action: { type: 'rest' } }) }), createRng(1));
     expect(s.log.some((l) => l.code === 'rest_blocked' && l.turn === s.turn)).toBe(false);
-    // scenario end: opposed, surrender over, off to its exit
+    // scenario end: opposed, surrender over, off to its exit on foot (NW1: head_to, never a jump)
     const { beginScenario } = await import('../../src/scenario/apply');
     g.mind!.slots = { ...(g.mind!.slots ?? {}), exit: 'street_door' };
+    F.headTo.length = 0;
     beginScenario(s, 'success');
     expect(g.mind!.overrides?.player).toBe('opposed');
     expect(g.mind!.moraleState).toBeUndefined();
-    expect(g.zone).toBe('street_door');
+    expect(g.zone).toBe('tav_common');
+    expect(F.headTo.map(([, a, dest, by]) => [(a as { id: string }).id, dest, by])).toEqual([[g.id, 'street_door', 'yield']]);
   });
   it('a yielded actor attacked again turns hostile (Q1)', () => {
     place(s, 'guard_1', 'tav_common');

@@ -23,7 +23,7 @@ import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, 
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
@@ -1045,6 +1045,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
   updateAlarms(state, ctx.events);
+  headArrivals(state); // NW2: a head_to walk that got there goes back to its routine
   // QT8: talking to a giver hands in its finished job, before its agent's output (so it may offer the next one)
   handInQuests(state, (id) => input.spokespeople.includes(id) && ctx.exchangeEvents.some((e) => e.actorId === state.player.id && !!e.perception[id]));
   applyAgentEffects(state, input, {
