@@ -365,6 +365,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         h('table', { class: 'chg' }, h('tbody', {}, l.changes.map((x) => h('tr', {},
           h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,
       ...gear.map((g) => row('Gear', g)),
+      // what you did at doors, gates and other barriers this turn: tried, opened, locked, picked
+      ...(l.ways ?? []).map((w) => row('Way', w)),
       // a skill that went up this turn: "Strike +1" in gold, the same mark as the sheet's ▲ (playtest run 33)
       gains.length ? row('Skills', ...gains.flatMap(([k, n], i) => [i ? ' · ' : '', h('b', { class: 'skill-up', title: 'Went up this turn' }, `▲ ${skillName(k)} +${n}`)])) : null,
       xp ? row('XP', `+${xp}`) : null,
