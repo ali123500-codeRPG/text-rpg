@@ -1,4 +1,4 @@
-// 178 From Ali's game (BG-24, BG-25): the player stood over a downed woman and swung three times; every blow was wasted
+// 178 From a playtest game (BG-24, BG-25): the player stood over a downed woman and swung three times; every blow was wasted
 // in silence (attacks on anyone down were refused), and the Narrator made up a blade stuck in the floor and shaking hands.
 // The sword "drawn" again while already in hand was logged as a mistake. Now a blow on someone down lands (they can't
 // defend), only the dead can't be struck, a wasted action says why, and drawing what is in hand is nothing to do.

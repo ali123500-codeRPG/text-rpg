@@ -1,7 +1,7 @@
 // Part 1 §6 skill improvement ("Skill progression: options" SP1–SP11).
 // A use marks a skill when the opposition is from MARK_WINDOW below its raw skill to MARK_WINDOW above its true skill (SP2, SP6); a hit that
-// costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of each engagement or
-// when the scenario breaks (SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
+// costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of the turn of the mark
+// (SKILL_UP_INSTANT; off, at the end of each engagement or when the scenario breaks, SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
 import type { Actor, AttackResult, CheckResult, ContestResult, GameState, RollKind, Rng } from '../types';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
