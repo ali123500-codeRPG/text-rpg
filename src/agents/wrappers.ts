@@ -34,6 +34,7 @@ export async function callParser(text: string, view: PlayerView, ctx: AgentCtx, 
   }
   if (leg.illegal.length) {
     run.log.errors.push('illegal_intent', ...leg.illegal);
+    run.log.output = leg.intent; // kept so the GM view shows what was asked for
     return { intent: null, clarify: illegalClarify(leg.illegal, view) ?? GENERIC_CLARIFY, run };
   }
   run.log.output = leg.intent;
