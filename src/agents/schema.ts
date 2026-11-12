@@ -109,7 +109,7 @@ const planUpdate = nul(obj<NonNullable<PlannerOutput['planUpdate']>>({
   memoryNote: (v, p, e) => (v === undefined || v === null ? undefined : str(v, p, e)) as string,
   routine: nul(str),
 }, ['memoryNote']));
-const dialogue = nul(obj<NonNullable<PlannerOutput['dialogue']>>({ line: str, volume: VOLUME, introduces: arr(str) }, ['introduces']));
+const dialogue = nul(obj<NonNullable<PlannerOutput['dialogue']>>({ line: str, volume: VOLUME }));
 
 const memory = nul(obj<NonNullable<PlannerOutput['memory']>>({
   add: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
@@ -141,8 +141,8 @@ const responder = obj<ResponderOutput>({
 const voice = obj<VoiceOutput>({
   action: npcAction, line: str, volume: VOLUME,
   shares: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
-  introduces: optArr(str), gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields, acceptYield, headTo,
-}, ['introduces', 'agreement', 'questEnd', 'spar', 'yields', 'acceptYield', 'headTo']);
+  gear: GEAR, stance: STANCE, routine: nul(str), agreement, questEnd, spar, yields, acceptYield, headTo,
+}, ['agreement', 'questEnd', 'spar', 'yields', 'acceptYield', 'headTo']);
 const narrator = obj<NarratorOutput>({
   text: (v, p, e) => {
     const s = str(v, p, e);

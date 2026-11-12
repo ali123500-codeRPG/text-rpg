@@ -150,7 +150,6 @@ type NpcOut = {
   action: NpcAction;
   gear: GearOp[] | null;
   stance: StanceStep | null;
-  introduces?: string[];
 };
 
 /** BG-93: a spoken line holds only the words said aloud. Stage directions an agent writes into it (*takes a bite*,
@@ -161,7 +160,7 @@ export function spokenOnly(text: string): string {
 
 /**
  * Checks the order's target against the view (world = every real id, to tell view_leak from invalid_target),
- * then drops illegal gear ops, items, modes, stance steps and introduces in place.
+ * then drops illegal gear ops, items, modes and stance steps in place.
  */
 export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<string>, alsoKnown: string[] = []): NpcLegality {
   const k = knownIds(view);
@@ -195,11 +194,6 @@ export function checkNpcLegality(out: NpcOut, view: NpcViewBase, world: Set<stri
   if (out.stance && !k.actors.has(out.stance.toward)) {
     errors.push(world.has(out.stance.toward) ? 'view_leak' : 'invalid_target');
     out.stance = null;
-  }
-  if (out.introduces) {
-    const keep = out.introduces.filter((id) => id === view.self.id || k.actors.has(id));
-    if (keep.length !== out.introduces.length) errors.push('invalid_introduces');
-    out.introduces = keep;
   }
   return { orderError, errors };
 }

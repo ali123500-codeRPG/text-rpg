@@ -39,7 +39,7 @@ import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { buy, sell } from './trade';
-import { applyAgentEffects, applyIntroduces, logCode } from './effects';
+import { applyAgentEffects, learnNames, logCode } from './effects';
 import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
@@ -167,9 +167,7 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   }
   if (ev.kind === 'attack' && ev.target && !ev.spar) setAttackOverrides(state, ev); // SP1: a sparring blow changes no stance
   ctx.events.push(ev);
-  if (ev.kind === 'speak' && !ev.bark && ev.line?.introduces && ev.perception[state.player.id]?.level === 'full') {
-    applyIntroduces(state, actorById(state, ev.actorId)!, ev.line.introduces);
-  }
+  learnNames(state, ev);
   afterEvent(ctx, ev);
 }
 

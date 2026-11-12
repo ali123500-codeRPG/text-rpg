@@ -257,6 +257,8 @@ const DEFAULTS = {
   ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
   ORDER_NOISE: 'normal' as NoiseKey, // RD2: an order is called out in a normal voice; the seller must hear it clearly (trade hearsOrder)
   WARES_CAP: 8, // goods lines plus services per seller
+  // BG-95: words skipped when finding the short form of a name said aloud ("Wenna" for Old Wenna)
+  NAME_TITLE_WORDS: ['old', 'young', 'little', 'big', 'mother', 'father', 'master', 'mistress', 'sir', 'lady', 'lord', 'brother', 'sister', 'uncle', 'aunt', 'granny', 'goodwife', 'goodman'],
   // PY9: coin is one unit in the game; narration names it in these coins, largest first
   COIN_NAMES: [['gold', 100], ['silver', 10], ['copper', 1]] as [string, number][],
   TURN_RECORDS_KEPT: 20, // N, Q2

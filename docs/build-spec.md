@@ -702,7 +702,7 @@ Output shape:
               defense: dodge | block | null,   // sets the standing defense; null keeps it
               item: item_instance_id | null, mode: mode_id | null,
               intent: short phrase },
-  dialogue: { line, volume: whisper | normal | shout, introduces?: [actor_id] } | null,
+  dialogue: { line, volume: whisper | normal | shout } | null,
             // the words if action.type is talk; otherwise a bark
   gear:     [ { op, item, from? } ] | null,   // as the Parser: free gear ops, before the action
   stance:   { toward: actor_id, step: friendlier | colder } | null,
@@ -734,11 +734,10 @@ Rules:
 5. Tactical skill: tactics in CHARACTER: simple (predictable), competent, or cunning.
 6. Give exactly one action; "hold" is allowed. Talking is an action. A line given with any other action is only a passing remark that no one acts on.
 7. Change the plan only when it should change. Use triggers for things that should happen later without you, such as an ambush that springs when you see the player on the bridge. When things calm down, you may pick which of your routines to follow.
-8. If your line gives your own name or another character's, list them in introduces.
-9. To strike a body part, name it in targetPart. Set aimed to true only when a sure hit on that part is worth a harder attack. Set defense to dodge or block to change how you defend from now on; null keeps it.
-10. You may draw, stow or swap gear and pick things up in "gear" at no cost. Use only items
+8. To strike a body part, name it in targetPart. Set aimed to true only when a sure hit on that part is worth a harder attack. Set defense to dodge or block to change how you defend from now on; null keeps it.
+9. You may draw, stow or swap gear and pick things up in "gear" at no cost. Use only items
    your view lists as yours or lying where you can see them.
-11. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
+10. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
    for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
    off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
    opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
@@ -760,7 +759,7 @@ Output shape:
 ```
 {
   action:     { ...as the Planner... },   // talk to reply, or any other action
-  dialogue:   { line, volume, introduces? } | null,   // the reply if action.type is talk;
+  dialogue:   { line, volume } | null,   // the reply if action.type is talk;
                                                       // otherwise a bark
   gear:       [ { op, item, from? } ] | null,   // as the Parser
   stance:     { toward, step } | null,
@@ -783,10 +782,9 @@ Rules:
 6. You speak for your own band only. Your view lists what you already said in "said"; do not say it again, move the talk on.
 7. Play your band's goals and temperament, as given in CHARACTER.
 8. Change the plan only when it should change.
-9. If your line gives your own name or another character's, list them in introduces.
-10. You may draw, stow or swap gear and pick things up in "gear" at no cost. Use only items
+9. You may draw, stow or swap gear and pick things up in "gear" at no cost. Use only items
    your view lists as yours or lying where you can see them.
-11. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
+10. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
    for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
    off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
    opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
@@ -811,7 +809,6 @@ Output shape:
   line:       what the NPC says,          // the reply if action.type is talk;
   volume:     whisper | normal | shout,   // otherwise a bark
   shares:     [fact_id],                  // facts from KNOWS this line reveals; may be empty
-  introduces: [actor_id],                 // optional: the speaker, or actors in KNOWS, whose names this line gives
   gear:       [ { op, item, from? } ] | null,   // as the Parser
   stance:     { toward, step } | null,
   routine:    routine_id | null           // from its routines list; next turn
@@ -831,8 +828,7 @@ Rules:
 3. Let IMPRESSION shape your reaction; stay in character.
 4. You speak for your own band only. You may switch to one of your routines (follow, wait, or another listed one).
 5. Keep it to one or two sentences unless asked for more. Your view lists what you already said in "said"; do not say it again, move the talk on.
-6. If your line gives your own name or another character's, list them in introduces.
-7. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
+6. stance is null unless the player's words this turn truly change how you feel about them. Step colder only
    for a real provocation: a threat, an insult, an accusation, a drawn weapon, or pressing on after you warned them
    off. Questions, curiosity, polite pushing and your own wariness are not provocations. If you are already
    opposed to them, colder makes you hostile and you will attack them on sight, so take that step only over
@@ -1383,7 +1379,7 @@ Never in NarrationView: the tier, grades or event roll; the event summary, Weave
 
 **Public and hidden text.** Every free-text field in a stage plan is either public (what anyone present could see or hear: labels, appearance, how a zone looks) or hidden (event summary, motives, notes). Only public fields reach Agent Narrator. The plan lists hiddenTerms: words and phrases that must not appear in public text. At validation, code scans public fields for hiddenTerms and for every secret's leakTerms; a hit fails validation (repair retry, then fallback). While the stage is active, the Narrator's leak scan also checks its hiddenTerms.
 
-**Names.** Each cast entry has a public label ("a scarred dockhand") and a name. Agent Narrator gets the label until the player knows the name. The Journal gains namesKnown. A name becomes known when the Weaver marks the actor knownOnSight (public figures); when an Agent Voice or Agent Responder line introduces it (output field introduces, accepted only for the speaker or actors in its knows); or when a revealed secret or shared fact names it. The existing leak scan already rejects names outside the view.
+**Names.** Each cast entry has a public label ("a scarred dockhand") and a name. Agent Narrator gets the label until the player knows the name. The Journal gains namesKnown, and each NPC mind namesKnown. One rule for player and NPCs (BG-95, knowsName): everyone knows their own name, a bandmate's and a public figure's (the Weaver marks knownOnSight). Any other name is learned by hearing it in a spoken line (not a passing remark) whose speaker knows it, while seeing clearly whom it belongs to (the speaker, or someone in view): learnNames. A line holds a name when it has it whole or its first word that is not a title (CONFIG.NAME_TITLE_WORDS), with capitals kept. A false name matches no one, so it teaches nothing. An NPC's view of the player carries the player's name once it knows it. The existing leak scan already rejects names outside the view.
 
 ### Explore mode
 
@@ -1685,7 +1681,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 38 | Hidden terms | A public zone description containing one of the plan's hiddenTerms fails validation |
 | 39 | Opening narration covers who is seen | Every full presence event appears in the Narrator's narrated list; a narration that omits one fails the fact check |
 | 40 | Nothing hidden in the opening | The logged NarrationView at scenario start holds no tier, grade, event summary, Weaver note or opening belief |
-| 41 | Labels until names are known | The opening uses the stranger label; after an Agent Voice line with introduces = \[speaker\], the next NarrationView uses the name |
+| 41 | Labels until names are known | The opening uses the stranger label; after a line in which the speaker says their name, the next NarrationView uses the name. A bandmate named in front of the player is learned too; a false name, or someone named out of sight, is not. An NPC who hears the player give their name keeps it (BG-95) |
 | 42 | Sneaking arrival | A sneaking player crossing a frontier triggers detection tests; the plan's opening beliefs are not applied to those observers |
 | 43 | One belief writer | Opening beliefs on open entry are written through updateBeliefs only (unit test) |
 | 44 | Undo rerolls the hand | Undoing the scenario-start turn and redoing it makes a new event roll and a new Weaver call |
@@ -3167,6 +3163,8 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-92 | Run 74b turn 22: a figure half seen back in Mill Lane, 2.5 km south, was narrated as "resolving into" the man in the alder hollow beside the player, so the player thought south led west. The Narrator had no place for half-seen actors and no rule against merging them with someone else. Now every seen actor, half-seen included, carries side and distance in the narration view, and Narrator rule 23 keeps each person apart. | 12/11/2026 | fixed | this PR |
 | BG-93 | Kishirika study: an NPC wrote a stage direction inside its spoken line ("*She's already got half of it in her mouth* Mmf."). One rule for every speaker now: Planner, Responder and Voice prompts say a line holds only words said aloud, the Parser says the same for the player's spoken, and code cuts *...* and [...] from every NPC line and the player's spoken as a backstop (logged as stage_direction) | 12/11/2026 | fixed | this PR |
 | BG-94 | Run 74c turn 25: Hobb the tinker called for help as the player walked up to look at his packs, three turns after his alarm rose (turn 22), in the middle of a calm talk. The onAlert shout was queued at the alarm, but his own agent spoke for him on turns 23 and 24, so the shout waited and fired on the first turn with no agent order. onAlert is now the reaction of the moment: an actor whose turn a higher order takes (trigger, flight, its agent) has spent it, and alertOrders drops a shout more than one turn old | 12/11/2026 | fixed | this PR |
+| BG-95 | Ali's story, turns 2 to 8: Wenna, Dell and Hobb named each other aloud in front of the player, yet no name was learned. Agents never filled introduces (0 of 7 replies), introduces refused a bandmate's name anyway, and NPCs never kept the player's name. Fixed: one code rule (knowsName, learnNames) for every speaker and listener, player and NPC; introduces removed | 12/11/2026 | fixed | this PR |
+| BG-96 | Run 74d turn 26: "pick up the draught, then ask the tinker why he shouted" gave a pick-up in gear and deferred the question, so the turn passed without the question, though gear costs nothing (Parser rule 9). Causes checked: legality (no errors), indirect speech ("ask him" parses as spoken elsewhere), the slot rule. Parser rule 2 now says gear takes neither slot, so words or an action beside it stay in this turn; perk moves (rule 14) and sneak (rule 15) already said so | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
