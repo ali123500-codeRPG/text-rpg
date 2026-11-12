@@ -178,3 +178,14 @@ export function knowsName(state: GameState, viewer: Actor, a: Actor): boolean {
   if (a === viewer || a.knownOnSight || (viewer.bandId && viewer.bandId === a.bandId)) return true;
   return !!(viewer.id === state.player.id ? state.player.journal?.namesKnown : viewer.mind?.namesKnown)?.includes(a.id);
 }
+/** BG-95/NM2/NM3: the viewer's name lists (the player's journal or an NPC's mind), made on first write */
+export function nameBook(state: GameState, viewer: Actor): { known: string[]; heardOf: string[]; aliases: Record<string, string> } | undefined {
+  const b = viewer.id === state.player.id ? state.player.journal : viewer.mind;
+  if (!b) return undefined;
+  return { known: (b.namesKnown ??= []), heardOf: (b.heardOf ??= []), aliases: (b.aliases ??= {}) };
+}
+/** what the viewer calls `a` by name: the real one once known, else a false name it believed (NM3), else none */
+export function nameFor(state: GameState, viewer: Actor, a: Actor): string | undefined {
+  if (knowsName(state, viewer, a)) return a.names.current;
+  return (viewer.id === state.player.id ? state.player.journal?.aliases : viewer.mind?.aliases)?.[a.id];
+}

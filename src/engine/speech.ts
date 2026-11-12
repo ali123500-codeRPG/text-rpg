@@ -5,8 +5,9 @@ import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { hasPerk, markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
 import { getLibrary } from '../library';
-import { isActive, wary } from './relations';
+import { isActive, nameBook, wary } from './relations';
 import { distM, type Located } from './position';
+import { falseName } from '../words';
 import type { ExchangeSpeech } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
@@ -260,7 +261,11 @@ export function overhearLie(state: GameState, ev: GameEvent, answered: string[],
     const contest = toContest(roll, answerRoll(state, o, SK.insight, speaker.id, rng));
     contestFeat(state, contest);
     markUse(state, o, contest.b.skill, contest);
-    if (contest.winner === 'b') (ev.overheard ??= []).push(o.id);
+    if (contest.winner === 'b') {
+      (ev.overheard ??= []).push(o.id);
+      const book = nameBook(state, o); // NM3: a false name seen through is not kept (learnNames ran before this roll)
+      if (book && book.aliases[speaker.id] === falseName(speaker, ev.line?.text)) delete book.aliases[speaker.id];
+    }
   }
 }
 

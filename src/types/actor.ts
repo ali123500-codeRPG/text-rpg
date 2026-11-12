@@ -170,6 +170,8 @@ export type Mind = {
   knowledge: Record<ActorId, Belief>;
   /** BG-95: names this NPC heard said aloud while it saw who they belong to (learnNames) */
   namesKnown?: ActorId[];
+  heardOf?: ActorId[]; // NM2, as Journal.heardOf
+  aliases?: Record<ActorId, string>; // NM3, as Journal.aliases
   overrides?: Record<ActorId, Stance>;
   knows: Fact[];
   /** at (NW10): the game minute the routine started; its steps run on the clock from there */
@@ -216,6 +218,10 @@ export type Journal = {
   factsWitnessed: FactId[];
   remembered: Record<SlotKey, { value: string; seenTurn: Turn }>;
   namesKnown: ActorId[];
+  /** NM2: names heard of someone the player could not see then; they attach once that person answers to the name */
+  heardOf?: ActorId[];
+  /** NM3: false names the player believed, by whom they were told of */
+  aliases?: Record<ActorId, string>;
   /** Q17: actors the player has seen clearly, and the zone they were in; they stay seen until they move */
   clearSight?: Record<ActorId, string>;
   /** BG-28: where the player last saw or heard each actor (any perception of it, a sound included); never forgotten by an

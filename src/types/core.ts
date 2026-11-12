@@ -168,6 +168,8 @@ export type GameEvent = {
   push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; seen?: true };
   /** LI5a Overheard: owners of Overheard who heard this lie told to someone else and saw through it */
   overheard?: string[];
+  /** NM3: listeners whose answer beat this line's lie (the player's deceive at its spokespeople) */
+  seenThrough?: string[];
 };
 
 export type LogEntry = { turn: number; code: string; detail?: Record<string, unknown> };
