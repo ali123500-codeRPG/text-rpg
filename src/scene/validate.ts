@@ -12,7 +12,6 @@ import { tierName } from '../ruleset';
 import { bodyType, race, getLibrary, itemDef, npcTemplate, routineSet } from '../library';
 import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
-import { inWorld } from '../ruleset/threadbound';
 
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
 
@@ -476,7 +475,7 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
     let item: Reward['item'];
     if (typeof r.item === 'string') {
       if (!known(r.item)) return note('reward_dropped', `${where}: item ${r.item} unknown`);
-      if (known(r.item)!.threadbound && (inWorld(state, r.item) || rewards.some((x) => x.item === r.item))) return note('reward_dropped', `${where}: ${r.item} is one of a kind and already in the world`); // D-218
+      if (known(r.item)!.threadbound) return note('reward_dropped', `${where}: ${r.item} is Threadbound; the Weaver does not place those (D-220)`);
       item = r.item;
     } else {
       const m = r.item;

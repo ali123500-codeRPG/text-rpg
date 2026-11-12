@@ -35,6 +35,7 @@ describe('191 the Gambler\'s Loop', () => {
     const s = worn([ACH.event_crit_1]);
     const inst = s.player.core.inventory.find((i) => i.id === LOOP)!;
     expect(inst.boundTo).toBe('player');
+    // even worn by someone else by force, it gives them nothing (nobody else can put it on: s192)
     expect(has(s.player, PK.loose_odds)).toBe(true);
     const other = s.actors[0];
     other.core.inventory.push({ ...inst, id: 'loop_2', equippedIn: ['acc:0'] });
@@ -111,12 +112,10 @@ describe('191 the Gambler\'s Loop', () => {
     expect(tierName(ev(s, 50))).toBe('Critical Failure');
   });
 
-  it('is one of a kind: the Weaver cannot place a second', () => {
+  it('the Weaver does not place Threadbound items (D-220) and cannot mint one', () => {
     const s = makeVillage();
     const zone = s.stage.zoneIds[0];
-    const plan = { event: { gain: 'extreme' }, rewards: [{ item: IT.gamblers_loop, place: { groundIn: zone } }, { item: IT.gamblers_loop, place: { groundIn: zone } }] } as unknown as StagePlan;
-    expect(tidyRewards(s, plan).rewards).toHaveLength(1);
-    s.player.core.inventory.push({ id: LOOP, itemId: IT.gamblers_loop });
+    const plan = { event: { gain: 'extreme' }, rewards: [{ item: IT.gamblers_loop, place: { groundIn: zone } }, { item: { base: IT.gamblers_loop, quality: 1, name: 'x', look: 'x', boosts: 'hitAdj' }, place: { groundIn: zone } }] } as unknown as StagePlan;
     expect(tidyRewards(s, plan).rewards).toHaveLength(0);
   });
 });

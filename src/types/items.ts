@@ -86,7 +86,7 @@ export type ItemInstance = {
 };
 
 export type GearOp = {
-  op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up';
+  op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon'; // summon: TB6, the player's own Threadbound item, from wherever it is
   item: string; // item instance id
   from?: string; // actor id (pick up from a downed actor) ; absent = ground
 };

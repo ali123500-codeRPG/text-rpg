@@ -6,6 +6,7 @@ import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
 import { actorById, isActive, zoneById } from './relations';
+import { summon } from '../ruleset/threadbound';
 
 export function gripParts(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id);
@@ -25,11 +26,11 @@ function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
   return true;
 }
 
-export type GearResult = { picked: { itemId: string; from?: string }[]; invalid: GearOp[] };
+export type GearResult = { picked: { itemId: string; from?: string }[]; summoned: string[]; invalid: GearOp[] };
 
 /** free gear ops at the actor's initiative, before its action. Invalid ops are skipped and reported. */
 export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | null | undefined): GearResult {
-  const res: GearResult = { picked: [], invalid: [] };
+  const res: GearResult = { picked: [], summoned: [], invalid: [] };
   for (const op of ops ?? []) {
     const inst = actor.core.inventory.find((i) => i.id === op.item);
     let ok = false;
@@ -53,15 +54,21 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
       }
       case 'wear_acc': {
         if (!inst || inst.equippedIn?.length || itemDef(state, inst.itemId).slot !== 'accessory') break;
+        // TB6: a Threadbound item is the player's alone: no one else can wear it
+        if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id))) break;
         const used = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
         const slot = Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
         if (slot) { inst.equippedIn = [slot]; ok = true; }
-        if (ok && itemDef(state, inst.itemId).threadbound) inst.boundTo ??= actor.id; // D-218: binds to the first who wears it
+        if (ok && itemDef(state, inst.itemId).threadbound) inst.boundTo ??= actor.id; // D-218: binds to the player on first wear
         break;
       }
       case 'remove_acc':
         ok = !!inst?.equippedIn?.some((s) => s.startsWith('acc:'));
         if (ok) delete inst!.equippedIn;
+        break;
+      case 'summon': // TB6: the player's own Threadbound item comes to them from wherever it is, at any time
+        ok = summon(state, actor, op.item);
+        if (ok) res.summoned.push(op.item);
         break;
       case 'pick_up': {
         const src = op.from ? actorById(state, op.from) : undefined;

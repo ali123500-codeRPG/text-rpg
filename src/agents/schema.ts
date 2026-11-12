@@ -48,8 +48,8 @@ const run = <T>(c: V<T>) => (v: unknown): Checked<T> => {
 };
 
 const VOLUME = oneOf(['whisper', 'normal', 'shout'] as const);
-const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up'; item: string; from?: string }>(
-  { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up'] as const), item: str, from: str },
+const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon'; item: string; from?: string }>(
+  { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon'] as const), item: str, from: str },
   ['from'],
 );
 const GEAR = nul(arr(gearOp));

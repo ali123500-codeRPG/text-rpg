@@ -20,6 +20,7 @@ import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barr
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
+import { summonable } from '../ruleset/threadbound';
 import { beliefStatus, hearsWords, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { offeredRoutines } from '../minds/routines';
@@ -305,6 +306,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       classes: p.core.classes.map((c) => ({ id: c.classId, name: getLibrary().classes[c.classId]?.name ?? c.classId })),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
+      ...(summonable(state, p).length ? { summonable: summonable(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }) })) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), morale: moraleWord(p),
       inventory: ownGear(state, p),
@@ -619,7 +621,8 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
   const templates = new Map<string, { id: string; label: string; raceId: string; classId?: string }>(Object.values(lib.templates).map((t) => [t.id, { id: t.id, label: t.label, raceId: t.raceId, ...(t.classId ? { classId: t.classId } : {}) }]));
   for (const b of bp('npcTemplate')) templates.set(b.id, { id: b.id, label: String(b.data.label ?? ''), raceId: String(b.data.raceId ?? '') });
   const worth = (i: ItemDef) => i.boon ?? itemValue(state, i) / CONFIG.BOON_COIN; // loot V8
-  const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
+  // D-220: the Weaver placing Threadbound items is parked, so they stay out of its catalog
+  const items = new Map<string, { id: string; name: string; kind: string; boon: number }>(Object.values(lib.items).filter((i) => !i.threadbound).map((i) => [i.id, { id: i.id, name: i.name, kind: i.kind, boon: worth(i) }]));
   for (const b of bp('item')) items.set(b.id, { id: b.id, name: String(b.data.name ?? ''), kind: String(b.data.kind ?? ''), boon: worth(itemDef(state, b.id)) });
   return {
     tier: tierName({ tier: state.stage.tier, ...(state.stage.tierBeyond ? { beyond: state.stage.tierBeyond } : {}) }),
