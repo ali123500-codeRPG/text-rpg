@@ -167,7 +167,7 @@ describe('190 chases and free roam', () => {
 
   it('CH2: in free roam talk, trade, a fight, a hostile spotting you or a quest goal starts a new scenario; dawn or dusk does not', () => {
     const s = makeVillage({ playerZone: 'street_square' });
-    s.stage.roam = { since: s.turn - 1 };
+    s.stage.roam = { since: s.turn - CONFIG.ROAM_MIN_TURNS };
     expect(roamStart(s, [])).toBeNull();
     expect(roamStart(s, [ev(s, { kind: 'speak', speech: { skill: 'x', addressees: ['trader'] } })])).toBe('talk');
     expect(roamStart(s, [ev(s, { kind: 'speak', actorId: 'trader', target: 'player' })])).toBe('talk');
@@ -186,9 +186,23 @@ describe('190 chases and free roam', () => {
     expect(s.log.at(-1)).toMatchObject({ code: 'roam_scenario', detail: { why: 'quest' } });
   });
 
+  it('FR1 b: a calm start waits ROAM_MIN_TURNS turns of free roam; danger never waits', () => {
+    const s = makeVillage({ playerZone: 'street_square' });
+    s.stage.roam = { since: s.turn - 1 };
+    checkRoam(s, [ev(s, { kind: 'speak', speech: { skill: 'x', addressees: ['trader'] } })]);
+    expect(s.stage.breakCause).toBeUndefined(); // too soon after the last scenario
+    checkRoam(s, [ev(s, { kind: 'attack', target: 'slime_1' })]);
+    expect(s.stage.breakCause).toBe('roam'); // danger: at once
+    delete s.stage.breakCause;
+    s.stage.roam = { since: s.turn - CONFIG.ROAM_MIN_TURNS };
+    checkRoam(s, [ev(s, { kind: 'buy', target: 'trader' })]);
+    expect(s.stage.breakCause).toBe('roam');
+    expect(s.log.at(-1)).toMatchObject({ code: 'roam_scenario', detail: { why: 'trade' } });
+  });
+
   it('SD2 a: free roam runs no beats and never stalls; a turn of talk starts a scenario after it', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    s.stage.roam = { since: 0 };
+    s.stage.roam = { since: s.pending.turn - CONFIG.ROAM_MIN_TURNS };
     s.stage.quiet = 50;
     expect(triggerHolds(s, { id: 'b', ownerId: 'trader', when: { type: 'quiet_turns', turns: 1 }, then: { type: 'idle', target: null, skill: null, intent: '' }, once: true }, actor(s, 'trader'), [], 'start', s.turn)).toBe(false);
     play(s);

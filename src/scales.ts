@@ -39,7 +39,7 @@ export function scale<const K extends string>(rows: readonly (readonly [K, strin
   };
 }
 
-/** check tiers, worst first (Part 1 §4); renamed */
+/** check tiers, worst first (Part 1 §4) */
 export const TIERS = scale([
   ['critical_failure', 'Critical Failure'], ['failure', 'Failure'], ['near_miss', 'Near Miss'],
   ['success', 'Success'], ['great_success', 'Great Success'], ['critical_success', 'Critical Success'],
@@ -64,7 +64,6 @@ export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 /** QT28: quests' own reward levels; XP per level is CONFIG.QUEST_REWARD_XP, the level from CONFIG.QUEST_GAIN_LEVEL */
 export const QUEST_REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type QuestRewardLevel = (typeof QUEST_REWARD_LEVELS.keys)[number];
-/** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
 /** SC2: scenario scales, smallest first. Each scale's budget and space are levers in CONFIG.SCENARIO_SCALE, keyed by key;
  * a new scale is a new row here and a row there. */
 export const SCENARIO_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['venture', 'Venture']]);
@@ -78,6 +77,7 @@ export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
  * Past the last row a + per step (AG7, ruleset/age.ts). */
 export const LIFE_STAGES = scale([['stage_0', 'Child'], ['stage_1', 'Youth'], ['stage_2', 'Adult'], ['stage_3', 'Middle-aged'], ['stage_4', 'Old'], ['stage_5', 'Venerable'], ['stage_6', 'Ancient']]);
 export type LifeStageKey = (typeof LIFE_STAGES.keys)[number];
+/** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
 export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]);
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */

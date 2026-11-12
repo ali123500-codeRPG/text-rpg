@@ -176,7 +176,7 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   return { skill: shown.skill, playerTier: shown.tier, impression: impressionWords(type, shown.tier) ?? null, perSpokesperson };
 }
 
-/** skills tagged influence (persuasion, intimidation, barter) */
+/** skills with the Influence function (persuasion, intimidation, barter, lying) */
 const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes(FN.influence)).map(([id]) => id);
 
 export const toContest = (a: RollResult, b: RollResult): ContestResult => {

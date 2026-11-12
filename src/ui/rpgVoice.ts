@@ -1,4 +1,4 @@
-// The RPG Voice: Ali's claude.ai connector that acts a line out with Gemini's speech voices (sound tags such as <gasp>
+// The RPG Voice: the owner's claude.ai connector that acts a line out with Gemini's speech voices (sound tags such as <gasp>
 // and a short English acting note). The page reaches it through its mcp capability; where it can't, Claude's own voices
 // read the line instead.
 
