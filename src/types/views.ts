@@ -105,7 +105,7 @@ export type PlayerView = {
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
   lastSeen?: { id: string; name: string; zone: string }[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */
-  talkingWith?: string[];
+  talkingWith?: { id: string; name: string }[];
   facts: string[];
   headlines: string[];
   agreements?: AgreementView[]; // PM5: the player's deals with NPCs
