@@ -61,7 +61,25 @@ export function parseTolerant(text: string): { ok: true; value: unknown } | { ok
   // BG-35: a model sometimes leaves out the comma before the next key ("text":"…""narrated":[…]) (run 40)
   const commaed = text.replace(/((?<!\\)"|[}\]]|\d|true|false|null)(\s*)(?="[\w$-]+"\s*:)/g, (m, v: string, ws: string) => `${v},${ws}`);
   if (commaed !== text) { const c = tryParse(commaed.slice(Math.max(0, commaed.search(/[{[]/)), Math.max(commaed.lastIndexOf('}'), commaed.lastIndexOf(']')) + 1)); if (c) return c; }
+  // BG-45: a model sometimes closes a bracket it never opened ("text":"…"],"narrated":[…]) (run 44)
+  const unstray = dropStrayClosers(text);
+  if (unstray !== text) return parseTolerant(unstray);
   return { ok: false };
+}
+
+/** BG-45: drop each ] or } outside strings that doesn't close the bracket open at that point */
+function dropStrayClosers(text: string): string {
+  const open: string[] = [];
+  let out = '', inStr = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inStr) { out += c; if (c === '\\') out += text[++i] ?? ''; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === '{' || c === '[') open.push(c === '{' ? '}' : ']');
+    else if (c === '}' || c === ']') { if (open.at(-1) !== c) continue; open.pop(); }
+    out += c;
+  }
+  return out;
 }
 
 export function sampleClient(sample: SampleFn): ClaudeClient {

@@ -3094,6 +3094,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-43 | Following the hidden thief into the tavern's back yard ended the scenario as left (twice, turns 31 and 35 of playtest run 43): a scenario's ground (CH1) is only the start zone, the zones its plan builds and the stage zones the plan names, and the back yard was never named although the thief's routine runs there | 12/11/2026 | fixed: Ali chose whole places | this PR |
 | BG-44 | The Weaver's ending "the player leaves the tavern" fired on one step into Mill Lane while the player was still chasing the ring, though the lane was on the scenario's ground (scenarios 1 and 2 of playtest run 43) | 12/11/2026 | fixed: Ali chose only once off the ground | this PR |
 | BG-42 | All six Weaver check-ins were spent by turn 36 of playtest run 42, so the over-time check-in never came and the scenario drifted to its hard limit at turn 77. Fixed (Ali chose): the over-time check-in always happens, outside the cap of six, and is not counted | 12/11/2026 | fixed | this PR |
+| BG-45 | The Narrator's JSON closed a bracket it never opened ("text":"…"],"narrated":[…]) on turn 2 of playtest run 44, so the turn showed the bare code narration ("A stout man in good wool idle."). Fixed: the tolerant parser drops a ] or } outside strings that doesn't close the bracket open there | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
