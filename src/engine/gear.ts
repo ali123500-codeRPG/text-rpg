@@ -56,6 +56,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         const used = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
         const slot = Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
         if (slot) { inst.equippedIn = [slot]; ok = true; }
+        if (ok && itemDef(state, inst.itemId).threadbound) inst.boundTo ??= actor.id; // D-218: binds to the first who wears it
         break;
       }
       case 'remove_acc':

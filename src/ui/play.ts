@@ -92,6 +92,8 @@ const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }>
 /** perk moves aimed at no one: one idea each */
 const PERK_SOLO_IDEA: Record<string, { text: string; note: string }> = {
   [PK.battle_cry]: { text: 'Let out a battle cry', note: 'Battle Cry · your action, once a fight' },
+  [PK.call_the_toss]: { text: 'Turn the earring and call the toss', note: 'Call the Toss · free, once a day' },
+  [PK.all_or_nothing]: { text: 'Turn the earring: all or nothing', note: 'All or Nothing · free, once a week' },
 };
 
 /** an idea's short label as the player would type it: "Talk to Tam" fills the box as "I talk to Tam" (ideas start with a verb) */
