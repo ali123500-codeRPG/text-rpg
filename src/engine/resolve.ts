@@ -664,6 +664,13 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const kind = o.type === 'idle' ? 'idle' : o.type;
   const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   let result: CheckResult | undefined;
+  // BG-65: checking a door or other way out of the zone says what holds it: open, shut but theirs to open, or locked/barred/blocked
+  const link = o.type === 'interact' && o.target ? zoneById(state, a.zone)?.links.find((l) => l.to === o.target) : undefined;
+  if (link) {
+    const b = barrierOn(state, link), pass = b ? passage(b, a, a.zone) : 'open';
+    if (b && pass === 'shut') noteTried(b, a);
+    ev.way = { to: link.to, ...(b ? { barrier: b.id } : {}), did: pass === 'open' ? 'found_open' : pass === 'opens' ? 'found_opens' : (`found_${shutBy(b!, a, a.zone)}` as WayDid) };
+  }
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
     // Q17: looking is a roll against the scenario's difficulty; Success or better shows everyone in sight clearly
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;

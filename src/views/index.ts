@@ -557,7 +557,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       ...(full && e.metres ? { metres: e.metres } : {}),
       ...(full && e.spot ? { spot: e.spot } : {}),
       ...(full && e.fall ? { fall: { metres: e.fall.metres, landing: e.fall.landing } } : {}),
-      ...(full && e.way && state.barriers?.[e.way.barrier] ? { way: { what: barrierName(state.barriers[e.way.barrier]), did: WAY_WORDS[e.way.did], to: zoneById(state, e.way.to)?.name ?? e.way.to } } : {}),
+      ...(full && e.way && (!e.way.barrier || state.barriers?.[e.way.barrier]) ? { way: { what: e.way.barrier ? barrierName(state.barriers![e.way.barrier]) : 'way', did: WAY_WORDS[e.way.did], to: zoneById(state, e.way.to)?.name ?? e.way.to } } : {}),
       ...(full && e.kind === 'move' ? (e.fromZone ? { from: zoneById(state, e.fromZone)?.name ?? e.fromZone } : { within: true as const }) : {}),
       ...(full && e.heading ? { heading: zoneById(state, e.heading)?.name ?? e.heading } : {}),
       ...(full && e.toGo ? { toGo: e.toGo } : {}),
@@ -603,6 +603,7 @@ const WAY_WORDS: Record<WayDid, string> = {
   lock: 'locked it with a key', unlock: 'unlocked it with a key', bar: 'slid its bar across', unbar: 'slid its bar back',
   picked: 'picked the lock: it opens', picking: 'working at the lock, not open yet', not_yet: 'working at the lock: not yet',
   beyond: 'the lock is beyond them for now', pick_broke: 'the pick snapped in the lock',
+  found_open: 'checked it: nothing locks it, it opens freely', found_opens: 'checked it: shut, but they can open it (their key, or the bolt on their side)',
 };
 
 /** BA8 (SD3): how the tier leans the ways in and out, never a limit. A tier past Critical reads its end row for now (the

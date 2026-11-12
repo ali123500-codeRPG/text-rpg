@@ -3115,6 +3115,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-62 | Walking over to talk to someone ended in the wrong zone (behind the counter) | 12/11/2026 | fixed | this PR |
 | BG-63 | Switching between your story and the agent's own story while a story was still being created mixed them up: resume swapped the loaded story while the opening (or a turn) was still being written, so that turn landed on the other story. Fixed: the agent bar's story switch is disabled while the story is being written, and resume refuses to switch then | 12/11/2026 | fixed | this PR |
 | BG-64 | Spotting a sneaking NPC gave achievements but the story never said whom you spotted | 12/11/2026 | fixed | this PR |
+| BG-65 | Checking a door said nothing about whether it was locked | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 

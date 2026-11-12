@@ -223,3 +223,18 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(s.hidden.scenarios!.at(-1)!.ways).toEqual({ barriers: 1, locked: 1, barred: 0, blocked: 0, guarded: 1, grades: { major: 1 } });
   });
 });
+
+describe('BG-65: checking a way says what holds it', () => {
+  const check = (to: string): Intent => intent({ action: { type: 'interact', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } });
+  it('a locked door is found locked; with the key it is theirs to open; a way with nothing on it opens freely', () => {
+    const s = quiet();
+    const b = put(s, 'tav_common', 'street_door', { lock: { locked: true } });
+    const found = (ev: ReturnType<typeof turn>) => ev.find((e) => e.actorId === 'player' && e.kind === 'interact')?.way;
+    expect(found(turn(s, check('street_door')))).toEqual({ to: 'street_door', barrier: b.id, did: 'found_locked' });
+    expect(b.tried).toContain('player');
+    giveKey(s, b);
+    expect(found(turn(s, check('street_door')))?.did).toBe('found_opens');
+    expect(found(turn(s, check('tav_counter')))).toEqual({ to: 'tav_counter', did: 'found_open' });
+    expect(buildNarrationView(s, turn(s, check('tav_counter'))).events.find((e) => e.kind === 'interact')?.way?.did).toMatch(/opens freely/);
+  });
+});
