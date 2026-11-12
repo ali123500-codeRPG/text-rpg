@@ -1,4 +1,4 @@
-import type { DefenseKind, SkillFunction } from './types';
+import type { DefenseKind, SkillFunction, Tier } from './types';
 import type { GradeLevel, HealthLevelKey, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
@@ -68,8 +68,23 @@ const DEFAULTS = {
   /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (3: marks 1, 4, 7...).
    * Infinity: one roll per skill per engagement. */
   MARK_STACK_EVERY: 3,
-  /** a successful improvement roll adds 1d(this) raw */
-  SKILL_GAIN_DIE: 3,
+  /** SG1 C: the mortal limit raw skill can train to (Part 1 §6) */
+  SKILL_CAP: 100,
+  /** EG16: a tagged skill's cap is SKILL_CAP plus this */
+  TAG_CAP_BONUS: 25,
+  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder: 90 keeps
+   * the old speed through the human range, about one point a roll at raw 50) */
+  GROWTH_ROLL_NEEDED: 90,
+  /** SG1 C: raw gained by the improvement roll's tier; worse tiers gain nothing (placeholders) */
+  GROWTH_GAIN: { success: 1, great_success: 2, critical_success: 3 } as Partial<Record<Tier, number>>,
+  /** SG1 C: extra raw per band past Critical Success (only a roll with a tier unlock for 'any' roll reaches one) */
+  GROWTH_GAIN_PAST_CRIT: 1,
+  /** SG2: do natural edges (01–05, 96–100) move the improvement roll's tier? Recommended no: no skill grows from the
+   * die face alone (LF4). A lever until SG2 is answered. */
+  GROWTH_NATURAL_EDGES: false,
+  /** SG3: true = a tagged skill's 125 cap is in the roll too, so the room left (and the odds) count from 125; false =
+   * a tagged skill rolls against SKILL_CAP and only its stop moves to 125. Recommended true. A lever until SG3 is answered. */
+  GROWTH_TAG_CAP_IN_ROLL: true,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
   ENDURANCE_MARK_PCT: 10,
   // ---- Part 3 ----

@@ -61,7 +61,7 @@ The trees' skills are designed with character and mob generation. A perception r
 
 | State | Counts toward Burden | Affected by Burden | Improvement roll |
 | --- | --- | --- | --- |
-| Tagged | No | No | 1d100 |
+| Tagged | No | No | 1d100, cap 125 |
 | Normal | Yes | Yes | 1d100 |
 | Flawed | Yes | Yes | 2d100, keep lower |
 
@@ -69,7 +69,7 @@ A Flaw is something the character functionally struggles to improve. Near 100 a 
 
 **Limits:**
 
-- 100 is the mortal limit for raw skill. No natural roll forces an improvement (LF4, Ali, 12/11/2026; a 99 or 00 used to pass any target): an improvement roll passes only above its target, so training stops once raw + burden reaches 100 (a skill at 99 can still land on 100–102 with its last gain). Scaling: past 100 raw skill does not grow by training at all; perks, achievements and gear still carry true and effective skill to 150, 200 and beyond. Workaround mechanics for raw come later (D-6).
+- 100 is the mortal limit for raw skill (SKILL\_CAP); a tagged skill's limit is 125 (TAG\_CAP\_BONUS 25, EG16). **The improvement roll** (Skill Gain Roll Options, SG1 C, Ali 12/11/2026) is read off the tier table: margin = d100 + (cap − raw − Burden) − GROWTH\_ROLL\_NEEDED (90, placeholder), and the tier sets the gain: Success +1, Great Success +2, Critical Success +3, plus 1 per band past it (GROWTH\_GAIN, GROWTH\_GAIN\_PAST\_CRIT, placeholders). The room left below the cap is the bonus, so the roll gets harder smoothly with no wall, and raw never passes its cap. A tagged skill has no Burden and its cap of 125 is in the roll too (GROWTH\_TAG\_CAP\_IN\_ROLL, SG3 recommended a, waiting on Ali), so at 100 it rolls like an untagged 75. Natural edges do not move the roll (GROWTH\_NATURAL\_EDGES off, SG2 recommended a, waiting on Ali; LF4: no natural roll forces a gain). Odds of any gain with no Burden: 86% at raw 25, 61% at 50, 36% at 75, 12% at 99; average gain about 1.6, 1.0, 0.5 and 0.1 a roll. Scaling: past the cap raw does not grow by training; perks, achievements and gear still carry true and effective skill to 150, 200 and beyond. Workaround mechanics for raw come later (D-6).
 - Soft cap on raw skill and hard cap on effective skill. Values and behaviour are *placeholders*.
 
 **Three skill values** (Ali, 07/11/2026):
@@ -189,15 +189,18 @@ Rolls are made in rounds. At the start of each round:
   Burden holds for the round; the next round works it out again,
   so the first round's gains weigh on the second.
 
-In each round, every skill with rolls left makes one:
-  Tagged : Target = Skill            ; roll 1d100
-  Normal : Target = Skill + Burden   ; roll 1d100
-  Flawed : Target = Skill + Burden   ; roll 2d100, keep LOWER
-
-  If roll > Target:            (no natural roll passes on its own: LF4)
-     old   = Skill
-     Skill += 1d3 (SKILL_GAIN_DIE)
-     (All-XXX checks run at scenario end, not here: LF3)
+In each round, every skill with rolls left makes one (SG1 C):
+  Cap    = SKILL_CAP (100); Tagged: + TAG_CAP_BONUS (25) = 125
+  Tagged : Margin = d100 + (Cap - Skill) - GROWTH_ROLL_NEEDED (90)
+  Normal : Margin = d100 + (Cap - Skill - Burden) - 90
+  Flawed : as Normal, roll 2d100, keep LOWER
+  Read Margin on the tier table (natural edges do not move it: SG2, LF4)
+     Near Miss or worse   +0
+     Success              +1
+     Great Success        +2
+     Critical Success     +3, +1 per band past it (GROWTH_GAIN, GROWTH_GAIN_PAST_CRIT)
+  Skill never passes Cap.
+  (All-XXX checks run at scenario end, not here: LF3)
 
 Repeat rounds until no skill has rolls left. Clear all marks.
 ```
@@ -1748,7 +1751,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScenario, marks a break; rest never ends the scenario; a stall marks one only with no live beat left; the director then starts a new scenario with one Weaver call |
 | 107 | Opposed standoff | An opposed guard who notices the player is alarmed (its onAlert fires) but not engaged, so the turn stays Explore; made hostile, it engages |
 | 108 | Look around | Someone sitting still one zone away is a shape; a successful look shows them clearly and they stay seen while they stay put; a move the player can't see clearly forgets them; looking is a sight roll, not a check |
-| 109 | Skill progression | A use marks a skill only when the opposition is within MARK\_WINDOW of raw or true skill, once, and only for the player; a hit costing ENDURANCE\_MARK\_PCT marks endurance; at the scenario's end a marked skill whose paid roll beats its target gains 1d3 (SKILL\_GAIN\_DIE) and shows "Sight 38 → 41" plus "New perk unlocked" past a milestone; a failed roll shows nothing; a natural 99 or 00 that does not beat the target gains nothing (LF4); marks clear |
+| 109 | Skill progression | A use marks a skill only when the opposition is within MARK\_WINDOW of raw or true skill, once, and only for the player; a hit costing ENDURANCE\_MARK\_PCT marks endurance; at the scenario's end a marked skill's paid roll gains by its tier (SG1 C) and shows "Eyesight 38 → 40" plus "New perk unlocked" past a milestone; a failed roll shows nothing; raw never passes its cap (100, or 125 tagged); marks clear |
 | 110 | Healing | Rest heals HP and working parts but not a Crippled part; a clinic lifts it; a bandage heals its row in the turn it is used, is used up, and shows "Bandage: Hurt → Bruised"; with nothing to heal it stays in the pack and says so (Q3, 08/11/2026) |
 | 111 | Game clock | Each action costs its durations row; waiting until dawn moves the clock to dawn, keeps the scenario and shows "Time passes: 11 h (Day 2 · Dawn)"; a hostile in the zone blocks it; outdoor zones are dark at night unless lit; the Narrator sees the day and time of day; the Weaver picks the hour only at story start; a night-only routine set by day is a routine error; rest cools down in game minutes; natural recovery heals 0.5% an hour at endurance 50, never a Crippled part, fights included |
 | 113 | Action economy | A ranged attack in reach drops the move; out of reach the move stands and the attack is dropped; a move two links away with no action is a dash, stopped by a Crippled leg; "after" resolves the action before the move |
