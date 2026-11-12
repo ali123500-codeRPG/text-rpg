@@ -3,10 +3,11 @@
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
-  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor,
+  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor, WayDid,
 } from '../types';
 import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type ScenarioEndNote } from '../types';
 import { pendingEnding } from '../engine/scenarioEnd';
+import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
@@ -401,7 +402,8 @@ export function createGame(deps: GameDeps): Game {
     const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
     // M-30: the player's body parts that got worse this turn, so the play screen can name them (shown again after a reload)
     const wounds = rec.partsBefore ? partsWorse(rec.partsBefore, partStates(s, s.player)) : [];
-    const where = { ...(gear.length ? { gear } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
+    const ways = wayRows(s, events);
+    const where = { ...(gear.length ? { gear } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
@@ -885,6 +887,30 @@ export function gearRows(a: GearSnap, b: GearSnap): string[] {
     else if (was) rows.push(`Put away: ${x.name}`);
   }
   for (const [id, x] of a) if (!b.has(id)) rows.push(`Gone: ${x.name}`);
+  return rows;
+}
+
+/** what the player did at a barrier, as the play screen's Way row words it (BG-65: a way with nothing on it says "way") */
+const WAY_ROW: Record<WayDid, string> = {
+  unlocked: 'unlocked with your key on the way through', unbarred: 'you slid its bar back on the way through',
+  found_locked: 'locked', found_barred: 'barred from the other side', found_blocked: 'blocked, no way through',
+  lock: 'you locked it', unlock: 'you unlocked it', bar: 'you slid its bar across', unbar: 'you slid its bar back',
+  open: 'you left it standing open', shut: 'you shut it',
+  picked: 'lock picked, it opens', picking: 'picking the lock, not open yet', not_yet: 'picking the lock, not open yet',
+  beyond: 'this lock is beyond you for now', pick_broke: 'your pick snapped in the lock',
+  found_open: 'nothing locks it', found_opens: 'shut, but you can open it',
+};
+/** ready-to-show rows for what the player did at barriers this turn: "Door to the cellar: locked" */
+export function wayRows(s: GameState, events: GameEvent[]): string[] {
+  const rows: string[] = [];
+  for (const e of events) {
+    if (e.actorId !== s.player.id || !e.way) continue;
+    const b = e.way.barrier ? s.barriers?.[e.way.barrier] : undefined;
+    const what = b ? barrierName(b) : 'way';
+    const to = zoneById(s, e.way.to)?.name ?? e.way.to;
+    const row = `${what.charAt(0).toUpperCase()}${what.slice(1)} to ${to}: ${WAY_ROW[e.way.did]}`;
+    if (!rows.includes(row)) rows.push(row);
+  }
   return rows;
 }
 

@@ -842,6 +842,17 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   padding: 5px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
 .map-floor.on { color: var(--text); border-color: var(--accent); }
 .map-floor .you { color: var(--scenario-mark); }
+/* barriers you know stop you, on their exit: amber locked or barred, red blocked, green when you hold the key */
+.map-way { --wc: var(--warn); }
+.map-way.blocked { --wc: var(--danger); }
+.map-way.key { --wc: var(--ok); }
+.map-way circle { fill: var(--bg); stroke: var(--wc); stroke-width: 2; }
+.map-way rect, .map-way path, .map-way line { stroke: var(--wc); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.map-way.locked rect { fill: var(--wc); }
+.k-way { flex: none; overflow: visible; }
+.map-exit-way.locked, .map-exit-way.barred { color: var(--warn); }
+.map-exit-way.blocked { color: var(--danger); }
+.map-exit-way.key { color: var(--ok); }
 .map-stair circle { fill: var(--bg); stroke: var(--accent); stroke-width: 2; }
 .map-stair text { fill: var(--accent); font-size: 11px; font-weight: 800; pointer-events: none; }
 .map-stair:not(.unknown) { cursor: pointer; }

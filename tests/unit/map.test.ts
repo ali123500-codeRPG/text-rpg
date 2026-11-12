@@ -1,7 +1,8 @@
 // The Map page: only what the character knows, and a layout that follows the exits' compass words.
 import { describe, it, expect } from 'vitest';
 import { compassOf, knownMap, worldTiles } from '../../src/ui/mapData';
-import { layout } from '../../src/ui/map';
+import { layout, wayWords } from '../../src/ui/map';
+import { wayRows } from '../../src/agents/game';
 import { createFakeGame } from '../../src/ui/fakeGame';
 import { noteZonesSeen } from '../../src/engine/trail';
 import { zoneById } from '../../src/engine/relations';
@@ -38,6 +39,27 @@ describe('map', () => {
     // the unseen cellar is an exit you have not taken, not a known zone
     const kitchen = zones.find((z) => z.id === 'tav_kitchen')!;
     expect(kitchen.links.find((l) => l.to === 'tav_cellar')?.known).toBe(false);
+  });
+
+  it('marks a barrier on an exit only as far as the character knows it stops them', async () => {
+    const s = await game();
+    const common = knownMap(s).places.flatMap((p) => p.zones).find((z) => z.id === 'tav_common')!;
+    const way = (to: string) => common.links.find((l) => l.to === to)?.way;
+    expect(way('tav_kitchen')).toMatchObject({ kind: 'door', shut: 'locked' }); // tried it
+    expect(way('tav_yard')).toMatchObject({ kind: 'door', shut: 'barred' }); // tried it, the bolt is on the far side
+    expect(way('v_square')).toMatchObject({ shut: 'locked', key: true }); // its key is in the pack
+    // never tried and no key: a locked door is only a door
+    s.barriers!.fb_kitchen.tried = [];
+    const again = knownMap(s).places.flatMap((p) => p.zones).find((z) => z.id === 'tav_common')!;
+    expect(again.links.find((l) => l.to === 'tav_kitchen')?.way).toEqual({ kind: 'door' });
+    expect(wayWords({ kind: 'door', shut: 'locked', key: true })).toBe('door, locked: you hold its key');
+  });
+
+  it('words what the player did at a barrier this turn for the story', async () => {
+    const s = await game();
+    const ev = (actorId: string, did: import('../../src/types').WayDid) => ({ id: 'e', turn: 1, actorId, kind: 'way', zone: 'tav_common', effects: [], noise: 'quiet', visibility: 'clear', perception: {},
+      way: { to: 'tav_kitchen', barrier: 'fb_kitchen', did } }) as unknown as import('../../src/types').GameEvent;
+    expect(wayRows(s, [ev(s.player.id, 'found_locked'), ev(s.player.id, 'picked'), ev('guard_1', 'lock')])).toEqual(['Door to kitchen: locked', 'Door to kitchen: lock picked, it opens']);
   });
 
   it('remembers zones seen across sight links', async () => {
