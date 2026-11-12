@@ -3140,6 +3140,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-76 | The library viewer's Stacking tab listed morale levels by their code keys (afraid −5) instead of their names (code scan 2). Fixed: the row reads the morale scale's names | 12/11/2026 | fixed | this PR |
 | BG-77 | Following the watchman into the tavern while talking to him: the talk-move rule (BG-62) turned the move through the door into a step beside him in the lane; a move through a doorway to another room now stands, only a step over a counter, fence or rail (or a move aimed at them) ends beside them | 12/11/2026 | fixed | this PR |
 | BG-78 | Renting a bed from the barkeep across the busy tavern was refused as 'not here' and narrated as 'not sold under this roof'; buying and selling now step up to the seller like talking (BG-74), and an order the seller cannot hear clearly is refused as out of earshot | 12/11/2026 | fixed | this PR |
+| BG-79 | 'Order a drink, then take a table by the hearth': the Parser deferred the move though the turn's move slot was free; Parser rule 2 now says a place asked for beside the action fills the move, and a spot with no id is named by someone there or a side | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
