@@ -46,6 +46,12 @@ export function isSpeech(type: string | undefined | null): boolean {
  * spoken and addressees null) never reached the listener. The player's own line stands in for the words, and the
  * action's target, when it is a character, for the listener. */
 export function fillSpeech(state: GameState, intent: Intent, text: string): Intent {
+  // BG-46: words with no action at all (the Parser kept "Hello? Who's there?" in spoken but gave no action) are a talk to
+  // whoever they are for, so they are said instead of lost
+  if (!intent.action && !intent.perkMove && intent.spoken?.trim() && !intent.yields) {
+    const to = intent.addressees?.find((x) => state.actors.some((y) => y.id === x)) ?? null;
+    return { ...intent, action: { type: 'talk', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, addressees: intent.addressees?.length ? intent.addressees : ['everyone'] };
+  }
   const a = intent.action;
   if (!a || !isSpeech(a.type)) return intent;
   const out = { ...intent };

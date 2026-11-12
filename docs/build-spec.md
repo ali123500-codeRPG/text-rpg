@@ -3095,6 +3095,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-44 | The Weaver's ending "the player leaves the tavern" fired on one step into Mill Lane while the player was still chasing the ring, though the lane was on the scenario's ground (scenarios 1 and 2 of playtest run 43) | 12/11/2026 | fixed: Ali chose only once off the ground | this PR |
 | BG-42 | All six Weaver check-ins were spent by turn 36 of playtest run 42, so the over-time check-in never came and the scenario drifted to its hard limit at turn 77. Fixed (Ali chose): the over-time check-in always happens, outside the cap of six, and is not counted | 12/11/2026 | fixed | this PR |
 | BG-45 | The Narrator's JSON closed a bracket it never opened ("text":"…"],"narrated":[…]) on turn 2 of playtest run 44, so the turn showed the bare code narration ("A stout man in good wool idle."). Fixed: the tolerant parser drops a ] or } outside strings that doesn't close the bracket open there | 12/11/2026 | fixed | this PR |
+| BG-46 | "I knock on the tavern door and call out: Hello? Who's there?" walked the player into the common room, and the words were never said (turn 1 of playtest run 45): the Parser gave a move through the door and kept the line in spoken with no action, and code speaks only for a speech action. Fixed: words with no action are a talk to whoever they are for (fillSpeech), and the Parser is told that knocking on, calling through or listening at a door is not going through it | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
