@@ -26,7 +26,7 @@ export type Mode = 'explore' | 'dialogue' | 'tactical';
 export type Perception = 'full' | 'partial';
 export type Cue = 'sight' | 'sound' | 'smell' | 'touch';
 /** yielded (Q1): a surrendered actor's stance toward those it was fighting. Never attacks, blocks
- * nothing; attacked again it turns hostile; at the scene's end it turns opposed (a grudge) and leaves. Not on the
+ * nothing; attacked again it turns hostile; at the scenario's end it turns opposed (a grudge) and leaves. Not on the
  * STANCES scale: agents can't choose it, only a surrender sets it. */
 export type Stance = (typeof STANCES.keys)[number] | 'yielded';
 export type BeliefStatus = (typeof AWARENESS.keys)[number];
@@ -60,7 +60,7 @@ export type Barrier = {
   guarded?: true; // BA6: watched by people; a tag only, for the tier counts (BA8)
   state?: import('../scales').PartStateKey; // walls thread: wear; Destroyed is open to all, Crippled to an amorphous body (BA7)
   material?: string; thicknessCm?: number; // walls thread
-  scene?: number; // the scene that made it (BA8 counts)
+  scenario?: number; // the scenario that made it (BA8 counts)
   tried?: string[]; // actors who found it shut by trying it: they know it is locked or barred
   /** BA2: a picker's Failure leaves the lock beyond them until their Thievery (with tools) is higher than this */
   beyond?: Record<string, number>;
@@ -82,7 +82,7 @@ export type Zone = {
   cover: Cover;
   light: Light; // the zone's own light (lamps, hearths); outdoors the sky can brighten it (src/time.ts zoneLight)
   outdoor?: true; // T3a: under the sky
-  /** metres above the ground outside (0 when unset); stairs change it, never distance across the map (src/scene/heights.ts) */
+  /** metres above the ground outside (0 when unset); stairs change it, never distance across the map (src/scenario/heights.ts) */
   height?: number;
   /** CO16 floor area in m² (from the size word, the kind's default size, or the Weaver's own figure) */
   area?: number;
@@ -94,7 +94,7 @@ export type Zone = {
   kind?: string;
   /** TV4 a road's danger (ROAD_DANGERS); only roads have one */
   danger?: import('../scales').RoadDangerKey;
-  /** set by code (src/scene/geometry.ts placeZones), never by Claude */
+  /** set by code (src/scenario/geometry.ts placeZones), never by Claude */
   rect?: Rect;
   groundItems: import('./items').ItemInstance[];
 };

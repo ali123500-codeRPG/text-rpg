@@ -96,7 +96,7 @@ export const MOD_SOURCES: ModSource[] = [
     value: sg(CONFIG.OUTNUMBERED_MOD) },
   { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming.', value: sg(CONFIG.UNAWARE_MOD) },
   { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
-  { type: 'situational', roll: 'skill', source: 'Scene difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scene\'s difficulty.',
+  { type: 'situational', roll: 'skill', source: 'Scenario difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scenario\'s difficulty.',
     value: list(Object.fromEntries(Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => [k, CONFIG.DIFFICULTY.moderate - v]))) },
   { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Lockpicking rolls (BA2): the lock\'s grade.', value: list(CONFIG.LOCK_GRADE_MOD) },
   { type: 'situational', roll: 'skill', source: 'Repeat try', at: 'src/ruleset/pressure.ts',

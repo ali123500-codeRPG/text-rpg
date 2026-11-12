@@ -54,7 +54,7 @@ export function hostile(state: GameState, a: Actor, b: Actor): boolean {
     return ac === 'loyal' || (ac === 'friend' && opposed);
   });
 }
-/** MB42: the player and a foe that took the player's yield are at truce for the rest of the scene */
+/** MB42: the player and a foe that took the player's yield are at truce for the rest of the scenario */
 export function truce(state: GameState, a: Actor, b: Actor): boolean {
   const y = state.yielding;
   const other = a === state.player ? b : b === state.player ? a : undefined;

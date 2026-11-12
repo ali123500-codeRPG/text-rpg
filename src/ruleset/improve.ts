@@ -1,7 +1,7 @@
 // Part 1 §6 skill improvement ("Skill progression: options" SP1–SP11).
 // A use marks a skill when the opposition is from MARK_WINDOW below its raw skill to MARK_WINDOW above its true skill (SP2, SP6); a hit that
 // costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of each engagement or
-// when the scene breaks (SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
+// when the scenario breaks (SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
 import type { Actor, AttackResult, CheckResult, ContestResult, GameState, RollKind, Rng } from '../types';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
@@ -23,7 +23,7 @@ function mark(actor: Actor, skill: string): void {
   if (n === 1 || (n - 1) % CONFIG.MARK_STACK_EVERY === 0) pr.marks.push(skill);
 }
 
-/** SM1/SM3: the engagement (or, outside one, the scene) is over: mark counts start again */
+/** SM1/SM3: the engagement (or, outside one, the scenario) is over: mark counts start again */
 export function clearMarkCounts(actor: Actor): void {
   if (actor.progression) actor.progression.markCounts = {};
 }
@@ -144,7 +144,7 @@ function improveRolls(a: Actor, raw: number): number {
 }
 
 /** Part 1 §6: Burden snapshot, then one improvement roll per roll a skill is owed (SM1: a skill can be owed several); marks clear.
- * Returns the gains. Mark counts are kept: clearMarkCounts clears them when the engagement or scene ends. */
+ * Returns the gains. Mark counts are kept: clearMarkCounts clears them when the engagement or scenario ends. */
 export function improveMarked(state: GameState, rng: Rng): { skill: string; from: number; to: number; milestone?: number }[] {
   const a = state.player, pr = a.progression;
   if (!pr || !pr.marks.length) return [];

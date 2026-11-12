@@ -1,21 +1,21 @@
 // GM debug view (Part 2, Leak prevention…; Part 4 §11): full state, hidden plans, rolls, beliefs, each agent's exact
 // input and output, the red fallback banner, the backup list with restore, and the "Download backup" button.
 import { tierName } from '../ruleset';
-import type { GameApi, SceneRecord } from '../types';
+import type { GameApi, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
 import { TIERS } from '../scales';
 import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
 
-/** BA8: the ended scenes' barriers summed by tier, best tier first */
-function waysByTier(scenes: SceneRecord[]): { tier: string; scenes: number; barriers: number; shut: string; grades: string }[] {
+/** BA8: the ended scenarios' barriers summed by tier, best tier first */
+function waysByTier(scenarios: ScenarioRecord[]): { tier: string; scenarios: number; barriers: number; shut: string; grades: string }[] {
   return [...TIERS.keys].reverse().map((t) => {
-    const of = scenes.filter((r) => r.tier === t);
+    const of = scenarios.filter((r) => r.tier === t);
     const sum = (k: 'barriers' | 'locked' | 'barred' | 'blocked' | 'guarded') => of.reduce((n, r) => n + (r.ways?.[k] ?? 0), 0);
     const grades = GRADES.map((g) => [g, of.reduce((n, r) => n + (r.ways?.grades[g] ?? 0), 0)] as const).filter(([, n]) => n);
-    return { tier: tierName({ tier: t }), scenes: of.length, barriers: sum('barriers'),
+    return { tier: tierName({ tier: t }), scenarios: of.length, barriers: sum('barriers'),
       shut: (['locked', 'barred', 'blocked', 'guarded'] as const).filter((k) => sum(k)).map((k) => `${sum(k)} ${k}`).join(' · '),
       grades: grades.map(([g, n]) => `${n} ${g}`).join(' · ') };
-  }).filter((r) => r.scenes);
+  }).filter((r) => r.scenarios);
 }
 
 const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null, 2) ?? 'null');
@@ -23,7 +23,7 @@ const json = (v: unknown) => h('pre', { class: 'json' }, JSON.stringify(v, null,
 export function gmPage(api: GameApi) {
   const el = h('main');
   const how = h('p', { class: 'how', hidden: true });
-  let confirm: { kind: 'restore'; turn: number } | { kind: 'download' } | { kind: 'newSave' } | { kind: 'endScene' } | null = null;
+  let confirm: { kind: 'restore'; turn: number } | { kind: 'download' } | { kind: 'newSave' } | { kind: 'endScenario' } | null = null;
 
   function download() {
     const snap = api.gm();
@@ -46,10 +46,10 @@ export function gmPage(api: GameApi) {
           confirm?.kind === 'download'
             ? confirmRow('Download the whole story as a file?', 'Download backup', download)
             : h('button', { class: 'hs-btn-text', type: 'button', title: 'Owner only. Asks to confirm each time', onclick: () => { confirm = { kind: 'download' }; update(); } }, 'Download backup'),
-          // SC15: end the running scene, for testing; it ends after the next turn and is recorded as interrupted
-          s?.stage.scene && !s.stage.breakCause ? (confirm?.kind === 'endScene'
-            ? confirmRow(`End scene ${s.stage.sceneNumber} ("${s.stage.scene.question}") after the next turn?`, 'End scene', () => api.endScene())
-            : h('button', { class: 'hs-btn-text', type: 'button', title: 'Ends the running scene after the next turn, recorded as interrupted. Asks to confirm', onclick: () => { confirm = { kind: 'endScene' }; update(); } }, 'End scene')) : '',
+          // SC15: end the running scenario, for testing; it ends after the next turn and is recorded as interrupted
+          s?.stage.scenario && !s.stage.breakCause ? (confirm?.kind === 'endScenario'
+            ? confirmRow(`End scenario ${s.stage.scenarioNumber} ("${s.stage.scenario.question}") after the next turn?`, 'End scenario', () => api.endScenario())
+            : h('button', { class: 'hs-btn-text', type: 'button', title: 'Ends the running scenario after the next turn, recorded as interrupted. Asks to confirm', onclick: () => { confirm = { kind: 'endScenario' }; update(); } }, 'End scenario')) : '',
           // The GM can start a new save, with warnings. The old story is archived, not deleted (D-73).
           s ? (confirm?.kind === 'newSave'
             ? h('div', { class: 'confirm', role: 'alert' },
@@ -60,7 +60,7 @@ export function gmPage(api: GameApi) {
             : h('button', { class: 'hs-btn-text danger', type: 'button', title: 'Ends this story and starts a new one. Asks to confirm', onclick: () => { confirm = { kind: 'newSave' }; update(); } }, 'Start a new save')) : '')),
       g.fallbackBanner ? h('div', { class: 'gm-banner', role: 'alert' }, s?.stage.fallback?.reason ?? 'the stage is the flagged placeholder area') : '',
       h('div', { class: 'sec' }, readouts([
-        { label: 'Turn', value: String(s?.turn ?? '–'), unit: s?.mode ?? '', sub: s ? `scene ${s.stage.sceneNumber} · since turn ${s.stage.sceneStartTurn}` : 'No story', how: 'The committed turn and the encounter mode.' },
+        { label: 'Turn', value: String(s?.turn ?? '–'), unit: s?.mode ?? '', sub: s ? `scenario ${s.stage.scenarioNumber} · since turn ${s.stage.scenarioStartTurn}` : 'No story', how: 'The committed turn and the encounter mode.' },
         { label: 'Actors', value: String(s?.actors.length ?? 0), unit: unitOf(s?.actors.length ?? 0, 'NPC'), sub: s ? plural(s.bands.length, 'band') : '–', how: 'NPCs and enemies in the story (the player not counted).' },
         { label: 'Agent calls', value: String(g.agentLog.length), unit: unitOf(g.agentLog.length, 'call'), sub: `${g.agentLog.filter((a) => a.errors.length).length} with errors`, how: 'Claude calls made for the last turn.' },
         { label: 'Rolls', value: String(rolls.length), unit: unitOf(rolls.length, 'roll'), sub: plural(g.log.length, 'log code'), how: 'Attacks, contests and checks among this turn’s events.' },
@@ -93,13 +93,13 @@ export function gmPage(api: GameApi) {
             h('tr', {}, h('td', {}, a.names.current), h('td', {}, who), h('td', {}, b.status), h('td', {}, b.lastKnownZone ?? '–'), h('td', {}, b.source))))))
           : h('p', { class: 'empty' }, 'No NPCs yet.')),
 
-      // BA8: the barriers each tier's scenes put on ways, so the tier's lean can be checked
-      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Ways per tier · barriers the scenes put on ways'),
-        waysByTier(s?.hidden.scenes ?? []).length ? h('table', { class: 'hs-tbl' },
-          h('thead', {}, h('tr', {}, ['Tier', 'Scenes', 'Barriers', 'Of them', 'Grades'].map((t) => h('th', {}, t)))),
-          h('tbody', {}, waysByTier(s?.hidden.scenes ?? []).map((r) => h('tr', {}, h('td', {}, r.tier), h('td', { class: 'hs-num' }, String(r.scenes)),
+      // BA8: the barriers each tier's scenarios put on ways, so the tier's lean can be checked
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Ways per tier · barriers the scenarios put on ways'),
+        waysByTier(s?.hidden.scenarios ?? []).length ? h('table', { class: 'hs-tbl' },
+          h('thead', {}, h('tr', {}, ['Tier', 'Scenarios', 'Barriers', 'Of them', 'Grades'].map((t) => h('th', {}, t)))),
+          h('tbody', {}, waysByTier(s?.hidden.scenarios ?? []).map((r) => h('tr', {}, h('td', {}, r.tier), h('td', { class: 'hs-num' }, String(r.scenarios)),
             h('td', { class: 'hs-num' }, String(r.barriers)), h('td', {}, r.shut || '–'), h('td', {}, r.grades || '–')))))
-          : h('p', { class: 'empty' }, 'No scene has ended yet.')),
+          : h('p', { class: 'empty' }, 'No scenario has ended yet.')),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Needs data · items Claude made this story'),
         s?.blueprints.some((b) => b.kind === 'item') ? h('table', { class: 'hs-tbl' },

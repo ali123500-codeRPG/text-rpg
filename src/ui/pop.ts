@@ -20,7 +20,7 @@ if (typeof document !== 'undefined')
   // Esc closes the pop-up, unless something is still moving: then Esc only skips (M-12)
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && current && !moving()) { e.stopPropagation(); closePop(); } }, true);
 
-/** opens a details pop-up near its opener; tone names a colour token for its edge (scene-mark, danger…) */
+/** opens a details pop-up near its opener; tone names a colour token for its edge (scenario-mark, danger…) */
 export function openPop(o: { title: string; body: (Node | string | null)[]; opener?: HTMLElement | null; tone?: string; cls?: string }): HTMLElement {
   closePop();
   const tid = `dpop-t${Date.now()}`;

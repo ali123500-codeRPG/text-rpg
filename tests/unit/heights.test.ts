@@ -1,6 +1,6 @@
 // Zone height: stairs change height, never distance across the map; inferred from exit words when the Weaver gives none.
 import { describe, it, expect } from 'vitest';
-import { verticalOf, inferHeights } from '../../src/scene/heights';
+import { verticalOf, inferHeights } from '../../src/scenario/heights';
 import { CONFIG } from '../../src/config';
 import type { GameState, Zone } from '../../src/types';
 

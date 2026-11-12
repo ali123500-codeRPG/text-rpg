@@ -1,6 +1,6 @@
 // CO1 B: code places every zone as a rectangle in metres from its size and the compass words of its exits.
 import { describe, it, expect } from 'vitest';
-import { compassOf, doorway, placeZones, zoneDistanceM } from '../../src/scene/geometry';
+import { compassOf, doorway, placeZones, zoneDistanceM } from '../../src/scenario/geometry';
 import { CONFIG } from '../../src/config';
 import type { GameState, Zone } from '../../src/types';
 

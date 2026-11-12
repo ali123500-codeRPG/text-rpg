@@ -30,7 +30,7 @@ async function main(): Promise<void> {
     fell: mode === 'fell',
     banner: mode === 'notices',
     notices: mode === 'notices' ? [
-      { kind: 'scene_fallback', text: 'Scene planning failed: placeholder area.' },
+      { kind: 'scenario_fallback', text: 'Scenario planning failed: placeholder area.' },
       { kind: 'rate_limited', text: 'Too many requests. The story waits a moment before the next turn.' },
     ] : unavailable,
   }));

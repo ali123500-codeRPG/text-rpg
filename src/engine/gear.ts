@@ -143,7 +143,7 @@ export function equipArmor(state: GameState, actor: Actor, instId: string | null
 }
 
 /**
- * Loot L3: a scene object the player fights with becomes a story item on its improvised base (the base carries
+ * Loot L3: a scenario object the player fights with becomes a story item on its improvised base (the base carries
  * IMPROVISED_HIT_ADJ). It goes into the actor's inventory; the caller draws it. Returns the instance id.
  */
 /** the Parser's improvised base words and their library items */

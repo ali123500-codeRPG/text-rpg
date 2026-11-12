@@ -19,17 +19,17 @@
   --shadow-toast: 0 6px 24px rgba(0,0,0,.18);
   --bg: #0b1330; --surface: #16214a; --text: #eef4ff; --muted: #bccbec; --faint: #adbde2; --border: #2a3b70; --rule: #34477f;
   --accent: #93c5ff; --accent-soft: #1b3160; --ok: #5cc97a; --warn: #f2b552; --warn-soft: #2e2a22; --danger: #ff6b6b; --danger-soft: #3a1c26;
-  --on-btn: #ffffff; --on-pill: #0b1020; --scene-mark: #ffd36e; --perk-20: var(--scene-mark); --perk-40: #c49bff; /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #203963; --deco-2: #2e6496; --deco-3: #52acd8;
+  --on-btn: #ffffff; --on-pill: #0b1020; --scenario-mark: #ffd36e; --perk-20: var(--scenario-mark); --perk-40: #c49bff; /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #203963; --deco-2: #2e6496; --deco-3: #52acd8;
   --c1: #689ce2; --c2: #72ae75; --c3: #8d99a5; --c4: #e97aac; --c5: #af80dc; --c7: #e29568; --c10: #df7369; --c12: #6cadae; --c14: #b27567; --c15: #caad69;
   --c6: #c7a5e4; --c8: #f19e94; --c9: #72bed3; --c11: #6474b0; --c13: #a2ad67; --c16: #628c71; --c17: #bf6895; --c18: #9865b7; --c19: #7c7bde; --c20: #92adff; --c21: #c18a9a; --c22: #8e6f8a;
   --btn-fill: linear-gradient(120deg in oklch, oklch(.50 .135 252) 8%, oklch(.53 .14 148) 92%);
   --grad-deco: linear-gradient(90deg, var(--deco-1), var(--deco-2), var(--deco-3));
   --tg-k: 36%; --veil0: 50%; --veil1: 86%;
-  --scene: url(./assets/night-sky.webp);
+  --scenario: url(./assets/night-sky.webp);
   --vh: 100vh;
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
-  --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scene: 650ms; --m-fall: 1400ms; --m-honor: 900ms;
+  --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scenario: 650ms; --m-fall: 1400ms; --m-honor: 900ms;
   --m-hold: 80ms; --m-shake: 280ms; --m-ghost-hold: 250ms;
   --m-ease: cubic-bezier(0.16, 1, 0.3, 1); --m-ease-exit: cubic-bezier(0.4, 0, 1, 1);
   color-scheme: dark;
@@ -44,10 +44,10 @@ body { margin: 0; font: 14px/1.4 var(--font-round); font-variant-numeric: tabula
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--bg) var(--veil0), transparent) 0%, color-mix(in srgb, var(--bg) var(--veil0), transparent) 10%,
       color-mix(in srgb, var(--bg) var(--veil1), transparent) 55%, color-mix(in srgb, var(--bg) var(--veil1), transparent) 100%) fixed,
-    var(--scene) center top / cover no-repeat fixed, var(--bg); }
+    var(--scenario) center top / cover no-repeat fixed, var(--bg); }
 .hs-label, .hs-section { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--faint); margin: 0; }
 .hs-section { font-weight: 800; letter-spacing: .08em; }
-.hs-section::before { content: "\2726"; color: var(--scene-mark); margin-right: 8px; font-size: 13px; }
+.hs-section::before { content: "\2726"; color: var(--scenario-mark); margin-right: 8px; font-size: 13px; }
 .hs-note { font-size: 13px; color: var(--muted); margin: 0; }
 .hs-num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 svg.hs-i { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; vertical-align: -4px; }
@@ -297,13 +297,13 @@ pre.json { margin: 0; font: 12px/1.45 var(--font-mono); color: var(--muted); whi
 details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 
 /* Character sheet (charsheet.ts): card, skill bars by tree, Play side sheet */
-.tag { color: var(--scene-mark); font-size: 12px; }
+.tag { color: var(--scenario-mark); font-size: 12px; }
 .cs-split { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
 .cs-card { border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); padding: 20px; display: grid; gap: var(--space-4); }
 .cs-who { display: flex; gap: 14px; align-items: center; }
 .cs-who b { font-size: 18px; display: block; }
 .cs-who span { color: var(--muted); font-size: 13px; }
-.cs-sigil { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--scene-mark); display: grid; place-items: center; font-size: 26px; color: var(--scene-mark); flex: none; }
+.cs-sigil { width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--scenario-mark); display: grid; place-items: center; font-size: 26px; color: var(--scenario-mark); flex: none; }
 .cs-track { display: grid; gap: 6px; }
 .cs-row { display: flex; justify-content: space-between; gap: var(--space-3); font-size: 13px; }
 .cs-track .cs-row b { font-size: 15px; }
@@ -345,16 +345,16 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-bar > .lw.via { border-style: dashed; }
 .cs-sk .lwn { font-size: 12px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
 .cs-side-h { display: flex; justify-content: space-between; align-items: center; }
-/* Deals (PM5, K1 c): an "N deals" chip beside the scene title opens the player's deals, gold-edged and tinted as promises */
+/* Deals (PM5, K1 c): an "N deals" chip beside the scenario title opens the player's deals, gold-edged and tinted as promises */
 .dl-wrap { position: relative; display: inline-block; margin-left: 14px; vertical-align: middle; font: 14px/1.4 var(--font-round); }
 .dl-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 12px 3px 9px; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer;
-  color: var(--scene-mark); border: 1px solid color-mix(in oklch, var(--scene-mark) 55%, transparent); background: color-mix(in oklch, var(--scene-mark) 12%, transparent); }
-.dl-chip[aria-expanded="true"] { background: color-mix(in oklch, var(--scene-mark) 22%, transparent); }
+  color: var(--scenario-mark); border: 1px solid color-mix(in oklch, var(--scenario-mark) 55%, transparent); background: color-mix(in oklch, var(--scenario-mark) 12%, transparent); }
+.dl-chip[aria-expanded="true"] { background: color-mix(in oklch, var(--scenario-mark) 22%, transparent); }
 .dl-i, .dl-i svg { width: 16px; height: 16px; display: block; }
 .dl-pop { position: absolute; left: 0; top: calc(100% + 8px); z-index: 20; width: 340px; padding: 10px 12px; display: grid; gap: 8px; text-align: left; font-weight: 400;
-  border: 1px solid color-mix(in oklch, var(--scene-mark) 45%, transparent); border-radius: var(--r-lg); box-shadow: var(--shadow-toast);
-  background: color-mix(in oklch, var(--scene-mark) 5%, var(--bg)); }
-.dl-row { display: grid; gap: 2px; padding: 7px 10px; background: color-mix(in oklch, var(--scene-mark) 7%, transparent); border-radius: var(--r-md); }
+  border: 1px solid color-mix(in oklch, var(--scenario-mark) 45%, transparent); border-radius: var(--r-lg); box-shadow: var(--shadow-toast);
+  background: color-mix(in oklch, var(--scenario-mark) 5%, var(--bg)); }
+.dl-row { display: grid; gap: 2px; padding: 7px 10px; background: color-mix(in oklch, var(--scenario-mark) 7%, transparent); border-radius: var(--r-md); }
 .dl-row b { font-size: 13px; }
 .dl-row span { font-size: 13px; color: var(--muted); line-height: 1.35; }
 .dl-row small { font-size: 11px; color: var(--faint); }
@@ -414,31 +414,31 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .cs-side .bf-key { grid-column: 2; grid-row: 1; flex-direction: column; align-items: flex-start; font-size: 12px; }
 .cs-side .bf-out { grid-column: 1 / -1; }
 
-/* Perks (Character page; perk page S1, S7). Gold = --scene-mark. */
+/* Perks (Character page; perk page S1, S7). Gold = --scenario-mark. */
 .hs-rail a { position: relative; }
-.hs-badge { position: absolute; top: 4px; right: 8px; min-width: 18px; padding: 1px 5px; border-radius: 999px; background: var(--scene-mark); color: var(--on-pill); font-size: 11px; font-weight: 800; line-height: 16px; text-align: center; letter-spacing: 0; }
-.mk-dot { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--scene-mark); vertical-align: middle; }
-.cs-mini .r.up { padding: 1px 6px; border-radius: 6px; background: color-mix(in oklch, var(--scene-mark) 14%, transparent); outline: 1px solid color-mix(in oklch, var(--scene-mark) 45%, transparent); outline-offset: -1px; }
-.cs-mini .r .gain { margin-left: 6px; color: var(--scene-mark); font-size: 11px; font-weight: 800; }
-.perk-new { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 10px 12px; border: 1px solid color-mix(in oklch, var(--scene-mark) 55%, transparent); border-radius: var(--r-lg);
-  background: color-mix(in oklch, var(--scene-mark) 10%, transparent); color: var(--scene-mark); font-weight: 600; }
-.perk-new .st { display: inline-block; font-size: 18px; color: var(--scene-mark); }
+.hs-badge { position: absolute; top: 4px; right: 8px; min-width: 18px; padding: 1px 5px; border-radius: 999px; background: var(--scenario-mark); color: var(--on-pill); font-size: 11px; font-weight: 800; line-height: 16px; text-align: center; letter-spacing: 0; }
+.mk-dot { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--scenario-mark); vertical-align: middle; }
+.cs-mini .r.up { padding: 1px 6px; border-radius: 6px; background: color-mix(in oklch, var(--scenario-mark) 14%, transparent); outline: 1px solid color-mix(in oklch, var(--scenario-mark) 45%, transparent); outline-offset: -1px; }
+.cs-mini .r .gain { margin-left: 6px; color: var(--scenario-mark); font-size: 11px; font-weight: 800; }
+.perk-new { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 10px 12px; border: 1px solid color-mix(in oklch, var(--scenario-mark) 55%, transparent); border-radius: var(--r-lg);
+  background: color-mix(in oklch, var(--scenario-mark) 10%, transparent); color: var(--scenario-mark); font-weight: 600; }
+.perk-new .st { display: inline-block; font-size: 18px; color: var(--scenario-mark); }
 .perk-new small { display: block; font-weight: 400; font-size: 12px; color: var(--faint); }
 .perk-new button { margin-left: auto; }
 /* an achievement or scar earned this turn: name, reward level, what it asks for; a click opens why (M-38) */
 .perk-new.ach, .perk-new[data-levelup] { position: relative; overflow: hidden; }
 .perk-new.ach { cursor: pointer; text-align: left; }
-.perk-new.ach:hover { background: color-mix(in oklch, var(--scene-mark) 16%, transparent); }
-.perk-new.ach:focus-visible { outline: 2px solid var(--scene-mark); outline-offset: 2px; }
+.perk-new.ach:hover { background: color-mix(in oklch, var(--scenario-mark) 16%, transparent); }
+.perk-new.ach:focus-visible { outline: 2px solid var(--scenario-mark); outline-offset: 2px; }
 .perk-new.ach::after, .perk-new[data-levelup]::after { content: ''; position: absolute; inset: 0; pointer-events: none; transform: translateX(-100%);
-  background: linear-gradient(100deg, transparent 35%, color-mix(in oklch, var(--scene-mark) 28%, transparent) 50%, transparent 65%); }
+  background: linear-gradient(100deg, transparent 35%, color-mix(in oklch, var(--scenario-mark) 28%, transparent) 50%, transparent 65%); }
 .ach-txt { display: grid; gap: 1px; min-width: 0; }
 .ach-k { display: flex; align-items: center; gap: var(--space-2); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
 .ach-n { font-size: 15px; color: var(--text); }
 .ach-lv { display: inline-block; padding: 0 6px; border-radius: var(--r-md); border: 1px solid currentColor; font-size: 11px; font-weight: 800; letter-spacing: .04em; line-height: 16px; }
 .perk-new.ach .ach-why { margin-left: auto; flex: none; }
-.perk-new[data-series="40"] { --scene-mark: var(--perk-40); }
-.perk-new.ach.scar { --scene-mark: var(--danger); background: color-mix(in oklch, var(--danger) 9%, transparent); }
+.perk-new[data-series="40"] { --scenario-mark: var(--perk-40); }
+.perk-new.ach.scar { --scenario-mark: var(--danger); background: color-mix(in oklch, var(--danger) 9%, transparent); }
 .perk-new.ach.scar::after { display: none; }
 /* details pop-ups on the game screens: movable by the head, never modal */
 .dpop { position: fixed; z-index: 50; width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 32px); display: grid; grid-template-rows: auto minmax(0, 1fr);
@@ -458,7 +458,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
   background: radial-gradient(120% 90% at 50% 0%, color-mix(in oklch, var(--surface) 80%, var(--deco-1)) 0%, var(--bg) 75%); }
 .pk-h { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
 .pk-h h2 { margin: 0; font-size: 18px; margin-right: auto; }
-.pk-pts { color: var(--scene-mark); font-weight: 800; font-size: 13px; border: 1px solid color-mix(in oklch, var(--scene-mark) 50%, transparent); border-radius: var(--r-pill); padding: 3px 12px; }
+.pk-pts { color: var(--scenario-mark); font-weight: 800; font-size: 13px; border: 1px solid color-mix(in oklch, var(--scenario-mark) 50%, transparent); border-radius: var(--r-pill); padding: 3px 12px; }
 .pk-pts.none { color: var(--faint); border-color: var(--border); }
 .pk-key { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px var(--space-6); margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); }
 .pk-key li { display: flex; align-items: center; gap: 6px; }
@@ -468,20 +468,20 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-inn h3 { margin: 0; font-size: 13px; color: var(--faint); text-transform: uppercase; letter-spacing: .06em; }
 .pk-in { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--border); border-radius: 8px; }
 .pk-in p, .pk-in dl { flex-basis: 100%; margin: 0; font-size: 13px; }
-.pk-tag { font-size: 11px; font-weight: 700; border-radius: var(--r-pill); padding: 1px 8px; color: var(--scene-mark); border: 1px solid color-mix(in oklch, var(--scene-mark) 50%, transparent); }
+.pk-tag { font-size: 11px; font-weight: 700; border-radius: var(--r-pill); padding: 1px 8px; color: var(--scenario-mark); border: 1px solid color-mix(in oklch, var(--scenario-mark) 50%, transparent); }
 .pk-in.quirk .pk-tag { color: var(--danger); border-color: color-mix(in oklch, var(--danger) 50%, transparent); }
 .pk-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--space-3) 0 var(--space-4); border-bottom: 1px solid var(--border); }
 .pk-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 6px 10px; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
-.pk-tabs button[aria-selected="true"] { color: var(--scene-mark); border-color: var(--scene-mark); font-weight: 700; }
+.pk-tabs button[aria-selected="true"] { color: var(--scenario-mark); border-color: var(--scenario-mark); font-weight: 700; }
 .pk-board { max-width: 720px; margin: 0 auto; }
 .pk-lad { --rh: 360px; position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); padding: 0 0 0 64px; }
-.pk-mb { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in oklch, var(--scene-mark) 40%, transparent); }
-.pk-mb b { position: absolute; left: 0; top: -18px; color: var(--scene-mark); font-size: 12px; }
+.pk-mb { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed color-mix(in oklch, var(--scenario-mark) 40%, transparent); }
+.pk-mb b { position: absolute; left: 0; top: -18px; color: var(--scenario-mark); font-size: 12px; }
 .pk-mb small { position: absolute; left: 0; top: 2px; color: var(--faint); font-size: 10px; }
 .pk-col { display: grid; grid-template-rows: 46px var(--rh); justify-items: center; gap: 10px; min-width: 0; }
-.pk-ch { text-align: center; } .pk-ch b { display: block; font-size: 13px; } .pk-ch span { color: var(--scene-mark); font-weight: 800; font-size: 16px; }
+.pk-ch { text-align: center; } .pk-ch b { display: block; font-size: 13px; } .pk-ch span { color: var(--scenario-mark); font-weight: 800; font-size: 16px; }
 .pk-rail { position: relative; width: 8px; border-radius: 4px; background: var(--bg); }
-.pk-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px; background: var(--scene-mark); }
+.pk-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px; background: var(--scenario-mark); }
 .pk-at { position: absolute; left: 50%; height: 0; }
 .pk-n { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: 22px; height: 22px; padding: 0; display: grid; place-items: center; border: 0; background: none; cursor: pointer; font: inherit; color: inherit; }
 .pk-n::before { content: ""; position: absolute; inset: 0; transform: rotate(45deg); border-radius: 3px; box-sizing: border-box; }
@@ -500,17 +500,17 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-trk, .pk-eff { display: grid; gap: 14px; }
 .pk-trk { display: none; }
 .pk-tr { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; align-items: center; }
-.pk-tl b { display: block; font-size: 13px; } .pk-tl span { color: var(--scene-mark); font-weight: 800; }
+.pk-tl b { display: block; font-size: 13px; } .pk-tl span { color: var(--scenario-mark); font-weight: 800; }
 .pk-tt { position: relative; height: 30px; margin-right: 12px; }
 .pk-tt::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 6px; border-radius: 3px; background: var(--bg); }
-.pk-tf { position: absolute; left: 0; top: 12px; height: 6px; border-radius: 3px; background: var(--scene-mark); }
-.pk-tm { position: absolute; top: 2px; width: 2px; height: 26px; margin-left: -1px; background: color-mix(in oklch, var(--scene-mark) 50%, transparent); }
+.pk-tf { position: absolute; left: 0; top: 12px; height: 6px; border-radius: 3px; background: var(--scenario-mark); }
+.pk-tm { position: absolute; top: 2px; width: 2px; height: 26px; margin-left: -1px; background: color-mix(in oklch, var(--scenario-mark) 50%, transparent); }
 .pk-ta { position: absolute; top: 15px; width: 0; height: 0; }
 .pk-g { display: grid; gap: 10px; }
-.pk-gh { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--scene-mark); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.pk-gh { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--scenario-mark); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
 .pk-gh::before { content: "▾ "; display: inline-block; transition: transform .15s; }
 .pk-gh[aria-expanded="false"]::before { transform: rotate(-90deg); }
-.pk-card { position: absolute; z-index: 2; width: 190px; box-sizing: border-box; padding: 10px; border: 1px solid color-mix(in oklch, var(--scene-mark) 45%, transparent); border-radius: var(--r-lg);
+.pk-card { position: absolute; z-index: 2; width: 190px; box-sizing: border-box; padding: 10px; border: 1px solid color-mix(in oklch, var(--scenario-mark) 45%, transparent); border-radius: var(--r-lg);
   background: var(--surface); box-shadow: var(--shadow-toast); }
 .pk-eff ~ .pk-card, .pk .empty ~ .pk-card { position: static; margin-top: var(--space-3); }
 .pk-card .k { margin: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
@@ -553,7 +553,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .hquiet .src { color: inherit; }
 .hquiet .ar, .hquiet .pt { color: var(--faint); }
 /* Time of day: T1 coloured icon by the title, T2 divider when time passes; colours keyed by TIME_OF_DAY key */
-.tod-dawn { --tod: var(--c4); } .tod-day { --tod: var(--scene-mark); } .tod-dusk { --tod: var(--c7); } .tod-night { --tod: var(--accent); }
+.tod-dawn { --tod: var(--c4); } .tod-day { --tod: var(--scenario-mark); } .tod-dusk { --tod: var(--c7); } .tod-night { --tod: var(--accent); }
 .tod-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .tod { display: inline-flex; vertical-align: middle; margin-left: 12px; position: relative; top: -2px; color: var(--tod); cursor: default; }
 .tod .tod-i { width: 22px; height: 22px; }
@@ -612,21 +612,21 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .ln-narration { color: var(--text); white-space: pre-wrap; font: var(--story-size, 17px)/1.6 var(--font-story); text-wrap: pretty; }
 .ln-player .aimed { color: var(--muted); font-weight: 400; }
 .turn { display: grid; gap: var(--space-3); }
-/* place and scene breaks: a quiet rule, named when the player reached a new place */
+/* place and scenario breaks: a quiet rule, named when the player reached a new place */
 .pbreak { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-4) 0 0; color: var(--faint); font: 600 13px/1.4 var(--font-round); }
 .pbreak::before, .pbreak::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
-.pbreak.scene { gap: 0; }
-/* SD1: the scene-ending moment. The old scene's last line, quieter than the prose; then the rule with the ending's name
+.pbreak.scenario { gap: 0; }
+/* SD1: the scenario-ending moment. The old scenario's last line, quieter than the prose; then the rule with the ending's name
    in its own colour (an unordered category, one colour each); the place it moved to, if any, follows in the rule's grey */
 .ln-closing { margin: var(--space-4) 0 0; color: var(--muted); font: italic var(--story-size, 17px)/1.6 var(--font-story); text-wrap: pretty; }
-.pbreak.end { --end: var(--scene-mark); margin-top: var(--space-4); }
+.pbreak.end { --end: var(--scenario-mark); margin-top: var(--space-4); }
 .pbreak.end b { color: var(--end); font-weight: 700; letter-spacing: .04em; }
 .pbreak.end::before, .pbreak.end::after { background: color-mix(in srgb, var(--end) 45%, var(--rule)); }
 .pbreak.end[data-end="resolved"] { --end: var(--ok); }
 .pbreak.end[data-end="escaped"] { --end: var(--accent); }
 .pbreak.end[data-end="left"] { --end: var(--muted); }
 .pbreak.end[data-end="lost"] { --end: var(--danger); }
-.pbreak.end[data-end="interrupted"] { --end: var(--scene-mark); }
+.pbreak.end[data-end="interrupted"] { --end: var(--scenario-mark); }
 .pbreak.end[data-end="worn_out"] { --end: var(--faint); }
 .pbreak.end[data-end="broken_off"] { --end: var(--warn); }
 .end-now:empty { display: none; }
@@ -687,7 +687,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .quest-line { display: flex; align-items: center; gap: var(--space-2); width: fit-content; max-width: 100%; min-height: 24px; padding: 0; margin-top: var(--space-1);
   border: 0; background: none; font: 14px/1.4 var(--font-round); font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; cursor: pointer; text-align: left; }
 .quest-line > * { flex: none; }
-.quest-line svg { width: 16px; height: 16px; display: block; color: var(--scene-mark); }
+.quest-line svg { width: 16px; height: 16px; display: block; color: var(--scenario-mark); }
 .quest-line .qt { flex: 0 1 auto; min-width: 0; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; color: var(--text); font-weight: 600; }
 .quest-line:hover .qt { text-decoration: underline; }
 .quest-line .ok { color: var(--ok); font-weight: 600; }
@@ -755,7 +755,7 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .hcard.wcard .x { color: var(--danger); }
 /* M-36: level and XP on the play sheet */
 .cs-xp { display: grid; gap: var(--space-1); }
-.cs-xp .cs-bar > b { background: var(--scene-mark); }
+.cs-xp .cs-bar > b { background: var(--scenario-mark); }
 
 /* ---- Map page (map.ts): the map fills everything beside the side column; tiles are zones, lines their exits.
    Outdoors leans to the sky blue, indoors to the surface; remembered zones are faded; you are the gold pin. */
@@ -768,25 +768,25 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-dot { fill: var(--rule); opacity: .55; }
 .map-link { stroke: color-mix(in srgb, var(--faint) 70%, transparent); stroke-width: 2.5; stroke-linecap: round; }
 .map-link.hidden-view { stroke-dasharray: 7 6; stroke: color-mix(in srgb, var(--faint) 55%, transparent); }
-.map-link.hot { stroke: var(--scene-mark); stroke-width: 3; }
+.map-link.hot { stroke: var(--scenario-mark); stroke-width: 3; }
 .map-stub { stroke: color-mix(in srgb, var(--faint) 45%, transparent); stroke-width: 2; stroke-dasharray: 2 6; stroke-linecap: round; }
-.map-stub.hot { stroke: var(--scene-mark); }
+.map-stub.hot { stroke: var(--scenario-mark); }
 .map-link.road { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 10 7; }
 .map-tile.world-place .map-tile-name { font-size: 16px; }
 .map-stub.away { stroke: var(--accent); stroke-dasharray: 8 6; cursor: pointer; }
 .map-pill.away { cursor: pointer; pointer-events: auto; }
 .map-pill.away rect { stroke: var(--accent); }
 .map-arrowhead { fill: color-mix(in srgb, var(--faint) 70%, transparent); }
-.map-pill rect { fill: var(--bg); stroke: color-mix(in srgb, var(--scene-mark) 60%, transparent); }
+.map-pill rect { fill: var(--bg); stroke: color-mix(in srgb, var(--scenario-mark) 60%, transparent); }
 .map-pill.unknown rect { stroke: var(--rule); stroke-dasharray: 3 3; }
 .map-pill text { fill: var(--text); font-size: 11.5px; font-weight: 700; }
 .map-pill.unknown text { fill: var(--muted); font-weight: 600; }
 .map-area { cursor: pointer; outline: none; }
 .map-area rect { fill: color-mix(in srgb, var(--c15) 6%, transparent); stroke: color-mix(in srgb, var(--c15) 40%, transparent); stroke-width: 1.5; stroke-dasharray: 10 6; }
-.map-area.mine rect { fill: color-mix(in srgb, var(--scene-mark) 6%, transparent); }
-.map-area.on rect, .map-area:hover rect, .map-area:focus-visible rect { stroke: var(--scene-mark); stroke-dasharray: none; }
+.map-area.mine rect { fill: color-mix(in srgb, var(--scenario-mark) 6%, transparent); }
+.map-area.on rect, .map-area:hover rect, .map-area:focus-visible rect { stroke: var(--scenario-mark); stroke-dasharray: none; }
 .map-area-name { fill: var(--c15); font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.map-area.on .map-area-name { fill: var(--scene-mark); }
+.map-area.on .map-area-name { fill: var(--scenario-mark); }
 .map-tile { cursor: pointer; outline: none; }
 .map-tile-box { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
 .map-tile.outdoor .map-tile-box { fill: color-mix(in srgb, var(--c9) 22%, var(--surface)); stroke: color-mix(in srgb, var(--c9) 55%, var(--border)); }
@@ -795,8 +795,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile.remembered { opacity: .62; }
 .map-tile.remembered .map-tile-box { stroke-dasharray: 5 4; }
 .map-tile.here .map-tile-box { stroke: var(--accent); stroke-width: 3; }
-.map-tile.selected .map-tile-box { stroke: var(--scene-mark); stroke-width: 3; }
-.map-tile:hover .map-tile-box, .map-tile:focus-visible .map-tile-box { stroke: var(--scene-mark); }
+.map-tile.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 3; }
+.map-tile:hover .map-tile-box, .map-tile:focus-visible .map-tile-box { stroke: var(--scenario-mark); }
 .map-tile-name { fill: var(--text); font-size: 15px; font-weight: 800; }
 .map-tile-sub { fill: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .map-tile.here .map-tile-sub { fill: var(--accent); }
@@ -804,7 +804,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 /* To scale (CO1): zones as rectangles in metres; each side drawn by its edge kind */
 .map-tile.plan .map-tile-box { stroke: none; }
 .map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
-.map-tile.plan.selected .map-tile-box { stroke: var(--scene-mark); stroke-width: 2; }
+.map-tile.plan.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 2; }
 .map-tile.plan .map-tile-name { font-size: 11px; }
 .map-edge { stroke: var(--text); stroke-linecap: square; }
 .map-edge.wall { stroke-width: 3; }
@@ -823,7 +823,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-who text { fill: var(--on-pill); font-size: 11px; font-weight: 800; }
 .map-who.last circle { fill: var(--bg); stroke: var(--c4); stroke-dasharray: 3 2; }
 .map-who.last text { fill: var(--c4); }
-.map-pin circle { fill: var(--scene-mark); stroke: var(--bg); stroke-width: 2.5; }
+.map-pin circle { fill: var(--scenario-mark); stroke: var(--bg); stroke-width: 2.5; }
 .map-pin circle.core { fill: var(--bg); stroke: none; }
 .map-crumbs { position: absolute; left: 12px; top: 12px; right: 64px; display: flex; flex-wrap: nowrap; align-items: center; gap: 4px;
   white-space: nowrap; overflow-x: auto; scrollbar-width: none; pointer-events: none; }
@@ -833,20 +833,20 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-crumbs .crumb.on { color: var(--text); border-color: var(--accent); }
 .map-crumbs .sep { color: var(--faint); }
 .map-compass { position: absolute; right: 16px; top: 12px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: start center;
-  border: 1px solid var(--rule); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--scene-mark); font-weight: 800; font-size: 12px; padding-top: 4px; box-sizing: border-box; }
-.map-compass::after { content: ""; position: absolute; left: 50%; top: 19px; width: 2px; height: 14px; margin-left: -1px; background: linear-gradient(var(--scene-mark), var(--rule)); }
+  border: 1px solid var(--rule); background: color-mix(in srgb, var(--bg) 80%, transparent); color: var(--scenario-mark); font-weight: 800; font-size: 12px; padding-top: 4px; box-sizing: border-box; }
+.map-compass::after { content: ""; position: absolute; left: 50%; top: 19px; width: 2px; height: 14px; margin-left: -1px; background: linear-gradient(var(--scenario-mark), var(--rule)); }
 .map-tools { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 6px; }
 .map-floors { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
 .map-floor { border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 85%, transparent); color: var(--muted); border-radius: var(--r-pill);
   padding: 5px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
 .map-floor.on { color: var(--text); border-color: var(--accent); }
-.map-floor .you { color: var(--scene-mark); }
+.map-floor .you { color: var(--scenario-mark); }
 .map-stair circle { fill: var(--bg); stroke: var(--accent); stroke-width: 2; }
 .map-stair text { fill: var(--accent); font-size: 11px; font-weight: 800; pointer-events: none; }
 .map-stair:not(.unknown) { cursor: pointer; }
 .map-stair.unknown circle { stroke: var(--faint); stroke-dasharray: 3 3; }
 .map-stair.unknown text { fill: var(--faint); }
-.map-stair.hot circle { stroke: var(--scene-mark); }
+.map-stair.hot circle { stroke: var(--scenario-mark); }
 .map-btn { width: 38px; height: 38px; border-radius: var(--r-md); border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 92%, transparent);
   color: var(--text); font: inherit; font-size: 18px; font-weight: 800; cursor: pointer; }
 .map-btn:hover { border-color: var(--accent); }
@@ -869,7 +869,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-place:hover { border-color: var(--border); }
 .map-place.on { background: var(--accent-soft); border-color: var(--accent); }
 .map-place .c { color: var(--muted); font-size: 12px; white-space: nowrap; }
-.map-place .you { color: var(--scene-mark); font-weight: 700; }
+.map-place .you { color: var(--scenario-mark); font-weight: 700; }
 .map-facts li { font: 14px/1.5 var(--font-story); color: var(--muted); }
 .map-legend ul { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); font-size: 12.5px; color: var(--muted); }
 .map-legend li { display: flex; align-items: center; gap: 8px; }
@@ -883,7 +883,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .k-line.stub { border-top: 2px dotted color-mix(in srgb, var(--faint) 60%, transparent); }
 .k-stair { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); font-size: 9px; font-style: normal; display: grid; place-items: center; box-sizing: border-box; }
 .k-line.away { border-top: 2px dashed var(--accent); }
-.k-pin { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 4px solid var(--scene-mark); }
+.k-pin { width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; background: var(--bg); border: 4px solid var(--scenario-mark); }
 .k-area { width: 20px; height: 12px; border-radius: 4px; border: 1.5px dashed color-mix(in srgb, var(--c15) 60%, transparent); }
 .k-who { width: 12px; height: 12px; border-radius: 50%; background: var(--c4); }
 .k-who.last { background: none; border: 1.5px dashed var(--c4); }
@@ -893,7 +893,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .tag { cursor: help; }
 .cs-sk .n small.off, small.off { display: inline; font-size: 11px; font-weight: 400; color: var(--faint); cursor: help; }
 /* a skill that went up this turn, under the turn's prose */
-.skill-up { color: var(--scene-mark); font-weight: 600; }
+.skill-up { color: var(--scenario-mark); font-weight: 600; }
 /* TV7: a road tile's track, end to end, with you at your point along it */
 .map-road-track line { stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 10 6; }
 .map-road-track text { fill: var(--muted); font-size: 11px; font-weight: 700; }
@@ -912,7 +912,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   border-radius: var(--r-lg); color: var(--ic); background: color-mix(in oklch, var(--ic) 14%, transparent); border: 1px solid color-mix(in oklch, var(--ic) 45%, transparent); }
 .iico svg { width: 100%; height: 100%; display: block; }
 .iico[data-kind="weapon"] { --ic: var(--c10); } .iico[data-kind="shield"] { --ic: var(--c1); } .iico[data-kind="armor"] { --ic: var(--c12); }
-.iico[data-kind="accessory"] { --ic: var(--scene-mark); } .iico[data-kind="tool"] { --ic: var(--c15); } .iico[data-kind="consumable"] { --ic: var(--c2); }
+.iico[data-kind="accessory"] { --ic: var(--scenario-mark); } .iico[data-kind="tool"] { --ic: var(--c15); } .iico[data-kind="consumable"] { --ic: var(--c2); }
 .iico.blank { --ic: var(--faint); opacity: .45; border-style: dashed; background: none; }
 .eq { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: var(--space-3) var(--space-8); align-items: start; padding-bottom: var(--space-6); border-bottom: 1px solid var(--border); }
 .eq-col { display: grid; gap: var(--space-3); align-content: start; }
@@ -941,7 +941,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .itip[hidden] { display: none; }
 .itip-name { margin: 0 0 var(--space-2); font-weight: 700; color: var(--text); font-size: 14px; }
 .itip[data-kind="weapon"] .itip-name { color: var(--c10); } .itip[data-kind="shield"] .itip-name { color: var(--c1); } .itip[data-kind="armor"] .itip-name { color: var(--c12); }
-.itip[data-kind="accessory"] .itip-name { color: var(--scene-mark); }
+.itip[data-kind="accessory"] .itip-name { color: var(--scenario-mark); }
 .itip dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px var(--space-3); margin: 0; }
 .itip dt { color: var(--faint); white-space: nowrap; }
 .itip dd { margin: 0; color: var(--text); }

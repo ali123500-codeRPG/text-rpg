@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, createRng } from '../harness';
 import { CONFIG } from '../../src/config';
 import { EK, LY, ZK } from '../../src/library/tableIds';
-import { roadShape } from '../../src/scene/apply';
+import { roadShape } from '../../src/scenario/apply';
 import { getLibrary } from '../../src/library';
-import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scene';
-import { toStoryStart, villageStagePlan } from '../../src/scene/fixtures';
+import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/scenario';
+import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import type { StagePlan } from '../../src/types';
 
-const ctx: PlanContext = { tier: 'success', kind: 'scene', placeId: 'tavern' };
+const ctx: PlanContext = { tier: 'success', kind: 'scenario', placeId: 'tavern' };
 const zoneOf = (s: ReturnType<typeof makeVillage>, key: string) => s.places.flatMap((p) => p.zones).find((z) => z.id.endsWith(key) || z.name === key);
 
 describe('zone sizes and edges', () => {

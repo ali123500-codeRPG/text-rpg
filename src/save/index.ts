@@ -286,7 +286,7 @@ export async function archiveStory(store: Store, storyId: string, at: string, fa
 
 // ---------- a story still starting ----------
 /** Closing the game during turn 0 lost the new story, because nothing is saved until the opening
- * scene is planned and narrated. The build is written first; resume finds it and starts the opening again. */
+ * scenario is planned and narrated. The build is written first; resume finds it and starts the opening again. */
 export type PendingStart = { storyId: string; build: CreationBuild; at: string; owner?: StoryOwner };
 const PENDING_START = 'pending/start';
 /** one pending start per owner: the player's, and the autopilot agent's own save */

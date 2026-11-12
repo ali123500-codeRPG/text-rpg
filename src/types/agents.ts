@@ -35,7 +35,7 @@ export type Intent = {
     mode: string | null;
     approach: string;
     stance: 'careful' | 'normal' | 'reckless';
-    /** a scene object not in the view, used as a weapon: code mints it on an improvised base (loot L3) */
+    /** a scenario object not in the view, used as a weapon: code mints it on an improvised base (loot L3) */
     improvised?: { base: ImprovisedBase; name: string } | null;
   } | null;
   /** AE5/AE8: an owned perk move by perk id (a free one resolves beside the main action) */
@@ -123,7 +123,7 @@ export type VoiceOutput = {
 };
 
 // ---- Agent Narrator ----
-/** closing (SD1): one sentence closing the scene that ended this turn, given only when NarrationView.sceneEnded is set */
+/** closing (SD1): one sentence closing the scenario that ended this turn, given only when NarrationView.scenarioEnded is set */
 export type NarratorOutput = { text: string; narrated: string[]; closing?: string };
 
 // ---- Agent Weaver: the stage plan ----
@@ -184,11 +184,11 @@ export type StagePlan = {
     place: { carriedBy: string } | { groundIn: string };
   }[];
   hiddenTerms: string[];
-  /** SP2: spars under way or agreed when the scene opens (a training yard, a tournament): each side's cast keys or actor ids */
+  /** SP2: spars under way or agreed when the scenario opens (a training yard, a tournament): each side's cast keys or actor ids */
   spars?: SparMade[];
   weaverNote: string;
-  /** SC1/SC2/SC7: a new scene's hidden question, its scale, and two or three ways it can end (not on a frontier extension) */
-  scene?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[] };
+  /** SC1/SC2/SC7: a new scenario's hidden question, its scale, and two or three ways it can end (not on a frontier extension) */
+  scenario?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[] };
 };
 
 // ---- the Claude-call boundary (artifact `sample` capability, runtime 0.2.96) ----

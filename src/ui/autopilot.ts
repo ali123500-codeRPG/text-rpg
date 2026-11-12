@@ -55,7 +55,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   let mcp: Mcp | null = null, audio: HTMLAudioElement | null = null, speakSeq = 0, rpgDown = false, voices = RPG_VOICES, listed = false;
   // guided mode (GA1–GA17)
   let question: Question | null = null, answer: ((a: Answer | null) => void) | null = null;
-  let lastCall = '', guidance: { text: string; scene: number } | null = null, settled = { scene: -1, items: new Map<string, string>() };
+  let lastCall = '', guidance: { text: string; scenario: number } | null = null, settled = { scenario: -1, items: new Map<string, string>() };
   let pending: Crossroad[] = [], before: TurnSnap | null = null, fightOk = false;
   const baseTitle = document.title;
   void (async () => {
@@ -118,11 +118,11 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   const set = (s: string) => { status = s; update(); };
   function pause(why = '') { playing = false; stepping = false; answer?.(null); set(why); redraw(); }
 
-  const scene = () => api.state()?.stage?.sceneNumber ?? 0;
-  /** GA12: calls made this scene; a new scene starts empty, and so does guidance */
-  function sceneCalls() {
-    if (settled.scene !== scene()) settled = { scene: scene(), items: new Map() };
-    if (guidance && guidance.scene !== scene()) guidance = null;
+  const scenario = () => api.state()?.stage?.scenarioNumber ?? 0;
+  /** GA12: calls made this scenario; a new scenario starts empty, and so does guidance */
+  function scenarioCalls() {
+    if (settled.scenario !== scenario()) settled = { scenario: scenario(), items: new Map() };
+    if (guidance && guidance.scenario !== scenario()) guidance = null;
     return settled.items;
   }
   /** shows the question and waits, with no time limit, for the watcher (null: dropped by Pause or ×) */
@@ -148,7 +148,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       // GA3–GA5: what the last turn brought, spotted by code
       if (guided && before && s) pending.push(...spotCrossroads(before, s, api.lines().filter((l) => l.kind === 'narration').at(-1), fightOk));
       before = null; fightOk = false;
-      const calls = sceneCalls();
+      const calls = scenarioCalls();
       pending = pending.filter((c) => !calls.has(askKey(c.kind, c.key ?? c.about)));
       // GA6: a perk point waiting on the watcher's story: suggest the agent's pick, then play on
       const p = s?.player;
@@ -174,7 +174,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       if (mv.ask) {
         const q = mv.ask, key = askKey(q.kind, must?.key ?? q.about);
         if (must) pending = pending.filter((c) => c !== must);
-        if (calls.has(key)) command = q.choices[q.pick]; // already settled this scene: no second question
+        if (calls.has(key)) command = q.choices[q.pick]; // already settled this scenario: no second question
         else {
           const a = await ask({ ...q, key, say: mv.say, ja: mv.ja ?? '', direction: mv.direction });
           if (!a || !playing) break;
@@ -182,8 +182,8 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
           if ('played' in a) continue;
           command = 'choice' in a ? a.choice : 'decide' in a ? q.choices[q.pick] : '';
           if ('words' in a) {
-            // GA14: the watcher's words become the next move, and guidance until the scene ends
-            guidance = { text: a.words, scene: scene() };
+            // GA14: the watcher's words become the next move, and guidance until the scenario ends
+            guidance = { text: a.words, scenario: scenario() };
             set('Thinking about your answer…');
             const mv2 = await api.agentMove(prefs.persona, prefs.style, { ...ctx!, mustAsk: undefined, guidance: a.words, answered: { about: q.about, words: a.words } });
             if (!playing) break;
@@ -299,7 +299,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
           h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'))),
       orders ? h('div', { class: 'auto-row' }, orders) : '',
       card || (said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), saidJa ? h('span', {}, `“${plainLine(saidJa)}”`, h('span', { class: 'auto-en' }, plainLine(said))) : `“${plainLine(said)}”`) : ''),
-      !q && prefs.mode === 'guided' && guidance && guidance.scene === scene() ? h('p', { class: 'hs-note' }, `Your guidance this scene: ${guidance.text}`) : '',
+      !q && prefs.mode === 'guided' && guidance && guidance.scenario === scenario() ? h('p', { class: 'hs-note' }, `Your guidance this scenario: ${guidance.text}`) : '',
       !q && prefs.mode === 'guided' && lastCall ? h('p', { class: 'hs-note' }, `Last call: ${lastCall}`) : '',
       status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status || mine!.textContent) : '',
       noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : ''));

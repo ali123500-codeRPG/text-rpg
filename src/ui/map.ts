@@ -4,7 +4,7 @@
 // their spots between turns. Drag to pan, wheel or the buttons to zoom. Clicking a zone shows it in the side column.
 import type { GameApi } from '../types';
 import { h } from './kit';
-import { verticalOf } from '../scene/heights';
+import { verticalOf } from '../scenario/heights';
 import { EK } from '../library/tableIds';
 import { CONFIG } from '../config';
 import { distText } from '../views';

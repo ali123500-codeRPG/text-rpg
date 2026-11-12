@@ -1,15 +1,15 @@
 // W3 — the six deny-by-default view builders (+ the combat packet). Copy whitelisted fields into new objects only.
-import { budgetUsed, lastScenes } from '../engine/sceneEnd';
-import { SCENE_ENDING_NAMES } from '../types';
+import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
+import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
-import type { SceneFrame, Tier, TierRoll,
+import type { ScenarioFrame, Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, NERVE_LINES, SCENE_SCALES } from '../scales';
+import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
 import { sideFrom, sightDistM } from '../engine/position';
@@ -36,7 +36,7 @@ import { moraleLevel, moraleShows } from '../ruleset/morale';
 import { MORALE_LEVELS } from '../scales';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
-/** MB40: the player's yield this scene, in the player's names for each foe */
+/** MB40: the player's yield this scenario, in the player's names for each foe */
 function yieldView(state: GameState): YieldView | undefined {
   const y = state.yielding;
   if (!y) return undefined;
@@ -129,17 +129,17 @@ function lookOf(events: GameEvent[], viewerId: string, actorId: string): string 
   return e?.activity ? activity(e.activity).look : undefined;
 }
 
-/** the viewer fully perceived an event by `aboutId` since the scene began (recent history included) */
-/** LI2b Read Their Face: the viewer sees the stance toward it of anyone who spoke to it this scene */
+/** the viewer fully perceived an event by `aboutId` since the scenario began (recent history included) */
+/** LI2b Read Their Face: the viewer sees the stance toward it of anyone who spoke to it this scenario */
 function readsFace(state: GameState, viewer: Actor, a: Actor): boolean {
   return hasPerk(viewer, PK.read_their_face) && !!a.mind && [...(state.recentEvents ?? []), ...state.events].some((e) =>
-    e.kind === 'speak' && !e.bark && e.actorId === a.id && e.turn >= state.stage.sceneStartTurn
+    e.kind === 'speak' && !e.bark && e.actorId === a.id && e.turn >= state.stage.scenarioStartTurn
     && (e.target === viewer.id || !!e.speech?.addressees?.includes(viewer.id)));
 }
 
 function seenClearly(state: GameState, viewerId: string, aboutId: string): boolean {
   return [...(state.recentEvents ?? []), ...state.events].some((e) =>
-    e.actorId === aboutId && e.turn >= state.stage.sceneStartTurn && e.perception[viewerId]?.level === 'full');
+    e.actorId === aboutId && e.turn >= state.stage.scenarioStartTurn && e.perception[viewerId]?.level === 'full');
 }
 
 /** actors the viewer perceives now: in its own or a sight-linked zone; dark zones give partial. NPCs perceive the player only once aware. */
@@ -154,7 +154,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     if (hidden === 'unaware') continue;
     if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [] }); continue; }
     // P3: in a dark zone someone is half seen, unless they share the viewer's zone and the viewer perceived them
-    // fully this scene (spoke face to face, say): then they stay seen
+    // fully this scenario (spoke face to face, say): then they stay seen
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
     const level = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
     // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
@@ -573,11 +573,11 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
 }
 
 // ---------- WeaverView ----------
-/** SC8: the running scene, as the check-in sees it: its question, endings, and how much of its budget is used */
-function checkinScene(state: GameState, f: SceneFrame): NonNullable<WeaverView['target']['scene']> {
-  const c = CONFIG.SCENE_SCALE[f.scale];
+/** SC8: the running scenario, as the check-in sees it: its question, endings, and how much of its budget is used */
+function checkinScenario(state: GameState, f: ScenarioFrame): NonNullable<WeaverView['target']['scenario']> {
+  const c = CONFIG.SCENARIO_SCALE[f.scale];
   return {
-    question: f.question, scale: SCENE_SCALES.name(f.scale), endings: f.endings.map((e) => ({ when: e.when, as: e.as, text: e.text })),
+    question: f.question, scale: SCENARIO_SCALES.name(f.scale), endings: f.endings.map((e) => ({ when: e.when, as: e.as, text: e.text })),
     turns: state.turn - f.startTurn, budget: c?.budgetTurns ? `${c.budgetTurns} turns, fights not counted` : `${c?.budgetDays ?? '?'} days`,
     used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
   };
@@ -630,8 +630,8 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     ways: WAYS_LEAN[state.stage.tier] ?? '',
     stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
     target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
-      ...(target.kind === 'checkin' && state.stage.scene ? { reason: target.reason, scene: checkinScene(state, state.stage.scene) } : {}),
-      ...(target.kind === 'scene' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
+      ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
+      ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
     stage: stageZones(state).map((z) => zoneView(state, z)),
     actors: onStage.map((a) => {
@@ -648,8 +648,8 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
     player: { level: state.player.core.classes.reduce((n, c) => n + c.level, 0), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player) },
     previousNote: state.hidden.weaverNote,
-    lastScenes: lastScenes(state).map((r) => ({ question: r.question, scale: SCENE_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENE_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),
-    ...(state.stage.outer ? { outerScene: { question: state.stage.outer.question, scale: SCENE_SCALES.name(state.stage.outer.scale) } } : {}),
+    lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),
+    ...(state.stage.outer ? { outerScenario: { question: state.stage.outer.question, scale: SCENARIO_SCALES.name(state.stage.outer.scale) } } : {}),
     catalogs: {
       templates: [...templates.values()],
       services: Object.values(lib.services ?? {}).map((s) => ({ id: s.id, name: s.name, price: s.price })),
