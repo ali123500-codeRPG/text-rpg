@@ -1,11 +1,12 @@
-// 210 Bug-fix review: siblings the earlier fixes missed. BG-83 (BG-71's exchange event), BG-87 (BG-62/BG-74
+// 210 Bug-fix review: siblings the earlier fixes missed. BG-83 (BG-71's exchange event), BG-84 (BG-57 for a named
+// listener), BG-87 (BG-62/BG-74
 // across a doorway), BG-88 (one "hears clearly" rule), BG-89 (BG-72: only contact is felt), BG-90 (BG-73 for followers),
 // BG-91 (BG-76: part-state names).
 import { expect, it } from 'vitest';
 import type { GameEvent, Intent } from '../../src/types';
 import { createRng, makeVillage, place, ScriptedClaude } from '../harness';
 import { resolveSpeech, resolveTurn, selectSpokespeople } from '../../src/engine';
-import { approachMove } from '../../src/engine/merge';
+import { approachMove, speakingSpot } from '../../src/engine/merge';
 import { hearsOrder } from '../../src/engine/trade';
 import { hearsClearly, perceptionOf } from '../../src/perception';
 import { createDirector } from '../../src/agents/director';
@@ -29,6 +30,31 @@ it('BG-83: the player\'s words in a conversation are said, and heard, at the vol
   }
 });
 
+it('BG-84: a named listener answers only if they hear the player from where the words are said; a voice alone moves no one', () => {
+  const s = makeVillage({ without: ['slime_1', 'slime_2', 'guard_1'] });
+  const room = s.zones.find((x) => x.id === 'tav_common')!;
+  room.rect = { x: 0, y: 0, w: 60, d: 8 };
+  const p = place(s, 'patron_1', 'tav_common');
+  s.player.zone = 'tav_common';
+  const ask = () => intent({ action: { type: 'persuade', skill: SK.persuasion, target: p.id }, spoken: 'A word.', addressees: [p.id] });
+  // 20 m: the step up this turn closes to 11.6 m, where the words are clear: they answer and the roll counts
+  s.player.pos = { x: -25, y: 0 }; p.pos = { x: -5, y: 0 };
+  let i = ask(), sp = selectSpokespeople(s, i);
+  expect(sp).toEqual([p.id]);
+  expect(resolveSpeech(s, i, sp, createRng(1)).perSpokesperson[p.id]).toBeDefined();
+  const at = speakingSpot(s, i);
+  play(s, { intent: i, spokespeople: sp, exchange: resolveSpeech(s, i, sp, createRng(1)) });
+  expect(s.player.pos).toEqual(at.pos); // the projection is where the real walk ends
+  // 40 m: still only a voice after the step up: they answer, but no contest (the Responder is told the words were lost)
+  s.player.pos = { x: -25, y: 0 }; p.pos = { x: 15, y: 0 };
+  i = ask(); sp = selectSpokespeople(s, i);
+  expect(sp).toEqual([p.id]);
+  expect(resolveSpeech(s, i, sp, createRng(1)).perSpokesperson[p.id]).toBeUndefined();
+  // out at the gate: not heard at all, so no one answers
+  const far = place(s, 'patron_1', 'gate_inner');
+  expect(selectSpokespeople(s, intent({ action: { type: 'talk', skill: SK.persuasion }, spoken: 'Hello?', addressees: [far.id] }))).toEqual([]);
+});
+
 it('BG-87: stepping up to someone in view through a doorway ends beside them, not at the door', () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
   const lane = s.zones.find((z) => z.id === 'tav_common')!.links.find((l) => l.to === 'street_door')!;
@@ -41,10 +67,10 @@ it('BG-87: stepping up to someone in view through a doorway ends beside them, no
 it('BG-88: one "hears it clearly" rule: Keen Ear counts for orders and answers as it does for perception', () => {
   const s = makeVillage({ without: ['slime_1', 'slime_2'] });
   const room = s.zones.find((x) => x.id === 'tav_common')!;
-  room.background = 'busy'; room.rect = { x: 0, y: 0, w: 8, d: 8 };
+  CONFIG.HEARING_FLOOR_DB = 30; room.rect = { x: 0, y: 0, w: 8, d: 8 };
   const p = place(s, 'patron_1', 'tav_common');
   s.player.zone = 'tav_common';
-  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 }; // 8.1 m in a busy room: a normal voice is not clear
+  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 }; // 8.1 m: a normal voice is not clear
   expect(hearsOrder(s, s.player, p)).toBe(false);
   p.core.perks.push({ perkId: PK.keen_ear, source: 'level', gainedTurn: 0 });
   expect(hearsClearly(s, s.player, p, CONFIG.ORDER_NOISE)).toBe(hearsOrder(s, s.player, p));

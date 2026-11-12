@@ -95,7 +95,7 @@ export type NpcMove = { toZone: string; after?: boolean };
 export type PlannerOutput = {
   action: NpcAction;
   move?: NpcMove | null;
-  dialogue: { line: string; volume: Volume; introduces?: string[] } | null;
+  dialogue: { line: string; volume: Volume } | null;
   gear: GearOp[] | null;
   stance: StanceStep | null;
   planUpdate: PlanUpdate | null;
@@ -114,7 +114,6 @@ export type VoiceOutput = {
   line: string;
   volume: Volume;
   shares: string[];
-  introduces?: string[];
   gear: GearOp[] | null;
   stance: StanceStep | null;
   routine: string | null;
@@ -149,7 +148,6 @@ export type StagePlan = {
     cover?: Cover; light?: Light; // Z3: default from the kind
     height?: number; // metres above the ground; inferred from up/down exit words when left out
     size?: string; // CO16 a ZONE_SIZES word; the kind's default when left out
-    background?: import('../scales').BackgroundKey; // HB3 how loud it is anyway; the kind's default when left out
     area?: number; // CO16 m², instead of a size word
     edges?: Partial<Record<import('./core').Side, string>>; // CO15 edge kind ids by side; the kind's default when left out
     length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km

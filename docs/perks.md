@@ -149,7 +149,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** A perception check for the owner by sound.
-- **Effect:** The owner hears 10 dB quieter (hearingDb): every sound counts 10 dB louder for the owner against their background, so it carries about three times as far (a normal voice is clear to about 18 m in a quiet place instead of about 6 m). A Silent sound stays unheard.
+- **Effect:** The owner hears 10 dB quieter (hearingDb): every sound counts 10 dB louder for the owner, so it carries about three times as far (a normal voice is clear to about 56 m in the open instead of about 18 m). A Silent sound stays unheard.
 - **Lasts:** Always.
 
 ### Quick Word (Persuasion) · A15

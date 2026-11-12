@@ -95,7 +95,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     if ((!prefs.voice && !force) || !text) return Promise.resolve();
     hush();
     const seq = speakSeq, line = ja || text, v = rpgVoice();
-    if (!v || rpgDown) { claudeSpeak(plainLine(line), !!ja); return Promise.resolve(); }
+    if (!v || rpgDown) { claudeSpeak(plainLine(line), !!ja, force); return Promise.resolve(); }
     talking = true; update();
     const chunks = splitLine(line), clips = chunks.map((c) => rpgSpeak(mcp!, c, direction, v));
     clips.forEach((c) => c.catch(() => undefined)); // each failure is handled when its turn to play comes
@@ -118,28 +118,26 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
         if (seq !== speakSeq) return started();
         const f = rpgFailure(e);
         rpgDown = f.down; talking = false;
-        claudeSpeak(plainLine(chunks.slice(i).join(' ')), !!ja);
+        claudeSpeak(plainLine(chunks.slice(i).join(' ')), !!ja, force);
         voiceNote = f.note; update(); started();
       });
       void play(0);
     });
   }
-  function claudeSpeak(line: string, ja: boolean) {
+  /** sample: a pick's preview, which is heard only, so a failed one shows no note either */
+  function claudeSpeak(line: string, ja: boolean, sample = false) {
     if (!tts || !line) return;
     tts.speak(line, { voice: claudeVoice(), rate: Math.min(prefs.rate, RATES.at(-1)!), language: ja ? 'ja' : 'en' }).then(() => { if (!rpgDown) voiceNote = ''; }, (e: { code?: string }) => {
-      if (e?.code === 'stopped' || e?.code === 'viewer_stopped') return;
+      if (e?.code === 'stopped' || e?.code === 'viewer_stopped' || sample) return;
       voiceNote = e?.code === 'rate_limited' ? 'Claude’s voice has used its allowance for now, so this line is shown only.' : 'Claude’s voice couldn’t read that line.';
       update();
     });
   }
-  /** a line from the chosen style's bank, read in the chosen voice and speed, so the watcher hears what a pick does */
+  /** a line from the chosen style's bank, read in the chosen voice and speed, so the watcher hears what a pick does (heard
+   *  only: the bar shows no text for it) */
   let sample: Sample | undefined;
-  const sampleEl = h('p', { class: 'hs-note', 'aria-live': 'polite', hidden: true }); // kept across redraws: a pick leaves its list focused, and the bar doesn't redraw then
-  const showSample = (t: string) => { sampleEl.textContent = t; sampleEl.hidden = !t; };
   function preview() {
     sample = pickSample(prefs.style, sample);
-    const name = VOICE_STYLES.find(([id]) => id === prefs.style)?.[1] ?? '';
-    showSample(`Sample · ${name}, ${claudeVoice()[0].toUpperCase()}${claudeVoice().slice(1)}, ${prefs.rate}×: “${sample.ja ? `${sample.ja}” (${sample.say})` : `${sample.say}”`}`);
     void speak(sample.say, sample.ja ?? '', '', true);
   }
   const set = (s: string) => { status = s; update(); };
@@ -197,7 +195,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       if (!mv) { if (++failures >= 2) { pause('The agent couldn’t decide: the Claude call failed twice.'); break; } continue; }
       failures = 0;
       let command = mv.command, voice: [string, string, string] | null = mv.ask ? null : [mv.say, mv.ja ?? '', mv.direction ?? ''];
-      said = mv.say; saidJa = mv.ja ?? ''; showSample('');
+      said = mv.say; saidJa = mv.ja ?? '';
       if (mv.ask) {
         const q = mv.ask, key = askKey(q.kind, must?.key ?? q.about);
         if (must) pending = pending.filter((c) => c !== must);
@@ -331,7 +329,6 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       !q && prefs.mode === 'guided' && guidance && guidance.scenario === scenario() ? h('p', { class: 'hs-note' }, `Your guidance this scenario: ${guidance.text}`) : '',
       !q && prefs.mode === 'guided' && lastCall ? h('p', { class: 'hs-note' }, `Last call: ${lastCall}`) : '',
       status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status || mine!.textContent) : '',
-      sampleEl,
       noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : ''));
   }
   update();

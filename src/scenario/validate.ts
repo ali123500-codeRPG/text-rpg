@@ -80,7 +80,7 @@ export function expandLayouts(plan: StagePlan): void {
     if (!l || !Array.isArray(plan.zones) || plan.zones.some((z) => z?.key === `${p.key}.${l.entry}`)) continue;
     for (const z of l.zones) plan.zones.push({
       key: `${p.key}.${z.key}`, place: p.key, kind: z.kind, name: p.names?.[z.key] ?? z.name, look: p.looks?.[z.key] ?? z.look,
-      ...(z.size ? { size: z.size } : {}), ...(z.background ? { background: z.background } : {}), ...(z.edges ? { edges: { ...z.edges } } : {}), fromLayout: true,
+      ...(z.size ? { size: z.size } : {}), ...(z.edges ? { edges: { ...z.edges } } : {}), fromLayout: true,
       links: z.links.map(([to, label, sight]) => ({ to: `${p.key}.${to}`, label, sight })),
     });
   }

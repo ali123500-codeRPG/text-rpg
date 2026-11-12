@@ -10,8 +10,8 @@ import type { ArmorWeightKey, LifeStageKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
 
-/** HB1: how far a sound carries in the open against a quiet place's background (40 dB) */
-const inQuiet = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you, in a quiet place' : `${m} m in a quiet place`);
+/** HB1: how far a sound carries in the open */
+const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
@@ -421,12 +421,6 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
 
 const set = (id: string, brief: string, place: string[], role: string[], time: RoutineSet['tags']['time'], slots: RoutineSet['slots'], routines: string[]): RoutineSet =>
   ({ id, brief, tags: { place, role, time, event: ['ordinary'] }, slots, routines });
-/** HB3: each zone kind's background (BACKGROUND key): rooms and town outdoors quiet (40 dB), a cellar calm (35), the open
- * country hushed (20); a busy room (a tavern's common room) names its own */
-const ZONE_BACKGROUND: Record<string, import('../scales').BackgroundKey> = {
-  [ZK.room]: 'quiet', [ZK.corridor]: 'quiet', [ZK.stairs]: 'quiet', [ZK.cellar]: 'calm', [ZK.street]: 'quiet', [ZK.square]: 'quiet',
-  [ZK.gate]: 'quiet', [ZK.yard]: 'quiet', [ZK.field]: 'hush', [ZK.woods]: 'hush', [ZK.road]: 'hush',
-};
 /** NW4: the kinds that lead onward (a street, square, gate, field, woods or road never ends in a wall); yards and rooms may */
 const ONWARD_KINDS = new Set<string>([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods, ZK.road]);
 const z = (hint: string) => ({ kind: 'zone' as const, hint });
@@ -618,7 +612,7 @@ export function prototypeLibrary(): Library {
       [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
       [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1],
     ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall,
-      background: ZONE_BACKGROUND[id], ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}) }])),
+      ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}) }])),
     // TV3/TV4: a road is one long zone; its length and danger words
     roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
     roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
@@ -645,7 +639,7 @@ export function prototypeLibrary(): Library {
       open: 'A village green or small market (about 40 × 40 m)',
       vast: 'A city market square (Kraków\'s is about 200 × 200 m, four of these)',
     } as Record<string, string>)[k] }])),
-    noiseLevels: Object.fromEntries(NOISE.keys.map((k) => [k, { id: k, name: NOISE.name(k), decibels: CONFIG.NOISE_DB[k], clearTo: inQuiet(openAirReachM(k, 'quiet')?.[0]), heardTo: inQuiet(openAirReachM(k, 'quiet')?.[1]), like: ({
+    noiseLevels: Object.fromEntries(NOISE.keys.map((k) => [k, { id: k, name: NOISE.name(k), decibels: CONFIG.NOISE_DB[k], clearTo: inOpen(openAirReachM(k)?.[0]), heardTo: inOpen(openAirReachM(k)?.[1]), like: ({
       silent: 'No sound at all: standing still and holding your breath',
       faint: 'Breathing, rustling leaves, a cloth brushing a wall (about 20 dB)',
       hushed: 'A whisper (about 30 dB)',

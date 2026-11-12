@@ -9,7 +9,8 @@ import { compassOf, doorway, edgeToward } from '../scenario/geometry';
 import { heightOf } from '../scenario/heights';
 import { linkM } from '../ruleset/range';
 import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
-import type { Actor, GameState, MoveSpot, Zone } from '../types';
+import { barrierOn, passage, type Passage } from './barriers';
+import type { Actor, Barrier, GameState, MoveSpot, Zone } from '../types';
 
 export type Pos = { x: number; y: number };
 /** someone or something that stands somewhere: a zone, and a point in it once the zone has a rectangle */
@@ -282,4 +283,13 @@ export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from
   }
   const d = spot.side ? compassOf(spot.side) : null;
   return d ? { pos: inset(edgeToward(r, d)), stopShort: 0, words: `on the ${spot.side!.toLowerCase()} side` } : null;
+}
+
+/** SD3–SD5: the barrier on the next way of `a`'s walk to `goal`, when it is not simply open to `a` */
+export function gateAhead(state: GameState, a: Actor, goal: string): { b: Barrier; to: string; pass: Passage } | null {
+  if (goal === a.zone) return null;
+  const next = wayPath(state, a.zone, goal, a)?.[0];
+  const b = next ? barrierOn(state, zoneById(state, a.zone)?.links.find((l) => l.to === next)) : undefined;
+  const pass = b ? passage(b, a, a.zone) : 'open';
+  return b && next && pass !== 'open' ? { b, to: next, pass } : null;
 }

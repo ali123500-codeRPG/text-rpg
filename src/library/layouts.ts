@@ -6,9 +6,9 @@ import { EK, LY, ZK } from './tableIds';
 
 export const LAYOUTS: Record<string, LayoutDef> = Object.fromEntries(([
   { id: LY.tavern, name: 'Village tavern', building: 'tavern', entry: 'common', zones: [
-    { key: 'common', kind: ZK.room, name: 'common room', look: 'Benches and tables around a hearth; a counter runs along the north side.', size: 'room', background: 'busy', edges: { n: EK.low },
+    { key: 'common', kind: ZK.room, name: 'common room', look: 'Benches and tables around a hearth; a counter runs along the north side.', size: 'room', edges: { n: EK.low },
       links: [['bar', 'behind the counter, north', true], ['kitchen', 'the kitchen door, west', false], ['yard', 'the back door, east', false], ['upstairs', 'the stairs up', false]] },
-    { key: 'bar', kind: ZK.room, name: 'behind the counter', look: 'Kegs, cups and a shelf of bottles behind the counter.', size: 'cramped', background: 'busy', edges: { s: EK.low },
+    { key: 'bar', kind: ZK.room, name: 'behind the counter', look: 'Kegs, cups and a shelf of bottles behind the counter.', size: 'cramped', edges: { s: EK.low },
       links: [['common', 'over the counter, south', true]] },
     { key: 'kitchen', kind: ZK.room, name: 'kitchen', look: 'Pots over a fire, a long table, onions hanging from the beams.', size: 'small',
       links: [['common', 'the common room, east', false], ['cellar', 'the cellar hatch, down', false]] },

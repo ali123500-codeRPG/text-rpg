@@ -171,3 +171,10 @@ export function reachesAcross(state: GameState, a: string, b: string): boolean {
   const A = zoneById(state, a), B = zoneById(state, b);
   return !!A && !!B && A.links.some((l) => l.to === B.id) && reachesOver(A, B, getLibrary().edgeKinds ?? {});
 }
+
+/** BG-95: one rule for who knows whose name, player and NPC alike: their own, a public figure's (knownOnSight), a
+ * bandmate's, or one learned by hearing it said (learnNames) */
+export function knowsName(state: GameState, viewer: Actor, a: Actor): boolean {
+  if (a === viewer || a.knownOnSight || (viewer.bandId && viewer.bandId === a.bandId)) return true;
+  return !!(viewer.id === state.player.id ? state.player.journal?.namesKnown : viewer.mind?.namesKnown)?.includes(a.id);
+}
