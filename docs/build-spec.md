@@ -3117,6 +3117,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-64 | Spotting a sneaking NPC gave achievements but the story never said whom you spotted | 12/11/2026 | fixed | this PR |
 | BG-65 | Checking a door said nothing about whether it was locked | 12/11/2026 | fixed | this PR |
 | BG-66 | A step already taken was also offered as 'put off to next turn' | 12/11/2026 | fixed | this PR |
+| BG-67 | 'Tell her' went to the barkeep instead of the woman you were talking to | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
