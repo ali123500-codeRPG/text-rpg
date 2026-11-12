@@ -10,8 +10,8 @@ import { coinWords, coins } from '../engine/trade';
 import { buildPlayerView } from '../views';
 import type { WayView } from '../types/views';
 
-/** playstyles: the playtest script's --persona and the autopilot's persona picker */
-/** --persona eager: an over-enthusiastic adventurer who drives the story forward on their own (P7 pacing test) */
+/** playstyles: the playtest script's --persona and the autopilot's persona picker (eager: an over-enthusiastic adventurer
+ * who drives the story forward on their own, the P7 pacing test) */
 export const PERSONAS: Record<string, string> = {
   eager: `You are an over-enthusiastic adventurer. Never wait for the story to come to you: chase every lead, follow anyone
 who leaves, go through every door, ask about rumours and jobs, pick fights you think are just, and when a place goes quiet,
@@ -96,8 +96,6 @@ export const VOICE_STYLES: [string, string, string][] = [
   ['japanese', 'Speaks Japanese', `${COMPANION} Also add "ja" to your JSON: the same commentary in natural spoken Japanese.`],
 ];
 
-/** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
- *  own recent commentary, so it doesn't keep repeating itself */
 /** BG-26: what the character knows of itself, given every move so it never stops to look at its sheet */
 export function condition(s: GameState): string {
   const p = s.player, hurt = partStates(s, p).filter((x) => x.state !== 'healthy').map((x) => `${x.id.replace(/_/g, ' ')} ${PART_STATES.name(x.state)}`);
@@ -117,6 +115,8 @@ export function surroundings(s: GameState): string {
   return `Where you are: the ${v.zone.name}. Ways out you can see from here: ${ways.join('; ') || 'none'}.${known.length ? ` Other places you know, which a move can name: ${known.join('; ')}.` : ''} To leave, use only these: never head for a door, stair or path that isn't listed, however likely one seems (a tavern may have no cellar door you know of).`;
 }
 
+/** the per-turn part: the latest story lines, as the player sees them (spoken lines under the narration), and the agent's
+ *  own recent commentary, so it doesn't keep repeating itself */
 export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }, me?: GameState | null): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
   const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
