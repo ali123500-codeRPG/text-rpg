@@ -395,7 +395,7 @@ export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
 const CALL_HELP = { type: 'call_help', target: null, skill: null, intent: 'call for help' } as const;
 const sched = (id: string, brief: string, loop: boolean, steps: [string, Routine['steps'][0]['duration'], string][], alert: string | undefined, onAlert: Routine['onAlert']): Routine =>
   ({ id, brief, kind: 'schedule', loop, steps: steps.map(([slot, duration, activity]) => ({ slot, duration, activity })), ...(alert ? { alert } : {}), onAlert });
-const still = (id: string, kind: 'wait' | 'follow', activity: string, brief: string, alert?: string): Routine =>
+const still = (id: string, kind: 'wait' | 'follow' | 'head', activity: string, brief: string, alert?: string): Routine =>
   ({ id, brief, kind, loop: false, steps: [], activity, ...(alert ? { alert } : {}), onAlert: null });
 
 export const ROUTINES: Record<string, Routine> = Object.fromEntries([
@@ -414,6 +414,7 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
   still('follow', 'follow', 'walk', 'Follows the player', 'follow_alert'),
   still('follow_alert', 'follow', 'stand_watch', 'Follows the player, on guard'),
   still('idle_here', 'wait', 'rest', 'Fallback only; in no set'),
+  still('head_to', 'head', 'walk', 'Heads for the place its agent named, then back to its routine; in no set (NW2)'),
   { ...sched('prowl', 'Prowls unseen, stop by stop', true, [['route', 'short', 'prowl']], 'lie_low_alert', null), posture: 'stealthy' as const },
   { ...sched('lie_low_alert', 'Slips off to lie low, on alert', false, [['refuge', 'long', 'cower']], undefined, null), posture: 'stealthy' as const },
   sched('roam_field', 'Oozes across the field, then settles', true, [['route', 'short', 'ooze'], ['post', 'medium', 'rest']], 'roam_field_alert', null),

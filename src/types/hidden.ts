@@ -61,6 +61,11 @@ export type ScenarioFrame = {
   gains?: Pick<import('./game').ScenarioGains, 'skills' | 'perks' | 'allPerks'>;
   /** D-226: the player's XP log length, level and XP bar fill when it began (the summary's XP and levels count from there) */
   xpFrom?: number; xpStart?: { level: number; pct: number };
+  /** EG13: steps past Critical Success on its event roll (each pays GROWTH_ROLLS_PAST_CRIT more rolls at its end) */
+  beyond?: number;
+  /** SC4/EG13: while an inner scenario runs, the player's owed rolls and waiting achievements from this (outer) one, kept
+   * apart so the inner scenario pays only for its own; they come back when it resumes, or join the inner's if both end */
+  held?: { marks: string[]; pending?: { key: string; of?: string; reached?: number }[] };
 };
 /** SC8/SC15: why a Weaver check-in is asked */
 export type CheckinReason = 'beat' | 'budget' | 'judged' | 'stuck';
@@ -132,10 +137,10 @@ export type RoutineStep = { slot: string; duration: DurationId; activity: string
 export type Routine = {
   id: string;
   brief: string;
-  kind: 'schedule' | 'follow' | 'wait';
+  kind: 'schedule' | 'follow' | 'wait' | 'head'; // head (NW2): walk to slot 'dest', then back to the routine before it
   loop: boolean;
   steps: RoutineStep[]; // schedule only; [] otherwise
-  activity?: string; // follow and wait only
+  activity?: string; // follow, wait and head only
   alert?: string;
   onAlert: OrderTemplate | null;
   posture?: 'stealthy'; // NS: the actor keeps stealthy while on this routine (the thief's prowl)

@@ -2,7 +2,7 @@
 import type { Actor, AgreementMade, GameState, Trigger } from '../types';
 import { STANCES } from '../scales';
 import { CONFIG } from '../config';
-import { calmBandmatesSwitch, switchRoutine } from '../minds';
+import { calmBandmatesSwitch, headTo, switchRoutine } from '../minds';
 import { actorById, isActive, isEngaged, stance } from './relations';
 import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
@@ -105,8 +105,9 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
         else logCode(state, 'invalid_reveal', { actorId: a.id, secretId: id });
       }
     }
-    if (!routineId || !switchRoutine(state, a, routineId, 'agent')) continue;
-    if (!spokes.has(a.id)) continue;
-    calmBandmatesSwitch(state, a.id, routineId, ctx.heardExchange);
+    const switched = !!routineId && switchRoutine(state, a, routineId, 'agent');
+    if (switched && spokes.has(a.id)) calmBandmatesSwitch(state, a.id, routineId!, ctx.heardExchange);
+    // NW2: after any switch, so the walk goes back to the routine it just picked
+    if (o.output.headTo) headTo(state, a, o.output.headTo);
   }
 }

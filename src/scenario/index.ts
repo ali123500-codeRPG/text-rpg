@@ -4,7 +4,8 @@ import type { Tier } from '../types';
 /** repaired: code already fixed it (rewards); it never blocks a plan or asks for a repair call. */
 export type PlanError = { code: string; message: string; routineOnly: boolean; castKey?: string; repaired?: true };
 /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake */
-export type PlanContext = { tier: Tier; kind: 'scenario' | 'extension' | 'checkin'; frontierKey?: string; placeId: string; wake?: true };
+/** ahead (NW3): an extension built for an NPC heading through the frontier; the player is not moved in */
+export type PlanContext = { tier: Tier; kind: 'scenario' | 'extension' | 'checkin'; frontierKey?: string; placeId: string; wake?: true; ahead?: true };
 
 export { boon, gradesFitTier, tidyRewards, validateStagePlan } from './validate';
 /** applyStagePlan: apply a validated plan (minus routine-only errors when degrading). entry 'stealthy' skips opening beliefs.

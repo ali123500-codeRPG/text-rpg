@@ -679,7 +679,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     time: clockSet(state) ? timeView(state) : null,
     ways: WAYS_LEAN[state.stage.tier] ?? '',
     stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
-    target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
+    target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}), ...(target.ahead ? { ahead: true as const } : {}),
       ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
       ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
