@@ -286,7 +286,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };
   p.core.inventory.unshift(...starterKit(p)); // the starter kit reads the finished sheet's skills
-  grantThreadbound(p, CONFIG.ACCESSORY_SLOTS); // TB7: the Threadbound start's level 1 perk
+  grantThreadbound(p); // TB7: the Threadbound start's level 1 perk
   syncThreadbound(p, 0);
   return p;
 }

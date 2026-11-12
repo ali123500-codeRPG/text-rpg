@@ -1,4 +1,4 @@
-// 191 Threadbound items (D-218): the Gambler's Loop, one of a kind. It binds to the first who wears it; while its owner
+// 191 Threadbound items (D-218): the Varo's Loop, one of a kind. It binds to the first who wears it; while its owner
 // wears it, each ability opens once the owner has earned its event-roll achievement. Every ability widens the event roll
 // both ways: wider natural edges, more tiers past each Critical, a spread die, and two armed actives.
 import { describe, expect, it } from 'vitest';
@@ -22,7 +22,7 @@ const has = (a: Actor, perk: string) => a.core.perks.some((p) => p.perkId === pe
 /** the player carries the loop and has put it on */
 const worn = (earned: string[] = []) => {
   const s = makeVillage();
-  s.player.core.inventory.push({ id: LOOP, itemId: IT.gamblers_loop });
+  s.player.core.inventory.push({ id: LOOP, itemId: IT.varos_loop });
   applyGearOps(s, s.player, [{ op: 'wear_acc', item: LOOP }]);
   earn(s.player, ...earned);
   syncThreadbound(s.player, s.turn);
@@ -30,7 +30,7 @@ const worn = (earned: string[] = []) => {
 };
 const ev = (s: GameState, ...d: number[]) => ruleset.eventRoll(s.player, s, forcedRng(d));
 
-describe('191 the Gambler\'s Loop', () => {
+describe('191 the Varo\'s Loop', () => {
   it('binds to the first who wears it and gives nothing in anyone else\'s hands', () => {
     const s = worn([ACH.event_crit_1]);
     const inst = s.player.core.inventory.find((i) => i.id === LOOP)!;
@@ -49,10 +49,10 @@ describe('191 the Gambler\'s Loop', () => {
     expect(s.player.core.perks.some((p) => p.source === 'item')).toBe(false);
     earn(s.player, ACH.event_crit_fail_1);
     syncThreadbound(s.player, s.turn);
-    expect(has(s.player, PK.both_ends_open)).toBe(true);
+    expect(has(s.player, PK.twin_abyss)).toBe(true);
     applyGearOps(s, s.player, [{ op: 'remove_acc', item: LOOP }]);
     syncThreadbound(s.player, s.turn);
-    expect(has(s.player, PK.both_ends_open)).toBe(false);
+    expect(has(s.player, PK.twin_abyss)).toBe(false);
   });
 
   it('Loose Odds shifts the 5 naturals just inside each critical range a tier outward, wherever opened tiers put it', () => {
@@ -69,7 +69,7 @@ describe('191 the Gambler\'s Loop', () => {
     expect(at(8, false)).toBe('Failure');
   });
 
-  it('Both Ends Open and Further Still open tiers past each Critical', () => {
+  it('Twin Abyss and Beyond the Last Thread open tiers past each Critical', () => {
     expect(tierReach(worn([ACH.event_crit_fail_1]).player, 'event')).toEqual({ up: 1, down: 2 }); // the scar's own + the loop's
     const both = worn([ACH.event_crit_fail_1, ACH.event_crit_fail_3]);
     const loop = tierReach(both.player, 'event');
@@ -115,7 +115,7 @@ describe('191 the Gambler\'s Loop', () => {
   it('the Weaver does not place Threadbound items (D-220) and cannot mint one', () => {
     const s = makeVillage();
     const zone = s.stage.zoneIds[0];
-    const plan = { event: { gain: 'extreme' }, rewards: [{ item: IT.gamblers_loop, place: { groundIn: zone } }, { item: { base: IT.gamblers_loop, quality: 1, name: 'x', look: 'x', boosts: 'hitAdj' }, place: { groundIn: zone } }] } as unknown as StagePlan;
+    const plan = { event: { gain: 'extreme' }, rewards: [{ item: IT.varos_loop, place: { groundIn: zone } }, { item: { base: IT.varos_loop, quality: 1, name: 'x', look: 'x', boosts: 'hitAdj' }, place: { groundIn: zone } }] } as unknown as StagePlan;
     expect(tidyRewards(s, plan).rewards).toHaveLength(0);
   });
 });

@@ -18,6 +18,11 @@ import { AM } from '../library/tableIds';
 
 export const isHeld = (i: ItemInstance) => !!i.equippedIn?.some((s) => s.startsWith('hand:'));
 export const isWorn = (i: ItemInstance) => !!i.equippedIn?.some((s) => s === 'armor' || s.startsWith('acc:'));
+/** the actor's first free accessory slot, if any */
+export function freeAccSlot(a: Actor): string | undefined {
+  const used = new Set(a.core.inventory.flatMap((i) => i.equippedIn ?? []));
+  return Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
+}
 export const handsOf = (i: ItemInstance) => (i.equippedIn ?? []).filter((s) => s.startsWith('hand:')).map((s) => s.slice(5));
 
 type Active = { inst: ItemInstance; def: ItemDef; e: ItemEffect; source: string };

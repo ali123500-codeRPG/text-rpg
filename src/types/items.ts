@@ -36,7 +36,7 @@ export type ItemDef = {
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
   /** D-218 Threadbound: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each
    * grant's perk is theirs once they have earned its achievement (src/ruleset/threadbound.ts) */
-  threadbound?: { grants: { perk: LibraryRef; achievement: string }[] };
+  threadbound?: { myth: import('../scales').MythRankKey; grants: { perk: LibraryRef; achievement: string }[] }; // myth: TB11, its Myth rank
 };
 
 export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';
