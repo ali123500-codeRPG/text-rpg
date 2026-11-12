@@ -1052,9 +1052,11 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       if (!walk(ctx, state.player, goal, po, (n) => (n === 0 ? useMoveSlot(ctx, state.player, false) : null), opts)) logCode(state, 'move_dropped', { actorId: state.player.id, to: po.move });
       po.move = null;
     }
+    // BG-83: said at the volume the player chose (whisper, normal, shout), heard as loud as that
+    const volume = input.intent?.volume ?? 'normal';
     const ev = mk(ctx, state.player, 'speak', {
       // a wordless opening (talk with no line) has no line to show or remember
-      ...(input.intent?.spoken?.trim() ? { line: { text: input.intent.spoken, volume: 'normal' as const } } : {}), tier: ex.playerTier,
+      ...(input.intent?.spoken?.trim() ? { line: { text: input.intent.spoken, volume } } : {}), noise: VOLUME_NOISE[volume], tier: ex.playerTier,
       speech: { skill: ex.skill, impression: ex.impression ?? undefined, addressees: input.spokespeople },
     });
     emit(ctx, ev);

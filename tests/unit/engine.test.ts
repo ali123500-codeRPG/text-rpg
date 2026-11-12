@@ -76,7 +76,11 @@ vi.mock('../../src/ruleset', async (orig) => {
   };
 });
 
-vi.mock('../../src/perception', () => ({
+vi.mock('../../src/perception', async () => {
+  const { hearingOf } = await import('../../src/perception/noise');
+  return {
+  // the real sound reach, without hearing perks
+  hearsClearly: (state: GameState, from: Actor, l: Actor, noise: string) => hearingOf(state, noise as never, from, l) === 'full',
   // everyone in the event's zone (or the zone it left) perceives it fully
   computePerception: (ev: GameEvent, state: GameState) =>
     Object.fromEntries([state.player, ...state.actors].filter((a) => a.zone === ev.zone || a.zone === ev.fromZone).map((a) => [a.id, { level: 'full', cue: 'sight' }])),
@@ -96,7 +100,8 @@ vi.mock('../../src/perception', () => ({
   stealthEnd: () => {},
   lookAround: () => [],
   noticeCue: () => undefined,
-}));
+  };
+});
 
 vi.mock('../../src/views', () => ({
   buildActorView: (state: GameState, id: string) => {

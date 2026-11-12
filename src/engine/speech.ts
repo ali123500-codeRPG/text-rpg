@@ -13,8 +13,8 @@ import { tally } from './xp';
 import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
 import { countTry, repeatTryMods } from '../ruleset/pressure';
-import { hearsWords } from '../perception';
-import { hearingOf, VOLUME_NOISE } from '../perception/noise';
+import { hearsClearly, hearsWords } from '../perception';
+import { VOLUME_NOISE } from '../perception/noise';
 
 export const SPEECH_SKILL: Record<string, string> = {
   talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.lying, intimidate: SK.intimidation, barter: SK.barter,
@@ -84,7 +84,7 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
 /**
  * Dialogue turn step 2, with OQ-27 (c): for an addressed band, the sticky partner (state.stage.partner, the NPC the
  * player last spoke with this scenario) answers if it is an active member in reach; else the nearest member.
- * GAP: "everyone in earshot" read as NPCs in the player's zone or one link away.
+ * "everyone": those who hear the player's voice clearly where they stand (hearsClearly).
  */
 /** A15 Quick Word: in a fight, a one-sentence line said beside a non-speech action resolves as talk without using the
  * action, and the NPCs' spoken replies to it are free too */
@@ -109,7 +109,7 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   };
   for (const ad of intent.addressees) {
     if (ad === 'everyone') {
-      const heard = live.filter((a) => hearingOf(state, VOLUME_NOISE[intent.volume ?? 'normal'], state.player, a) === 'full'); // who hears the player's voice clearly (BG-57, BG-71)
+      const heard = live.filter((a) => hearsClearly(state, state.player, a, VOLUME_NOISE[intent.volume ?? 'normal'])); // who hears the player's voice clearly (BG-57, BG-71, BG-88)
       const bands = [...new Set(heard.map((a) => a.bandId))].map((b) => ({ b, m: nearest(heard.filter((a) => a.bandId === b))! }));
       bands.sort((x, y) => dist(x.m) - dist(y.m) || (x.m.id < y.m.id ? -1 : 1));
       for (const { b, m } of bands) take(b, m);

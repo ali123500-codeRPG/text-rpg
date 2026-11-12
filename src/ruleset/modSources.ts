@@ -4,7 +4,7 @@
 import { modeName } from './gear';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
-import { GRADE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, type MoraleLevel } from '../scales';
+import { GRADE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel, type PartStateKey } from '../scales';
 import { GRADES } from '../types/core';
 import { gradeMod } from './index';
 import { MILESTONES } from './perks';
@@ -85,7 +85,7 @@ export const MOD_SOURCES: ModSource[] = [
     value: CONFIG.MORALE_TRACK.filter(([, , v]) => v).map(([k, , v]) => `${MORALE_LEVELS.name(k as MoraleLevel)} ${sg(v as number)}`).join(' · ') },
   { type: 'wounds', roll: 'skill', source: 'Role wounds', at: 'src/ruleset/body.ts',
     when: 'Rolls whose skill uses a body role (grip, strike, sense …) on a damaged or crippled part. Shared roles split it across their parts; a crippled sense part hits every roll.',
-    value: list(CONFIG.ROLE_PENALTY) },
+    value: list(Object.fromEntries(Object.entries(CONFIG.ROLE_PENALTY).map(([k, v]) => [PART_STATES.name(k as PartStateKey), v]))) }, // BG-91
   { type: 'wounds', roll: 'skill', source: 'Essential part crippled', at: 'src/ruleset/body.ts',
     when: 'Every roll while any essential part (head, neck …) is Crippled or worse; once, however many such parts.', value: sg(CONFIG.ESSENTIAL_CRIPPLED_PENALTY) },
   { type: 'wounds', roll: 'skill', source: 'Shield damaged', at: 'src/ruleset/body.ts', when: 'Block rolls with a Damaged shield.', value: sg(CONFIG.ROLE_PENALTY.damaged) },
