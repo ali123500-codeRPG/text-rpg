@@ -569,7 +569,7 @@ Every actor gets exactly one order per turn, from the first controller in this o
 | Significant and engaged | One Planner call | Engaged = active, and believes (suspicious or higher) in an active actor it is hostile to |
 | Minor and engaged | Its type's combat list (Fallback behavior) | \[Proposed\] |
 | Over the call cap | Its type's combat list | \[Proposed\] |
-| First leaving unaware of a wary actor (opposed or hostile toward it), or first perceiving an attack or alarm | Its routine's onAlert order, once | Then the alert variant of the routine it was following, until DECAY\_TURNS pass with no attack or alarm perceived; then it returns to the routine saved in returnTo. |
+| First leaving unaware of a wary actor (opposed or hostile toward it), or first perceiving an attack or alarm | Its routine's onAlert order, once, on the next turn only: a higher order that turn (trigger, flight, its agent) spends it (BG-94) | Then the alert variant of the routine it was following, until DECAY\_TURNS pass with no attack or alarm perceived; then it returns to the routine saved in returnTo. |
 | Not engaged | Its routine's desired state | Even during a Tactical turn; companions default to follow |
 | No valid order | Engaged: its type's combat list. Not engaged: its routine's desired state | Failed or late calls, dropped orders |
 
@@ -3166,6 +3166,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-91 | The library viewer's Stacking tab still showed part-state keys (damaged, crippled) for wound penalties instead of their names (bug-fix review, sibling of BG-76). Fixed: the row reads the part-state scale's names | 12/11/2026 | fixed | this PR |
 | BG-92 | Run 74b turn 22: a figure half seen back in Mill Lane, 2.5 km south, was narrated as "resolving into" the man in the alder hollow beside the player, so the player thought south led west. The Narrator had no place for half-seen actors and no rule against merging them with someone else. Now every seen actor, half-seen included, carries side and distance in the narration view, and Narrator rule 23 keeps each person apart. | 12/11/2026 | fixed | this PR |
 | BG-93 | Kishirika study: an NPC wrote a stage direction inside its spoken line ("*She's already got half of it in her mouth* Mmf."). One rule for every speaker now: Planner, Responder and Voice prompts say a line holds only words said aloud, the Parser says the same for the player's spoken, and code cuts *...* and [...] from every NPC line and the player's spoken as a backstop (logged as stage_direction) | 12/11/2026 | fixed | this PR |
+| BG-94 | Run 74c turn 25: Hobb the tinker called for help as the player walked up to look at his packs, three turns after his alarm rose (turn 22), in the middle of a calm talk. The onAlert shout was queued at the alarm, but his own agent spoke for him on turns 23 and 24, so the shout waited and fired on the first turn with no agent order. onAlert is now the reaction of the moment: an actor whose turn a higher order takes (trigger, flight, its agent) has spent it, and alertOrders drops a shout more than one turn old | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 

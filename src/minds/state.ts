@@ -174,6 +174,7 @@ export function alertOrders(state: GameState, views: ActorView[]): Order[] {
     const due = alarm?.onAlertDue;
     if (!due) continue;
     delete alarm!.onAlertDue;
+    if (state.turn - (alarm!.lastAlarmTurn ?? state.turn) > 1) continue; // BG-94: only the turn after the alarm, never a stale shout
     const tpl = getRoutine(due).onAlert;
     if (tpl) out.push(bindTemplate(tpl, v, { source: 'onAlert' }));
   }
