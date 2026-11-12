@@ -30,7 +30,7 @@ export function playerView(): PlayerView {
 export function actorView(id = 'guard_1'): ActorView {
   return {
     turn: 3,
-    time: { day: 1, timeOfDay: 'Day' },
+    time: { day: 1, timeOfDay: 'Morning' },
     personality: 'Nerve: Steady (Calm right now). Disciplined. Values: duty.',
     self: {
       id, label: 'a gate guard', name: 'Bertram', kind: 'npc', zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch',
@@ -61,7 +61,7 @@ export function dialogueView(id = 'trader'): DialogueView {
 export function narrationView(): NarrationView {
   return {
     style: { tone: 'grounded low fantasy', length: '2 to 4 short paragraphs' },
-    time: { day: 1, timeOfDay: 'Day' },
+    time: { day: 1, timeOfDay: 'Morning' },
     events: [
       { id: 'e1', kind: 'presence', level: 'full', cue: 'sight', actor: 'an old drinker', activityLook: 'nursing a mug' },
       { id: 'e2', kind: 'move', level: 'partial', cue: 'sound', where: 'behind the bar' },

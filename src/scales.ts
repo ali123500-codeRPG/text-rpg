@@ -101,7 +101,7 @@ export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
 export const LIFE_STAGES = scale([['stage_0', 'Child'], ['stage_1', 'Youth'], ['stage_2', 'Adult'], ['stage_3', 'Middle-aged'], ['stage_4', 'Old'], ['stage_5', 'Venerable'], ['stage_6', 'Ancient']]);
 export type LifeStageKey = (typeof LIFE_STAGES.keys)[number];
 /** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
-export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]);
+export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['morning', 'Morning'], ['afternoon', 'Afternoon'], ['dusk', 'Dusk'], ['evening', 'Evening'], ['night', 'Night']]);
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
 export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);

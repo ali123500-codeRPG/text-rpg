@@ -211,9 +211,10 @@ const DEFAULTS = {
   MORALE_SHOWN_FROM: 'afraid',
   REST_COOLDOWN_MIN: 240, // T7: game minutes between rests (placeholder)
   // ---- game clock (T1-T8); durations per action are the library's durations table ----
-  TIME_OF_DAY_FROM: { dawn: 5 * 60, day: 7 * 60, dusk: 18 * 60, night: 20 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
-  SKY_LIGHT: { dawn: 'dim', day: 'bright', dusk: 'dim', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
-  TIME_TAGS: { dawn: ['day', 'night'], day: ['day'], dusk: ['day', 'night'], night: ['night'] } as Record<string, string[]>, // T3b: routine-set time tags that fit
+  TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
+  SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'dark', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
+  ROAD_DARK: ['dusk', 'evening', 'night'] as string[], // TV: road trips stop for the dark at these times of day
+  TIME_TAGS: { dawn: ['day', 'night'], morning: ['day'], afternoon: ['day'], dusk: ['day', 'night'], evening: ['night'], night: ['night'] } as Record<string, string[]>, // T3b: routine-set time tags that fit
   REST_HEAL_PCT: 25,
   STARTING_BANDAGES: 2, // H2 (placeholder)
   CLINIC_HEAL_PCT: 100,

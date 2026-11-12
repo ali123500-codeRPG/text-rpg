@@ -180,7 +180,7 @@ describe('Parser legality', () => {
     expect(r.intent!.action!.target).toBe('dusk');
     claude.push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'late evening' } }))
       .push('parser', intentOf({ action: { ...intentOf().action!, type: 'wait', skill: '', target: 'late evening' } }));
-    expect((await callParser('I wait until late evening', playerView(), ctx)).clarify).toBe('Until when? You can wait until dawn, day, dusk or night.');
+    expect((await callParser('I wait until late evening', playerView(), ctx)).clarify).toBe('Until when? You can wait until dawn, morning, afternoon, dusk, evening or night.');
   });
   it('a sneak with a move keeps both (ST3: the posture is free)', async () => {
     const { claude, ctx } = setup();
