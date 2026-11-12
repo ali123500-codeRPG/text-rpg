@@ -49,7 +49,7 @@ export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: t
 /** SD3–SD5, BA2–BA7: a door, gate, grate or blocked passage on a way. One record serves both sides; the links on each side
  * name it by id. Breaking one (wear, material, thickness) belongs to the walls thread; this record leaves room for it. */
 export type WayDid = 'unlocked' | 'unbarred' | 'found_locked' | 'found_barred' | 'found_blocked' | 'lock' | 'unlock' | 'bar' | 'unbar'
-  | 'picked' | 'picking' | 'not_yet' | 'beyond' | 'pick_broke';
+  | 'picked' | 'picking' | 'not_yet' | 'beyond' | 'pick_broke' | 'found_open' | 'found_opens';
 export type Barrier = {
   id: string;
   kind: string; // a barrier kind id (BK, library barrierKinds)
@@ -140,7 +140,7 @@ export type GameEvent = {
   spot?: string; // BG-12: a move to a spot in a zone, in words ("to the north side", "away from the cellar steps")
   /** SD3–SD5, BA2–BA4: something done at a barrier on the way to `to`: opened on the way through (unlocked, unbarred), found
    * shut by trying it (locked, barred, blocked), turned or slid on purpose (lock, unlock, bar, unbar), or picked (BA2) */
-  way?: { to: string; barrier: string; did: WayDid };
+  way?: { to: string; barrier?: string; did: WayDid }; // barrier: none on a way with nothing to lock (BG-65)
   fall?: { metres: number; damage: number; landing: string }; // SD7: a jump down a drop link: the drop, the flat damage, the landing roll's tier name
   vanish?: true; // ST11–ST19: the player's Vanish move (breaks the sight of those who see them)
   activity?: string; // idle / presence: ActivityDef id
