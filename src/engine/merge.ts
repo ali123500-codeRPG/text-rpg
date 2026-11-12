@@ -107,8 +107,8 @@ function npcMove(state: GameState, o: AcceptedAgentOutput): Partial<Order> {
 }
 
 export function agentLine(o: AcceptedAgentOutput): Order['line'] {
-  if (o.agent === 'voice') return o.output.line ? { text: o.output.line, volume: o.output.volume, introduces: o.output.introduces } : null;
-  return o.output.dialogue ? { text: o.output.dialogue.line, volume: o.output.dialogue.volume, introduces: o.output.dialogue.introduces } : null;
+  if (o.agent === 'voice') return o.output.line ? { text: o.output.line, volume: o.output.volume } : null;
+  return o.output.dialogue ? { text: o.output.dialogue.line, volume: o.output.dialogue.volume } : null;
 }
 
 /** the agent outputs that count this turn: dialogue calls for spokespeople, the Responder for beat speakers (BG-50), Planner for

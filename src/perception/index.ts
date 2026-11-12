@@ -230,7 +230,7 @@ export function updateBeliefs(state: GameState, update: BeliefUpdate): void {
   for (const [obsId, p] of Object.entries(e.perception)) {
     const o = actorById(state, obsId);
     if (!o || o.id === e.actorId) continue;
-    // names the player learns from a line are written only by applyIntroduces (engine), which checks the speaker's knows
+    // names heard in a line are learned by learnNames (engine, BG-95)
     if (!o.mind || !sender) continue;
     const cur = o.mind.knowledge[e.actorId]?.status;
     write(o, e.actorId, {

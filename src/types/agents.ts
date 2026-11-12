@@ -95,7 +95,7 @@ export type NpcMove = { toZone: string; after?: boolean };
 export type PlannerOutput = {
   action: NpcAction;
   move?: NpcMove | null;
-  dialogue: { line: string; volume: Volume; introduces?: string[] } | null;
+  dialogue: { line: string; volume: Volume } | null;
   gear: GearOp[] | null;
   stance: StanceStep | null;
   planUpdate: PlanUpdate | null;
@@ -114,7 +114,6 @@ export type VoiceOutput = {
   line: string;
   volume: Volume;
   shares: string[];
-  introduces?: string[];
   gear: GearOp[] | null;
   stance: StanceStep | null;
   routine: string | null;

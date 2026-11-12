@@ -138,7 +138,7 @@ export type GameEvent = {
   spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):
-  line?: { text: string; volume: import('./agents').Volume; introduces?: string[] };
+  line?: { text: string; volume: import('./agents').Volume };
   fromZone?: string; // moves
   beside?: true; // BG-81: a walk at someone (target) that reached them
   fromPos?: { x: number; y: number }; // BG-23: a leg that left a zone: where in fromZone it set off

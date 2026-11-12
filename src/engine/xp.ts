@@ -6,6 +6,7 @@ import { classMaxLevel, classPerks } from '../library/spawn';
 import { hasPerk, trueSkill } from '../ruleset/perks';
 import { isActive, stance } from './relations';
 import { logCode } from './effects';
+import { callName } from '../views';
 import { isHeld, isWorn, tierMult } from '../ruleset/gear';
 import { itemValue } from '../ruleset/value';
 import { ruleMet, skillOpen } from '../ruleset/access';
@@ -371,8 +372,7 @@ export function kindName(state: GameState, d: AchievementDef, of?: string): stri
   if (d.by === 'skill' && a.of) what = skillName(a.of);
   if ((d.by === 'heal_source' || d.by === 'morale_source') && a.of) what = sourceRowName(d, a.of);
   if (d.by === 'giver' && a.of) { // the giver's name once the player knows it, else how the player sees them
-    const g = state.actors.find((x) => x.id === a.of);
-    what = !g ? 'someone' : g.knownOnSight || state.player.journal?.namesKnown.includes(g.id) ? g.names.current : g.label;
+    what = state.actors.some((x) => x.id === a.of) ? callName(state, state.player.id, a.of) : 'someone';
   }
   return what;
 }
