@@ -144,6 +144,12 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     // a fired trigger or Flee wins; the call's line is kept only as a bark
     else if (!cur.line && o.line) out.set(id, { ...cur, line: o.line });
   }
+  // BG-94: onAlert is the reaction of the moment the alarm rises. An actor whose turn a higher order already takes (a trigger,
+  // flight, its own agent) has reacted another way, so the shout is spent, never saved for a later, calmer turn.
+  for (const id of out.keys()) {
+    const alarm = actorById(state, id)?.mind?.alarm;
+    if (alarm?.onAlertDue) delete alarm.onAlertDue;
+  }
   const pendingViews = ids.filter((id) => !out.has(id)).map((id) => views.get(id)!);
   for (const o of alertOrders(state, pendingViews)) if (!out.has(o.actorId) && views.has(o.actorId)) out.set(o.actorId, o);
   for (const id of ids) {
