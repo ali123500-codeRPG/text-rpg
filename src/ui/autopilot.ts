@@ -5,7 +5,8 @@
 import type { GameApi } from '../types';
 import { h } from './kit';
 import { PERSONA_NAMES, VOICE_STYLES, autoPerk, plainLine } from '../agents/autopilot';
-import { type Mcp, type McpError, RPG_DEFAULT_VOICE, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices } from './rpgVoice';
+import { type Mcp, type McpError, RPG_DEFAULT_VOICE, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices, splitLine } from './rpgVoice';
+import { CONFIG } from '../config';
 import { type Crossroad, type TurnSnap, askKey, spotCrossroads, turnSnap } from '../agents/crossroads';
 import { getLibrary } from '../library';
 import { recommendedBuild } from '../library/spawn';
@@ -84,27 +85,40 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   }
   /** acted out by the RPG Voice (its tags and the acting note), else read in the chosen Claude voice (Japanese as Japanese);
    *  where neither can speak, the line is only shown */
-  function speak(text: string, ja = '', direction = '') {
-    if (!prefs.voice || !text) return;
+  /** acted out by the RPG Voice (its tags and the acting note), else read in the chosen Claude voice (Japanese as Japanese);
+   *  where neither can speak, the line is only shown. Resolves once the voice has started (or won't): the RPG Voice makes
+   *  the whole clip before it plays, so its first sentence is asked for on its own beside the rest and starts sooner. */
+  function speak(text: string, ja = '', direction = ''): Promise<void> {
+    if (!prefs.voice || !text) return Promise.resolve();
     hush();
     const seq = speakSeq, line = ja || text, v = rpgVoice();
-    if (!v || rpgDown) return claudeSpeak(plainLine(line), !!ja);
+    if (!v || rpgDown) { claudeSpeak(plainLine(line), !!ja); return Promise.resolve(); }
     talking = true; update();
-    rpgSpeak(mcp!, line, direction, v).then((url) => {
-      if (seq !== speakSeq || !prefs.voice) return;
-      const a = new Audio(url);
-      a.playbackRate = prefs.rate;
-      audio = a; voiceNote = '';
-      const done = () => { if (audio === a) { audio = null; talking = false; update(); } };
-      a.onended = done; a.onerror = done;
-      a.play().catch(() => { done(); voiceNote = 'The browser held the voice back: click anywhere on the page, and the next line is heard.'; update(); });
-      if (!listed) { listed = true; void rpgVoices(mcp!).then((l) => { if (l) { voices = l; update(); } }, () => undefined); }
-    }, (e: McpError) => {
-      if (seq !== speakSeq) return;
-      const f = rpgFailure(e);
-      rpgDown = f.down; talking = false;
-      claudeSpeak(plainLine(line), !!ja);
-      voiceNote = f.note; update();
+    const chunks = splitLine(line), clips = chunks.map((c) => rpgSpeak(mcp!, c, direction, v));
+    clips.forEach((c) => c.catch(() => undefined)); // each failure is handled when its turn to play comes
+    return new Promise<void>((started) => {
+      const play = (i: number) => clips[i].then((url) => {
+        if (seq !== speakSeq || !prefs.voice) return started();
+        const a = new Audio(url);
+        a.playbackRate = prefs.rate;
+        audio = a; voiceNote = '';
+        const done = () => {
+          if (audio !== a) return;
+          audio = null;
+          if (i + 1 < clips.length && seq === speakSeq) void play(i + 1);
+          else { talking = false; update(); }
+        };
+        a.onended = done; a.onerror = done;
+        a.play().then(() => started(), () => { audio = null; talking = false; voiceNote = 'The browser held the voice back: click anywhere on the page, and the next line is heard.'; update(); started(); });
+        if (!listed) { listed = true; void rpgVoices(mcp!).then((l) => { if (l) { voices = l; update(); } }, () => undefined); }
+      }, (e: McpError) => {
+        if (seq !== speakSeq) return started();
+        const f = rpgFailure(e);
+        rpgDown = f.down; talking = false;
+        claudeSpeak(plainLine(chunks.slice(i).join(' ')), !!ja);
+        voiceNote = f.note; update(); started();
+      });
+      void play(0);
     });
   }
   function claudeSpeak(line: string, ja: boolean) {
@@ -195,7 +209,8 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
         }
       }
       if (!command) continue;
-      if (voice) speak(...voice);
+      // the command waits for the voice to start (at most AUTOPILOT_VOICE_WAIT_MS), so what you hear matches the move
+      if (voice) { set('Finding the words…'); await Promise.race([speak(...voice), sleep(CONFIG.AUTOPILOT_VOICE_WAIT_MS)]); if (!playing) break; }
       set('Typing…');
       before = api.state() ? turnSnap(api.state()!) : null;
       await typeAndSend(command);

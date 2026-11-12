@@ -448,6 +448,7 @@ const DEFAULTS = {
   GUIDED_COIN_SHARE: 0.25, // GA9: the guided agent asks before spending more than this share of the coin in one go
   AUTOPILOT_INFO_EVERY: 8, // BG-25: the autopilot looks at /stats, /inv or /quests at most once in this many moves
   AUTOPILOT_SAID_KEPT: 6, // the agent's last commentary lines it is shown, so it doesn't repeat its words
+  AUTOPILOT_VOICE_WAIT_MS: 6000, // the agent's command waits up to this long for its spoken line to start, so voice and move line up
   AUTOPILOT_TIMEOUT_MS: 60_000, // a Watch-an-agent-play move that takes longer is given up and asked again, so the bar never hangs
   MAX_ROUTE_ZONES: 4, // Q2
   PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, knows: 5 }, // Q2

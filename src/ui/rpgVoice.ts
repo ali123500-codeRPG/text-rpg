@@ -47,3 +47,16 @@ export function rpgFailure(e: McpError): { note: string; down: boolean } {
     default: return { note: 'RPG Voice didn’t answer in time, so Claude’s voice read this line.', down: false };
   }
 }
+
+/** a line split for speed: its first sentence (at least FIRST_CHUNK_MIN characters, Japanese counting twice) and the
+ *  rest, asked for side by side, so the voice starts after a short clip is made instead of the whole line; one piece when it has no later sentence */
+const FIRST_CHUNK_MIN = 12;
+export function splitLine(t: string): string[] {
+  const end = /[.!?…。！？]+["”’)」]*\s*/g;
+  for (let m = end.exec(t); m; m = end.exec(t)) {
+    const at = m.index + m[0].length;
+    if (at + (t.slice(0, at).match(/[\u3000-\u9fff\uff00-\uffef]/g)?.length ?? 0) >= FIRST_CHUNK_MIN) { // a Japanese character counts twice
+      const a = t.slice(0, at).trim(), b = t.slice(at).trim(); return b ? [a, b] : [a]; }
+  }
+  return [t.trim()];
+}
