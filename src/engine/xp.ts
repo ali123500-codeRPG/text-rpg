@@ -184,7 +184,9 @@ export function unlockClasses(state: GameState): void {
   }
 }
 
-/** X4/X5, RS7: an NPC pays once, whatever its stance, when it is down and the player hit it, or when it surrendered to the player.
+/** X4/X5, RS7: an NPC pays once, whatever its stance, when it is down and the player hit it, or when it surrendered or
+ * broke (fled) while it was fighting the player: both turn its stance toward the player to yielded (Q1, Q4).
+ * Defeated means Down, yielding, a morale break or fleeing, for foes as for the player.
  * Returns the actors the player defeated this turn. */
 export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
   const defeated: Actor[] = [];
@@ -202,10 +204,10 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
   for (const t of state.actors) {
     const m = t.mind;
     if (!m || m.xpPaid) continue;
-    // a foe that surrendered to the player has yielded to it (Q1); fled or untouched: nothing
-    if (isActive(t) ? m.moraleState !== 'surrendered' || stance(state, t, state.player) !== 'yielded' : !m.hitByPlayer) continue;
+    // a foe that surrendered or broke while fighting the player has yielded to it (Q1, Q4); untouched: nothing
+    if (isActive(t) ? !m.moraleState || stance(state, t, state.player) !== 'yielded' : !m.hitByPlayer) continue;
     m.xpPaid = true;
-    awardXp(state, killXp(state, t), `defeat:${t.id}`);
+    awardXp(state, defeatXp(state, t), `defeat:${t.id}`);
     defeatAchievements(state, t);
     defeated.push(t);
   }
@@ -247,14 +249,14 @@ export function gearRating(state: GameState, a: Actor): number {
 export const power = (state: GameState, a: Actor): number => rating(a) + gearRating(state, a);
 
 /** XP shrinks for foes much weaker than the player: min(1, TAPER × theirs ÷ mine) (X19). Defeat XP and defeat quests (QX2) share it. */
-export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1);
+export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.min(1, (CONFIG.DEFEAT_XP_TAPER * theirs) / mine) : 1);
 
-/** Defeat XP = foe power × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
+/** Defeat XP = foe power × taper (weak foes, X19) × DEFEAT_XP_MULT (X20). Stats only: no dice, no override (X13).
  * Power counts gear on both sides. */
-export function killXp(state: GameState, t: Actor): number {
+export function defeatXp(state: GameState, t: Actor): number {
   const theirs = power(state, t), mine = power(state, state.player);
   const taper = weakFoeTaper(theirs, mine);
-  return Math.round(theirs * taper * CONFIG.KILL_XP_MULT * 10) / 10;
+  return Math.round(theirs * taper * CONFIG.DEFEAT_XP_MULT * 10) / 10;
 }
 
 const title = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

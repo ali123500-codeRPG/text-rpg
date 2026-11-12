@@ -89,8 +89,12 @@ export function naturalEdge(d: number): -2 | -1 | 0 | 1 | 2 {
   return d === 1 ? -2 : d <= 5 ? -1 : d === 100 ? 2 : d >= 96 ? 1 : 0;
 }
 const sumShifts = (s: TierShift[]) => s.reduce((t, x) => t + x.value, 0);
-function tierOf(d: number, skill: number, mods: Mod[], shifts: TierShift[], reach: Reach = NO_REACH): number {
-  const margin = d + CONFIG.SKILL_WEIGHT * skill + modTotal(mods) - CONFIG.ROLL_NEEDED;
+/** Part 1 §4: the margin of a skill roll */
+export const rollMargin = (d: number, skill: number, mods: Mod[]) => d + CONFIG.SKILL_WEIGHT * skill + modTotal(mods) - CONFIG.ROLL_NEEDED;
+/** the tier level of a skill roll: the margin's band, any unlocked extra bands, the natural edge and tier shifts. Rolls and
+ * the Equations tab's tables both read it. */
+export function tierOf(d: number, skill: number, mods: Mod[], shifts: TierShift[], reach: Reach = NO_REACH): number {
+  const margin = rollMargin(d, skill, mods);
   return band(margin) + extraBands(margin, reach) + naturalEdge(d) + sumShifts(shifts);
 }
 
@@ -143,10 +147,10 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
     modifiers.push(...foeMods(req.against ? [state.player, ...state.actors].find((x) => x.id === req.against) : undefined, req.rollKind)); // All-50: Dodgy
   }
   const d = rng.d100();
-  const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
+  const margin = rollMargin(d, eff.value, modifiers);
   const shifts = [...req.tierShifts];
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on
-  let level = band(margin) + extraBands(margin, tierReach(actor, req.rollKind)) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
+  let level = tierOf(d, eff.value, modifiers, shifts, tierReach(actor, req.rollKind)); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
   const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), ...(req.rollKind ? { rollKind: req.rollKind } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
@@ -372,7 +376,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   // A6 Leg Bolt: a medium or heavy ranged hit that does damage to a part with the move role
   const legBolt = ranged && (mode.class === 'medium' || mode.class === 'heavy') && damage > 0 && hasPerk(A, PK.leg_bolt)
     && !!ct.parts.find((p) => p.id === location)?.roles.includes(RL.move);
-  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...strike, ...(openArm ? { generalShare } : {}), ...(legBolt ? { legBolt } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, PK.shield_breaker) ? { shieldMult: 2 } : {}) } : {}) };
+  return { ...base, defense: def, defenseType: type, gap, gapShifts, outcome, location, locationHow, multiplier, damage, deciding, ...strike, ...(openArm ? { generalShare } : {}), ...(legBolt ? { legBolt } : {}), ...(location === 'shield' ? { shieldItemId: blocker!.id, ...(mode.tree === 'melee' && mode.class === 'heavy' && hasPerk(A, PK.shield_breaker) ? { shieldMult: CONFIG.SHIELD_BREAKER_MULT } : {}) } : {}) };
 }
 
 function applyEffects(result: CheckResult | ContestResult | AttackResult, state: GameState): Effect[] {

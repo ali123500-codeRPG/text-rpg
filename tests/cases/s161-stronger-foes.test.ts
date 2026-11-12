@@ -50,12 +50,12 @@ describe('161 stronger foes', () => {
 
 describe('161 one power measure', () => {
   it('defeat XP and the stronger-foe gap read the same power (rating + gear rating)', async () => {
-    const { power, killXp } = await import('../../src/engine/xp');
+    const { power, defeatXp } = await import('../../src/engine/xp');
     const { CONFIG } = await import('../../src/config');
     const s = makeVillage();
     const guard = actor(s, 'guard_1');
     expect(power(s, guard)).toBeCloseTo(rating(guard) + gearRating(s, guard), 5);
-    const t = Math.min(1, CONFIG.KILL_XP_TAPER * power(s, guard) / power(s, s.player));
-    expect(killXp(s, guard)).toBeCloseTo(power(s, guard) * t * CONFIG.KILL_XP_MULT, 1);
+    const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * power(s, guard) / power(s, s.player));
+    expect(defeatXp(s, guard)).toBeCloseTo(power(s, guard) * t * CONFIG.DEFEAT_XP_MULT, 1);
   });
 });

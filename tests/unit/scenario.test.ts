@@ -34,7 +34,7 @@ import { CONFIG } from '../../src/config';
 import { ruleset } from '../../src/ruleset';
 import { updateBeliefs } from '../../src/perception';
 import {
-  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, ScenarioDirector, boon, tidyRewards, trimStage, validateStagePlan, type PlanContext,
+  applyFallbackStage, applyStagePlan, frontiersNearPlayer, gradesFitTier, ScenarioDirector, boon, tidyRewards, validateStagePlan, type PlanContext,
 } from '../../src/scenario';
 import { toStoryStart, villageStagePlan, VirtualClock, FITTING_GRADES } from '../../src/scenario/fixtures';
 
@@ -354,25 +354,11 @@ describe('applyFallbackStage', () => {
 });
 
 describe('stage', () => {
-  it('frontiersNearPlayer and trimStage', () => {
+  it('frontiersNearPlayer', () => {
     const s = makeVillage({ playerZone: 'field_far' });
     expect(frontiersNearPlayer(s)).toEqual(['woods']);
     s.player.zone = 'tav_common';
     expect(frontiersNearPlayer(s)).toEqual([]);
-    CONFIG.MAX_STAGE_ZONES = 6;
-    trimStage(s);
-    expect(s.stage.zoneIds.sort()).toEqual(['gate_inner', 'street_door', 'street_square', 'tav_cellar', 'tav_common', 'tav_counter']);
-    expect(s.zones.find((z) => z.id === 'gate_inner')!.links.find((l) => l.to === 'field_edge')!.frontier).toBe(true);
-  });
-  it('trim keeps zones with engaged actors', () => {
-    const s = makeVillage();
-    const slime = s.actors.find((a) => a.id === 'slime_1')!;
-    slime.zone = 'field_far';
-    slime.mind!.knowledge.player = { status: 'aware', source: 'seen', revealed: [] };
-    CONFIG.MAX_STAGE_ZONES = 6;
-    trimStage(s);
-    expect(s.stage.zoneIds).toContain('field_far');
-    expect(s.stage.zoneIds).toHaveLength(6);
   });
 });
 

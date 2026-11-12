@@ -5,9 +5,9 @@ import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { CLASS_TIERS, LIFE_STAGES, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
-import { MARGIN_BANDS, band, ladder, naturalEdge, pickSeconds, stackType } from './index';
+import { MARGIN_BANDS, ladder, naturalEdge, pickSeconds, rollMargin, stackType, tierOf } from './index';
 import { MILESTONES } from './perks';
-import { learningWindow } from './improve';
+import { improves, learningWindow } from './improve';
 import { tierMult } from './gear';
 import { skillName } from '../library/skillNames';
 import { groupName } from '../library/functionNames';
@@ -34,34 +34,38 @@ const pct = (k: number) => `${n(k)}%`;
 const list = (o: Record<string, number>) => Object.entries(o).map(([k, v]) => `${k} ${sg(v)}`).join(' · ');
 const D100 = Array.from({ length: 100 }, (_, i) => i + 1);
 const W = () => CONFIG.SKILL_WEIGHT, NEED = () => CONFIG.ROLL_NEEDED;
+/** the number-boost perks' milestones (the 40/80/120 perks): every other milestone, from the second */
+const BOOSTS = MILESTONES.filter((_, i) => i % 2 === 1).join('/');
+/** the stacking worked example: these modifiers of one type */
+const STACK_EX = [10, 10, 10];
 
-/** the tier level a skill roll reaches: the same steps as ruleset.roll, before tier shifts */
-const rollLevel = (d: number, effective: number, mods = 0) => band(d + W() * effective + mods - NEED()) + naturalEdge(d);
+/** the tier level a skill roll reaches with no modifiers or tier shifts: the rule's own tierOf */
+const rollLevel = (d: number, effective: number) => tierOf(d, effective, [], []);
 /** % of d100 results at or above tier `k` for an effective skill, no modifiers */
 const chanceAtLeast = (effective: number, k: Parameters<typeof TIERS.pos>[0]) => D100.filter((d) => rollLevel(d, effective) >= TIERS.pos(k)).length;
 /** the band rows: the margins that reach each tier */
 const bandRows = (bands: number[]) => TIERS.keys.map((k, i) => [TIERS.name(k), i === 0 ? `below ${bands[0]}` : i === bands.length ? `${bands[i - 1]} or more` : `${bands[i - 1]} to below ${bands[i]}`]);
-/** improvement passes: d100 above the target, or 99–100 */
-const improves = (d: number, target: number) => d > target || d >= 99;
 const improveChance = (target: number, flawed: boolean) => flawed
   ? D100.reduce((s, a) => s + D100.filter((b) => improves(Math.min(a, b), target)).length, 0) / 100
   : D100.filter((d) => improves(d, target)).length;
 
 /** the effective skill worked example; tests/unit/equations.test.ts checks it against effectiveSkill */
 export const EFF_EX = { skill: SK.melee_medium, standIn: SK.melee_light, trueSkill: 60, gear: 20 };
+/** the skill roll worked example; tests/unit/equations.test.ts checks it against ruleset.roll */
+export const SKILL_ROLL_EX = { d: 60, eff: 50 };
 export const effExample = () => (EFF_EX.trueSkill + EFF_EX.gear) * CONFIG.SUBSTITUTE_EFFICIENCY * tierMult(EFF_EX.standIn);
 
 export function equations(lib: Library): EquationGroup[] {
   const edges = [[1, 1], [2, 5], [96, 99], [100, 100]].map(([a, b]) => [a === b ? `${a}` : `${a}–${b}`, sg(naturalEdge(a))]);
-  const ex = { d: 60, eff: 50, mods: 0 };
-  const exMargin = ex.d + W() * ex.eff + ex.mods - NEED();
+  const ex = SKILL_ROLL_EX;
+  const exMargin = rollMargin(ex.d, ex.eff, []);
   const exLevel = rollLevel(ex.d, ex.eff);
   const quick = Object.values(lib.perks).filter((p) => p.improveRolls);
   return [
     { key: 'rolls', title: 'Rolls', about: 'Every skill roll, check, contest and the no-skill event roll.', equations: [
       { name: 'True skill', at: 'trueSkill · src/ruleset/perks.ts',
         formula: 'true skill = raw + perk true skill + achievement true skill',
-        terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), perks that add to every skill of a function (fnSkill), and linked perks that add to every aura skill (auraSkill, Crushing Presence)'], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
+        terms: [['raw', 'the points in the skill'], ['perk true skill', `the ${BOOSTS} perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), perks that add to every skill of a function (fnSkill), and linked perks that add to every aura skill (auraSkill, Crushing Presence)`], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
         notes: ['A dormant skill, or one in a tree the actor can\'t use, counts as 0.'] },
       { name: 'Effective skill', at: 'effectiveSkill · src/ruleset/gear.ts',
         formula: 'effective skill = best of ( true skill + gear ) × share × tier multiplier × age, over the skill and its stand-ins; + augments × age',
@@ -69,11 +73,11 @@ export function equations(lib: Library): EquationGroup[] {
           ['gear', `skill effects of worn, held or carried items, also × share; a standard kit gives EQUIP_FACTOR (${n(CONFIG.EQUIP_FACTOR)}) × its need, shared once per roll (the best piece)`],
           ['augments', `each skill that augments this one (SkillDef.augments) adds its true skill × its share (default 1) × its tier, on every roll of this skill or only the roll kinds it lists; its tree must be open (Shrewd Dealing augments Barter). A perk can give one too (PerkDef.augments: Grit, Endurance × ${n(CONFIG.GRIT_SHARE)} to Resolve)`],
           ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')],
-          ['age', `old-age decline (ageMult · src/ruleset/age.ts): skills in the ${CONFIG.AGE_DECLINE_GROUPS.map(groupName).join(', ')} groups keep 0.5 ^ (years past the start of ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} ÷ (the race\'s Ancient start − its ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} start)); 1 before then, for other skills and for ageless races`]],
+          ['age', `old-age decline (ageMult · src/ruleset/age.ts): skills in the ${CONFIG.AGE_DECLINE_GROUPS.map(groupName).join(', ')} groups halve for every (the race\'s Ancient start − its ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} start) years past the start of ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)}; full before then, for other skills and for ageless races`]],
         notes: [`Example: ${skillName(EFF_EX.standIn)} ${EFF_EX.trueSkill} with +${EFF_EX.gear} ${skillName(EFF_EX.standIn)} gear, standing in for ${skillName(EFF_EX.skill)} 0 → (${EFF_EX.trueSkill} + ${EFF_EX.gear}) × ${n(CONFIG.SUBSTITUTE_EFFICIENCY)} × ${n(tierMult(EFF_EX.standIn))} = ${n(effExample())}. Gear for the named skill (the held weapon's bonus) does not pass to a stand-in.`] },
       { name: 'Skill roll', at: 'roll · src/ruleset/index.ts',
         formula: `margin = d100 + ${n(W())} × effective skill + modifiers − ${n(NEED())}`,
-        terms: [['d100', '1 to 100'], ['0.5', `CONFIG.SKILL_WEIGHT = ${n(W())}`], ['modifiers', 'all roll modifiers, each type stacked on its own (see the Stacking tab)'], [n(NEED()), `CONFIG.ROLL_NEEDED = ${n(NEED())}`]],
+        terms: [['d100', '1 to 100'], [n(W()), `CONFIG.SKILL_WEIGHT = ${n(W())}`], ['modifiers', 'all roll modifiers, each type stacked on its own (see the Stacking tab)'], [n(NEED()), `CONFIG.ROLL_NEEDED = ${n(NEED())}`]],
         notes: [`Example: d100 ${ex.d}, effective skill ${ex.eff}, no modifiers → margin ${n(exMargin)} → ${TIERS.name(TIERS.at(exLevel))}.`] },
       { name: 'Tier of a roll', at: 'band · naturalEdge · tierAt · src/ruleset/index.ts',
         formula: 'tier = band of the margin + unlocked extra bands + natural edge + tier shifts',
@@ -81,7 +85,7 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
         notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).',
           `Unlocked extra bands (D-211): each tier past Critical Success a perk or achievement opens for this kind of roll (tierUnlocks) adds a band ${n(CONFIG.TIER_EXTRA_BAND)} wider past the end, so Critical Success+ is reached from margin ${n(MARGIN_BANDS[MARGIN_BANDS.length - 1] + CONFIG.TIER_EXTRA_BAND)} and Critical Success++ from ${n(MARGIN_BANDS[MARGIN_BANDS.length - 1] + 2 * CONFIG.TIER_EXTRA_BAND)}; each tier below Critical Failure opened adds one below ${n(MARGIN_BANDS[0] - CONFIG.TIER_EXTRA_BAND)}, and so on. Without an unlock the table above is the whole table.`] },
-      { name: 'Chance by effective skill', at: 'computed with band and naturalEdge',
+      { name: 'Chance by effective skill', at: 'tierOf · src/ruleset/index.ts',
         formula: '% of d100 results that reach each tier, no modifiers',
         table: { head: ['Effective skill', 'Near Miss or better', 'Success or better', 'Great Success or better', 'Critical Success'],
           rows: [0, 20, 40, 50, 60, 80, 100].map((s) => [String(s), pct(chanceAtLeast(s, 'near_miss')), pct(chanceAtLeast(s, 'success')), pct(chanceAtLeast(s, 'great_success')), pct(chanceAtLeast(s, 'critical_success'))]) } },
@@ -119,7 +123,7 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['Success opens it once the time is done: out of a fight the time passes at once; in a fight each turn at it adds a fight turn of work. Near Miss: not yet, keep going. Failure: the lock is beyond the picker until its effective skill is higher than at that try. Critical Failure: the pick snaps and the lockpicks used are lost. Picking is a whisper (hushed).'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
         formula: `type total = biggest + ${n(CONFIG.STACK_RATIO)} × next + ${n(CONFIG.STACK_RATIO ** 2)} × next …, bonuses and penalties apart; types add in full`,
-        notes: [`Example: three +10 of one type → ${n(stackType([10, 10, 10]))}.`] },
+        notes: [`Example: ${STACK_EX.length} × ${sg(STACK_EX[0])} of one type → ${n(stackType(STACK_EX))}.`] },
     ] },
     { key: 'attacks', title: 'Attacks', about: 'From the attack roll to the damage a hit does.', equations: [
       { name: 'Initiative', at: 'initiative · initiativeBonus · src/ruleset/index.ts; initiativeOrder · src/engine/resolve.ts',
@@ -136,7 +140,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Gap', at: 'attack · src/ruleset/index.ts',
         formula: `gap = defense tier − attack tier + gap shifts, kept between ${sg(CONFIG.GAP_MIN)} and ${sg(CONFIG.GAP_MAX)}`,
         terms: [['gap shifts', `heavy weapon vs block or parry ${sg(CONFIG.HEAVY_VS_BLOCK_GAP)} (not against a parry with Against the Grain), cover (ranged), Slip the Blow +1 on a tie`]] },
-      { name: 'Damage multiplier', at: 'ladder · CONFIG.GAP_LADDER',
+      { name: 'Damage multiplier', at: 'ladder · src/ruleset/index.ts',
         formula: 'multiplier = GAP_LADDER[dodge, block or parry][gap]',
         table: { head: ['Gap', 'Dodge', 'Block', 'Parry'], rows: [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((g) => [sg(g), `×${n(ladder('dodge', g))}`, `×${n(ladder('block', g))}`, `×${n(ladder('parry', g))}`]) },
         notes: [`Gaps past ${sg(CONFIG.GAP_MIN)} or ${sg(CONFIG.GAP_MAX)} use the end row.`, '×0 is a clean dodge, and a dodge at +1 is a graze. A block at +1 or better is blocked; a shield also blocks at 0 and takes the hit itself.',
@@ -147,17 +151,17 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['Worn armor and natural armor each apply if they cover the part hit. Damage never goes below 0, and fractions stay.',
           `A minted weapon that boosts damage adds QUALITY_DAMAGE_FACTOR (${n(CONFIG.QUALITY_DAMAGE_FACTOR)}) × need × quality × its class factor (${Object.entries(CONFIG.DAMAGE_CLASS_FACTOR).map(([k, v]) => `${k} ${n(v)}`).join(', ')}) × its tree factor (${Object.entries(CONFIG.DAMAGE_TREE_FACTOR).map(([k, v]) => `${k} ${n(v)}`).join(', ')}) to damageAdj.`,
           `A worn armor's reduction is ARMOR_FACTOR (${n(CONFIG.ARMOR_FACTOR)}) × its need; its multiplier comes from its weight. A minted piece adds ARMOR_QUALITY_FACTOR (${n(CONFIG.ARMOR_QUALITY_FACTOR)}) × need × quality, rounded.`,
-          `A shield's pool is POOL_BASE (${n(CONFIG.POOL_BASE)}) + POOL_FACTOR (${n(CONFIG.POOL_FACTOR)}) × its need; a minted shield adds POOL_QUALITY_FACTOR (${n(CONFIG.POOL_QUALITY_FACTOR)}) × need × quality, rounded. A blow on a shield drains its pool by the damage (×2 with Shield Breaker; ×${n(CONFIG.IRON_RIM_MULT)} with Iron Rim).`] },
+          `A shield's pool is POOL_BASE (${n(CONFIG.POOL_BASE)}) + POOL_FACTOR (${n(CONFIG.POOL_FACTOR)}) × its need; a minted shield adds POOL_QUALITY_FACTOR (${n(CONFIG.POOL_QUALITY_FACTOR)}) × need × quality, rounded. A blow on a shield drains its pool by the damage (×${n(CONFIG.SHIELD_BREAKER_MULT)} with Shield Breaker; ×${n(CONFIG.IRON_RIM_MULT)} with Iron Rim).`] },
     ] },
     { key: 'gain', title: 'Skill gain', about: 'How a marked skill improves.', equations: [
-      { name: 'When skills roll to improve', at: 'improveMarked · src/ruleset/improve.ts (called in src/engine/resolve.ts)',
+      { name: 'When skills roll to improve', at: 'improveMarked · src/ruleset/improve.ts',
         formula: CONFIG.SKILL_UP_INSTANT ? 'at the end of the turn a skill is marked, it makes the improvement roll(s) it is owed' : 'at the end of each engagement, or when the scenario breaks, every marked skill makes the improvement roll(s) it is owed; then all marks clear',
         notes: ['Only the player has marks for now. A failed improvement roll shows nothing.', `CONFIG.SKILL_UP_INSTANT is ${CONFIG.SKILL_UP_INSTANT}: when true, rolls happen on the turn of the mark instead of waiting.`] },
       { name: 'Burden', at: 'improveMarked · src/ruleset/improve.ts',
         formula: `burden = max(0, floor((sum of raw of untagged skills − potential) ÷ ${CONFIG.K}))`,
         terms: [['potential', `CONFIG.POTENTIAL = ${CONFIG.POTENTIAL}, plus any adjustments`], [String(CONFIG.K), 'CONFIG.K']] },
       { name: 'Improvement roll', at: 'improveMarked · src/ruleset/improve.ts',
-        formula: 'target = raw + burden (a tagged skill: raw). Improves if d100 > target, or d100 is 99–100',
+        formula: `target = raw + burden (a tagged skill: raw). Improves if d100 > target, or d100 is ${CONFIG.IMPROVE_AUTO_PASS} or more`,
         terms: [['flawed skill', 'rolls two d100 and keeps the lower'], ['gain', `+1d${CONFIG.SKILL_GAIN_DIE} raw (1 to ${CONFIG.SKILL_GAIN_DIE}, CONFIG.SKILL_GAIN_DIE)`],
           ['rolls', `1 per roll owed${quick.length ? `; ${quick.map((p) => `${p.name}: ${p.improveRolls!.rolls} rolls while raw is below ${p.improveRolls!.below}`).join('; ')}` : ''}`]],
         table: { head: ['Target', 'Chance', 'Flawed'], rows: [0, 20, 40, 60, 80, 95].map((t) => [String(t), pct(improveChance(t, false)), pct(improveChance(t, true))]) },
