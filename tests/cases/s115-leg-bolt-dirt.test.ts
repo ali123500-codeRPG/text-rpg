@@ -104,7 +104,7 @@ describe('115 Dirt in the Eyes', () => {
     give(s.player, PK.dirt_in_the_eyes);
     for (const it of s.player.core.inventory) delete it.equippedIn; // a free hand
     const pv = buildPlayerView(s);
-    expect(pv.player.perkMoves).toEqual([{ id: PK.dirt_in_the_eyes, name: 'Dirt in the Eyes', does: PERK_MOVES[PK.dirt_in_the_eyes].does }]);
+    expect(pv.player.perkMoves).toEqual([{ id: PK.dirt_in_the_eyes, name: 'Dirt in the Eyes', does: PERK_MOVES[PK.dirt_in_the_eyes].does, inRange: expect.any(Array) }]);
     expect(checkParserLegality(i, pv).intent.perkMove).toEqual({ perk: PK.dirt_in_the_eyes, target: wim.id });
     expect(ideas(pv).find((g) => g.group === 'Perks')?.items[0]?.text).toMatch(/^Throw dirt in .+'s eyes$/);
     const ev = play(s, { intent: i });

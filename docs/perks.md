@@ -64,7 +64,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Leg Bolt (Heavy ranged) · A6
 
-*Story:* Prey that cannot run is prey already caught. Your bolts and arrows go for the legs. With a medium or heavy ranged weapon, a shot that wounds a leg hurts it one and a half times as much as usual, and the target is slowed: it can move only one zone link until the end of its next turn.
+*Story:* Prey that cannot run is prey already caught. Your bolts and arrows go for the legs. With a medium or heavy ranged weapon, a shot that wounds a leg hurts it one and a half times as much as usual, and the target is slowed: it can't dash until the end of its next turn.
 
 - **Kind:** Always on
 - **Trigger:** The owner's ranged attack hits a part with the Move role (a leg) and deals damage.
@@ -244,10 +244,10 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Bluff (Lying) · LI1c
 
-*Story:* Half a second of doubt is all a knife needs. "Behind you!" Once per foe in a fight, and without giving up your action, you throw a lie at a foe in your zone. If it believes you, it hesitates and acts last next turn.
+*Story:* Half a second of doubt is all a knife needs. "Behind you!" Once per foe in a fight, and without giving up your action, you throw a lie at a foe near enough to hear it clearly. If it believes you, it hesitates and acts last next turn.
 
 - **Kind:** Free move
-- **Trigger:** The owner uses the move on a foe in the owner's zone. It does not use the owner's action.
+- **Trigger:** The owner uses the move on a foe who hears the owner's normal voice clearly. It does not use the owner's action.
 - **Effect:** A Lying roll against the foe's answer to a lie (Insight). Unless the foe wins, it believes the lie and acts last next turn, as if caught unaware.
 - **Lasts:** The foe's next turn.
 - **Cooldown:** Once per foe per engagement.
@@ -551,7 +551,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's attack with skill Improvisation hits (outcome grazed, blocked, full, heavy or crushing hit).
-- **Conditions:** The owner has a working Grip arm with an empty hand. The target is still active and in the owner's zone.
+- **Conditions:** The owner has a working Grip arm with an empty hand. The target is still active and within the reach of the owner's fists (metres).
 - **Effect:** The owner makes one extra attack with skill Strike (fists) at the same target at once. It doesn't use the owner's action, and can't trigger One-Two again.
 - **Lasts:** That attack.
 
@@ -640,7 +640,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* You don't have to say a word. Anyone who means you harm feels it the moment they face you, and it stays with them for the rest of the fight.
 
 - **Kind:** Always on (engagement aura)
-- **Trigger:** An actor opposed or hostile to the owner is aware of the owner in the owner's zone or one zone away, for the first time this engagement.
+- **Trigger:** An actor opposed or hostile to the owner is aware of the owner within the aura's reach in metres (AURA_REACH_M), for the first time this engagement.
 - **Conditions:** Once per target per engagement.
 - **Effect:** The owner's Intimidation against the target's Resolve (its morale roll, renown included). If the owner wins, the target is Shaken toward the owner by −5 × the tier gap until the engagement ends (the bigger Shaken stands), and loses 10 morale × the tier gap. Each aura's morale cost adds up on its own.
 - **Lasts:** Shaken until the engagement ends.
@@ -718,7 +718,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The start of each turn.
-- **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and in the owner's zone or one sight link away. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scenario.
+- **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and has sight of the owner, at any distance. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scenario.
 - **Effect:** The owner's Insight against the watcher's stealth (Combat Stealth in a fight, Sneaking otherwise). If the owner wins, it gets a hunch of being watched from the watcher's zone, never who, and turns suspicious of the watcher there. It can then look or listen for them as usual.
 - **Lasts:** Until the owner's belief changes on its own.
 - **Open:** Built, then parked until it has a place on the ladder (Insight 20 holds Overheard); D-176.

@@ -288,8 +288,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate); // an NPC tries a shut way once
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
-  // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone
-  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from, ...(fromPos ? { fromPos } : {}) } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot) } : {}) };
+  // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
+  const leg = { metres: Math.round(walked * 10) / 10, ...(fromPos ? { fromPos } : {}), ...(a.zone !== from ? { fromZone: from } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot) } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
@@ -478,9 +478,9 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   }
   // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
-    && isActive(t) && t.zone === a.zone && freeHand(state, a)) {
+    && isActive(t) && freeHand(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
-    if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
+    if (fist && sightDistM(state, a, t) <= fist.mode.reach) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
   }
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
   parryStrike(ctx, a, t, res);
@@ -490,12 +490,12 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
  * parrying weapon (a fist after a barehanded parry), once per turn. A free attack can earn one too: once per turn ends the chain. */
 function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
   const { state } = ctx;
-  if (!res.strikeBack || !isActive(t) || !isActive(a) || t.zone !== a.zone || ctx.parryStrikes.has(t.id)) return;
+  if (!res.strikeBack || !isActive(t) || !isActive(a) || ctx.parryStrikes.has(t.id)) return;
   const weapon = parryItem(state, t);
   const modes = usableModes(state, t);
   const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
     : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
-  if (!back) return;
+  if (!back || sightDistM(state, t, a) > back.mode.reach) return; // the blow back reaches only as far as its weapon (metres)
   ctx.parryStrikes.add(t.id);
   doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: 'parry strike' }, true);
 }
