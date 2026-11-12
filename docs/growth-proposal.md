@@ -396,5 +396,7 @@ Questions page "Growth Proposal Round Three": https://claude.ai/artifact/SvZsDfF
 Questions page "Skill Gain Roll Options": https://claude.ai/artifact/86PT4FAa8FPMYCadfmzXi2.
 
 - **SG1 c (Ali, in the thread: "C is nice"):** the improvement roll reads its gain off the tier table. Margin = d100 + (cap − raw − Burden) − 90; Success +1, Great Success +2, Critical Success +3, plus 1 per band past it; raw never passes its cap (100, or 125 tagged). Built (`growthRoll` in src/ruleset/improve.ts; spec Part 1 §6).
-- **SG2 and SG3:** not answered yet. They are built as their recommended options behind levers: natural edges do not move the roll (GROWTH\_NATURAL\_EDGES false) and the tagged cap of 125 is in the roll (GROWTH\_TAG\_CAP\_IN\_ROLL true). Either answer is one config flip.
+- **SG2 a:** natural edges do not move the roll (GROWTH\_NATURAL\_EDGES false).
+- **SG3 a:** each skill's own cap is in the roll (GROWTH\_CAP\_IN\_ROLL true).
+- **Flaws (Ali, with SG1–SG3):** a flawed skill's cap is 25 lower, 75 (FLAW\_CAP\_PENALTY). Tags and flaws keep no roll advantage: the flawed "2d100 keep the lower" is gone, so every state rolls one d100 and only the cap moves.
 - **SG4:** moot with C, which never makes fractions.

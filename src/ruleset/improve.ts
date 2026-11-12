@@ -140,15 +140,17 @@ export function markResolve(state: GameState, actor: Actor, lostPct: number): vo
   if (actor.id === state.player.id && lostPct >= CONFIG.RESOLVE_MARK_PCT) mark(actor, SK.resolve);
 }
 
-/** the most raw training can reach: SKILL_CAP, plus TAG_CAP_BONUS for a tagged skill (EG16) */
-export const skillCap = (s: Pick<SkillEntry, 'state'>): number => CONFIG.SKILL_CAP + (s.state === 'tagged' ? CONFIG.TAG_CAP_BONUS : 0);
+/** the most raw training can reach: SKILL_CAP, plus TAG_CAP_BONUS for a tagged skill (EG16), minus FLAW_CAP_PENALTY for a
+ * flawed one. A skill already above its cap keeps its raw and gains nothing. */
+export const skillCap = (s: Pick<SkillEntry, 'state'>): number =>
+  CONFIG.SKILL_CAP + (s.state === 'tagged' ? CONFIG.TAG_CAP_BONUS : 0) - (s.state === 'flawed' ? CONFIG.FLAW_CAP_PENALTY : 0);
 
 /** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden) − GROWTH_ROLL_NEEDED, read on the tier table; the
- * gain is GROWTH_GAIN by tier, plus GROWTH_GAIN_PAST_CRIT per band past Critical Success. `d` is the die (a Flawed skill
- * passes the lower of two). The room left below the cap is the bonus, so the roll gets harder smoothly near the cap.
- * A tagged skill carries no burden. SG3 (GROWTH_TAG_CAP_IN_ROLL) picks which cap the room counts from. */
+ * gain is GROWTH_GAIN by tier, plus GROWTH_GAIN_PAST_CRIT per band past Critical Success. Every state rolls one d100: a
+ * tag or a flaw only moves the cap. The room left below the cap is the bonus, so the roll gets harder smoothly near the
+ * cap. A tagged skill carries no burden. SG3 a (GROWTH_CAP_IN_ROLL): the room counts from the skill's own cap. */
 export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, reach = { up: 0, down: 0 }): { margin: number; level: number; gain: number } {
-  const cap = CONFIG.GROWTH_TAG_CAP_IN_ROLL ? skillCap(s) : CONFIG.SKILL_CAP;
+  const cap = CONFIG.GROWTH_CAP_IN_ROLL ? skillCap(s) : CONFIG.SKILL_CAP;
   const margin = d + (cap - s.raw - (s.state === 'tagged' ? 0 : burden)) - CONFIG.GROWTH_ROLL_NEEDED;
   const level = band(margin) + extraBands(margin, reach) + (CONFIG.GROWTH_NATURAL_EDGES ? naturalEdge(d) : 0);
   const crit = TIERS.pos('critical_success');
@@ -188,8 +190,7 @@ export function payRolls(state: GameState, rng: Rng, rolls: [string, number][]):
       if (n <= 1) left.delete(id); else left.set(id, n - 1);
       const s = a.core.skills[id] ?? { raw: 0, state: 'normal' as const }; // not on the sheet yet: it joins with its first gain
       for (let k = improveRolls(a, s.raw); k > 0; k--) { // Quick Study: two rolls below 15, each with its own gain
-        const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
-        const { gain } = growthRoll(roll, s, burden, reach);
+        const { gain } = growthRoll(rng.d100(), s, burden, reach); // one d100 for every state: a flaw only lowers the cap
         if (!gain) continue;
         const from = s.raw, trueBefore = trueSkill(a, id);
         s.raw += gain;
