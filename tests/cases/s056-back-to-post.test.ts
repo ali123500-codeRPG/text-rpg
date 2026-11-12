@@ -6,7 +6,7 @@ import { buildActorView } from '../../src/views';
 it('56 Back to the post: walks back and takes up the zone and activity for the current turn', () => {
   const s = makeVillage();
   const g = place(s, 'guard_1', 'street_door'); // pulled off its post
-  g.mind!.routine = { id: 'guard_post', anchorTurn: 0 };
+  g.mind!.routine = { id: 'guard_post', anchorTurn: 0, at: 420 };
   s.turn = 30;
   const seen: string[] = [];
   for (let i = 0; i < 3; i++, s.turn++) {

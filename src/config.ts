@@ -369,6 +369,7 @@ const DEFAULTS = {
   /** TV2 travel paces as shares of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels slow 3, normal
    * 4.5 and fast 6 km/h (D&D's 3.2 / 4.8 / 6.4 km/h, a brisk real walk about 5) */
   TRAVEL_PACE_SHARE: { slow: 0.6, normal: 0.9, fast: 1.2 } as Record<string, number>,
+  CATCH_UP_PACE: 'normal' as import('./scales').TravelPaceKey, // NW11: the pace NPCs keep while a turn's time moves them on
   /** TV8 the noticing roll's modifier by pace: slow notices more, fast less (placeholders) */
   TRAVEL_NOTICE_MOD: { slow: 10, normal: 0, fast: -10 } as Record<string, number>,
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
@@ -487,7 +488,7 @@ const DEFAULTS = {
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
   SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
-  DURATIONS: { brief: 1, short: 3, medium: 6, long: 12 } as Record<string, number>,
+  DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<string, number>, // NW10: game minutes a routine step lasts (placeholders)
   RECENT_EVENTS: 8, // compact views: last few relevant events
   MEMORY_ENTRIES: 8, // PM1: an NPC's memory list holds at most this many entries (placeholder)
   EARLIER_LINES: 6, // PM6: code-made lines about events older than RECENT_EVENTS (placeholder)

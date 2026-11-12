@@ -11,13 +11,13 @@ function install(seed: number) {
   return ['g_a', 'g_b'].map((id) => {
     const g = spawnNpc(null, TP.guard, { id, zone: 'gate_inner', placeId: 'gate', bandId: 'village_watch' });
     installRoutines(g, 'gate_guard', { post: 'gate_inner' }, undefined, s.turn, rng);
-    return g.mind!.routine!.anchorTurn;
+    return g.mind!.routine!.at;
   });
 }
 
 it('65 Phase from the RNG: seeded anchors, reproduced on replay', () => {
   const a = install(2024);
-  for (const t of a) expect(t).toBeGreaterThan(50 - 12); // loop length: long = 12
+  for (const t of a) expect(t).toBeGreaterThan(420 - 360); // NW10: started up to one loop back on the clock (long = 360 minutes)
   expect(install(2024)).toEqual(a);
   const many = new Set(Array.from({ length: 20 }, (_, i) => install(i).join(',')));
   expect(many.size).toBeGreaterThan(1);

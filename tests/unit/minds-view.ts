@@ -1,4 +1,5 @@
 // Hand-built ActorView for W5 unit tests (the real builder is W3's buildActorView).
+import { now, timeOfDay } from '../../src/time';
 import type { ActorView, GameState } from '../../src/types';
 import { actorById, isActive, hostile, stance } from '../../src/engine/relations';
 import { getLibrary } from '../../src/library';
@@ -16,7 +17,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
       health: 'unhurt', parts: [], morale: 'Calm', active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, gear: [],
       attackSkill: tpl?.fallback?.attackSkill ?? getLibrary().bodyTypes[a.core.bodyTypeId].fallback.attackSkill,
-      routine: m.routine ? { ...m.routine } : undefined,
+      routine: m.routine ? { ...m.routine, elapsed: Math.max(0, now(state) - m.routine.at), dayPart: timeOfDay(now(state)) } : undefined,
       routines: (m.routines ?? []).map((r) => ({ id: r, brief: '' })),
       routineSetId: m.routineSetId, slots: { ...(m.slots ?? {}) }, alarm: m.alarm ? { ...m.alarm } : undefined,
       ...self,

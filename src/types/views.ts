@@ -138,7 +138,8 @@ export type ActorView = {
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
     attackSkill: string; // fallback.attackSkill (template, else body type)
-    routine?: { id: string; anchorTurn: number };
+    /** elapsed (NW10): game minutes since it started; dayPart: the time of day now */
+    routine?: { id: string; anchorTurn: number; elapsed: number; dayPart: import('../scales').TimeOfDay };
     routines: { id: string; brief: string }[];
     routineSetId?: string;
     slots: Record<string, string | string[]>;

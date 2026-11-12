@@ -481,7 +481,7 @@ type Routine = {
 };
 type RoutineStep = { slot: string; duration: DurationId; activity: string };
                                           // a route slot expands to one stop per bound zone
-type DurationId = 'brief' | 'short' | 'medium' | 'long';   // turns per id: DURATIONS (config, placeholder)
+type DurationId = 'brief' | 'short' | 'medium' | 'long';   // game minutes per id: DURATIONS (config, placeholders 5 / 30 / 120 / 360; NW10)
 type ActivityDef = {
   id: string;
   look: string;                           // public text, e.g. 'dozing on a stool'
@@ -493,7 +493,8 @@ type ActivityDef = {
 
 A routine is a desired-state function: from the turn number and the actor's own ActorView it gives a desired zone and activity.
 
-- **Schedule.** Code first expands the steps: a step that reads a route slot becomes one stop per zone bound to that slot, in order, each with the step's duration and activity. The desired step is found from (turn − anchorTurn) through the expanded steps' lengths (DURATIONS), looping if loop is true, else holding the last step. The desired zone is the actor's binding for the step's slot.
+- **Schedule** (NW10, on the clock). A routine's steps may differ by time of day: `times` names the steps for dawn, day, dusk or night, and `steps` serves every time it does not name (the barkeep tends the bar by day and dusk and sleeps at night). Code takes the steps for the time of day now and expands them: a step that reads a route slot becomes one stop per zone bound to that slot, in order, each with the step's duration and activity. The desired step is found from the game minutes since the routine started (its `at`) through the expanded steps' lengths in minutes (DURATIONS), looping if loop is true, else holding the last step. A loop starts at a random point along it; a startAt step starts there. The desired zone is the actor's binding for the step's slot. A routine runs at the same speed however long a turn is.
+- **Time moves everyone** (NW11). At the end of every turn, each NPC not in a fight, held, broken or surrendered, and not moved by its own agent this turn, goes toward where its routine puts it at the new time, as far as it could walk in the time the turn took at CATCH_UP_PACE (travelSpeed, the road travel rule), less what its own move already walked. It is one jump, with no Claude calls; it stops at a way that is not simply open and at an unbuilt frontier, and a road is walked by its length. Those travelling with the player spent the turn on the road. A head_to walk that gets there goes back to its routine. Healing already counts minutes. After an 8-hour sleep, everyone is where their day has taken them. Interim until NW12 is settled: someone who walks into the player's area during the sleep is simply there when the player wakes.
 - **Follow.** The zone where the actor believes the player is (its lastKnownZone, never the truth), with the routine's activity.
 - **Wait.** The zone bound to the actor's here slot, with the routine's activity. Code writes here when the actor switches to a wait routine.
 
@@ -3061,6 +3062,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-227 | NPCs holding essences | 1, 2 | Parked | Growth proposal (Ali, 12/11/2026, EG1 a): NPCs could hold essences of their own and offer them when beaten. Not built |
 | D-228 | A per-skill essence cap | 1 | Parked | Growth proposal 2.8: many high-grade essences in one skill could stack far; ESSENCE\_SKILL\_CAP is a lever to add if playtests show abuse |
 | D-229 | Essence content: rows and traits | 1, 4 | Open | Growth proposal (EG1 a): one essence table per race and body type, each with a trait perk row (OwnedPerk source essence) and maybe a quirk. Today's four rows have no traits and are placeholders. The content round goes to the lore and loot threads |
+| D-230 | Alarm systems | 2, 4 | Parked | Ali (12/11/2026, NW12): park alarm systems (bells, tripwires, watchdogs that wake sleepers) and how to get past them. |
 
 ## Bug log
 

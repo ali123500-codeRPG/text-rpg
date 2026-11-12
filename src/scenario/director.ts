@@ -160,7 +160,6 @@ export class ScenarioDirector {
     for (const w of (state.scratch?.frontierWaits as FrontierWait[] | undefined) ?? []) {
       const a = state.actors.find((x) => x.id === w.actorId);
       if (w.frontier !== key || !a || !isActive(a)) continue;
-      noteLeft(state, a.zone);
       a.zone = here.id;
       a.placeId = here.placeId;
       delete a.pos; // ZP1: placed in its new zone at the next turn's start

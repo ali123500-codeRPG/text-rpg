@@ -53,7 +53,8 @@ describe('208 NPCs and unbuilt frontiers (NW3, NW8)', () => {
     expect(zoneById(s, 'field_far')!.links.find((l) => l.to === grove.id)!.frontier).toBeUndefined();
     expect(g.mind!.slots!.dest).toBe(grove.id); // its head_to now names the zone beyond
     turn(s);
-    expect(g.zone).toBe(grove.id);
+    // it steps in and arrives; with the rest of the minute it heads back toward its post (NW11)
+    expect(s.log.some((l) => l.code === 'head_to_arrived' && l.detail?.zone === grove.id)).toBe(true);
     // S6: built is not seen
     expect(s.player.journal!.zonesSeen).toContain('tav_cellar');
     expect(s.player.journal!.zonesSeen).not.toContain(grove.id);
