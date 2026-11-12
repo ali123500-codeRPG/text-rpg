@@ -82,13 +82,23 @@ function dropStrayClosers(text: string): string {
   return out;
 }
 
+/** rejects as cancelled once the signal fires */
+function givenUp(signal: AbortSignal): Promise<never> {
+  return new Promise((_, reject) => {
+    const off = () => reject({ code: 'cancelled', message: 'the call was given up' });
+    if (signal.aborted) off(); else signal.addEventListener('abort', off, { once: true });
+  });
+}
+
 export function sampleClient(sample: SampleFn): ClaudeClient {
   return {
     async call(req: ClaudeRequest): Promise<ClaudeResponse> {
       try {
-        const r = await sample(req.input, {
+        const asked = sample(req.input, {
           signal: req.signal, modelTier: req.modelTier, model: req.model, effort: req.effort, cache: req.cache ?? false,
         });
+        // a call whose signal fires gives up then, even if the page's Claude keeps it running, so a timeout always ends the wait
+        const r = req.signal ? await Promise.race([asked, givenUp(req.signal)]) : await asked;
         const meta = { truncated: r.truncated, modelTierApplied: r.modelTierApplied, ...(r.modelApplied ? { modelApplied: r.modelApplied } : {}) };
         if (!req.json) return { ok: true, value: r.text, ...meta };
         const p = parseTolerant(r.text);
