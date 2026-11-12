@@ -5,7 +5,7 @@ import { triggerErrors } from './triggers';
 import { scaleFor } from '../engine/scenarioEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { CHASE_RANGES, COVER, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { CHASE_RANGES, COVER, LIFE_STAGES, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
@@ -303,6 +303,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
         try { bodyType(state, race(tpl.raceId).bodyTypeId); } catch {
           err('unknown_body_type', `cast ${k}: race ${tpl.raceId} or its body type unknown; known races: ${Object.values(lib.races ?? {}).map((r) => `${r.id} (${r.name})`).join(', ')}`, k);
         }
+        // AG14: a life stage the race has; an ageless race takes none
+        if (c.age !== undefined && (!LIFE_STAGES.keyOf(c.age) || !lib.races?.[tpl.raceId]?.ageStages))
+          err('bad_age', `cast ${k}: age is a life stage, ${LIFE_STAGES.list()}, and only for a race that ages`, k);
       }
     }
     if (!c.band) err('missing_band', `cast ${k}: names no band`, k);

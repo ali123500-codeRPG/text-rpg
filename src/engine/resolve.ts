@@ -45,7 +45,8 @@ import { payDefeats, tally, unlockClasses } from './xp';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
 import { answerYield, playerYields, yieldBars } from './yield';
-import { advanceClock, minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
+import { minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
+import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
 import { SK } from '../library/skillIds';
@@ -606,7 +607,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
 
 /** the clock moves on; natural recovery runs for that time (H12–H15) */
 function passTime(state: GameState, minutes: number): void {
-  advanceClock(state, minutes);
+  advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
   passiveHealing(state, minutes);
 }
 
