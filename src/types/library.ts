@@ -56,7 +56,7 @@ export type ClassDef = {
   /** flavor text shown with the class; its grandeur grows with the class's tier */
   story?: string;
   /** a creation option: points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
-  creation?: { points?: number; level?: number; name?: string }; // name: the start's name on the creation screen (default: the class name)
+  creation?: { points?: number; level?: number; name?: string; age?: number }; // name: the start's name on the creation screen (default: the class name); age: the age picker's default (AG15)
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
   levelPerks?: Record<number, string[]>;
   /** the default capstone: perk ids granted when the class reaches its top level (classMaxLevel, set by its tier) */
@@ -292,6 +292,8 @@ export type RaceDef = {
   innatePerks?: string[]; innateQuirks?: string[];
   tags?: string[]; // 'speaks': the race can talk, which opens persuasion and barter
   intelligence: IntelligenceKey; // an INTELLIGENCE key (src/scales.ts)
+  /** AG4: the age in years at which each life stage starts; left out = ageless (Slime) */
+  ageStages?: Partial<Record<import('../scales').LifeStageKey, number>>;
 };
 
 /** level: a REWARD_LEVELS key; its XP is CONFIG.REWARD_XP[level].

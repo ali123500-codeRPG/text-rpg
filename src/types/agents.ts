@@ -176,6 +176,8 @@ export type StagePlan = {
     wares?: { items: { item: string; qty?: number }[]; services: string[] };
     /** PL12: a new actor's Nerve line, up to two named types (PY…) and values (VL…), set on top of its template's points */
     personality?: { nerve?: string; types?: string[]; values?: string[] };
+    /** AG14: a new actor's life stage (a LIFE_STAGES name); code picks the years inside it */
+    age?: string;
   }[];
   seeds: { plans: (Plan & { ownerId: string })[]; triggers: Trigger[]; secrets: Secret[] };
   rewards: {

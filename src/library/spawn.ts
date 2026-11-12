@@ -6,7 +6,9 @@ import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from '.
 import { skillOpen } from '../ruleset/access';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
-import { CLASS_TIERS, EQUIP_LEVELS } from '../scales';
+import { CLASS_TIERS, EQUIP_LEVELS, LIFE_STAGES, type LifeStageKey } from '../scales';
+import { rollBornDay } from '../ruleset/age';
+import { DAY_MINUTES, now } from '../time';
 import { createRng } from '../rng';
 import { SK, DEFENSE_SKILL } from './skillIds';
 import { skillName } from './skillNames';
@@ -47,7 +49,7 @@ export function equipLoadout(state: GameState | null, items: string[], idPrefix:
   return out;
 }
 
-export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string; personality?: Personality /* PL12: replaces the template's points */ };
+export type SpawnOpts = { id: string; zone: string; placeId: string; bandId: string; label?: string; name?: string; storyId?: string; personality?: Personality /* PL12: replaces the template's points */; ageStage?: LifeStageKey /* AG14: the Weaver's life stage */ };
 
 /** A class's skill floors: its own floors plus its unlock conditions (a character of the class must meet what unlocks it).
  * all = every skill must reach its value; any = either-of groups, one skill in each must reach its value. */
@@ -100,6 +102,12 @@ export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
   return [...(r?.innatePerks ?? []), ...(r?.innateQuirks ?? [])].map((perkId) => ({ perkId, source: 'race', gainedTurn: turn }));
 }
 
+/** AG13, AG14: drawn once from the Weaver's stage or the template's stages, seeded by the actor's ID, and saved */
+function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?: LifeStageKey): { bornDay?: number } {
+  const d = rollBornDay(state, t.raceId, stage ? [stage] : t.ageStages, createRng(templateSeed(id)));
+  return d === undefined ? {} : { bornDay: d };
+}
+
 export function spawnNpc(state: GameState | null, templateId: string, opts: SpawnOpts, rng?: Rng): Actor {
   const t = npcTemplate(state, templateId);
   if (t.generation === 'unique' && !rng) throw new Error(`unique template ${t.id} needs the seeded rng`);
@@ -129,6 +137,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       inventory: equipLoadout(state, t.loadout ?? [], opts.id),
       standingDefense: rawDefense((id) => skills[id]?.raw ?? 0, t.loadout ?? []), // GAP: raw skill; ties go block, parry, dodge like the player
       personality: opts.personality ?? structuredClone(t.personality), // PL11, PL12: the template's points, or the Weaver's pick on them
+      ...npcBornDay(state, t, opts.id, opts.ageStage),
     },
     // GAP: unique NPCs keep their level's perk points (one per even level, Part 1 §5) in a Progression module; NPC perks are deferred
     ...(t.generation === 'unique' ? { progression: {
@@ -147,6 +156,12 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
 const PLAYER_CLASS: string = CL.swordsman; // the default starting class
 /** a starting class's creation points and starting level (ClassDef.creation, else CONFIG) */
 export const creationPoints = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.points ?? CONFIG.CREATION_POINTS;
+/** AG15: the age picker: from the race's Youth start to its Venerable start; the start's default, else CREATION_AGE_DEFAULT */
+export const creationAge = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.age ?? CONFIG.CREATION_AGE_DEFAULT;
+export function creationAgeRange(raceId: string = RC.human): { min: number; max: number } | undefined {
+  const st = getLibrary().races?.[raceId]?.ageStages;
+  return st ? { min: st[LIFE_STAGES.at(1)] ?? 0, max: st[LIFE_STAGES.at(5)] ?? 0 } : undefined;
+}
 export const startLevel = (classId = PLAYER_CLASS) => getLibrary().classes[classId]?.creation?.level ?? CONFIG.START_LEVEL;
 /** a class's top level: set by its tier (CLASS_TIER0_MAX_LEVEL + CLASS_LEVELS_PER_TIER × tier), at most CLASS_MAX_LEVEL */
 export function classMaxLevel(classId: string): number {
@@ -245,6 +260,8 @@ export function validateBuild(build: CreationBuild): string[] {
   if (tags.size !== build.tagged.length) errs.push('A skill is tagged twice');
   if (tags.size !== CONFIG.CREATION_TAGS) errs.push(`Tag exactly ${CONFIG.CREATION_TAGS} skills (${tags.size} tagged)`);
   for (const id of tags) if (!lib.skills[id] || !skillOpen(who, id)) errs.push(`${skillName(id)} cannot be tagged`);
+  const range = creationAgeRange(newPlayer(cls).raceId);
+  if (build.age !== undefined && range && (!Number.isInteger(build.age) || build.age < range.min || build.age > range.max)) errs.push(`Age must be a whole number from ${range.min} to ${range.max}`);
   const pe = build.personality; // PL14: points run −100 to +100; up to two values from the library
   if (pe) {
     const inRange = (n: number) => Number.isFinite(n) && n >= -100 && n <= 100;
@@ -278,6 +295,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
       // GAP: [Proposed] default is the higher effective skill; effective skill is W2's, so raw is compared here (the game re-picks at start)
       standingDefense: rawDefense((id) => build.skills[id] ?? 0),
       personality: structuredClone(build.personality ?? { nerve: 0, traits: {}, values: [] }), // PL14
+      bornDay: -Math.round((build.age ?? creationAge(build.classId)) * CONFIG.YEAR_DAYS), // AG2, AG15: the story starts on day 1
     },
     progression: {
       startingTotal: Object.entries(build.skills).filter(([k]) => !build.tagged.includes(k)).reduce((n, [, v]) => n + v, 0),
@@ -301,5 +319,11 @@ export function refreshCopies(state: GameState): void {
     const t = npcTemplate(state, a.core.templateId);
     a.core.skills = rollUniqueSkills(t, createRng(templateSeed(t.id)));
     for (const perkId of t.perks ?? []) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
+  }
+  // AG2: a save from before ages gets them on load, as a new spawn would; a birth day once set is never re-rolled (AG13)
+  for (const a of [state.player, ...state.actors]) {
+    if (a.core.bornDay !== undefined) continue;
+    if (a.kind === 'player') { if (creationAgeRange(a.core.raceId)) a.core.bornDay = Math.floor(now(state) / DAY_MINUTES - creationAge(a.core.classes[0]?.classId) * CONFIG.YEAR_DAYS); }
+    else if (a.core.templateId && hasTemplate(state, a.core.templateId)) Object.assign(a.core, npcBornDay(state, npcTemplate(state, a.core.templateId), a.id));
   }
 }

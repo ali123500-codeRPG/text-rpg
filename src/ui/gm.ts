@@ -1,6 +1,7 @@
 // GM debug view (Part 2, Leak prevention…; Part 4 §11): full state, hidden plans, rolls, beliefs, each agent's exact
 // input and output, the red fallback banner, the backup list with restore, and the "Download backup" button.
 import { tierName } from '../ruleset';
+import { ageText } from '../ruleset/age';
 import type { GameApi, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
 import { TIERS } from '../scales';
@@ -85,6 +86,13 @@ export function gmPage(api: GameApi) {
             h('td', {}, e.attack ? `${e.attack.outcome} · ${e.attack.damage} dmg` : e.contest ? `${e.contest.winner} by ${e.contest.gap}` : e.check ? (e.check.passed ? 'passed' : 'failed') : (e.tier !== undefined ? tierName(e.tier) : '–')),
             h('td', {}, e.attack ? `d100 ${e.attack.attack.d100} vs ${e.attack.defense?.d100 ?? '–'} · gap ${e.attack.gap ?? '–'} · ${e.attack.location ?? '–'}` : '')))))
           : h('p', { class: 'empty' }, 'No rolls this turn.')),
+
+      // AG16: exact ages, which the play screen never shows for NPCs
+      h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Ages'),
+        s ? h('table', { class: 'hs-tbl' },
+          h('thead', {}, h('tr', {}, ['Actor', 'Age'].map((t) => h('th', {}, t)))),
+          h('tbody', {}, [s.player, ...s.actors].map((a) => h('tr', {}, h('td', {}, a.names.current), h('td', {}, ageText(s, a) ?? 'Ageless')))))
+          : h('p', { class: 'empty' }, 'No story yet.')),
 
       h('section', { class: 'sec' }, h('h2', { class: 'hs-section' }, 'Beliefs'),
         s?.actors.length ? h('table', { class: 'hs-tbl' },

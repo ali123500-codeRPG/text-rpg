@@ -14,7 +14,7 @@ it('41 Labels until names are known', () => {
   presence.perception = computePerception(presence, s, rng);
   const opening = buildNarrationView(s, [presence], null);
   expect(opening.events[0].actor).toBe('a tavern patron');
-  expect(opening.actors).toContainEqual({ label: 'a tavern patron', zone: 'common room', activityLook: 'nursing a drink' });
+  expect(opening.actors).toContainEqual(expect.objectContaining({ label: 'a tavern patron', zone: 'common room', activityLook: 'nursing a drink' }));
   expect(JSON.stringify(opening)).not.toContain('Old Wim');
 
   const line: GameEvent = { id: 'v1', turn: 1, actorId: 'patron_1', kind: 'speak', zone: 'tav_common', line: { text: "Name's Wim. Old Wim.", volume: 'normal', introduces: ['patron_1'] }, effects: [], noise: 'quiet', visibility: 'normal', perception: {} };

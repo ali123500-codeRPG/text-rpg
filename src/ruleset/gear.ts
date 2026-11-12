@@ -1,4 +1,5 @@
 // Part 1 §3 effective skill and substitution; Part 5 §2–5 active effects, tools and attack modes.
+import { ageMult } from './age';
 import type { Actor, AttackMode, DefenseKind, GameState, ItemDef, ItemEffect, ItemInstance, Mod, RollKind, SituationTag, SkillFunction, TierShift, Zone } from '../types';
 import { zoneLight } from '../time';
 import { LIGHT } from '../scales';
@@ -152,13 +153,14 @@ export function effectiveSkill(state: GameState, actor: Actor, skill: string, ct
     const k = share(id);
     const entry = actor.core.skills[id];
     const gear = (skillOpen(actor, id) ? gearFor(state, actor, id, ctx) : []).map((g) => ({ ...g, value: g.value * k }));
-    // true skill (S3) and gear, × the skill's tier multiplier (final efficiency)
-    const tier = tierMult(id);
+    // true skill (S3) and gear, × the skill's tier multiplier (final efficiency) and the old-age decline (AG20)
+    const tier = tierMult(id) * ageMult(state, actor, id);
     const value = ((entry && !entry.dormant ? trueSkill(actor, id) : 0) * k + gear.reduce((s, g) => s + g.value, 0)) * tier;
     for (const g of gear) g.value *= tier;
     if (!best || value > best.value) best = { skill: id, value, gear };
   }
-  for (const a of augmentsOf(actor, skill, ctx.rollKind)) { best!.value += a.value; best!.gear.push(a); } // skills that augment this one
+  const old = ageMult(state, actor, skill); // AG20: augments to a declining skill decline with it
+  for (const a of augmentsOf(actor, skill, ctx.rollKind)) { const g = { ...a, value: a.value * old }; best!.value += g.value; best!.gear.push(g); } // skills that augment this one
   return best!; // GAP: hard cap (D-3) and condition effects not designed yet
 }
 
