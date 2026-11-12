@@ -26,3 +26,19 @@ it('BG-47: a leg that stops short of the door says how many metres are still to 
   expect(mv.toGo).toBeGreaterThan(0);
   expect(NARRATOR_INSTRUCTIONS).toContain('toGo');
 });
+
+it('BG-48: a leg toward someone in another zone that stops short says how far the way still is too', () => {
+  const s = makeVillage({ playerZone: 'street_door' });
+  const zs = s.places.flatMap((p) => p.zones);
+  for (const z of zs) z.area = CONFIG.ZONE_SIZE_M2[z.id.startsWith('field') ? 'open' : z.id.startsWith('street') || z.id.startsWith('gate') ? 'yard' : 'room'];
+  placeZones(s, zs);
+  placeAll(s);
+  const street = zs.find((z) => z.id === 'street_door')!.rect!, room = zs.find((z) => z.id === 'tav_common')!.rect!;
+  s.player.pos = { x: street.x + Math.sign(street.x - room.x) * (street.w / 2 - 0.5), y: street.y + Math.sign(street.y - room.y) * (street.d / 2 - 0.5) };
+  const ev = play(s, { intent: intent({ move: { toZone: 'tav_common', spot: { near: 'patron_1' } }, action: { type: 'observe', target: null } }) });
+  const v = buildNarrationView(s, ev, null);
+  const mv = v.events.find((e) => ev.some((g) => g.id === e.id && g.kind === 'move' && g.actorId === s.player.id))!;
+  expect(s.player.zone).toBe('street_door');
+  expect(ev.find((g) => g.kind === 'move' && g.actorId === 'player')!.target).toBe('patron_1');
+  expect(mv.toGo).toBeGreaterThan(0);
+});
