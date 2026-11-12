@@ -263,6 +263,12 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     finally { switching = false; redraw(); }
   }
 
+  const pickBox = h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' });
+  const fieldsBox = h('div', { class: 'auto-fields' }), goBox = h('div', { class: 'auto-go' });
+  const ordersBox = h('div', { class: 'auto-row' }), liveBox = h('div', { class: 'auto-live' });
+  const panel = h('div', { class: 'auto-panel' }, h('div', { class: 'auto-row' }, pickBox, fieldsBox, goBox), ordersBox, liveBox);
+  /** a list open or a box being typed in inside this part */
+  const held = (box: Element) => { const f = document.activeElement; return !!f && box.contains(f) && (f.tagName === 'SELECT' || f.tagName === 'INPUT'); };
   function update() {
     if (restore && api.state() && !api.busy() && !switching) {
       const r = restore; restore = null;
@@ -270,8 +276,6 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     }
     if (!restore && api.state()) writeRun({ open, playing: playing && !stepping, owner: agentStory() ? 'agent' : 'player' });
     if (question?.perk && (api.state()?.player.progression?.unspentPerkPoints ?? 0) < question.perk.points) reply({ perk: true }); // taken on the sheet
-    const focus = document.activeElement;
-    if (focus && el.contains(focus) && (focus.tagName === 'SELECT' || focus.tagName === 'INPUT')) return; // don't close an open list or a box being typed in
     const btn = (label: string, on: () => void, o: { pressed?: boolean; disabled?: boolean; main?: boolean; title?: string; agent?: boolean } = {}) => h('button', {
       type: 'button', class: (o.main ? 'hs-btn-main' : 'hs-btn-text') + (o.agent ? ' auto-agent' : ''), onclick: on, disabled: o.disabled, title: o.title,
       'aria-pressed': o.pressed === undefined ? undefined : String(o.pressed) }, label);
@@ -282,6 +286,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     opener.classList.toggle('auto-agent', agentStory());
     opener.title = agentStory() ? 'You’re watching the agent’s own story. Your story is kept as it is.' : 'An agent plays while you watch, with spoken commentary';
     if (!open) { el.replaceChildren(); return; }
+    if (el.firstChild !== panel) el.replaceChildren(panel);
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       PERSONA_NAMES.map(([id, name]) => h('option', { value: id, selected: prefs.persona === id }, name)));
     const style = h('select', { 'aria-label': 'Voice style', onchange: (e: Event) => { prefs.style = (e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
@@ -310,7 +315,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
         onchange: (e: Event) => writeOrders(sid, (e.target as HTMLInputElement).value), onblur: () => update() })) : '';
     const q = question;
     const own = h('input', { type: 'text', placeholder: 'Or say what to do in your own words', 'aria-label': 'Your own answer',
-      onkeydown: (e: KeyboardEvent) => { const t = (e.target as HTMLInputElement).value.trim(); if (e.key === 'Enter' && t) reply({ words: t }); } }) as HTMLInputElement;
+      onkeydown: (e: KeyboardEvent) => { const t = (e.target as HTMLInputElement).value.trim(); if (e.key === 'Enter' && t) { (e.target as HTMLInputElement).blur(); reply({ words: t }); } } }) as HTMLInputElement; // Enter leaves the box, so the answered card can go
     const card = q ? h('div', { class: 'auto-ask', role: 'group', 'aria-label': 'Your call' },
       h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Your call'), q.ja ? h('span', {}, `“${plainLine(q.ja)}”`, h('span', { class: 'auto-en' }, plainLine(q.say))) : `“${plainLine(q.say)}”`),
       q.perk
@@ -323,27 +328,30 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
           btn('You decide', () => reply({ decide: true })),
           h('span', { class: 'auto-own' }, own, btn('Use my words', () => { const t = own.value.trim(); if (t) reply({ words: t }); }))),
       q.perk ? '' : h('p', { class: 'hs-note' }, 'It waits for you. A turn you play yourself in the box below also answers.')) : '';
-    el.replaceChildren(h('div', { class: 'auto-panel' },
-      h('div', { class: 'auto-row' },
-        h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' },
-          btn('Player’s', () => void useSave('player'), { pressed: !agentStory(), disabled: switching || api.busy(), title: api.busy() ? waitNote : 'The agent plays on your story' }),
-          btn('Agent’s', () => void useSave('agent'), { pressed: agentStory(), disabled: switching || api.busy(), agent: true, title: api.busy() ? waitNote : 'The agent plays its own story; yours is kept as it is' })),
-        h('label', { class: 'auto-field' }, mode), // its choices name themselves (Plays alone, Asks me at crossroads); the list keeps its Mode label for screen readers
-        h('label', { class: 'auto-field' }, 'Playstyle', persona),
-        h('label', { class: 'auto-field' }, 'Pace', wait),
-        h('label', { class: 'auto-field' }, 'Style', style),
-        h('label', { class: 'auto-field' }, 'Speaker', voicePick),
-        h('label', { class: 'auto-field' }, 'Speed', rate),
-        h('div', { class: 'auto-go' },
-          btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
-          playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }),
-          h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'))),
-      orders ? h('div', { class: 'auto-row' }, orders) : '',
+    // each part is rebuilt on every update except one holding a list or box in use (an open list would close, typed words would
+    // go). The whole bar used to wait while any list had focus, which after a pick is until a click elsewhere: the agent's
+    // status, its words and a guided question never showed, so it looked as if it did nothing
+    pickBox.replaceChildren(
+      btn('Player’s', () => void useSave('player'), { pressed: !agentStory(), disabled: switching || api.busy(), title: api.busy() ? waitNote : 'The agent plays on your story' }),
+      btn('Agent’s', () => void useSave('agent'), { pressed: agentStory(), disabled: switching || api.busy(), agent: true, title: api.busy() ? waitNote : 'The agent plays its own story; yours is kept as it is' }));
+    if (!held(fieldsBox)) fieldsBox.replaceChildren(
+      h('label', { class: 'auto-field' }, mode), // its choices name themselves (Plays alone, Asks me at crossroads); the list keeps its Mode label for screen readers
+      h('label', { class: 'auto-field' }, 'Playstyle', persona),
+      h('label', { class: 'auto-field' }, 'Pace', wait),
+      h('label', { class: 'auto-field' }, 'Style', style),
+      h('label', { class: 'auto-field' }, 'Speaker', voicePick),
+      h('label', { class: 'auto-field' }, 'Speed', rate));
+    goBox.replaceChildren(
+      btn('One turn', () => play(true), { disabled: playing || switching || !api.state() }),
+      playing ? btn('Pause', () => pause('Paused'), { main: true }) : btn('Play', () => play(), { main: true, disabled: switching || !api.state() }),
+      h('button', { type: 'button', class: 'hs-btn-text auto-x', 'aria-label': 'Close the agent bar', title: 'Close', onclick: () => { pause(''); open = false; update(); } }, '×'));
+    if (!held(ordersBox)) { ordersBox.replaceChildren(orders); ordersBox.hidden = !orders; }
+    if (!held(liveBox)) liveBox.replaceChildren(
       card || (said ? h('p', { class: 'auto-say' }, h('span', { class: 'auto-who' }, 'Agent'), saidJa ? h('span', {}, `“${plainLine(saidJa)}”`, h('span', { class: 'auto-en' }, plainLine(said))) : `“${plainLine(said)}”`) : ''),
       !q && prefs.mode === 'guided' && guidance && guidance.scenario === scenario() ? h('p', { class: 'hs-note' }, `Your guidance this scenario: ${guidance.text}`) : '',
       !q && prefs.mode === 'guided' && lastCall ? h('p', { class: 'hs-note' }, `Last call: ${lastCall}`) : '',
       status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status ? `${status}${playing && status.endsWith('…') && Date.now() - statusAt >= 5000 ? ` ${Math.floor((Date.now() - statusAt) / 1000)} s` : ''}` : mine!.textContent) : '',
-      noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : ''));
+      noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : '');
   }
   update();
   return { el, opener, update, playing: () => playing, asking: () => !!question,
