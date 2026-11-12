@@ -105,7 +105,8 @@ describe('185 the check-in call and its answer (SC8, SC14)', () => {
     frame(s);
     applyCheckin(s, s.stage.scene!.number, { verdict: 'end', as: 'resolved', text: 'the debt is paid' }, []);
     expect(s.hidden.scenes?.at(-1)).toMatchObject({ ending: 'resolved', text: 'the debt is paid' });
-    expect(s.stage.breakCause).toBe('scene_end');
+    expect(s.stage.roam).toEqual({ since: s.turn }); // SD2 a: every ending starts free roam for now
+    expect(s.stage.breakCause).toBeUndefined();
   });
   it('continue adds its beats to their owners', () => {
     const s = calm();

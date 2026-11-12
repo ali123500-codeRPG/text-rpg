@@ -1073,7 +1073,7 @@ function learned(state: GameState): number {
 
 /**
  * A quiet turn: no attack, nothing new learned, no beat fired (the beat's own reset). A stall (STALL_TURNS quiet turns
- * with no beat left) marks the scene to end as worn out; the director starts the next one. Rest, sleep and time skips
+ * with no beat left) marks the scene to end as worn out, and free roam starts (SD2 a). Rest, sleep and time skips
  * never end a scene (SC4, SC9).
  */
 function updatePacing(state: GameState, events: GameEvent[], learnedBefore: number): void {
