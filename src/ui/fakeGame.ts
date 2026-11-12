@@ -4,7 +4,7 @@ import { EK, PA, VL, ZK } from '../library/tableIds';
 import { roadShape } from '../scenario/apply';
 import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
-import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice } from '../types';
+import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice, XpPart } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { takePerk, undoPerk } from '../ruleset';
@@ -71,14 +71,19 @@ function endTurn(st: GameState): Partial<LogLine> {
   const fromLevel = p.core.classes[0]?.level ?? 1;
   const lvl = levelTurn(st);
   const earned = earnTurn(st, [ACH.flawless_1, ACH.brink_1]);
+  const parts: XpPart[] = [{ kind: 'defeat', label: '3 foes defeated', amount: 90 }, ...(earned.achievements ?? []).map((a) => ({ kind: 'achievement' as const, label: a.name, amount: 25 })),
+    { kind: 'quest', label: 'Clear the cellar for the barkeep', amount: 40 }];
+  const scenarioGains: NonNullable<LogLine['scenarioGains']> = {
+    skills, perks: [{ skill: SK.block, milestone: 20 }], allPerks: [{ tree: 'TR1', step: 50, name: 'All-50: Melee' }],
+    achievements: earned.achievements ?? [], xp: { gained: parts.reduce((n, x) => n + x.amount, 0), fromLevel, fromPct: 62, toLevel: fromLevel + 1, toPct: 30, parts }, levelUps: lvl.levelUps ?? [],
+  };
+  const closing = 'The cellar is quiet now, and the job is done.';
+  (p.progression!.gainsLog ??= []).push({ ...scenarioGains, number: st.stage.scenarioNumber ?? 1, ending: 'resolved', endTurn: st.turn, closing });
   st.stage.scenarioNumber = (st.stage.scenarioNumber ?? 1) + 1;
   return {
     text: 'Dawn finds you on the far bank. The new road climbs west toward a town you have only heard of.',
-    scenarioEnd: { as: 'resolved', name: 'resolved', closing: 'The cellar is quiet now, and the job is done.' },
-    scenarioGains: {
-      skills, perks: [{ skill: SK.block, milestone: 20 }], allPerks: [{ tree: 'TR1', step: 50, name: 'All-50: Melee' }],
-      achievements: earned.achievements ?? [], xp: { gained: 180, fromLevel, fromPct: 62, toLevel: fromLevel + 1, toPct: 30 }, levelUps: lvl.levelUps ?? [],
-    },
+    scenarioEnd: { as: 'resolved', name: 'resolved', closing },
+    scenarioGains,
   };
 }
 
@@ -189,7 +194,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     async agentMove(_persona, _style, guided) {
       if (guided?.answered) return { command: 'I talk to the barkeep.', say: 'Okay, your way!' };
       if (guided && (guided.mustAsk || ++asks % 2)) return { command: '', say: 'The barkeep offers a job: clear the cellar for 5 silver. Take it?', ask: { kind: guided.mustAsk?.kind ?? 'deal', about: `the barkeep ${asks}`, choices: ['I take the job.', 'I turn it down.', 'I ask for more.'], pick: 0 } };
-      return { command: 'I look around.', say: '<sigh> Getting my bearings first.', direction: 'calm, a little curious' };
+      return { command: 'I look around.', say: '<sigh> Getting my bearings first. The room is quiet, too quiet, and I do not like it.', direction: 'calm, a little curious' };
     },
     async submit(text, o) {
       if (busy || !state) return;

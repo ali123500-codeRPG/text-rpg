@@ -2,7 +2,7 @@
 // screen and Claude's voices get the line without them, and any failure of the connector says why and falls back.
 import { describe, expect, it } from 'vitest';
 import { AUTOPILOT_BRIEF, VOICE_TAGS, plainLine, readMove } from '../../src/agents/autopilot';
-import { type Mcp, RPG_SERVER, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices } from '../../src/ui/rpgVoice';
+import { type Mcp, RPG_SERVER, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices, splitLine } from '../../src/ui/rpgVoice';
 
 describe('186 RPG Voice', () => {
   it('the brief asks for an acting note and offers exactly the sound tags the voice acts', () => {
@@ -35,5 +35,12 @@ describe('186 RPG Voice', () => {
     expect(rpgFailure({ code: 'tool_error', message: 'Gemini 429: quota' })).toMatchObject({ down: true, note: expect.stringContaining('free allowance') });
     expect(rpgFailure({ code: 'tool_error', message: 'Gemini returned no audio' }).down).toBe(false);
     expect(rpgFailure({ code: 'server_unavailable' }).down).toBe(false);
+  });
+
+  it('a line is asked for as its first sentence and the rest, so the voice starts sooner', () => {
+    expect(splitLine('<gasp> He missed! Ha, my turn now. Again!')).toEqual(['<gasp> He missed!', 'Ha, my turn now. Again!']);
+    expect(splitLine('No! Not him. Run!')).toEqual(['No! Not him.', 'Run!']); // the first piece is never a lone word
+    expect(splitLine('Just one sentence here.')).toEqual(['Just one sentence here.']);
+    expect(splitLine('うそ！本当に当たった。もう一回！')).toEqual(['うそ！本当に当たった。', 'もう一回！']);
   });
 });

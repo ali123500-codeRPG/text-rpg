@@ -30,7 +30,7 @@
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
   --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scenario: 650ms; --m-fall: 1400ms; --m-honor: 900ms;
-  --m-hold: 80ms; --m-shake: 280ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms;
+  --m-hold: 80ms; --m-shake: 280ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */
   --m-ease: cubic-bezier(0.16, 1, 0.3, 1); --m-ease-exit: cubic-bezier(0.4, 0, 1, 1);
   color-scheme: dark;
 }
@@ -981,9 +981,19 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   background: linear-gradient(100deg, transparent 35%, color-mix(in oklch, var(--scenario-mark) 28%, transparent) 50%, transparent 65%); }
 /* the Thread: what the scenario added to XP, filling the bar (and wrapping for each level) */
 .g-xp { display: grid; gap: var(--space-2); grid-column: 1 / -1; }
-.g-xp-row { display: flex; align-items: baseline; gap: 2px; margin: 0; color: var(--muted); }
+/* the XP sum: one row per source, a rule under them, then the total they add up to */
+.g-xp-sum { position: relative; list-style: none; margin: 0; padding: 0 0 var(--space-2); display: grid; gap: var(--space-1); max-width: 620px; }
+.g-xp-sum::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: color-mix(in srgb, var(--scenario-mark) 55%, var(--rule)); transform-origin: left; }
+.g-xp-sum li { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; align-items: baseline; gap: var(--space-3); font-size: 15px; }
+.g-xp-sum .k { color: var(--faint); font-size: 12px; font-weight: 700; }
+.g-xp-sum .l { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-xp-sum .a { color: var(--scenario-mark); font-weight: 800; font-variant-numeric: tabular-nums; }
+.g-xp-row { display: flex; align-items: baseline; gap: 2px; margin: 0; max-width: 620px; color: var(--muted); }
+.g-xp-row .k { margin-right: auto; color: var(--faint); font-size: 12px; font-weight: 700; }
+.g-xp-line { display: flex; align-items: center; gap: var(--space-4); }
+.g-xp-line .g-xp-bar { flex: 1; }
 .g-xp-n { display: inline-block; font-size: 24px; font-weight: 800; color: var(--scenario-mark); font-variant-numeric: tabular-nums; }
-.g-xp-lv { display: inline-block; margin-left: auto; font-weight: 700; color: var(--text); }
+.g-xp-lv { display: inline-block; font-weight: 700; color: var(--text); white-space: nowrap; }
 .g-xp-bar { height: 12px; border-radius: 6px; overflow: hidden; }
 .g-xp-bar > b { background: var(--scenario-mark); border-radius: 6px; }
 /* the level the scenario brought: the finale */
@@ -999,3 +1009,19 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .g-recap:hover { background: color-mix(in oklch, var(--scenario-mark) 16%, transparent); }
 .g-recap .g-recap-t { display: grid; gap: 1px; min-width: 0; }
 .g-recap .hs-btn-text { margin-left: auto; }
+
+/* the Gains page: every scenario's gains, newest first, each folded under one line coloured by how it ended */
+.g-past-list { display: grid; gap: var(--space-3); }
+.g-past { --end: var(--scenario-mark); border: 1px solid var(--border); border-radius: var(--r-lg); background: color-mix(in srgb, var(--surface) 55%, transparent); }
+.g-past[data-end="resolved"] { --end: var(--ok); } .g-past[data-end="escaped"] { --end: var(--accent); }
+.g-past[data-end="left"] { --end: var(--muted); } .g-past[data-end="lost"] { --end: var(--danger); }
+.g-past > summary { display: flex; align-items: baseline; gap: var(--space-3); padding: 12px 16px; cursor: pointer; list-style: none; min-width: 0; }
+.g-past > summary::-webkit-details-marker { display: none; }
+.g-past > summary::before { content: "›"; color: var(--faint); transition: transform var(--m-state) var(--m-ease); }
+.g-past[open] > summary::before { transform: rotate(90deg); }
+.g-past-n { color: var(--text); white-space: nowrap; }
+.g-past-end { color: var(--end); font-weight: 700; white-space: nowrap; }
+.g-past-sum { margin-left: auto; color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.g-past-body { display: grid; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-4); }
+.g-past-body .g-closing { margin: 0; text-align: left; font: italic 400 16px/1.6 var(--font-story); color: var(--muted); }
+.g-past-body .g-spine .g-sec:last-child { padding-bottom: 0; }

@@ -406,6 +406,9 @@ export function createGame(deps: GameDeps): Game {
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
     const closing = rec.ended && narr.output.closing?.trim();
+    // the Gains page shows the scenario's closing line beside its gains (saved with the next turn)
+    const kept = closing ? s.player.progression?.gainsLog?.at(-1) : undefined;
+    if (kept && kept.endTurn === turn && closing) kept.closing = closing;
     const scenarioEnd = rec.ended ? { scenarioEnd: { as: rec.ended, name: SCENARIO_ENDING_NAMES[rec.ended], ...(closing ? { closing } : {}) } } : {};
     endingNow = null;
     lines.push({ turn, kind: 'narration', text: narr.output.text, ...scenarioEnd, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
