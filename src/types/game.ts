@@ -4,6 +4,7 @@ import type { Pronouns } from './actor';
 import type { AgentTurnLog, Volume } from './agents';
 import type { Tier } from './core';
 import type { LogEntry } from './core';
+import type { HealthLevelKey, PartStateKey } from '../scales';
 
 export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; classId?: string /* the starting class; left out = swordsman */; pronouns?: Pronouns /* the character's gender as others speak of them; left out = they */; personality?: import('./actor').Personality /* PL14: left out = no lean */; age?: number /* AG15: whole years; left out = the start's default */ };
 
@@ -29,7 +30,7 @@ export type LogLine = {
   achievements?: AchievementNote[];
   incomingChecks?: (LineCheck & { by: string })[]; // rolls others made against the player this turn; by = how the player knows them
   downedBy?: DownedBy; // the turn left the player down: the last blow that hurt them, as they knew it ("You fell" screen)
-  wounds?: { id: string; from: string; to: string }[]; // M-30: the player's body parts whose state got worse this turn (part state names)
+  wounds?: { id: string; from: PartStateKey; to: PartStateKey }[]; // M-30: the player's body parts whose state got worse this turn
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
   place?: { id: string; name: string; zone?: string }; // where the player ended the turn; name like "River path · the Riverside", zone like "cellar"
   scenario?: number; // stage.scenarioNumber when the turn ended
@@ -48,7 +49,7 @@ export type DownedBy = { by: string; weapon: string | null; part: string | null;
 /** one healing of the player: the health level and each body part that changed state */
 /** better: health went up without changing level or any part state (a bandage on a light wound) */
 export type AchievementNote = { id: string; name: string; level?: string; levelName?: string; xp?: number; scar?: boolean; earnedAt?: string; why?: string; rewards?: string[] };
-export type HealNote = { source: string; from: string; to: string; parts: { id: string; from: string; to: string }[]; better?: boolean };
+export type HealNote = { source: string; from: HealthLevelKey; to: HealthLevelKey; parts: { id: string; from: PartStateKey; to: PartStateKey }[]; better?: boolean };
 
 export type LineCheck = {
   kind: 'attack' | 'contest' | 'roll';

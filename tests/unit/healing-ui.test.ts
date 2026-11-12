@@ -12,13 +12,13 @@ describe('healing displays', () => {
   it('turn notes keep the player’s healing, skill gains and milestones', () => {
     const s = makeVillage();
     s.log.push(
-      { turn: s.turn, code: 'healed', detail: { actorId: s.player.id, source: HL.bandage, from: 'Hurt', to: 'Bruised', parts: [] } },
-      { turn: s.turn, code: 'healed', detail: { actorId: 'someone_else', source: HL.bandage, from: 'Hurt', to: 'Bruised', parts: [] } },
+      { turn: s.turn, code: 'healed', detail: { actorId: s.player.id, source: HL.bandage, from: 'hurt', to: 'bruised', parts: [] } },
+      { turn: s.turn, code: 'healed', detail: { actorId: 'someone_else', source: HL.bandage, from: 'hurt', to: 'bruised', parts: [] } },
       { turn: s.turn, code: 'skill_improved', detail: { skill: SK.block, from: 38, to: 40, milestone: 40 } },
       { turn: s.turn - 1, code: 'skill_improved', detail: { skill: SK.dodge, from: 10, to: 12 } },
     );
     expect(turnNotes(s)).toEqual({
-      heals: [{ source: HL.bandage, from: 'Hurt', to: 'Bruised', parts: [] }],
+      heals: [{ source: HL.bandage, from: 'hurt', to: 'bruised', parts: [] }],
       unlocks: [{ skill: SK.block, milestone: 40 }], gains: { [SK.block]: 2 },
     });
   });

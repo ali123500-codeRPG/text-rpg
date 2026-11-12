@@ -13,7 +13,7 @@ export function fakeView(state: GameState, id: string, self: Partial<ActorView['
     personality: '',
     self: {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc', zone: a.zone, placeId: a.placeId, bandId: a.bandId,
-      health: 'Unhurt', parts: [], morale: 'Calm', active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
+      health: 'unhurt', parts: [], morale: 'Calm', active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, gear: [],
       attackSkill: tpl?.fallback?.attackSkill ?? getLibrary().bodyTypes[a.core.bodyTypeId].fallback.attackSkill,
       routine: m.routine ? { ...m.routine } : undefined,

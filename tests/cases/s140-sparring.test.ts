@@ -17,7 +17,7 @@ import { applyStagePlan, validateStagePlan, type PlanContext } from '../../src/s
 import { toStoryStart, villageStagePlan } from '../../src/scenario/fixtures';
 import type { TurnInput } from '../../src/engine';
 
-const critical = () => CONFIG.HEALTH_TRACK.find(([l]) => l === 'Critical')![1] as number;
+const critical = () => CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1] as number;
 const village = () => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
   for (const id of ['patron_1', 'trader']) actor(s, id).mind!.knowledge.player = { status: 'aware', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
@@ -49,8 +49,8 @@ describe('140 sparring', () => {
     expect(sparring(s, s.player, p) && foe(s, p, s.player) && !hostile(s, p, s.player)).toBe(true);
     expect(isEngaged(s, p)).toBe(true);
     expect(buildActorView(s, 'patron_1').beliefs.find((b) => b.about === 'player')).toMatchObject({ hostile: false, sparring: true });
-    expect(buildActorView(s, 'patron_1').self.spar).toEqual({ opponents: ['player'], allies: [], limit: 'Critical', cruel: false, out: false });
-    expect(buildPlayerView(s).player.spar).toMatchObject({ opponents: [expect.any(String)], limit: 'Critical' });
+    expect(buildActorView(s, 'patron_1').self.spar).toEqual({ opponents: ['player'], allies: [], limit: 'critical', cruel: false, out: false });
+    expect(buildPlayerView(s).player.spar).toMatchObject({ opponents: [expect.any(String)], limit: 'critical' });
     let hits = 0;
     for (let i = 0; i < 8 && !hits; i++) {
       const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }) }, 100 + i);
@@ -198,7 +198,7 @@ describe('140 lethal flag (D-54)', () => {
   };
   it('a lethal foe left standing ends the story: no survival roll', () => {
     const s = downed(true, 10);
-    expect(healthLevel(s.player)).toBe('Incapacitated');
+    expect(healthLevel(s.player)).toBe('incapacitated');
     expect(codes(s)).toContain('player_fell');
     expect(codes(s)).not.toContain('survival_roll');
   });
@@ -210,11 +210,11 @@ describe('140 lethal flag (D-54)', () => {
       if (!roll) continue;
       if (roll.survived) {
         survived = true;
-        expect(healthLevel(s.player)).toBe('Critical');
+        expect(healthLevel(s.player)).toBe('critical');
         expect(s.stage.breakCause).toBe('knocked_out');
       } else {
         failed = true;
-        expect(healthLevel(s.player)).toBe('Incapacitated');
+        expect(healthLevel(s.player)).toBe('incapacitated');
       }
     }
     expect(survived && failed).toBe(true);

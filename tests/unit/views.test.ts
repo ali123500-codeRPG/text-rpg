@@ -18,11 +18,11 @@ vi.mock('../../src/ruleset', async (orig) => {
     ...real,
     healthLevel: (a: import('../../src/types').Actor) => {
       const lost = a.core.condition.hpLostPct;
-      if (lost >= 100) return 'Incapacitated';
+      if (lost >= 100) return 'incapacitated';
       return CONFIG.HEALTH_TRACK.find(([, max]) => lost <= max)![0];
     },
     partStates: (_s: unknown, a: import('../../src/types').Actor) =>
-      Object.entries(a.core.condition.parts).map(([id, pct]) => ({ id, state: pct >= 100 ? 'Healthy' : pct > 50 ? 'Damaged' : pct > 0 ? 'Crippled' : 'Destroyed' })),
+      Object.entries(a.core.condition.parts).map(([id, pct]) => ({ id, state: pct >= 100 ? 'healthy' : pct > 50 ? 'damaged' : pct > 0 ? 'crippled' : 'destroyed' })),
   };
 });
 
@@ -105,9 +105,9 @@ describe('NPC views', () => {
     place(s, 'trader', 'tav_common');
     const seen = () => buildActorView(s, 'patron_1').seen.find((x) => x.id === 'trader')!;
     expect(seen().health).toBeUndefined();
-    expect(buildActorView(s, 'trader').self.health).toBe('Injured');
+    expect(buildActorView(s, 'trader').self.health).toBe('injured');
     actor(s, 'trader').core.condition.hpLostPct = 50;
-    expect(seen().health).toBe('Wounded');
+    expect(seen().health).toBe('wounded');
   });
   it('NPCs do not see an unaware-of player; stowed gear is never seen', () => {
     const s = makeVillage();
@@ -145,8 +145,8 @@ describe('NarrationView and the packet', () => {
   it("hides others' minor condition changes, shows the player's own", () => {
     const s = makeVillage();
     place(s, 'trader', 'tav_common');
-    run(s, ev({ actorId: 'trader', kind: 'threshold_crossed', zone: 'tav_common', effects: [{ kind: 'threshold_crossed', actorId: 'trader', data: { from: 'Unhurt', to: 'Hurt' } }] }));
-    run(s, ev({ actorId: 'player', kind: 'threshold_crossed', zone: 'tav_common', effects: [{ kind: 'threshold_crossed', actorId: 'player', data: { from: 'Unhurt', to: 'Bruised' } }] }));
+    run(s, ev({ actorId: 'trader', kind: 'threshold_crossed', zone: 'tav_common', effects: [{ kind: 'threshold_crossed', actorId: 'trader', data: { from: 'unhurt', to: 'hurt' } }] }));
+    run(s, ev({ actorId: 'player', kind: 'threshold_crossed', zone: 'tav_common', effects: [{ kind: 'threshold_crossed', actorId: 'player', data: { from: 'unhurt', to: 'bruised' } }] }));
     const v = buildNarrationView(s, s.events, null);
     expect(v.events.map((e) => e.changes)).toEqual([['player is Bruised']]);
   });
@@ -159,7 +159,7 @@ describe('NarrationView and the packet', () => {
       deciding: { attack: ['aim'], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, modeId: AM.cut,
     };
     const e = run(s, ev({ id: 'evt_a', actorId: 'player', kind: 'attack', zone: 'tav_common', target: 'guard_1', attack: result,
-      effects: [{ kind: 'part_state_changed', actorId: 'guard_1', data: { part: 'left_arm', from: 'Healthy', to: 'Damaged' } }] }));
+      effects: [{ kind: 'part_state_changed', actorId: 'guard_1', data: { part: 'left_arm', from: 'healthy', to: 'damaged' } }] }));
     const pk = buildCombatPacket(s, e, 'player');
     expect(pk).toEqual({
       event: 'evt_a', actor: 'player', target: 'a village guard', action: 'melee attack', weapon: 'arming sword', armor: 'mail hauberk', shield: null,
@@ -193,7 +193,7 @@ describe('NarrationView and the packet', () => {
     const health = () => buildNarrationView(s, [], null).actors.find((a) => a.label === actor(s, 'trader').label)!.health;
     expect(health()).toBeUndefined();
     actor(s, 'trader').core.condition.hpLostPct = 100;
-    expect(health()).toBe('Incapacitated');
+    expect(health()).toBe('incapacitated');
   });
   it('someone Down shows no mood (BG-29)', () => {
     const s = makeVillage();
@@ -237,9 +237,9 @@ describe('P3 seen clearly stays seen', () => {
 describe('others health word', () => {
   it('shows Dead only when seen clearly, Down for any other fallen state', async () => {
     const { othersHealthWord } = await vi.importActual<typeof import('../../src/ruleset')>('../../src/ruleset');
-    expect(othersHealthWord('Dead', true)).toBe('Dead');
-    expect(othersHealthWord('Dead', false)).toBe('Down');
-    expect(othersHealthWord('Incapacitated', true)).toBe('Down');
-    expect(othersHealthWord('Wounded', true)).toBe('Wounded');
+    expect(othersHealthWord('dead', true)).toBe('Dead');
+    expect(othersHealthWord('dead', false)).toBe('Down');
+    expect(othersHealthWord('incapacitated', true)).toBe('Down');
+    expect(othersHealthWord('wounded', true)).toBe('Wounded');
   });
 });

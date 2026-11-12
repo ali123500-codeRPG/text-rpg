@@ -9,10 +9,10 @@ import { healthLevel } from '../ruleset/body';
 import { actorById, isActive } from './relations';
 import { logCode } from './effects';
 import { tally } from './xp';
+import { HEALTH_LEVELS, type HealthLevelKey } from '../scales';
 
-const pos = (level: string) => CONFIG.HEALTH_TRACK.findIndex(([l]) => l === level);
 /** SP4: the health level that puts a fighter out: SPAR_LIMIT, or Incapacitated in a cruel spar (both fighters accepted it) */
-export const sparLimit = (sp: Spar): string => (sp.cruel ? 'Incapacitated' : CONFIG.SPAR_LIMIT);
+export const sparLimit = (sp: Spar): HealthLevelKey => (sp.cruel ? 'incapacitated' : CONFIG.SPAR_LIMIT);
 /** the live spar an actor is a fighter in */
 export const sparOf = (state: GameState, id: string): Spar | undefined => state.spars?.find((sp) => sp.sides.some((s) => s.includes(id)));
 
@@ -45,7 +45,7 @@ export function checkOut(state: GameState, sp: Spar): void {
   for (const id of sp.sides.flat()) {
     if (id in sp.out) continue;
     const a = actorById(state, id);
-    if (a && isActive(a) && pos(healthLevel(a)) < pos(sparLimit(sp))) continue;
+    if (a && isActive(a) && HEALTH_LEVELS.pos(healthLevel(a)) < HEALTH_LEVELS.pos(sparLimit(sp))) continue;
     sp.out[id] = state.turn;
     logCode(state, 'spar_out', { id: sp.id, actorId: id, reason: 'limit' });
   }

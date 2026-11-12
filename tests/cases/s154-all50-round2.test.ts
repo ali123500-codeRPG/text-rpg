@@ -48,7 +48,7 @@ describe('154 All-50 parts round 2', () => {
       payFear(s, forcedRng([50, 50]), p, FR.dread_presence, { gap: 1 });
       return moraleLost(p);
     };
-    const wounded = CONFIG.HEALTH_TRACK.find(([l]) => l === 'Wounded')![1] as number;
+    const wounded = CONFIG.HEALTH_TRACK.find(([l]) => l === 'wounded')![1] as number;
     expect(lost(true, 0)).toBeCloseTo(lost(false, 0)); // unhurt: no change
     expect(lost(false, wounded + 1)).toBeGreaterThan(0);
     expect(lost(true, wounded + 1)).toBeCloseTo(lost(false, wounded + 1) * CONFIG.LAST_TO_FALL_MULT);

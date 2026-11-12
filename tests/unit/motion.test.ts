@@ -18,8 +18,8 @@ describe('play screen motion', () => {
     s.player.core.condition.parts.right_arm = -10; // Crippled
     s.player.core.condition.parts.left_leg = 40; // Damaged
     expect(partsWorse(before, partStates(s, s.player))).toEqual([
-      { id: 'left_leg', from: 'Healthy', to: 'Damaged' },
-      { id: 'right_arm', from: 'Healthy', to: 'Crippled' },
+      { id: 'left_leg', from: 'healthy', to: 'damaged' },
+      { id: 'right_arm', from: 'healthy', to: 'crippled' },
     ].sort((a, b) => before.findIndex((p) => p.id === a.id) - before.findIndex((p) => p.id === b.id)));
     // getting better is the heal card's job, not this one
     const hurt = partStates(s, s.player);
@@ -44,7 +44,7 @@ describe('play screen motion', () => {
     const b = shownValues(s, s.player);
     expect(b.level).not.toBe(a.level);
     expect(b.hpFill).toBeLessThan(a.hpFill);
-    expect(b.parts.right_arm).toBe('Crippled');
+    expect(b.parts.right_arm).toBe('crippled');
     // the rail's perk-point badge is one of them, so it changes with the level-up beat, not before it
     s.player.progression = { ...(s.player.progression ?? {}), unspentPerkPoints: 1 } as typeof s.player.progression;
     expect(shownValues(s, s.player).points).toBe(1);

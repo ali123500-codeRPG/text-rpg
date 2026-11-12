@@ -18,7 +18,7 @@ import { slotMetres } from './speed';
 import { travel, tripGoal } from './travel';
 import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, wayLeftM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
-import { TIERS } from '../scales';
+import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
@@ -224,8 +224,6 @@ function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; 
   for (const p of allActors(state)) if (p !== a && !!a.bandId && p.bandId === a.bandId && seen[p.id]) fear(ctx, p, FR.bandmate_broken, {}, seen);
 }
 
-const LEVELS = () => CONFIG.HEALTH_TRACK.map((l) => l[0]);
-
 // ---------- actions ----------
 
 function hold(ctx: Ctx, a: Actor, o: Order): void {
@@ -391,7 +389,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const wasted = (reason?: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(reason ? { reason } : {}) }), o));
   // BG-25: someone down (Incapacitated) can still be struck: HP lost keeps counting while down, to Dead. Only the dead can't.
   if (!t || t === a) return wasted();
-  if (healthLevel(t) === 'Dead') return wasted('already_dead');
+  if (healthLevel(t) === 'dead') return wasted('already_dead');
   if (t === state.player && !isActive(t)) return wasted('already_down'); // a downed player's fate is the survival roll's (D-54)
   if (a === state.player && moraleLevel(a) === 'broken') { logCode(state, 'broken_no_attack', { actorId: a.id }); return wasted('nerve_broken'); } // MB12
   if (yieldBars(state, a, t)) { logCode(state, 'yield_no_attack', { actorId: a.id, target: t.id }); return wasted('yielded_to'); } // MB43
@@ -454,9 +452,8 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   // Destroyed arm drops what it held: ruleset.applyEffects moves the item; each drop is its own perceived event
   for (const f of ev.effects) if (f.kind === 'item_dropped') emit(ctx, mk(ctx, t, 'item_dropped', { itemId: f.data.itemId as string }));
   // morale (MB21–MB23): a new health level a health fear covers; bandmates who perceive a fall; the one who downed it
-  const L = LEVELS();
   const after = healthLevel(t);
-  const hf = L.indexOf(after) > L.indexOf(before.level) ? healthFear(t, after) : undefined;
+  const hf = HEALTH_LEVELS.pos(after) > HEALTH_LEVELS.pos(before.level) ? healthFear(t, after) : undefined;
   if (hf) fear(ctx, t, hf.id, {}, ev.perception);
   for (const { fear: f, parts } of partFears(before.parts, partStates(state, t))) fear(ctx, t, f.id, { cost: partFearCost(f, parts, actorBody(state, t).parts) }, ev.perception); // parts Crippled (or worse) by this hit
   if (!isActive(t) && before.lost < 100) { // newly down: a blow on someone already down downs no one
@@ -521,8 +518,8 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   const { state, rng } = ctx;
   // T4b Second Wind: once per engagement, at Wounded or worse (not down), the health track moves one level better
   const L = CONFIG.HEALTH_TRACK;
-  const i = L.findIndex(([l]) => l === healthLevel(t));
-  if (isActive(t) && hasPerk(t, PK.second_wind) && i >= L.findIndex(([l]) => l === 'Wounded') && !isDownLevel(L[i][0]) && onceThisEngagement(state, t, PK.second_wind)) {
+  const i = HEALTH_LEVELS.pos(healthLevel(t));
+  if (isActive(t) && hasPerk(t, PK.second_wind) && i >= HEALTH_LEVELS.pos('wounded') && !isDownLevel(L[i][0]) && onceThisEngagement(state, t, PK.second_wind)) {
     healFromPerk(state, t, L[i - 1][1] as number);
     emit(ctx, mk(ctx, t, 'perk_move', { effects: [{ kind: PK.second_wind, actorId: t.id, data: { from: L[i][0], to: L[i - 1][0] } }] }));
   }
@@ -918,7 +915,7 @@ const rangedHere = (state: GameState, a: Actor, o: Order) => {
 const lame = (state: GameState, a: Actor) => {
   if (slowed(state, a)) return true;
   const parts = new Map(partStates(state, a).map((p) => [p.id, p.state]));
-  return actorBody(state, a).parts.some((p) => p.roles.includes(RL.move) && ['Crippled', 'Destroyed'].includes(parts.get(p.id) ?? ''));
+  return actorBody(state, a).parts.some((p) => p.roles.includes(RL.move) && PART_STATES.pos(parts.get(p.id) ?? 'healthy') >= PART_STATES.pos('crippled'));
 };
 
 /** ST3/ST5/NS1, NS8, NS9: posture from the turn's order, for any actor. Sneaking is a free switch; a hide is the main action; a
@@ -1091,7 +1088,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
 function playerDown(state: GameState, rng: Rng): void {
   const p = state.player;
   if (p.engagement?.fight) p.engagement.fight.down = true; // a lost fight, even if the player wakes (the Loser scars)
-  if (healthLevel(p) === 'Dead') return;
+  if (healthLevel(p) === 'dead') return;
   if (state.actors.some((x) => isActive(x) && hostile(state, x, p) && bandById(state, x.bandId)?.lethal !== false)) {
     logCode(state, 'player_fell', { lethal: true });
     return;
@@ -1099,7 +1096,7 @@ function playerDown(state: GameState, rng: Rng): void {
   const r = survivalRoll(rng);
   logCode(state, 'survival_roll', { d100: r.d100, tier: r.tier, survived: r.survived });
   if (!r.survived) return;
-  p.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'Critical')![1] as number;
+  p.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
   state.stage.breakCause = 'knocked_out';
 }
 

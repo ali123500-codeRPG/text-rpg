@@ -5,7 +5,7 @@ import { type Ask, type GuidedCtx, guidedPrompt, readAsk } from './crossroads';
 import { MILESTONES, canTake, milestonePerk, milestoneState, trueSkill } from '../ruleset/perks';
 import { healthLevel, partStates } from '../ruleset/body';
 import { moraleLevel } from '../ruleset/morale';
-import { MORALE_LEVELS } from '../scales';
+import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 import { coinWords, coins } from '../engine/trade';
 import { buildPlayerView } from '../views';
 import type { WayView } from '../types/views';
@@ -100,9 +100,9 @@ export const VOICE_STYLES: [string, string, string][] = [
  *  own recent commentary, so it doesn't keep repeating itself */
 /** BG-26: what the character knows of itself, given every move so it never stops to look at its sheet */
 export function condition(s: GameState): string {
-  const p = s.player, hurt = partStates(s, p).filter((x) => x.state !== 'Healthy').map((x) => `${x.id.replace(/_/g, ' ')} ${x.state}`);
+  const p = s.player, hurt = partStates(s, p).filter((x) => x.state !== 'healthy').map((x) => `${x.id.replace(/_/g, ' ')} ${PART_STATES.name(x.state)}`);
   const points = p.progression?.unspentPerkPoints ?? 0;
-  return `How you are right now (you always know this; never stop to check it): health ${healthLevel(p)}${hurt.length ? `, ${hurt.join(', ')}` : ', no wounded parts'}; morale ${MORALE_LEVELS.name(moraleLevel(p))}; you carry ${coinWords(coins(p))}${points ? `; ${points} perk point${points > 1 ? 's' : ''} to spend` : ''}.`;
+  return `How you are right now (you always know this; never stop to check it): health ${HEALTH_LEVELS.name(healthLevel(p))}${hurt.length ? `, ${hurt.join(', ')}` : ', no wounded parts'}; morale ${MORALE_LEVELS.name(moraleLevel(p))}; you carry ${coinWords(coins(p))}${points ? `; ${points} perk point${points > 1 ? 's' : ''} to spend` : ''}.`;
 }
 
 /** BG-30: where the character stands and the ways out it can see (what the player sees on the map), so it never invents one */

@@ -6,6 +6,7 @@ import { CONFIG } from '../config';
 import { allActors, isEngaged, stance } from '../engine/relations';
 import { coinWords, coins } from '../engine/trade';
 import { healthLevel } from '../ruleset/body';
+import { HEALTH_LEVELS, PART_STATES, type HealthLevelKey } from '../scales';
 
 /** by: 'code' = checked after each turn; 'agent' = the agent asks before making such a move */
 export const CROSSROADS: { kind: string; by: 'code' | 'agent'; rule: string }[] = [
@@ -73,23 +74,22 @@ export function readAsk(v: unknown, mustKind?: string): Ask | null {
 export const askKey = (kind: string, about: string) => `${kind}: ${about.toLowerCase()}`;
 
 /** what code compares across a turn */
-export type TurnSnap = { engaged: boolean; health: string; yielded: string[] };
+export type TurnSnap = { engaged: boolean; health: HealthLevelKey; yielded: string[] };
 export function turnSnap(s: GameState): TurnSnap {
   const p = s.player;
   return { engaged: isEngaged(s, p), health: healthLevel(p), yielded: allActors(s).filter((a) => a !== p && stance(s, a, p) === 'yielded').map((a) => a.id) };
 }
 
-const HURT_ASKS = ['Wounded', 'Mauled', 'Critical'];
-const PART_ASKS = ['Crippled', 'Destroyed'];
-const pos = (l: string) => CONFIG.HEALTH_TRACK.findIndex(([x]) => x === l);
+const HURT_ASKS: HealthLevelKey[] = ['wounded', 'mauled', 'critical'];
 
 /** the code-spotted crossroads of the turn that just ended (GA3–GA5; the perk point, GA6, is the bar's own card).
  *  ownFight: the watcher already approved the fight the agent started this turn. */
 export function spotCrossroads(before: TurnSnap, s: GameState, line: LogLine | undefined, ownFight: boolean): Crossroad[] {
   const now = turnSnap(s), out: Crossroad[] = [];
   if (!before.engaged && now.engaged && !ownFight) out.push({ kind: 'fight_started', about: 'this fight', key: `fight from turn ${s.turn}`, situation: 'a fight has started that you did not start (see the latest story lines): fight, talk, run or yield?' });
-  if (HURT_ASKS.includes(now.health) && pos(now.health) > pos(before.health)) out.push({ kind: 'badly_hurt', about: now.health, situation: `your health is now ${now.health}` });
-  for (const w of line?.wounds ?? []) if (PART_ASKS.includes(w.to)) out.push({ kind: 'badly_hurt', about: `${w.id.replace(/_/g, ' ')} ${w.to}`, situation: `your ${w.id.replace(/_/g, ' ')} is now ${w.to}` });
+  const health = HEALTH_LEVELS.name(now.health);
+  if (HURT_ASKS.includes(now.health) && HEALTH_LEVELS.pos(now.health) > HEALTH_LEVELS.pos(before.health)) out.push({ kind: 'badly_hurt', about: health, situation: `your health is now ${health}` });
+  for (const w of line?.wounds ?? []) if (PART_STATES.pos(w.to) >= PART_STATES.pos('crippled')) out.push({ kind: 'badly_hurt', about: `${w.id.replace(/_/g, ' ')} ${PART_STATES.name(w.to)}`, situation: `your ${w.id.replace(/_/g, ' ')} is now ${PART_STATES.name(w.to)}` });
   const yielded = now.yielded.filter((id) => !before.yielded.includes(id));
   if (yielded.length) out.push({ kind: 'foe_yields', about: 'a foe who yielded', key: `yield of ${yielded.join(', ')}`, situation: 'a foe has yielded to you (see the latest story lines): spare them or fight on?' });
   return out;

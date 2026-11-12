@@ -42,7 +42,7 @@ function fightTurn(st: GameState): Partial<LogLine> {
     check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: 'heavy hit, body' },
     incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'critical_success', against: { what: 'your block', tier: 'near_miss' }, result: 'crushing hit, right arm', by: 'the slime' }],
     changes: [{ kind: 'combat', text: 'Slime → you · crushing hit, right arm' }, { kind: 'combat', text: 'You → slime · heavy hit, body' }, { kind: 'condition', text: 'Your right arm is crippled' }],
-    wounds: [{ id: 'right_arm', from: 'Healthy', to: 'Crippled' }], gains: { [SK.block]: 2 },
+    wounds: [{ id: 'right_arm', from: 'healthy', to: 'crippled' }], gains: { [SK.block]: 2 },
   };
 }
 
@@ -136,7 +136,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { turn: 3, kind: 'narration', text: NARRATION[2], place: KETTLE, scenario: 2,
         check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
-        heals: [{ source: HL.bandage, from: 'Hurt', to: 'Bruised', parts: [{ id: 'left_leg', from: 'Damaged', to: 'Healthy' }] }],
+        heals: [{ source: HL.bandage, from: 'hurt', to: 'bruised', parts: [{ id: 'left_leg', from: 'damaged', to: 'healthy' }] }],
         unlocks: [{ skill: SK.block, milestone: 40 }], gains: { [SK.block]: 3 },
         incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'great_success', against: { what: 'your block', tier: 'success' }, result: 'blocked, shield', by: 'the slime' }],
         changes: [{ kind: 'combat', text: 'Slime → you · blocked, shield' }, { kind: 'combat', text: 'You → slime · full hit, body' }, { kind: 'health', text: 'You are Bruised' }],

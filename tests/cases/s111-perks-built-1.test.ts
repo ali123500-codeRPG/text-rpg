@@ -83,7 +83,7 @@ describe('111 coded perks, batch 1', () => {
     expect(seen().health).toBeUndefined();
     expect(seen().damaged).toBeUndefined();
     give(s.player, PK.read_wounds);
-    expect(seen()).toMatchObject({ health: 'Injured', damaged: ['left_arm'] });
+    expect(seen()).toMatchObject({ health: 'injured', damaged: ['left_arm'] });
     wim.core.condition.hpLostPct = 20; // Hurt: still hidden
     expect(seen().health).toBeUndefined();
   });

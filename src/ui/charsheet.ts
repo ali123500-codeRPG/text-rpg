@@ -1,6 +1,6 @@
 // Character sheet pieces (approved mock-up round 2): the character card, skill bars by tree, and the
 // compact side sheet on the Play screen. Display only: every number comes from the ruleset or the saved actor.
-import type { Actor, GameState, LogLine } from '../types';
+import type { Actor, GameState, HealthLevel, LogLine, PartState } from '../types';
 import { CONFIG } from '../config';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { defaultMode, effectiveSkill, healthLevel, modeSkill, TAG_MARK, totalHp, trueSkill, usedOffSheet } from '../ruleset';
@@ -16,7 +16,7 @@ import { ageText } from '../ruleset/age';
 import { callName } from '../views';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
-import { CLASS_TIERS, MORALE_LEVELS } from '../scales';
+import { CLASS_TIERS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 
@@ -82,13 +82,13 @@ const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2)))
 /** one row of level names over the card's equal boxes, alternating above (0) and below (1) the bar. The boxes run
  * Critical on the left to Bruised, then a 7th box for Unhurt on the right, so the bar empties from the
  * right like the side sheet's. Unhurt and Incapacitated are not named. */
-const steps = (boxes: string[], level: string, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
-  boxes.map((l, i) => (l !== 'Unhurt' && i % 2 === below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, l) : null)));
+const steps = (boxes: HealthLevel[], level: HealthLevel, below: 0 | 1) => h('div', { class: `cs-steps ${below ? 'down' : 'up'}` },
+  boxes.map((l, i) => (l !== 'unhurt' && i % 2 === below ? h('span', { class: l === level ? 'now' : '', style: `grid-column:${i + 1}` }, HEALTH_LEVELS.name(l)) : null)));
 
 export function charCard(s: GameState, p: Actor): HTMLElement {
   const { hp } = hpLeft(s, p);
   const level = shownLevel(healthLevel(p));
-  const levels = SHOWN_LEVELS().map(([l]) => l as string);
+  const levels = SHOWN_LEVELS().map(([l]) => l);
   // boxes left to right: Critical … Bruised, then Unhurt; a box is lit while the character is at its level or better
   const boxes = [...levels.slice(1, -1).reverse(), levels[0]];
   const at = levels.indexOf(level);
@@ -102,10 +102,10 @@ export function charCard(s: GameState, p: Actor): HTMLElement {
     h('div', { class: 'cs-who' }, h('div', { class: 'cs-sigil', 'aria-hidden': 'true' }, '⚔'),
       h('div', {}, h('b', {}, p.names.current || (getLibrary().classes[cls]?.name ?? cls)), h('span', {}, [ageText(s, p), place ? `In the ${place}` : ''].filter(Boolean).join(' · ')))), // AG16
     h('div', { class: 'cs-track' },
-      h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${level} · ${whole(hp)} HP`)),
+      h('div', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, `${HEALTH_LEVELS.name(level)} · ${whole(hp)} HP`)),
       // each level named at its segment, alternating one above the bar and one below
       steps(boxes, level, 0),
-      h('div', { class: 'cs-hp', title: `Health track: ${levels.join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: l, 'aria-label': l }))),
+      h('div', { class: 'cs-hp', title: `Health track: ${levels.map(HEALTH_LEVELS.name).join(', ')}` }, boxes.map((l) => h('i', { class: at <= levels.indexOf(l) ? 'on' : '', title: HEALTH_LEVELS.name(l), 'aria-label': HEALTH_LEVELS.name(l) }))),
       steps(boxes, level, 1),
       bodyFigure(s, p)),
     xpTrack(s, p),
@@ -192,7 +192,7 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
   const ct = safe(() => actorBody(s, p));
   if (!ct?.figure) return null;
   const { hp, total } = hpLeft(s, p);
-  const info = (id: string): { name: string; state: string; amount: string } => {
+  const info = (id: string): { name: string; state: PartState; amount: string } => {
     if (id === 'general') return { name: cap(ct.general.name), state: poolState(100 - p.core.condition.hpLostPct), amount: `${whole(hp)} of ${whole(total)} HP` };
     const d = ct.parts.find((x) => x.id === id);
     const pct = p.core.condition.parts[id] ?? 100;
@@ -202,7 +202,7 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
   const shapes = Object.entries(ct.figure.parts).map(([id, d]) => {
     const i = info(id);
     const hl = healed.has(id) ? ' · healed this turn' : '';
-    return `<path data-part="${esc(id)}" class="bf-${i.state.toLowerCase()}${hl ? ' bf-healed' : ''}" d="${esc(d)}"><title>${esc(i.name)} · ${i.state}${hl}</title></path>`;
+    return `<path data-part="${esc(id)}" class="bf-${i.state}${hl ? ' bf-healed' : ''}" d="${esc(d)}"><title>${esc(i.name)} · ${PART_STATES.name(i.state)}${hl}</title></path>`;
   }).join('');
   const svg = h('div', { class: 'bf-svg' });
   svg.innerHTML = `<svg viewBox="${esc(ct.figure.viewBox)}" role="img" aria-label="Body parts"><defs><pattern id="bf-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" style="fill:var(--c3)"/><rect width="2.5" height="6" style="fill:var(--bg)" fill-opacity=".6"/></pattern></defs>${shapes}</svg>`;
@@ -213,9 +213,9 @@ export function bodyFigure(s: GameState, p: Actor, healed: Set<string> = new Set
     if (!el) { out.textContent = ''; return; }
     el.classList.add('on');
     const i = info(el.getAttribute('data-part')!);
-    out.textContent = [i.name, i.state, i.amount, healed.has(el.getAttribute('data-part')!) ? 'healed this turn' : ''].filter(Boolean).join(' · ');
+    out.textContent = [i.name, PART_STATES.name(i.state), i.amount, healed.has(el.getAttribute('data-part')!) ? 'healed this turn' : ''].filter(Boolean).join(' · ');
   });
-  const key = h('p', { class: 'bf-key' }, ['Healthy', 'Damaged', 'Crippled', 'Destroyed'].map((st) => h('span', {}, h('i', { class: `bf-${st.toLowerCase()}` }), st)));
+  const key = h('p', { class: 'bf-key' }, PART_STATES.keys.map((st) => h('span', {}, h('i', { class: `bf-${st}` }), PART_STATES.name(st))));
   return h('div', { class: 'bf' }, svg, out, key);
 }
 const partName = (id: string) => cap(id.replace(/_/g, ' '));
@@ -239,7 +239,7 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
   // (a separate box read as detached)
   const scale = (100 - UNHURT_SECTION) / 100;
   const marks = [...segs].reverse().map((x) => ({ l: x.l, at: ((x.from + x.to) / 2) * scale }));
-  const fill = level === 'Unhurt' ? 100 : left * scale;
+  const fill = level === 'unhurt' ? 100 : left * scale;
   const parts = h('div', { class: 'cs-parts', hidden: !partOpen.on, 'aria-label': 'Body parts' },
     h('p', { class: 'hs-label' }, 'Body parts'),
     bodyFigure(s, p, healed) ?? safe(() => actorBody(s, p).parts.map((d) => {
@@ -248,14 +248,14 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
       const st = poolState(pct);
       return h('div', { class: 'cs-part', title: pool === null ? '' : `${whole(pool * pct / 100)} of ${whole(pool)}` },
         h('span', {}, partName(d.id)), h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.max(0, Math.min(100, pct))}%` })),
-        h('span', { class: 'w' + (st === 'Healthy' ? '' : ' bad') }, st));
+        h('span', { class: 'w' + (st === 'healthy' ? '' : ' bad') }, PART_STATES.name(st)));
     })) ?? []);
   const sideSteps = (odd: 0 | 1) => h('span', { class: 'cs-hpsteps' }, marks.map((x, i) => (i % 2 === odd
-    ? h('span', { class: x.l === level ? 'now' : '', style: `left:${x.at}%` }, x.l) : null)));
+    ? h('span', { class: x.l === level ? 'now' : '', style: `left:${x.at}%` }, HEALTH_LEVELS.name(x.l)) : null)));
   const btn = h('button', { class: 'cs-hpbtn', type: 'button', 'aria-expanded': String(partOpen.on), title: 'Click to show or hide each body part',
     onclick: () => { partOpen.on = !partOpen.on; parts.hidden = !partOpen.on; btn.setAttribute('aria-expanded', String(partOpen.on)); } },
     // the current level sits beside the HP number, as on the character card
-    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, h('span', { 'data-m': 'hp-level' }, level), ' · ', h('span', { 'data-m': 'hp' }, whole(hp)), ' HP')),
+    h('span', { class: 'cs-row' }, h('span', {}, `Health ${partOpen.on ? '⌄' : '›'}`), h('b', {}, h('span', { 'data-m': 'hp-level' }, HEALTH_LEVELS.name(level)), ' · ', h('span', { 'data-m': 'hp' }, whole(hp)), ' HP')),
     sideSteps(0),
     // the 7th section lights only when Unhurt, so a full Bruised bar can't be read as Unhurt
     h('span', { class: 'cs-hptrack', title: 'Health track, Unhurt on the right', 'data-m': 'hp-track' }, h('b', { style: `width:${fill}%` }),
@@ -267,8 +267,8 @@ function healthBar(s: GameState, p: Actor, healed: Set<string>, turn: number, ch
 
 /** each body part that is not Healthy, as "Left leg crippled" in its state's colour; none while all are Healthy */
 export function partChips(s: GameState, p: Actor): HTMLElement {
-  const bad = (safe(() => actorBody(s, p).parts) ?? []).map((d) => ({ id: d.id, st: poolState(p.core.condition.parts[d.id] ?? 100) })).filter((x) => x.st !== 'Healthy');
-  return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st.toLowerCase()}`, 'data-part': x.id }, `${partName(x.id)} ${x.st.toLowerCase()}`)));
+  const bad = (safe(() => actorBody(s, p).parts) ?? []).map((d) => ({ id: d.id, st: poolState(p.core.condition.parts[d.id] ?? 100) })).filter((x) => x.st !== 'healthy');
+  return h('p', { class: 'cs-pchips', hidden: !bad.length }, bad.map((x) => h('span', { class: `cs-pchip ps-${x.st}`, 'data-part': x.id }, `${partName(x.id)} ${PART_STATES.name(x.st).toLowerCase()}`)));
 }
 
 /** NT20: Shaken and Swayed as chips with the roll penalty; the title names who caused it and how long it lasts */
@@ -309,7 +309,7 @@ export function pressureChips(s: GameState, p: Actor): HTMLElement {
 export function gearNote(s: GameState, i: Actor['core']['inventory'][number]): { text: string; cls: string } | null {
   const d = safe(() => itemDef(s, i.itemId));
   if (!d) return null;
-  if (d.shield) { const st = poolState(i.pools?.shield ?? 100); return { text: st, cls: `ps-${st.toLowerCase()}` }; }
+  if (d.shield) { const st = poolState(i.pools?.shield ?? 100); return { text: PART_STATES.name(st), cls: `ps-${st}` }; }
   const pools = Object.entries(d.armor?.pools ?? {});
   if (!pools.length) return null;
   const bits = pools.map(([part, pts]) => {
@@ -339,10 +339,10 @@ export function heldWorn(s: GameState, p: Actor): { held: string[]; worn: string
 /** Layout A: the narrow status strip beside the story (health word and bar, damaged parts, what is held); a click opens the full sheet */
 export function statusStrip(s: GameState, p: Actor): HTMLElement[] {
   const level = shownLevel(healthLevel(p));
-  const left = level === 'Unhurt' ? 100 : Math.max(0, 100 - p.core.condition.hpLostPct) * (100 - UNHURT_SECTION) / 100;
+  const left = level === 'unhurt' ? 100 : Math.max(0, 100 - p.core.condition.hpLostPct) * (100 - UNHURT_SECTION) / 100;
   const hw = heldWorn(s, p);
   return [
-    h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, h('span', { 'data-m': 'hp-level' }, level))),
+    h('span', { class: 'cs-row' }, h('span', {}, 'Health'), h('b', {}, h('span', { 'data-m': 'hp-level' }, HEALTH_LEVELS.name(level)))),
     h('span', { class: 'cs-hptrack', 'data-m': 'hp-track' }, h('b', { style: `width:${left}%` })),
     partChips(s, p),
     ...moraleBar(p, false),
@@ -388,9 +388,9 @@ const xpShown = (p: Actor) => {
 
 /** M-74: every value the play sheet shows, before and after a turn, so the screen animates only what changed */
 export type ShownValues = {
-  hp: number | null; level: string; hpFill: number;
+  hp: number | null; level: HealthLevel; hpFill: number;
   morale: string; moraleLeft: number; moraleFill: number;
-  parts: Record<string, string>; skills: Record<string, number>;
+  parts: Record<string, PartState>; skills: Record<string, number>;
   lvl: number | null; xp: number | null; xpPct: number | null; coin: number; points: number;
   gear: Record<string, { name: string; note: string }>; chips: string[]; yielded: boolean;
 };
@@ -401,7 +401,7 @@ export function shownValues(s: GameState, p: Actor): ShownValues {
   const lost = Math.max(0, Math.min(100, moraleLostPct(p)));
   const xp = xpShown(p);
   return {
-    hp: hpLeft(s, p).hp, level, hpFill: level === 'Unhurt' ? 100 : left * scale,
+    hp: hpLeft(s, p).hp, level, hpFill: level === 'unhurt' ? 100 : left * scale,
     morale: MORALE_LEVELS.name(moraleLevel(p)), moraleLeft: Math.round(maxMorale(p) * (100 - lost) / 100), moraleFill: 100 - lost,
     parts: Object.fromEntries((safe(() => actorBody(s, p).parts) ?? []).map((d) => [d.id, poolState(p.core.condition.parts[d.id] ?? 100)])),
     skills: Object.fromEntries(trees(s, p, false).flatMap((t) => t.rows.map((r) => [r.id, r.raw]))),
