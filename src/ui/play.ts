@@ -3,7 +3,7 @@
 // status strip that opens the full sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
-import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView, SceneEndNote } from '../types';
+import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView, ScenarioEndNote } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
@@ -30,7 +30,7 @@ import { PART_STATES, SHOWN_LEVELS, working } from '../ruleset/body';
 import type { AttackOutcome, PartState } from '../types';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
-  scene_fallback: 'Scene planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
+  scenario_fallback: 'Scenario planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
   read_only: 'Read-only', save_failed: 'Not saved', load_refused: 'Not loaded',
 };
 
@@ -39,7 +39,7 @@ const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
-  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/yield', 'give up the fight you are in'], ['/stuck', 'the scene can go nowhere: the story finds a way forward'], ['/strike ', 'a blow at someone: /strike the guard at his left arm'], ['/shoot ', 'shoot at someone, by part if you like'], ['/throw ', 'throw something at someone'], ['/aim ', 'aim this attack at the body part it names: /aim /strike the guard at his leg'], ['/undo', 'rewind one turn (dice are not rolled back)'],
+  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/yield', 'give up the fight you are in'], ['/stuck', 'the scenario can go nowhere: the story finds a way forward'], ['/strike ', 'a blow at someone: /strike the guard at his left arm'], ['/shoot ', 'shoot at someone, by part if you like'], ['/throw ', 'throw something at someone'], ['/aim ', 'aim this attack at the body part it names: /aim /strike the guard at his leg'], ['/undo', 'rewind one turn (dice are not rolled back)'],
   ['/difficulty ', 'show or change the difficulty'],
 ];
 const UNDONE = 'Turn undone.'; // the game's line after /undo
@@ -191,7 +191,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   // the story: an append-only list (role=log announces each new entry once); the waiting line sits outside it
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
-  // SD1: while a turn that ended a scene is still running, the ending's rule is drawn here, under the player's line
+  // SD1: while a turn that ended a scenario is still running, the ending's rule is drawn here, under the player's line
   const endNow = h('div', { class: 'end-now' });
   let endKey = '', endDrawn = false; // the ending shown in endNow; whether its rule was drawn there, so the turn doesn't draw it again
   const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, endNow, waiting));
@@ -310,7 +310,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       h('span', { class: 'hs-btn-text ach-why', 'aria-hidden': 'true' }, 'Why?'));
     const show = () => {
       if (moving()) return; // M-12: a click while it still arrives only skips (the story's click handler)
-      openPop({ title: kind, opener: card, tone: a.scar ? 'danger' : 'scene-mark', cls: 'ach-pop', body: [
+      openPop({ title: kind, opener: card, tone: a.scar ? 'danger' : 'scenario-mark', cls: 'ach-pop', body: [
         h('p', { class: 'ach-pop-n' }, h('b', {}, a.name), a.levelName ? h('span', { class: 'ach-lv' }, `Tier ${a.levelName}`) : null),
         a.why ? h('p', { class: 'ach-pop-why' }, a.why) : null,
         h('dl', { class: 'ach-pop-dl' },
@@ -375,16 +375,16 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return kids.length ? h('div', { class: 'results' }, ...kids) : null;
   }
 
-  /** a place or scene break before a turn's prose: the new place's name, '' for a new scene in the same place, null for none */
+  /** a place or scenario break before a turn's prose: the new place's name, '' for a new scenario in the same place, null for none */
   function breakFor(l: LogLine, prev: LogLine | null): string | null {
     if (!l.place || !prev?.place) return null;
     if (l.place.id !== prev.place.id) return l.place.name;
-    return l.scene !== undefined && prev.scene !== undefined && l.scene !== prev.scene ? '' : null;
+    return l.scenario !== undefined && prev.scenario !== undefined && l.scenario !== prev.scenario ? '' : null;
   }
 
-  /** SD1: the scene-ending rule, the ending's name in its middle in that ending's colour, plus the new place when the
+  /** SD1: the scenario-ending rule, the ending's name in its middle in that ending's colour, plus the new place when the
    *  turn also moved the player there */
-  function endRule(end: SceneEndNote, place: string): HTMLElement {
+  function endRule(end: ScenarioEndNote, place: string): HTMLElement {
     return h('p', { class: 'pbreak end', 'data-end': end.as }, h('b', {}, cap(end.name)), place ? h('span', {}, ` · ${place}`) : null);
   }
 
@@ -397,9 +397,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     else if (l.kind === 'command') e = h('p', { class: 'ln-command' }, ...l.text.split(TAG_MARK).flatMap((x, i) => (i ? [tag(), x] : [x])));
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
-      // SD1: a turn that ended a scene: the old scene's closing line, then the ending's rule, then the new scene's opening
-      l.sceneEnd?.closing ? h('p', { class: 'ln-closing' }, l.sceneEnd.closing) : null,
-      ((b) => l.sceneEnd ? endRule(l.sceneEnd, b ?? '') : b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scene') }, b))(breakFor(l, prev)),
+      // SD1: a turn that ended a scenario: the old scenario's closing line, then the ending's rule, then the new scenario's opening
+      l.scenarioEnd?.closing ? h('p', { class: 'ln-closing' }, l.scenarioEnd.closing) : null,
+      ((b) => l.scenarioEnd ? endRule(l.scenarioEnd, b ?? '') : b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scenario') }, b))(breakFor(l, prev)),
       // M-10: each sentence its own span, so the reveal can pace them; the text is unchanged
       h('p', { class: 'ln-narration' }, sentences(l.text).flatMap((t, i) => [i ? ' ' : '', h('span', { class: 'sn' }, t)])),
       l.speech?.length ? h('div', { class: 'speech' }, l.speech.flatMap((sp) => [
@@ -435,7 +435,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const from = turns.length > limit ? turns[turns.length - limit] : -Infinity;
     const want: HTMLElement[] = [];
     if (turns.length > limit) { earlier.textContent = `Show earlier turns · ${turns.length - limit} more`; want.push(earlier); }
-    let prevNarr: LogLine | null = null; // the last narration not undone, for place and scene breaks
+    let prevNarr: LogLine | null = null; // the last narration not undone, for place and scenario breaks
     lines.forEach((l, i) => {
       const u = undone.get(i);
       const prev = prevNarr;
@@ -470,7 +470,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const stealthy = s?.player.posture === 'stealthy';
     bar.classList.toggle('stealthy', stealthy);
     const lines = api.lines();
-    // PM5/K1 c: the player's deals with NPCs, as an "N deals" chip beside the scene title that opens the list
+    // PM5/K1 c: the player's deals with NPCs, as an "N deals" chip beside the scenario title that opens the list
     const deals = pv?.agreements ?? [];
     if (!deals.length) dealsOpen = false;
     const dealChip = deals.length ? h('span', { class: 'dl-wrap' },
@@ -535,9 +535,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     if (!busy) { delete waiting.dataset.since; waiting.replaceChildren(); }
     waiting.hidden = !busy;
-    // SD1: the ending moment starts as soon as the engine knows how the scene ended, while the next scene is still being
+    // SD1: the ending moment starts as soon as the engine knows how the scenario ended, while the next scenario is still being
     // made: the rule draws across with the ending's name. The closing line and the opening come with the turn's prose.
-    const ending = busy ? api.sceneEnding?.() ?? null : null;
+    const ending = busy ? api.scenarioEnding?.() ?? null : null;
     const key = ending ? `${ending.as}|${ending.name}` : '';
     if (key !== endKey) {
       endKey = key;
@@ -662,7 +662,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   /** M-40: a break's rule draws outward from its name; returns how long the prose waits for it */
   function drawBreak(brk: Element, delay: number): number {
     if (!motionOn()) return 0;
-    const d = ms('--m-scene');
+    const d = ms('--m-scenario');
     play(brk, [{ opacity: 0 }, { opacity: 1 }], { dur: d / 2, delay });
     play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'right' }, { transform: 'scaleX(1)', transformOrigin: 'right' }], { dur: d, delay, pseudo: '::before' });
     play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'left' }, { transform: 'scaleX(1)', transformOrigin: 'left' }], { dur: d, delay, pseudo: '::after' });
@@ -673,10 +673,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     finishAll();
     if (!e || !motionOn()) return;
     let t = 0;
-    // SD1: the old scene's closing line comes first; the ending's rule was already drawn while the turn ran, so it stays put
+    // SD1: the old scenario's closing line comes first; the ending's rule was already drawn while the turn ran, so it stays put
     const closing = e.querySelector('.ln-closing');
     if (closing) { play(closing, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') }); t += ms('--m-state'); }
-    // M-40/M-42: a scene or place break draws across first, outward from its name
+    // M-40/M-42: a scenario or place break draws across first, outward from its name
     const brk = e.querySelector('.pbreak');
     if (brk && !(brk.classList.contains('end') && endDrawn)) t += drawBreak(brk, t);
     endDrawn = false;
@@ -771,7 +771,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         stamp(q('[data-m="hp-level"]'), d, b.level);
         if (levelAt(a.level) > levelAt(b.level) && levelAt(a.level) >= levelAt(CONFIG.MOTION_EDGE_FROM)) {
           const steady = levelAt(a.level) >= levelAt(CONFIG.MOTION_EDGE_STEADY);
-          play(edge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: steady ? 0.45 : 0 }], { dur: ms('--m-scene'), delay: d });
+          play(edge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: steady ? 0.45 : 0 }], { dur: ms('--m-scenario'), delay: d });
         }
       }
     }
@@ -845,7 +845,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       // (and the perk badge with them) come after it (M-38)
       const d = at(levelled ? ms('--m-trail') * 2 : stagger);
       count(q('[data-m="xp"]'), levelled ? 0 : b.xp, a.xp, whole, d + (levelled ? ms('--m-trail') : 0));
-      if (a.xp > b.xp && !levelled) delta(q('[data-m="xp"]'), sign(a.xp - b.xp), 'scene-mark', d);
+      if (a.xp > b.xp && !levelled) delta(q('[data-m="xp"]'), sign(a.xp - b.xp), 'scenario-mark', d);
       barMove(q('[data-m="xp-track"]'), q('[data-m="xp-track"] > b'), b.xpPct ?? 0, a.xpPct ?? 0, d, levelled);
       if (levelled) stamp(q('[data-m="lvl"]'), d + ms('--m-trail'), `Level ${b.lvl}`);
     }
@@ -853,7 +853,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (a.coin !== b.coin) {
       const d = at(stagger);
       stamp(q('[data-m="coin"]'), d, coinWords(b.coin));
-      delta(q('[data-m="coin"]'), (a.coin > b.coin ? '+' : '−') + coinWords(Math.abs(a.coin - b.coin)), a.coin > b.coin ? 'scene-mark' : 'danger', d);
+      delta(q('[data-m="coin"]'), (a.coin > b.coin ? '+' : '−') + coinWords(Math.abs(a.coin - b.coin)), a.coin > b.coin ? 'scenario-mark' : 'danger', d);
     }
   }
   /** M-36: arrivals in Who's here fade in, departures fade out, a changed status lands; header pieces that changed land;

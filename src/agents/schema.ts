@@ -209,8 +209,8 @@ const weaver = obj<StagePlan>({
   hiddenTerms: arr(str),
   weaverNote: str,
   spars: arr(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])),
-  scene: any as V<StagePlan['scene']>, // SC1/SC2/SC7: checked by the validator (src/scene/validate.ts)
-}, ['timeOfDay', 'spars', 'scene']);
+  scenario: any as V<StagePlan['scenario']>, // SC1/SC2/SC7: checked by the validator (src/scenario/validate.ts)
+}, ['timeOfDay', 'spars', 'scenario']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);
@@ -219,7 +219,7 @@ export const checkVoice = run(voice);
 export const checkNarrator = run(narrator);
 export const checkStagePlan = run(weaver);
 
-/** SC8: the Weaver's check-in answer; what it may say is checked by engine/sceneEnd.ts checkinErrors */
+/** SC8: the Weaver's check-in answer; what it may say is checked by engine/scenarioEnd.ts checkinErrors */
 /** SC12: arrivals use the stage plan's own band, cast and seed checks */
 const arrivals: V<NonNullable<CheckinAnswer['arrivals']>> = (v, p, e) => {
   if (!isObj(v)) { e.push(`${p}: expected object`); return { bands: [], cast: [] }; }

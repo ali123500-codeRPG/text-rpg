@@ -1,4 +1,4 @@
-// Scenario-test fixture: the prototype village built directly (no Weaver call), deterministic.
+// Case-test fixture: the prototype village built directly (no Weaver call), deterministic.
 // Gate, street, tavern and a slime field outside the gate. Tests mutate the returned state freely.
 import { TP } from '../../src/library/templateIds';
 import { BT } from '../../src/library/raceIds';
@@ -118,8 +118,8 @@ export function makeVillage(opts: VillageOpts = {}): GameState {
     rngSeed: seed, rngState: seed,
     pending: { turn: 1, mode: 'explore', engaged: [], fired: [] },
     places, facts: [],
-    stage: { zoneIds, tier: 'success', sceneNumber: 1, sceneStartTurn: 0 },
-    sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [],
+    stage: { zoneIds, tier: 'success', scenarioNumber: 1, scenarioStartTurn: 0 },
+    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [],
     settings: { difficulty: 'normal', showMechanics: true, tone: 'grounded low fantasy' },
     libraryVersion: getLibrary().version,
     blueprints: [],

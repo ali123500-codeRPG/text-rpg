@@ -810,8 +810,8 @@ function questsView(): HTMLElement[] {
     h('p', { class: 'hs-note' }, 'Quests have no fixed list: each one is a job someone gives you in play, held in a deal, and kept in your save (see them on the Play screen\'s Quests page or with /quests). These are the rules every quest follows. Quest achievements are under Achievements.'),
     h('section', { class: 'lv-group' }, h('h2', { class: 'hs-section' }, 'Rules'), h('div', { class: 'lv-grid wide' },
       fixed(card('quests', 'reward', {}, 'Reward levels and XP', [chip('QUEST_REWARD_XP · QUEST_GAIN_LEVEL')],
-        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scene stands to gain. Quests have their own XP table, apart from achievements.'),
-        tbl(['Level', 'XP', 'Scene gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
+        h('p', { class: 'hs-note' }, 'A quest\'s reward level is set when you accept it, from how much the scenario stands to gain. Quests have their own XP table, apart from achievements.'),
+        tbl(['Level', 'XP', 'Scenario gain when accepted'], QUEST_REWARD_LEVELS.keys.map((lv) => {
           const g = gainsFor(lv);
           return [QUEST_REWARD_LEVELS.name(lv), String(CONFIG.QUEST_REWARD_XP[lv] ?? 0), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
         })))),

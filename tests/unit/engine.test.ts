@@ -426,7 +426,7 @@ describe('gear and combat', () => {
     expect(actor(s, 'guard_1').mind!.moraleState).toBe('broken');
     expect(actor(s, 'guard_1').mind!.overrides?.player).toBe('yielded'); // Q4: broken shares the yielded stance
   });
-  it('a surrender yields (Q1): no more blocking rest, still pays XP; attacked again it is hostile; at the scene end a grudge and it leaves', async () => {
+  it('a surrender yields (Q1): no more blocking rest, still pays XP; attacked again it is hostile; at the scenario end a grudge and it leaves', async () => {
     place(s, 'guard_1', 'tav_common');
     engage('guard_1');
     F.init = { player: 90, guard_1: 10 };
@@ -442,10 +442,10 @@ describe('gear and combat', () => {
     s.player.core.condition.hpLostPct = 50;
     resolveTurn(s, input({ intent: intent({ action: { type: 'rest' } }) }), createRng(1));
     expect(s.log.some((l) => l.code === 'rest_blocked' && l.turn === s.turn)).toBe(false);
-    // scene end: opposed, surrender over, off to its exit
-    const { beginScene } = await import('../../src/scene/apply');
+    // scenario end: opposed, surrender over, off to its exit
+    const { beginScenario } = await import('../../src/scenario/apply');
     g.mind!.slots = { ...(g.mind!.slots ?? {}), exit: 'street_door' };
-    beginScene(s, 'success');
+    beginScenario(s, 'success');
     expect(g.mind!.overrides?.player).toBe('opposed');
     expect(g.mind!.moraleState).toBeUndefined();
     expect(g.zone).toBe('street_door');

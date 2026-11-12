@@ -1,12 +1,12 @@
 // The turn pipeline (Part 2, Architecture: one turn) behind GameApi.
-// Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scene setup
+// Order per turn: Parser → [dialogue calls] → BACKGROUND_WINDOW gate → collect Planners → resolveTurn → scenario setup
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
   GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, PlannerOutput, Rng, TurnRecord, Actor,
 } from '../types';
-import { SCENE_ENDING_NAMES, SPEECH_ACTIONS, type SceneEndNote } from '../types';
-import { pendingEnding } from '../engine/sceneEnd';
+import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type ScenarioEndNote } from '../types';
+import { pendingEnding } from '../engine/scenarioEnd';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
 import { TIME_OF_DAY, type TimeOfDay } from '../scales';
@@ -40,19 +40,19 @@ import { fileBug, isBugCode, openBugs } from '../save/bugs';
 const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
 /**
- * Scene setup and stage extension (W6, src/scene/director.ts, not built yet). The minimal surface the pipeline needs;
+ * Scenario setup and stage extension (W6, src/scenario/director.ts, not built yet). The minimal surface the pipeline needs;
  * W6 makes its Weaver calls through callWeaver with the ctx handed in.
  */
-export interface SceneDirector {
+export interface ScenarioDirector {
   /** story start (turn 0): place the player, event roll, Weaver, apply plan or fallback stage; returns the opening events */
   startStory(state: GameState, rng: Rng, ctx: AgentCtx): Promise<GameEvent[]>;
-  /** inside a turn, after resolveTurn and before the save: scene setup on sceneBreak, or a frontier crossing; returns added events */
+  /** inside a turn, after resolveTurn and before the save: scenario setup on scenarioBreak, or a frontier crossing; returns added events */
   afterResolve(state: GameState, events: GameEvent[], rng: Rng, ctx: AgentCtx): Promise<GameEvent[]>;
   /** after the save: background Weaver calls for frontiers next to the player (not called while rate limited) */
   afterSave(state: GameState, ctx: AgentCtx): void;
 }
 
-export type GameDeps = { client: ClaudeClient; clock: Clock; store: Store; director?: SceneDirector };
+export type GameDeps = { client: ClaudeClient; clock: Clock; store: Store; director?: ScenarioDirector };
 export type Game = GameApi & {
   /** test / harness entry: take a state already at turn start (state.turn === state.pending.turn) */
   adopt(state: GameState): void;
@@ -73,7 +73,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scene can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
+  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -83,7 +83,7 @@ export function createGame(deps: GameDeps): Game {
   let savedLines = 0; // Q18: lines[0..savedLines) are in the story's saved history
   let notices: Notice[] = [];
   let busy = false;
-  let endingNow: SceneEndNote | null = null; // SD1: a turn that ended a scene, while its next scene's calls run
+  let endingNow: ScenarioEndNote | null = null; // SD1: a turn that ended a scenario, while its next scenario's calls run
   let agentSaid: string[] = [], agentCmds: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
   let stopped = false;
   let rateLimited = false;
@@ -207,7 +207,7 @@ export function createGame(deps: GameDeps): Game {
     s.mode = p.mode;
     s.events = []; // this turn's events already went into recentEvents before the save (finishTurn)
     s.agentLog = [];
-    fileLogBugs(s); // background scene work since the save may have logged some
+    fileLogBugs(s); // background scenario work since the save may have logged some
     s.log = [];
     turnLog = [];
     abortBackground();
@@ -322,9 +322,9 @@ export function createGame(deps: GameDeps): Game {
     const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(exchange ? { exchange } : {}), ...(quick && exchange ? { quickWord: true } : {}) };
     const events = engine.resolveTurn(s, input, rng);
     s.rngState = rng.state; // plan updates were applied (with triggers sanitized) inside resolveTurn
-    // SD1: the play page can start the ending moment now, while the next scene's Weaver and the Narrator run
+    // SD1: the play page can start the ending moment now, while the next scenario's Weaver and the Narrator run
     const ended = pendingEnding(s);
-    if (ended) { endingNow = { as: ended, name: SCENE_ENDING_NAMES[ended] }; emit(); }
+    if (ended) { endingNow = { as: ended, name: SCENARIO_ENDING_NAMES[ended] }; emit(); }
     if (director) {
       events.push(...(await director.afterResolve(s, events, rng, ctx)));
       s.rngState = rng.state;
@@ -335,7 +335,7 @@ export function createGame(deps: GameDeps): Game {
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').SceneEnding }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -371,7 +371,7 @@ export function createGame(deps: GameDeps): Game {
     // every bug code logged this turn (an "other" quest goal, QT27, among them) is filed for the build threads
     fileLogBugs(s);
     const nv = views.buildNarrationView(s, events, rec.intent);
-    if (rec.ended) nv.sceneEnded = SCENE_ENDING_NAMES[rec.ended];
+    if (rec.ended) nv.scenarioEnded = SCENARIO_ENDING_NAMES[rec.ended];
     const leak = buildLeakContext(s);
     const mechanics = mechanicsLines(s, events, record.eventRoll);
     const turn = s.turn;
@@ -381,14 +381,14 @@ export function createGame(deps: GameDeps): Game {
     const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
     // M-30: the player's body parts that got worse this turn, so the play screen can name them (shown again after a reload)
     const wounds = rec.partsBefore ? partsWorse(rec.partsBefore, partStates(s, s.player)) : [];
-    const where = { ...(gear.length ? { gear } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scene: s.stage.sceneNumber };
+    const where = { ...(gear.length ? { gear } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
     const closing = rec.ended && narr.output.closing?.trim();
-    const sceneEnd = rec.ended ? { sceneEnd: { as: rec.ended, name: SCENE_ENDING_NAMES[rec.ended], ...(closing ? { closing } : {}) } } : {};
+    const scenarioEnd = rec.ended ? { scenarioEnd: { as: rec.ended, name: SCENARIO_ENDING_NAMES[rec.ended], ...(closing ? { closing } : {}) } } : {};
     endingNow = null;
-    lines.push({ turn, kind: 'narration', text: narr.output.text, ...sceneEnd, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
+    lines.push({ turn, kind: 'narration', text: narr.output.text, ...scenarioEnd, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
       ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
@@ -438,9 +438,9 @@ export function createGame(deps: GameDeps): Game {
         return say([HELP_TEXT, ...(recap.length ? ['Recently:', ...recap] : [])].join('\n'));
       }
       case 'stuck': {
-        // SC15: the player says the scene can go nowhere: a numbered bug, and a Weaver check-in now (no gap or limit)
-        if (!s.stage.scene) return say('There is no scene to check on yet.');
-        ctxFor(s.turn, turnLog).reportBug?.('player_stuck', { scene: s.stage.scene.question, note: arg.slice(0, 500) });
+        // SC15: the player says the scenario can go nowhere: a numbered bug, and a Weaver check-in now (no gap or limit)
+        if (!s.stage.scenario) return say('There is no scenario to check on yet.');
+        ctxFor(s.turn, turnLog).reportBug?.('player_stuck', { scenario: s.stage.scenario.question, note: arg.slice(0, 500) });
         s.stage.checkinDue = 'stuck';
         if (director && !rateLimited && !stopped) director.afterSave(s, { ...ctxFor(s.turn, turnLog), background: true });
         return say('Noted. The story will find a way forward over the next turns; a bad situation stays bad, though.');
@@ -528,7 +528,7 @@ export function createGame(deps: GameDeps): Game {
     const errs = validateBuild(build);
     if (errs.length) throw new Error(errs.join('; '));
     // GAP: W6's director is injected; without it there is no way to set up turn 0
-    if (!director) throw new Error('scene director not wired (W6)');
+    if (!director) throw new Error('scenario director not wired (W6)');
     abortBackground();
     const now = clock.now();
     const storyId = `story_${now.toString(36)}`;
@@ -596,11 +596,11 @@ export function createGame(deps: GameDeps): Game {
     lines: () => lines,
     notices: () => {
       const st = state?.stage;
-      const marker: Notice[] = st && (st.fallback || st.routineFallback) ? [{ kind: 'scene_fallback', text: 'Scene planning failed: placeholder area' }] : [];
+      const marker: Notice[] = st && (st.fallback || st.routineFallback) ? [{ kind: 'scenario_fallback', text: 'Scenario planning failed: placeholder area' }] : [];
       return [...notices, ...marker];
     },
     busy: () => busy,
-    sceneEnding: () => endingNow,
+    scenarioEnding: () => endingNow,
     fell: () => !!state && isDownLevel(safeHealth(state.player)),
     subscribe(cb) {
       subs.add(cb);
@@ -627,10 +627,10 @@ export function createGame(deps: GameDeps): Game {
       return mv;
     },
     submit,
-    endScene() {
-      // SC15: the GM view's End scene button (testing): the scene ends after the next turn, recorded as interrupted
-      if (!state?.stage.scene || state.stage.breakCause) return;
-      engine.endScene(state, 'interrupted', 'ended from the GM view');
+    endScenario() {
+      // SC15: the GM view's End scenario button (testing): the scenario ends after the next turn, recorded as interrupted
+      if (!state?.stage.scenario || state.stage.breakCause) return;
+      engine.endScenario(state, 'interrupted', 'ended from the GM view');
       emit();
     },
     async reset() {
@@ -972,7 +972,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     return t ? actorBody(s, t).general.name : a.location?.replace(/_/g, ' ');
   };
   const out: string[] = [];
-  // ER5: a scene's event roll, first, when it was made this turn (only ever shown here, with Show rolls on)
+  // ER5: a scenario's event roll, first, when it was made this turn (only ever shown here, with Show rolls on)
   if (eventRoll) out.push(`Event roll${eventRoll.armed ? ` (${getLibrary().perks[eventRoll.armed]?.name ?? eventRoll.armed})` : ''} d100 ${eventRoll.roll} → ${tierName(eventRoll)}${mods(eventRoll.modifiers)}`);
   for (const e of events) {
     const target = e.attack?.targetId ?? e.target;
@@ -1067,8 +1067,8 @@ function newState(storyId: string, seed: number, player: Actor, createdAt: strin
     hidden: { plans: {}, memory: {}, secrets: [], firedLog: [], weaverNote: '', stage: { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] } },
     events: [], agentLog: [], log: [], rngSeed: seed, rngState: seed,
     pending: { turn: 0, mode: 'explore', engaged: [], fired: [] },
-    places: [], facts: [], stage: { zoneIds: [], tier: 'success', sceneNumber: 0, sceneStartTurn: 0 },
-    sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [], settings,
+    places: [], facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 0, scenarioStartTurn: 0 },
+    scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {}, quests: [], settings,
     libraryVersion: getLibrary().version, blueprints: [],
     meta: { storyId, title: CONFIG.STORY_PREMISE, schemaVersion: CONFIG.SCHEMA_VERSION, createdAt, settings },
   };

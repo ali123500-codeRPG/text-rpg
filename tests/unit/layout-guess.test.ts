@@ -1,8 +1,8 @@
 // BG-8..BG-11: the Weaver named a tavern place and used its layout's keys (tavern.common, tavern.bar) without naming the
-// layout, so every link, slot and trigger pointed at zones that were never built and scene planning failed.
+// layout, so every link, slot and trigger pointed at zones that were never built and scenario planning failed.
 import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { expandLayouts } from '../../src/scene/validate';
+import { expandLayouts } from '../../src/scenario/validate';
 import { LY } from '../../src/library/tableIds';
 import type { StagePlan } from '../../src/types';
 

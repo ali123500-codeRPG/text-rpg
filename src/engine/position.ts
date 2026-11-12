@@ -5,8 +5,8 @@
 // zone link of metres (linkM), as before positions.
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { compassOf, doorway, edgeToward } from '../scene/geometry';
-import { heightOf } from '../scene/heights';
+import { compassOf, doorway, edgeToward } from '../scenario/geometry';
+import { heightOf } from '../scenario/heights';
 import { linkM } from '../ruleset/range';
 import { actorById, allActors, shortestPath, wayPath, zoneById } from './relations';
 import type { Actor, GameState, MoveSpot, Zone } from '../types';

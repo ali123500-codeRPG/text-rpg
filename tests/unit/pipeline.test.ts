@@ -240,7 +240,7 @@ describe('errors and commands', () => {
     expect(game.lines().filter((l) => l.kind === 'player').map((l) => l.aimed)).toEqual([true, undefined]); // shown after a reload
   });
 
-  it('a narration line keeps the turn\'s gear rows, the place it ended in and the scene number', async () => {
+  it('a narration line keeps the turn\'s gear rows, the place it ended in and the scenario number', async () => {
     start();
     H.onResolve = (s) => {
       const inv = s.player.core.inventory;
@@ -249,14 +249,14 @@ describe('errors and commands', () => {
       const sword = inv.find((i) => i.equippedIn?.some((x) => x.startsWith('hand:')))!;
       sword.equippedIn = [];
       inv.push({ id: 'found_1', itemId: 'odd_stone', qty: 1 });
-      s.stage.sceneNumber = 3;
+      s.stage.scenarioNumber = 3;
     };
     claude.push('parser', intentOf()).push('narrator', narr);
     await game.submit('look around', { aimed: false });
     const l = game.lines().at(-1)!;
     expect(l.gear).toEqual(['Put away: arming sword', 'Used: coin', 'Picked up: odd_stone']);
     expect(l.place).toEqual({ id: state.player.placeId, name: expect.stringMatching(/^[A-Z]/), zone: 'common room' });
-    expect(l.scene).toBe(3);
+    expect(l.scenario).toBe(3);
   });
 });
 
@@ -281,24 +281,24 @@ describe('story text (Q18)', () => {
   });
 });
 
-describe('SD1 scene ending moment', () => {
-  it('a turn that ends a scene says how while its calls run, and its line carries the ending and the closing line', async () => {
+describe('SD1 scenario ending moment', () => {
+  it('a turn that ends a scenario says how while its calls run, and its line carries the ending and the closing line', async () => {
     start();
-    H.onResolve = (s) => { s.stage.scene = { number: 1 } as NonNullable<GameState['stage']['scene']>; s.stage.ended = { as: 'escaped', text: 'hidden' }; s.stage.breakCause = 'scene_end'; };
+    H.onResolve = (s) => { s.stage.scenario = { number: 1 } as NonNullable<GameState['stage']['scenario']>; s.stage.ended = { as: 'escaped', text: 'hidden' }; s.stage.breakCause = 'scenario_end'; };
     const seen: unknown[] = [];
-    game.subscribe(() => seen.push(game.sceneEnding()));
+    game.subscribe(() => seen.push(game.scenarioEnding()));
     claude.push('parser', intentOf()).push('narrator', { ...narr, closing: 'The cellar door slams behind you.' });
     await game.submit('run', { aimed: false });
     expect(seen).toContainEqual({ as: 'escaped', name: 'escaped' });
-    expect(game.sceneEnding()).toBeNull();
-    expect(game.lines().at(-1)).toMatchObject({ kind: 'narration', text: narr.text, sceneEnd: { as: 'escaped', name: 'escaped', closing: 'The cellar door slams behind you.' } });
-    expect(sentText(claude.calls.at(-1)!)).toContain('"sceneEnded":"escaped"');
+    expect(game.scenarioEnding()).toBeNull();
+    expect(game.lines().at(-1)).toMatchObject({ kind: 'narration', text: narr.text, scenarioEnd: { as: 'escaped', name: 'escaped', closing: 'The cellar door slams behind you.' } });
+    expect(sentText(claude.calls.at(-1)!)).toContain('"scenarioEnded":"escaped"');
     expect(sentText(claude.calls.at(-1)!)).not.toContain('hidden');
   });
   it('a closing line on any other turn is dropped', async () => {
     start();
     claude.push('parser', intentOf()).push('narrator', { ...narr, closing: 'Stray.' });
     await game.submit('wait', { aimed: false });
-    expect(game.lines().at(-1)).not.toHaveProperty('sceneEnd');
+    expect(game.lines().at(-1)).not.toHaveProperty('scenarioEnd');
   });
 });

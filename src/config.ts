@@ -66,7 +66,7 @@ const DEFAULTS = {
   /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (3: marks 1, 4, 7...).
    * Infinity: one roll per skill per engagement. */
   MARK_STACK_EVERY: 3,
-  /** SM2: owed rolls are made at the end of the turn of the mark instead of when the engagement ends or the scene breaks */
+  /** SM2: owed rolls are made at the end of the turn of the mark instead of when the engagement ends or the scenario breaks */
   SKILL_UP_INSTANT: true,
   /** a successful improvement roll adds 1d(this) raw */
   SKILL_GAIN_DIE: 3,
@@ -241,30 +241,30 @@ const DEFAULTS = {
   QUALITY_TABLE: {
     tool: [5, 10, 15, 20],
   },
-  STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
-  /** SC2 levers per scene scale (placeholders), keyed by SCENE_SCALES key: the turn budget (fight turns excluded) or, for
+  STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scenario
+  /** SC2 levers per scenario scale (placeholders), keyed by SCENARIO_SCALES key: the turn budget (fight turns excluded) or, for
    * the biggest, a budget in game days; and how many places a plan of that scale may hold (code raises the scale to fit) */
-  SCENE_SCALE: {
+  SCENARIO_SCALE: {
     moment: { budgetTurns: 12, places: 1 },
     situation: { budgetTurns: 40, places: 2 },
     episode: { budgetTurns: 120, places: 4 },
     venture: { budgetDays: 3, places: Infinity },
   } as Record<string, { budgetTurns?: number; budgetDays?: number; places: number }>,
-  /** SC4: scales from this one up hold smaller scenes inside them, one level deep */
-  SCENE_HOLDS_FROM: 'episode',
-  /** SC7: how many endings a scene plan lists */
-  SCENE_ENDINGS_MIN: 2,
-  SCENE_ENDINGS_MAX: 3,
-  /** SC6: scene records kept in the save, and how many the next Weaver gets */
-  SCENE_RECORDS_SAVED: 30,
-  SCENE_RECORDS_SHOWN: 5,
-  /** SC8 Weaver check-ins (placeholders): at least this many turns apart, and at most this many per scene (/stuck excepted) */
+  /** SC4: scales from this one up hold smaller scenarios inside them, one level deep */
+  SCENARIO_HOLDS_FROM: 'episode',
+  /** SC7: how many endings a scenario plan lists */
+  SCENARIO_ENDINGS_MIN: 2,
+  SCENARIO_ENDINGS_MAX: 3,
+  /** SC6: scenario records kept in the save, and how many the next Weaver gets */
+  SCENARIO_RECORDS_SAVED: 30,
+  SCENARIO_RECORDS_SHOWN: 5,
+  /** SC8 Weaver check-ins (placeholders): at least this many turns apart, and at most this many per scenario (/stuck excepted) */
   CHECKIN_GAP_TURNS: 5,
-  CHECKIN_MAX_PER_SCENE: 6,
-  /** SC12: at this many times its budget, code ends the scene as worn out (after any fight or chase) and files a bug */
-  SCENE_OVERRUN_MULT: 2,
-  /** SD2 a: scene endings (SCENE_ENDINGS) after which free roam starts instead of the next scene. Every ending for now, so
-   * players can explore the world; broken_off is a knock-out, whose wake-up is always a new scene */
+  CHECKIN_MAX_PER_SCENARIO: 6,
+  /** SC12: at this many times its budget, code ends the scenario as worn out (after any fight or chase) and files a bug */
+  SCENARIO_OVERRUN_MULT: 2,
+  /** SD2 a: scenario endings (SCENARIO_ENDINGS) after which free roam starts instead of the next scenario. Every ending for now, so
+   * players can explore the world; broken_off is a knock-out, whose wake-up is always a new scenario */
   ROAM_AFTER: ['resolved', 'lost', 'left', 'escaped', 'interrupted', 'worn_out'] as string[],
   /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
   CHASE_LOST_TURNS: 3,
@@ -386,7 +386,7 @@ const DEFAULTS = {
     vii: 20000, viii: 40000, ix: 80000, x: 160000, xi: 320000, xii: 640000, xiii: 1280000, xiv: 2560000, xv: 5120000 } as Record<string, number>, // VII–XV placeholders
   /** QT28: XP per quest reward level (QUEST_REWARD_LEVELS), separate from achievements */
   QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
-  /** QT9: a quest's reward level from the scene's gain grade when it is accepted (iv is kept for later story quests) */
+  /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
   GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
   // ---- Part 2 engine ----
@@ -407,7 +407,7 @@ const DEFAULTS = {
   PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, knows: 5 }, // Q2
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
-  SCENE_CAPS: { promotions: 3, minted: 2 }, // Q2
+  SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
   DURATIONS: { brief: 1, short: 3, medium: 6, long: 12 } as Record<string, number>,
   RECENT_EVENTS: 8, // compact views: last few relevant events
   MEMORY_ENTRIES: 8, // PM1: an NPC's memory list holds at most this many entries (placeholder)

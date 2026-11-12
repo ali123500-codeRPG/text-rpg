@@ -12,15 +12,15 @@ import { createGame, parseTolerant, realClock } from '../src/agents';
 import { createDirector } from '../src/agents/director';
 import { memoryStore } from '../src/save/store';
 import { CONFIG } from '../src/config';
-import { validateStagePlan } from '../src/scene';
-import { ensurePlace } from '../src/scene/apply';
+import { validateStagePlan } from '../src/scenario';
+import { ensurePlace } from '../src/scenario/apply';
 import { isSeller } from '../src/engine/trade';
 import type { GameState, StagePlan } from '../src/types';
-import type { SceneDirector } from '../src/agents';
+import type { ScenarioDirector } from '../src/agents';
 import { recommendedBuild } from '../src/library/spawn';
 import { CL } from '../src/library/classIds';
 import { PERSONAS, autoPerk } from '../src/agents/autopilot';
-import { villageStagePlan } from '../src/scene/fixtures';
+import { villageStagePlan } from '../src/scenario/fixtures';
 import { TP } from '../src/library/templateIds';
 import { getLibrary } from '../src/library';
 import { personalityText } from '../src/ruleset/personality';
@@ -40,7 +40,7 @@ const screenNotes = (l: LogLine): string[] => {
   ].map((x) => `  [screen] ${x}`);
 };
 
-// Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scene-start wait is widened here.
+// Playtest only: each CLI call is a cold start (the Weaver takes about 80 s), so the scenario-start wait is widened here.
 // The game's own WEAVER_TIMEOUT_MS is not changed.
 (CONFIG as { WEAVER_TIMEOUT_MS: number }).WEAVER_TIMEOUT_MS = 360_000;
 
@@ -151,10 +151,10 @@ async function main() {
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, 'call-errors.log'), '');
   const t0 = Date.now();
-  // keep a copy of the state before each scene start, so a fallback can report the Weaver plan's validator errors
-  const inner = createDirector(realClock) as SceneDirector;
+  // keep a copy of the state before each scenario start, so a fallback can report the Weaver plan's validator errors
+  const inner = createDirector(realClock) as ScenarioDirector;
   let before: GameState | null = null;
-  const director: SceneDirector = { ...inner,
+  const director: ScenarioDirector = { ...inner,
     startStory: async (st, rng, ctx) => {
       before = structuredClone(st); ensurePlace(before, st.player.placeId);
       const ev = await inner.startStory(st, rng, ctx);
@@ -172,7 +172,7 @@ async function main() {
   if (pers) charLine = `\nYour character's sheet describes their personality as: ${personalityText(game.state()!.player, 'steady')} You may play differently from it; play the way your persona says.`;
   const st0 = game.state()!;
   const planErrors = before ? game.gm().agentLog.filter((a) => a.agent === 'weaver' && a.output).map((a) =>
-    validateStagePlan(structuredClone(before!), a.output as StagePlan, { tier: st0.stage.tier, kind: 'scene', placeId: before!.player.placeId })) : [];
+    validateStagePlan(structuredClone(before!), a.output as StagePlan, { tier: st0.stage.tier, kind: 'scenario', placeId: before!.player.placeId })) : [];
   writeFileSync(join(OUT, "plan-errors.json"), JSON.stringify(planErrors, null, 1));
   writeFileSync(join(OUT, "start-log.json"), JSON.stringify({ notices: game.notices(), log: game.gm().log, agentLog: game.gm().agentLog }, null, 1));
   console.log(`story ${storyId} started (in-memory save)`);
@@ -221,15 +221,15 @@ async function main() {
   console.log(`done: ${calls} game calls, ${Math.round((Date.now() - t0) / 60000)} min`);
 }
 
-/** pacing.jsonl: the quiet-turn clock, scene breaks, beats and rests after each step (P7 / resting tests) */
+/** pacing.jsonl: the quiet-turn clock, scenario breaks, beats and rests after each step (P7 / resting tests) */
 let firedSeen = 0, logSeen = 0;
 function tracePacing(game: ReturnType<typeof createGame>, step: number, input: string) {
   const st = game.state();
   if (!st) return;
   const fired = st.hidden.firedLog.slice(firedSeen); firedSeen = st.hidden.firedLog.length;
-  const codes = st.log.slice(logSeen).filter((l) => /rest|beat|stall|scene|break|wait|time|heal/i.test(l.code)); logSeen = st.log.length;
+  const codes = st.log.slice(logSeen).filter((l) => /rest|beat|stall|scenario|break|wait|time|heal/i.test(l.code)); logSeen = st.log.length;
   const p = st.player;
-  appendFileSync(join(OUT, 'pacing.jsonl'), JSON.stringify({ step, turn: st.turn, input, scene: st.stage.sceneNumber, quiet: st.stage.quiet,
+  appendFileSync(join(OUT, 'pacing.jsonl'), JSON.stringify({ step, turn: st.turn, input, scenario: st.stage.scenarioNumber, quiet: st.stage.quiet,
     breakCause: st.stage.breakCause ?? null, clock: st.clocks.time ?? null, hpLostPct: p.core.condition.hpLostPct, restedAt: st.clocks[`rest:${p.id}`] ?? null,
     fired, codes, quietBeatsLeft: Object.values(st.hidden.plans).flatMap((pl) => pl.triggers).filter((tr) => tr.when.type === 'quiet_turns').map((tr) => tr.id) }) + '\n');
 }

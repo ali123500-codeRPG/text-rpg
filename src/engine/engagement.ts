@@ -101,7 +101,7 @@ export function engagedThisTurn(state: GameState, events: GameEvent[]): Map<stri
 }
 
 /** Updates every actor's engagement for this turn. Returns true when the player's engagement ended this turn.
- * A scene break ends every engagement. */
+ * A scenario break ends every engagement. */
 export function updateEngagements(state: GameState, events: GameEvent[]): boolean {
   const now = engagedThisTurn(state, events);
   const brk = !!state.stage.breakCause;
@@ -114,7 +114,7 @@ export function updateEngagements(state: GameState, events: GameEvent[]): boolea
     for (const id of state.yielding!.accepted) { const b = actorById(state, id)?.mind?.knowledge?.[state.player.id]; if (b && atLeast(b.status, 'hunting')) b.status = 'tracking'; }
   }
   for (const a of allActors(state)) {
-    if (brk) delete a.auraChecks; // a scene break ends every engagement, and the auras check afresh
+    if (brk) delete a.auraChecks; // a scenario break ends every engagement, and the auras check afresh
     const kinds = yielded && a === state.player ? undefined : now.get(a.id);
     const e = a.engagement;
     if (kinds && !brk) {

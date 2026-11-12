@@ -1,12 +1,12 @@
 // SM1–SM4: marks stack (the first mark on a skill in an engagement owes a roll, and so does every MARK_STACK_EVERY-th
 // mark after it); with SKILL_UP_INSTANT the owed rolls are made at the end of the turn of the mark; counts clear when the
-// engagement ends or the scene breaks.
+// engagement ends or the scenario breaks.
 import { afterEach, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { CONFIG } from '../../src/config';
 import { clearMarkCounts, markIfClose } from '../../src/ruleset/improve';
 import { SK } from '../../src/library/skillIds';
-import { intent, act, plannerOut, play } from '../scenarios/w4-kit';
+import { intent, act, plannerOut, play } from '../cases/w4-kit';
 
 const cfg = CONFIG as { MARK_STACK_EVERY: number; SKILL_UP_INSTANT: boolean };
 afterEach(() => { cfg.MARK_STACK_EVERY = 3; cfg.SKILL_UP_INSTANT = false; });

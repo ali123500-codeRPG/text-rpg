@@ -1,7 +1,7 @@
 // Sparring (SP1–SP11): a spar is a pact between sides that lets them hit each other while nobody's stance changes.
 // It starts in talk (an NPC records it, like a deal) or in the Weaver's stage plan. A fighter is out once it yields or
 // reaches the spar's limit on the health track; the last side with anyone left in wins. Blows do their normal damage.
-// The spar ends early on a scene break, after ENGAGEMENT_END_TURNS turns with no blow between sides, or when anyone
+// The spar ends early on a scenario break, after ENGAGEMENT_END_TURNS turns with no blow between sides, or when anyone
 // outside it attacks a fighter, or a fighter attacks anyone outside it (that attack is a real one).
 import type { Actor, GameEvent, GameState, Spar } from '../types';
 import { CONFIG } from '../config';
@@ -51,7 +51,7 @@ export function checkOut(state: GameState, sp: Spar): void {
   }
 }
 
-function endSpar(state: GameState, sp: Spar, cause: 'won' | 'scene_break' | 'quiet' | 'outside_attack', winners: string[] = []): void {
+function endSpar(state: GameState, sp: Spar, cause: 'won' | 'scenario_break' | 'quiet' | 'outside_attack', winners: string[] = []): void {
   state.spars = state.spars!.filter((x) => x !== sp);
   if (!state.spars.length) delete state.spars;
   logCode(state, 'spar_ended', { id: sp.id, cause, winners });
@@ -73,7 +73,7 @@ export function endSparsOf(state: GameState, ids: string[]): void {
   for (const sp of [...(state.spars ?? [])]) if (sp.sides.some((s) => s.some((id) => ids.includes(id)))) endSpar(state, sp, 'outside_attack');
 }
 
-/** after each turn: blows keep a spar alive; the last side with a fighter still in wins; a scene break or quiet ends it */
+/** after each turn: blows keep a spar alive; the last side with a fighter still in wins; a scenario break or quiet ends it */
 export function updateSpars(state: GameState, events: GameEvent[]): void {
   for (const sp of [...(state.spars ?? [])]) {
     const ids = sp.sides.flat();
@@ -81,7 +81,7 @@ export function updateSpars(state: GameState, events: GameEvent[]): void {
     checkOut(state, sp);
     const left = sp.sides.filter((s) => s.some((id) => !(id in sp.out)));
     if (left.length <= 1) endSpar(state, sp, 'won', left[0] ?? []);
-    else if (state.stage.breakCause) endSpar(state, sp, 'scene_break');
+    else if (state.stage.breakCause) endSpar(state, sp, 'scenario_break');
     else if (state.turn - sp.last >= CONFIG.ENGAGEMENT_END_TURNS) endSpar(state, sp, 'quiet');
   }
 }

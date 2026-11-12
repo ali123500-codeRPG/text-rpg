@@ -65,12 +65,12 @@ export type RewardLevel = (typeof REWARD_LEVELS.keys)[number];
 export const QUEST_REWARD_LEVELS = scale([['zero', '0'], ['i', 'I'], ['ii', 'II'], ['iii', 'III'], ['iv', 'IV']]);
 export type QuestRewardLevel = (typeof QUEST_REWARD_LEVELS.keys)[number];
 /** time of day, in the order a day runs from dawn (T2); each starts at CONFIG.TIME_OF_DAY_FROM */
-/** SC2: scene scales, smallest first. Each scale's budget and space are levers in CONFIG.SCENE_SCALE, keyed by key;
+/** SC2: scenario scales, smallest first. Each scale's budget and space are levers in CONFIG.SCENARIO_SCALE, keyed by key;
  * a new scale is a new row here and a row there. */
-export const SCENE_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['venture', 'Venture']]);
-export type SceneScale = (typeof SCENE_SCALES.keys)[number];
+export const SCENARIO_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['venture', 'Venture']]);
+export type ScenarioScale = (typeof SCENARIO_SCALES.keys)[number];
 /** CH5/SC19: how far a code-run pursuer follows the player, least first: post (never leaves its own place), ground (stays on
- * the scene's ground), near (the ground and one place beyond it), far (anywhere, through frontiers after the player).
+ * the scenario's ground), near (the ground and one place beyond it), far (anywhere, through frontiers after the player).
  * Agent-run NPCs decide for themselves. A new range is a new row here and a branch in engine/chase.ts chaseZones. */
 export const CHASE_RANGES = scale([['post', 'Post'], ['ground', 'Ground'], ['near', 'Near'], ['far', 'Far']]);
 export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
