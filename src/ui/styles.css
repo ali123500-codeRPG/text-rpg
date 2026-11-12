@@ -510,22 +510,23 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 .pk-gh { justify-self: start; background: none; border: 0; padding: 4px 0; color: var(--scenario-mark); font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
 .pk-gh::before { content: "▾ "; display: inline-block; transition: transform .15s; }
 .pk-gh[aria-expanded="false"]::before { transform: rotate(-90deg); }
-.pk-card { position: absolute; z-index: 2; width: 190px; box-sizing: border-box; padding: 10px; border: 1px solid color-mix(in oklch, var(--scenario-mark) 45%, transparent); border-radius: var(--r-lg);
-  background: var(--surface); box-shadow: var(--shadow-toast); }
-.pk-eff ~ .pk-card, .pk .empty ~ .pk-card { position: static; margin-top: var(--space-3); }
-.pk-card .k { margin: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-.pk-card h4 { margin: 2px 0 4px; font-size: 14px; color: var(--pk-c); }
-.pk-card { border-color: color-mix(in oklch, var(--pk-c) 45%, transparent); }
-.pk-card p { margin: 0 0 8px; font-size: 12px; }
-.pk-card:has(.pk-rules) { width: 300px; }
-.pk-rules { display: grid; grid-template-columns: max-content 1fr; gap: 3px 8px; margin: 0 0 8px; font-size: 12px; }
+/* the perk card floats over the page like the details pop-ups and can be dragged by its head */
+.pk-card { position: fixed; z-index: 40; width: min(420px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; padding: 0 var(--space-4) var(--space-4);
+  border: 1px solid color-mix(in oklch, var(--pk-c) 45%, transparent); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-toast); }
+.pk-card-head { position: sticky; top: 0; display: flex; align-items: center; gap: var(--space-3); margin: 0 calc(-1 * var(--space-4)) var(--space-2); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border); background: var(--surface); cursor: move; user-select: none; touch-action: none; }
+.pk-card .pk-card-head .k { margin-right: auto; }
+.pk-card .k { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.pk-card h4 { margin: 4px 0 8px; font-size: 20px; line-height: 1.25; color: var(--pk-c); }
+.pk-card p { margin: 0 0 10px; font-size: 15px; line-height: 1.5; }
+.pk-card:has(.pk-rules) { width: min(520px, calc(100vw - 32px)); }
+.pk-rules { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; margin: 0 0 10px; font-size: 14px; line-height: 1.45; }
 .pk-rules dt { font-weight: 600; color: var(--faint); }
 .pk-rules dd { margin: 0; }
-.pk-card .tiny { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
-.pk-take { min-height: 30px; font-size: 12px; }
+.pk-card .tiny { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.pk-take { min-height: 36px; font-size: 14px; }
 @media (max-width: 760px) {
   .pk-lad { display: none; } .pk-trk { display: grid; }
-  .pk-card { position: static; width: auto; margin-top: var(--space-3); }
 }
 
 /* Healing: H1 d card, H2 a healed part glow, H3 b quick slot. Level colours go by position on the
