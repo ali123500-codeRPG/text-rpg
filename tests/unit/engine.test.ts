@@ -79,6 +79,7 @@ vi.mock('../../src/ruleset', async (orig) => {
 vi.mock('../../src/perception', async () => {
   const { hearingOf } = await import('../../src/perception/noise');
   return {
+  hearsWords: (p?: { heard?: true }) => !!p?.heard,
   // the real sound reach, without hearing perks
   hearsClearly: (state: GameState, from: Actor, l: Actor, noise: string) => hearingOf(state, noise as never, from, l) === 'full',
   // everyone in the event's zone (or the zone it left) perceives it fully
@@ -104,6 +105,7 @@ vi.mock('../../src/perception', async () => {
 });
 
 vi.mock('../../src/views', () => ({
+  seesClearlyNow: () => true,
   buildActorView: (state: GameState, id: string) => {
     const a = state.actors.find((x) => x.id === id)!;
     return { turn: state.turn, self: { id, zone: a.zone, broken: a.mind?.moraleState === 'broken', surrendered: a.mind?.moraleState === 'surrendered' }, perceived: [] };
@@ -314,13 +316,13 @@ describe('dialogue', () => {
 });
 
 describe('agent side effects', () => {
-  it('planUpdate replaces plan and memory; stance only toward heard speakers; reveals only own secrets; introduces', () => {
+  it('planUpdate replaces plan and memory; stance only toward heard speakers; reveals only own secrets', () => {
     s.hidden.secrets.push({ id: 'mine', holderId: 'trader', fact: 'x', leakTerms: [], revealWhen: { type: 'event_in_zone', kind: 'x', zone: 'x' } });
     s.hidden.secrets.push({ id: 'theirs', holderId: 'guard_1', fact: 'y', leakTerms: [], revealWhen: { type: 'event_in_zone', kind: 'x', zone: 'x' } });
     s.player.zone = 'tav_counter';
     const ex = resolveSpeech(s, intent({ action: { type: 'talk' } }), ['trader'], createRng(1));
     const resp = { agent: 'responder', actorId: 'trader', output: {
-      action: npcAction('talk', 'player'), dialogue: { line: "I'm Mags", volume: 'normal', introduces: ['trader', 'guard_1'] }, gear: null,
+      action: npcAction('talk', 'player'), dialogue: { line: "I'm Mags", volume: 'normal' }, gear: null,
       stance: { toward: 'player', step: 'friendlier' }, reveals: ['mine', 'theirs'],
       planUpdate: { goal: 'sell', steps: [], memoryNote: 'met them', routine: null, triggers: [{ id: 'bad', when: { type: 'nope' } }] },
     } } as never;
@@ -331,15 +333,14 @@ describe('agent side effects', () => {
     expect(actor(s, 'trader').mind!.overrides).toEqual({ player: 'friendly' });
     expect(actor(s, 'guard_1').mind!.overrides).toBeUndefined();
     expect(s.player.journal!.secretsKnown).toEqual(['mine']);
-    expect(s.player.journal!.namesKnown).toEqual(['trader']);
-    expect(s.log.map((l) => l.code)).toEqual(expect.arrayContaining(['invalid_stance', 'invalid_reveal', 'invalid_introduce']));
+    expect(s.log.map((l) => l.code)).toEqual(expect.arrayContaining(['invalid_stance', 'invalid_reveal']));
   });
   it('RS4: one colder step from neutral is unfriendly (not on guard); the next is opposed (wary)', () => {
     s.player.zone = 'tav_counter';
     const colder = () => {
       const ex = resolveSpeech(s, intent({ action: { type: 'talk' } }), ['trader'], createRng(1));
       const resp = { agent: 'responder', actorId: 'trader', output: {
-        action: npcAction('talk', 'player'), dialogue: { line: 'watch it', volume: 'normal', introduces: [] }, gear: null,
+        action: npcAction('talk', 'player'), dialogue: { line: 'watch it', volume: 'normal' }, gear: null,
         stance: { toward: 'player', step: 'colder' }, reveals: [], planUpdate: null,
       } } as never;
       resolveTurn(s, input({ intent: intent({ action: { type: 'talk' }, spoken: 'you cheat' }), spokespeople: ['trader'], exchange: ex, agentOutputs: [resp] }), createRng(1));

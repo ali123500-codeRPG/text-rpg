@@ -3,6 +3,7 @@
 import type { GameState, NarrationEvent, NarrationView, NarratorOutput } from '../types';
 import { itemDef } from '../library';
 import { SK } from '../library/skillIds';
+import { knowsName } from '../engine/relations';
 
 /** what must not appear in the text unless the view itself holds it */
 export type LeakContext = {
@@ -13,14 +14,13 @@ export type LeakContext = {
 
 export function buildLeakContext(state: GameState): LeakContext {
   const known = new Set(state.player.journal?.secretsKnown ?? []);
-  const namesKnown = new Set(state.player.journal?.namesKnown ?? []);
   const terms = [
     ...state.hidden.secrets.filter((s) => !known.has(s.id)).flatMap((s) => s.leakTerms),
     ...state.hidden.stage.hiddenTerms,
   ];
   const names: string[] = [];
   for (const a of state.actors) {
-    if (!namesKnown.has(a.id) && !a.knownOnSight) names.push(a.names.current, ...a.names.past.map((p) => p.name));
+    if (!knowsName(state, state.player, a)) names.push(a.names.current, ...a.names.past.map((p) => p.name));
   }
   const itemName = (itemId: string) => {
     try {
