@@ -26,6 +26,7 @@ import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
 import { closePop, openPop } from './pop';
+import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
 import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
@@ -212,6 +213,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const fell = h('div', { class: 'fell', hidden: true });
   const edge = h('div', { class: 'm-edge', 'aria-hidden': 'true' }); // M-33: the red edge when hurt badly
   const body = h('div', { class: 'play' }, story, h('div', { class: 'sec col' }, notices, helpPanel, bar));
+  // D-226 (M-39): the scenario-end gains panel, over the story while it is open; the action box below stays usable (M-13)
+  let gainsVeil: HTMLElement | null = null, afterGains: (() => void) | null = null;
   const title = h('div', { class: 'head' });
   const who = h('div', { class: 'who', 'aria-label': 'Who’s here' });
   // layout A with the full sheet open by default at every width, so the screen is always filled (the player can still fold
@@ -260,6 +263,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   document.addEventListener('keydown', (e) => {
     if (!el.isConnected || el.hidden) return;
     if (e.key === 'Escape' && moving()) { finishAll(); return; } // M-12: while something moves, Esc only skips
+    if (e.key === 'Escape' && gainsVeil) { closeGains(); return; }
     if (e.key === 'Escape') {
       if (dealsOpen || open) { dealsOpen = false; open = null; update(); }
       else if (suggestion && document.activeElement === input && !input.value) { suggestion = ''; update(); }
@@ -277,9 +281,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   async function submit(byAgent = false) {
     const text = input.value.trim();
+    // the gains panel: Enter in an empty box first lands every gain, then closes it (M-12)
+    if (!text && gainsVeil && !byAgent) { if (moving()) finishAll(); else closeGains(); return; }
     if (!text || api.busy() || (auto.playing() && !byAgent && !auto.asking())) return;
     if (!byAgent && auto.asking() && !text.startsWith('/')) auto.playedTurn(); // GA15: a turn you play yourself answers the agent's question
-    finishAll(); // M-12: sending finishes everything still moving
+    closeGains(true); // sending closes the gains panel at once,
+    finishAll(); // M-12: and finishes everything still moving
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
     if (NAV_COMMANDS[cmd] && text === cmd) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
@@ -363,6 +370,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       xp ? row('XP', `+${xp}`) : null,
       ...(l.heals ?? []).map(healCard),
       ...(l.wounds ?? []).filter((w) => !working(w.to)).map(woundCard),
+      // D-226: the scenario's gains, as one line in the story; it opens the gains panel again, already settled (M-60)
+      anyGains(l.scenarioGains) ? h('button', { type: 'button', class: 'perk-new g-recap', onclick: () => openGains(l, 0, false) }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
+        h('span', { class: 'g-recap-t' }, 'What you gained', h('small', {}, gainsSummary(l.scenarioGains))), h('span', { class: 'hs-btn-text', 'aria-hidden': 'true' }, 'Show')) : null,
       ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks], true)),
       ...(l.achievements ?? []).map(achCard),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
@@ -638,7 +648,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       if (lines[0] !== firstLine) { if (firstLine !== undefined) shownBefore = null; firstLine = lines[0]; } // a new story: no "before"
       const readOnly = ns.some((n) => n.kind === 'read_only');
       const around = aroundNow();
-      if (fresh && !fallen && !readOnly) animateTurn(entries.get(fresh), shownBefore, after, shownAround, around);
+      if (fresh && !fallen && !readOnly) animateTurn(entries.get(fresh), shownBefore, after, shownAround, around, anyGains(fresh.scenarioGains) ? fresh : undefined);
       shownBefore = after; shownAround = around;
       el.classList.toggle('crit', HEALTH_LEVELS.pos(after.level) >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_STEADY) && !fallen);
     }
@@ -667,17 +677,56 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return d * 0.6;
   }
 
-  function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around) {
+  function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around, gainsLine?: LogLine) {
     finishAll();
-    if (!e || !motionOn()) return;
+    if (!e) return;
+    const on = motionOn();
     let t = 0;
-    // SD1: the old scenario's closing line comes first; the ending's rule was already drawn while the turn ran, so it stays put
-    const closing = e.querySelector('.ln-closing');
-    if (closing) { play(closing, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') }); t += ms('--m-state'); }
-    // M-40/M-42: a scenario or place break draws across first, outward from its name
-    const brk = e.querySelector('.pbreak');
-    if (brk && !(brk.classList.contains('end') && endDrawn)) t += drawBreak(brk, t);
+    // a turn with a gains panel opens it at once: the panel carries the ending and its closing line itself
+    if (on && !gainsLine) {
+      // SD1: the old scenario's closing line comes first; the ending's rule was already drawn while the turn ran, so it stays put
+      const closing = e.querySelector('.ln-closing');
+      if (closing) { play(closing, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') }); t += ms('--m-state'); }
+      // M-40/M-42: a scenario or place break draws across first, outward from its name
+      const brk = e.querySelector('.pbreak');
+      if (brk && !(brk.classList.contains('end') && endDrawn)) t += drawBreak(brk, t);
+    }
     endDrawn = false;
+    // D-226 (M-39): a scenario that gave something opens its gains panel between the old scenario's close and the new one's
+    // opening; the rest of the turn plays when the panel closes
+    if (gainsLine) { openGains(gainsLine, t, on, () => { if (motionOn()) turnRest(e, b, a, ab, aa, ms('--m-state') * 0.7); }); return; }
+    if (on) turnRest(e, b, a, ab, aa, t);
+  }
+
+  /** the gains panel: live plays its moment from t0, otherwise it opens settled (motion off, or reopened from the story) */
+  function openGains(l: LogLine, t0: number, live: boolean, then?: () => void) {
+    closeGains(true);
+    const g = l.scenarioGains;
+    if (!anyGains(g)) return;
+    const v = gainsPanel(g, { end: l.scenarioEnd, achCard, onContinue: () => closeGains() });
+    // M-12: while it still moves, a click anywhere on it only lands every gain
+    v.addEventListener('click', (e) => { if (moving()) { finishAll(); e.stopPropagation(); e.preventDefault(); } }, true);
+    body.append(v);
+    gainsVeil = v; afterGains = then ?? null;
+    if (live) playGains(v, g, t0);
+  }
+  /** closes the gains panel (exits are quicker, M-51) and lets the rest of the turn play; now: at once, with no exit */
+  function closeGains(now = false) {
+    const v = gainsVeil;
+    if (!v) return;
+    gainsVeil = null;
+    const then = afterGains;
+    afterGains = null;
+    finishAll();
+    const exit = ms('--m-state') * 0.7;
+    if (now || !motionOn()) v.remove();
+    else play(v, [{ opacity: 1 }, { opacity: 0, transform: 'translateY(6px)' }], { dur: exit, exit: true, done: () => v.remove() });
+    then?.();
+    if (!input.disabled) input.focus();
+  }
+
+  /** the turn after its opening: the prose, its results, the sheet and the gold cards, from t */
+  function turnRest(e: HTMLElement, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around, t: number) {
     // M-10/M-11: the prose, sentence by sentence (opacity only: a sentence is inline text), then what was said and the time row
     const gap = ms('--m-sentence'), fade = ms('--m-state');
     const parts = Array.from(e.querySelectorAll('.ln-narration .sn'));
@@ -721,26 +770,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     // M-38: the rail's perk-point badge lands with the level-up card that gave the point, never before it
     if (b && a.points !== b.points) pointsBeat(b.points, a.points, pointsAt ?? at(stagger));
-  }
-
-  /** M-38/M-38a, game-feel T4: an achievement or a level-up is the turn's milestone, one at a time after every other
-   * beat. Anticipation: a --m-hold pause. Then the card rises in, its star lands in its struck pose and holds, one band
-   * of light sweeps across once, and an achievement's tier lands. A scar comes in heavier and darker, with no light.
-   * Nothing on the card grows more than a few pixels, so its text never slides. Returns how long it holds the cards
-   * after it. */
-  function honor(g: HTMLElement, d0: number): number {
-    const dur = ms('--m-honor'), beat = ms('--m-beat'), d = d0 + ms('--m-hold');
-    if (g.classList.contains('scar')) {
-      play(g, [{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], { dur: beat, delay: d });
-      impact(g.querySelector('.st'), d + beat);
-      stamp(g.querySelector<HTMLElement>('.ach-lv'), d + beat);
-      return beat + ms('--m-hold');
-    }
-    play(g, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') * 2, delay: d });
-    play(g, [{ transform: 'translateX(-100%)' }, { transform: 'translateX(100%)' }], { dur, delay: d + ms('--m-state'), pseudo: '::after' });
-    impact(g.querySelector('.st'), d + ms('--m-state'));
-    stamp(g.querySelector<HTMLElement>('.ach-lv'), d + dur / 2);
-    return dur / 2 + ms('--m-hold');
   }
 
   /** the rail's ✦n badge (it lives outside the Play screen): a new badge fades in, a changed count swaps at its beat */
