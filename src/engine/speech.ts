@@ -48,12 +48,27 @@ export function isSpeech(type: string | undefined | null): boolean {
 /** run 24: a speech action the Parser left without words or listeners ("can you do it for one copper?" as a barter with
  * spoken and addressees null) never reached the listener. The player's own line stands in for the words, and the
  * action's target, when it is a character, for the listener. */
+/** BG-55: who the player was just talking with: NPCs whose words at the player reached them last turn, and those the
+ * player spoke to, still active */
+export function talkingWith(state: GameState): string[] {
+  const recent = state.recentEvents ?? [];
+  const last = Math.max(-1, ...recent.map((e) => e.turn));
+  const p = state.player, ids = new Set<string>();
+  for (const e of recent) {
+    if (e.turn !== last || e.kind !== 'speak' || !e.line) continue;
+    if (e.actorId === p.id) for (const id of [e.target, ...(e.speech?.addressees ?? [])]) { if (id && id !== p.id) ids.add(id); }
+    else if (e.target === p.id && e.perception[p.id]?.heard) ids.add(e.actorId);
+  }
+  return [...ids].filter((id) => { const a = state.actors.find((x) => x.id === id); return !!a && isActive(a); });
+}
+
 export function fillSpeech(state: GameState, intent: Intent, text: string): Intent {
   // BG-46: words with no action at all (the Parser kept "Hello? Who's there?" in spoken but gave no action) are a talk to
   // whoever they are for, so they are said instead of lost
   if (!intent.action && !intent.perkMove && intent.spoken?.trim() && !intent.yields) {
     const to = intent.addressees?.find((x) => state.actors.some((y) => y.id === x)) ?? null;
-    return { ...intent, action: { type: 'talk', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, addressees: intent.addressees?.length ? intent.addressees : ['everyone'] };
+    const talk = talkingWith(state);
+    return { ...intent, action: { type: 'talk', skill: '', target: to, targetPart: null, item: null, mode: null, approach: '', stance: 'normal' }, addressees: intent.addressees?.length ? intent.addressees : talk.length ? talk : ['everyone'] };
   }
   const a = intent.action;
   if (!a || !isSpeech(a.type)) return intent;
@@ -61,6 +76,8 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
   // a plain "talk to someone" with no words of its own is an opening, not a line: the command text is never spoken
   if (!out.spoken?.trim()) out.spoken = a.type === 'talk' ? null : text.trim();
   if (!out.addressees?.length && a.target && state.actors.some((x) => x.id === a.target)) out.addressees = [a.target];
+  // BG-55: words that name no one, right after an exchange, are for whoever the player was just talking with
+  if (!out.addressees?.length && !a.target && out.spoken?.trim() && talkingWith(state).length) out.addressees = talkingWith(state);
   return out;
 }
 
