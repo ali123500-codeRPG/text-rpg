@@ -46,6 +46,9 @@ export type ScenarioEndNote = { as: import('./hidden').ScenarioEnding; name: str
  * scenario brought in all. An empty list = nothing of that kind. */
 /** one row of the gains moment's XP sum: kind says what earned it, label names it for the player */
 export type XpPart = { kind: 'defeat' | 'achievement' | 'quest' | 'other'; label: string; amount: number };
+/** one scenario's gains kept on the character (Progression.gainsLog): its number, how it ended, the turn it ended on, and the
+ * closing line the Narrator gave it (added once the turn's narration arrives) */
+export type GainsRecord = ScenarioGains & { number: number; ending: import('./hidden').ScenarioEnding; endTurn: number; closing?: string };
 export type ScenarioGains = {
   skills: { skill: string; from: number; to: number }[]; // raw skill before and after
   perks: { skill: string; milestone: number }[]; // milestone perks unlocked (never named)

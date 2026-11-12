@@ -2,7 +2,7 @@
 // queues them) and All-XXX steps wait; when the scenario ends, closeScenario calls flushGrowth, which grants them all at once
 // and leaves one gains summary (stage.gains, then LogLine.scenarioGains) for the ending moment's pop-up. In free roam they come
 // at once (growthWaits). The summary also lists what already landed during the scenario: skill raises, XP and levels.
-import type { AchievementNote, GameState, ScenarioFrame, ScenarioGains, XpAward, XpPart } from '../types';
+import type { AchievementNote, GameState, ScenarioEnding, ScenarioFrame, ScenarioGains, XpAward, XpPart } from '../types';
 import { getLibrary } from '../library';
 import { grantAllSteps } from '../ruleset/allSteps';
 import { achievementInfo, charLevel, grantAchievement, xpToNext } from './xp';
@@ -92,6 +92,14 @@ export function xpParts(state: GameState, since: XpAward[], achs: AchievementNot
   const f = out.find((x) => x.kind === 'defeat');
   if (f) f.label = foes === 1 ? '1 foe defeated' : `${foes} foes defeated`;
   return out;
+}
+
+/** the scenario that just ended goes on the character's gains log (the Gains page), if it gave anything */
+export function keepGains(state: GameState, as: ScenarioEnding): void {
+  const g = scenarioGainsNow(state), pr = state.player.progression, n = state.stage.gains?.number;
+  if (!g || !pr || n === undefined) return;
+  if (!(g.skills.length + g.perks.length + g.allPerks.length + g.achievements.length + g.levelUps.length) && !g.xp.gained) return;
+  (pr.gainsLog ??= []).push({ ...g, number: n, ending: as, endTurn: state.turn });
 }
 
 /** the gains of the scenario that ended this turn, as the play page reads them (LogLine.scenarioGains) */

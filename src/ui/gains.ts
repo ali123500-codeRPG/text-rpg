@@ -10,7 +10,7 @@ import { arrive, bar as barMove, count, impact, later, motionOn, ms, paced, play
 import { skillName } from './creation';
 import { perkSeries } from './perks';
 import { getLibrary } from '../library';
-import type { AchievementNote, ScenarioEndNote, ScenarioGains, XpPart } from '../types';
+import { SCENARIO_ENDING_NAMES, type AchievementNote, type GameApi, type ScenarioEndNote, type ScenarioGains, type XpPart } from '../types';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
@@ -60,6 +60,20 @@ type Opts = {
 
 /** the panel, complete: every gain is in it from the start, so it reads the same with motion off */
 export function gainsPanel(g: ScenarioGains, o: Opts): HTMLElement {
+  const end = o.end;
+  return h('div', { class: 'gains-veil', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'gains-h', 'data-end': end?.as ?? '' },
+    h('section', { class: 'gains' },
+      end ? h('p', { class: 'pbreak end g-rule', 'data-end': end.as }, h('b', {}, cap(end.name))) : null,
+      // SD1: the old scenario's closing line sits under its ending, so the panel is that scenario's last word
+      end?.closing ? h('p', { class: 'g-closing' }, end.closing) : null,
+      h('h2', { id: 'gains-h', class: 'g-title' }, 'What you gained'),
+      gainsSpine(g, o.achCard),
+      h('div', { class: 'g-foot' }, h('button', { type: 'button', class: 'hs-btn-main', onclick: o.onContinue }, 'Continue'),
+        h('span', { class: 'hs-note' }, 'or press Enter or Esc'))));
+}
+
+/** the knots and their gains, as the panel and the Gains page show them */
+function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLElement): HTMLElement {
   const lib = getLibrary();
   const star = (mark = '✦') => h('span', { class: 'st', 'aria-hidden': 'true' }, mark);
   const sec = (key: string, label: string, ...items: HTMLElement[]) =>
@@ -75,7 +89,7 @@ export function gainsPanel(g: ScenarioGains, o: Opts): HTMLElement {
     h('div', { class: 'perk-new g-all' }, star(), h('div', {}, a.name, h('small', {}, `${lib.trees[a.tree]?.name ?? 'A tree'}: its skills reached ${a.step}`))))));
   if (g.achievements.length) {
     const scars = g.achievements.every((a) => a.scar), achs = g.achievements.every((a) => !a.scar);
-    secs.push(sec('ach', achs ? 'Achievements' : scars ? 'Scars' : 'Achievements and scars', ...g.achievements.map(o.achCard)));
+    secs.push(sec('ach', achs ? 'Achievements' : scars ? 'Scars' : 'Achievements and scars', ...g.achievements.map(achCard)));
   }
   const levelled = g.xp.toLevel > g.xp.fromLevel;
   const KIND: Record<XpPart['kind'], string> = { defeat: 'Defeats', achievement: 'Achievement', quest: 'Quest', other: 'Other' };
@@ -91,16 +105,7 @@ export function gainsPanel(g: ScenarioGains, o: Opts): HTMLElement {
     h('p', { class: 'g-level-n' }, h('span', {}, 'Level'), h('b', {}, String(g.xp.toLevel))),
     h('ul', { class: 'g-level-l' }, g.levelUps.map((u) => h('li', {}, u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: level ${u.level}`))),
     h('p', { class: 'hs-note' }, plural(g.levelUps.length, 'perk point'), ' to spend'))));
-  const end = o.end;
-  return h('div', { class: 'gains-veil', role: 'dialog', 'aria-modal': 'false', 'aria-labelledby': 'gains-h', 'data-end': end?.as ?? '' },
-    h('section', { class: 'gains' },
-      end ? h('p', { class: 'pbreak end g-rule', 'data-end': end.as }, h('b', {}, cap(end.name))) : null,
-      // SD1: the old scenario's closing line sits under its ending, so the panel is that scenario's last word
-      end?.closing ? h('p', { class: 'g-closing' }, end.closing) : null,
-      h('h2', { id: 'gains-h', class: 'g-title' }, 'What you gained'),
-      h('ol', { class: 'g-spine' }, ...secs),
-      h('div', { class: 'g-foot' }, h('button', { type: 'button', class: 'hs-btn-main', onclick: o.onContinue }, 'Continue'),
-        h('span', { class: 'hs-note' }, 'or press Enter or Esc'))));
+  return h('ol', { class: 'g-spine' }, ...secs);
 }
 
 /** the moment's motion, from t0; returns when the last gain has landed. Sections come one at a time; inside one, items
@@ -191,4 +196,36 @@ function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number 
   }
   arrive(veil.querySelector('.g-foot'), t);
   return t + state;
+}
+
+/** an achievement or scar as the Gains page lists it: the same card as the turn's, without its pop-up */
+const achNote = (a: AchievementNote) => h('div', { class: `perk-new ach g-ach${a.scar ? ' scar' : ''}` },
+  h('span', { class: 'st', 'aria-hidden': 'true' }, a.scar ? '✶' : '✦'),
+  h('div', { class: 'ach-txt' }, h('span', { class: 'ach-k' }, a.scar ? 'Scar' : 'Achievement', a.levelName ? h('span', { class: 'ach-lv' }, `Tier ${a.levelName}`) : null),
+    h('b', { class: 'ach-n' }, a.name), a.earnedAt ? h('small', {}, cap(a.earnedAt)) : null));
+
+/** the Gains page: every scenario's gains kept on the character, newest first, each folded under one
+ * line (its number, how it ended, the turn, what it gave); the newest starts open. All still: it is a record (M-60). */
+export function gainsPage(api: GameApi): { el: HTMLElement; update: () => void } {
+  const el = h('main', { class: 'gains-page' });
+  const open = new Set<number>();
+  let seen = -1;
+  function update() {
+    const s = api.state();
+    const log = [...(s?.player.progression?.gainsLog ?? [])].reverse();
+    if (log[0] && log[0].endTurn !== seen) { seen = log[0].endTurn; open.add(log[0].endTurn); }
+    const rows = log.map((r) => {
+      const d = h('details', { class: 'g-past', 'data-end': r.ending, ...(open.has(r.endTurn) ? { open: true } : {}) },
+        h('summary', {}, h('b', { class: 'g-past-n' }, `Scenario ${r.number}`), h('span', { class: 'g-past-end' }, cap(SCENARIO_ENDING_NAMES[r.ending])),
+          h('span', { class: 'hs-note' }, `Turn ${r.endTurn}`), h('span', { class: 'g-past-sum' }, gainsSummary(r))),
+        h('div', { class: 'g-past-body' }, r.closing ? h('p', { class: 'g-closing' }, r.closing) : null, gainsSpine(r, achNote)));
+      d.addEventListener('toggle', () => { if (d.open) open.add(r.endTurn); else open.delete(r.endTurn); });
+      return d;
+    });
+    el.replaceChildren(
+      h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Gains'), h('p', {}, 'What each scenario gave you, newest first, as it showed when the scenario ended.'))),
+      s ? (rows.length ? h('div', { class: 'g-past-list' }, ...rows) : h('p', { class: 'empty' }, 'No scenario has ended with a gain yet.'))
+        : h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.'));
+  }
+  return { el, update };
 }
