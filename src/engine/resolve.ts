@@ -648,6 +648,12 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   return true;
 }
 
+/** SE23: a solo roll against a task grade moves by (moderate − grade) at the roll's skill weight, so a task graded at
+ * the roller's own skill plays the same at every level (62% Success or better at 50 and at 300) */
+export function gradeMod(target: number): number {
+  return CONFIG.SKILL_WEIGHT * (CONFIG.DIFFICULTY.moderate - target);
+}
+
 function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const kind = o.type === 'idle' ? 'idle' : o.type;
@@ -657,7 +663,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
     // Q17: looking is a roll against the scenario's difficulty; Success or better shows everyone in sight clearly
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
     const modifiers = [
-      ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scenario difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
+      ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scenario difficulty', type: 'situational' as const, value: gradeMod(target) }] : []),
       ...situational(state, fnRoller(state, a, noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight), { light: zoneById(state, a.zone), actor: a }).modifiers, // ST21: light by the rolling skill's tags (Q3)
     ];
     const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn: noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight }, state, rng); // function roll
