@@ -12,7 +12,7 @@ import { PK } from '../library/perkIds';
 import { IT } from '../library/itemIds';
 import { tally } from './xp';
 import { itemValue as benefitValue } from '../ruleset/value';
-import { hearingOf } from '../perception/noise';
+import { hearsClearly } from '../perception';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -96,7 +96,7 @@ export type BuyResult =
 
 /** RD2, BG-57: a called order carries as far as a voice at CONFIG.ORDER_NOISE is heard clearly where `b` stands (hearingOf,
  * real metres, walls and the background). Farther trades (messengers, letters) stay parked (D-194). */
-export const hearsOrder = (state: GameState, a: Actor, b: Actor): boolean => hearingOf(state, CONFIG.ORDER_NOISE, a, b) === 'full';
+export const hearsOrder = (state: GameState, a: Actor, b: Actor): boolean => hearsClearly(state, a, b, CONFIG.ORDER_NOISE);
 
 /** PY5/PY7: buy qty (default 1) of a ware from seller, for `to` (default the buyer). All or nothing; no roll.
  * RD2: an order is called out, so the seller must hear it clearly (hearsOrder); `to` must be in clear call of the buyer or the seller. */

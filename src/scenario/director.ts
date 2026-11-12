@@ -28,6 +28,8 @@ export type ScenarioResult = {
   errors: PlanError[];
   /** set on a scenario start only; the pipeline puts it on the turn record */
   eventRoll?: EventRollResult;
+  /** a frontier crossing: NPCs that followed the player through (NW8) */
+  followed?: string[];
 };
 
 /** errors that need the repair call: repaired notes don't count */
@@ -177,7 +179,7 @@ export class ScenarioDirector {
     noteLeft(state, from); // the trail: "go back" leads to the zone the frontier was crossed from
     if (state.player.zone !== from) {
       noteCrossing(state, from, state.player.zone); // CH6: pursuers who saw it follow
-      this.followAcross(state, key); // NW8
+      return { ...res, followed: this.followAcross(state, key) }; // NW8
     }
     return res;
   }

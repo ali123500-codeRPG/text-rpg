@@ -3,7 +3,8 @@ import type { Actor, ActorView, GameState, Intent, NpcAction, Order, Rng, Volume
 import type { NoiseKey } from '../scales';
 import { CONFIG } from '../config';
 import { SPEECH_ACTIONS } from '../types';
-import { hearingOf, VOLUME_NOISE } from '../perception/noise';
+import { VOLUME_NOISE } from '../perception/noise';
+import { hearsClearly } from '../perception';
 import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } from '../minds';
 import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
@@ -18,13 +19,13 @@ const NEEDS: Record<string, 'voice' | 'hand'> = {
 /** does `actor` already stand near enough `t` for an action that needs `need` */
 function nearEnough(state: GameState, actor: Actor, t: Actor, need: 'voice' | 'hand', noise: NoiseKey): boolean {
   if (need === 'hand') return t.zone === actor.zone || reachesAcross(state, actor.zone, t.zone);
-  return hearingOf(state, noise, actor, t) === 'full';
+  return hearsClearly(state, actor, t, noise);
 }
 
 /** BG-80: the move an actor makes for an action at someone (one rule for talking, trading and handing over):
  * - no move given and the target is in view but not near enough: step up to them first (BG-74);
- * - going over to someone ends beside them in the actor's own zone, or on the actor's side of a counter, fence or rail
- *   unless they go behind it (move.behind) (BG-62);
+ * - going over to someone ends beside them, in the actor's own zone or theirs, or on the actor's side of a counter, fence or
+ *   rail unless they go behind it (move.behind) (BG-62, BG-87);
  * - a move through a doorway to another room while acting (following someone in) stands (BG-77). */
 export function approachMove(state: GameState, actor: Actor, act: { type: string; target: string | null; volume?: Volume; way?: boolean }, given: Intent['move']): Intent['move'] {
   let m = given;
@@ -40,8 +41,10 @@ export function approachMove(state: GameState, actor: Actor, act: { type: string
     if (m.toZone === here) return m.spot ? m : { ...m, toZone: here, spot: { near: t.id } };
     return m.spot?.near === t.id || reachesAcross(state, here, m.toZone) ? { ...m, toZone: here, spot: { near: t.id } } : m;
   }
-  if (m.toZone !== t.zone || m.behind) return m;
-  return reachesAcross(state, here, t.zone) ? { ...m, toZone: here, spot: { near: t.zone } } : m;
+  if (m.toZone !== t.zone) return m;
+  if (!m.behind && reachesAcross(state, here, t.zone)) return { ...m, toZone: here, spot: { near: t.zone } };
+  // BG-87: going into their zone ends beside them, not just inside the way in
+  return m.spot ? m : { ...m, spot: { near: t.id } };
 }
 const TRADE_KINDS = ['buy', 'sell'];
 
