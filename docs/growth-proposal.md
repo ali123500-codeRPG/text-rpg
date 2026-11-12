@@ -343,3 +343,33 @@ Proposal growth moments are scenario payouts that raised something. Essences com
 - D-226: NPCs holding essences, who then offer them when beaten.
 - D-227: a per-skill essence cap.
 - D-228: essence rows for every body type and template. The content round goes to the lore and loot threads.
+
+## 8. Ali's answers (round one, 12/11/2026)
+
+- **EG1 a:** essences are adopted as in section 2.
+- **EG2:** one slot at level 1, then one more every 7 levels: 2 at level 7, 3 at 14 and 4 at 21 (ESSENCE\_SLOT\_EVERY 7).
+- **EG3 "b and 1 level":** removal happens at rest and the essence is lost. What "1 level" means is asked in EG15.
+- **EG4 a:** essence points count toward perk milestones and All-XXX.
+- **EG5 b:** pay by the event roll's tier. A judged ending pays by which ending it was, not a fixed 0.75. Ali asked for a lower and an upper limit on the reward (EG14).
+- **EG6 a:** code deals the rolls by marks, with no focus roll. Ali raised two worries:
+  - a moment inside an episode pays its marks at the moment's lower scale;
+  - episodes already pay more because they hold more marks.
+
+  Both are confirmed by the model (EG13).
+- **EG7 a:** scenario-end payouts replace instant and per-engagement skill rolls. This settles ST1.
+- **EG8 a:** level-ups wait for the scenario's ending moment. This settles ST2.
+- **EG9 a:** an essence's kind is fixed by its source; chance decides whether there is an offer and how good it is.
+- **EG10 b:** +1 payout roll per scenario below level 5.
+- **EG11 b:** the Thread lore surfaces in essence narration. Essences are where the player first senses the weave (XL3 revised for essences only).
+- **EG12 a:** both achievement proposals, "First Knot" and "Room for No More", are approved.
+
+## 9. Round two (open)
+
+Questions page "Growth Proposal Round Two": https://claude.ai/artifact/WYwm1rJ5vHH5mzW7u4SBDD.
+
+- **EG13, the scale fix.** In the model, the same work paid 56% of its marks as rolls in a moment, 73% in a situation and 82% in an episode. Recommended: drop SCALE\_FACTOR. Rolls = marks × tier share × ending factor. The tier shares are Critical Failure 0.5, Failure 0.6, Near Miss 0.7, Success 0.8, Great Success 0.9 and Critical Success 1, plus 1 roll per step past it. With that, every scale paid 64–66% in the model.
+- **EG14, the limits.** Recommended: at least GROWTH\_MIN\_ROLLS (1) roll when any mark was earned, and at most GROWTH\_MAX\_PER\_SKILL (4) rolls per skill per scenario.
+- **EG15, the meaning of "1 level" in EG3.** The three readings are losing a level, paying one level's XP, or a one-level wait. Recommended: pay one level's XP, with the bar allowed to go into debt.
+- **EG16, Ali's new rule: "tags should add 25 to the skill cap."** A tagged skill trains to 125. Options for the roll above 75 are on the page. Recommended: c, today's odds up to 75, then target = 75 + (raw − 75) ÷ 2.
+
+The round-two model is kept at /mnt/project-files/growth-proposal/pacing-sim-round2.test.ts.
