@@ -218,6 +218,13 @@ export type PerkDef = {
   auraSkill?: number;
   /** a linked perk (src/library/perkLinks.ts): granted by owning a set of perks, never taken */
   linked?: true;
+  /** D-218 event-roll variance: this many naturals just inside each critical range (however wide opened tiers make it) shift a tier outward */
+  eventEdges?: number;
+  /** D-218: the die lands this many times as far from the middle (50.5) for the margin; the natural edges read the real die */
+  eventSpread?: number;
+  /** D-218 active ability (a free perk move): arms the owner's next event roll. 'farther': roll twice, keep the die
+   * farther from the middle; 'all_or_nothing': 51–100 is Critical Success, 1–50 Critical Failure. cooldownMin: game minutes */
+  eventArm?: { kind: 'farther' | 'all_or_nothing'; cooldownMin: number };
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };
