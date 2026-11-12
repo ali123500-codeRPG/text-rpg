@@ -17,6 +17,7 @@ import { sideFrom, sightDistM } from '../engine/position';
 import { chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
+import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
 import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
@@ -286,6 +287,10 @@ function need(state: GameState, id: string): Actor {
 }
 
 // ---------- PlayerView ----------
+/** BG-55: who the player was just talking with, still in sight (engine talkingWith) */
+function talkingWithSeen(state: GameState, seen: SeenActor[]): string[] {
+  return talkingWith(state).filter((id) => seen.some((x) => x.id === id && x.level === 'full'));
+}
 /** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
  * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
  * off (BG-28) */
@@ -322,6 +327,7 @@ export function buildPlayerView(state: GameState): PlayerView {
     zones: perceivedZones(state, p.zone, p),
     actors,
     ...(lastSeen(state, actors).length ? { lastSeen: lastSeen(state, actors) } : {}),
+    ...(talkingWithSeen(state, actors).length ? { talkingWith: talkingWithSeen(state, actors) } : {}),
     ...(knownDestinations(state).length ? { known: knownDestinations(state) } : {}),
     ...(p.journal?.trail?.length ? { cameFrom: p.journal.trail.map((x) => ({ zone: x.zone, name: zoneById(state, x.zone)?.name ?? x.zone, leftTurn: x.left })) } : {}),
     facts: factsFor(state, p.placeId, actors.filter((a) => a.level === 'full').map((a) => a.id)),
