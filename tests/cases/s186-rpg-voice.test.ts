@@ -2,6 +2,8 @@
 // screen and Claude's voices get the line without them, and any failure of the connector says why and falls back.
 import { describe, expect, it } from 'vitest';
 import { AUTOPILOT_BRIEF, VOICE_TAGS, plainLine, readMove } from '../../src/agents/autopilot';
+import { VOICE_SAMPLES, pickSample } from '../../src/ui/voiceSamples';
+import { VOICE_STYLES as STYLES } from '../../src/agents/autopilot';
 import { type Mcp, RPG_SERVER, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices, splitLine } from '../../src/ui/rpgVoice';
 
 describe('186 RPG Voice', () => {
@@ -42,5 +44,13 @@ describe('186 RPG Voice', () => {
     expect(splitLine('No! Not him. Run!')).toEqual(['No! Not him.', 'Run!']); // the first piece is never a lone word
     expect(splitLine('Just one sentence here.')).toEqual(['Just one sentence here.']);
     expect(splitLine('うそ！本当に当たった。もう一回！')).toEqual(['うそ！本当に当たった。', 'もう一回！']);
+  });
+
+  it('every style has its own bank of sample lines, Japanese ones spoken in Japanese, and a pick never repeats the last', () => {
+    for (const [id] of STYLES) expect(VOICE_SAMPLES[id]?.length).toBeGreaterThanOrEqual(8);
+    expect(VOICE_SAMPLES.japanese.every((x) => x.ja && x.say)).toBe(true);
+    expect(VOICE_SAMPLES.plain.some((x) => x.ja)).toBe(false);
+    const first = pickSample('companion', undefined, () => 0);
+    for (let r = 0; r < 1; r += 0.05) expect(pickSample('companion', first, () => r)).not.toBe(first);
   });
 });

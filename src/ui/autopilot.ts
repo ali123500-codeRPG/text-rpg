@@ -7,6 +7,7 @@ import { h } from './kit';
 import { PERSONA_NAMES, VOICE_STYLES, autoPerk, plainLine } from '../agents/autopilot';
 import { type Mcp, type McpError, RPG_DEFAULT_VOICE, RPG_VOICES, rpgFailure, rpgSpeak, rpgVoices, splitLine } from './rpgVoice';
 import { CONFIG } from '../config';
+import { type Sample, pickSample } from './voiceSamples';
 import { type Crossroad, type TurnSnap, askKey, spotCrossroads, turnSnap } from '../agents/crossroads';
 import { getLibrary } from '../library';
 import { recommendedBuild } from '../library/spawn';
@@ -90,8 +91,8 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   /** acted out by the RPG Voice (its tags and the acting note), else read in the chosen Claude voice (Japanese as Japanese);
    *  where neither can speak, the line is only shown. Resolves once the voice has started (or won't): the RPG Voice makes
    *  the whole clip before it plays, so its first sentence is asked for on its own beside the rest and starts sooner. */
-  function speak(text: string, ja = '', direction = ''): Promise<void> {
-    if (!prefs.voice || !text) return Promise.resolve();
+  function speak(text: string, ja = '', direction = '', force = false): Promise<void> {
+    if ((!prefs.voice && !force) || !text) return Promise.resolve();
     hush();
     const seq = speakSeq, line = ja || text, v = rpgVoice();
     if (!v || rpgDown) { claudeSpeak(plainLine(line), !!ja); return Promise.resolve(); }
@@ -100,7 +101,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     clips.forEach((c) => c.catch(() => undefined)); // each failure is handled when its turn to play comes
     return new Promise<void>((started) => {
       const play = (i: number) => clips[i].then((url) => {
-        if (seq !== speakSeq || !prefs.voice) return started();
+        if (seq !== speakSeq || (!prefs.voice && !force)) return started();
         const a = new Audio(url);
         a.playbackRate = prefs.rate;
         audio = a; voiceNote = '';
@@ -130,6 +131,16 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       voiceNote = e?.code === 'rate_limited' ? 'Claude’s voice has used its allowance for now, so this line is shown only.' : 'Claude’s voice couldn’t read that line.';
       update();
     });
+  }
+  /** a line from the chosen style's bank, read in the chosen voice and speed, so the watcher hears what a pick does */
+  let sample: Sample | undefined;
+  const sampleEl = h('p', { class: 'hs-note', 'aria-live': 'polite', hidden: true }); // kept across redraws: a pick leaves its list focused, and the bar doesn't redraw then
+  const showSample = (t: string) => { sampleEl.textContent = t; sampleEl.hidden = !t; };
+  function preview() {
+    sample = pickSample(prefs.style, sample);
+    const name = VOICE_STYLES.find(([id]) => id === prefs.style)?.[1] ?? '';
+    showSample(`Sample · ${name}, ${claudeVoice()[0].toUpperCase()}${claudeVoice().slice(1)}, ${prefs.rate}×: “${sample.ja ? `${sample.ja}” (${sample.say})` : `${sample.say}”`}`);
+    void speak(sample.say, sample.ja ?? '', '', true);
   }
   const set = (s: string) => { status = s; update(); };
   function pause(why = '') { playing = false; stepping = false; answer?.(null); set(why); redraw(); }
@@ -186,7 +197,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       if (!mv) { if (++failures >= 2) { pause('The agent couldn’t decide: the Claude call failed twice.'); break; } continue; }
       failures = 0;
       let command = mv.command, voice: [string, string, string] | null = mv.ask ? null : [mv.say, mv.ja ?? '', mv.direction ?? ''];
-      said = mv.say; saidJa = mv.ja ?? '';
+      said = mv.say; saidJa = mv.ja ?? ''; showSample('');
       if (mv.ask) {
         const q = mv.ask, key = askKey(q.kind, must?.key ?? q.about);
         if (must) pending = pending.filter((c) => c !== must);
@@ -265,13 +276,13 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     if (!open) { el.replaceChildren(); return; }
     const persona = h('select', { 'aria-label': 'Playstyle', onchange: (e: Event) => { prefs.persona = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       PERSONA_NAMES.map(([id, name]) => h('option', { value: id, selected: prefs.persona === id }, name)));
-    const style = h('select', { 'aria-label': 'Voice style', onchange: (e: Event) => { prefs.style = (e.target as HTMLSelectElement).value; writePrefs(prefs); } },
+    const style = h('select', { 'aria-label': 'Voice style', onchange: (e: Event) => { prefs.style = (e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
       VOICE_STYLES.map(([id, name]) => h('option', { value: id, selected: prefs.style === id }, name)));
     const rv = rpgVoice();
-    const voicePick = h('select', { 'aria-label': 'Speaking voice', onchange: (e: Event) => { prefs.voiceName = (e.target as HTMLSelectElement).value; rpgDown = false; voiceNote = ''; writePrefs(prefs); } },
+    const voicePick = h('select', { 'aria-label': 'Speaking voice', onchange: (e: Event) => { prefs.voiceName = (e.target as HTMLSelectElement).value; rpgDown = false; voiceNote = ''; writePrefs(prefs); preview(); } },
       mcp ? h('optgroup', { label: 'RPG Voice (acted)' }, voices.map(({ voice, style }) => h('option', { value: `rpg:${voice}`, selected: rv === voice }, style ? `${voice} · ${style}` : voice))) : '',
       h('optgroup', { label: 'Claude' }, claudeVoices.map((v) => h('option', { value: `claude:${v}`, selected: !rv && claudeVoice() === v }, `${v[0].toUpperCase()}${v.slice(1)}`))));
-    const rate = h('select', { 'aria-label': 'Speaking speed', onchange: (e: Event) => { prefs.rate = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
+    const rate = h('select', { 'aria-label': 'Speaking speed', onchange: (e: Event) => { prefs.rate = +(e.target as HTMLSelectElement).value; writePrefs(prefs); preview(); } },
       RATES.map((r) => h('option', { value: String(r), selected: prefs.rate === r }, `${r}×`)));
     const noVoice = prefs.voice && !tts && !rv ? 'Claude’s voice isn’t available in this view, so the commentary is shown only.' : '';
     const wait = h('select', { 'aria-label': 'Wait between turns', onchange: (e: Event) => { prefs.waitS = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
@@ -320,6 +331,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
       !q && prefs.mode === 'guided' && guidance && guidance.scenario === scenario() ? h('p', { class: 'hs-note' }, `Your guidance this scenario: ${guidance.text}`) : '',
       !q && prefs.mode === 'guided' && lastCall ? h('p', { class: 'hs-note' }, `Last call: ${lastCall}`) : '',
       status || (!playing && mine) ? h('p', { class: 'hs-note', role: 'status' }, status || mine!.textContent) : '',
+      sampleEl,
       noVoice || voiceNote ? h('p', { class: 'hs-note' }, noVoice || voiceNote) : ''));
   }
   update();
