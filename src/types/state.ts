@@ -116,6 +116,8 @@ export type GameState = {
   meta: StoryMeta;
   /** derived per turn, never saved: actor id -> ids of actors that hit it this scenario (latest last) */
   scratch?: Record<string, unknown>;
+  /** NW12/NW15: the player's night: who sleeps when (one watch each when the player sleeps with companions) */
+  night?: Night;
   /** never saved: earlier turns' events, pruned to each actor's last RECENT_EVENTS perceived ones, so NPC views keep what they saw and heard */
   recentEvents?: GameEvent[];
 };
@@ -235,3 +237,7 @@ export type TurnRecord = {
 };
 
 export type { ActorId };
+
+/** NW15/NW22: a night's plan. Each member sleeps from start to end except during its own watch [from, to); slept counts
+ * the player's minutes asleep for the rest heal; woke lists members woken out of the plan (their night is over). */
+export type Night = { start: number; end: number; members: string[]; watches: { actorId: string; from: number; to: number }[]; slept: number; heals: number; woke: string[] };

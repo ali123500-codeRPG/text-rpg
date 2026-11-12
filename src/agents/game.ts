@@ -20,6 +20,7 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { actorBody, getLibrary, itemDef } from '../library';
+import { LIGHT_SLEEPER } from '../engine/sleep';
 import { actorById, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
@@ -75,6 +76,10 @@ type Background = {
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
   '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
+
+/** NW18: a turn played while the player sleeps */
+export const ASLEEP_TEXT = '(asleep)';
+const ASLEEP_INTENT = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -279,7 +284,9 @@ export function createGame(deps: GameDeps): Game {
     }
     const ctx = ctxFor(s.turn, turnLog);
     const pv = views.buildPlayerView(s);
-    const parsed = await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean) });
+    // NW18: asleep, the turn passes with you doing nothing; nothing you type is read
+    const parsed = s.player.asleep ? { clarify: null, intent: ASLEEP_INTENT }
+      : await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean) });
     if (parsed.clarify !== null || !parsed.intent) {
       // the turn stops: no resolution, turn unchanged, Planner outputs kept for this same turn
       lines.push({ turn: s.turn, kind: 'clarify', text: parsed.clarify ?? 'What do you do?' });
@@ -553,7 +560,9 @@ export function createGame(deps: GameDeps): Game {
     busy = true;
     emit();
     try {
-      await playTurn(t, opts.aimed || aimNext);
+      await playTurn(state.player.asleep ? ASLEEP_TEXT : t, opts.aimed || aimNext);
+      // NW18: while you stay asleep the game plays your turns, up to ASLEEP_AUTO_TURNS before it waits for you
+      for (let i = 0; i < CONFIG.ASLEEP_AUTO_TURNS && state?.player.asleep && !stopped; i++) await playTurn(ASLEEP_TEXT, false);
     } catch (e) {
       if (e instanceof StopPlay) stop(e.code);
       else throw e;
@@ -752,7 +761,7 @@ export function plannerActors(s: GameState): string[] {
   const dealt = (s.hidden.agreements ?? []).flatMap((g) => g.parties).filter((id) => id !== s.player.id && !s.pending.engaged.includes(id));
   return [...s.pending.engaged, ...new Set(dealt)]
     .map((id) => s.actors.find((a) => a.id === id))
-    .filter((a): a is Actor => !!a && a.mind?.control === 'agent' && a.mind.moraleState !== 'broken')
+    .filter((a): a is Actor => !!a && a.mind?.control === 'agent' && a.mind.moraleState !== 'broken' && !a.asleep) // NW20: a sleeper is not asked
     .sort((a, b) => (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .map((a) => a.id);
 }
@@ -1118,6 +1127,21 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     const t = timeView(s);
     out.push(`Time passes: ${[Math.floor(m / 60) ? `${Math.floor(m / 60)} h` : '', m % 60 ? `${m % 60} min` : ''].filter(Boolean).join(' ')} (Day ${t.day} · ${t.timeOfDay})`);
   }
+  // NW15/NW18: the night watch, and what woke you
+  const clockAt = (m: number) => { const d = ((m % 1440) + 1440) % 1440; return `${String(Math.floor(d / 60)).padStart(2, '0')}:${String(d % 60).padStart(2, '0')}`; };
+  for (const l of s.log) {
+    if (l.turn !== turn) continue;
+    const d = l.detail as { actorId: string; why?: string; watches?: { actorId: string; from: number; to: number }[] };
+    if (d.actorId !== s.player.id) continue;
+    if (l.code === 'night_started' && d.watches?.length) {
+      const i = d.watches.findIndex((w) => w.actorId === s.player.id);
+      out.push(`Night watch: ${d.watches.length} watches; yours is ${clockAt(d.watches[i].from)} to ${clockAt(d.watches[i].to)}`);
+    } else if (l.code === 'woke') {
+      const why = { blow: 'a blow wakes you', noise: 'a loud noise wakes you', heard: `you hear someone come (${getLibrary().perks[LIGHT_SLEEPER]?.name ?? 'Light Sleeper'})`, rested: 'you wake rested', watch: 'you wake for your watch' }[d.why ?? 'rested'];
+      out.push(`Awake: ${why}`);
+    }
+  }
+  if (s.player.asleep) out.push('Asleep');
   // AG16: the player's life stage changed as time passed
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'stage_changed') continue;

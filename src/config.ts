@@ -207,6 +207,15 @@ const DEFAULTS = {
   // ---- game clock (T1-T8); durations per action are the library's durations table ----
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
   SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'dark', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
+  // NW12–NW22 sleeping (src/engine/sleep.ts). Placeholders: WAKE_GRADE, FALL_ASLEEP_MIN, SLEEP_STEP_MIN, ASLEEP_AUTO_TURNS
+  WAKE_NOISE: 'loud' as import('./scales').NoiseKey, // NW18: a sound this loud or louder wakes a sleeper who hears it (a shout is loud)
+  WAKE_CONTACT: ['attack'] as string[], // NW14: a blow wakes the one it is aimed at, hit or miss
+  /** NW19: the difficulty of a light sleeper's hearing check against someone moving openly, by their noise (louder is easier) */
+  WAKE_GRADE: { faint: 'extreme', hushed: 'major', quiet: 'moderate', murmur: 'minor', normal: 'none', raised: 'none', loud: 'none', blaring: 'none', deafening: 'none' } as Record<string, import('./scales').GradeLevel>,
+  FALL_ASLEEP_MIN: 30, // NW20: an NPC woken falls asleep again by its routine no sooner than this
+  NIGHT_MAX_MIN: 12 * 60, // NW22 b: a night shared out in watches lasts at most 12 hours
+  SLEEP_STEP_MIN: 10, // NW12: a sleep is stepped this many minutes at a time, to stop when someone hostile arrives
+  ASLEEP_AUTO_TURNS: 20, // NW18: turns the game plays by itself while the player stays asleep, before it waits for input
   ROAD_DARK: ['dusk', 'evening', 'night'] as string[], // TV: road trips stop for the dark at these times of day
   TIME_TAGS: { dawn: ['day', 'night'], morning: ['day'], afternoon: ['day'], dusk: ['day', 'night'], evening: ['night'], night: ['night'] } as Record<string, string[]>, // T3b: routine-set time tags that fit
   REST_HEAL_PCT: 25,

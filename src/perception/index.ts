@@ -9,7 +9,7 @@ import { sightLevel } from './sight';
 import { seeingM } from '../engine/position';
 export { hearingOf, openAirReachM, soundDb } from './noise';
 import { zoneLight } from '../time';
-import { actorById, allActors, atLeast, isActive, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, isActive, isAsleep, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
 import { hasPerk, perkSum } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
@@ -53,11 +53,15 @@ function soundReach(state: GameState, observer: Actor, at: Located, noise: GameE
  * the listener's hearing perks (Keen Ear), and a whisper said to them leaning in (HB8). One rule for orders, stepping up
  * to speak and who answers. */
 export function hearsClearly(state: GameState, from: Located, listener: Actor, noise: GameEvent['noise']): boolean {
-  return soundReach(state, listener, from, noise, noise === 'hushed') === 'full';
+  return !isAsleep(listener) && soundReach(state, listener, from, noise, noise === 'hushed') === 'full';
 }
 
 /** C1 Never Surprised: the owner can hear a sound of this noise made there (a zone, or a point in it), stealth aside */
 export function hears(state: GameState, observer: Actor, at: string | Located, noise: GameEvent['noise']): boolean {
+  return !isAsleep(observer) && soundCarries(state, observer, at, noise);
+}
+/** NW18: a sound of this noise made there reaches the observer's ears, awake or asleep (what wakes a sleeper) */
+export function soundCarries(state: GameState, observer: Actor, at: string | Located, noise: GameEvent['noise']): boolean {
   return isActive(observer) && soundReach(state, observer, typeof at === 'string' ? { zone: at } : at, noise) !== null;
 }
 
@@ -68,6 +72,8 @@ const CONTACT = new Set(['attack', 'give', 'break_free']);
 export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
   if (!isActive(observer)) return null;
   if (observer.id === event.actorId) return { level: 'full', cue: 'sight' };
+  // NW12/NW20: a sleeper perceives nothing; a blow on it is felt (and wakes it, src/engine/sleep.ts)
+  if (isAsleep(observer)) return event.target === observer.id && CONTACT.has(event.kind) ? { level: 'partial', cue: 'touch' } : null;
   const at = { zone: event.zone, pos: event.pos };
   /** what is seen of it at one point: step 2, metres from where it happened, half seen in the dark */
   const seenAt = (p: { zone: string; pos?: { x: number; y: number } }): Seen | null => {

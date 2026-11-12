@@ -146,6 +146,7 @@ function seenClearly(state: GameState, viewerId: string, aboutId: string): boole
 
 /** actors the viewer perceives now: in its own or a sight-linked zone; dark zones give partial. NPCs perceive the player only once aware. */
 function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state.events): SeenActor[] {
+  if (viewer.asleep) return []; // NW12/NW20: asleep, it sees no one
   const zones = perceivedZoneIds(state, viewer.zone);
   const out: SeenActor[] = [];
   for (const a of allActors(state)) {

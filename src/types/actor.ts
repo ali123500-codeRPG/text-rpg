@@ -33,6 +33,10 @@ export type Actor = {
   journal?: Journal;
   engagement?: Engagement; // E1: the actor's current engagement; absent when it is in none
   perkMarks?: PerkMark[]; // short-lived perk effects this actor carries (src/engine/perkMarks.ts)
+  /** NW12/NW20: asleep since this game minute; `until` ends a planned sleep (the player's, a night watch); none: a
+   * routine's sleep, which ends with its time. Asleep, an actor perceives nothing and is an unaware target. */
+  asleep?: { since: number; until?: number };
+  wokeAt?: number; // NW20: the game minute it last woke; it falls asleep again only FALL_ASLEEP_MIN after
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
   wares?: { items: string[]; services: string[] };

@@ -20,6 +20,8 @@ export function bandById(state: GameState, id: string) {
 export function isActive(actor: Actor): boolean {
   return actor.core.condition.hpLostPct < 100;
 }
+/** NW12/NW20: asleep (src/engine/sleep.ts): perceives nothing, acts not at all, and is struck as unaware */
+export const isAsleep = (actor: Actor): boolean => !!actor.asleep && isActive(actor);
 /** A8 Hold: the actor holding `a`, while that hold still stands (the holder is active and in a's zone) */
 export function heldBy(state: GameState, a: Actor): Actor | undefined {
   const h = a.heldBy ? actorById(state, a.heldBy) : undefined;
