@@ -1,7 +1,7 @@
 // Part 1 §6 skill improvement ("Skill progression: options" SP1–SP11).
 // A use marks a skill when the opposition is from MARK_WINDOW below its raw skill to MARK_WINDOW above its true skill (SP2, SP6); a hit that
-// costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of the turn of the mark
-// (SKILL_UP_INSTANT; off, at the end of each engagement or when the scenario breaks, SP3). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
+// costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of the
+// scenario (EG7, engine/growth.ts payScenario), in rounds (payRolls). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
 import type { Actor, AttackResult, CheckResult, ContestResult, GameState, RollKind, Rng } from '../types';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
@@ -146,31 +146,57 @@ function improveRolls(a: Actor, raw: number): number {
   return Math.max(1, ...a.core.perks.filter((p) => !p.dormant).map((p) => perks[p.perkId]?.improveRolls).filter((r) => r && raw < r.below).map((r) => r!.rolls));
 }
 
-/** Part 1 §6: Burden snapshot, then one improvement roll per roll a skill is owed (SM1: a skill can be owed several); marks clear.
- * Returns the gains. Mark counts are kept: clearMarkCounts clears them when the engagement or scenario ends. */
-export function improveMarked(state: GameState, rng: Rng): { skill: string; from: number; to: number; milestone?: number }[] {
-  const a = state.player, pr = a.progression;
-  if (!pr || !pr.marks.length) return [];
-  const skills = Object.values(a.core.skills);
-  const total = skills.filter((s) => s.state !== 'tagged').reduce((n, s) => n + s.raw, 0);
+export type SkillGain = { skill: string; from: number; to: number; milestone?: number };
+
+/** Part 1 §6 Burden: how far the untagged raw total is over Potential, in steps of K */
+export function burdenOf(a: Actor): number {
+  const pr = a.progression!;
+  const total = Object.values(a.core.skills).filter((s) => s.state !== 'tagged').reduce((n, s) => n + s.raw, 0);
   const potential = pr.potential.base + pr.potential.adjustments.reduce((n, x) => n + x.delta, 0);
-  const burden = Math.max(0, Math.floor((total - potential) / CONFIG.K));
-  const gains: { skill: string; from: number; to: number; milestone?: number }[] = [];
-  for (const id of pr.marks) {
-    if (!getLibrary().skills[id] || !skillOpen(a, id)) continue;
-    const s = a.core.skills[id] ?? { raw: 0, state: 'normal' as const }; // not on the sheet yet: it joins with its first gain
-    const target = s.state === 'tagged' ? s.raw : s.raw + burden;
-    for (let n = improveRolls(a, s.raw); n > 0; n--) { // Quick Study: two rolls below 15, each with its own gain
-      const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
-      if (!improves(roll, target)) continue;
-      const from = s.raw, trueBefore = trueSkill(a, id);
-      s.raw += rng.int(1, CONFIG.SKILL_GAIN_DIE);
-      a.core.skills[id] = s;
-      const crossed = MILESTONES.filter((m) => trueBefore < m && trueSkill(a, id) >= m).pop();
-      gains.push({ skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) });
-      state.log.push({ turn: state.turn, code: 'skill_improved', detail: { skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) } });
+  return Math.max(0, Math.floor((total - potential) / CONFIG.K));
+}
+
+/** Pays improvement rolls to the player's skills in rounds (growth proposal, the rounds rule): each round every skill with
+ * rolls left makes one, against a Burden worked out fresh at the start of the round, so the first round's gains weigh on the
+ * second. `rolls` lists [skill, rolls] in dealing order. Returns the gains. */
+export function payRolls(state: GameState, rng: Rng, rolls: [string, number][]): SkillGain[] {
+  const a = state.player;
+  const left = new Map(rolls.filter(([id, n]) => n > 0 && getLibrary().skills[id] && skillOpen(a, id)));
+  const gains: SkillGain[] = [];
+  while (left.size) {
+    const burden = burdenOf(a);
+    for (const [id, n] of [...left]) {
+      if (n <= 1) left.delete(id); else left.set(id, n - 1);
+      const s = a.core.skills[id] ?? { raw: 0, state: 'normal' as const }; // not on the sheet yet: it joins with its first gain
+      const target = s.state === 'tagged' ? s.raw : s.raw + burden;
+      for (let k = improveRolls(a, s.raw); k > 0; k--) { // Quick Study: two rolls below 15, each with its own gain
+        const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
+        if (!improves(roll, target)) continue;
+        const from = s.raw, trueBefore = trueSkill(a, id);
+        s.raw += rng.int(1, CONFIG.SKILL_GAIN_DIE);
+        a.core.skills[id] = s;
+        const crossed = MILESTONES.filter((m) => trueBefore < m && trueSkill(a, id) >= m).pop();
+        gains.push({ skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) });
+        state.log.push({ turn: state.turn, code: 'skill_improved', detail: { skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) } });
+      }
     }
   }
+  return gains;
+}
+
+/** the player's owed rolls by skill, in the order first marked */
+export function owedBySkill(actor: Actor): [string, number][] {
+  const m = new Map<string, number>();
+  for (const id of actor.progression?.marks ?? []) m.set(id, (m.get(id) ?? 0) + 1);
+  return [...m];
+}
+
+/** Part 1 §6 without scenario-end growth (CONFIG.GROWTH_AT_SCENARIO_END off): every owed roll is made now, in rounds; marks clear.
+ * Mark counts are kept: clearMarkCounts clears them when the engagement or scenario ends. */
+export function improveMarked(state: GameState, rng: Rng): SkillGain[] {
+  const pr = state.player.progression;
+  if (!pr || !pr.marks.length) return [];
+  const gains = payRolls(state, rng, owedBySkill(state.player));
   pr.marks = [];
   return gains;
 }

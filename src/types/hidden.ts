@@ -61,6 +61,11 @@ export type ScenarioFrame = {
   gains?: Pick<import('./game').ScenarioGains, 'skills' | 'perks' | 'allPerks'>;
   /** D-226: the player's XP log length, level and XP bar fill when it began (the summary's XP and levels count from there) */
   xpFrom?: number; xpStart?: { level: number; pct: number };
+  /** EG13: steps past Critical Success on its event roll (each pays GROWTH_ROLLS_PAST_CRIT more rolls at its end) */
+  beyond?: number;
+  /** SC4/EG13: while an inner scenario runs, the player's owed rolls and waiting achievements from this (outer) one, kept
+   * apart so the inner scenario pays only for its own; they come back when it resumes, or join the inner's if both end */
+  held?: { marks: string[]; pending?: { key: string; of?: string; reached?: number }[] };
 };
 /** SC8/SC15: why a Weaver check-in is asked */
 export type CheckinReason = 'beat' | 'budget' | 'judged' | 'stuck';

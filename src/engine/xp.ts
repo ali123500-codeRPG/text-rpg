@@ -52,7 +52,7 @@ export function levelTarget(p: Actor) {
  * this again and every banked level is taken. */
 export function spendXp(state: GameState): void {
   const p = state.player, pr = p.progression;
-  if (!pr) return;
+  if (!pr || growthWaits(state)) return; // EG8: levels wait for the scenario's ending moment (flushGrowth spends then)
   takeBonusLevels(state);
   for (let free = freeLevelsOwed(p) > 0; (free || pr.xp >= xpToNext(p)) && levelTarget(p); free = freeLevelsOwed(p) > 0) {
     if (free) pr.freeLevelsTaken = (pr.freeLevelsTaken ?? 0) + 1;
@@ -328,7 +328,10 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
 }
 
 /** D-226: the player's growth waits for the running scenario's end (CONFIG.GROWTH_AT_SCENARIO_END); in free roam it doesn't */
-export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && !!state.stage.scenario;
+export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && !!state.stage.scenario && !flushing;
+let flushing = 0;
+/** runs `fn` as the scenario's ending moment: growth granted inside it lands at once (flushGrowth) */
+export function atScenarioEnd<T>(fn: () => T): T { flushing++; try { return fn(); } finally { flushing--; } }
 
 /** T18: the title the player wears, by its name: the worn achievement, or the level that replaced it (a title moves up
  * its chain); never a scar */

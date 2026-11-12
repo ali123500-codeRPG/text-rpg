@@ -363,7 +363,7 @@ Proposal growth moments are scenario payouts that raised something. Essences com
 - **EG11 b:** the Thread lore surfaces in essence narration. Essences are where the player first senses the weave (XL3 revised for essences only).
 - **EG12 a:** both achievement proposals, "First Knot" and "Room for No More", are approved.
 
-## 9. Round two (open)
+## 9. Round two
 
 Questions page "Growth Proposal Round Two": https://claude.ai/artifact/WYwm1rJ5vHH5mzW7u4SBDD.
 
@@ -373,3 +373,20 @@ Questions page "Growth Proposal Round Two": https://claude.ai/artifact/WYwm1rJ5v
 - **EG16, Ali's new rule: "tags should add 25 to the skill cap."** A tagged skill trains to 125. Options for the roll above 75 are on the page. Recommended: c, today's odds up to 75, then target = 75 + (raw − 75) ÷ 2.
 
 The round-two model is kept at /mnt/project-files/growth-proposal/pacing-sim-round2.test.ts.
+
+### Ali's answers (round two, 12/11/2026)
+
+- **EG13 a:** no scale factor. Rolls = owed rolls × tier share × ending factor.
+- **EG14:** no per-skill cap and no 1-roll floor. Ali wants a minimum and a maximum on the part the Weaver can move (asked in EG17).
+- **The rounds rule (new):** payout rolls are made in rounds. Every skill with rolls left makes one, then Burden is worked out again before the next round.
+- **EG15 b:** removing a held essence costs one level's XP, and the XP bar may go into debt.
+- **EG16:** Ali asked for options found online, then (round three) for a full document on a different way to roll skill gain overall.
+
+## 10. Round three
+
+Questions page "Growth Proposal Round Three": https://claude.ai/artifact/SvZsDfFJkjvN67rT9QzDNE.
+
+- **EG16:** a new way to roll skill gain overall gets its own document, written next.
+- **EG17 a, max 1.25:** the ending factor is the Weaver's part. Every ending's factor is kept between ENDING\_FACTOR\_MIN (0.5) and ENDING\_FACTOR\_MAX (1.25).
+
+**Built:** scenario-end growth (section 3 as answered: EG7, EG8, EG10, EG13, EG17 and the rounds rule). Essences are next.
