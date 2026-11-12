@@ -56,7 +56,7 @@ export type ClassDef = {
   /** flavor text shown with the class; its grandeur grows with the class's tier */
   story?: string;
   /** a creation option: points to spend and the starting class level; left out = CONFIG.CREATION_POINTS / START_LEVEL */
-  creation?: { points?: number; level?: number };
+  creation?: { points?: number; level?: number; name?: string }; // name: the start's name on the creation screen (default: the class name)
   /** class-level perks: the perk ids granted when the class reaches each level (at creation or on level up) */
   levelPerks?: Record<number, string[]>;
   /** the default capstone: perk ids granted when the class reaches its top level (classMaxLevel, set by its tier) */
@@ -130,6 +130,7 @@ export type Library = {
   achievements?: Record<string, AchievementDef>; // X6: awarded by code rules only
   zoneKinds?: Record<string, ZoneKind>; // Z2: every Weaver zone names one
   edgeKinds?: Record<string, EdgeKind>; // CO15
+  barrierKinds?: Record<string, BarrierKind>; // SD3–SD5: what can stand on a way
   zoneSizes?: Record<string, ZoneSize>; // CO16
   roadLengths?: Record<string, RoadLength>; // TV3
   roadDangers?: Record<string, RoadDanger>; // TV4
@@ -151,6 +152,9 @@ export type ZoneKind = {
   /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
   road?: true;
 };
+/** SD3–SD5: a kind of barrier on a way. lock / bar: whether one of this kind can carry a lock or a bar; blocked: it is a
+ * blockage (rubble), shut until cleared; seeThrough: sight passes it while shut (a grate). The walls thread adds material. */
+export type BarrierKind = { id: string; name: string; lock: boolean; bar: boolean; blocked: boolean; seeThrough: boolean; text: string };
 /** CO17 a prebuilt layout: zones with keys local to it; links are [zone key, label, sight] */
 export type LayoutDef = {
   id: string; name: string; building: string; entry: string;
@@ -214,6 +218,16 @@ export type PerkDef = {
   auraSkill?: number;
   /** a linked perk (src/library/perkLinks.ts): granted by owning a set of perks, never taken */
   linked?: true;
+  /** D-218 event-roll variance: this many naturals just inside each critical range (however wide opened tiers make it) shift a tier outward */
+  eventEdges?: number;
+  /** D-218: the die lands this many times as far from the middle (50.5) for the margin; the natural edges read the real die */
+  eventSpread?: number;
+  /** D-218 active ability (a free perk move): arms the owner's next event roll. 'farther': roll twice, keep the die
+   * farther from the middle; 'all_or_nothing': 51–100 is Critical Success, 1–50 Critical Failure. cooldownMin: game minutes */
+  eventArm?: { kind: 'farther' | 'all_or_nothing'; cooldownMin: number };
+  /** TB7: owning it gives a random Threadbound item not yet in the world, of at least this Rank (TB11), bound to the
+   * owner and worn (once) */
+  grantsThreadboundItem?: { minRank: import('../scales').ThreadboundRankKey };
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };

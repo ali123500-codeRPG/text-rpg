@@ -4,6 +4,7 @@ import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstanc
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
+import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
 import { CLASS_TIERS, EQUIP_LEVELS } from '../scales';
 import { createRng } from '../rng';
@@ -207,7 +208,7 @@ function rawDefense(raw: (id: string) => number, loadout?: string[]): DefenseKin
 /** The creation screen's opening build: satisfies every creation rule and meets the starting gear's requirements
  * (EQ13: Light Armor for the gambeson, taken from the Swordsman skills; tags medium weapons, parry, endurance). */
 export function recommendedBuild(classId = PLAYER_CLASS): CreationBuild {
-  if (classId === CL.late_bloomer || classId === CL.a_nobody) return { // 50 points; the same kit, so its gear is short at the start
+  if (classId === CL.late_bloomer || classId === CL.a_nobody || classId === CL.threadbounded) return { // 50 points; the same kit, so its gear is short at the start
     name: 'Aldric', classId,
     skills: { [SK.melee_medium]: 15, [SK.parry]: 10, [SK.dodge]: 5, [SK.endurance]: 10, [SK.eyesight]: 5, [SK.earshot]: 5 },
     tagged: [SK.melee_medium, SK.parry, SK.endurance],
@@ -285,6 +286,8 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };
   p.core.inventory.unshift(...starterKit(p)); // the starter kit reads the finished sheet's skills
+  grantThreadboundItem(p); // TB7: the Threadbound start's level 1 perk
+  syncThreadboundItemPerks(p, 0);
   return p;
 }
 

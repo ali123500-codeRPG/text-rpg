@@ -31,9 +31,10 @@ function in its group; adding a function or group is one row there.
 | Notice | sight | sight, tremor |
 | Notice | hearing | hearing, tremor |
 | Stealth | stealth | sneaking, combat_stealth, vanishing |
+| Stealth | lockpicking | thievery (BA2; the group is a placeholder) |
 | Influence | influence | persuasion, intimidation, barter |
 | Speed | initiative | none yet (the best one adds to the initiative d100); dodge joins the Speed group directly, without the function |
-| none | none | feint, riposte, disarm (placeholders), lockpicking |
+| none | none | feint, riposte, disarm (placeholders) |
 
 | Skill | Tree | Roles | Cue | Situation tags |
 |---|---|---|---|---|
@@ -52,7 +53,7 @@ function in its group; adding a function or group is one row there.
 | persuasion, intimidation, barter | speech | speech | | |
 | feint, riposte, disarm (placeholders) | swordsman | grip | | |
 | tremor (slime only, tier 0) | slime_senses | sense | sound | hearing |
-| lockpicking (placeholder) | tools | grip | | |
+| thievery (functions: lockpicking) | tools | grip | | |
 
 Persuasion and barter also need a speaking race (race tag `speaks`: Human, Elf); intimidation does not (SR1, Ali 08/11/2026).
 

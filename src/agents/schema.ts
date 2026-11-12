@@ -1,7 +1,7 @@
 // JSON schema checks for the six agent outputs. Each validator returns a clean copy built from known keys only
 // (deny-by-default: an unknown key such as a Parser "aimed" never survives) plus the error list.
 // GAP: a missing nullable field reads as null (the spec lists "missing fields" as a failure; we only fail required ones).
-import type { AgreementMade, Intent, MoveSpot, NarratorOutput, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
+import type { AgreementMade, CheckinAnswer, Intent, MoveSpot, NarratorOutput, PlanBarrier, QuestEnd, SparMade, Stance, PlannerOutput, ResponderOutput, StagePlan, VoiceOutput } from '../types';
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
@@ -48,18 +48,18 @@ const run = <T>(c: V<T>) => (v: unknown): Checked<T> => {
 };
 
 const VOLUME = oneOf(['whisper', 'normal', 'shout'] as const);
-const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up'; item: string; from?: string }>(
-  { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up'] as const), item: str, from: str },
+const gearOp = obj<{ op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon'; item: string; from?: string }>(
+  { op: oneOf(['draw', 'stow', 'swap', 'wear_acc', 'remove_acc', 'pick_up', 'summon'] as const), item: str, from: str },
   ['from'],
 );
 const GEAR = nul(arr(gearOp));
 const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ toward: str, step: oneOf(['friendlier', 'colder'] as const) }));
 
 const intent = obj<Intent>({
-  move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null }>({ toZone: str, after: bool, pace: oneOf(TRAVEL_PACES.keys),
-    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str }, ['near', 'awayFrom', 'side'])) }, ['after', 'pace', 'spot'])),
+  move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null; jump?: boolean }>({ toZone: str, after: bool, jump: bool, pace: oneOf(TRAVEL_PACES.keys),
+    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str }, ['near', 'awayFrom', 'side'])) }, ['after', 'pace', 'spot', 'jump'])),
   action: nul(obj<NonNullable<Intent['action']>>({
-    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep'] as const),
+    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
     target: nul(str),
     targetPart: nul(str),
@@ -73,16 +73,17 @@ const intent = obj<Intent>({
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
   }, ['qty', 'for'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
+  way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(['lock', 'unlock', 'bar', 'unbar'] as const) })),
   gear: GEAR,
   spoken: nul(str),
   addressees: nul(arr(str)),
   deferred: (v, p, e) => (v === undefined || v === null ? [] : arr(str)(v, p, e)),
   clarify: nul(str),
   yields: (v, p, e) => (v === undefined || v === null ? undefined : bool(v, p, e)) as boolean,
-}, ['perkMove', 'yields']);
+}, ['perkMove', 'yields', 'way']);
 
 const npcAction = obj<PlannerOutput['action']>({
-  type: oneOf(['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee', 'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'other'] as const),
+  type: oneOf(['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee', 'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'other'] as const),
   target: nul(str),
   skill: nul(skillStr),
   targetPart: nul(str),
@@ -146,7 +147,8 @@ const narrator = obj<NarratorOutput>({
     return s;
   },
   narrated: arr(str),
-});
+  closing: str,
+}, ['closing']);
 
 const GRADE = oneOf(GRADES);
 /** a scale level Claude writes as its display name (or key); code keeps the key (src/scales.ts) */
@@ -162,19 +164,25 @@ type Cast = StagePlan['cast'][number];
 const weaver = obj<StagePlan>({
   event: obj<StagePlan['event']>({ summary: str, challenge: GRADE, gain: GRADE }),
   timeOfDay: level(TIME_OF_DAY),
-  places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)) })), // no parent = top level (V5)
+  // BG-36: every optional field the Weaver may give is named here, or it is dropped before validation
+  places: arr(obj<StagePlan['places'][number]>({ key: str, name: str, kind: str, parent: (v, p, e) => (v === undefined || v === null ? '' : str(v, p, e)),
+    layout: str, names: record(str), looks: record(str) }, ['layout', 'names', 'looks'])), // no parent = top level (V5)
   zones: arr(obj<StagePlan['zones'][number]>({
     key: str, place: str, kind: str, name: str, look: str,
     cover: level(COVER), light: level(LIGHT),
-    links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool })),
-  }, ['cover', 'light'])),
+    height: num, size: str, area: num, edges: record(str) as V<NonNullable<StagePlan['zones'][number]['edges']>>,
+    length: (v, p, e) => (typeof v === 'number' ? num(v, p, e) : str(v, p, e)), danger: str, fromLayout: any as V<true>,
+    links: arr(obj<StagePlan['zones'][number]['links'][number]>({ to: str, label: str, sight: bool, drop: bool,
+      barrier: obj<PlanBarrier>({ kind: str, grade: GRADE, locked: bool, barredFrom: str, guarded: bool, keys: arr(str) }, ['grade', 'locked', 'barredFrom', 'guarded', 'keys']) }, ['drop', 'barrier'])),
+  }, ['cover', 'light', 'height', 'size', 'area', 'edges', 'length', 'danger', 'fromLayout'])),
   frontiers: arr(obj<StagePlan['frontiers'][number]>({ key: str, label: str })),
   bands: arr(obj<StagePlan['bands'][number]>({
     key: str, name: str, goals: str, temperament: str,
     tactics: level(TACTICS),
     lethal: (v, p, e) => (v === undefined || v === null ? true : bool(v, p, e)),
     relations: (v, p, e) => (v === undefined || v === null ? {} : record(STANCE_WORD)(v, p, e)),
-  })),
+    chase: str as V<NonNullable<StagePlan['bands'][number]['chase']>>, // CH5: the validator checks the word
+  }, ['chase'])),
   cast: arr(obj<Cast>({
     template: str, actor: str, label: str, name: str, appearance: str, pronouns: oneOf(['he', 'she', 'they', 'it'] as const),
     knownOnSight: bool, knows: arr(obj<{ id: string; text: string }>({ id: str, text: str })),
@@ -201,7 +209,8 @@ const weaver = obj<StagePlan>({
   hiddenTerms: arr(str),
   weaverNote: str,
   spars: arr(obj<SparMade>({ sides: arr(arr(str)), cruel: bool }, ['cruel'])),
-}, ['timeOfDay', 'spars']);
+  scene: any as V<StagePlan['scene']>, // SC1/SC2/SC7: checked by the validator (src/scene/validate.ts)
+}, ['timeOfDay', 'spars', 'scene']);
 
 export const checkIntent = run(intent);
 export const checkPlanner = run(planner);
@@ -209,3 +218,19 @@ export const checkResponder = run(responder);
 export const checkVoice = run(voice);
 export const checkNarrator = run(narrator);
 export const checkStagePlan = run(weaver);
+
+/** SC8: the Weaver's check-in answer; what it may say is checked by engine/sceneEnd.ts checkinErrors */
+/** SC12: arrivals use the stage plan's own band, cast and seed checks */
+const arrivals: V<NonNullable<CheckinAnswer['arrivals']>> = (v, p, e) => {
+  if (!isObj(v)) { e.push(`${p}: expected object`); return { bands: [], cast: [] }; }
+  const r = weaver({ event: { summary: '', challenge: 'none', gain: 'none' }, places: [], zones: [], frontiers: [], rewards: [], hiddenTerms: [], weaverNote: '',
+    bands: v.bands ?? [], cast: v.cast ?? [], seeds: v.seeds ?? { plans: [], triggers: [], secrets: [] } }, p, e);
+  return { bands: r.bands, cast: r.cast, seeds: r.seeds };
+};
+const checkin = obj<CheckinAnswer>({
+  verdict: oneOf(['continue', 'end'] as const), as: str, text: str, beats: optArr(trigger) as V<CheckinAnswer['beats']>, note: str,
+  change: obj<NonNullable<CheckinAnswer['change']>>({ question: str, scale: str, endings: arr(any) as V<NonNullable<NonNullable<CheckinAnswer['change']>['endings']>> }, ['question', 'scale', 'endings']),
+  arrivals,
+  frontiers: arr(obj<NonNullable<CheckinAnswer['frontiers']>[number]>({ zone: str, key: str, label: str })),
+}, ['as', 'text', 'beats', 'note', 'change', 'arrivals', 'frontiers']);
+export const checkCheckin = run(checkin);

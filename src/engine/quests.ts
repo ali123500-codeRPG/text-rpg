@@ -174,6 +174,28 @@ export function handInQuests(state: GameState, talkedTo: (id: string) => boolean
   for (const q of state.quests) if (q.state === 'ready' && talkedTo(q.giver)) endQuest(state, q, 'done', 'hand_in');
 }
 
+// ---- goal checks, shared by quest goals and scene endings (SC7: one rule for the same thing) ----
+/** is the player in zone or place `place` (a place counts with every place inside it) */
+export function playerIn(state: GameState, place: string): boolean {
+  const p = state.player;
+  if (p.zone === place) return true;
+  const chain: string[] = [];
+  for (let id: string | null = zoneById(state, p.zone)?.placeId ?? p.placeId; id && !chain.includes(id); id = state.places.find((x) => x.id === id)?.parentId ?? null) chain.push(id);
+  return chain.includes(place);
+}
+/** has the player seen this actor clearly */
+export const playerFound = (state: GameState, actor: string): boolean => state.player.journal?.clearSight?.[actor] !== undefined;
+/** how many of `item` (a library item id, or one item instance's id with inst) the player gave `to` in these events */
+export function givenTo(state: GameState, events: GameEvent[], item: string, to: string, inst?: true): number {
+  let n = 0;
+  for (const e of events) {
+    if (e.kind !== 'give' || e.actorId !== state.player.id || e.target !== to) continue;
+    const got = actorById(state, to)?.core.inventory.find((i) => i.id === e.itemId);
+    if (e.itemId === item || (!inst && got?.itemId === item)) n += inst ? 1 : (e.qty ?? 1);
+  }
+  return n;
+}
+
 const need = (g: QuestGoal) => (g.kind === 'defeat' ? g.count : g.kind === 'deliver' ? g.qty : 1);
 const dead = (a: Actor | undefined) => !!a && healthLevel(a) === 'Dead';
 const owedOf = (q: Quest) => ({ coin: Math.max(0, (q.pay?.coin ?? 0) - (q.paid?.coin ?? 0)), qty: q.pay?.item ? Math.max(0, (q.pay.qty ?? 1) - (q.paid?.qty ?? 0)) : 0 });
@@ -182,20 +204,15 @@ export const owes = (q: Quest) => { const o = owedOf(q); return o.coin > 0 || o.
 /** per turn, after the defeats are paid and time has passed: goal progress, payments, failures and deadlines */
 export function updateQuests(state: GameState, events: GameEvent[], defeated: Actor[]): void {
   const p = state.player;
-  const placesOf = (placeId: string) => { const out: string[] = []; for (let id: string | null = placeId; id && !out.includes(id); id = state.places.find((x) => x.id === id)?.parentId ?? null) out.push(id); return out; };
   for (const q of state.quests.filter((x) => x.state === 'active')) {
     const g = q.goal;
     if (g.kind === 'defeat') for (const t of defeated.filter((x) => (g.by === 'actor' ? x.id : g.by === 'race' ? x.core.raceId : x.core.bodyTypeId) === g.of)) {
       q.progress++;
       q.foePower = (q.foePower ?? 0) + power(state, t); // QX4: each foe's power when it falls
     }
-    if (g.kind === 'deliver') for (const e of events) {
-      if (e.kind !== 'give' || e.actorId !== p.id || e.target !== g.to) continue;
-      const got = actorById(state, g.to)?.core.inventory.find((i) => i.id === e.itemId);
-      if (e.itemId === g.item || (!g.inst && got?.itemId === g.item)) q.progress += g.inst ? 1 : (e.qty ?? 1);
-    }
-    if (g.kind === 'reach' && (p.zone === g.place || placesOf(zoneById(state, p.zone)?.placeId ?? p.placeId).includes(g.place))) q.progress = 1;
-    if (g.kind === 'find' && p.journal?.clearSight?.[g.actor] !== undefined) q.progress = 1;
+    if (g.kind === 'deliver') q.progress += givenTo(state, events, g.item, g.to, g.inst);
+    if (g.kind === 'reach' && playerIn(state, g.place)) q.progress = 1;
+    if (g.kind === 'find' && playerFound(state, g.actor)) q.progress = 1;
     if (g.kind === 'other' || q.progress < need(g)) continue;
     q.progress = need(g);
     q.state = 'ready';

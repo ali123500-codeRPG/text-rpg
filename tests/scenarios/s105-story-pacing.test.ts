@@ -1,5 +1,5 @@
 // 105 Story pacing (P7): quiet turns count up; a quiet_turns beat fires when the clock fills and can end the scene;
-// rest outside a fight ends the scene; a stall with no beat left ends it; the director then starts a new scene.
+// rest never ends the scene (SC4, SC9); a stall with no beat left ends it; the director then starts a new scene.
 import { describe, expect, it, vi } from 'vitest';
 import { createRng, makeVillage, ScriptedClaude } from '../harness';
 import { resolveTurn } from '../../src/engine';
@@ -45,10 +45,10 @@ describe('105 Story pacing', () => {
     turn(s, null);
     expect(s.stage.quiet).toBe(0);
   });
-  it('rest outside a fight ends the scene', () => {
+  it('rest never ends the scene (SC4, SC9)', () => {
     const s = calm();
     turn(s, act('rest'));
-    expect(s.stage.breakCause).toBe('rest');
+    expect(s.stage.breakCause).toBeUndefined();
   });
   it('a stall ends the scene only when no live beat is left', () => {
     const s = calm();
@@ -62,7 +62,7 @@ describe('105 Story pacing', () => {
   it('the director starts a new scene on a break and resets the clock', async () => {
     const roll = vi.spyOn(ruleset, 'eventRoll').mockReturnValue({ actorId: 'player', roll: 60, tier: 'success', modifiers: [] });
     const s = calm();
-    s.stage.breakCause = 'rest';
+    s.stage.breakCause = 'story_beat';
     s.stage.quiet = 5;
     const scene = s.stage.sceneNumber;
     const client = new ScriptedClaude().push('weaver', { ...villageStagePlan('success'), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [] });

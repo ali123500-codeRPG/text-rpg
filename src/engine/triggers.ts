@@ -23,7 +23,7 @@ export function triggerHolds(state: GameState, t: Trigger, owner: Actor, events:
     case 'alarm_heard':
       return when === 'start' && events.some((e) => e.kind === 'alarm' && !!e.perception[owner.id]);
     case 'quiet_turns':
-      return when === 'start' && (state.stage.quiet ?? 0) >= w.turns;
+      return when === 'start' && !state.stage.roam && (state.stage.quiet ?? 0) >= w.turns; // CH2: beats don't run in free roam
   }
   return false;
 }
@@ -36,7 +36,7 @@ function triggerZone(t: Trigger): string | undefined {
 function fire(state: GameState, ownerId: string, t: Trigger, turn: number, bind: boolean): Order | null {
   state.hidden.firedLog.push({ triggerId: t.id, turn, ownerId });
   // a beat is news, so its turn isn't quiet: −1 here becomes 0 when the turn ends (P7, updatePacing)
-  if (t.when.type === 'quiet_turns') state.stage.quiet = -1;
+  if (t.when.type === 'quiet_turns') { state.stage.quiet = -1; state.stage.beatTurn = turn; } // SC8: a beat fired: a check-in moment
   if (t.endsScene) state.stage.breakCause = 'story_beat';
   const plan = state.hidden.plans[ownerId];
   if (t.once && plan) plan.triggers = plan.triggers.filter((x) => x !== t);

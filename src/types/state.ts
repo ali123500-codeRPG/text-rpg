@@ -18,7 +18,27 @@ export type StageInfo = {
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
-  breakCause?: 'rest' | 'story_beat' | 'time_skip' | 'knocked_out' | 'encounter'; // P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere safe)
+  /** P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere
+   * safe; scene_end: one of the scene's endings was met, SC7). Rest, sleep and time skips never end a scene (SC4, SC9). */
+  breakCause?: 'story_beat' | 'knocked_out' | 'encounter' | 'scene_end' | 'roam';
+  /** SC1/SC2/SC7: the scene's question, scale and endings (absent before the first scene, or on an old save) */
+  scene?: import('./hidden').SceneFrame;
+  /** SC4: the bigger scene (Episode or Venture) this one sits inside, one level deep; it carries on when this one ends */
+  outer?: import('./hidden').SceneFrame;
+  /** SC7/SC13: an ending that was met, waiting for a clear turn (no fight, chase or talk) before it ends the scene */
+  ending?: { as: import('./hidden').SceneEnding; text: string; outer?: true; turn: number; roam?: true };
+  /** SC10: how the scene that just ended ended, set with breakCause and recorded when the next one begins */
+  ended?: { as: import('./hidden').SceneEnding; text: string; outer?: true; roam?: true };
+  /** SD1: how the last scene ended and the turn it was closed (the play page's ending moment reads it that turn) */
+  closed?: { as: import('./hidden').SceneEnding; turn: number };
+  /** SD2 a: free roam, since this turn: no scene runs until something starts one (CH2), or an unbuilt frontier (CH3 a) */
+  roam?: { since: number };
+  /** CH6: frontiers the player crossed during the current chase: from the zone before it to the zone it led to */
+  crossings?: { from: string; to: string; turn: number }[];
+  /** SC8: a Weaver check-in is due after this turn is saved, and why */
+  checkinDue?: import('./hidden').CheckinReason;
+  /** SC8: the turn a beat (a quiet_turns trigger) last fired */
+  beatTurn?: number;
   /** TV4: an encounter on the road: its event roll (the next scene's tier), whether the player saw it coming (TV8), and
    * where on the road it stands; cleared at the start of the next turn */
   encounter?: { eventRoll: import('./ruleset').EventRollResult; noticed: boolean; zone: string; at: { x: number; y: number } };
@@ -87,6 +107,7 @@ export type GameState = {
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   yielding?: PlayerYield; // MB40: cleared when the scene ends
+  barriers?: Record<string, import('./core').Barrier>; // SD3–SD5: doors, gates, grates and rubble on ways, by id
   settings: Settings;
   libraryVersion: number;
   blueprints: BlueprintPage[]; // story blueprints (story first, then library)
@@ -154,6 +175,7 @@ export type EnginePage = {
   quests: Quest[];
   spars?: Spar[];
   yielding?: PlayerYield;
+  barriers?: Record<string, import('./core').Barrier>;
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];
   /** W1: in-memory order of actors and places (the store may not keep object key order) */
@@ -178,6 +200,8 @@ export type Place = {
   zones: Zone[];
   state: Record<SlotKey, { value: string; setTurn: Turn; setBy: string }>;
   headlines: FactId[];
+  /** a bare node made for the story start before any plan (ensurePlace); the first plan's place of the same key fills it in (BG-32) */
+  bare?: true;
 };
 
 export type StoryFact = {

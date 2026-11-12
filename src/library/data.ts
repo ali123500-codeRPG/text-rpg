@@ -1,6 +1,6 @@
 // The prototype library: skills (Part 1 §3), body types (Part 3), classes and templates (Part 4 §4),
 // items (Appendix: prototype item bank), routine bank (Appendix: prototype routine bank). All numbers are placeholders.
-import { AM, CP, DU, EK, FR, GC, HL, PA, PY, RL, VL, ZK } from './tableIds';
+import { AM, BK, CP, DU, EK, FR, GC, HL, PA, PY, RL, VL, ZK } from './tableIds';
 import { TP } from './templateIds';
 import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
@@ -76,7 +76,7 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
   sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', 'tier_0'),
   // OQ-20 (settled): placeholder tool skill id, renamed through library aliases later. Not on the creation screen.
-  sk(SK.lockpicking, TR.tools, [], [RL.grip]),
+  sk(SK.thievery, TR.tools, [FN.lockpicking], [RL.grip]), // BA2: Lockpicking is one of Thievery's functions
 ].map((s) => [s.id, s]));
 
 /** ST21: situation tags per skill. Light reaches sight and stealth; cover reaches hide and ranged. */
@@ -149,6 +149,43 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
+  [PK.always_yours]: {
+    id: PK.always_yours, name: 'What Was Always Yours', built: true, classLevel: { classId: CL.threadbounded, level: 1 }, grantsThreadboundItem: { minRank: 'rank_4' },
+    story: 'Something was tied to you before you can remember. It has never once left your side for long.',
+    rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: ['a Threadbound item of Rank IV or higher is not yet in the world'], effect: 'the owner gets one such item at random, bound to them and worn', lasts: 'once' },
+  },
+  // D-218: the Varo's Loop's abilities, given while its owner wears it and holds the achievement its grant names.
+  // They widen the event roll both ways and never move its middle.
+  [PK.loose_odds]: {
+    id: PK.loose_odds, name: 'Loose Odds', built: true, eventEdges: 5,
+    story: 'Fate already turned on you once. Now it turns more easily, either way.',
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate Meant It as a Curse'], effect: 'the 5 naturals just inside each critical range shift a tier outward: with no tiers opened, 91–95 raise a tier and 06–10 drop one; each opened tier moves them 5 further in', lasts: 'while worn' },
+  },
+  [PK.twin_abyss]: {
+    id: PK.twin_abyss, name: 'Twin Abyss', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
+    story: 'You have seen how bad it gets. The earring promises it can get better by as much.',
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate Has a Sense of Humour'], effect: 'one more tier opens past Critical Success and one below Critical Failure', lasts: 'while worn' },
+  },
+  [PK.call_the_toss]: {
+    id: PK.call_the_toss, name: 'Call the Toss', built: true, eventArm: { kind: 'farther', cooldownMin: 1440 },
+    story: 'You flick the earring and call it. Whatever comes next will not be ordinary.',
+    rules: { kind: 'active', trigger: 'the owner turns the earring (a free perk move)', conditions: ['the owner wears the Varo\'s Loop and has earned Fortune\'s Favourite Accident'], effect: 'the owner\'s next event roll rolls two dice and keeps the one farther from the middle (50.5)', lasts: 'until the next event roll', cooldown: 'Once per game day.' },
+  },
+  [PK.pull_to_the_edges]: {
+    id: PK.pull_to_the_edges, name: 'Pull to the Edges', built: true, eventSpread: 1.5,
+    story: 'Nothing that happens around you is merely fine any more.',
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Cursed by Coincidence'], effect: 'the die counts 1.5 times as far from the middle (50.5) for the margin; modifiers and the natural edges are unchanged', lasts: 'while worn' },
+  },
+  [PK.all_or_nothing]: {
+    id: PK.all_or_nothing, name: 'All or Nothing', built: true, eventArm: { kind: 'all_or_nothing', cooldownMin: 10080 },
+    story: 'You stake everything on the next turn of fortune. It will be the best of luck or the worst.',
+    rules: { kind: 'active', trigger: 'the owner turns the earring (a free perk move)', conditions: ['the owner wears the Varo\'s Loop and has earned The Joke Is on Fate'], effect: 'the owner\'s next event roll is Critical Success on 51–100 and Critical Failure on 01–50; the natural edges and opened tiers still carry it further', lasts: 'until the next event roll', cooldown: 'Once per 7 game days.' },
+  },
+  [PK.further_still]: {
+    id: PK.further_still, name: 'Further Still', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
+    story: 'Fate keeps finding new ways to laugh at you. You have started laughing back.',
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate\'s Favourite Punchline'], effect: 'one more tier opens past Critical Success and one below Critical Failure (on top of Twin Abyss)', lasts: 'while worn' },
+  },
 };
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
@@ -214,11 +251,18 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, value: 120, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } },
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, hands: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
+  // D-218 Threadbound items: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
+  { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
+    threadbound: { rank: 'rank_4', grants: [
+      { perk: PK.loose_odds, achievement: ACH.event_crit_1 }, { perk: PK.twin_abyss, achievement: ACH.event_crit_fail_1 },
+      { perk: PK.call_the_toss, achievement: ACH.event_crit_2 }, { perk: PK.pull_to_the_edges, achievement: ACH.event_crit_fail_2 },
+      { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
+    ] } },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
     effects: [{ kind: 'rollMod', roll: 'event', value: 5, active: 'carried', scope: 'any' }] },
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
-    effects: [{ kind: 'skill', skill: SK.lockpicking, value: 25, active: 'inUse', scope: 'withItem' }] },
+    effects: [{ kind: 'skill', skill: SK.thievery, value: 25, active: 'inUse', scope: 'withItem' }] },
   { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
   // generic bases for minted items with no close match, and for scene objects the player grabs (loot L2, L3)
   { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
@@ -229,6 +273,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     weapon: { modes: IMPROVISED_MODES('heavy', 2) } },
   { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
   { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
+  { id: IT.key, kind: 'misc', name: 'key', look: 'an iron key', bulk: 0, value: 1 }, // BA3: opens the barriers its instance names
   { id: IT.coin, kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
@@ -294,7 +339,7 @@ const pers = (nerve: number, traits: Record<string, number> = {}, values: string
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
-    level: 0, bonusPoints: 0, focus: [], resolve: 50, personality: pers(0), control: 'code', label: 'a slime',
+    level: 0, bonusPoints: 0, focus: [], resolve: 50, personality: pers(0), control: 'code', label: 'a slime', chase: 'far', // CH5: monsters hunt anywhere
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [TP.guard]: {
@@ -303,26 +348,26 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
     focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.parry }, { treeId: TR.perception, skill: SK.eyesight }],
-    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
+    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard', chase: 'ground', // CH5: guards keep to the scene's ground
   },
   [TP.trader]: {
     id: TP.trader, raceId: RC.human, classId: CL.trader, generation: 'copy',
     minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
     focus: [{ treeId: TR.perception, skill: SK.earshot }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
-    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.wealth]), control: 'code', label: 'the barkeep',
+    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.wealth]), control: 'code', label: 'the barkeep', chase: 'post', // CH5: townsfolk never leave their own place
   },
   // NS7: a village thief, the first stealthy NPC
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
     minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
     focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
-    resolve: 30, personality: pers(-40, { [PA.honesty]: -40 }, [VL.wealth]), loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
+    resolve: 30, personality: pers(-40, { [PA.honesty]: -40 }, [VL.wealth]), loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager', chase: 'post',
   },
   [TP.patron]: {
     id: TP.patron, raceId: RC.human, generation: 'copy',
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0,
     focus: [{ treeId: TR.unarmed, skill: SK.unarmed_strike }, { treeId: TR.defense, skill: SK.dodge }, { treeId: TR.perception, skill: SK.eyesight }],
-    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.pleasure]), control: 'code', label: 'a tavern patron',
+    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.pleasure]), control: 'code', label: 'a tavern patron', chase: 'post',
   },
 };
 
@@ -413,7 +458,7 @@ export function prototypeLibrary(): Library {
       [TR.sword_dancer]: { id: TR.sword_dancer, name: 'Sword-dancer', skills: [SK.blade_dance], access: { must: [{ kind: 'class', id: CL.sword_dancer }] } }, // mirrors Swordsman
       // BR7: from being a slime, not from a class
       [TR.slime_senses]: { id: TR.slime_senses, name: 'Slime senses', rating: 'inferior', skills: [SK.tremor], access: { must: [{ kind: 'race', id: RC.slime }] } },
-      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.lockpicking], access: { blockedBy: [AMORPHOUS] } },
+      [TR.tools]: { id: TR.tools, name: 'Tools (placeholder, OQ-20)', skills: [SK.thievery], access: { blockedBy: [AMORPHOUS] } },
     },
     classes: {
       // Parry 40 and Medium or Heavy Weapons 40 unlock the class; Medium Weapons 40 and Parry 40 are its creation floors
@@ -422,6 +467,8 @@ export function prototypeLibrary(): Library {
       [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
+      // TB7: the Threadbounded class, used only by The Threadbound start (50 points, level 1); its level 1 perk gives a random Threadbound item. No unlock
+      [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, creation: { points: 50, level: 1, name: 'The Threadbound' }, levelPerks: { 1: [PK.always_yours] } },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },
@@ -554,6 +601,14 @@ export function prototypeLibrary(): Library {
       [EK.low, 'Low', false, true, true, true, 'A counter, fence or rail: see and reach across it, cross it by climbing.'],
       [EK.window, 'Window', false, true, false, false, 'See through it; no walking or reaching across.'],
     ] as const).map(([id, name, walk, see, reach, climb, text]) => [id, { id, name, walk, see, reach, climb, text }])),
+    // SD3–SD5: barriers on ways. A grate is bars you see through; rubble is a blockage only clearing opens (the walls thread)
+    barrierKinds: Object.fromEntries(([
+      [BK.door, 'Door', true, true, false, false, 'A wooden door: it may be locked with a key, or barred from one side.'],
+      [BK.gate, 'Gate', true, true, false, false, 'A gate in a wall or fence: locked, or barred from the inside.'],
+      [BK.grate, 'Grate', true, true, false, true, 'Iron bars across a way: you see through it, but it may be locked or barred.'],
+      [BK.hatch, 'Hatch', true, true, false, false, 'A trapdoor in a floor or ceiling: locked, or bolted from one side.'],
+      [BK.rubble, 'Rubble', false, false, true, false, 'A cave-in or fallen stone: no way through until it is cleared.'],
+    ] as const).map(([id, name, lock, bar, blocked, seeThrough, text]) => [id, { id, name, lock, bar, blocked, seeThrough, text }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',

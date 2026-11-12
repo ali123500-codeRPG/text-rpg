@@ -4,6 +4,11 @@ import { CONFIG } from '../config';
 import { AWARENESS } from '../scales';
 import { routine as getRoutine } from '../library';
 
+/** BG-34: the follow routine any NPC may switch to when it agrees to come along with the player, whatever its set */
+export const FOLLOW_ROUTINE = 'follow';
+/** the routines an NPC's agent may pick: its set's, plus follow (BG-34) */
+export const offeredRoutines = (own: string[] | undefined): string[] => [...new Set([...(own ?? []), FOLLOW_ROUTINE])];
+
 export type Stop = { slot: string; zone: string; turns: number; activity: string };
 
 /** a route slot expands to one stop per bound zone; an unbound slot gives no stop. */
@@ -54,7 +59,7 @@ export function desiredState(view: ActorView): { zone: string; activity: string 
   return null; // unreachable: t < total
 }
 
-/** shortest path over the view's map, never through a frontier link; zone ids after `from`, or null. */
+/** shortest path over the view's map, never through a frontier link, a drop (SD7: NPCs do not jump yet) or a way shut to it (BA7); zone ids after `from`, or null. */
 export function mapPath(map: MapZone[], from: string, to: string): string[] | null {
   if (from === to) return [];
   const byId = new Map(map.map((z) => [z.id, z]));
@@ -63,7 +68,7 @@ export function mapPath(map: MapZone[], from: string, to: string): string[] | nu
   while (q.length) {
     const cur = q.shift()!;
     for (const l of byId.get(cur)?.links ?? []) {
-      if (l.frontier || !byId.has(l.to) || prev.has(l.to)) continue;
+      if (l.frontier || l.drop || l.shut || !byId.has(l.to) || prev.has(l.to)) continue;
       prev.set(l.to, cur);
       if (l.to === to) {
         const path = [to];
@@ -78,6 +83,14 @@ export function mapPath(map: MapZone[], from: string, to: string): string[] | nu
 
 const order = (view: ActorView, type: string, source: Order['source'], intent: string, extra: Partial<Order> = {}): Order =>
   ({ actorId: view.self.id, type, target: null, skill: null, intent, source, ...extra });
+
+/** BG-34: an agent-run NPC on a follow routine walks toward the player beside whatever action its agent gave (a zone, or null) */
+export function followMove(view: ActorView): string | null {
+  const cur = view.self.routine;
+  if (!cur || getRoutine(cur.id).kind !== 'follow') return null;
+  const d = desiredState(view);
+  return d && d.zone !== view.self.zone && mapPath(view.map, view.self.zone, d.zone) ? d.zone : null;
+}
 
 /** marks a routine order whose desired zone has no path; the engine logs routine_unreachable [Proposed]. */
 export const UNREACHABLE = 'routine_unreachable';
@@ -123,7 +136,7 @@ function flee(view: ActorView, source: Order['source']): Order {
   let best: string | null = null;
   let bestD = dist(here, threat);
   for (const l of links) {
-    if (l.frontier || !view.map.some((z) => z.id === l.to)) continue;
+    if (l.frontier || l.drop || l.shut || !view.map.some((z) => z.id === l.to)) continue;
     const d = dist(l.to, threat);
     if (d > bestD) [best, bestD] = [l.to, d];
   }
@@ -136,7 +149,7 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
   if (s.broken || s.surrendered) return flee(view, 'fallback');
   // 2. Attack
   const here = view.beliefs
-    .filter((b) => (b.hostile || b.sparring) && b.active && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)
+    .filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)
     .map((b) => b.about)
     .sort();
   if (here.length) {
@@ -145,16 +158,18 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
       : here.length === 1 ? here[0] : here[rng.int(0, here.length - 1)];
     return order(view, 'attack', 'fallback', 'attack', { target, skill: s.attackSkill, targetPart: null, aimed: false });
   }
-  // 3. Close in / 4. Search
-  const recent = hostileBeliefs(view)
-    .filter((b) => b.lastKnownZone)
+  // 3. Close in / 4. Search (CH7: not after someone whose chase it lost; CH5: a code-run actor stops at its chase range)
+  const hunted = hostileBeliefs(view).filter((b) => b.lastKnownZone);
+  const recent = hunted.filter((b) => !b.lost)
     .sort((a, b) => (b.lastSeenTurn ?? -1) - (a.lastSeenTurn ?? -1) || a.about.localeCompare(b.about))[0];
   if (recent) {
     const zone = recent.lastKnownZone!;
     if (zone === s.zone) return order(view, 'search', 'fallback', 'search', { target: zone });
     const path = mapPath(view.map, s.zone, zone);
-    if (path) return order(view, 'move', 'fallback', `close in on ${zone}`, { target: path[0] });
+    if (path && (!s.chaseZones || s.chaseZones.includes(path[0]))) return order(view, 'move', 'fallback', `close in on ${zone}`, { target: path[0] });
   }
+  // CH7: it lost everyone it was after: back to its routine
+  if (!recent && hunted.length) return routineOrder(view);
   // 5. Hold
   return order(view, 'hold', 'fallback', 'hold');
 }

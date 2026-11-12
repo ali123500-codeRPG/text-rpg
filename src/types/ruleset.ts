@@ -83,6 +83,7 @@ export type EventRollResult = {
   /** steps past the end tier (Critical Success+ / Critical Failure−), only when an achievement opens them */
   beyond?: number;
   modifiers: { source: string; type: 'perk' | 'gear' | 'status' | 'achievement' | 'situational'; value: number }[]; // situational: night travel (TV4)
+  armed?: string; // D-218: the active ability (perk id) this roll used up
 };
 
 export type AttackRequest = {
@@ -145,7 +146,7 @@ export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine'
 
 /** every order type the engine knows (trigger orders are checked against it) */
 export const ORDER_TYPES = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
-  'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'other'] as const;
+  'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'pick', 'other'] as const;
 export type Order = {
   actorId: string;
   type: string; // attack | move | search | hide | sneak | hold | call_help | alarm | flee | talk | persuade | deceive | barter | intimidate | use_item | equip | give | observe | interact | rest | wait | sleep | idle | other
@@ -157,6 +158,8 @@ export type Order = {
   moveAfter?: boolean; // AE3: the player's move comes after the main action
   pace?: import('../scales').TravelPaceKey; // TV2: the player's travel pace on a road trip (normal when left out)
   moveSpot?: import('./agents').MoveSpot; // BG-12: where in the move's zone the player heads
+  jump?: true; // SD7: the move jumps down a drop link (a window, a ledge)
+  way?: { toZone: string; op: 'lock' | 'unlock' | 'bar' | 'unbar' }; // BA3/BA4: a key turned or a bar slid on purpose, in the move slot
   vanish?: true; // ST13: the player's move is a Vanish
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;

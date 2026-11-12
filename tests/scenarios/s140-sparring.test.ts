@@ -156,7 +156,7 @@ describe('140 sparring', () => {
     updateSpars(s, []);
     expect(s.log.find((l) => l.code === 'spar_ended')?.detail).toMatchObject({ cause: 'quiet' });
     startSpar(s, [['player'], ['patron_1']], false, 'test');
-    s.stage.breakCause = 'rest';
+    s.stage.breakCause = 'story_beat';
     updateSpars(s, []);
     expect(s.spars).toBeUndefined();
   });

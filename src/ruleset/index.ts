@@ -7,7 +7,7 @@ import type {
 } from '../types';
 import { CONFIG } from '../config';
 import { COVER, TIERS } from '../scales';
-import { actorBody, itemDef } from '../library';
+import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { sightDistM } from '../engine/position';
 import { adjacent, healthLevel, hitTable, partPct, poolState, totalHp, woundsMods } from './body';
@@ -73,12 +73,25 @@ export const MARGIN_BANDS = [-75, -25, 0, 25, 75];
 export function band(margin: number): number {
   return MARGIN_BANDS.filter((t) => margin >= t).length;
 }
+type Reach = { up: number; down: number };
+const NO_REACH: Reach = { up: 0, down: 0 };
+/** D-211 on skill rolls (an extra band past the end): each tier a perk or achievement opens (tierUnlocks, tierReach) adds
+ * a band CONFIG.TIER_EXTRA_BAND wider past the end of MARGIN_BANDS: Critical Success+ from margin 75 + 50, Critical
+ * Failure− below −75 − 50. Without an unlock a roll reads the table as before. */
+export function extraBands(margin: number, reach: Reach): number {
+  const top = MARGIN_BANDS[MARGIN_BANDS.length - 1], bottom = MARGIN_BANDS[0];
+  let n = 0;
+  for (let k = 1; k <= reach.up; k++) if (margin >= top + CONFIG.TIER_EXTRA_BAND * k) n++;
+  for (let k = 1; k <= reach.down; k++) if (margin < bottom - CONFIG.TIER_EXTRA_BAND * k) n--;
+  return n;
+}
 export function naturalEdge(d: number): -2 | -1 | 0 | 1 | 2 {
   return d === 1 ? -2 : d <= 5 ? -1 : d === 100 ? 2 : d >= 96 ? 1 : 0;
 }
 const sumShifts = (s: TierShift[]) => s.reduce((t, x) => t + x.value, 0);
-function tierOf(d: number, skill: number, mods: Mod[], shifts: TierShift[]): number {
-  return band(d + CONFIG.SKILL_WEIGHT * skill + modTotal(mods) - CONFIG.ROLL_NEEDED) + naturalEdge(d) + sumShifts(shifts);
+function tierOf(d: number, skill: number, mods: Mod[], shifts: TierShift[], reach: Reach = NO_REACH): number {
+  const margin = d + CONFIG.SKILL_WEIGHT * skill + modTotal(mods) - CONFIG.ROLL_NEEDED;
+  return band(margin) + extraBands(margin, reach) + naturalEdge(d) + sumShifts(shifts);
 }
 
 function mustActor(state: GameState, id: string): Actor {
@@ -102,15 +115,15 @@ function rowKey(type: DefenseKind, gap: number, shield: boolean): string {
 }
 
 /** sources whose removal alone changes the roll's tier index; natural edges listed as lucky/fumble */
-function decidingOf(r: RollResult, skill: number, gear: { source: string; value: number }[]): string[] {
+function decidingOf(r: RollResult, skill: number, gear: { source: string; value: number }[], reach: Reach = NO_REACH): string[] {
   const out: string[] = [];
   if (r.natural) out.push(r.natural > 0 ? 'lucky' : 'fumble');
   r.modifiers.forEach((m, i) => {
-    if (tierOf(r.d100, skill, r.modifiers.filter((_, j) => j !== i), r.tierShifts) !== tierLevel(r)) out.push(m.source);
+    if (tierOf(r.d100, skill, r.modifiers.filter((_, j) => j !== i), r.tierShifts, reach) !== tierLevel(r)) out.push(m.source);
   });
-  for (const g of gear) if (tierOf(r.d100, skill - g.value, r.modifiers, r.tierShifts) !== tierLevel(r)) out.push(g.source);
+  for (const g of gear) if (tierOf(r.d100, skill - g.value, r.modifiers, r.tierShifts, reach) !== tierLevel(r)) out.push(g.source);
   r.tierShifts.forEach((s, i) => {
-    if (tierOf(r.d100, skill, r.modifiers, r.tierShifts.filter((_, j) => j !== i)) !== tierLevel(r)) out.push(s.source);
+    if (tierOf(r.d100, skill, r.modifiers, r.tierShifts.filter((_, j) => j !== i), reach) !== tierLevel(r)) out.push(s.source);
   });
   return out;
 }
@@ -133,7 +146,7 @@ function roll(req: RollRequest, state: GameState, rng: Rng): RollResult {
   const margin = d + CONFIG.SKILL_WEIGHT * eff.value + modTotal(modifiers) - CONFIG.ROLL_NEEDED;
   const shifts = [...req.tierShifts];
   if (req.auto !== false) shifts.push(...shortShifts(state, actor, req.rollKind, req.itemId)); // EQ12 c: gear you fall short on
-  let level = band(margin) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
+  let level = band(margin) + extraBands(margin, tierReach(actor, req.rollKind)) + naturalEdge(d) + sumShifts(shifts); // unclamped (Part 1 §4)
   if (req.auto !== false) for (const s of afterRollShifts(actor, eff.skill, level, req.nearMissUp)) { shifts.push(s); level += s.value; } // All-50: Curiouser and Curiouser
   const out: RollResult = { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill && !req.fn ? { asked: req.skill } : {}), ...(eff.parts ? { parts: eff.parts } : {}), ...(req.rollKind ? { rollKind: req.rollKind } : {}), d100: d, margin, ...tierAt(level), natural: naturalEdge(d), modifiers, tierShifts: shifts };
   if (actor === state.player) rollFeats(state, out); // D-120 Critical Success achievements, per skill group
@@ -160,13 +173,25 @@ function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): 
 // Part 1 §4: read on the normal roll table (MARGIN_BANDS, ER3), the margin being total − 50 with the placeholder base
 function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollResult['modifiers'] = []): EventRollResult {
   const modifiers = [...eventRollMods(state, actor), ...extra];
-  const d = rng.d100();
-  const margin = d + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
+  // D-218 variance perks (Threadbound items): wider natural edges, a spread die, and an armed active ability used up here
+  const perks = actor.core.perks.filter((p) => !p.dormant).map((p) => getLibrary().perks[p.perkId]).filter((x) => !!x);
+  const edges = perks.reduce((n, x) => n + (x.eventEdges ?? 0), 0);
+  const spread = Math.max(1, ...perks.map((x) => x.eventSpread ?? 1));
+  const inst = actor.core.inventory.find((i) => i.armed && i.boundTo === actor.id);
+  const armed = inst?.armed;
+  const arm = armed ? getLibrary().perks[armed]?.eventArm?.kind : undefined;
+  if (inst) delete inst.armed;
+  let d = rng.d100();
+  if (arm === 'farther') { const d2 = rng.d100(); if (Math.abs(d2 - 50.5) > Math.abs(d - 50.5)) d = d2; }
+  const margin = 50.5 + (d - 50.5) * spread + CONFIG.EVENT_BASE + modTotal(modifiers) - 100;
   // past the Critical tiers only as far as perks and achievements open (tierUnlocks). Each tier opened widens the natural
   // critical range by EVENT_CRIT_NATURALS: with one opened above, 96-100 is Critical Success+ and 91-95 Critical Success
   const reach = tierReach(actor, 'event');
   const top = TIERS.keys.length - 1, B = CONFIG.EVENT_CRIT_NATURALS;
-  let level = band(margin) + naturalEdge(d);
+  // D-218 Loose Odds: the `edges` naturals just inside the critical range (however wide opened tiers make it) shift a tier outward
+  const hi = reach.up ? 100 - B * (reach.up + 1) : 95, lo = reach.down ? B * (reach.down + 1) : 5;
+  const loose = d > hi - edges && d <= hi ? 1 : d > lo && d <= lo + edges ? -1 : 0;
+  let level = (arm === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(margin)) + naturalEdge(d) + loose;
   if (reach.up && d > 100 - B * (reach.up + 1)) level = Math.max(level, top + reach.up - Math.floor((100 - d) / B));
   if (reach.down && d <= B * (reach.down + 1)) level = Math.min(level, -reach.down + Math.floor((d - 1) / B));
   level = Math.max(-reach.down, Math.min(top + reach.up, level));
@@ -174,7 +199,7 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   // the chains count how far past Critical you have reached: 1 = Critical, 2 = one + or −, and so on
   if (actor === state.player && tier === TIERS.keys[top]) tally(state, 'event_crits', { to: 1 + (beyond ?? 0) });
   if (actor === state.player && tier === TIERS.keys[0]) tally(state, 'event_crit_fails', { to: 1 - (beyond ?? 0) });
-  return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers };
+  return { actorId: actor.id, roll: d, tier, ...(beyond ? { beyond } : {}), modifiers, ...(armed ? { armed } : {}) };
 }
 
 /** a ranged attack's range penalty: the first RANGE_SHARE_MODS band that the target's distance fits in, as a share of the
@@ -219,7 +244,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
     ...(unseen ? [{ source: unseen.name, value: unseen.value }] : []), ...marks.attack, ...(req.context?.attackerShifts ?? [])];
   const atk = ruleset.roll({ actorId: A.id, skill, modifiers: am, tierShifts: atkShifts, itemId: req.weaponId, rollKind: 'hit', against: D.id, standInFns: mode.standInFns, blend: mode.blend }, state, rng);
   const atkEff = mode.blend ? blendedSkill(state, A, mode.blend, { itemId: req.weaponId, standInFns: mode.standInFns }) : effectiveSkill(state, A, skill, { itemId: req.weaponId });
-  const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear);
+  const atkDeciding = decidingOf(atk, atkEff.value, atkEff.gear, tierReach(A, 'hit'));
 
   const base: Omit<AttackResult, 'outcome' | 'deciding'> = {
     attack: atk, ...(req.context?.defenderUnaware ? { unaware: true as const } : {}), defense: null, defenseType: null, gap: null, gapShifts: [], location: null, locationHow: null,
@@ -253,7 +278,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   dm.push(...(req.context?.defenderMods ?? []));
   const def = ruleset.roll({ actorId: D.id, skill: DEFENSE_SKILL[type], modifiers: dm, tierShifts: [...marks.defense, ...(req.context?.defenderShifts ?? [])], itemId: blocker?.id, rollKind: type, against: A.id }, state, rng);
   const defEff = effectiveSkill(state, D, DEFENSE_SKILL[type], { itemId: blocker?.id });
-  const defDeciding = decidingOf(def, defEff.value, defEff.gear);
+  const defDeciding = decidingOf(def, defEff.value, defEff.gear, tierReach(D, type));
 
   // 4. gap
   const gapShifts: TierShift[] = [];
@@ -446,6 +471,33 @@ export const ruleset: Ruleset = {
   applyEffects,
   recordUse,
 };
+
+/** SD7: a fall's flat damage from the drop in metres, moved `step` bands by the landing roll (0 below the first band) */
+export function fallDamage(metres: number, step = 0): number {
+  const bands = CONFIG.FALL_BANDS;
+  const at = bands.filter((b) => metres > b.over).length + step;
+  return at <= 0 ? 0 : bands[Math.min(at, bands.length) - 1].damage;
+}
+
+/** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
+ * more; a tier past Critical Failure reads Critical Failure's row */
+/** BA2: seconds to pick a lock at effective Thievery `skill`: PICK_SECONDS_AT_50, halved per PICK_HALVING_PER points above 50
+ * (no faster past PICK_FAST_CAP) and doubled per PICK_HALVING_PER below */
+export const pickSeconds = (skill: number): number =>
+  CONFIG.PICK_SECONDS_AT_50 * 2 ** ((50 - (CONFIG.PICK_FAST_CAP === null ? skill : Math.min(skill, CONFIG.PICK_FAST_CAP))) / CONFIG.PICK_HALVING_PER);
+export const landingStep = (t: Tiered): number => (CONFIG.FALL_LANDING_STEP[t.tier] ?? 0) - Math.max(0, t.beyond ?? 0) * CONFIG.FALL_LANDING_PAST_STEP;
+
+/** SD7: a jump down a drop: a Dodge roll on landing (rollKind dodge) moves the fall a band (FALL_LANDING_STEP), and the damage
+ * lands on a leg (a part with the move role) like a hit, so armor and health tracks work as for any wound */
+export function landFall(state: GameState, actor: Actor, metres: number, rng: Rng): { damage: number; landing: string; effects: Effect[] } {
+  const r = roll({ actorId: actor.id, skill: SK.dodge, modifiers: [], tierShifts: [], rollKind: 'dodge' }, state, rng);
+  const t = tierAt(tierLevel(r));
+  const damage = fallDamage(metres, landingStep(t));
+  const legs = actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.move));
+  const leg = legs.length ? legs[Math.floor(rng.next() * legs.length)] : undefined;
+  const effects = damage > 0 && leg ? applyEffects({ outcome: 'hit', location: leg.id, damage, targetId: actor.id } as unknown as AttackResult, state) : [];
+  return { damage, landing: tierName(t), effects };
+}
 
 /** D-54 survival roll: roll() with no skill and no modifiers; Near Miss or better survives */
 export function survivalRoll(rng: Rng): { d100: number; tier: string; survived: boolean } {

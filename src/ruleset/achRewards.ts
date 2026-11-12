@@ -111,13 +111,14 @@ export function tierUnlockLine(u: TierUnlock): string {
     : `${rolls} can fall +${u.steps} tier${u.steps === 1 ? '' : 's'} below Critical Failure`;
 }
 /** how many tiers past Critical Success (up) and below Critical Failure (down) the actor has opened on one kind of roll:
- * every current achievement's tierUnlocks along its chain, plus every active owned perk's, for that kind or 'any' */
-export function tierReach(a: Actor, roll: RollKind): { up: number; down: number } {
+ * every current achievement's tierUnlocks along its chain, plus every active owned perk's, for that kind or 'any' (a
+ * skill roll with no roll kind reads only 'any') */
+export function tierReach(a: Actor, roll: RollKind | undefined): { up: number; down: number } {
   const perks = getLibrary().perks ?? {};
   const all: TierUnlock[] = [
     ...currentAchievements(a).flatMap((x) => chainRewards(x.d).filter((e) => e.field === 'tierUnlocks').flatMap((e) => e.from.tierUnlocks ?? [])),
     ...a.core.perks.filter((p) => !p.dormant).flatMap((p) => perks[p.perkId]?.tierUnlocks ?? []),
-  ].filter((u) => u.roll === roll || u.roll === 'any');
+  ].filter((u) => u.roll === 'any' || (roll !== undefined && u.roll === roll));
   const sum = (side: TierUnlock['side']) => all.filter((u) => u.side === side).reduce((n, u) => n + u.steps, 0);
   return { up: sum('up'), down: sum('down') };
 }

@@ -1,5 +1,6 @@
 // Applying a stage plan (Scene setup steps 4–8), the fallback stage, opening events.
-import type { Actor, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
+import { frameOf } from '../engine/sceneEnd';
+import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
 import { SIDES } from '../types';
@@ -22,7 +23,7 @@ import { maxMorale, moraleLevel, setMoraleLost } from '../ruleset/morale';
 import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 
-function freshId(key: string, taken: Set<string>): string {
+export function freshId(key: string, taken: Set<string>): string {
   let id = key;
   for (let n = 2; taken.has(id); n++) id = `${key}_${n}`;
   taken.add(id);
@@ -52,6 +53,35 @@ function addBackLink(state: GameState, from: Zone, l: ZoneLink): void {
   if (l.frontier) return;
   const other = zoneById(state, l.to);
   if (other && other !== from && !other.links.some((b) => b.to === from.id)) other.links.push({ to: from.id, label: from.name, sight: l.sight });
+}
+
+/** SD3–SD5: the plan's barriers on ways, one record for both sides of each (a way the Weaver barred twice keeps the first);
+ * returns each with the key holders it names */
+function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) => string): { b: Barrier; keys: string[] }[] {
+  const out: { b: Barrier; keys: string[] }[] = [];
+  const taken = new Set(Object.keys(state.barriers ?? {}));
+  for (const z of plan.zones) for (const l of z.links) {
+    const spec = l.barrier;
+    const from = zoneById(state, zoneRef(z.key)), to = zoneById(state, zoneRef(l.to));
+    const k = spec && getLibrary().barrierKinds?.[spec.kind];
+    if (!spec || !k || !from || !to) continue;
+    const there = from.links.find((x) => x.to === to.id), back = to.links.find((x) => x.to === from.id);
+    if (!there || there.barrier || back?.barrier) continue;
+    const b: Barrier = {
+      id: freshId(`way_${from.id}_${to.id}`, taken), kind: k.id, grade: spec.grade ?? 'minor', scene: state.stage.sceneNumber,
+      ...(k.lock && spec.locked ? { lock: { locked: true } } : {}),
+      ...(k.bar && spec.barredFrom ? { bar: { side: zoneRef(spec.barredFrom), drawn: true } } : {}),
+      ...(k.blocked ? { blocked: true as const } : {}),
+      ...(spec.guarded ? { guarded: true as const } : {}),
+    };
+    // BA3: a door with keys but not locked now still has a lock
+    if (!b.lock && k.lock && spec.keys?.length) b.lock = { locked: false };
+    (state.barriers ??= {})[b.id] = b;
+    there.barrier = b.id;
+    if (back) back.barrier = b.id;
+    out.push({ b, keys: spec.keys ?? [] });
+  }
+  return out;
 }
 
 /** an extension's entry: links into the crossed frontier now lead to `entry`, and the player stands there. */
@@ -116,6 +146,7 @@ export function beginScene(state: GameState, tier: Tier, beyond?: number): void 
   delete state.stage.partner;
   state.stage.quiet = 0;
   delete state.stage.breakCause;
+  delete state.stage.roam; // SD2 a: free roam ends when a scene starts
   state.sceneCaps = { promotions: 0, minted: 0 };
   endYields(state);
 }
@@ -154,7 +185,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
 
   // ---- keys -> stable ids (plan keys first, then existing ids) ----
   const placeMap = new Map<string, string>();
-  const placeTaken = new Set(state.places.map((p) => p.id));
+  // BG-32: the bare place made for the story start (ensurePlace) is filled in by the plan's place of the same key, never doubled
+  const bare = (id: string) => state.places.find((p) => p.id === id && p.bare);
+  const placeTaken = new Set(state.places.filter((p) => !bare(p.id)).map((p) => p.id));
   for (const p of plan.places) placeMap.set(p.key, freshId(p.key, placeTaken));
   const zoneMap = new Map<string, string>();
   for (const z of plan.zones) zoneMap.set(z.key, freshId(z.key, allZoneIds));
@@ -181,13 +214,15 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       id: placeMap.get(p.key)!, storyId: state.storyId, kind: p.kind, parentId: p.parent ? placeRef(p.parent) : null,
       names: { current: p.name, past: [] }, zones: [], state: {}, headlines: [],
     };
-    state.places.push(node);
+    const stub = bare(node.id);
+    if (stub) { Object.assign(stub, { ...node, zones: stub.zones }); delete stub.bare; }
+    else state.places.push(node);
   }
   const newZones: Zone[] = [];
   for (const z of plan.zones) {
     const links: ZoneLink[] = z.links.map((l) => {
       const fr = frontierMap.get(l.to) ?? (!isZoneRef(l.to) ? l.to : undefined);
-      return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight };
+      return fr !== undefined ? { to: fr, label: l.label, sight: l.sight, frontier: true as const } : { to: zoneRef(l.to), label: l.label, sight: l.sight, ...(l.drop ? { drop: true as const } : {}) };
     });
     const k = getLibrary().zoneKinds![z.kind]; // the validator checked it
     const road = k.road ? roadShape(z.length, z.danger) : {};
@@ -198,10 +233,13 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     newZones.push(zone);
   }
   ensureBackLinks(state, newZones);
+  const barriers = makeBarriers(state, plan, zoneRef);
   inferHeights(state, newZones);
   placeZones(state, newZones); // after heights: stairs stack zones straight above or below
   const firstZone = newZones[0]?.id;
-  if (ctx.kind === 'extension' && ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0]);
+  const startZone = state.player.zone; // CH1: the zone the player stood in when the scene began is ground
+  // an extension's entry, or (CH3 a) a scene started in free roam by crossing an unbuilt frontier
+  if (ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0]);
   // GAP: at story start the player has no zone on the stage yet; it starts in the plan's first zone.
   if (firstZone && !state.stage.zoneIds.includes(state.player.zone)) moveTo(state, state.player, firstZone);
   else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
@@ -211,6 +249,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     state.bands.push({
       id: bandMap.get(b.key)!, name: b.name, goals: b.goals, temperament: b.temperament, tactics: b.tactics,
       lethal: b.lethal ?? true,
+      ...(b.chase ? { chase: b.chase } : {}), // CH5
       relations: Object.fromEntries(Object.entries(b.relations ?? {}).map(([k, v]) => [bandRef(k), v])),
     });
   }
@@ -254,8 +293,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       installRoutines(a, c.routineSetId, slots, c.startAt, turn, rng);
     }
   });
-  // step 5: each actor stands in its default routine's desired zone for the current turn
-  for (const a of castActors) {
+  // step 5: each actor stands in its default routine's desired zone for the current turn (SC12: arrivals walk in instead)
+  if (ctx.kind !== 'checkin') for (const a of castActors) {
     const d = desiredState(buildActorView(state, a.id));
     if (d) moveTo(state, a, d.zone);
   }
@@ -301,6 +340,12 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // SP2: spars the scene opens with
   for (const sp of plan.spars ?? []) startSpar(state, sp.sides.map((x) => x.map(actorRef)), !!sp.cruel, 'weaver');
 
+  // BA3: keys to the plan's barriers, carried by the actors it names
+  for (const { b, keys } of barriers) for (const k of keys) {
+    const holder = actorById(state, actorRef(k));
+    if (holder) holder.core.inventory.push({ id: `key_${b.id}_${holder.id}`, itemId: IT.key, opens: [b.id] });
+  }
+
   // ---- rewards ----
   const { rewards, notes } = tidyRewards(state, plan);
   if (notes.length) state.log.push({ turn, code: 'reward_repaired', detail: { notes: notes.map((e) => e.message) } });
@@ -321,6 +366,20 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // GAP: an extension keeps the scene's grades; its summary is appended and its hiddenTerms join the stage's.
   else state.hidden.stage = { ...hs, eventSummary: [hs.eventSummary, plan.event.summary].filter(Boolean).join(' / '), hiddenTerms: [...new Set([...hs.hiddenTerms, ...plan.hiddenTerms])] };
   state.hidden.weaverNote = plan.weaverNote;
+  // SC1/SC2/SC7: a new scene's question, scale and endings, plan keys mapped to ids
+  const frameRef = (k: 'band' | 'place' | 'actor', r: string) => (k === 'band' ? bandRef(r) : k === 'actor' ? actorRef(r) : placeMap.get(r) ?? zoneMap.get(r) ?? r);
+  if (ctx.kind === 'scene') state.stage.scene = frameOf(state, plan.scene, ctx.tier, frameRef);
+  // CH1: the ground: the start zone, every zone this scene's plans build, and the stage zones they name (links, slots)
+  const named = [...plan.zones.flatMap((z) => z.links.map((l) => l.to)), ...plan.cast.flatMap((c) => Object.values(c.slots ?? {}).flat())]
+    .filter((r): r is string => typeof r === 'string' && stageZones.has(r));
+  const ground = [...(ctx.kind === 'scene' && !ctx.wake ? [startZone] : []), ...newZones.map((z) => z.id), ...named].filter((z) => zoneById(state, z));
+  if (ctx.kind === 'scene' && state.stage.scene) state.stage.scene.ground = [...new Set(ground)];
+  else if (state.stage.scene?.ground) state.stage.scene.ground = [...new Set([...state.stage.scene.ground, ...ground])];
+  // SC12: a check-in may change the running scene's question, scale and endings; its number, start and records stay
+  else if (ctx.kind === 'checkin' && plan.scene && state.stage.scene) {
+    const f = frameOf(state, plan.scene, state.stage.scene.tier, frameRef);
+    Object.assign(state.stage.scene, { question: f.question, scale: f.scale, endings: f.endings });
+  }
   state.hidden.castNotes ??= {};
   plan.cast.forEach((c, i) => (state.hidden.castNotes![castActors[i].id] = { motive: c.motive, ...(c.routineGap ? { routineGap: c.routineGap } : {}) }));
 
@@ -335,7 +394,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
 export function ensurePlace(state: GameState, placeId: string): Place {
   let place = state.places.find((p) => p.id === placeId);
   if (!place) {
-    place = { id: placeId, storyId: state.storyId, kind: 'place', parentId: null, names: { current: placeId, past: [] }, zones: [], state: {}, headlines: [] };
+    place = { id: placeId, storyId: state.storyId, kind: 'place', parentId: null, names: { current: placeId, past: [] }, zones: [], state: {}, headlines: [], bare: true };
     state.places.push(place);
   }
   return place;
@@ -343,7 +402,8 @@ export function ensurePlace(state: GameState, placeId: string): Place {
 
 export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: string, errors: PlanError[]): void {
   const place = ensurePlace(state, ctx.placeId);
-  if (ctx.kind === 'extension' && ctx.frontierKey) {
+  const startZone = state.player.zone;
+  if (ctx.frontierKey) {
     // one empty zone per frontier label: the crossed frontier's label (from the first link that names it)
     const link = state.zones.flatMap((z) => z.links).find((l) => l.frontier && l.to === ctx.frontierKey);
     const taken = new Set([...state.places.flatMap((p) => p.zones.map((z) => z.id)), ...stageFrontiers(state)]);
@@ -352,6 +412,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     place?.zones.push(zone);
     putOnStage(state, zone);
     enterFrontier(state, ctx.frontierKey, zone);
+    if (state.stage.scene?.ground && ctx.kind === 'extension') state.stage.scene.ground.push(zone.id); // CH1
   } else {
     if (place?.zones.length) for (const z of place.zones) putOnStage(state, z);
     else if (place) {
@@ -362,7 +423,12 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
       putOnStage(state, zone);
     }
     if (place?.zones[0] && !state.stage.zoneIds.includes(state.player.zone)) moveTo(state, state.player, place.zones[0].id);
+  }
+  if (ctx.kind === 'scene') {
     state.hidden.stage = { eventSummary: '', challenge: 'none', gain: 'none', hiddenTerms: [] };
+    state.stage.scene = frameOf(state, undefined, ctx.tier, (_k, r) => r); // no endings: the stall (and later the budget) ends it
+    // CH1: the fallback's ground: where the player stood, where it stands now, and its place's zones
+    state.stage.scene.ground = [...new Set([startZone, state.player.zone, ...(place?.zones ?? []).map((z) => z.id)])].filter((z) => zoneById(state, z));
   }
   setFallbackFlags(state, reason, 'weaver_fallback', errors);
 }

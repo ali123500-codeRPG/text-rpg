@@ -189,7 +189,8 @@ export async function callVoice(
 export async function callNarrator(view: NarrationView, ctx: AgentCtx, leak: LeakContext): Promise<DialogueResult<NarratorOutput>> {
   const viewText = JSON.stringify(view);
   const accept = (v: NarratorOutput): Attempt<NarratorOutput> => {
-    const leaks = leakScan(v.text, viewText, leak);
+    if (!view.sceneEnded) delete v.closing; // SD1: a closing line only on a turn that ended a scene
+    const leaks = leakScan(v.closing ? `${v.closing}\n${v.text}` : v.text, viewText, leak);
     const facts = factCheck(v, view);
     if (!leaks.length && !facts.length) return { kind: 'ok', value: v };
     // the note never repeats a leaked word: that would hand hidden text to the Narrator

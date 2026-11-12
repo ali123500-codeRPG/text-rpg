@@ -10,8 +10,11 @@ export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
 
 export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' };
-export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean }[]; groundItems: { id: string; name: string }[] };
-export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean }[] }; // geometry only, for code minds' pathing
+/** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
+export type WayView = { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
+export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };
+export type ZoneView = { id: string; name: string; look: string; cover: string; light: string; links: { to: string; label: string; sight: boolean; frontier?: boolean; drop?: boolean; way?: WayView | WayFull }[]; groundItems: { id: string; name: string }[] };
+export type MapZone = { id: string; links: { to: string; sight: boolean; frontier?: boolean; drop?: boolean; shut?: boolean }[] }; // geometry only, for code minds' pathing; shut: a barrier this actor can't open
 
 export type BeliefView = {
   about: ActorId;
@@ -23,6 +26,7 @@ export type BeliefView = {
   stance: Stance; // RS5: self's stance toward this actor; yielded (Q1/Q4): self broke or surrendered before it, and still flees from it
   hostile: boolean; // hostile(self, about): attacks on sight
   sparring?: true; // SP1: self and this actor are on different sides of a live spar
+  lost?: true; // CH7: self chased this actor and lost them; it has not seen or heard them since
   active: boolean;
   label: string; // public label or known name
   title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
@@ -78,6 +82,7 @@ export type PlayerView = {
     id: 'player'; name: string; classes: { id: string; name: string }[];
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
+    summonable?: { id: string; name: string }[]; // TB6: the player's Threadbound items not on them (gear op summon)
     perkMoves?: { id: string; name: string; does: string; action?: true }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action
     health: HealthLevel; parts: { id: string; state: PartState }[];
     morale: string; // the morale bar's level (MB11)
@@ -137,6 +142,7 @@ export type ActorView = {
     playerYielded?: true; // MB41: the player yielded to self and awaits an answer (acceptYield)
     wares?: WareView[]; // PY2: what it sells, at the prices the player pays
     offers?: OfferView[]; // SL9: what it would pay for the player's items
+    chaseZones?: string[]; // CH5: a code-run actor's chase range as zones it may chase into (absent: anywhere)
   };
   beliefs: BeliefView[];
   perceived: EventView[]; // events it perceived, latest last (no barks), incl. last few exchanges heard
@@ -197,12 +203,15 @@ export type NarrationEvent = {
   price?: string; // buy: coin paid, in coin words
   metres?: number; // ZP5 moves seen fully: metres walked on this leg (narrated in words: a few paces, across the room)
   spot?: string; // BG-12: where in the zone a move went, in words
+  fall?: { metres: number; landing: string }; // SD7: a jump down: the drop and how the landing went (its wounds are in changes)
+  way?: { what: string; did: string; to: string }; // SD3–SD5, BA2: a barrier on the way to `to`: what kind, and what was done at it
   from?: string; // BG-22: a move that left a zone: the zone it left (where is the zone it entered)
   within?: true; // BG-22: a move that stayed inside `where` (across it, toward someone, a spot or its way out)
   heading?: string; // BG-22: a leg within `where` on the way to another zone: that zone's name
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes
+  pronouns?: 'he' | 'she' | 'they' | 'it'; targetPronouns?: 'he' | 'she' | 'they' | 'it'; // BG-33: the actor's and target's pronouns, for people no longer in sight at the turn's end
 };
 
 export type NarrationView = {
@@ -217,6 +226,8 @@ export type NarrationView = {
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
+  /** SD1: this turn ended a scene, and how (an ending name: escaped, resolved...); the Narrator gives a closing line */
+  sceneEnded?: string;
 };
 
 // ---------- WeaverView: Agent Weaver ----------
@@ -225,8 +236,12 @@ export type WeaverView = {
   /** null at story start: the Weaver picks the opening time of day (T8) */
   time: TimeView | null;
   stakes: string;
+  ways: string; // BA8: how the tier leans the ways in and out (locks, bars, guards), never a limit
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
-  target: { kind: 'scene' | 'frontier'; placeId: string; label?: string; frontierKey?: string; wake?: true;
+  target: { kind: 'scene' | 'frontier' | 'checkin'; placeId: string; label?: string; frontierKey?: string; wake?: true;
+    /** SC8: why this check-in was asked, and the running scene it is about */
+    reason?: import('./hidden').CheckinReason;
+    scene?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean };
     /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
     encounter?: { zone: string; danger: string; noticed: boolean } };
   headlines: string[];
@@ -234,9 +249,13 @@ export type WeaverView = {
   actors: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[];
   quests: { id: string; state: string; text: string }[];
   flags: Record<string, string | number | boolean>;
-  bands: { id: string; name: string; goals: string; relations: Record<string, Stance> }[];
+  bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
   player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel };
   previousNote: string;
+  /** SC6: how the last few scenes went, oldest first (question, scale, tier, ending, who fell, what the player gained) */
+  lastScenes: { question: string; scale: string; tier: TierName; ending: string; note: string; turns: number; fallen: string[]; gained: string[]; inner?: true }[];
+  /** SC4: the bigger scene (Episode or Venture) this new scene sits inside; it carries on when this one ends */
+  outerScene?: { question: string; scale: string };
   catalogs: {
     templates: { id: string; label: string; raceId: string; classId?: string }[];
     services: { id: string; name: string; price: number }[]; // PY3: base prices, before the markup
@@ -249,6 +268,7 @@ export type WeaverView = {
     personality: { nerve: string[]; types: { id: string; name: string; hint: string }[]; values: { id: string; name: string }[] }; // PL12
     zoneKinds: import('./library').ZoneKind[]; // Z2
     edgeKinds: import('./library').EdgeKind[]; // CO15
+    barrierKinds: import('./library').BarrierKind[]; // SD3–SD5
     layouts: { id: string; name: string; building: string; entry: string; zones: { key: string; name: string }[] }[]; // CO17
   };
   grades: Grade[];

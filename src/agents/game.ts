@@ -5,7 +5,8 @@ import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
   GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, PlannerOutput, Rng, TurnRecord, Actor,
 } from '../types';
-import { SPEECH_ACTIONS } from '../types';
+import { SCENE_ENDING_NAMES, SPEECH_ACTIONS, type SceneEndNote } from '../types';
+import { pendingEnding } from '../engine/sceneEnd';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
 import { TIME_OF_DAY, type TimeOfDay } from '../scales';
@@ -72,7 +73,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in). The story saves every turn.';
+  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scene can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -82,6 +83,7 @@ export function createGame(deps: GameDeps): Game {
   let savedLines = 0; // Q18: lines[0..savedLines) are in the story's saved history
   let notices: Notice[] = [];
   let busy = false;
+  let endingNow: SceneEndNote | null = null; // SD1: a turn that ended a scene, while its next scene's calls run
   let agentSaid: string[] = [], agentCmds: string[] = []; // the autopilot's recent commentary, shown back to it so it varies its words
   let stopped = false;
   let rateLimited = false;
@@ -320,17 +322,20 @@ export function createGame(deps: GameDeps): Game {
     const input: TurnInput = { intent, aimed, agentOutputs, spokespeople, ...(exchange ? { exchange } : {}), ...(quick && exchange ? { quickWord: true } : {}) };
     const events = engine.resolveTurn(s, input, rng);
     s.rngState = rng.state; // plan updates were applied (with triggers sanitized) inside resolveTurn
+    // SD1: the play page can start the ending moment now, while the next scene's Weaver and the Narrator run
+    const ended = pendingEnding(s);
+    if (ended) { endingNow = { as: ended, name: SCENE_ENDING_NAMES[ended] }; emit(); }
     if (director) {
       events.push(...(await director.afterResolve(s, events, rng, ctx)));
       s.rngState = rng.state;
     }
     aimNext = false;
     yieldNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, partsBefore }, spokespeople.length ? submitAt : null);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, partsBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; partsBefore?: { id: string; state: PartState }[] }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').SceneEnding }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -366,6 +371,7 @@ export function createGame(deps: GameDeps): Game {
     // every bug code logged this turn (an "other" quest goal, QT27, among them) is filed for the build threads
     fileLogBugs(s);
     const nv = views.buildNarrationView(s, events, rec.intent);
+    if (rec.ended) nv.sceneEnded = SCENE_ENDING_NAMES[rec.ended];
     const leak = buildLeakContext(s);
     const mechanics = mechanicsLines(s, events, record.eventRoll);
     const turn = s.turn;
@@ -379,7 +385,10 @@ export function createGame(deps: GameDeps): Game {
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
-    lines.push({ turn, kind: 'narration', text: narr.output.text, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
+    const closing = rec.ended && narr.output.closing?.trim();
+    const sceneEnd = rec.ended ? { sceneEnd: { as: rec.ended, name: SCENE_ENDING_NAMES[rec.ended], ...(closing ? { closing } : {}) } } : {};
+    endingNow = null;
+    lines.push({ turn, kind: 'narration', text: narr.output.text, ...sceneEnd, ...(CONFIG.SHOW_MECHANICS && s.settings.showMechanics && mechanics.length ? { mechanics } : {}),
       ...lineExtras(s, events, nv, narr.output.text), ...notes, ...where, ...(rec.intent?.deferred?.length ? { next: rec.intent.deferred.join('. ') } : {}) });
     lastLog = narrLog;
     lastDisplayAt = clock.now();
@@ -428,6 +437,14 @@ export function createGame(deps: GameDeps): Game {
         const recap = lines.filter((l) => l.kind === 'narration').slice(-3).map((l) => l.text);
         return say([HELP_TEXT, ...(recap.length ? ['Recently:', ...recap] : [])].join('\n'));
       }
+      case 'stuck': {
+        // SC15: the player says the scene can go nowhere: a numbered bug, and a Weaver check-in now (no gap or limit)
+        if (!s.stage.scene) return say('There is no scene to check on yet.');
+        ctxFor(s.turn, turnLog).reportBug?.('player_stuck', { scene: s.stage.scene.question, note: arg.slice(0, 500) });
+        s.stage.checkinDue = 'stuck';
+        if (director && !rateLimited && !stopped) director.afterSave(s, { ...ctxFor(s.turn, turnLog), background: true });
+        return say('Noted. The story will find a way forward over the next turns; a bad situation stays bad, though.');
+      }
       case 'difficulty':
         // GAP: the spec names no difficulty settings; the word is stored as given and saved with the next turn
         if (arg) s.settings.difficulty = arg;
@@ -475,6 +492,7 @@ export function createGame(deps: GameDeps): Game {
           lines.push({ turn: state.turn, kind: 'command', text: 'Turn undone.' });
         } finally {
           busy = false;
+          endingNow = null;
           emit();
         }
         return;
@@ -498,6 +516,7 @@ export function createGame(deps: GameDeps): Game {
       else throw e;
     } finally {
       busy = false;
+      endingNow = null;
       emit();
     }
   }
@@ -536,6 +555,7 @@ export function createGame(deps: GameDeps): Game {
       else throw e;
     } finally {
       busy = false;
+      endingNow = null;
       emit();
     }
   }
@@ -580,6 +600,7 @@ export function createGame(deps: GameDeps): Game {
       return [...notices, ...marker];
     },
     busy: () => busy,
+    sceneEnding: () => endingNow,
     fell: () => !!state && isDownLevel(safeHealth(state.player)),
     subscribe(cb) {
       subs.add(cb);
@@ -606,6 +627,12 @@ export function createGame(deps: GameDeps): Game {
       return mv;
     },
     submit,
+    endScene() {
+      // SC15: the GM view's End scene button (testing): the scene ends after the next turn, recorded as interrupted
+      if (!state?.stage.scene || state.stage.breakCause) return;
+      engine.endScene(state, 'interrupted', 'ended from the GM view');
+      emit();
+    },
     async reset() {
       abortBackground();
       if (state) {
@@ -946,7 +973,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   };
   const out: string[] = [];
   // ER5: a scene's event roll, first, when it was made this turn (only ever shown here, with Show rolls on)
-  if (eventRoll) out.push(`Event roll d100 ${eventRoll.roll} → ${tierName(eventRoll)}${mods(eventRoll.modifiers)}`);
+  if (eventRoll) out.push(`Event roll${eventRoll.armed ? ` (${getLibrary().perks[eventRoll.armed]?.name ?? eventRoll.armed})` : ''} d100 ${eventRoll.roll} → ${tierName(eventRoll)}${mods(eventRoll.modifiers)}`);
   for (const e of events) {
     const target = e.attack?.targetId ?? e.target;
     if (e.actorId !== me && target !== me && e.perception[me]?.level !== 'full') continue;

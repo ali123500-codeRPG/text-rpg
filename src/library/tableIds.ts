@@ -21,6 +21,8 @@ export const DU = { fight_turn: 'DU1', action: 'DU2', trade: 'DU3', rest: 'DU4',
 /** CO17 prebuilt layouts: a building's zones and exits, which the Weaver picks by id; several per building type */
 export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', gatehouse: 'LY5' } as const;
 export const EK = { wall: 'EK1', open: 'EK2', low: 'EK3', window: 'EK4' } as const;
+/** SD3–SD5 barrier kinds: what stands on a way (door, gate, grate, hatch, rubble); a new kind is a new row */
+export const BK = { door: 'BK1', gate: 'BK2', grate: 'BK3', hatch: 'BK4', rubble: 'BK5' } as const;
 export const ZK = { room: 'ZK1', corridor: 'ZK2', stairs: 'ZK3', cellar: 'ZK4', street: 'ZK5', square: 'ZK6', gate: 'ZK7', yard: 'ZK8', field: 'ZK9', woods: 'ZK10', road: 'ZK11' } as const;
 export const AM = {
   chop: 'AM1', club: 'AM2', cut: 'AM3', grapple: 'AM4', punch: 'AM5', shoot: 'AM6', slam: 'AM7', slash: 'AM8', stab: 'AM9', strike: 'AM10',

@@ -15,6 +15,8 @@ const TOP = 150;
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };
 const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel: null as null | { skill: string; milestone: number }, folded: new Set<string>() };
 type Show = MilestoneState | 'other';
+/** which perk series a milestone belongs to: 20/60/100/140 change what you can do, 40/80/120 raise numbers; each series has its own colour */
+export const perkSeries = (milestone: number): '20' | '40' => (milestone % 40 === 20 ? '20' : '40');
 const pct = (v: number) => `${Math.min(100, (v / TOP) * 100).toFixed(2)}%`;
 
 function treesOf(p: Actor) {
@@ -27,7 +29,7 @@ function node(skill: string, milestone: number, st: Show, label: boolean) {
   const d = st === 'own' || st === 'open' ? milestonePerk(skill, milestone) : undefined;
   const sel = ui.sel?.skill === skill && ui.sel.milestone === milestone;
   return h('button', {
-    type: 'button', class: `pk-n ${st}${sel ? ' sel' : ''}`, 'data-k': `${skill}:${milestone}`, disabled: st === 'sealed',
+    type: 'button', class: `pk-n ${st}${sel ? ' sel' : ''}`, 'data-k': `${skill}:${milestone}`, 'data-series': perkSeries(milestone), disabled: st === 'sealed',
     'aria-label': st === 'sealed' ? `${skillName(skill)} ${milestone}, sealed` : `${skillName(skill)} ${milestone}${d ? ', ' + d.name : ''}`,
     onclick: () => { ui.sel = sel ? null : { skill, milestone }; redraw(); },
   }, h('span', {}, String(milestone)), label && d ? h('em', {}, d.name) : null);
@@ -85,7 +87,7 @@ function card(s: GameState, p: Actor, api: GameApi) {
   if (st === 'sealed') return null;
   const d = milestonePerk(skill, milestone);
   const pts = p.progression?.unspentPerkPoints ?? 0;
-  return h('aside', { class: 'pk-card', role: 'dialog', 'aria-label': d?.name ?? `${skillName(skill)} ${milestone}` },
+  return h('aside', { class: 'pk-card', 'data-series': perkSeries(milestone), role: 'dialog', 'aria-label': d?.name ?? `${skillName(skill)} ${milestone}` },
     h('p', { class: 'k' }, `${skillName(skill)} · ${milestone}`),
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
     st === 'open' && d?.built === false ? h('p', { class: 'tiny' }, 'Not in the game yet.') : null,
@@ -136,6 +138,10 @@ export function perksSection(api: GameApi): HTMLElement {
       h('div', { class: 'pk-h' }, h('h2', {}, 'Perks'), h('div', { class: 'hs-picker pk-vt' }, vt('tree', 'By tree'), vt('effect', 'By effect')),
         h('div', { class: 'hs-picker pk-vt', 'aria-label': 'Perk write-up' }, tt('story', 'Story'), tt('rules', 'Rules')),
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
+      // the two perk series, in the colours their milestones use everywhere
+      h('ul', { class: 'pk-key', 'aria-label': 'Perk series' },
+        h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, '20, 60, 100, 140'), ' change what you can do'),
+        h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, '40, 80, 120'), ' raise your numbers')),
       innate(p),
       ...(ui.view === 'tree'
         ? [h('div', { class: 'pk-tabs', role: 'tablist' }, trees.map((t) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(t.id === ui.tree), onclick: () => { ui.tree = t.id; ui.sel = null; redraw(); } }, t.name))),

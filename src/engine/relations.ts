@@ -1,7 +1,8 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
-import type { Actor, BeliefStatus, GameState, Stance } from '../types';
+import type { Actor, Belief, BeliefStatus, GameState, Stance } from '../types';
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
+import { linkPassage } from './barriers';
 
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
@@ -81,15 +82,18 @@ export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): bo
   return AWARENESS.pos(status ?? 'unaware') >= AWARENESS.pos(min);
 }
 
+/** CH7: the chase after this actor was lost and the chaser has not seen or heard it since */
+export const chaseLost = (b: Belief | undefined): boolean => b?.lostTurn !== undefined && (b.lastSeenTurn ?? -Infinity) <= b.lostTurn;
+
 /** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to
- * or sparring with (SP1). */
+ * or sparring with (SP1). A chase it lost (CH7) does not count until it sees or hears them again. */
 export function isEngaged(state: GameState, actor: Actor): boolean {
   if (!countsInFight(actor)) return false;
   // the player has no beliefs: it is in a fight while someone who counts in one is fighting it, for real or in a spar
-  if (actor.kind === 'player') return allActors(state).some((o) => o !== actor && countsInFight(o) && foe(state, o, actor) && atLeast(o.mind?.knowledge?.[actor.id]?.status, 'suspicious'));
+  if (actor.kind === 'player') return allActors(state).some((o) => { const b = o.mind?.knowledge?.[actor.id]; return o !== actor && countsInFight(o) && foe(state, o, actor) && atLeast(b?.status, 'suspicious') && !chaseLost(b); });
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
-    if (!atLeast(b.status, 'suspicious')) return false;
+    if (!atLeast(b.status, 'suspicious') || chaseLost(b)) return false;
     const other = actorById(state, id);
     return !!other && countsInFight(other) && foe(state, actor, other);
   });
@@ -119,8 +123,15 @@ export function perceivedZoneIds(state: GameState, zoneId: string): string[] {
   return [zoneId, ...(z?.links ?? []).filter((l) => l.sight && !l.frontier && zoneById(state, l.to)).map((l) => l.to)];
 }
 
-/** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. */
-export function shortestPath(state: GameState, from: string, to: string, sightOnly = false): string[] | null {
+/** SD3–SD5: the walking path for `walker`: round any barrier shut to it; with none, the plain path (whose first shut way
+ * the walker then tries) */
+export const wayPath = (state: GameState, from: string, to: string, walker: Actor): string[] | null =>
+  shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to);
+
+/** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. With a `walker`, a way whose
+ * barrier is shut to it (no key, the far side of the bar, rubble) is left out (SD3–SD5); with none, barriers are ignored
+ * (how far away, for sound and sight). */
+export function shortestPath(state: GameState, from: string, to: string, sightOnly = false, walker?: Actor): string[] | null {
   if (from === to) return [];
   const stage = new Set(state.stage.zoneIds);
   const prev = new Map<string, string>();
@@ -130,7 +141,9 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
     const cur = q.shift()!;
     const z = zoneById(state, cur);
     for (const l of z?.links ?? []) {
-      if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !l.sight)) continue;
+      // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
+      if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !l.sight) || (l.drop && !sightOnly)) continue;
+      if (walker && linkPassage(state, l, walker, cur) === 'shut') continue;
       seen.add(l.to);
       prev.set(l.to, cur);
       if (l.to === to) {

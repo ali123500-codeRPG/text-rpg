@@ -3,7 +3,7 @@
 // status strip that opens the full sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
-import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView } from '../types';
+import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView, SceneEndNote } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView, questGoalText } from '../views';
 import { QUEST_STATE_NAME, dueDay, dueText, isOpen, owes, payText, questChain } from '../engine/quests';
@@ -16,13 +16,14 @@ import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
 import { h, dragScroll } from './kit';
+import { perkSeries } from './perks';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
 import { shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
-import { applyMotion, arrive, bar as barMove, count, delta, finishAll, motionOn, moving, ms, play, pulse, sentences, setMotion, slam, stamp } from './motion';
+import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
 import { closePop, openPop } from './pop';
 import { PART_STATES, SHOWN_LEVELS, working } from '../ruleset/body';
@@ -38,7 +39,7 @@ const CHANGE_WORD: Record<string, [string, string]> = { combat: ['Combat', 'c10'
 const SPEAKER_COLOURS = ['c15', 'c12', 'c4', 'c5', 'c1', 'c7', 'c14'];
 const COMMANDS: [string, string][] = [
   ['/help', 'what you can type, and a recap of the last turns'], ['/stats', 'your character sheet'], ['/inv', 'what you carry'],
-  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/yield', 'give up the fight you are in'], ['/strike ', 'a blow at someone: /strike the guard at his left arm'], ['/shoot ', 'shoot at someone, by part if you like'], ['/throw ', 'throw something at someone'], ['/aim ', 'aim this attack at the body part it names: /aim /strike the guard at his leg'], ['/undo', 'rewind one turn (dice are not rolled back)'],
+  ['/quests', 'your quests'], ['/achievements', 'your achievements and scars'], ['/title', 'wear an achievement as your title'], ['/yield', 'give up the fight you are in'], ['/stuck', 'the scene can go nowhere: the story finds a way forward'], ['/strike ', 'a blow at someone: /strike the guard at his left arm'], ['/shoot ', 'shoot at someone, by part if you like'], ['/throw ', 'throw something at someone'], ['/aim ', 'aim this attack at the body part it names: /aim /strike the guard at his leg'], ['/undo', 'rewind one turn (dice are not rolled back)'],
   ['/difficulty ', 'show or change the difficulty'],
 ];
 const UNDONE = 'Turn undone.'; // the game's line after /undo
@@ -91,6 +92,8 @@ const PERK_IDEA: Record<string, { text: (who: string) => string; note: string }>
 /** perk moves aimed at no one: one idea each */
 const PERK_SOLO_IDEA: Record<string, { text: string; note: string }> = {
   [PK.battle_cry]: { text: 'Let out a battle cry', note: 'Battle Cry · your action, once a fight' },
+  [PK.call_the_toss]: { text: 'Turn the earring and call the toss', note: 'Call the Toss · free, once a day' },
+  [PK.all_or_nothing]: { text: 'Turn the earring: all or nothing', note: 'All or Nothing · free, once a week' },
 };
 
 /** an idea's short label as the player would type it: "Talk to Tam" fills the box as "I talk to Tam" (ideas start with a verb) */
@@ -123,7 +126,7 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
       ...pv.zone.links.filter((l) => !l.frontier).slice(0, 1).map((l) => ({ text: `Vanish ${l.label}`, note: 'breaks sight' }))] },
     { group: 'Use', items: [
       ...heldN.map((n) => ({ text: `Stow ${the(n)}`, note: 'free' })), ...stowedN.map((n) => ({ text: `Draw ${the(n)}`, note: 'free' })),
-      ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free' })), { text: 'Look around' }] },
+      ...groundN.map((n) => ({ text: `Pick up ${the(n)}`, note: 'free' })), ...(pv.player.summonable ?? []).map((x) => ({ text: `Summon ${x.name}`, note: 'free' })), { text: 'Look around' }] },
     ...(pv.player.perkMoves?.length ? [{ group: 'Perks', items: pv.player.perkMoves.map((m) => m.id).flatMap((p) => PERK_SOLO_IDEA[p] ? [PERK_SOLO_IDEA[p]] : PERK_IDEA[p]
       ? people.filter((a) => a.zone === pv.zone.id).map((a) => ({ text: PERK_IDEA[p].text(names[people.indexOf(a)]), note: PERK_IDEA[p].note })) : []) }] : []),
   ].map((g) => ({ group: g.group, items: 'all' in g ? g.items : g.items.slice(0, 3) }));
@@ -188,7 +191,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   // the story: an append-only list (role=log announces each new entry once); the waiting line sits outside it
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
-  const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, waiting));
+  // SD1: while a turn that ended a scene is still running, the ending's rule is drawn here, under the player's line
+  const endNow = h('div', { class: 'end-now' });
+  let endKey = '', endDrawn = false; // the ending shown in endNow; whether its rule was drawn there, so the turn doesn't draw it again
+  const story = h('div', { class: 'story' }, h('div', { class: 'col' }, list, endNow, waiting));
   const notices = h('div', { class: 'notices' });
   const aimBtn = h('button', { type: 'button', class: 'aim' });
   const input = h('input', { class: 'hs-input', id: 'cmd', autocomplete: 'off', 'aria-label': 'What do you do', 'aria-describedby': 'cmd-hint' });
@@ -289,7 +295,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   /** opens the Character page at its Perks section */
   const seePerks = () => { nav('stats'); setTimeout(() => document.querySelector('.pk')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
-  const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
+  const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false, series?: string) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined, 'data-series': series }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
     h('div', {}, title, h('small', {}, sub)), action ? h('button', { type: 'button', class: 'hs-btn-text', onclick: action[1] }, action[0]) : null);
 
   /** an achievement or scar earned this turn: its name, reward level and what it asks for; a click shows why it was
@@ -362,7 +368,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks], true)),
       ...(l.achievements ?? []).map(achCard),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
-      ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks])),
+      ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks], false, perkSeries(u.milestone))),
       l.mechanics?.length ? h('details', { class: 'rolls' }, h('summary', {}, h('span', { class: 'hs-label' }, 'Rolls')),
         h('ul', {}, l.mechanics.map((m) => h('li', {}, m)))) : null,
     ].filter(Boolean) as HTMLElement[];
@@ -376,6 +382,12 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return l.scene !== undefined && prev.scene !== undefined && l.scene !== prev.scene ? '' : null;
   }
 
+  /** SD1: the scene-ending rule, the ending's name in its middle in that ending's colour, plus the new place when the
+   *  turn also moved the player there */
+  function endRule(end: SceneEndNote, place: string): HTMLElement {
+    return h('p', { class: 'pbreak end', 'data-end': end.as }, h('b', {}, cap(end.name)), place ? h('span', {}, ` · ${place}`) : null);
+  }
+
   function entry(l: LogLine, s: GameState | null, prev: LogLine | null): HTMLElement {
     let e = entries.get(l);
     if (e) return e;
@@ -385,7 +397,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     else if (l.kind === 'command') e = h('p', { class: 'ln-command' }, ...l.text.split(TAG_MARK).flatMap((x, i) => (i ? [tag(), x] : [x])));
     else if (l.kind !== 'narration') e = h('p', { class: 'ln-' + l.kind }, l.text);
     else e = h('div', { class: 'turn' },
-      ((b) => b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scene') }, b))(breakFor(l, prev)),
+      // SD1: a turn that ended a scene: the old scene's closing line, then the ending's rule, then the new scene's opening
+      l.sceneEnd?.closing ? h('p', { class: 'ln-closing' }, l.sceneEnd.closing) : null,
+      ((b) => l.sceneEnd ? endRule(l.sceneEnd, b ?? '') : b === null ? null : h('p', { class: 'pbreak' + (b ? '' : ' scene') }, b))(breakFor(l, prev)),
       // M-10: each sentence its own span, so the reveal can pace them; the text is unchanged
       h('p', { class: 'ln-narration' }, sentences(l.text).flatMap((t, i) => [i ? ' ' : '', h('span', { class: 'sn' }, t)])),
       l.speech?.length ? h('div', { class: 'speech' }, l.speech.flatMap((sp) => [
@@ -521,6 +535,19 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     if (!busy) { delete waiting.dataset.since; waiting.replaceChildren(); }
     waiting.hidden = !busy;
+    // SD1: the ending moment starts as soon as the engine knows how the scene ended, while the next scene is still being
+    // made: the rule draws across with the ending's name. The closing line and the opening come with the turn's prose.
+    const ending = busy ? api.sceneEnding?.() ?? null : null;
+    const key = ending ? `${ending.as}|${ending.name}` : '';
+    if (key !== endKey) {
+      endKey = key;
+      if (!ending) endNow.replaceChildren();
+      else {
+        const r = endRule(ending, '');
+        endNow.replaceChildren(r);
+        endDrawn = drawBreak(r, 0) > 0;
+      }
+    }
 
     helpPanel.hidden = !open;
     cmdBtn.setAttribute('aria-pressed', String(open === 'commands'));
@@ -632,19 +659,27 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     };
   }
 
+  /** M-40: a break's rule draws outward from its name; returns how long the prose waits for it */
+  function drawBreak(brk: Element, delay: number): number {
+    if (!motionOn()) return 0;
+    const d = ms('--m-scene');
+    play(brk, [{ opacity: 0 }, { opacity: 1 }], { dur: d / 2, delay });
+    play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'right' }, { transform: 'scaleX(1)', transformOrigin: 'right' }], { dur: d, delay, pseudo: '::before' });
+    play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'left' }, { transform: 'scaleX(1)', transformOrigin: 'left' }], { dur: d, delay, pseudo: '::after' });
+    return d * 0.6;
+  }
+
   function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around) {
     finishAll();
     if (!e || !motionOn()) return;
     let t = 0;
+    // SD1: the old scene's closing line comes first; the ending's rule was already drawn while the turn ran, so it stays put
+    const closing = e.querySelector('.ln-closing');
+    if (closing) { play(closing, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-state') }); t += ms('--m-state'); }
     // M-40/M-42: a scene or place break draws across first, outward from its name
     const brk = e.querySelector('.pbreak');
-    if (brk) {
-      const d = ms('--m-scene');
-      play(brk, [{ opacity: 0 }, { opacity: 1 }], { dur: d / 2 });
-      play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'right' }, { transform: 'scaleX(1)', transformOrigin: 'right' }], { dur: d, pseudo: '::before' });
-      play(brk, [{ transform: 'scaleX(0)', transformOrigin: 'left' }, { transform: 'scaleX(1)', transformOrigin: 'left' }], { dur: d, pseudo: '::after' });
-      t += d * 0.6;
-    }
+    if (brk && !(brk.classList.contains('end') && endDrawn)) t += drawBreak(brk, t);
+    endDrawn = false;
     // M-10/M-11: the prose, sentence by sentence (opacity only: a sentence is inline text), then what was said and the time row
     const gap = ms('--m-sentence'), fade = ms('--m-state');
     const parts = Array.from(e.querySelectorAll('.ln-narration .sn'));
@@ -665,38 +700,49 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       // M-20: the outcome word's beat, by severity
       const w = r.querySelector('.res b'), o = Number(w?.getAttribute('data-o') ?? 0);
       if (w && o === 1) play(w, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-beat'), delay: d + fade });
-      else if (w && o > 1) pulse(w, d + fade, o - 1, o > 2);
-      if (r.classList.contains('wcard')) pulse(r, d + fade, 2);
+      else if (w && o === 4 && r.classList.contains('in')) {
+        // a crushing hit on the player (game-feel T3): the word holds its struck pose, then the story and the sheet
+        // shake once (3 px, gone within --m-shake) and the screen edge flares red once. The input bar never moves.
+        impact(w, d + fade);
+        shake([story, sheet], 1, d + fade + ms('--m-hold'));
+        play(edge, [{ opacity: 0 }, { opacity: 0.8, offset: 0.2 }, { opacity: 0 }], { dur: ms('--m-trail'), delay: d + fade + ms('--m-hold') });
+      } else if (w && o > 1) {
+        pulse(w, d + fade, o - 1, o > 2);
+        if (o === 3 && r.classList.contains('in')) shake([story, sheet], 0.6, d + fade); // a heavy hit on the player: about 1 px
+      }
+      // a part that became Crippled or Destroyed: its card flares red, holds, and settles, with no growth that moves its text
+      if (r.classList.contains('wcard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--danger) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }
     }
     if (b) sheetBeats(b, a, at, stagger);
     if (ab) aroundBeats(ab, aa, Math.min(t, end));
     let pointsAt: number | null = null;
     for (const g of gold) {
       const d = at(stagger);
-      if (g.classList.contains('ach')) { const n = honor(g as HTMLElement, d); t += n; continue; }
+      if (g.classList.contains('ach') || g.hasAttribute('data-levelup')) { const n = honor(g as HTMLElement, d); t += n; if (pointsAt === null && g.hasAttribute('data-levelup')) pointsAt = d + fade; continue; }
       arrive(g, d, 6); pulse(g.querySelector('.st'), d + fade, 2);
-      if (pointsAt === null && g.hasAttribute('data-levelup')) pointsAt = d + fade;
     }
     // M-38: the rail's perk-point badge lands with the level-up card that gave the point, never before it
     if (b && a.points !== b.points) pointsBeat(b.points, a.points, pointsAt ?? at(stagger));
   }
 
-  /** M-38: an achievement is the turn's special moment, so it gets its own beat: the card rises in, a band of light
-   * sweeps across it once, then its reward level lands. A scar comes in heavier and darker, with no light. Returns
-   * how long it holds the cards after it. */
-  function honor(g: HTMLElement, d: number): number {
-    const dur = ms('--m-honor'), beat = ms('--m-beat');
+  /** M-38/M-38a, game-feel T4: an achievement or a level-up is the turn's milestone, one at a time after every other
+   * beat. Anticipation: a --m-hold pause. Then the card rises in, its star lands in its struck pose and holds, one band
+   * of light sweeps across once, and an achievement's tier lands. A scar comes in heavier and darker, with no light.
+   * Nothing on the card grows more than a few pixels, so its text never slides. Returns how long it holds the cards
+   * after it. */
+  function honor(g: HTMLElement, d0: number): number {
+    const dur = ms('--m-honor'), beat = ms('--m-beat'), d = d0 + ms('--m-hold');
     if (g.classList.contains('scar')) {
-      play(g, [{ opacity: 0, transform: 'scale(1.04)' }, { opacity: 1, transform: 'none' }], { dur: beat, delay: d });
-      pulse(g.querySelector('.st'), d + beat, 3, true);
+      play(g, [{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'none' }], { dur: beat, delay: d });
+      impact(g.querySelector('.st'), d + beat);
       stamp(g.querySelector<HTMLElement>('.ach-lv'), d + beat);
-      return beat;
+      return beat + ms('--m-hold');
     }
-    play(g, [{ opacity: 0, transform: 'translateY(8px) scale(.97)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') * 2, delay: d });
+    play(g, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-state') * 2, delay: d });
     play(g, [{ transform: 'translateX(-100%)' }, { transform: 'translateX(100%)' }], { dur, delay: d + ms('--m-state'), pseudo: '::after' });
-    pulse(g.querySelector('.st'), d + ms('--m-state'), 3);
+    impact(g.querySelector('.st'), d + ms('--m-state'));
     stamp(g.querySelector<HTMLElement>('.ach-lv'), d + dur / 2);
-    return dur / 2;
+    return dur / 2 + ms('--m-hold');
   }
 
   /** the rail's ✦n badge (it lives outside the Play screen): a new badge fades in, a changed count swaps at its beat */
@@ -737,7 +783,16 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         const worse = levelOfPart(a.parts[k]) > levelOfPart(b.parts[k]);
         const chip = q(`.cs-pchip[data-part="${k}"]`);
         if (worse) slam(chip, d); else pulse(chip, d);
-        play(q(`path[data-part="${k}"]`), [{ opacity: 1 }, { opacity: 0.25, offset: 0.4 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });
+        // the figure keeps the part's old colour until this beat, then turns and dips once (M-30, M-74: the new
+        // colour is already set; the old one is only the animation's first frame)
+        const path = q(`path[data-part="${k}"]`);
+        if (path) {
+          const cls = path.getAttribute('class') ?? '';
+          path.setAttribute('class', cls.replace(/\bbf-\w+/, `bf-${b.parts[k].toLowerCase()}`));
+          const old = getComputedStyle(path).fill;
+          path.setAttribute('class', cls);
+          play(path, [{ fill: old, opacity: 1 }, { fill: old, opacity: 0.35, offset: 0.35 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });
+        }
       }
     }
     // gear lines (M-35, M-32): a shield's state or a pool's points land; an item that is gone fades out of its line

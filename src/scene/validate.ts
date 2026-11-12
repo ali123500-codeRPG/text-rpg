@@ -1,9 +1,11 @@
 // Stage-plan validation (Part 2, Agent Weaver: Validation) and the grades table.
-import type { GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
-import { GRADES, ORDER_TYPES } from '../types';
+import type { EndCheck, GameState, Grade, StagePlan, Tier, TriggerWhen } from '../types';
+import { GRADES, SCENE_ENDINGS } from '../types';
+import { triggerErrors } from './triggers';
+import { scaleFor } from '../engine/sceneEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { CHASE_RANGES, COVER, LIGHT, SCENE_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
@@ -12,7 +14,6 @@ import type { PlanError, PlanContext } from './index';
 import { itemValue } from '../ruleset/value';
 
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
-const TRIGGER_TYPES: TriggerWhen['type'][] = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard', 'quiet_turns'];
 
 const g = (x: Grade) => GRADES.indexOf(x);
 
@@ -173,7 +174,8 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
 
   // ---- grades ----
   const ev = plan.event;
-  if (!ev || !GRADES.includes(ev.challenge) || !GRADES.includes(ev.gain)) err('bad_grade', 'event needs challenge and gain grades');
+  if (ctx.kind === 'checkin') { /* SC12: a check-in keeps the scene's grades */ }
+  else if (!ev || !GRADES.includes(ev.challenge) || !GRADES.includes(ev.gain)) err('bad_grade', 'event needs challenge and gain grades');
   else if (!gradesFitTier(ctx.tier, ev.challenge, ev.gain))
     err('grades_misfit', `challenge ${ev.challenge} / gain ${ev.gain} does not fit tier ${tierName(ctx.tier)}`);
 
@@ -228,6 +230,19 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
       if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, or a frontier`);
+      // SD3–SD5: a barrier on the way
+      const b = l.barrier;
+      if (b) {
+        const bks = getLibrary().barrierKinds ?? {}, k = bks[b.kind];
+        if (!k) err('bad_link', `zone ${z.key}: a barrier's kind is a barrier kind id from catalogs.barrierKinds (${Object.values(bks).map((x) => `${x.id} ${x.name}`).join(', ')})`);
+        else {
+          if (b.locked && !k.lock) err('bad_link', `zone ${z.key}: ${k.name} takes no lock`);
+          if (b.barredFrom !== undefined && !k.bar) err('bad_link', `zone ${z.key}: ${k.name} takes no bar`);
+        }
+        if (b.barredFrom !== undefined && b.barredFrom !== z.key && b.barredFrom !== l.to) err('bad_link', `zone ${z.key}: barredFrom is the zone the bolt is on: ${z.key} or ${l.to}`);
+        if (l.drop || isFrontier(l.to)) err('bad_link', `zone ${z.key}: a barrier goes on a way between two zones, never on a drop or a frontier`);
+        for (const key of arr(b.keys)) if (!isActor(key)) err('bad_link', `zone ${z.key}: key holder ${key} is not in the cast or on the stage`);
+      }
     }
   }
 
@@ -238,6 +253,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`band ${b.key} temperament`, b.temperament, false);
     if (!TACTICS.has(b.tactics)) err('bad_band', `band ${b.key}: tactics is ${TACTICS.list()}`);
     if (b.lethal !== undefined && typeof b.lethal !== 'boolean') err('bad_band', `band ${b.key}: lethal is true or false`);
+    if (b.chase !== undefined && !CHASE_RANGES.has(b.chase)) err('bad_band', `band ${b.key}: chase is ${CHASE_RANGES.list()}`); // CH5
     for (const [other, st] of Object.entries(b.relations ?? {})) {
       if (!isBand(other)) err('unresolved_band', `band ${b.key}: relation to unknown band ${other}`);
       if (!STANCES.has(st)) err('bad_stance', `band ${b.key}: relation ${st}`);
@@ -339,21 +355,10 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   }
 
   // ---- seeds ----
-  const checkWhen = (where: string, w: TriggerWhen | undefined) => {
-    if (!w || !TRIGGER_TYPES.includes(w.type)) return err('bad_trigger', `${where}: unknown trigger type ${w?.type}`);
-    if (w.type === 'player_seen_in_zone' && !isZone(w.zone)) err('bad_trigger', `${where}: zone ${w.zone} unknown`);
-    if (w.type === 'actor_down' && !isActor(w.actorId)) err('bad_trigger', `${where}: actor ${w.actorId} unknown`);
-    if (w.type === 'turn_reached' && typeof w.turn !== 'number') err('bad_trigger', `${where}: turn is a number`);
-    if (w.type === 'quiet_turns' && !(Number.isInteger(w.turns) && w.turns >= 1)) err('bad_trigger', `${where}: turns is a whole number of at least 1`);
-  };
+  const refs = { isZone, isActor };
   const checkTrigger = (where: string, t: StagePlan['seeds']['triggers'][number]) => {
-    if (!t || !t.id) return err('bad_trigger', `${where}: trigger without an id`);
-    if (!isActor(t.ownerId)) err('bad_trigger', `trigger ${t.id}: owner ${t.ownerId} unknown`);
-    checkWhen(`trigger ${t.id}`, t.when);
-    // one order per trigger: `then` is a single order template
-    if (!t.then || Array.isArray(t.then) || typeof t.then.type !== 'string') err('bad_trigger', `trigger ${t.id}: then holds exactly one order`);
-    else if (!(ORDER_TYPES as readonly string[]).includes(t.then.type)) err('bad_trigger', `trigger ${t.id}: then.type ${t.then.type} unknown; known: ${ORDER_TYPES.join(', ')}`);
-    if (typeof t.once !== 'boolean') err('bad_trigger', `trigger ${t.id}: once is true or false`);
+    for (const m of triggerErrors(state, t, refs, where)) err('bad_trigger', m);
+    if (t && t.id && typeof t.once !== 'boolean') err('bad_trigger', `trigger ${t.id}: once is true or false`); // tidy() fills it in
   };
   for (const p of arr(seeds.plans)) {
     if (!isActor(p.ownerId)) err('unresolved_actor', `plan owner ${p.ownerId} unknown`);
@@ -381,11 +386,52 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     else if (r?.type !== 'event_in_zone' && r?.type !== 'check_passed') err('bad_secret', `secret ${s.id}: revealWhen unknown`);
   }
 
+  // ---- SC1/SC2/SC3/SC7: a new scene's question, scale and endings ----
+  if (ctx.kind === 'scene' || (ctx.kind === 'checkin' && plan.scene)) {
+    // degradable: after the repair retry, a plan whose scene is still wrong is applied with the bad endings dropped
+    const serr = (code: string, message: string) => err(code, message, undefined, true);
+    const sc = plan.scene;
+    if (!sc || typeof sc !== 'object') serr('scene_missing', `scene: give the scene's question, scale and ${CONFIG.SCENE_ENDINGS_MIN} to ${CONFIG.SCENE_ENDINGS_MAX} endings`);
+    else {
+      if (typeof sc.question !== 'string' || !sc.question.trim()) serr('scene_question', 'scene.question: one line, the hidden question this scene turns on');
+      const scale = SCENE_SCALES.keyOf(sc.scale);
+      if (!scale) serr('scene_scale', `scene.scale must be one of ${SCENE_SCALES.list()}`);
+      else {
+        // SC3: the plan must fit its scale's space; code raises the scale to fit (a repair note, never blocking)
+        const fit = scaleFor(new Set(zones.map((z) => z?.place)).size, scale); // places that hold zones in this plan
+        if (fit !== scale) errs.push({ code: 'scene_scale_raised', message: `scene.scale ${scale} holds at most ${CONFIG.SCENE_SCALE[scale].places} place(s) with zones; raised to ${fit}`, routineOnly: false, repaired: true });
+        sc.scale = fit;
+      }
+      const ends = arr(sc.endings);
+      if (ends.length < CONFIG.SCENE_ENDINGS_MIN || ends.length > CONFIG.SCENE_ENDINGS_MAX) serr('scene_endings', `scene.endings: ${CONFIG.SCENE_ENDINGS_MIN} to ${CONFIG.SCENE_ENDINGS_MAX}, got ${ends.length}`);
+      ends.forEach((e, i) => {
+        const at = `scene.endings ${i}`;
+        if (!e || typeof e !== 'object') { serr('scene_ending', `${at}: not an ending`); return; }
+        if (!PLAN_ENDINGS.includes(e.as as never)) serr('scene_ending', `${at}: as must be one of ${PLAN_ENDINGS.join(', ')}`);
+        text(`${at} text`, e.text, false);
+        const w = e.when as EndCheck | undefined;
+        switch (w?.kind) {
+          case 'band_out': if (!isBand(w.band)) serr('scene_ending', `${at}: band ${w.band} unknown`); break;
+          case 'reach': case 'leave': if (!isPlace(w.place) && !isZone(w.place)) serr('scene_ending', `${at}: place ${w.place} unknown`); break;
+          case 'find': if (!isActor(w.actor)) serr('scene_ending', `${at}: actor ${w.actor} unknown`); break;
+          case 'hold': if (!lib.items?.[w.item]) serr('scene_ending', `${at}: item ${w.item} unknown`); break;
+          case 'deliver': if (!lib.items?.[w.item]) serr('scene_ending', `${at}: item ${w.item} unknown`); else if (!isActor(w.to)) serr('scene_ending', `${at}: actor ${w.to} unknown`); break;
+          case 'time': if (!TIME_OF_DAY.keyOf(w.at)) serr('scene_ending', `${at}: time must be one of ${TIME_OF_DAY.list()}`); break;
+          case 'judged': break;
+          default: serr('scene_ending', `${at}: when.kind must be one of band_out, reach, leave, find, hold, deliver, time, judged`);
+        }
+      });
+    }
+  }
+
   // ---- rewards: repaired, never blocking (loot L1) ----
   errs.push(...tidyRewards(state, plan).notes);
 
   return errs;
 }
+
+/** SC10: the endings a plan may name; worn out and broken off are code's own */
+const PLAN_ENDINGS = SCENE_ENDINGS.filter((e) => e !== 'worn_out' && e !== 'broken_off');
 
 type Reward = StagePlan['rewards'][number];
 
@@ -429,11 +475,13 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
     let item: Reward['item'];
     if (typeof r.item === 'string') {
       if (!known(r.item)) return note('reward_dropped', `${where}: item ${r.item} unknown`);
+      if (known(r.item)!.threadbound) return note('reward_dropped', `${where}: ${r.item} is a Threadbound item; the Weaver does not place those (D-220)`);
       item = r.item;
     } else {
       const m = r.item;
       const base = known(m?.base);
       if (!base) return note('reward_dropped', `${where}: base item ${m?.base} unknown`);
+      if (base.threadbound) return note('reward_dropped', `${where}: ${base.id} is one of a kind and cannot be minted`); // D-218
       const plain = mintLeft <= 0 ? 'the scene\'s minted cap is used up' : maxQ < 1 ? `a ${gain} gain allows no minted item`
         : badText(m.name) || badText(m.look) ? 'its name or look is too long or uses a hidden term' : '';
       if (plain) { note('reward_plain', `${where}: placed as a plain ${base.id}, because ${plain}`); item = base.id; }

@@ -5,7 +5,7 @@ import type { Library } from '../types';
 import { CONFIG } from '../config';
 import { CLASS_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
-import { MARGIN_BANDS, band, ladder, naturalEdge, stackType } from './index';
+import { MARGIN_BANDS, band, ladder, naturalEdge, pickSeconds, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
 import { tierMult } from './gear';
@@ -29,6 +29,7 @@ export type EquationGroup = { key: string; title: string; about: string; equatio
 const n = (x: number) => `${+x.toFixed(2)}`;
 const sg = (x: number) => `${x > 0 ? '+' : ''}${n(x)}`;
 const pct = (k: number) => `${n(k)}%`;
+const list = (o: Record<string, number>) => Object.entries(o).map(([k, v]) => `${k} ${sg(v)}`).join(' · ');
 const D100 = Array.from({ length: 100 }, (_, i) => i + 1);
 const W = () => CONFIG.SKILL_WEIGHT, NEED = () => CONFIG.ROLL_NEEDED;
 
@@ -72,17 +73,18 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [['d100', '1 to 100'], ['0.5', `CONFIG.SKILL_WEIGHT = ${n(W())}`], ['modifiers', 'all roll modifiers, each type stacked on its own (see the Stacking tab)'], [n(NEED()), `CONFIG.ROLL_NEEDED = ${n(NEED())}`]],
         notes: [`Example: d100 ${ex.d}, effective skill ${ex.eff}, no modifiers → margin ${n(exMargin)} → ${TIERS.name(TIERS.at(exLevel))}.`] },
       { name: 'Tier of a roll', at: 'band · naturalEdge · tierAt · src/ruleset/index.ts',
-        formula: 'tier = band of the margin + natural edge + tier shifts',
+        formula: 'tier = band of the margin + unlocked extra bands + natural edge + tier shifts',
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
         terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
-        notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).'] },
+        notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).',
+          `Unlocked extra bands (D-211): each tier past Critical Success a perk or achievement opens for this kind of roll (tierUnlocks) adds a band ${n(CONFIG.TIER_EXTRA_BAND)} wider past the end, so Critical Success+ is reached from margin ${n(MARGIN_BANDS[MARGIN_BANDS.length - 1] + CONFIG.TIER_EXTRA_BAND)} and Critical Success++ from ${n(MARGIN_BANDS[MARGIN_BANDS.length - 1] + 2 * CONFIG.TIER_EXTRA_BAND)}; each tier below Critical Failure opened adds one below ${n(MARGIN_BANDS[0] - CONFIG.TIER_EXTRA_BAND)}, and so on. Without an unlock the table above is the whole table.`] },
       { name: 'Chance by effective skill', at: 'computed with band and naturalEdge',
         formula: '% of d100 results that reach each tier, no modifiers',
         table: { head: ['Effective skill', 'Near Miss or better', 'Success or better', 'Great Success or better', 'Critical Success'],
           rows: [0, 20, 40, 50, 60, 80, 100].map((s) => [String(s), pct(chanceAtLeast(s, 'near_miss')), pct(chanceAtLeast(s, 'success')), pct(chanceAtLeast(s, 'great_success')), pct(chanceAtLeast(s, 'critical_success'))]) } },
       { name: 'Check (no roll)', at: 'check · src/ruleset/index.ts',
         formula: 'passes when effective skill + modifiers ≥ the scene\'s difficulty',
-        terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k} ${v}`).join(' · ')]],
+        terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k.replace('_', ' ')} ${v}`).join(' · ')]],
         notes: ['Modifiers add in full here, with no stacking.'] },
       { name: 'Contest', at: 'contested · src/ruleset/index.ts',
         formula: 'gap = tier of B − tier of A; the side with the higher tier wins, equal tiers tie' },
@@ -106,7 +108,12 @@ export function equations(lib: Library): EquationGroup[] {
         formula: `margin = d100 ${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'} ${Math.abs(CONFIG.EVENT_BASE - 100)} + modifiers`,
         terms: [[`${CONFIG.EVENT_BASE - 100 < 0 ? '−' : '+'}${Math.abs(CONFIG.EVENT_BASE - 100)}`, `event base ${CONFIG.EVENT_BASE} (CONFIG.EVENT_BASE) minus 100`], ['modifiers', 'perk, gear, achievement and status situation bonuses, stacked by type']],
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
-        notes: ['It reads the same tier table as a skill roll. The natural edge applies here too. There are no tier shifts.', `The tier stops at Critical Success and Critical Failure unless perks or achievements open tiers past them (tierUnlocks, added up along a chain). Each tier opened above widens the natural critical range by ${CONFIG.EVENT_CRIT_NATURALS} (CONFIG.EVENT_CRIT_NATURALS): with one opened, d100 ${101 - CONFIG.EVENT_CRIT_NATURALS}–100 is Critical Success+ and ${101 - 2 * CONFIG.EVENT_CRIT_NATURALS}–${100 - CONFIG.EVENT_CRIT_NATURALS} Critical Success; with two, the next ${CONFIG.EVENT_CRIT_NATURALS} below that is Critical Success too and the top tier is ++. Tiers opened below work the same from 01 up.`] },
+        notes: ['It reads the same tier table as a skill roll. The natural edge applies here too. There are no tier shifts.', `The tier stops at Critical Success and Critical Failure unless perks or achievements open tiers past them (tierUnlocks, added up along a chain). Each tier opened above widens the natural critical range by ${CONFIG.EVENT_CRIT_NATURALS} (CONFIG.EVENT_CRIT_NATURALS): with one opened, d100 ${101 - CONFIG.EVENT_CRIT_NATURALS}–100 is Critical Success+ and ${101 - 2 * CONFIG.EVENT_CRIT_NATURALS}–${100 - CONFIG.EVENT_CRIT_NATURALS} Critical Success; with two, the next ${CONFIG.EVENT_CRIT_NATURALS} below that is Critical Success too and the top tier is ++. Tiers opened below work the same from 01 up.`, 'Threadbound perks (D-218) widen it both ways without moving its middle: eventEdges shifts that many naturals just inside each critical range a tier outward; eventSpread counts the die that many times as far from 50.5 (modifiers unchanged); an armed active rolls two dice and keeps the one farther from 50.5, or makes 51–100 Critical Success and 01–50 Critical Failure.'] },
+      { name: 'Picking a lock', at: 'doPick · src/engine/resolve.ts; pickSeconds · src/ruleset/index.ts',
+        formula: `a Lockpicking function roll (Thievery; lockpicks in use add theirs) + the lock's grade; time = ${n(CONFIG.PICK_SECONDS_AT_50)} s × 2^((50 − effective) ÷ ${n(CONFIG.PICK_HALVING_PER)})`,
+        terms: [['grade', list(CONFIG.LOCK_GRADE_MOD)], ['effective', `the picker's effective Thievery with its tools${CONFIG.PICK_FAST_CAP === null ? '' : `, counted at most ${CONFIG.PICK_FAST_CAP} for the time (perks carry it further)`}`]],
+        table: { head: ['Effective skill', 'Time'], rows: [25, 50, 75, 100, 150, 200].map((k) => [String(k), `${n(pickSeconds(k))} s`]) },
+        notes: ['Success opens it once the time is done: out of a fight the time passes at once; in a fight each turn at it adds a fight turn of work. Near Miss: not yet, keep going. Failure: the lock is beyond the picker until its effective skill is higher than at that try. Critical Failure: the pick snaps and the lockpicks used are lost. Picking is a whisper (hushed).'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
         formula: `type total = biggest + ${n(CONFIG.STACK_RATIO)} × next + ${n(CONFIG.STACK_RATIO ** 2)} × next …, bonuses and penalties apart; types add in full`,
         notes: [`Example: three +10 of one type → ${n(stackType([10, 10, 10]))}.`] },
@@ -182,7 +189,7 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['Every Fall a Lesson (A Nobody, class level 20): losing a contest or a defended attack by exactly one tier step marks the owner\'s skill too, inside the window or not.'] },
       { name: 'Opposition', at: 'markUse · src/ruleset/improve.ts',
         formula: 'check → its difficulty · contest → the other side\'s true skill in the skill it rolled · attack → each side against the other\'s true skill',
-        terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k} ${v}`).join(' · ')]],
+        terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k.replace('_', ' ')} ${v}`).join(' · ')]],
         notes: ['When a stand-in makes the roll, the stand-in and the skill the action asked for each mark, each against its own window.',
           'Stealth and ambush contests mark the watcher\'s sight or hearing skill (the one that rolled) as well as the sneaker\'s skill.'] },
       { name: 'Augmenting skills', at: 'markAugments · src/ruleset/improve.ts',

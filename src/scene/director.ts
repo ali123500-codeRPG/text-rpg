@@ -2,7 +2,8 @@
 // extensions held in memory per frontier, crossing (waits for a late extension), saved-zone re-entry.
 // The pipeline (W7) injects `weave`, which wraps the real Agent Weaver call and logs it.
 import { noteLeft } from '../engine/trail';
-import type { Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView } from '../types';
+import { noteCrossing } from '../engine/chase';
+import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView } from '../types';
 import { CONFIG } from '../config';
 import { ruleset } from '../ruleset';
 import { buildWeaverView } from '../views';
@@ -15,6 +16,9 @@ import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
 /** one Agent Weaver call. `errors` set = the repair retry. null = the call failed. */
 /** `errors` and `rejected` set = the repair retry: the validator's errors and the plan they belong to (V11). */
 export type Weave = (view: WeaverView, errors?: PlanError[], rejected?: StagePlan) => Promise<StagePlan | null>;
+
+/** SC8: one Weaver check-in call about the running scene. null = the call failed. */
+export type CheckIn = (view: WeaverView) => Promise<CheckinAnswer | null>;
 
 export type SceneOutcome = 'applied' | 'degraded' | 'fallback' | 'loaded';
 export type SceneResult = {
@@ -36,27 +40,56 @@ export class SceneDirector {
   /** background extensions, keyed by frontier; held for the rest of the scene, never saved */
   private held = new Map<string, Held>();
   lastEventRoll: EventRollResult | null = null;
+  /** SC8: the check-in in flight, for the scene numbered `number`; never saved (a reload drops it) */
+  private checkin: { number: number; done: boolean; answer: CheckinAnswer | null } | null = null;
 
-  constructor(private readonly opts: { weave: Weave; clock: Clock }) {}
+  constructor(private readonly opts: { weave: Weave; clock: Clock; checkin?: CheckIn }) {}
+
+  /** SC8: after a save, start the check-in the last turn asked for, in the background. Returns whether one started. */
+  startCheckin(state: GameState): boolean {
+    const st = state.stage, f = st.scene, reason = st.checkinDue;
+    if (!reason || !f || !this.opts.checkin || this.checkin) return false;
+    delete st.checkinDue;
+    f.checkins = (f.checkins ?? 0) + 1;
+    f.lastCheckin = state.turn;
+    const view = buildWeaverView(state, { kind: 'checkin', placeId: state.player.placeId, reason });
+    const c: { number: number; done: boolean; answer: CheckinAnswer | null } = { number: f.number, done: false, answer: null };
+    this.checkin = c;
+    this.opts.checkin(view).then((a) => { c.answer = a; }, () => { c.answer = null; }).finally(() => { c.done = true; });
+    return true;
+  }
+
+  /** SC8: the check-in's answer once it is back, taken once (null: none back yet) */
+  takeCheckin(): { number: number; answer: CheckinAnswer | null } | null {
+    const c = this.checkin;
+    if (!c?.done) return null;
+    this.checkin = null;
+    return { number: c.number, answer: c.answer };
+  }
 
   heldKeys(): string[] {
     return [...this.held.keys()];
   }
 
-  /** Scene setup (steps 1–8 minus the save): one event roll, one Weaver call (+ one repair), apply or fallback. */
-  async startScene(state: GameState, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
+  /** Scene setup (steps 1–8 minus the save): one event roll, one Weaver call (+ one repair), apply or fallback.
+   * frontierKey (CH3 a): free roam crossed an unbuilt frontier; the scene's opening plan builds the ground beyond it. */
+  async startScene(state: GameState, rng: Rng, entry: 'open' | 'stealthy' = 'open', frontierKey?: string): Promise<SceneResult> {
     const placeId = state.player.placeId; // step 1
     ensurePlace(state, placeId);
     const eventRoll = state.stage.encounter?.eventRoll ?? ruleset.eventRoll(state.player, state, rng); // step 2; TV4: an encounter's roll was made on the road
     this.lastEventRoll = eventRoll;
     this.held.clear();
     const wake = state.stage.breakCause === 'knocked_out'; // D-54
+    const label = frontierKey ? zoneById(state, state.player.zone)?.links.find((l) => l.to === frontierKey)?.label : undefined;
     beginScene(state, eventRoll.tier, eventRoll.beyond);
-    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) };
+    const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
     // GAP: WEAVER_TIMEOUT bounds the whole scene-start wait (first call and repair together).
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    const planned = await this.plan(state, ctx, { kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}) }, deadline);
-    return { ...this.finish(state, ctx, planned, rng, entry), eventRoll };
+    const target: WeaverView['target'] = { kind: 'scene', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
+    const planned = await this.plan(state, ctx, target, deadline);
+    const res = { ...this.finish(state, ctx, planned, rng, entry), eventRoll };
+    if (frontierKey && entry === 'stealthy') stealthyArrival(state, rng);
+    return res;
   }
 
   /** Story start: setup alone, as turn 0; returns the opening events (also pushed to state.events). The pipeline saves turn 0 and makes the one Narrator call. */
@@ -68,9 +101,12 @@ export class SceneDirector {
     return { ...r, events };
   }
 
-  /** After a turn is saved: start one background Weaver call per unbuilt frontier linked from the player's zone. Returns the frontier keys started. */
+  /** After a turn is saved: start one background Weaver call per unbuilt frontier linked from the player's zone. Returns the frontier keys started.
+   * None in free roam (SD2 a): no scene runs, so crossing one starts a scene of its own (CH3 a). */
   afterSave(state: GameState): string[] {
     const started: string[] = [];
+    this.startCheckin(state);
+    if (state.stage.roam) return started;
     for (const key of frontiersNearPlayer(state)) {
       if (this.held.has(key)) continue;
       this.held.set(key, this.extension(state, key));
@@ -79,11 +115,13 @@ export class SceneDirector {
     return started;
   }
 
-  /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no event roll. */
+  /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no event roll.
+   * In free roam an unbuilt frontier starts a new scene there instead, with its own event roll (CH3 a: eventRoll is set). */
   async cross(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<SceneResult> {
     const from = state.player.zone;
-    const res = await this.crossTo(state, key, rng, entry);
+    const res = state.stage.roam && !isSavedZone(state, key) ? await this.startScene(state, rng, entry, key) : await this.crossTo(state, key, rng, entry);
     noteLeft(state, from); // the trail: "go back" leads to the zone the frontier was crossed from
+    if (state.player.zone !== from) noteCrossing(state, from, state.player.zone); // CH6: pursuers who saw it follow
     return res;
   }
 

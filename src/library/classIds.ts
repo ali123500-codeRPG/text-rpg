@@ -3,5 +3,6 @@
 // Never reuse or renumber an ID; a new class takes the next free number.
 export const CL = {
   swordsman: 'CL1', late_bloomer: 'CL2', sword_dancer: 'CL3', commoner: 'CL4', a_nobody: 'CL5', trader: 'CL6', merchant: 'CL7', guard: 'CL8',
+  threadbounded: 'CL9', // the Threadbounded class (TB7): the class of The Threadbound start; not the item kind
 } as const;
 export type ClassId = (typeof CL)[keyof typeof CL];

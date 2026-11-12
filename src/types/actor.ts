@@ -92,13 +92,15 @@ export type ClassEntry = {
 
 export type OwnedPerk = {
   perkId: LibraryRef;
-  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link'; // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
+  source: 'level' | 'mastery' | 'race' | 'template' | 'class' | 'achievement' | 'link' | 'item'; // 'item': granted by a worn Threadbound item (D-218) // 'class': a class-level perk (ClassDef.levelPerks); 'race': innate, from the race's innatePerks / innateQuirks; 'template': the NPC template's perks
   gainedTurn: Turn;
   treeId?: LibraryRef;
   tier?: 50 | 100 | 150;
   dormant?: boolean;
   /** a linked perk of kind 'merge' replaced this one (it is dormant until the merge no longer holds) */
   mergedInto?: LibraryRef;
+  /** TB7: the Threadbound item (library id) this perk already gave; grantsThreadboundItem gives only once */
+  granted?: LibraryRef;
 };
 
 export type SavedCondition = {
@@ -180,6 +182,8 @@ export type NpcTemplate = {
   fallback?: { attackSkill: LibraryRef }; // overrides the body type's (Fallback behavior)
   /** perks every NPC made from this template has (any patrolling template has Keen Ear) */
   perks?: LibraryRef[];
+  /** CH5: how far NPCs made from it chase the player when their band names no range */
+  chase?: import('../scales').ChaseRange;
 };
 
 export type Journal = {

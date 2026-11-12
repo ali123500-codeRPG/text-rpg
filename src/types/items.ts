@@ -34,6 +34,9 @@ export type ItemDef = {
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
   base?: { itemId: LibraryRef; quality: 1 | 2 | 3 | 4; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
+  /** D-218 Threadbound item: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each
+   * grant's perk is theirs once they have earned its achievement (src/ruleset/threadboundItems.ts) */
+  threadbound?: { rank: import('../scales').ThreadboundRankKey; grants: { perk: LibraryRef; achievement: string }[] }; // rank: TB11, its Rank (THREADBOUND_RANKS)
 };
 
 export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';
@@ -76,10 +79,14 @@ export type ItemInstance = {
   qty?: number;
   equippedIn?: string[]; // 'hand:<gripPartId>' | 'armor' | 'acc:<n>'; absent = carried (stowed)
   pools?: Record<string, number>; // % left: 'shield', or a covered part id
+  opens?: string[]; // BA3: a key: the barriers (GameState.barriers ids) it locks and unlocks
+  boundTo?: string; // D-218: a Threadbound item's owner (actor id)
+  armed?: LibraryRef; // D-218: the active ability (perk id) waiting for the owner's next event roll
+  usedAt?: Record<string, number>; // D-218: game minute each active ability was last used, by perk id
 };
 
 export type GearOp = {
-  op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up';
+  op: 'draw' | 'stow' | 'swap' | 'wear_acc' | 'remove_acc' | 'pick_up' | 'summon'; // summon: TB6, the player's own Threadbound item, from wherever it is
   item: string; // item instance id
   from?: string; // actor id (pick up from a downed actor) ; absent = ground
 };

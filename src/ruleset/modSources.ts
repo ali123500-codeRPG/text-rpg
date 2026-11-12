@@ -98,6 +98,7 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
   { type: 'situational', roll: 'skill', source: 'Scene difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scene\'s difficulty.',
     value: list(Object.fromEntries(Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => [k, CONFIG.DIFFICULTY.moderate - v]))) },
+  { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Lockpicking rolls (BA2): the lock\'s grade.', value: list(CONFIG.LOCK_GRADE_MOD) },
   { type: 'situational', roll: 'skill', source: 'Repeat try', at: 'src/ruleset/pressure.ts',
     when: 'Persuading, lying, threatening or haggling again at the same listener in one engagement (plain talk never counts).', value: `−${CONFIG.REPEAT_TRY} × earlier tries` },
   // status

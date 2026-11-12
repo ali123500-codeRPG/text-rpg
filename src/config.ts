@@ -32,7 +32,11 @@ const DEFAULTS = {
   EVENT_BASE: 50,
   /** event rolls: naturals per tier opened past Critical (tierUnlocks); each opened tier widens the natural critical range by this many */
   EVENT_CRIT_NATURALS: 5,
-  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80 } as Record<string, number>,
+  /** D-211: width of each extra margin band a tier unlock opens past either end of the skill-roll table */
+  TIER_EXTRA_BAND: 50,
+  /** task grades: the skill that just manages a task (D-7 placeholders). mortal_limit and up are tasks past what a human
+   * body can do (CR4); they are challenge rows only (CR12): no gain, lock or Weaver use until D-219 says when they apply */
+  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, divine: 300 } as Record<string, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
   /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … */
@@ -238,6 +242,31 @@ const DEFAULTS = {
     tool: [5, 10, 15, 20],
   },
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scene
+  /** SC2 levers per scene scale (placeholders), keyed by SCENE_SCALES key: the turn budget (fight turns excluded) or, for
+   * the biggest, a budget in game days; and how many places a plan of that scale may hold (code raises the scale to fit) */
+  SCENE_SCALE: {
+    moment: { budgetTurns: 12, places: 1 },
+    situation: { budgetTurns: 40, places: 2 },
+    episode: { budgetTurns: 120, places: 4 },
+    venture: { budgetDays: 3, places: Infinity },
+  } as Record<string, { budgetTurns?: number; budgetDays?: number; places: number }>,
+  /** SC4: scales from this one up hold smaller scenes inside them, one level deep */
+  SCENE_HOLDS_FROM: 'episode',
+  /** SC7: how many endings a scene plan lists */
+  SCENE_ENDINGS_MIN: 2,
+  SCENE_ENDINGS_MAX: 3,
+  /** SC6: scene records kept in the save, and how many the next Weaver gets */
+  SCENE_RECORDS_SAVED: 30,
+  SCENE_RECORDS_SHOWN: 5,
+  /** SC8 Weaver check-ins (placeholders): at least this many turns apart, and at most this many per scene (/stuck excepted) */
+  CHECKIN_GAP_TURNS: 5,
+  CHECKIN_MAX_PER_SCENE: 6,
+  /** SC12: at this many times its budget, code ends the scene as worn out (after any fight or chase) and files a bug */
+  SCENE_OVERRUN_MULT: 2,
+  /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
+  CHASE_LOST_TURNS: 3,
+  /** CH5: the chase range of a code-run NPC whose band and template give none (a CHASE_RANGES key; placeholder) */
+  CHASE_RANGE_DEFAULT: 'ground',
   IMPROVISED_HIT_ADJ: -10,
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,
@@ -278,6 +307,25 @@ const DEFAULTS = {
   /** ZP2 how far into a zone a move to it walks past the doorway (a step clear of the door); BG-12 a move to a spot by a
    * wall or a way out stops this far inside it */
   ENTER_M: 1,
+  /** SD7 fall damage (placeholders): flat damage by drop, landing on a leg, so tough characters power through. Each band
+   * applies above its metres (real falls: little harm up to about 2 m, serious from about 6 m, often deadly from 10 m) */
+  // scaling: the bands go on to about terminal speed (most of a body's falling speed is reached by about
+  // 50 m), so a tower jump hurts more than a roof jump; past the last band the damage stays (placeholders)
+  FALL_BANDS: [{ over: 2, damage: 15 }, { over: 5, damage: 40 }, { over: 9, damage: 80 }, { over: 15, damage: 120 }, { over: 30, damage: 160 }, { over: 50, damage: 200 }] as { over: number; damage: number }[],
+  /** SD7: the Dodge roll on landing moves the fall this many bands (by tier key; a tier past either end uses the end's row) */
+  FALL_LANDING_STEP: { critical_failure: 1, failure: 1, near_miss: 0, success: 0, great_success: -1, critical_success: -1 } as Record<string, number>,
+  /** scaling: each tier a landing goes past Critical Success (Critical Success+, ++) moves the fall this
+   * many more bands lighter, so a supernatural dodger can land a tower jump unhurt (past Critical Failure: its own row) */
+  FALL_LANDING_PAST_STEP: 1,
+  /** BA2: a Lockpicking roll's modifier by the lock's grade (placeholders); master or magic locks would add grades past extreme */
+  LOCK_GRADE_MOD: { none: 0, minor: -10, moderate: -20, major: -35, extreme: -50 } as Record<string, number>,
+  /** BA2: seconds to pick a lock at effective skill 50 (about a minute for a common lock, placeholder), halved for every
+   * PICK_HALVING_PER points above 50 and doubled for every PICK_HALVING_PER below */
+  PICK_SECONDS_AT_50: 60,
+  PICK_HALVING_PER: 25,
+  /** scaling: picking keeps halving forever (150: about 4 s, 200: about 1 s, so supernatural fingers open locks at a touch);
+   * a number stops the halving at that skill instead */
+  PICK_FAST_CAP: null as number | null,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
    * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");

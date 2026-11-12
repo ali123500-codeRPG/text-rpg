@@ -57,6 +57,7 @@ export function toPages(state: GameState): Pages {
     ...(s.recentEvents?.length ? { recentEvents: s.recentEvents } : {}),
     ...(s.spars?.length ? { spars: s.spars } : {}),
     ...(s.yielding ? { yielding: s.yielding } : {}),
+    ...(s.barriers && Object.keys(s.barriers).length ? { barriers: s.barriers } : {}),
     order: { actors: [s.player, ...s.actors].map((a) => a.id), places: s.places.map((p) => p.id) },
   };
   const hidden: HiddenPage = { storyId: s.storyId, ...s.hidden };
@@ -88,12 +89,12 @@ export function fromPages(meta: StoryMeta, head: Head, pages: Pages): GameState 
     .sort((a, b) => a[0].turn - b[0].turn || a[1] - b[1]).map(([f]) => f);
   const zoneById = new Map(places.flatMap((pl) => pl.zones.map((z) => [z.id, z] as const)));
   const player = actors.find((a) => a.kind === 'player')!;
-  const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, sceneCaps, clocks, flags, bands, quests, recentEvents, spars, yielding } = engine;
+  const { order: _o, storyId: _e, turn, mode, rngSeed, rngState, pending, stage, sceneCaps, clocks, flags, bands, quests, recentEvents, spars, yielding, barriers } = engine;
   return {
     storyId: meta.storyId, turn, mode,
     zones: stage.zoneIds.map((id) => zoneById.get(id)!).filter(Boolean),
     player, actors: actors.filter((a) => a !== player), bands,
-    hidden, events: [], agentLog: [], log: [], ...(recentEvents ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}),
+    hidden, events: [], agentLog: [], log: [], ...(recentEvents ? { recentEvents } : {}), ...(spars?.length ? { spars } : {}), ...(yielding ? { yielding } : {}), ...(barriers ? { barriers } : {}),
     rngSeed, rngState, pending, places, facts, stage, sceneCaps, clocks, flags, quests,
     settings: structuredClone(meta.settings), libraryVersion: head.libraryVersion,
     blueprints: of<BlueprintPage>('blueprint.'), meta: structuredClone(meta),

@@ -151,6 +151,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     lines: () => lines,
     notices: () => notices,
     busy: () => busy,
+    sceneEnding: () => null,
     fell: () => fell,
     subscribe(cb) { subs.add(cb); return () => subs.delete(cb); },
     validateBuild: validateBuildLocal,
@@ -168,7 +169,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     async agentMove(_persona, _style, guided) {
       if (guided?.answered) return { command: 'I talk to the barkeep.', say: 'Okay, your way!' };
       if (guided && (guided.mustAsk || ++asks % 2)) return { command: '', say: 'The barkeep offers a job: clear the cellar for 5 silver. Take it?', ask: { kind: guided.mustAsk?.kind ?? 'deal', about: `the barkeep ${asks}`, choices: ['I take the job.', 'I turn it down.', 'I ask for more.'], pick: 0 } };
-      return { command: 'I look around.', say: 'Getting my bearings first.' };
+      return { command: 'I look around.', say: '<sigh> Getting my bearings first.', direction: 'calm, a little curious' };
     },
     async submit(text, o) {
       if (busy || !state) return;
@@ -205,6 +206,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
+    endScene() {},
     calls: () => n * 3 + 4,
     working: () => [],
     gm(): GmSnapshot { return { state, agentLog: state?.agentLog ?? [], log: state?.log ?? [], fallbackBanner: !!state?.stage.fallback, backups: state ? [{ turn: 0, path: 'stories/fake/backups/0' }] : [] }; },

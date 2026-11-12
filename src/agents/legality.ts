@@ -111,7 +111,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   }
   if (out.gear) {
     out.gear = out.gear.filter((op) => {
-      const ok = op.op === 'pick_up'
+      const ok = op.op === 'summon' ? !!view.player.summonable?.some((x) => x.id === op.item) : op.op === 'pick_up'
         ? ground.has(op.item) || (!!op.from && actors.has(op.from) && view.actors.find((x) => x.id === op.from)!.gear.some((g) => g.id === op.item))
         : own.some((i) => i.id === op.item);
       if (!ok) gearErrors.push(`gear ${op.op} ${op.item}`);

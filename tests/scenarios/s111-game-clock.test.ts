@@ -32,13 +32,13 @@ describe('111 game clock', () => {
     turn(s, act('barter'));
     expect(now(s) - t0).toBe(11);
   });
-  it('waiting until dawn moves the clock to dawn, breaks the scene and shows a line; a hostile in the zone blocks it', () => {
+  it('waiting until dawn moves the clock to dawn and shows a line, never ending the scene (SC9); a hostile in the zone blocks it', () => {
     const s = makeVillage();
     startClock(s, 'dusk');
     const ev = turn(s, act('wait', 'dawn'));
     expect(timeOfDay(now(s))).toBe('dawn');
     expect(timeView(s)).toEqual({ day: 2, timeOfDay: 'Dawn' });
-    expect(s.stage.breakCause).toBe('time_skip');
+    expect(s.stage.breakCause).toBeUndefined();
     expect(mechanicsLines(s, ev)).toContain('Time passes: 11 h (Day 2 · Dawn)');
     // Q2: waiting until the time of day it already is moves nothing
     const at = now(s);
