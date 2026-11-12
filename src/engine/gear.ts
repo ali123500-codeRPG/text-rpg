@@ -5,6 +5,7 @@ import { CONFIG } from '../config';
 import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
+import { working } from '../ruleset/body';
 import { actorById, isActive, zoneById } from './relations';
 import { summon } from '../ruleset/threadboundItems';
 import { freeAccSlot } from '../ruleset/gear';
@@ -14,7 +15,7 @@ export function gripParts(state: GameState, actor: Actor): string[] {
 }
 
 function usableFreeHands(state: GameState, actor: Actor): string[] {
-  const bad = new Set(partStates(state, actor).filter((p) => p.state === 'Crippled' || p.state === 'Destroyed').map((p) => p.id));
+  const bad = new Set(partStates(state, actor).filter((p) => !working(p.state)).map((p) => p.id));
   const held = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
   return gripParts(state, actor).filter((p) => !bad.has(p) && !held.has(`hand:${p}`)).map((p) => `hand:${p}`);
 }

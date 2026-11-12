@@ -3,13 +3,13 @@
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
-  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, PlannerOutput, Rng, TurnRecord, Actor,
+  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor,
 } from '../types';
 import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type ScenarioEndNote } from '../types';
 import { pendingEnding } from '../engine/scenarioEnd';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
-import { TIME_OF_DAY, type TimeOfDay } from '../scales';
+import { HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
 import { createRng } from '../rng';
 import * as engine from '../engine';
 import { hasAgenda } from '../engine/relations';
@@ -18,7 +18,6 @@ import * as views from '../views';
 import * as save from '../save';
 import type { Store } from '../save';
 import { actorBody, getLibrary, itemDef } from '../library';
-import { PART_STATES } from '../ruleset/body';
 import { actorById, zoneById } from '../engine/relations';
 import { skillName } from '../library/skillNames';
 import { createPlayer, refreshCopies, validateBuild } from '../library/spawn';
@@ -441,7 +440,7 @@ export function createGame(deps: GameDeps): Game {
         const skills = sheet.map(([k, v]) => `${skillName(k)} ${v.raw}${v.state === 'tagged' ? TAG_MARK : v.state === 'flawed' ? '−' : ''}`);
         const off = usedOffSheet(p).map((k) => `${skillName(k)} 0`); // rolled but not on the sheet yet, e.g. fists use Strike
         const key = [sheet.some(([, v]) => v.state === 'tagged') ? `${TAG_MARK} tagged` : '', sheet.some(([, v]) => v.state === 'flawed') ? '− flawed' : ''].filter(Boolean).join(', ');
-        return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${safeHealth(p)}. Skills: ${skills.join(', ')}.`
+        return say(`${p.names.current}, ${p.core.classes.map((c) => `${getLibrary().classes[c.classId]?.name ?? c.classId} ${c.level}`).join(', ')}. Health: ${healthWord(p)}. Skills: ${skills.join(', ')}.`
           + (off.length ? ` Also used, not on your sheet yet: ${off.join(', ')}.` : '') + (key ? ` (${key})` : ''));
       }
       case 'inv':
@@ -620,7 +619,7 @@ export function createGame(deps: GameDeps): Game {
     },
     busy: () => busy,
     scenarioEnding: () => endingNow,
-    fell: () => !!state && isDownLevel(safeHealth(state.player)),
+    fell: () => !!state && downNow(state.player),
     subscribe(cb) {
       subs.add(cb);
       return () => subs.delete(cb);
@@ -658,7 +657,7 @@ export function createGame(deps: GameDeps): Game {
         // D-73: archive, so a reload starts fresh instead of loading the old story again
         const at = new Date(clock.now()).toISOString();
         // hall of fame: a character archived while down is kept as they fell
-        await save.archiveStory(store, state.storyId, at, isDownLevel(safeHealth(state.player)) ? fameEntry(state, lines, placeName(state), at) : undefined);
+        await save.archiveStory(store, state.storyId, at, downNow(state.player) ? fameEntry(state, lines, placeName(state), at) : undefined);
         await save.releaseTurnLock(store, state.storyId, owner).catch(() => {});
       }
       state = null;
@@ -800,13 +799,15 @@ function knownNames(s: GameState): string[] {
     .concat(s.places.map((p) => p.names.current));
 }
 
-function safeHealth(a: Actor): string {
+function safeHealth(a: Actor): HealthLevel | undefined {
   try {
     return healthLevel(a);
   } catch {
-    return 'unknown';
+    return undefined;
   }
 }
+const downNow = (a: Actor) => { const l = safeHealth(a); return !!l && isDownLevel(l); };
+const healthWord = (a: Actor) => { const l = safeHealth(a); return l ? HEALTH_LEVELS.name(l) : 'unknown'; };
 function nameOf(s: GameState, itemId: string): string {
   try {
     return itemDef(s, itemId).name;
@@ -845,9 +846,9 @@ export function turnNotes(s: GameState): Pick<LogLine, 'heals' | 'unlocks' | 'ga
 }
 
 /** body parts whose state got worse between two snapshots, worst first in body order (M-30) */
-export function partsWorse(before: { id: string; state: PartState }[], after: { id: string; state: PartState }[]): { id: string; from: string; to: string }[] {
+export function partsWorse(before: { id: string; state: PartState }[], after: { id: string; state: PartState }[]): { id: string; from: PartState; to: PartState }[] {
   const was = new Map(before.map((p) => [p.id, p.state]));
-  return after.filter((p) => was.has(p.id) && PART_STATES.indexOf(p.state) > PART_STATES.indexOf(was.get(p.id)!))
+  return after.filter((p) => was.has(p.id) && PART_STATES.pos(p.state) > PART_STATES.pos(was.get(p.id)!))
     .map((p) => ({ id: p.id, from: was.get(p.id)!, to: p.state }));
 }
 
@@ -939,7 +940,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
   }
   if (incoming.length) out.incomingChecks = incoming;
   // the turn left the player down: name the last blow that hurt them (only hits lower health), as they perceived it
-  if (s.player.id === 'player' && isDownLevel(safeHealth(s.player))) {
+  if (s.player.id === 'player' && downNow(s.player)) {
     const hit = [...events].reverse().find((e) => e.attack && e.attack.targetId === 'player' && e.attack.damage > 0);
     if (hit?.attack) {
       const pk = nv.events.find((x) => x.id === hit.id)?.packet;
@@ -1029,9 +1030,10 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
   // H11: healing; the look is the designer's (plain text for now)
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'healed') continue;
-    const d = l.detail as { actorId: string; source: string; from: string; to: string; parts: { id: string; from: string; to: string }[]; better?: boolean };
+    const d = l.detail as HealNote & { actorId: string };
     if (d.actorId !== s.player.id) continue;
-    const bits = [...(d.from !== d.to ? [`${d.from} → ${d.to}`] : []), ...d.parts.map((p) => `${p.id.replace(/_/g, ' ')} ${p.from} → ${p.to}`)];
+    const H = HEALTH_LEVELS.name, P = PART_STATES.name;
+    const bits = [...(d.from !== d.to ? [`${H(d.from)} → ${H(d.to)}`] : []), ...d.parts.map((p) => `${p.id.replace(/_/g, ' ')} ${P(p.from)} → ${P(p.to)}`)];
     out.push(`${engine.healingName(d.source)}: ${bits.length ? bits.join(', ') : d.better ? 'a little better' : 'no change'}`);
   }
   // a healing item the rules refuse says why, and stays in the pack (Q3)

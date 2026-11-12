@@ -12,8 +12,7 @@ import { dayOf, now } from '../time';
 import { actorById, allActors, atLeast, hostile, isActive, stance, warm } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
 import { power, tally } from './xp';
-
-const atLeastCritical = () => CONFIG.HEALTH_TRACK.findIndex(([l]) => l === 'Critical');
+import { HEALTH_LEVELS } from '../scales';
 
 /** every turn, after the turn's events: zones and days, then the fight log */
 export function turnFeats(state: GameState, events: GameEvent[]): void {
@@ -61,7 +60,7 @@ function stateFeats(state: GameState, events: GameEvent[]): void {
   const crippled = (pr.crippled ??= []);
   for (const x of parts) {
     if (!working(x.state)) { if (!crippled.includes(x.id)) crippled.push(x.id); }
-    else if (x.state === 'Healthy' && crippled.includes(x.id)) { crippled.splice(crippled.indexOf(x.id), 1); tally(state, 'mended'); }
+    else if (x.state === 'healthy' && crippled.includes(x.id)) { crippled.splice(crippled.indexOf(x.id), 1); tally(state, 'mended'); }
   }
   if (!isActive(p)) pr.wasDown = true;
   else if (pr.wasDown && p.core.condition.hpLostPct === 0) { delete pr.wasDown; tally(state, 'back_from_down'); }
@@ -101,7 +100,7 @@ function logFight(state: GameState, events: GameEvent[]): void {
   const allies = allActors(state).filter((x) => besidePlayer(state, x));
   if (allies.length) f.helped = true;
   if (allies.length && foes.length > allies.length + 1) f.heldLine = true; // the foes outnumber your whole side
-  if (CONFIG.HEALTH_TRACK.findIndex(([l]) => l === healthLevel(p)) >= atLeastCritical()) f.brink = true;
+  if (HEALTH_LEVELS.pos(healthLevel(p)) >= HEALTH_LEVELS.pos('critical')) f.brink = true;
   if (moraleLevel(p) === 'broken') f.broke = true;
   // D-177: the strongest hostile foe, against the player's own power (the same power defeat XP uses)
   const mine = power(state, p);

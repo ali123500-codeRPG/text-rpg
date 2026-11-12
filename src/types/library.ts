@@ -5,7 +5,7 @@ import type { NpcTemplate } from './actor';
 import type { ActivityDef, Routine, RoutineSet } from './hidden';
 import type { EntryStatus } from './state';
 import type { FN, GR } from '../library/functionIds';
-import type { PartStateKey, SkillTierKey } from '../scales';
+import type { HealthLevelKey, PartStateKey, SkillTierKey } from '../scales';
 
 /** F1–F8: a skill lists one or more narrow functions; stand-ins read them. Each function belongs to one
  * broad group (FUNCTION_GROUP, src/library/functionNames.ts); the 40 perk's +1 and the XP category read the group. */
@@ -273,11 +273,11 @@ export type ComposureDef = {
 
 /** MB21–MB28: something that costs morale (a negative cost restores it). `rolled`: the morale roll's tier scales the cost
  * (MORALE_TIER_MULT); otherwise it is flat (× `perTier` the contest's tier gap for a lost speech roll).
- * `health`: the health-level positions (HEALTH_TRACK names) that set it off; perks and achievements move `from` with fearFrom. */
+ * `health`: the HEALTH_LEVELS keys that set it off; perks and achievements move `from` with fearFrom. */
 /** part: a PART_STATES key; the fear fires when one of the actor's body parts reaches that state or worse from a better one.
  * partCost: its cost per part by the part's impact, for a body of refParts parts; a body with more parts pays less per part
  * (cost × refParts ÷ the body's part count). One roll per hit pays the sum for every part the hit took there. */
-export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; health?: { from: string; to: string }; part?: string;
+export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; health?: { from: HealthLevelKey; to: HealthLevelKey }; part?: PartStateKey;
   partCost?: Record<ImpactId, number>; refParts?: number;
   /** reads another part fear's partCost and refParts by reference, × mult, so editing that row changes this one too */
   partCostOf?: { fear: string; mult: number } };

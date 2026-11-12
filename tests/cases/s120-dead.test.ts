@@ -19,18 +19,18 @@ describe('120 dead', () => {
       multiplier: 1, deciding: { attack: [], defense: [], gap: [] }, attackerId: 'player', targetId: 'guard_1', weaponId: IT.arming_sword, modeId: AM.cut };
     ruleset.applyEffects({ ...hit, location: 'general', damage: 10 }, s);
     expect(g.core.condition.hpLostPct).toBeGreaterThan(100);
-    expect(healthLevel(g)).toBe('Incapacitated');
+    expect(healthLevel(g)).toBe('incapacitated');
     ruleset.applyEffects({ ...hit, location: 'general', damage: 10000 }, s);
     expect(g.core.condition.hpLostPct).toBe(CONFIG.HP_LOST_MAX);
-    expect(healthLevel(g)).toBe('Dead');
+    expect(healthLevel(g)).toBe('dead');
     expect(isActive(g)).toBe(false);
-    expect(isDownLevel('Dead') && isDownLevel('Incapacitated') && !isDownLevel('Critical')).toBe(true);
+    expect(isDownLevel('dead') && isDownLevel('incapacitated') && !isDownLevel('critical')).toBe(true);
   });
   it('the UI never shows Dead, and nothing heals the dead', () => {
     const s = makeVillage();
-    expect(SHOWN_LEVELS().map(([l]) => l)).not.toContain('Dead');
+    expect(SHOWN_LEVELS().map(([l]) => l)).not.toContain('dead');
     expect(SHOWN_LEVELS()).toHaveLength(8);
-    expect(shownLevel('Dead')).toBe('Incapacitated');
+    expect(shownLevel('dead')).toBe('incapacitated');
     s.player.core.condition.hpLostPct = CONFIG.HP_LOST_MAX;
     expect(wouldHeal(s, s.player, HL.clinic)).toBe(false);
     expect(applyHealing(s, s.player, HL.clinic)).toBe(false);
@@ -45,7 +45,7 @@ describe('120 dead', () => {
     clinic.revivesDead = true;
     try {
       expect(applyHealing(s, s.player, HL.clinic)).toBe(true);
-      expect(healthLevel(s.player)).not.toBe('Dead');
+      expect(healthLevel(s.player)).not.toBe('dead');
     } finally { clinic.revivesDead = false; }
   });
 });

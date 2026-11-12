@@ -25,6 +25,6 @@ describe('health lost is written only where healing is counted', () => {
   it('resolve.ts sets it only for the survival roll', () => {
     const lines = readFileSync('src/engine/resolve.ts', 'utf8').split('\n').filter((l: string) => /hpLostPct\s*(=[^=]|-=)/.test(l));
     expect(lines.length).toBe(1);
-    expect(lines[0]).toContain("'Critical'");
+    expect(lines[0]).toContain("'critical'");
   });
 });

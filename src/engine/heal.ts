@@ -69,7 +69,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   if (!src) return false;
   const c = a.core.condition;
   const level = healthLevel(a);
-  if (level === 'Dead' && !src.revivesDead) return false; // no row heals the dead for now
+  if (level === 'dead' && !src.revivesDead) return false; // no row heals the dead for now
   const before = partStates(state, a);
   const lost = c.hpLostPct;
   const extra = sourceId === HL.rest ? bestReward(a, 'restPct')?.value ?? 0 : 0; // an achievement reward: + % on each rest
@@ -78,7 +78,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   const changed: { id: string; from: string; to: string }[] = [];
   let healed = false;
   for (const p of before) {
-    if (!(p.id in c.parts) || PART_STATES.pos(PART_STATES.keyOf(p.state)!) > reach) continue;
+    if (!(p.id in c.parts) || PART_STATES.pos(p.state) > reach) continue;
     const pct = c.parts[p.id];
     c.parts[p.id] = Math.min(100, Math.max(0, pct) + (opts.pct ?? src.partPct + extra));
     healed ||= c.parts[p.id] !== pct;
@@ -99,12 +99,12 @@ export function wouldHeal(state: GameState, a: Actor, sourceId: string): boolean
   const src = getLibrary().healing?.[sourceId];
   if (!src) return false;
   const c = a.core.condition;
-  if (healthLevel(a) === 'Dead' && !src.revivesDead) return false;
+  if (healthLevel(a) === 'dead' && !src.revivesDead) return false;
   if (c.hpLostPct > 0 && src.hpPct > 0) return true;
   if (wouldCalm(a, src.composure)) return true;
   const reach = PART_STATES.pos(src.reach);
   return src.partPct > 0 && partStates(state, a).some((p) => p.id in c.parts && c.parts[p.id] < 100
-    && PART_STATES.pos(PART_STATES.keyOf(p.state)!) <= reach);
+    && PART_STATES.pos(p.state) <= reach);
 }
 
 /** H12–H14: hourly rows (natural recovery, and natural composure from the composure table) heal every active actor on the

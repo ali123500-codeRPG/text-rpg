@@ -8,6 +8,7 @@ import { skillOpen } from './access';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { moraleMods } from './morale';
+import { HEALTH_LEVELS, PART_STATES } from '../scales';
 
 export function totalHp(state: GameState, actor: Actor): number {
   const end = actor.core.skills[SK.endurance];
@@ -17,24 +18,25 @@ export function totalHp(state: GameState, actor: Actor): number {
 
 export function healthLevel(actor: Actor): HealthLevel {
   const lost = actor.core.condition.hpLostPct;
-  return CONFIG.HEALTH_TRACK.find(([, max]) => lost <= max)![0] as HealthLevel;
+  return CONFIG.HEALTH_TRACK.find(([, max]) => lost <= max)![0];
 }
-/** levels from Incapacitated on are "down" (by position in the health track) */
-export const isDownLevel = (l: string) => CONFIG.HEALTH_TRACK.findIndex(([x]) => x === l) >= CONFIG.HEALTH_TRACK.findIndex(([x]) => x === 'Incapacitated');
+/** levels from Incapacitated on are "down" (by position on the health scale) */
+export const isDownLevel = (l: HealthLevel) => HEALTH_LEVELS.pos(l) >= HEALTH_LEVELS.pos('incapacitated');
 /** the levels the UI shows: Dead is never shown; a Dead actor shows as Incapacitated */
-export const SHOWN_LEVELS = () => CONFIG.HEALTH_TRACK.filter(([l]) => l !== 'Dead');
-export const shownLevel = (l: string) => (l === 'Dead' ? 'Incapacitated' : l);
+export const SHOWN_LEVELS = () => CONFIG.HEALTH_TRACK.filter(([l]) => l !== 'dead');
+export const shownLevel = (l: HealthLevel): HealthLevel => (l === 'dead' ? 'incapacitated' : l);
 /** someone else's health as the screen names it: Down once they fall, Dead when the player sees them clearly and they are dead */
-export const othersHealthWord = (l: string, clear: boolean): string => (l === 'Dead' && clear ? 'Dead' : isDownLevel(l) ? 'Down' : l);
+export const othersHealthWord = (l: HealthLevel, clear: boolean): string => (l === 'dead' && clear ? HEALTH_LEVELS.name('dead') : isDownLevel(l) ? 'Down' : HEALTH_LEVELS.name(l));
 export function woundsOfLevel(level: HealthLevel): number {
   return CONFIG.HEALTH_TRACK.find(([l]) => l === level)?.[2] ?? 0;
 }
 
 /** state of a pool by % left: Healthy >50, Damaged 50..>0, Crippled 0..>−100, Destroyed ≤ −100 */
 export function poolState(pct: number): PartState {
-  return pct > 50 ? 'Healthy' : pct > 0 ? 'Damaged' : pct > -100 ? 'Crippled' : 'Destroyed';
+  return pct > 50 ? 'healthy' : pct > 0 ? 'damaged' : pct > -100 ? 'crippled' : 'destroyed';
 }
-export const working = (s: PartState) => s === 'Healthy' || s === 'Damaged';
+/** Healthy or Damaged: the part still does its job */
+export const working = (s: PartState) => PART_STATES.pos(s) <= PART_STATES.pos('damaged');
 export const partPct = (actor: Actor, id: string) => actor.core.condition.parts[id] ?? 100;
 
 export function partStates(state: GameState, actor: Actor): { id: string; state: PartState }[] {
@@ -48,16 +50,14 @@ export function usableGrips(state: GameState, actor: Actor): string[] {
     .map((p) => p.id);
 }
 
-/** part states in order, mildest first (the part-state names table; code compares positions) */
-export const PART_STATES: PartState[] = ['Healthy', 'Damaged', 'Crippled', 'Destroyed'];
 /** a part's state for its penalties: Tough It Out counts each one step milder (D6) */
-export const effectiveState = (a: Actor, s: PartState): PartState => PART_STATES[Math.max(0, PART_STATES.indexOf(s) - (hasPerk(a, PK.tough_it_out) ? 1 : 0))];
+export const effectiveState = (a: Actor, s: PartState): PartState => PART_STATES.at(PART_STATES.pos(s) - (hasPerk(a, PK.tough_it_out) ? 1 : 0));
 const rolePenaltyOf = (s: PartState) =>
-  s === 'Healthy' ? 0 : s === 'Damaged' ? CONFIG.ROLE_PENALTY.damaged : CONFIG.ROLE_PENALTY.crippled; // GAP: Destroyed counts as Crippled
+  s === 'healthy' ? 0 : s === 'damaged' ? CONFIG.ROLE_PENALTY.damaged : CONFIG.ROLE_PENALTY.crippled; // GAP: Destroyed counts as Crippled
 /** Iron Frame (A12): an effective state at the Damaged position or milder gives no role penalty */
 function rolePenalty(a: Actor, raw: PartState): number {
   const s = effectiveState(a, raw);
-  return hasPerk(a, PK.iron_frame) && PART_STATES.indexOf(s) <= PART_STATES.indexOf('Damaged') ? 0 : rolePenaltyOf(s);
+  return hasPerk(a, PK.iron_frame) && PART_STATES.pos(s) <= PART_STATES.pos('damaged') ? 0 : rolePenaltyOf(s);
 }
 
 /**
@@ -69,17 +69,17 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
   const out: Mod[] = [];
   const level = healthLevel(actor);
   const lv = woundsOfLevel(level);
-  if (lv) out.push({ source: `health: ${level}`, type: 'wounds', value: lv });
+  if (lv) out.push({ source: `health: ${HEALTH_LEVELS.name(level)}`, type: 'wounds', value: lv });
   out.push(...moraleMods(actor)); // MB3: the morale level's penalty is wounds too
   const lib = getLibrary();
   const ct = actorBody(state, actor);
   const uses = ctx.roles ?? lib.skills[skill]?.roles ?? [];
   const st = (id: string) => poolState(partPct(actor, id));
   // any essential part Crippled or worse: one flat penalty on every roll (Tough It Out counts the part one step milder)
-  const crip = ct.parts.find((p) => p.impact === 'essential' && PART_STATES.indexOf(effectiveState(actor, st(p.id))) >= PART_STATES.indexOf('Crippled'));
+  const crip = ct.parts.find((p) => p.impact === 'essential' && PART_STATES.pos(effectiveState(actor, st(p.id))) >= PART_STATES.pos('crippled'));
   if (crip) out.push({ source: `essential part crippled: ${crip.id.replace(/_/g, ' ')}`, type: 'wounds', value: CONFIG.ESSENTIAL_CRIPPLED_PENALTY });
   // Past the Pain: the first Crippled part in body order gives no role penalty
-  const spared = hasPerk(actor, PK.past_the_pain) ? ct.parts.find((p) => st(p.id) === 'Crippled')?.id : undefined;
+  const spared = hasPerk(actor, PK.past_the_pain) ? ct.parts.find((p) => st(p.id) === 'crippled')?.id : undefined;
   const pen = (id: string) => (id === spared ? 0 : rolePenalty(actor, st(id)));
   const inst = actor.core.inventory.find((i) => i.id === ctx.itemId);
   for (const role of Object.keys(lib.roles) as RoleId[]) {
@@ -105,7 +105,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
     if (v) out.push({ source: `${getLibrary().roles[role]?.name ?? role} wounds`, type: 'wounds', value: v });
   }
   // a Damaged shield: −10 to block (wounds type)
-  if (inst && skill === SK.block && itemDef(state, inst.itemId).shield && poolState(inst.pools?.shield ?? 100) === 'Damaged') {
+  if (inst && skill === SK.block && itemDef(state, inst.itemId).shield && poolState(inst.pools?.shield ?? 100) === 'damaged') {
     out.push({ source: 'shield damaged', type: 'wounds', value: CONFIG.ROLE_PENALTY.damaged });
   }
   return out;
@@ -114,7 +114,7 @@ export function woundsMods(state: GameState, actor: Actor, skill: string, ctx: {
 /** d100 bands, database order, general area last; Destroyed parts removed. */
 export function hitTable(state: GameState, actor: Actor): { part: string; from: number; to: number }[] {
   const ct = actorBody(state, actor);
-  const live = ct.parts.filter((p) => poolState(partPct(actor, p.id)) !== 'Destroyed');
+  const live = ct.parts.filter((p) => poolState(partPct(actor, p.id)) !== 'destroyed');
   const entries = [
     ...live.map((p) => ({ part: p.id, w: CONFIG.HIT_WEIGHT[p.size], min: 0 })),
     { part: 'general', w: ct.general.size === 'big' ? CONFIG.GENERAL_BIG_WEIGHT : 0, min: CONFIG.GENERAL_MIN_PCT },

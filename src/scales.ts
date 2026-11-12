@@ -83,6 +83,9 @@ export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */
 export const PART_STATES = scale([['healthy', 'Healthy'], ['damaged', 'Damaged'], ['crippled', 'Crippled'], ['destroyed', 'Destroyed']]);
 export type PartStateKey = (typeof PART_STATES.keys)[number];
+/** health levels, unhurt first; the % lost and wounds modifier of each are CONFIG.HEALTH_TRACK (keyed by these keys, in this order) */
+export const HEALTH_LEVELS = scale([['unhurt', 'Unhurt'], ['bruised', 'Bruised'], ['hurt', 'Hurt'], ['injured', 'Injured'], ['wounded', 'Wounded'], ['mauled', 'Mauled'], ['critical', 'Critical'], ['incapacitated', 'Incapacitated'], ['dead', 'Dead']]);
+export type HealthLevelKey = (typeof HEALTH_LEVELS.keys)[number];
 /** the player's posture (ST5: not named like the Sneaking skill) */
 export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
 /** how loud an event is, quietest first; each level's decibels are CONFIG.NOISE_DB, its real reference the library's noiseLevels row,

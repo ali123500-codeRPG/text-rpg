@@ -397,7 +397,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     const after = before - ((dmg * (result.shieldMult ?? 1) * rim) / itemDef(state, inst.itemId).shield!.pool) * 100; // A3 Shield Breaker
     inst.pools = { ...inst.pools, shield: after };
     changed('shield', poolState(before), poolState(after), { itemId: inst.id });
-    if (poolState(after) === 'Destroyed') T.core.inventory = T.core.inventory.filter((i) => i !== inst); // a Destroyed shield is lost
+    if (poolState(after) === 'destroyed') T.core.inventory = T.core.inventory.filter((i) => i !== inst); // a Destroyed shield is lost
     return out;
   }
 
@@ -425,7 +425,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
     T.core.condition.parts = { ...T.core.condition.parts, [part.id]: after };
     const [from, to] = [poolState(before), poolState(after)];
     changed(part.id, from, to);
-    if (to === 'Destroyed' && from !== 'Destroyed') {
+    if (to === 'destroyed' && from !== 'destroyed') {
       destroyedEssential = part.impact === 'essential';
       if (part.roles.includes(RL.grip)) {
         const zone = zoneById(state, T.zone);

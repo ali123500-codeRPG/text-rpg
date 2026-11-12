@@ -3,7 +3,7 @@
 // surrender when the roll that broke it was a Critical Failure or worse (MB7). The caller applies what a break does.
 import type { Actor, GameState, Rng } from '../types';
 import { getLibrary } from '../library';
-import { TIERS } from '../scales';
+import { HEALTH_LEVELS, TIERS } from '../scales';
 import { hasPerk, healthLevel, moraleRoll, tierLevel } from '../ruleset';
 import { CONFIG } from '../config';
 import { PK } from '../library/perkIds';
@@ -32,8 +32,7 @@ export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { g
   }
   let cost = (o.cost ?? f.cost) * (f.perTier ? Math.abs(o.gap ?? 1) : 1) * (o.mult ?? 1);
   // All-50 Last to Fall: at Wounded or worse, morale losses shrink
-  const L = CONFIG.HEALTH_TRACK;
-  if (cost > 0 && hasPerk(a, PK.last_to_fall) && L.findIndex(([l]) => l === healthLevel(a)) >= L.findIndex(([l]) => l === 'Wounded')) cost *= CONFIG.LAST_TO_FALL_MULT;
+  if (cost > 0 && hasPerk(a, PK.last_to_fall) && HEALTH_LEVELS.pos(healthLevel(a)) >= HEALTH_LEVELS.pos('wounded')) cost *= CONFIG.LAST_TO_FALL_MULT;
   let level: number | undefined;
   if (f.rolled && cost > 0) {
     const r = moraleRoll(state, a, rng, o.shift);

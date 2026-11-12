@@ -62,7 +62,7 @@ export function firstSightOf(holder: Actor | undefined, foe: Actor): string | un
   return currentAchievements(holder).find((x) => ((x.d.by === 'body_type' && x.of === foe.core.bodyTypeId) || (x.d.by === 'race' && x.of === foe.core.raceId))
     && chainRewards(x.d).some((e) => e.field === 'firstSight' && INTELLIGENCE.pos(mind) <= INTELLIGENCE.pos(e.from.firstSight!)))?.key;
 }
-const criticalMax = () => CONFIG.HEALTH_TRACK.find(([l]) => l === 'Critical')![1];
+const criticalMax = () => CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
 /** deathsDoor: a hit that would take the actor from above Down to Down or worse leaves it at Critical, once per charge;
  * the charge refills after the reward's number of game days. Returns the HP lost to keep. */
 export function deathsDoor(state: GameState, a: Actor, before: number, lost: number): number {

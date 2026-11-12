@@ -99,7 +99,7 @@ describe('173 no attacks on the dead (BG-13)', () => {
     placeAll(s);
     big.core.condition.hpLostPct = 1000;
     const view = buildPlayerView(s);
-    expect(view.actors.find((a) => a.id === 'slime_1')?.health).toBe('Dead');
+    expect(view.actors.find((a) => a.id === 'slime_1')?.health).toBe('dead');
     const out = checkParserLegality(intent({ action: { type: 'attack', target: 'slime_1' } }), view);
     expect(out.illegal).toEqual(['action.target_dead slime_1']);
     const q = illegalClarify(out.illegal, view)!;

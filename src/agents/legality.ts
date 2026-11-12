@@ -15,7 +15,7 @@ export type ParserLegality = { illegal: string[]; gearErrors: string[]; intent: 
 /** P2: a question about the part of the input that failed, instead of the generic one */
 export function illegalClarify(illegal: string[], view: PlayerView): string | null {
   const first = illegal[0] ?? '';
-  const names = view.actors.filter((a) => a.health !== 'Dead').map((a) => a.name || a.label).filter(Boolean);
+  const names = view.actors.filter((a) => a.health !== 'dead').map((a) => a.name || a.label).filter(Boolean);
   const who = names.length ? ` I can see ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]}.` : '';
   if (first.startsWith('action.target_dead')) return `That one is already dead. Who do you mean?${who}`;
   if (first.startsWith('action.target') || first.startsWith('addressee')) return `Who do you mean?${who}`;
@@ -35,7 +35,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   // BG-61: someone the player was just talking with can be spoken to though out of sight (a voice through a barred door)
   const talking = new Set([...actors, ...(view.talkingWith ?? []).map((t) => t.id)]);
   const isSpeechType = (t: string) => (SPEECH_ACTIONS as readonly string[]).includes(t);
-  const dead = new Set(view.actors.filter((a) => a.health === 'Dead').map((a) => a.id));
+  const dead = new Set(view.actors.filter((a) => a.health === 'dead').map((a) => a.id));
   const own = view.player.inventory;
   const ground = new Set([view.zone, ...view.zones].flatMap((z) => z.groundItems.map((g) => g.id)));
   const seenItems = new Set(view.actors.flatMap((a) => a.gear.map((g) => g.id)));
