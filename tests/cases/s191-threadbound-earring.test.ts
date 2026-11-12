@@ -115,7 +115,7 @@ describe('191 the Varo\'s Loop', () => {
   it('the Weaver does not place Threadbound items (D-220) and cannot mint one', () => {
     const s = makeVillage();
     const zone = s.stage.zoneIds[0];
-    const plan = { event: { gain: 'extreme' }, rewards: [{ item: IT.varos_loop, place: { groundIn: zone } }, { item: { base: IT.varos_loop, quality: 1, name: 'x', look: 'x', boosts: 'hitAdj' }, place: { groundIn: zone } }] } as unknown as StagePlan;
+    const plan = { event: { gain: 'extreme' }, rewards: [{ item: IT.varos_loop, place: { groundIn: zone } }, { item: { base: IT.varos_loop, quality: 'quality_1', name: 'x', look: 'x', boosts: 'hitAdj' }, place: { groundIn: zone } }] } as unknown as StagePlan;
     expect(tidyRewards(s, plan).rewards).toHaveLength(0);
   });
 });

@@ -85,6 +85,11 @@ export const HIT_OUTCOMES = scale([['missed', 'Missed'], ['dodged', 'Dodged'], [
   ['full_hit', 'Full hit'], ['heavy_hit', 'Heavy hit'], ['crushing_hit', 'Crushing hit']]);
 export type HitOutcome = (typeof HIT_OUTCOMES.keys)[number];
 
+/** a minted item's quality, lowest first (CS9). Its multiplier in the quality formulas is its position + 1
+ * (src/ruleset/quality.ts). The names are placeholders until the lore thread names them. */
+export const QUALITY_LEVELS = scale([['quality_1', 'Quality 1'], ['quality_2', 'Quality 2'], ['quality_3', 'Quality 3'], ['quality_4', 'Quality 4']]);
+export type QualityKey = (typeof QUALITY_LEVELS.keys)[number];
+
 export const CHASE_RANGES = scale([['post', 'Post'], ['ground', 'Ground'], ['near', 'Near'], ['far', 'Far']]);
 export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
 /** AG3: life stages, youngest first; each race lists the age in years at which each starts (RaceDef.ageStages).

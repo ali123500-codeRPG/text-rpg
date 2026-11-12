@@ -184,7 +184,7 @@ export type StagePlan = {
   }[];
   seeds: { plans: (Plan & { ownerId: string })[]; triggers: Trigger[]; secrets: Secret[] };
   rewards: {
-    item: string | { base: string; quality: 1 | 2 | 3 | 4; boosts: string; name: string; look: string };
+    item: string | { base: string; quality: import('../scales').QualityKey; boosts: string; name: string; look: string };
     qty?: number;
     place: { carriedBy: string } | { groundIn: string };
   }[];

@@ -13,7 +13,7 @@ describe('98 Minted reward cap', () => {
   const withSword = (quality: 1 | 2 | 3 | 4, boosts = 'hitAdj') => {
     const p = villageStagePlan('success');
     expect(p.event.gain).toBe('moderate');
-    p.rewards.push({ item: { base: IT.arming_sword, quality, boosts, name: 'a watchman\'s sword', look: 'a well-kept blade' }, place: { carriedBy: 'guard_1' } });
+    p.rewards.push({ item: { base: IT.arming_sword, quality: (['quality_1', 'quality_2', 'quality_3', 'quality_4'] as const)[quality - 1], boosts, name: 'a watchman\'s sword', look: 'a well-kept blade' }, place: { carriedBy: 'guard_1' } });
     return p;
   };
   it('quality 2 passes clean; quality 3 is lowered to 2 without blocking', () => {
@@ -25,8 +25,8 @@ describe('98 Minted reward cap', () => {
     const p = withSword(3, 'keen edge');
     expect(validateStagePlan(s, p, ctx).map((e) => e.code)).toEqual(['reward_quality', 'reward_boosts']);
     applyStagePlan(s, p, ctx, { entry: 'open' }, createRng(1));
-    const def = s.blueprints.find((b) => b.kind === 'item')!.data as { base: { quality: number; boosts: string }; weapon: { modes: { hitAdj?: number }[] } };
-    expect(def.base).toMatchObject({ quality: 2, boosts: 'hitAdj' });
+    const def = s.blueprints.find((b) => b.kind === 'item')!.data as { base: { quality: string; boosts: string }; weapon: { modes: { hitAdj?: number }[] } };
+    expect(def.base).toMatchObject({ quality: 'quality_2', boosts: 'hitAdj' });
     expect(def.weapon.modes[0].hitAdj).toBe(4); // QUALITY_HIT_FACTOR 0.04 × need 50 (fine) × quality 2
     expect(s.log.some((l) => l.code === 'reward_repaired')).toBe(true);
   });

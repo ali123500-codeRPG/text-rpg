@@ -1,5 +1,5 @@
 import type { DefenseKind, SkillFunction } from './types';
-import type { GradeLevel, HealthLevelKey, NoiseKey, QuestRewardLevel } from './scales';
+import type { GradeLevel, HealthLevelKey, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -262,8 +262,10 @@ const DEFAULTS = {
   // ARMOR_WEIGHTS key. Moving stealthily doesn't cancel it. Quieter-armor perks come later (AN5).
   ARMOR_NOISE_STEPS: { light: 0, medium: 1, heavy: 2 } as Record<string, number>,
   QUALITY_TABLE: {
-    tool: [5, 10, 15, 20],
+    tool: { quality_1: 5, quality_2: 10, quality_3: 15, quality_4: 20 } as Record<QualityKey, number>,
   },
+  /** EQ11: a minted item of this quality or better is one equip level above its base */
+  QUALITY_LEVEL_UP_FROM: 'quality_3' as QualityKey,
   STALL_TURNS: 8, // placeholder (P7c): quiet turns with no beat left before a new scenario
   /** SC2 levers per scenario scale (placeholders), keyed by SCENARIO_SCALES key: the turn budget (fight turns excluded) or, for
    * the biggest, a budget in game days; and how many places a plan of that scale may hold (code raises the scale to fit) */
@@ -371,7 +373,7 @@ const DEFAULTS = {
   THROW_BLEND: { weapon: 0.75, ranged: 0.25 },
   // Boon (loot V8): a reward's worth to the player. Placeholders, tune after playtests (V8c).
   BOON_COIN: 20, // coin value per Boon, unless the item sets its own boon
-  BOON_QUALITY: [1, 2, 3, 5, 8], // multiplier by minted quality (index 0 = not minted)
+  BOON_QUALITY: { plain: 1, quality_1: 2, quality_2: 3, quality_3: 5, quality_4: 8 } as Record<QualityKey | 'plain', number>, // Boon multiplier by minted quality (plain: not minted)
   BOON_BUDGET: { none: 0, minor: 2, moderate: 5, major: 10, extreme: 20 } as Record<string, number>, // per plan, by gain
   // XP and levels (X1–X10). Placeholders, kept small at first (X1).
   LEVEL_XP: 100, // XP from level n to n+1 = LEVEL_XP × n
@@ -421,7 +423,7 @@ const DEFAULTS = {
   QUEST_REWARD_XP: { zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000 } as Record<string, number>,
   /** QT9: a quest's reward level from the scenario's gain grade when it is accepted (iv is kept for later story quests) */
   QUEST_GAIN_LEVEL: { none: 'zero', minor: 'zero', moderate: 'i', major: 'ii', extreme: 'iii' } as Record<string, QuestRewardLevel>,
-  GAIN_MAX_QUALITY: { none: 0, minor: 1, moderate: 2, major: 3, extreme: 4 } as Record<string, number>,
+  GAIN_MAX_QUALITY: { none: null, minor: 'quality_1', moderate: 'quality_2', major: 'quality_3', extreme: 'quality_4' } as Record<string, QualityKey | null>, // null: no minted item
   // ---- Part 2 engine ----
   DECAY_TURNS: 6, // Q2 (test 72 implies 6)
   MAX_PLANNER_CALLS: 3, // Q2 (D-18)

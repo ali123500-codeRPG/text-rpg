@@ -5,7 +5,8 @@ import type { AgreementMade, CheckinAnswer, Intent, MoveSpot, NarratorOutput, Pl
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { BACKGROUND, CHASE_RANGES, COVER, LIGHT, STANCES, TACTICS, TIME_OF_DAY, TRAVEL_PACES, type Scale, type TravelPaceKey } from '../scales';
+import { BACKGROUND, CHASE_RANGES, COVER, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIME_OF_DAY, TRAVEL_PACES, type QualityKey, type Scale, type TravelPaceKey } from '../scales';
+import { qualityOf } from '../ruleset/quality';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -202,8 +203,8 @@ const weaver = obj<StagePlan>({
   }, ['template', 'actor', 'pronouns', 'knownOnSight', 'knows', 'startAt', 'routineGap', 'awarenessOfBands', 'overrides', 'wares', 'personality', 'age'])),
   seeds: obj<StagePlan['seeds']>({ plans: arr(any) as V<StagePlan['seeds']['plans']>, triggers: arr(any) as V<StagePlan['seeds']['triggers']>, secrets: arr(any) as V<StagePlan['seeds']['secrets']> }),
   rewards: arr(obj<StagePlan['rewards'][number]>({
-    item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: 1 | 2 | 3 | 4; boosts: string; name: string; look: string }>(
-      { base: str, quality: oneOf([1, 2, 3, 4] as const), boosts: str, name: str, look: str })(v, p, e)),
+    item: (v, p, e) => (typeof v === 'string' ? v : obj<{ base: string; quality: QualityKey; boosts: string; name: string; look: string }>(
+      { base: str, quality: (q, qp, qe) => qualityOf(q) ?? (qe.push(`${qp}: expected one of ${QUALITY_LEVELS.keys.join(', ')}`), QUALITY_LEVELS.keys[0]), boosts: str, name: str, look: str })(v, p, e)),
     qty: num,
     place: (v, p, e) => (isObj(v) && typeof v.carriedBy === 'string' ? { carriedBy: v.carriedBy }
       : isObj(v) && typeof v.groundIn === 'string' ? { groundIn: v.groundIn } : (e.push(`${p}: expected {carriedBy} or {groundIn}`), { groundIn: '' })),

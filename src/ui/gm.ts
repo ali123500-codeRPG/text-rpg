@@ -4,7 +4,7 @@ import { tierName } from '../ruleset';
 import { ageText } from '../ruleset/age';
 import type { GameApi, ScenarioRecord } from '../types';
 import { GRADES } from '../types';
-import { TIERS } from '../scales';
+import { QUALITY_LEVELS, TIERS } from '../scales';
 import { fmtDate, h, openPanel, readouts, plural, unitOf } from './kit';
 
 /** BA8: the ended scenarios' barriers summed by tier, best tier first */
@@ -113,8 +113,8 @@ export function gmPage(api: GameApi) {
         s?.blueprints.some((b) => b.kind === 'item') ? h('table', { class: 'hs-tbl' },
           h('thead', {}, h('tr', {}, ['Name', 'Built from', 'Quality', 'Id'].map((t) => h('th', {}, t)))),
           h('tbody', {}, s.blueprints.filter((b) => b.kind === 'item').map((b) => {
-            const d = b.data as { name?: string; base?: { itemId: string; quality: number } };
-            return h('tr', {}, h('td', {}, d.name ?? b.id), h('td', {}, d.base?.itemId ?? b.id.replace(/_i\d+$/, '')), h('td', { class: 'hs-num' }, d.base ? String(d.base.quality) : '–'), h('td', {}, b.id));
+            const d = b.data as { name?: string; base?: { itemId: string; quality: string } };
+            return h('tr', {}, h('td', {}, d.name ?? b.id), h('td', {}, d.base?.itemId ?? b.id.replace(/_i\d+$/, '')), h('td', { class: 'hs-num' }, d.base ? QUALITY_LEVELS.keyOf(d.base.quality) ? QUALITY_LEVELS.name(QUALITY_LEVELS.keyOf(d.base.quality)!) : String(d.base.quality) : '–'), h('td', {}, b.id));
           })))
           : h('p', { class: 'empty' }, 'No made items yet. Each one runs on a library base until you give it its own data.')),
 

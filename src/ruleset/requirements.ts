@@ -3,16 +3,16 @@
 // EQUIP_SHORT_STEP points short (EQ12 c); worn armor's shortfall reaches Dodge and stealth rolls.
 import type { Actor, GameState, ItemDef, ItemInstance, RollKind, TierShift } from '../types';
 import { CONFIG } from '../config';
-import { EQUIP_LEVELS, type EquipLevelKey } from '../scales';
+import { EQUIP_LEVELS, QUALITY_LEVELS, type EquipLevelKey } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { trueSkill } from './perks';
 import { achievementReqLower } from './achRewards';
 import { standInShare, standInTable } from './gear';
 
-/** EQ11: a minted item of quality 3 or 4 is one level above its base, up to the top */
+/** EQ11: a minted item of QUALITY_LEVEL_UP_FROM or better is one level above its base, up to the top */
 export function itemLevel(def: ItemDef): EquipLevelKey | undefined {
   if (!def.level) return undefined;
-  return EQUIP_LEVELS.at(EQUIP_LEVELS.pos(def.level) + ((def.base?.quality ?? 0) >= 3 ? 1 : 0));
+  return EQUIP_LEVELS.at(EQUIP_LEVELS.pos(def.level) + (def.base && QUALITY_LEVELS.pos(def.base.quality) >= QUALITY_LEVELS.pos(CONFIG.QUALITY_LEVEL_UP_FROM) ? 1 : 0));
 }
 
 /** the skill an item asks for: its gear class's (the class sets the type, the level the amount) */
