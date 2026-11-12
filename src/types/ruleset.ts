@@ -159,7 +159,7 @@ export type Order = {
   pace?: import('../scales').TravelPaceKey; // TV2: the player's travel pace on a road trip (normal when left out)
   moveSpot?: import('./agents').MoveSpot; // BG-12: where in the move's zone the player heads
   jump?: true; // SD7: the move jumps down a drop link (a window, a ledge)
-  way?: { toZone: string; op: 'lock' | 'unlock' | 'bar' | 'unbar' }; // BA3/BA4: a key turned or a bar slid on purpose, in the move slot
+  way?: { toZone: string; op: import('../engine/barriers').WayOp }; // BA3/BA4: a key turned or a bar slid on purpose, in the move slot
   vanish?: true; // ST13: the player's move is a Vanish
   perkMove?: { perk: string; target: string | null }; // AE5/AE8: a perk move (perkMoves.ts)
   targetPart?: string | null;

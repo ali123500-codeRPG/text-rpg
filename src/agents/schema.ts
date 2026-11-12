@@ -73,7 +73,7 @@ const intent = obj<Intent>({
       : obj<{ base: ImprovisedBase; name: string }>({ base: oneOf(IMPROVISED_BASES), name: str })(v, p, e)),
   }, ['qty', 'for'])),
   perkMove: nul(obj<{ perk: string; target: string | null }>({ perk: str, target: nul(str) })),
-  way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(['lock', 'unlock', 'bar', 'unbar'] as const) })),
+  way: nul(obj<NonNullable<Intent['way']>>({ toZone: str, op: oneOf(['lock', 'unlock', 'bar', 'unbar', 'open', 'shut'] as const) })),
   gear: GEAR,
   spoken: nul(str),
   addressees: nul(arr(str)),

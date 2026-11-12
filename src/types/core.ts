@@ -48,7 +48,7 @@ export type Band = {
 export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true; drop?: true; barrier?: string };
 /** SD3–SD5, BA2–BA7: a door, gate, grate or blocked passage on a way. One record serves both sides; the links on each side
  * name it by id. Breaking one (wear, material, thickness) belongs to the walls thread; this record leaves room for it. */
-export type WayDid = 'unlocked' | 'unbarred' | 'found_locked' | 'found_barred' | 'found_blocked' | 'lock' | 'unlock' | 'bar' | 'unbar'
+export type WayDid = 'unlocked' | 'unbarred' | 'found_locked' | 'found_barred' | 'found_blocked' | 'lock' | 'unlock' | 'bar' | 'unbar' | 'open' | 'shut'
   | 'picked' | 'picking' | 'not_yet' | 'beyond' | 'pick_broke' | 'found_open' | 'found_opens';
 export type Barrier = {
   id: string;
@@ -62,6 +62,8 @@ export type Barrier = {
   material?: string; thicknessCm?: number; // walls thread
   scenario?: number; // the scenario that made it (BA8 counts)
   tried?: string[]; // actors who found it shut by trying it: they know it is locked or barred
+  /** BG-70: standing open: sight (and sound) pass it though its link is not a sight link; anyone can shut it again */
+  open?: true;
   /** BA2: a picker's Failure leaves the lock beyond them until their Thievery (with tools) is higher than this */
   beyond?: Record<string, number>;
   /** BA2: seconds of picking done toward opening it in a fight, by picker */

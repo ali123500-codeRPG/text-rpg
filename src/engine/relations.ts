@@ -1,5 +1,5 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
-import type { Actor, Belief, BeliefStatus, GameState, Stance } from '../types';
+import type { Actor, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '../types';
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
 import { barrierOn, knowsShut, linkPassage } from './barriers';
@@ -117,10 +117,13 @@ export function zoneById(state: GameState, id: string) {
   return undefined;
 }
 
+/** BG-70: sight passes this link: a sight link, or a way whose door stands open */
+export const seesAcross = (state: GameState, l: ZoneLink): boolean => l.sight || !!barrierOn(state, l)?.open;
+
 /** own zone plus zones linked to it with sight (no frontiers): what a viewer in `zoneId` perceives */
 export function perceivedZoneIds(state: GameState, zoneId: string): string[] {
   const z = zoneById(state, zoneId);
-  return [zoneId, ...(z?.links ?? []).filter((l) => l.sight && !l.frontier && zoneById(state, l.to)).map((l) => l.to)];
+  return [zoneId, ...(z?.links ?? []).filter((l) => seesAcross(state, l) && !l.frontier && zoneById(state, l.to)).map((l) => l.to)];
 }
 
 /** SD3–SD5: the walking path for `walker`: round any barrier shut to it; with none, the plain path (whose first shut way
@@ -142,7 +145,7 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
     const z = zoneById(state, cur);
     for (const l of z?.links ?? []) {
       // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
-      if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !l.sight) || (l.drop && !sightOnly)) continue;
+      if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !seesAcross(state, l)) || (l.drop && !sightOnly)) continue;
       if (walker && linkPassage(state, l, walker, cur) === 'shut' && knowsShut(barrierOn(state, l)!, walker)) continue;
       seen.add(l.to);
       prev.set(l.to, cur);
