@@ -12,7 +12,7 @@ const DEFAULTS = {
    * tree's rating (TREE_RATINGS; a tree with no rating is normal); null = never */
   ALL_STEP_SKILLS: { inferior: null, normal: 3, superior: 2, legendary: 1 } as Record<string, number | null>,
   SUBSTITUTE_EFFICIENCY: 0.3, // F4: was 0.5; perks can change it (PerkDef.standIn)
-  /** Skill tiers: the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder (Ali gave 0 and 2). */
+  /** Skill tiers: the final efficiency multiplier by SKILL_TIERS key. tier_1 is a placeholder. */
   SKILL_TIER_MULT: { tier_0: 0.5, tier_1: 0.75, tier_2: 1 } as Record<string, number>,
   /** A7 Open-Hand Guard: share of a hit through an open-hand block that lands on the blocking arm; the rest goes to the general area (placeholder) */
   OPEN_HAND_ARM_SHARE: 0.5,
@@ -362,9 +362,8 @@ const DEFAULTS = {
    * (tier 0 → 5, tier 1 → 10, tier 2 → 15, tier 3 and up → 20) */
   CLASS_TIER0_MAX_LEVEL: 5,
   CLASS_LEVELS_PER_TIER: 5,
-  // Kill XP from stats (X18–X23): rating = per category, skills' training effort ranked high to low at 1, ½, ¼…,
-  // × the category weight; kill XP = rating × taper × KILL_XP_MULT. Placeholders, tuned later (X19).
-  /** a foe's rating: one pool per skill group (a skill counts in its first group), × this weight; a skill with no group counts 0 */
+  // Defeat XP from stats (X18–X23): per skill group, skills' training effort ranked high to low at 1, ½, ¼…, × the
+  // group's XP factor; defeat XP = power × taper × KILL_XP_MULT. Placeholders, tuned later (X19).
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
@@ -388,11 +387,11 @@ const DEFAULTS = {
   JUNK_ARSENAL_MULT: 1.2, // All-50 Junk Arsenal: improvised hits deal a fifth more (placeholder)
   LAST_TO_FALL_MULT: 0.75, // All-50 Last to Fall: morale losses at Wounded or worse (placeholder)
   IRON_KNUCKLES_MULT: 1.1, // All-50 Iron Knuckles: unarmed hits deal a tenth more (placeholder)
-  BARE_HANDED_GUARD: 5,
+  BARE_HANDED_GUARD: 5, // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   STEADY_GUARD: 5, // All-50 Steady Guard: Parry effective skill with a medium melee weapon (placeholder)
   IRON_RIM_MULT: 0.75, // All-50 Iron Rim (Block's part): damage the owner's shield pool takes (placeholder)
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
-  THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder) // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
+  THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)
   /** XP per reward level (REWARD_LEVELS in src/scales.ts), for achievements */
   REWARD_XP: { minus_1: 25, zero: 50, i: 100, ii: 250, iii: 1000, iv: 2000, v: 5000, vi: 10000,
     vii: 20000, viii: 40000, ix: 80000, x: 160000, xi: 320000, xii: 640000, xiii: 1280000, xiv: 2560000, xv: 5120000 } as Record<string, number>, // VII–XV placeholders
@@ -427,11 +426,11 @@ const DEFAULTS = {
   SAID_LINES: 6, // P5: an NPC's own last lines in its view, so it stops repeating itself
   STORY_PREMISE: 'A swordsman arrives at a village troubled by slimes',
   SHOW_MECHANICS: true, // master switch: false removes Show rolls everywhere
-  SHOW_ROLLS_DEFAULT: false,
+  SHOW_ROLLS_DEFAULT: false, // a new story starts with Show rolls off; the player turns it on from the play header
   /** M-33: reaching this health level or worse pulses the play screen's edge red once; from MOTION_EDGE_STEADY on the edge keeps a steady tint */
   MOTION_EDGE_FROM: 'Wounded',
   MOTION_EDGE_STEADY: 'Critical',
-  TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder) // a new story starts with Show rolls off; the player turns it on from the play header
+  TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder)
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,

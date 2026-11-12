@@ -249,7 +249,7 @@ export const power = (state: GameState, a: Actor): number => rating(a) + gearRat
 /** XP shrinks for foes much weaker than the player: min(1, TAPER × theirs ÷ mine) (X19). Defeat XP and defeat quests (QX2) share it. */
 export const weakFoeTaper = (theirs: number, mine: number) => (mine > 0 ? Math.min(1, (CONFIG.KILL_XP_TAPER * theirs) / mine) : 1);
 
-/** Kill XP = foe power × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
+/** Defeat XP = foe power × taper (weak foes, X19) × KILL_XP_MULT (X20). Stats only: no dice, no override (X13).
  * Power counts gear on both sides. */
 export function killXp(state: GameState, t: Actor): number {
   const theirs = power(state, t), mine = power(state, state.player);
@@ -320,7 +320,6 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
     tally(state, 'achievements', { to: pr.achievements!.filter((x) => { const k = lib[x.key ?? '']; return k && !k.scar && k.rule !== 'achievements'; }).length });
 }
 
-/** Display name of an earned achievement, read from the library table now. */
 /** T18: the title the player wears, by its name: the worn achievement, or the level that replaced it (a title moves up
  * its chain); never a scar */
 export function wornTitle(state: GameState): string | undefined {
@@ -336,6 +335,7 @@ export const wearable = (state: GameState) => {
   return (state.player.progression?.achievements ?? []).filter((x) => !x.replacedBy && x.key && lib[x.key] && !lib[x.key].scar);
 };
 
+/** Display name of an earned achievement, read from the library table now. */
 export function achievementName(state: GameState, a: { id: string; key?: string; of?: string; name?: string }): string {
   const lib = getLibrary();
   const d = a.key ? lib.achievements?.[a.key] : undefined;

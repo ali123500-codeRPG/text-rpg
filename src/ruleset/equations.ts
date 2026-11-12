@@ -12,6 +12,7 @@ import { tierMult } from './gear';
 import { skillName } from '../library/skillNames';
 import { groupName } from '../library/functionNames';
 import { SK } from '../library/skillIds';
+import { PK } from '../library/perkIds';
 import { FR } from '../library/tableIds';
 
 export type Equation = {
@@ -66,7 +67,7 @@ export function equations(lib: Library): EquationGroup[] {
         formula: 'effective skill = best of ( true skill + gear ) × share × tier multiplier × age, over the skill and its stand-ins; + augments × age',
         terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab; perks and achievements such as Master of the Moment add to it). A function roll counts every skill with the function at 1 (with the Perception All-150 Every Sense One, a sight or hearing roll counts the skills of both).`],
           ['gear', `skill effects of worn, held or carried items, also × share; a standard kit gives EQUIP_FACTOR (${n(CONFIG.EQUIP_FACTOR)}) × its need, shared once per roll (the best piece)`],
-          ['augments', 'each skill that augments this one (SkillDef.augments) adds its true skill × its share (default 1) × its tier, on every roll of this skill or only the roll kinds it lists; its tree must be open (Shrewd Dealing augments Barter). A perk can give one too (PerkDef.augments: Grit, Endurance × ${n(CONFIG.GRIT_SHARE)} to Resolve)'],
+          ['augments', `each skill that augments this one (SkillDef.augments) adds its true skill × its share (default 1) × its tier, on every roll of this skill or only the roll kinds it lists; its tree must be open (Shrewd Dealing augments Barter). A perk can give one too (PerkDef.augments: Grit, Endurance × ${n(CONFIG.GRIT_SHARE)} to Resolve)`],
           ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')],
           ['age', `old-age decline (ageMult · src/ruleset/age.ts): skills in the ${CONFIG.AGE_DECLINE_GROUPS.map(groupName).join(', ')} groups keep 0.5 ^ (years past the start of ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} ÷ (the race\'s Ancient start − its ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} start)); 1 before then, for other skills and for ageless races`]],
         notes: [`Example: ${skillName(EFF_EX.standIn)} ${EFF_EX.trueSkill} with +${EFF_EX.gear} ${skillName(EFF_EX.standIn)} gear, standing in for ${skillName(EFF_EX.skill)} 0 → (${EFF_EX.trueSkill} + ${EFF_EX.gear}) × ${n(CONFIG.SUBSTITUTE_EFFICIENCY)} × ${n(tierMult(EFF_EX.standIn))} = ${n(effExample())}. Gear for the named skill (the held weapon's bonus) does not pass to a stand-in.`] },
@@ -133,12 +134,12 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [["weapon's own skill", "the skill its gear class asks for (a dagger: Light weapons; an improvised weapon: Improvisation)"], ['ranged skill', 'Light, Medium or Heavy ranged, by the throw mode\'s class'], ['shares', 'CONFIG.THROW_BLEND, set on the Throw attack mode row']],
         notes: ['Each part is its own effective skill: it takes its own stand-ins and only the gear that boosts it (the weapon\'s kit bonus goes to its own skill). Both skills that rolled can learn. The thrown item lands on the ground of the target\'s zone, hit or miss.'] },
       { name: 'Gap', at: 'attack · src/ruleset/index.ts',
-        formula: 'gap = defense tier − attack tier + gap shifts, kept between −5 and +5',
+        formula: `gap = defense tier − attack tier + gap shifts, kept between ${sg(CONFIG.GAP_MIN)} and ${sg(CONFIG.GAP_MAX)}`,
         terms: [['gap shifts', `heavy weapon vs block or parry ${sg(CONFIG.HEAVY_VS_BLOCK_GAP)} (not against a parry with Against the Grain), cover (ranged), Slip the Blow +1 on a tie`]] },
       { name: 'Damage multiplier', at: 'ladder · CONFIG.GAP_LADDER',
         formula: 'multiplier = GAP_LADDER[dodge, block or parry][gap]',
         table: { head: ['Gap', 'Dodge', 'Block', 'Parry'], rows: [-10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5].map((g) => [sg(g), `×${n(ladder('dodge', g))}`, `×${n(ladder('block', g))}`, `×${n(ladder('parry', g))}`]) },
-        notes: ['Gaps past −10 or +5 use the end row.', '×0 is a clean dodge, and a dodge at +1 is a graze. A block at +1 or better is blocked; a shield also blocks at 0 and takes the hit itself.',
+        notes: [`Gaps past ${sg(CONFIG.GAP_MIN)} or ${sg(CONFIG.GAP_MAX)} use the end row.`, '×0 is a clean dodge, and a dodge at +1 is a graze. A block at +1 or better is blocked; a shield also blocks at 0 and takes the hit itself.',
           `A parry at +1 or +2 is blocked, and ×0 is parried. A parry at +${CONFIG.PARRY_STRIKE_GAP} (PARRY_STRIKE_GAP) or better also gives the defender one free melee attack back with the parrying weapon, once per turn; Answer the Blow lowers that by ${CONFIG.ANSWER_THE_BLOW_DROP} with a medium weapon.`] },
       { name: 'Damage', at: 'attack · src/ruleset/index.ts',
         formula: 'damage = (class damage + mode damageAdj) × multiplier × perk damage multipliers, then armor: (damage − max(0, reduction − pierce)) × armor multiplier',
@@ -188,7 +189,7 @@ export function equations(lib: Library): EquationGroup[] {
           CONFIG.MARK_STACK_EVERY === Infinity ? 'A skill is owed one roll per engagement (CONFIG.MARK_STACK_EVERY is off).' : `Marks stack: the first mark on a skill in an engagement (or in a scenario, outside one) owes a roll, and so does every ${CONFIG.MARK_STACK_EVERY}th mark after it (CONFIG.MARK_STACK_EVERY; ${CONFIG.MARK_STACK_EVERY}: marks 1, ${1 + CONFIG.MARK_STACK_EVERY}, ${1 + 2 * CONFIG.MARK_STACK_EVERY}...).`] },
       { name: 'Close calls', at: 'markUse · src/ruleset/improve.ts',
         formula: 'a contest or a defended attack whose tier gap is exactly 0 marks both sides\' skills, inside the window or not',
-        notes: ['Every Fall a Lesson (A Nobody, class level 20): losing a contest or a defended attack by exactly one tier step marks the owner\'s skill too, inside the window or not.'] },
+        notes: [`Every Fall a Lesson (A Nobody, class level ${lib.perks[PK.every_fall_a_lesson]?.classLevel?.level}): losing a contest or a defended attack by exactly one tier step marks the owner\'s skill too, inside the window or not.`] },
       { name: 'Opposition', at: 'markUse · src/ruleset/improve.ts',
         formula: 'check → its difficulty · contest → the other side\'s true skill in the skill it rolled · attack → each side against the other\'s true skill',
         terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k.replace('_', ' ')} ${v}`).join(' · ')]],

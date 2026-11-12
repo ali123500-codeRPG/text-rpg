@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 const ROOTS = ['src', 'tests', 'scripts'];
 const DATE = /(?<!['"\d])\d{1,2}\/\d{1,2}\/20\d{2}(?!['"])/;
-const ATTRIBUTION = /\(Ali\)|\(Ali[,:]|\bAli:|\bAli,\s*\d/;
+const ATTRIBUTION = /\bAli\b/; // any mention of the owner by name
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((n: string) => {

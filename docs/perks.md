@@ -2,7 +2,7 @@
 
 <!-- Generated from src/library/perks.ts by `npm run perks-doc`. Edit that file, not this one. -->
 
-Ladder perks by skill and milestone (Part 1 §5, Skill ladders), as Ali picked them on the 20 milestone page (https://claude.ai/artifact/WkMeSULi8AjSWxeK4jAdwg). Review page: https://claude.ai/artifact/DE4FDK98f9uBy7s9Ce41qn. Perks are coded, so each one states exactly when it applies.
+Ladder perks by skill and milestone (Part 1 §5, Skill ladders), as picked on the 20 milestone page (https://claude.ai/artifact/WkMeSULi8AjSWxeK4jAdwg). Review page: https://claude.ai/artifact/DE4FDK98f9uBy7s9Ce41qn. Perks are coded, so each one states exactly when it applies.
 
 Each perk has two views that must say the same thing. **Story** is what a player reads when choosing. **Rules** is exactly what code applies, and is the basis for building it. The Perks screen in the game switches between them.
 
@@ -162,7 +162,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Effect:** The line resolves as talk without using the owner's action. An NPC's spoken reply to that line is also free: it doesn't use the NPC's action.
 - **Lasts:** That line.
 - **Cooldown:** Once per turn.
-- **Open:** Trial perk: test in play how NPCs answer. Ali drops it if the free exchange doesn't work.
+- **Open:** Trial perk: test in play how NPCs answer. It is dropped if the free exchange doesn't work.
 
 ### Threaten for Answers (Intimidation) · A16
 
@@ -721,7 +721,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and in the owner's zone or one sight link away. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scenario.
 - **Effect:** The owner's Insight against the watcher's stealth (Combat Stealth in a fight, Sneaking otherwise). If the owner wins, it gets a hunch of being watched from the watcher's zone, never who, and turns suspicious of the watcher there. It can then look or listen for them as usual.
 - **Lasts:** Until the owner's belief changes on its own.
-- **Open:** Built, then parked by Ali until it has a place on the ladder (Insight 20 holds Overheard); D-176.
+- **Open:** Built, then parked until it has a place on the ladder (Insight 20 holds Overheard); D-176.
 - **Banked as:** a later Insight perk
 
 ### Not Born Yesterday (Insight) · LI2c
@@ -732,7 +732,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** Someone persuades the owner.
 - **Effect:** The owner's answering roll uses the better of Persuasion and Insight, each at full value.
 - **Lasts:** Each answer to a persuasion.
-- **Open:** Parked by Ali (D-187).
+- **Open:** Parked (D-187).
 - **Banked as:** a later Insight perk
 
 ### Steady Nerves (Resolve) · MR5a
@@ -743,7 +743,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner makes a roll while Rattled or Afraid.
 - **Effect:** The Rattled and Afraid roll penalties do not apply to the owner.
 - **Lasts:** Always.
-- **Open:** Parked by Ali (D-188). One of three options for the Resolve 20 perk.
+- **Open:** Parked (D-188). One of three options for the Resolve 20 perk.
 - **Banked as:** a later Resolve perk
 
 ### Used to the Pain (Resolve) · MR5b
@@ -754,7 +754,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Trigger:** The owner is wounded.
 - **Effect:** The owner's own wounds start costing morale one health level later.
 - **Lasts:** Always.
-- **Open:** Parked by Ali (D-188). One of three options for the Resolve 20 perk (could be Resolve 60 instead).
+- **Open:** Parked (D-188). One of three options for the Resolve 20 perk (could be Resolve 60 instead).
 - **Banked as:** a later Resolve perk
 
 ### Run Later (Resolve) · MR5c
@@ -766,7 +766,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 - **Conditions:** Not used yet this fight.
 - **Effect:** The owner is left at Panicking instead of Broken.
 - **Lasts:** That morale loss.
-- **Open:** Parked by Ali (D-188). One of three options for the Resolve 20 perk (could be Resolve 60 instead). Shown on the morale page as Not Yet; renamed because an achievement is already called Not Yet.
+- **Open:** Parked (D-188). One of three options for the Resolve 20 perk (could be Resolve 60 instead). Shown on the morale page as Not Yet; renamed because an achievement is already called Not Yet.
 - **Banked as:** a later Resolve perk
 
 ### Crushing Blow (Heavy weapons) · D1

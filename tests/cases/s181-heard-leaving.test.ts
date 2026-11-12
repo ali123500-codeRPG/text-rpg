@@ -1,4 +1,4 @@
-// 181 From Ali's game (BG-28): the barkeep was seen, then only heard running off to the kitchen. The unseen move wiped
+// 181 From a playtest game (BG-28): the barkeep was seen, then only heard running off to the kitchen. The unseen move wiped
 // her from the player's clear sightings, so PLAYER_VIEW had no trace of her: "strike the innkeeper" became a guess at
 // "behind the counter", and the next turn asked who that was. Anyone seen or heard is now kept in lastSeen.
 import { describe, expect, it } from 'vitest';

@@ -1,4 +1,4 @@
-// 177 From Ali's game (BG-23): the barkeep, 0.7 m from the player, broke and fled through the kitchen door. Perception took
+// 177 From a playtest game (BG-23): the barkeep, 0.7 m from the player, broke and fled through the kitchen door. Perception took
 // the move only where it ended, beyond a door with no sight, so the player only heard "something" and forgot her; next
 // turn "cut down the barkeep" asked who that was. A leg out of a zone is now seen where it set off too.
 import { describe, expect, it } from 'vitest';

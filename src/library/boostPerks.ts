@@ -18,7 +18,7 @@ type Row = {
 };
 
 const ROWS: Row[] = [
-  // P1: Ali picked b (R5), so the aim half stays with Precise, the banked higher perk
+  // P1: option b (R5), so the aim half stays with Precise, the banked higher perk
   { id: PK.keen_edge, ref: 'P1', skill: SK.melee_light, group: GR.melee, name: 'Keen Edge', effect: 'attack',
     extra: { story: 'Your blade has learned where flesh is softest: +10 to hit with light weapons.', rule: `+10 on attack rolls with skill ${skillName(SK.melee_light)}.`, numbers: { hitAdd: 10 } } },
   { id: PK.guard_drill, ref: 'P2', skill: SK.melee_medium, group: GR.melee, name: 'Guard Drill', effect: 'defense',

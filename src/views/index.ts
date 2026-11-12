@@ -469,7 +469,7 @@ export function earlierLine(state: GameState, viewer: Actor, e: GameEvent): stri
 export function buildOppositionView(state: GameState, actorId: string): OppositionView {
   return buildActorView(state, actorId);
 }
-/** whitelists nothing from state.hidden (owner's recommendation, pending Ali's answer) */
+/** whitelists nothing from state.hidden (owner's recommendation, answer pending) */
 export function buildDialogueView(state: GameState, actorId: string, input: DialogueInput): DialogueView {
   return {
     ...baseView(state, actorId),

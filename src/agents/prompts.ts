@@ -13,7 +13,6 @@ const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.string
 /** V7 (flavor voice): the story's tone colors NPC speech without overriding character */
 const SPEAK_TONE = ` The story's tone is ${CONFIG.STYLE.tone}: let it color how you speak where it fits your character. Fighters and villains may be dramatic; a timid character stays timid.`;
 
-/** SP1–SP7: sparring (Planner, Responder, Voice) */
 /** OQ-29 (NT1, NT2): an agent-run NPC presses the player with a speech roll */
 const PUSH_RULE = (n: number) => `\n${n}. To press the player to do or believe something, speak with type persuade (win them round), deceive (a lie
    you need them to believe), intimidate (a threat) or barter (haggle over a price) instead of talk, with target the
@@ -24,6 +23,7 @@ const FOLLOW_RULE = (n: number) => `\n${n}. To come along with the player, when 
    you remember why you are going.`;
 const WAY_RULE = (n: number) => `\n${n}. A way in your zones may have a "way": a door, gate, grate, hatch or rubble. You walk through it if you carry its
    key ("key") or its bar is on your side. To open a lock without the key, the action is "pick" with the zone the way leads to.`;
+/** SP1–SP7: sparring (Planner, Responder, Voice) */
 const SPAR_RULE = (n: number) => `\n${n}. A spar is a fight every fighter agrees to aloud, to test each other: blows land for real, but nobody turns
    hostile. Give "spar" only when every fighter accepted aloud this turn and your line says so: sides lists each side's
    ids, you on one of them (one against one is two sides of one; a free-for-all puts every fighter on its own side). Set

@@ -1,6 +1,6 @@
 // Bugs: report a bug from play, see the open bugs (the game's own filings and the threads'), and send them to Claude.
 // Reports are numbered from the same counter as every other bug (src/save/bugs.ts). "Report bug" saves the report and
-// then sends every open bug to Claude (BG-27: Ali asked that pressing it sends them), the same as "Send open bugs to
+// then sends every open bug to Claude (BG-27: pressing it sends them), the same as "Send open bugs to
 // Claude": a comment sent to Claude (the comments capability), which wakes the thread that triages them. The send
 // button stays for sending again; it is hidden, and a report is only saved, when the page can't send to Claude.
 import type { GameApi } from '../types';

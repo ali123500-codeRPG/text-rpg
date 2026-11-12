@@ -1,6 +1,6 @@
 // 181 Event-roll criticals (D-211): a chain for Critical Success and one for Critical Failure on your event rolls. Each
 // level is earned by reaching the tier the level below opened, and opens one more tier (tierUnlocks, summed along the
-// chain and from perks). Each opened tier widens the natural critical range by EVENT_CRIT_NATURALS (Ali picked A).
+// chain and from perks). Each opened tier widens the natural critical range by EVENT_CRIT_NATURALS (option A).
 import { describe, expect, it } from 'vitest';
 import { makeVillage, forcedRng } from '../harness';
 import { ruleset, tierName } from '../../src/ruleset';

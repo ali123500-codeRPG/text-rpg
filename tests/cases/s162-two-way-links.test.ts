@@ -1,5 +1,5 @@
 // Every zone link runs both ways: a plan's one-way links among its own new zones get their way back, and a save made
-// before the fix is repaired on load (Ali's back yard had no exit: the street and the common room linked in, nothing out).
+// before the fix is repaired on load (a played story's back yard had no exit: the street and the common room linked in, nothing out).
 import { describe, expect, it } from 'vitest';
 import { applyStagePlan, type PlanContext } from '../../src/scenario';
 import { repairReferences, newReport } from '../../src/save/checks';
