@@ -16,6 +16,7 @@ import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
 import { h, dragScroll } from './kit';
+import { perkSeries } from './perks';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
@@ -292,7 +293,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   /** opens the Character page at its Perks section */
   const seePerks = () => { nav('stats'); setTimeout(() => document.querySelector('.pk')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); };
-  const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
+  const goldCard = (title: string, sub: string, action?: [string, () => void], levelUp = false, series?: string) => h('div', { class: 'perk-new', 'data-levelup': levelUp ? '' : undefined, 'data-series': series }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
     h('div', {}, title, h('small', {}, sub)), action ? h('button', { type: 'button', class: 'hs-btn-text', onclick: action[1] }, action[0]) : null);
 
   /** an achievement or scar earned this turn: its name, reward level and what it asks for; a click shows why it was
@@ -365,7 +366,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks], true)),
       ...(l.achievements ?? []).map(achCard),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
-      ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks])),
+      ...(l.unlocks ?? []).map((u) => goldCard('New perk unlocked', `${skillName(u.skill)} reached ${u.milestone}`, ['See perks', seePerks], false, perkSeries(u.milestone))),
       l.mechanics?.length ? h('details', { class: 'rolls' }, h('summary', {}, h('span', { class: 'hs-label' }, 'Rolls')),
         h('ul', {}, l.mechanics.map((m) => h('li', {}, m)))) : null,
     ].filter(Boolean) as HTMLElement[];
