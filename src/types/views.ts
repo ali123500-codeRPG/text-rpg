@@ -18,6 +18,7 @@ export type MapZone = { id: string; links: { to: string; sight: boolean; frontie
 
 export type BeliefView = {
   about: ActorId;
+  pronouns?: 'he' | 'she' | 'they' | 'it'; // BG-60
   status: BeliefStatus;
   lastKnownZone?: string;
   lastSeenTurn?: number;

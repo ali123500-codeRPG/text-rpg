@@ -366,6 +366,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       stance: stance(state, a, other), hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
       ...(chaseLost(b) ? { lost: true as const } : {}),
       active: isActive(other), label: callName(state, a.id, about),
+      ...(other.pronouns ? { pronouns: other.pronouns } : {}), // BG-60: so an NPC speaks of someone out of sight as they are
       // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
       ...(about === state.player.id && b.source === 'seen' && atLeast(b.status, 'aware') && wornTitle(state) ? { title: wornTitle(state) } : {}),
     });
