@@ -14,6 +14,7 @@ import { passiveHealing } from '../../src/engine/heal';
 import { CONFIG } from '../../src/config';
 import type { GameState, Intent, ParserActionType } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
+import { getLibrary } from '../../src/library';
 
 const act = (type: ParserActionType, target: string | null = null): Intent => ({
   move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null,
@@ -104,7 +105,10 @@ describe('111 game clock', () => {
     const s = toStoryStart(makeVillage());
     startClock(s, 'morning');
     const p = villageStagePlan();
-    p.cast[0].routineSetId = 'sleeper';
+    // no set in the bank is night-only since RT (they all have a day of their own): a test set stands in
+    const lib = getLibrary();
+    lib.routineSets!.night_only = { ...lib.routineSets!.sleeper, id: 'night_only', tags: { ...lib.routineSets!.sleeper.tags, time: ['night'] } };
+    p.cast[0].routineSetId = 'night_only';
     expect(validateStagePlan(s, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }).some((e) => e.code === 'wrong_time' && e.routineOnly)).toBe(true);
   });
   it('rest cools down in game minutes', () => {

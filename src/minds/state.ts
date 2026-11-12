@@ -40,7 +40,9 @@ export function switchRoutine(state: GameState, actor: Actor, routineId: string,
   // BG-34: an agent may switch its own actor to follow whatever its set; bandmates never take follow from a spokesperson
   const offered = reason === 'agent' ? offeredRoutines(mind?.routines) : mind?.routines ?? [];
   const r = offered.includes(routineId) ? getRoutineOrNull(routineId) : null;
-  const unbound = r ? slotsRead(r).filter((s) => !hasBinding(mind!.slots?.[s])) : [];
+  // RT: an optional slot of its set (a bed, a seat) may stay unbound; the actor stays put at the times that read it
+  const optional = (s: string) => !!(mind?.routineSetId && routineSet(mind.routineSetId)?.slots[s]?.optional);
+  const unbound = r ? slotsRead(r).filter((s) => !hasBinding(mind!.slots?.[s]) && !optional(s)) : [];
   if (!mind || !r || unbound.length) {
     log(state, reason === 'agent' ? 'invalid_routine' : 'routine_skip', { actorId: actor.id, routineId, ...(unbound.length ? { unbound } : {}) });
     return false;

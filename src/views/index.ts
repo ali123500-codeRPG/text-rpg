@@ -714,7 +714,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
       classes: Object.values(lib.classes).map((c) => ({ id: c.id, name: c.name })),
       routineSets: Object.values(lib.routineSets).map((s) => ({
         id: s.id, brief: s.brief, tags: structuredClone(s.tags),
-        slots: Object.fromEntries(Object.entries(s.slots).map(([k, v]) => [k, { kind: v.kind, hint: v.hint }])),
+        slots: Object.fromEntries(Object.entries(s.slots).map(([k, v]) => [k, { kind: v.kind, hint: v.hint, ...(v.optional ? { optional: true } : {}) }])),
       })),
       items: [...items.values()],
       skills: Object.keys(lib.skills).map((id) => ({ id, name: skillName(id) })),
