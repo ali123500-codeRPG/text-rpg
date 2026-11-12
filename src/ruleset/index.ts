@@ -6,7 +6,7 @@ import type {
   PartState, Rng, RollRequest, RollResult, Ruleset, EventRollResult, Tier, TierRoll, TierShift,
 } from '../types';
 import { CONFIG } from '../config';
-import { COVER, TIERS } from '../scales';
+import { COVER, HIT_OUTCOMES, TIERS } from '../scales';
 import { actorBody, getLibrary, itemDef } from '../library';
 import { actorById, foe, isActive, hostile, zoneById } from '../engine/relations';
 import { sightDistM } from '../engine/position';
@@ -358,7 +358,7 @@ function attack(req: AttackRequest, state: GameState, rng: Rng): AttackResult {
   }
 
   // A22 Turn Aside: heavy armor turns a heavy or crushing hit on a part it covers into a full hit
-  if ((outcome === 'heavy_hit' || outcome === 'crushing_hit') && armor?.weight === 'heavy' && armor.covers.includes(location) && hasPerk(D, PK.turn_aside)) {
+  if (HIT_OUTCOMES.pos(outcome) >= HIT_OUTCOMES.pos('heavy_hit') && armor?.weight === 'heavy' && armor.covers.includes(location) && hasPerk(D, PK.turn_aside)) {
     outcome = 'full_hit';
     multiplier = 1;
   }

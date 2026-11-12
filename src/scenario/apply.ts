@@ -1,5 +1,6 @@
 // Applying a stage plan (Scenario setup steps 4–8), the fallback stage, opening events.
 import { frameOf } from '../engine/scenarioEnd';
+import { qualityMult } from '../ruleset/quality';
 import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
 import { CONFIG } from '../config';
 import { LIFE_STAGES, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales';
@@ -114,10 +115,10 @@ function idleHere(a: Actor, here: string, turn: number): void {
 
 export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'], string>, n: number): string {
   const base = itemDef(state, m.base);
-  const q = m.quality;
+  const q = qualityMult(m.quality);
   const T = CONFIG.QUALITY_TABLE;
-  const def: ItemDef = { ...structuredClone(base), id: `${base.id}_m${state.turn}_${n}`, name: m.name, look: m.look, base: { itemId: base.id, quality: q, boosts: m.boosts } };
-  const need = requirement(def)?.need ?? 0; // gear stats scale with the minted level's need (quality 3 and 4 move it up a level)
+  const def: ItemDef = { ...structuredClone(base), id: `${base.id}_m${state.turn}_${n}`, name: m.name, look: m.look, base: { itemId: base.id, quality: m.quality, boosts: m.boosts } };
+  const need = requirement(def)?.need ?? 0; // gear stats scale with the minted level's need (QUALITY_LEVEL_UP_FROM and better move it up a level)
   if (def.weapon) {
     for (const mode of def.weapon.modes) {
       if (m.boosts === 'damageAdj') { // QE2: fractions stay
@@ -129,7 +130,7 @@ export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['
   }
   if (def.armor) def.armor.reduction = CONFIG.ARMOR_FACTOR * need + Math.round(CONFIG.ARMOR_QUALITY_FACTOR * need * q); // QE4, QE6
   if (def.shield) def.shield.pool = CONFIG.POOL_BASE + CONFIG.POOL_FACTOR * need + Math.round(CONFIG.POOL_QUALITY_FACTOR * need * q); // QE5, QE6
-  if (def.kind === 'tool') for (const e of def.effects ?? []) if (e.kind === 'skill') e.value += T.tool[q - 1];
+  if (def.kind === 'tool') for (const e of def.effects ?? []) if (e.kind === 'skill') e.value += T.tool[m.quality];
   state.blueprints.push({ storyId: state.storyId, id: def.id, kind: 'item', data: def as unknown as Record<string, unknown> });
   state.scenarioCaps.minted += 1;
   return def.id;

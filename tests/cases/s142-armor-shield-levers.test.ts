@@ -11,7 +11,7 @@ import { itemDef } from '../../src/library';
 
 const minted = (base: string, quality: 1 | 2 | 3 | 4, boosts: 'hitAdj' | 'damageAdj' = 'hitAdj') => {
   const s = makeVillage();
-  return itemDef(s, mint(s, { base, quality, boosts, name: 'a find', look: 'a find' }, 1));
+  return itemDef(s, mint(s, { base, quality: (['quality_1', 'quality_2', 'quality_3', 'quality_4'] as const)[quality - 1], boosts, name: 'a find', look: 'a find' }, 1));
 };
 
 describe('142 armor and shield levers', () => {

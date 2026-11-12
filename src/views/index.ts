@@ -3,7 +3,7 @@ import { budgetUsed, lastScenarios } from '../engine/scenarioEnd';
 import { SCENARIO_ENDING_NAMES } from '../types';
 import { personalityText } from '../ruleset/personality';
 import { ageText, stageOf } from '../ruleset/age';
-import type { ScenarioFrame, Tier,
+import type { AttackOutcome, ScenarioFrame, Tier,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
   AgreementView, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
@@ -33,6 +33,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { modeName } from '../ruleset/gear';
+import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
@@ -185,7 +186,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
   return out;
 }
 
-const outcomeLabel = (o: string) => o.replaceAll('_', ' ');
+const outcomeLabel = (o: AttackOutcome) => outcomeText(o);
 
 /** SP1/SP4: the spar `viewer` fights in; name turns an actor id into what the viewer shows (an id, or the player's name for it) */
 function sparView(state: GameState, viewer: Actor, name: (id: string) => string): SparView | undefined {
@@ -356,7 +357,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const perceived = history.filter((e) => e.perception[a.id] && !barkOnly(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const told = history.filter((e) => hearsWords(e.perception[a.id]) && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const said = history.filter((e) => e.actorId === a.id && e.line?.text && !e.bark).slice(-CONFIG.SAID_LINES).map((e) => e.line!.text);
-  const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged', 'parried'].includes(e.attack.outcome));
+  const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && met(e.attack.outcome));
   const scratchHits = state.scratch?.[a.id];
   const lastHitBy = hit?.actorId ?? (Array.isArray(scratchHits) ? (scratchHits.at(-1) as string | undefined) : undefined);
   const beliefs: BeliefView[] = [];

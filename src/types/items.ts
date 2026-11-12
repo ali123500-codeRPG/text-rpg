@@ -32,7 +32,7 @@ export type ItemDef = {
   shield?: { pool: number };
   level?: EquipLevelKey; // EQ8/EQ10: equipment level: how much its requirement asks for
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
-  base?: { itemId: LibraryRef; quality: 1 | 2 | 3 | 4; boosts: string };
+  base?: { itemId: LibraryRef; quality: import('../scales').QualityKey; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
   /** D-218 Threadbound item: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each
    * grant's perk is theirs once they have earned its achievement (src/ruleset/threadboundItems.ts) */

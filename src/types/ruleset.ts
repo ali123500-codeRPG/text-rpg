@@ -103,7 +103,8 @@ export type AttackRequest = {
     defenderShifts?: TierShift[]; // engine-side shifts on the defense roll (All-50 Unerring)
   };
 };
-export type AttackOutcome = 'missed' | 'dodged' | 'grazed' | 'blocked' | 'parried' | 'full_hit' | 'heavy_hit' | 'crushing_hit';
+/** keys of HIT_OUTCOMES (src/scales.ts) */
+export type AttackOutcome = import('../scales').HitOutcome;
 export type AttackResult = {
   attack: RollResult;
   unaware?: true; // the target was unaware of the attacker

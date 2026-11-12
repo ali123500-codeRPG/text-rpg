@@ -71,6 +71,25 @@ export type ScenarioScale = (typeof SCENARIO_SCALES.keys)[number];
 /** CH5/SC19: how far a code-run pursuer follows the player, least first: post (never leaves its own place), ground (stays on
  * the scenario's ground), near (the ground and one place beyond it), far (anywhere, through frontiers after the player).
  * Agent-run NPCs decide for themselves. A new range is a new row here and a branch in engine/chase.ts chaseZones. */
+/** grades, none to divine (D-7; CR4, CR12): how hard a task, a challenge or a lock is, and how big a gain. The Weaver's
+ * challenge and gain, barriers, gains and locks use none to WEAVER_GRADE_TOP; the rows past it are task grades only */
+export const GRADE_LEVELS = scale([['none', 'None'], ['minor', 'Minor'], ['moderate', 'Moderate'], ['major', 'Major'], ['extreme', 'Extreme'],
+  ['mortal_limit', 'Mortal limit'], ['beyond', 'Beyond'], ['mythic', 'Mythic'], ['divine', 'Divine']]);
+export type GradeLevel = (typeof GRADE_LEVELS.keys)[number];
+/** the top grade the Weaver, barriers, gains and locks use */
+export const WEAVER_GRADE_TOP: GradeLevel = 'extreme';
+
+/** what an attack did, by how far it got: nowhere, stopped by the defense (dodged, parried, blocked on a shield), then
+ * reaching the body, lightest first. src/ruleset/hits.ts reads it: met = blocked or past, struck = grazed or past */
+export const HIT_OUTCOMES = scale([['missed', 'Missed'], ['dodged', 'Dodged'], ['parried', 'Parried'], ['blocked', 'Blocked'], ['grazed', 'Grazed'],
+  ['full_hit', 'Full hit'], ['heavy_hit', 'Heavy hit'], ['crushing_hit', 'Crushing hit']]);
+export type HitOutcome = (typeof HIT_OUTCOMES.keys)[number];
+
+/** a minted item's quality, lowest first (CS9). Its multiplier in the quality formulas is its position + 1
+ * (src/ruleset/quality.ts). The names are placeholders until the lore thread names them. */
+export const QUALITY_LEVELS = scale([['quality_1', 'Quality 1'], ['quality_2', 'Quality 2'], ['quality_3', 'Quality 3'], ['quality_4', 'Quality 4']]);
+export type QualityKey = (typeof QUALITY_LEVELS.keys)[number];
+
 export const CHASE_RANGES = scale([['post', 'Post'], ['ground', 'Ground'], ['near', 'Near'], ['far', 'Far']]);
 export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
 /** AG3: life stages, youngest first; each race lists the age in years at which each starts (RaceDef.ageStages).

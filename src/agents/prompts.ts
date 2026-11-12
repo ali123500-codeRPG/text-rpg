@@ -7,7 +7,7 @@ import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scenario/validate';
 import { GRADES, ORDER_TYPES } from '../types';
-import { BACKGROUND, CHASE_RANGES, COVER, HEALTH_LEVELS, LIFE_STAGES, LIGHT, NERVE_LINES, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
+import { BACKGROUND, CHASE_RANGES, COVER, HEALTH_LEVELS, LIFE_STAGES, LIGHT, NERVE_LINES, QUALITY_LEVELS, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
 /** a scale's levels as the JSON choices Claude may write (G4) */
 const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.stringify(sc.name(k))).join('|');
 /** V7 (flavor voice): the story's tone colors NPC speech without overriding character */
@@ -103,7 +103,7 @@ export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain"
    "wares"?:{"items":[{"item":itemId,"qty"?:number}],"services":[serviceId]},
    "personality"?:{"nerve"?:${Object.keys(NERVE_LINES).map((k) => JSON.stringify(k)).join('|')},"types"?:[up to 2 type ids from catalogs.personality.types],"values"?:[up to 2 value ids from catalogs.personality.values]},"age"?:${words(LIFE_STAGES)} (a new actor's life stage; code picks the years)}],
  "seeds":{"plans":[{"ownerId","goal","steps":[short phrase],"triggers":[trigger, ownerId defaults to the plan owner],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string, at least one],"revealWhen":{"type":"event_in_zone","kind","zone"}|{"type":"check_passed","skill":skill id from catalogs.skills,"minTier":tier,"againstActorId"}}]},
- "rewards":[{"item":itemId|{"base","quality":1|2|3|4,"boosts","name","look"},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone}}],
+ "rewards":[{"item":itemId|{"base","quality":${QUALITY_LEVELS.keys.map((k) => JSON.stringify(k)).join('|')},"boosts","name","look"},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone}}],
  "hiddenTerms":[string],"weaverNote":string,
  "spars"?:[{"sides":[[cast key|actor id]],"cruel"?:true}],
  "scenario"?:{"question":string,"scale":${words(SCENARIO_SCALES)},"endings":[{"when":endCheck,"as":"resolved"|"lost"|"left"|"escaped"|"interrupted","text":string}]}}
@@ -137,9 +137,9 @@ Slots bind zones only, never frontiers; every zone an actor's slots bind must be
 A player-band cast entry uses routine set "companion" and binds no slots.
 Limits: at most ${Object.entries(CONFIG.PLAN_CAPS).filter(([k]) => k !== 'knows').map(([k, n]) => `${n} ${k}`).join(', ')}; at most ${CONFIG.PLAN_CAPS.knows} knows per actor;
 rewards together are worth at most ${Object.entries(CONFIG.BOON_BUDGET).map(([g, b]) => `${b} Boon for ${g} gain`).join(', ')}:
-a reward's Boon is its catalog item's boon × qty, × ${CONFIG.BOON_QUALITY.slice(1).join('/')} for a minted item of quality 1/2/3/4;
+a reward's Boon is its catalog item's boon × qty, × ${QUALITY_LEVELS.keys.map((k) => CONFIG.BOON_QUALITY[k]).join('/')} for a minted item of quality ${QUALITY_LEVELS.keys.join('/')};
 at most ${CONFIG.SCENARIO_CAPS.minted} minted items (rewards whose item is an object) per scenario. A minted item's quality is at most
-${Object.entries(CONFIG.GAIN_MAX_QUALITY).map(([g, q]) => `${q} for ${g} gain`).join(', ')}; a minted weapon's boosts is "hitAdj" or "damageAdj".
+${Object.entries(CONFIG.GAIN_MAX_QUALITY).map(([g, q]) => `${q ?? 'no minted item'} for ${g} gain`).join(', ')}; a minted weapon's boosts is "hitAdj" or "damageAdj".
 A reward that breaks these rules is not refused: code drops it or places it as its plain base item.
 A minted item with no close library match uses the nearest generic base: ${IT.improvised_light}, ${IT.improvised_medium} or
 ${IT.improvised_heavy} (an improvised light, medium or heavy weapon) for an odd weapon, ${IT.curio} (curio) for a thing with no game effect.`;

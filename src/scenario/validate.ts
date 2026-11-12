@@ -5,7 +5,8 @@ import { triggerErrors } from './triggers';
 import { scaleFor } from '../engine/scenarioEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { CHASE_RANGES, COVER, LIFE_STAGES, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, QUALITY_LEVELS, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { qualityOf } from '../ruleset/quality';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
@@ -15,7 +16,7 @@ import { itemValue } from '../ruleset/value';
 
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
 
-const g = (x: Grade) => GRADES.indexOf(x);
+const g = (x: Grade) => GRADE_LEVELS.pos(x);
 
 /** gainVsChallenge: for the middle tiers, the gain's grade minus the challenge's, lowest and highest */
 type Fit = { challenge: [Grade, Grade]; gain: [Grade, Grade]; gainVsChallenge?: [number, number] };
@@ -441,7 +442,7 @@ type Reward = StagePlan['rewards'][number];
 /** Loot V8: a reward's Boon = the item's boon (or its value ÷ BOON_COIN, src/ruleset/value.ts) × qty, × BOON_QUALITY for a minted item. */
 export function boon(state: GameState, item: Reward['item'], qty = 1): number {
   const def = itemDef(state, typeof item === 'string' ? item : item.base);
-  const q = typeof item === 'string' ? 0 : item.quality;
+  const q = typeof item === 'string' ? 'plain' : item.quality;
   return (def.boon ?? itemValue(state, def) / CONFIG.BOON_COIN) * qty * CONFIG.BOON_QUALITY[q];
 }
 
@@ -461,7 +462,7 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
     .filter((t) => typeof t === 'string' && t.trim()).map((t) => t.toLowerCase());
   const badText = (v: unknown) => typeof v !== 'string' || v.length > CONFIG.TEXT_CAP || terms.some((t) => v.toLowerCase().includes(t));
   const gain = plan.event?.gain;
-  const maxQ = GRADES.includes(gain) ? CONFIG.GAIN_MAX_QUALITY[gain] ?? 0 : 0;
+  const maxQ = GRADES.includes(gain) ? CONFIG.GAIN_MAX_QUALITY[gain] ?? null : null;
   let mintLeft = CONFIG.SCENARIO_CAPS.minted - state.scenarioCaps.minted;
   let boonLeft = GRADES.includes(gain) ? CONFIG.BOON_BUDGET[gain] ?? 0 : 0; // V8: Boon is the only limit on rewards
   const known = (id: unknown) => { try { return typeof id === 'string' ? itemDef(state, id) : undefined; } catch { return undefined; } };
@@ -485,12 +486,13 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
       const base = known(m?.base);
       if (!base) return note('reward_dropped', `${where}: base item ${m?.base} unknown`);
       if (base.threadbound) return note('reward_dropped', `${where}: ${base.id} is one of a kind and cannot be minted`); // D-218
-      const plain = mintLeft <= 0 ? 'the scenario\'s minted cap is used up' : maxQ < 1 ? `a ${gain} gain allows no minted item`
+      const plain = mintLeft <= 0 ? 'the scenario\'s minted cap is used up' : !maxQ ? `a ${gain} gain allows no minted item`
         : badText(m.name) || badText(m.look) ? 'its name or look is too long or uses a hidden term' : '';
       if (plain) { note('reward_plain', `${where}: placed as a plain ${base.id}, because ${plain}`); item = base.id; }
       else {
         mintLeft -= 1;
-        const quality = Math.min(maxQ, Math.max(1, Math.round(Number(m.quality)) || 1)) as 1 | 2 | 3 | 4;
+        const asked = qualityOf(m.quality) ?? QUALITY_LEVELS.keys[0];
+        const quality = QUALITY_LEVELS.pos(asked) > QUALITY_LEVELS.pos(maxQ!) ? maxQ! : asked;
         if (quality !== m.quality) note('reward_quality', `${where}: quality ${m.quality} set to ${quality}, the most a ${gain} gain allows`);
         let boosts = m.boosts;
         if (base.kind === 'weapon' && boosts !== 'hitAdj' && boosts !== 'damageAdj') {

@@ -53,7 +53,7 @@ describe('ruleset maths', () => {
     const bonus = (id: string) => kitBonus(lib.items[id], lib.items[id].effects!.find((e) => e.kit)!);
     expect(CONFIG.EQUIP_FACTOR).toBe(0.4);
     expect([IT.cudgel, IT.dagger, IT.round_shield, IT.arming_sword, IT.greataxe].map(bonus)).toEqual([0, 10, 10, 20, 30]);
-    const minted = { ...lib.items[IT.arming_sword], base: { itemId: IT.arming_sword, quality: 3 as const, boosts: 'hitAdj' } };
+    const minted = { ...lib.items[IT.arming_sword], base: { itemId: IT.arming_sword, quality: 'quality_3' as const, boosts: 'hitAdj' } };
     expect(kitBonus(minted, minted.effects![0])).toBe(30); // quality 3: one level up (superior, need 75)
   });
   it('kit pieces share one bonus, the best of them', () => {

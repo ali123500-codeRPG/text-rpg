@@ -93,7 +93,7 @@ describe('NPC views', () => {
   it('NPC views keep events perceived in earlier turns (recentEvents) and who last hit them', () => {
     const s = makeVillage();
     const hit = { id: 't0.1', turn: 0, actorId: 'player', kind: 'attack', target: 'patron_1', zone: 'tav_common', effects: [], noise: 'normal', visibility: 'normal',
-      perception: { patron_1: { level: 'full', cue: 'sight' } }, attack: { outcome: 'full hit' } } as unknown as GameEvent;
+      perception: { patron_1: { level: 'full', cue: 'sight' } }, attack: { outcome: 'full_hit' } } as unknown as GameEvent;
     s.recentEvents = [hit];
     const ov = buildOppositionView(s, 'patron_1');
     expect(ov.perceived.length).toBe(1);

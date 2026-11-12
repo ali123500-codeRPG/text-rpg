@@ -4,7 +4,8 @@
 import { modeName } from './gear';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
-import { HEALTH_LEVELS, MORALE_LEVELS, type MoraleLevel } from '../scales';
+import { GRADE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, type MoraleLevel } from '../scales';
+import { GRADES } from '../types/core';
 import { gradeMod } from './index';
 import { MILESTONES } from './perks';
 import { baneSkill, defeatsRoll, isBane } from './bane';
@@ -100,8 +101,8 @@ export const MOD_SOURCES: ModSource[] = [
   { type: 'situational', roll: 'skill', source: 'Unaware', at: 'src/ruleset/index.ts', when: 'Defense rolls by a defender who didn\'t see the attack coming.', value: sg(CONFIG.UNAWARE_MOD) },
   { type: 'situational', roll: 'skill', source: 'Dodge vs missile', at: 'src/ruleset/index.ts', when: 'Dodge rolls against a ranged attack.', value: sg(CONFIG.DODGE_VS_MISSILE) },
   { type: 'situational', roll: 'skill', source: 'Scenario difficulty', at: 'src/engine/resolve.ts', when: 'Look around rolls: moderate minus the scenario\'s difficulty, at the roll\'s skill weight, so a task at your own grade plays the same at every level.',
-    value: list(Object.fromEntries(Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => [k, gradeMod(v)]))) },
-  { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Lockpicking rolls (BA2): the lock\'s grade.', value: list(CONFIG.LOCK_GRADE_MOD) },
+    value: GRADE_LEVELS.keys.map((k) => `${GRADE_LEVELS.name(k)} ${sg(gradeMod(CONFIG.DIFFICULTY[k]))}`).join(' · ') },
+  { type: 'situational', roll: 'skill', source: 'Lock', at: 'src/engine/resolve.ts', when: 'Lockpicking rolls (BA2): the lock\'s grade.', value: GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ') },
   { type: 'situational', roll: 'skill', source: 'Repeat try', at: 'src/ruleset/pressure.ts',
     when: 'Persuading, lying, threatening or haggling again at the same listener in one engagement (plain talk never counts).', value: `−${CONFIG.REPEAT_TRY} × earlier tries` },
   { type: 'situational', roll: 'skill', source: 'Travel pace', at: 'src/engine/travel.ts', when: 'The noticing roll on a road trip when something meets you, by pace (TV8).',
