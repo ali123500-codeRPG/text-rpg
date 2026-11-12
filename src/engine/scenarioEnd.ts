@@ -2,7 +2,8 @@
 // holds one met mid-fight, mid-chase or mid-talk (SC13), and keeps a record of how each scenario went (SC6). An Episode or
 // Venture holds smaller scenarios one level deep (SC4): a road encounter inside one starts an inner scenario, and when that ends
 // the bigger scenario carries on with no new event roll and no Weaver call.
-import type { CheckinAnswer, CheckinReason, EndCheck, GameEvent, GameState, Grade, PlanEnding, ScenarioEnding, ScenarioFrame, ScenarioRecord, StagePlan, Tier } from '../types';
+import type { CheckinAnswer, CheckinReason, EndCheck, GameEvent, GameState, Grade, PlanEnding, Rng, ScenarioEnding, ScenarioFrame, ScenarioRecord, StagePlan, Tier } from '../types';
+import { createRng } from '../rng';
 import { CONFIG } from '../config';
 import { SCENARIO_SCALES, TIME_OF_DAY, type ScenarioScale } from '../scales';
 import { now, timeOfDay } from '../time';
@@ -32,6 +33,7 @@ export function frameOf(state: GameState, scenario: StagePlan['scenario'], tier:
     startTurn: state.turn, startMinute: now(state), number: state.stage.scenarioNumber,
     upAtStart: state.actors.filter(isActive).map((a) => a.id), heldAtStart: state.player.core.inventory.map((i) => i.itemId),
     xpFrom: state.player.progression?.xpLog?.length ?? 0, xpStart: xpBar(state),
+    ...(tier === 'critical_success' && state.stage.tierBeyond ? { beyond: state.stage.tierBeyond } : {}),
   };
 }
 const PLAN_AS = new Set<string>(['resolved', 'lost', 'left', 'escaped', 'interrupted']);
@@ -243,7 +245,7 @@ function mergeGains(a?: Part, b?: Part): Part | undefined {
   return { skills, perks: [...a.perks, ...b.perks], allPerks: [...a.allPerks, ...b.allPerks] };
 }
 
-export function closeScenario(state: GameState): 'resume' | 'new' | 'roam' {
+export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | 'roam' {
   const st = state.stage;
   const cause = st.breakCause;
   const as = st.ended?.as ?? (cause ? BREAK_ENDING[cause] : undefined) ?? 'interrupted';
@@ -252,9 +254,24 @@ export function closeScenario(state: GameState): 'resume' | 'new' | 'roam' {
   // free roam after the endings CONFIG.ROAM_AFTER lists; a road encounter or a knock-out starts the next scenario instead
   const roam = !!cur && cause !== 'encounter' && cause !== 'knocked_out' && (!!st.ended?.roam || CONFIG.ROAM_AFTER.includes(as));
   const endsOuter = !!st.ended?.outer || cause === 'knocked_out';
-  // D-226: what waited for the end is granted now, with one gains summary (both scenarios' when the bigger one ends too)
-  if (cur) flushGrowth(state, endsOuter && outer ? { ...cur, gains: mergeGains(outer.gains, cur.gains), xpFrom: outer.xpFrom, xpStart: outer.xpStart, startTurn: outer.startTurn } : cur);
-  if (cur) keepGains(state, as); // the Gains page keeps every scenario's gains
+  // SC4: an encounter inside an Episode or Venture: this scenario carries on as the bigger one, so it pays nothing yet; its
+  // owed rolls and waiting achievements are kept apart while the inner scenario runs
+  const becomesOuter = !!cur && !outer && !endsOuter && cause === 'encounter' && holdsInner(cur.scale);
+  const pr = state.player.progression;
+  if (becomesOuter && pr) { cur!.held = { marks: pr.marks, ...(pr.pendingAchievements ? { pending: pr.pendingAchievements } : {}) }; pr.marks = []; delete pr.pendingAchievements; }
+  if (endsOuter && outer?.held && pr) { // both end: the bigger scenario's waiting growth joins the inner's, paid at its ending
+    pr.marks = [...outer.held.marks, ...pr.marks];
+    if (outer.held.pending) pr.pendingAchievements = [...outer.held.pending, ...(pr.pendingAchievements ?? [])];
+    delete outer.held;
+  }
+  // D-226/EG7: what waited for the end is paid and granted now, with one gains summary (both scenarios' when the bigger one ends too)
+  if (cur && !becomesOuter) {
+    const f = endsOuter && outer ? { ...cur, tier: outer.tier, beyond: outer.beyond, gains: mergeGains(outer.gains, cur.gains), xpFrom: outer.xpFrom, xpStart: outer.xpStart, startTurn: outer.startTurn } : cur;
+    const r = rng ?? createRng(state.rngState);
+    flushGrowth(state, f, as, r);
+    if (!rng) state.rngState = r.state;
+    keepGains(state, as); // the Gains page keeps every scenario's gains
+  }
   if (cur) keep(state, record(state, cur, endsOuter && outer ? 'interrupted' : as, text, !!outer));
   if (outer && endsOuter) keep(state, record(state, outer, as, text, false));
   if (cur) st.closed = { as, turn: state.turn }; // SD1: the ending moment reads it after resolveTurn
@@ -262,6 +279,11 @@ export function closeScenario(state: GameState): 'resume' | 'new' | 'roam' {
   if (outer && !endsOuter) {
     if (cause === 'encounter') { delete st.scenario; return 'new'; } // a new inner scenario in the same bigger one
     st.scenario = outer; delete st.outer; // SC4: the bigger scenario carries on
+    if (outer.held && pr) { // its owed rolls and waiting achievements come back
+      pr.marks = [...outer.held.marks, ...pr.marks];
+      if (outer.held.pending) pr.pendingAchievements = [...outer.held.pending, ...(pr.pendingAchievements ?? [])];
+      delete outer.held;
+    }
     outer.xpFrom = state.player.progression?.xpLog?.length ?? 0; outer.xpStart = xpBar(state); // D-226: the inner scenario's XP was in its own summary
     delete st.breakCause;
     logCode(state, 'scenario_resumed', { number: outer.number });

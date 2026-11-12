@@ -163,6 +163,8 @@ export type Mind = {
   overrides?: Record<ActorId, Stance>;
   knows: Fact[];
   routine?: { id: string; anchorTurn: Turn };
+  /** NW2: on head_to, the routine it goes back to once it gets there */
+  headBack?: { id: string; anchorTurn: Turn };
   routines?: string[];
   routineSetId?: LibraryRef;
   slots?: Record<string, string | string[]>;

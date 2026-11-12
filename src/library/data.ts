@@ -395,7 +395,7 @@ export const ACTIVITIES: Record<string, ActivityDef> = Object.fromEntries([
 const CALL_HELP = { type: 'call_help', target: null, skill: null, intent: 'call for help' } as const;
 const sched = (id: string, brief: string, loop: boolean, steps: [string, Routine['steps'][0]['duration'], string][], alert: string | undefined, onAlert: Routine['onAlert']): Routine =>
   ({ id, brief, kind: 'schedule', loop, steps: steps.map(([slot, duration, activity]) => ({ slot, duration, activity })), ...(alert ? { alert } : {}), onAlert });
-const still = (id: string, kind: 'wait' | 'follow', activity: string, brief: string, alert?: string): Routine =>
+const still = (id: string, kind: 'wait' | 'follow' | 'head', activity: string, brief: string, alert?: string): Routine =>
   ({ id, brief, kind, loop: false, steps: [], activity, ...(alert ? { alert } : {}), onAlert: null });
 
 export const ROUTINES: Record<string, Routine> = Object.fromEntries([
@@ -414,6 +414,7 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
   still('follow', 'follow', 'walk', 'Follows the player', 'follow_alert'),
   still('follow_alert', 'follow', 'stand_watch', 'Follows the player, on guard'),
   still('idle_here', 'wait', 'rest', 'Fallback only; in no set'),
+  still('head_to', 'head', 'walk', 'Heads for the place its agent named, then back to its routine; in no set (NW2)'),
   { ...sched('prowl', 'Prowls unseen, stop by stop', true, [['route', 'short', 'prowl']], 'lie_low_alert', null), posture: 'stealthy' as const },
   { ...sched('lie_low_alert', 'Slips off to lie low, on alert', false, [['refuge', 'long', 'cower']], undefined, null), posture: 'stealthy' as const },
   sched('roam_field', 'Oozes across the field, then settles', true, [['route', 'short', 'ooze'], ['post', 'medium', 'rest']], 'roam_field_alert', null),
@@ -428,6 +429,8 @@ const ZONE_BACKGROUND: Record<string, import('../scales').BackgroundKey> = {
   [ZK.room]: 'quiet', [ZK.corridor]: 'quiet', [ZK.stairs]: 'quiet', [ZK.cellar]: 'calm', [ZK.street]: 'quiet', [ZK.square]: 'quiet',
   [ZK.gate]: 'quiet', [ZK.yard]: 'quiet', [ZK.field]: 'hush', [ZK.woods]: 'hush', [ZK.road]: 'hush',
 };
+/** NW4: the kinds that lead onward (a street, square, gate, field, woods or road never ends in a wall); yards and rooms may */
+const ONWARD_KINDS = new Set<string>([ZK.street, ZK.square, ZK.gate, ZK.field, ZK.woods, ZK.road]);
 const z = (hint: string) => ({ kind: 'zone' as const, hint });
 const r = (hint: string) => ({ kind: 'route' as const, hint });
 export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
@@ -605,7 +608,7 @@ export function prototypeLibrary(): Library {
       [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
       [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1],
     ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall,
-      background: ZONE_BACKGROUND[id], ...(id === ZK.road ? { road: true as const } : {}) }])),
+      background: ZONE_BACKGROUND[id], ...(id === ZK.road ? { road: true as const } : {}), ...(ONWARD_KINDS.has(id) ? { onward: true as const } : {}) }])),
     // TV3/TV4: a road is one long zone; its length and danger words
     roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
     roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),

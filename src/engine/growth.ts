@@ -1,11 +1,15 @@
-// D-226 (LF3): growth lands at the end of a scenario. While a scenario runs, the player's achievements (grantAchievement
-// queues them) and All-XXX steps wait; when the scenario ends, closeScenario calls flushGrowth, which grants them all at once
-// and leaves one gains summary (stage.gains, then LogLine.scenarioGains) for the ending moment's pop-up. In free roam they come
-// at once (growthWaits). The summary also lists what already landed during the scenario: skill raises, XP and levels.
-import type { AchievementNote, GameState, ScenarioEnding, ScenarioFrame, ScenarioGains, XpAward, XpPart } from '../types';
+// D-226 (LF3) and the growth proposal (EG7, EG8, EG13): growth lands at the end of a scenario. While a scenario runs, the
+// player's marks only count (owed rolls), achievements queue (grantAchievement), All-XXX steps and level-ups wait. When the
+// scenario ends, closeScenario calls flushGrowth: the scenario pays its improvement rolls (payScenario, in rounds), levels are
+// taken, then achievements and All-XXX are granted, and one gains summary is left (stage.gains, then LogLine.scenarioGains) for
+// the ending moment's pop-up. In free roam achievements come at once (growthWaits); marks wait for the next scenario.
+import type { AchievementNote, GameState, Rng, ScenarioEnding, ScenarioFrame, ScenarioGains, Tier, XpAward, XpPart } from '../types';
+import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { grantAllSteps } from '../ruleset/allSteps';
-import { achievementInfo, charLevel, grantAchievement, xpToNext } from './xp';
+import { owedBySkill, payRolls } from '../ruleset/improve';
+import { achievementInfo, atScenarioEnd, charLevel, grantAchievement, spendXp, unlockClasses, xpToNext } from './xp';
+import { logCode } from './effects';
 
 type Part = NonNullable<ScenarioFrame['gains']>;
 const empty = (): Part => ({ skills: [], perks: [], allPerks: [] });
@@ -45,8 +49,45 @@ export function noteGains(state: GameState): void {
 /** the turn each frame's gains were last noted (a scenario closed outside resolve still counts its last turn once) */
 const noted = new WeakMap<ScenarioFrame, number>();
 
-/** the scenario `f` ends: grant everything that waited, then add XP, levels and achievements, and leave the summary on stage.gains */
-export function flushGrowth(state: GameState, f: ScenarioFrame): void {
+/** EG5/EG17: what an ending pays, kept between ENDING_FACTOR_MIN and ENDING_FACTOR_MAX */
+export const endingFactor = (as: ScenarioEnding): number =>
+  Math.min(CONFIG.ENDING_FACTOR_MAX, Math.max(CONFIG.ENDING_FACTOR_MIN, CONFIG.ENDING_FACTOR[as] ?? CONFIG.ENDING_FACTOR_MIN));
+
+/** EG13: the improvement rolls a scenario pays for `owed` rolls marked in it: round(owed × tier share × ending factor), plus
+ * GROWTH_ROLLS_PAST_CRIT per step past Critical Success, plus the low-level bonus (EG10). Nothing marked pays nothing.
+ * Scaling: it counts rolls, not points, so it is the same at any skill; what a roll does at 50, 75, 100 is the improvement roll's. */
+export function scenarioRolls(state: GameState, owed: number, tier: Tier, beyond: number | undefined, as: ScenarioEnding): number {
+  if (owed <= 0) return 0;
+  const past = tier === 'critical_success' ? (beyond ?? 0) * CONFIG.GROWTH_ROLLS_PAST_CRIT : 0;
+  const low = charLevel(state.player) < CONFIG.GROWTH_LOW_LEVEL_BELOW ? CONFIG.GROWTH_LOW_LEVEL_BONUS : 0;
+  return Math.round(owed * (CONFIG.GROWTH_TIER_SHARE[tier] ?? 0) * endingFactor(as)) + past + low;
+}
+
+/** EG6 a: deal `rolls` to the marked skills by their owed rolls (largest remainder; ties go to the skill marked more, then first) */
+export function dealRolls(owed: [string, number][], rolls: number): [string, number][] {
+  const total = owed.reduce((n, [, m]) => n + m, 0);
+  if (!total || rolls <= 0) return [];
+  const out = owed.map(([id, m], i) => ({ id, m, i, n: Math.floor((rolls * m) / total), r: ((rolls * m) / total) % 1 }));
+  let left = rolls - out.reduce((n, x) => n + x.n, 0);
+  for (const x of [...out].sort((a, b) => b.r - a.r || b.m - a.m || a.i - b.i)) { if (left <= 0) break; x.n++; left--; }
+  return out.filter((x) => x.n > 0).map((x) => [x.id, x.n]);
+}
+
+/** EG7: the scenario's payout: its owed rolls become improvement rolls (scenarioRolls), dealt by marks and made in rounds */
+export function payScenario(state: GameState, rng: Rng, f: ScenarioFrame, as: ScenarioEnding): void {
+  const pr = state.player.progression;
+  if (!pr || !pr.marks.length) return;
+  const owed = owedBySkill(state.player);
+  const rolls = scenarioRolls(state, pr.marks.length, f.tier, f.beyond, as);
+  const dealt = dealRolls(owed, rolls);
+  pr.marks = [];
+  logCode(state, 'growth_paid', { owed: owed.reduce((n, [, m]) => n + m, 0), rolls, tier: f.tier, as, dealt });
+  payRolls(state, rng, dealt);
+}
+
+/** the scenario `f` ends with `as`: pay its rolls, take levels, grant everything that waited, and leave the summary on stage.gains */
+export function flushGrowth(state: GameState, f: ScenarioFrame, as: ScenarioEnding = 'interrupted', rng?: Rng): void { atScenarioEnd(() => flush(state, f, as, rng)); }
+function flush(state: GameState, f: ScenarioFrame, as: ScenarioEnding, rng?: Rng): void {
   const live = state.stage.scenario === f || state.stage.outer === f;
   if (live && noted.get(f) !== state.turn) { noted.set(f, state.turn); readLog(state, (f.gains ??= empty())); }
   const pr = state.player.progression, mark = state.log.length;
@@ -54,6 +95,9 @@ export function flushGrowth(state: GameState, f: ScenarioFrame): void {
   const start = f.xpStart ?? xpBar(state);
   const ids: string[] = [];
   if (pr) {
+    if (rng) payScenario(state, rng, f, as);
+    spendXp(state); // EG8: levels waited for this moment
+    unlockClasses(state);
     const q = pr.pendingAchievements ?? [];
     delete pr.pendingAchievements;
     const had = new Set((pr.achievements ?? []).map((x) => x.id));

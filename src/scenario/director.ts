@@ -6,10 +6,11 @@ import { noteCrossing } from '../engine/chase';
 import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView } from '../types';
 import { CONFIG } from '../config';
 import { ruleset } from '../ruleset';
-import { buildWeaverView } from '../views';
-import { zoneById } from '../engine/relations';
+import { buildWeaverView, type WeaverTarget } from '../views';
+import { isActive, zoneById } from '../engine/relations';
+import type { FrontierWait } from '../engine/resolve';
 import type { PlanContext, PlanError } from './index';
-import { validateStagePlan } from './validate';
+import { stageFrontiers, validateStagePlan } from './validate';
 import { applyFallbackStage, applyStagePlan, beginScenario, ensurePlace, openingEvents, stealthyArrival } from './apply';
 import { frontiersNearPlayer, isSavedZone, loadSavedZone } from './stage';
 
@@ -33,7 +34,8 @@ export type ScenarioResult = {
 const blocking = (errors: PlanError[]) => errors.some((e) => !e.repaired);
 
 type Planned = { plan: StagePlan | null; errors: PlanError[]; reason?: string };
-type Held = { ctx: PlanContext; result: Promise<Planned> };
+/** ahead (NW3): started for an NPC waiting at the frontier; done: its result once back (applied by applyBuiltAhead) */
+type Held = { ctx: PlanContext; result: Promise<Planned>; ahead?: true; done?: Planned };
 const TIMEOUT: unique symbol = Symbol('timeout');
 
 export class ScenarioDirector {
@@ -85,7 +87,7 @@ export class ScenarioDirector {
     const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
     // GAP: WEAVER_TIMEOUT bounds the whole scenario-start wait (first call and repair together).
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    const target: WeaverView['target'] = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
+    const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
     const planned = await this.plan(state, ctx, target, deadline);
     const res = { ...this.finish(state, ctx, planned, rng, entry), eventRoll };
     if (frontierKey && entry === 'stealthy') stealthyArrival(state, rng);
@@ -106,6 +108,7 @@ export class ScenarioDirector {
   afterSave(state: GameState): string[] {
     const started: string[] = [];
     this.startCheckin(state);
+    started.push(...this.buildAhead(state));
     if (state.stage.roam) return started;
     for (const key of frontiersNearPlayer(state)) {
       if (this.held.has(key)) continue;
@@ -115,13 +118,68 @@ export class ScenarioDirector {
     return started;
   }
 
+  /** NW3 (option A): an NPC waiting at an unbuilt frontier this turn starts the same background Weaver call the player's
+   * frontiers get, at most NPC_BUILDS_PER_TURN a turn and none for a frontier already held. A frontier to a saved zone
+   * just loads it (no call). In free roam too: the NPC's build is an extension, never a scenario of its own. */
+  private buildAhead(state: GameState): string[] {
+    const started: string[] = [];
+    const open = stageFrontiers(state);
+    for (const w of (state.scratch?.frontierWaits as FrontierWait[] | undefined) ?? []) {
+      if (!open.has(w.frontier) || this.held.has(w.frontier)) continue;
+      if (isSavedZone(state, w.frontier)) { loadSavedZone(state, w.frontier); continue; }
+      if (started.length >= CONFIG.NPC_BUILDS_PER_TURN) break;
+      const h: Held = { ...this.extension(state, w.frontier, true), ahead: true };
+      h.result.then((r) => { h.done = r; });
+      this.held.set(w.frontier, h);
+      started.push(w.frontier);
+    }
+    return started;
+  }
+
+  /** NW3: NPC-started builds that came back are applied before the next turn (after the turn's own crossing), so the
+   * waiting NPC steps through on its next move. Built is not seen: the player's Map shows the new ground only once they
+   * see it (S6). Returns the frontier keys built. */
+  applyBuiltAhead(state: GameState, rng: Rng): string[] {
+    const built: string[] = [];
+    for (const [key, h] of this.held) {
+      if (!h.ahead || !h.done) continue;
+      this.held.delete(key);
+      if (!stageFrontiers(state).has(key)) continue; // the player crossed it first and it was applied then
+      const planned = h.done.plan ? { plan: h.done.plan, errors: validateStagePlan(state, h.done.plan, h.ctx) } : h.done;
+      finish(state, h.ctx, planned, rng, 'stealthy'); // stealthy: no opening beliefs, the player is not arriving
+      built.push(key);
+    }
+    return built;
+  }
+
+  /** NW8 (settles OQ-13): NPCs that walked into frontier `key` this turn follow the player through it, after them */
+  private followAcross(state: GameState, key: string): string[] {
+    const here = zoneById(state, state.player.zone);
+    if (!here) return [];
+    const out: string[] = [];
+    for (const w of (state.scratch?.frontierWaits as FrontierWait[] | undefined) ?? []) {
+      const a = state.actors.find((x) => x.id === w.actorId);
+      if (w.frontier !== key || !a || !isActive(a)) continue;
+      noteLeft(state, a.zone);
+      a.zone = here.id;
+      a.placeId = here.placeId;
+      delete a.pos; // ZP1: placed in its new zone at the next turn's start
+      out.push(a.id);
+    }
+    if (state.scratch?.frontierWaits) state.scratch.frontierWaits = (state.scratch.frontierWaits as FrontierWait[]).filter((w) => w.frontier !== key);
+    return out;
+  }
+
   /** The player moves into frontier `key` (after resolveTurn, before the save). Waits for a late extension; no event roll.
    * In free roam an unbuilt frontier starts a new scenario there instead, with its own event roll (CH3 a: eventRoll is set). */
   async cross(state: GameState, key: string, rng: Rng, entry: 'open' | 'stealthy' = 'open'): Promise<ScenarioResult> {
     const from = state.player.zone;
     const res = state.stage.roam && !isSavedZone(state, key) ? await this.startScenario(state, rng, entry, key) : await this.crossTo(state, key, rng, entry);
     noteLeft(state, from); // the trail: "go back" leads to the zone the frontier was crossed from
-    if (state.player.zone !== from) noteCrossing(state, from, state.player.zone); // CH6: pursuers who saw it follow
+    if (state.player.zone !== from) {
+      noteCrossing(state, from, state.player.zone); // CH6: pursuers who saw it follow
+      this.followAcross(state, key); // NW8
+    }
     return res;
   }
 
@@ -136,25 +194,30 @@ export class ScenarioDirector {
     let h = this.held.get(key);
     if (!h) this.held.set(key, (h = this.extension(state, key)));
     const r = await h.result;
+    // NW3: the player got to a frontier an NPC's build was already under way for: it is the player's crossing now
+    const ctx: PlanContext = h.ahead ? (({ ahead: _, ...c }) => c)(h.ctx) : h.ctx;
+    if (h.ahead) this.held.set(key, { ctx, result: h.result });
     // the stage may have changed since the plan came back: check it again (no retry for a background extension)
-    const planned = r.plan ? { plan: r.plan, errors: validateStagePlan(state, r.plan, h.ctx) } : r;
-    const res = this.finish(state, h.ctx, planned, rng, entry);
+    const planned = r.plan ? { plan: r.plan, errors: validateStagePlan(state, r.plan, ctx) } : r;
+    const res = this.finish(state, ctx, planned, rng, entry);
     if (entry === 'stealthy') stealthyArrival(state, rng);
     return res;
   }
 
-  private extension(state: GameState, key: string): Held {
-    const link = zoneById(state, state.player.zone)?.links.find((l) => l.to === key);
-    const placeId = state.player.placeId;
-    const ctx: PlanContext = { tier: state.stage.tier, kind: 'extension', frontierKey: key, placeId };
+  private extension(state: GameState, key: string, ahead = false): Held {
+    // the frontier's edge: the player's zone when it links there, else (NW3) the zone the NPC waits in
+    const edge = [zoneById(state, state.player.zone), ...state.zones].find((z) => z?.links.some((l) => l.to === key));
+    const link = edge?.links.find((l) => l.to === key);
+    const placeId = ahead && edge ? edge.placeId : state.player.placeId;
+    const ctx: PlanContext = { tier: state.stage.tier, kind: 'extension', frontierKey: key, placeId, ...(ahead ? { ahead: true as const } : {}) };
     // nobody may await a background call: a throw becomes a failed extension, never an unhandled rejection
-    const result = this.plan(state, ctx, { kind: 'frontier', placeId, label: link?.label, frontierKey: key })
+    const result = this.plan(state, ctx, { kind: 'frontier', placeId, label: link?.label, frontierKey: key, ...(ahead ? { ahead: true as const } : {}) })
       .catch((): Planned => ({ plan: null, errors: [], reason: 'call_failed' }));
     return { ctx, result };
   }
 
   /** one call plus one repair retry with the validator's errors. */
-  private async plan(state: GameState, ctx: PlanContext, target: WeaverView['target'], deadline?: number): Promise<Planned> {
+  private async plan(state: GameState, ctx: PlanContext, target: WeaverTarget, deadline?: number): Promise<Planned> {
     const view = buildWeaverView(state, target);
     const first = await this.timed(this.call(view), deadline);
     if (first === TIMEOUT) return { plan: null, errors: [], reason: 'weaver_timeout' };

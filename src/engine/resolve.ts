@@ -23,7 +23,7 @@ import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, 
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
@@ -254,7 +254,14 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   }
   const link = zoneById(state, a.zone)?.links.find((l) => l.to === goal.zone);
   if (link?.frontier) {
-    if (a.kind !== 'player') return null; // [Proposed] NPC orders into frontiers are dropped
+    if (a.kind !== 'player') {
+      // NW3/NW8: an NPC waits at the edge with its move spent. If the player crosses this frontier this turn it follows
+      // them through, after them; otherwise its wait asks for the ground beyond to be built in the background.
+      const waits = (state.scratch?.frontierWaits as FrontierWait[] | undefined) ?? [];
+      state.scratch = { ...(state.scratch ?? {}), frontierWaits: [...waits.filter((w) => w.actorId !== a.id), { actorId: a.id, frontier: goal.zone }] };
+      logCode(state, 'frontier_wait', { actorId: a.id, frontier: goal.zone });
+      return 'spent';
+    }
     // GAP: the player crossing a frontier stays in its zone; scenario setup / stage extension places it (pipeline reads scratch).
     state.scratch = { ...(state.scratch ?? {}), frontierCrossed: goal.zone };
     emit(ctx, mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] }));
@@ -952,7 +959,11 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 
 // ---------- the turn ----------
 
+/** NW3/NW8: an NPC that walked into a frontier this turn and waits at its edge (scratch.frontierWaits, reset each turn) */
+export type FrontierWait = { actorId: string; frontier: string };
+
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
+  if (state.scratch) delete state.scratch.frontierWaits; // NW3: this turn's waits only
   noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
   placeAll(state); // ZP1: anyone new on stage, or moved by a scenario, gets a spot in their zone
   delete state.stage.encounter; // TV4: an encounter's scenario has placed its people by now
@@ -1045,6 +1056,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const speechSkill = playerOrder && isSpeech(playerOrder.type) ? SPEECH_SKILL[playerOrder.type] : input.quickWord && ex ? SPEECH_SKILL.talk : undefined;
   checkSecrets(state, ctx.events, ex, speechSkill);
   updateAlarms(state, ctx.events);
+  headArrivals(state); // NW2: a head_to walk that got there goes back to its routine
   // QT8: talking to a giver hands in its finished job, before its agent's output (so it may offer the next one)
   handInQuests(state, (id) => input.spokespeople.includes(id) && ctx.exchangeEvents.some((e) => e.actorId === state.player.id && !!e.perception[id]));
   applyAgentEffects(state, input, {
@@ -1075,8 +1087,9 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (ended) unpaidQuests(state); // QT23
   if (ended && fight) fightEnded(state, fight, ctx.events);
   turnFeats(state, ctx.events);
-  // SM2: with SKILL_UP_INSTANT, owed rolls are made every turn; SM3: marks still count per engagement (or per scenario)
-  if (ended || state.stage.breakCause || CONFIG.SKILL_UP_INSTANT) { improveMarked(state, rng); unlockClasses(state); }
+  // EG7: owed rolls wait for the scenario's end (closeScenario pays them); with that off they are made every turn.
+  // SM3: marks still count per engagement (or per scenario) for stacking
+  if (!CONFIG.GROWTH_AT_SCENARIO_END) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
   for (const x of allActors(state)) { if (x !== state.player || !growthWaits(state)) grantAllSteps(state, x); // D-226: the player's wait for the scenario's end
@@ -1084,7 +1097,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
   noteGains(state); // D-226: this turn's raises go on the scenario's gains summary
-  if (state.stage.breakCause) closeScenario(state); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
+  if (state.stage.breakCause) closeScenario(state, rng); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
   state.events.push(...ctx.events);
   return ctx.events;
 }

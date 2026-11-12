@@ -239,7 +239,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
       expect(s.barriers![id]).toMatchObject({ kind: BK.door, grade: 'major', lock: { locked: true } });
       expect(zoneById(s, 'street_square')!.links.find((l) => l.to === shed.id)!.barrier).toBe(id);
       expect(s.actors.find((a) => a.id === 'trader')!.core.inventory.find((i) => i.itemId === IT.key)!.opens).toEqual([id]);
-      expect(buildWeaverView(s, { kind: 'scenario', placeId: 'street' }).stage.find((z) => z.id === shed.id)!.links[0].way).toMatchObject({ kind: 'door', grade: 'major', lock: 'locked' });
+      expect(buildWeaverView(s, { kind: 'scenario', placeId: 'street' }).places.flatMap((p) => p.areas).find((z) => z.id === shed.id)!.links[0].way).toMatchObject({ kind: 'door', grade: 'major', lock: 'locked' });
     });
     it('a bad barrier is refused: an unknown kind, a bolt on neither side, a lock on rubble', () => {
       const s = quiet();

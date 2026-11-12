@@ -211,6 +211,17 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
   for (const f of frontiers) text(`frontier ${f.key} label`, f.label, true);
 
   // ---- zones and links ----
+  // NW4: every zone or frontier a plan zone touches, both ways (links run both ways once applied); an extension's
+  // entry (its first zone) also touches the zones whose links led into the crossed frontier
+  const neighbours = (key: string) => {
+    const n = new Set<string>();
+    const z = zones.find((x) => x.key === key);
+    for (const l of arr(z?.links)) if (l.to !== key) n.add(l.to);
+    for (const o of zones) if (o.key !== key && arr(o.links).some((l) => l.to === key)) n.add(o.key);
+    for (const o of state.zones) if (o.links.some((l) => !l.frontier && l.to === key)) n.add(o.id);
+    if (ctx.frontierKey && zones[0]?.key === key) for (const o of state.zones) if (o.links.some((l) => l.frontier && l.to === ctx.frontierKey)) n.add(o.id);
+    return n;
+  };
   for (const z of zones) {
     text(`zone ${z.key} name`, z.name, true);
     text(`zone ${z.key} look`, z.look, true);
@@ -228,6 +239,9 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
       if (!SIDES.includes(side as never) || !edgeKinds[ek as string]) err('bad_zone', `zone ${z.key}: edges are n, e, s or w, each an edge kind id from catalogs.edgeKinds (${Object.values(edgeKinds).map((k) => `${k.id} ${k.name}`).join(', ')})`);
     }
     if ((z.cover !== undefined && !COVER.has(z.cover)) || (z.light !== undefined && !LIGHT.has(z.light))) err('bad_zone', `zone ${z.key}: light is ${LIGHT.list()}; cover is ${COVER.list()}`);
+    // NW4: an onward kind (a street, square, gate, field, woods or road) links somewhere besides the way in
+    if (getLibrary().zoneKinds?.[z.kind]?.onward && !z.fromLayout && neighbours(z.key).size < 2)
+      err('dead_end', `zone ${z.key}: a ${getLibrary().zoneKinds?.[z.kind]?.name.toLowerCase()} leads onward: besides the way in, link it to another zone or a frontier`);
     for (const l of arr(z.links)) {
       text(`zone ${z.key} link label`, l.label, true);
       if (!isZone(l.to) && !isFrontier(l.to)) err('bad_link', `zone ${z.key}: link to ${l.to} is not a zone in the plan, on the stage, or a frontier`);
