@@ -2,6 +2,7 @@
 // outnumbered, back from the brink), judged when the player's fight ends from the FightLog kept on the engagement.
 // Critical Success achievements count in every player roll (rollFeats in xp.ts).
 import { yieldTaken } from './yield';
+import { defended, struck } from '../ruleset/hits';
 import { moraleLevel } from '../ruleset/morale';
 import type { AchievementRule, ContestResult, FightLog, GameEvent, GameState, RollResult, SkillFunction } from '../types';
 import { CONFIG } from '../config';
@@ -26,7 +27,6 @@ export function turnFeats(state: GameState, events: GameEvent[]): void {
   stateFeats(state, events);
 }
 
-const HITS = new Set(['grazed', 'full_hit', 'heavy_hit', 'crushing_hit']);
 
 /** the turn's events: clean defenses (N1), holds and aimed hits (N8), and contests won against better attackers or
  * defenders (N4c) */
@@ -34,10 +34,10 @@ function eventFeats(state: GameState, events: GameEvent[]): void {
   const p = state.player;
   for (const ev of events) {
     const a = ev.attack;
-    if (a?.defense && a.targetId === p.id && (a.outcome === 'dodged' || a.outcome === 'blocked' || a.outcome === 'parried') && a.damage === 0) tally(state, 'clean_defense');
+    if (a?.defense && a.targetId === p.id && defended(a.outcome) && a.damage === 0) tally(state, 'clean_defense');
     if (a?.defense && (a.attackerId === p.id || a.targetId === p.id)) // an attack against a defense is a contest
-      contestFeat(state, { a: a.attack, b: a.defense, gap: 0, winner: HITS.has(a.outcome) ? 'a' : a.outcome === 'dodged' || a.outcome === 'blocked' || a.outcome === 'parried' ? 'b' : 'tie' });
-    if (a && a.attackerId === p.id && a.locationHow === 'aimed' && HITS.has(a.outcome) && a.location) {
+      contestFeat(state, { a: a.attack, b: a.defense, gap: 0, winner: struck(a.outcome) ? 'a' : defended(a.outcome) ? 'b' : 'tie' });
+    if (a && a.attackerId === p.id && a.locationHow === 'aimed' && struck(a.outcome) && a.location) {
       const t = actorById(state, a.targetId);
       const size = t && actorBody(state, t).parts.find((x) => x.id === a.location)?.size;
       tally(state, 'aimed_hits');

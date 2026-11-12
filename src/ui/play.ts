@@ -3,6 +3,7 @@
 // status strip that opens the full sheet. Everything reads only PlayerView, the player's own sheet and the LogLines, and
 // nothing changes with the encounter mode, which agents run or how many Claude calls a turn makes (hidden information).
 import { PK } from '../library/perkIds';
+import { outcomeText, struck } from '../ruleset/hits';
 import type { AchievementNote, Actor, GameApi, GameState, LogLine, Notice, PlayerView, ScenarioEndNote } from '../types';
 import { CONFIG } from '../config';
 import { buildPlayerView, questGoalText } from '../views';
@@ -28,7 +29,7 @@ import { coinWords } from '../engine/trade';
 import { closePop, openPop } from './pop';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
-import { HEALTH_LEVELS, PART_STATES } from '../scales';
+import { HEALTH_LEVELS, HIT_OUTCOMES, PART_STATES } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
@@ -60,10 +61,9 @@ const tierChip = (t: TierRoll) => h('span', { class: 'tier ' + (tierAtLeast(t, '
 
 /** M-20: how hard each outcome label lands, 0 (no motion) to 4; hits are coloured by whose loss they are */
 const OUTCOME_BEAT: Record<AttackOutcome, number> = { missed: 0, dodged: 0, parried: 1, blocked: 1, grazed: 1, full_hit: 2, heavy_hit: 3, crushing_hit: 4 };
-const OUTCOME_HIT = new Set<AttackOutcome>(['grazed', 'full_hit', 'heavy_hit', 'crushing_hit']);
 /** the outcome label a check line's result starts with ("heavy hit, head" → heavy_hit), if any */
 const outcomeOf = (result: string): AttackOutcome | null =>
-  (Object.keys(OUTCOME_BEAT) as AttackOutcome[]).find((k) => result.startsWith(k.replace(/_/g, ' '))) ?? null;
+  HIT_OUTCOMES.keys.find((k) => result.startsWith(outcomeText(k))) ?? null;
 type Around = { who: Record<string, string>; head: Record<string, string>; heal: string };
 
 const SLOW_AFTER_S = 90; // past this the waiting line gets a "taking longer than usual" note
@@ -348,7 +348,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const checkLine = (c: NonNullable<LogLine['check']>, by?: string) => h('p', { class: 'check' + (by ? ' in' : '') }, checkIcon(c.kind),
     h('span', { class: 'sk' }, by ? cap(by) : skillName(c.skill)), tierChip(c),
     c.against ? [h('span', { class: 'vs' }, `vs ${c.against.what}`), tierChip(c.against), h('span', { class: 'gap' }, tierGap(c, c.against))] : null,
-    h('span', { class: 'res' }, '→ ', ((o) => h('b', { class: o && OUTCOME_HIT.has(o) ? 'hit' : '', 'data-o': o ? String(OUTCOME_BEAT[o]) : '0' }, c.result))(outcomeOf(c.result))));
+    h('span', { class: 'res' }, '→ ', ((o) => h('b', { class: o && struck(o) ? 'hit' : '', 'data-o': o ? String(OUTCOME_BEAT[o]) : '0' }, c.result))(outcomeOf(c.result))));
 
   function results(l: LogLine, s: GameState | null): HTMLElement | null {
     const lib = getLibrary();

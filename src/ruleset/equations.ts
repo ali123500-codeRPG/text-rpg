@@ -2,8 +2,9 @@
 // read from CONFIG or the scales, and every worked example and chance is computed by the functions the rules call
 // (band, naturalEdge, ladder, stackType …), so the page follows the code.
 import type { Library } from '../types';
+import { GRADES } from '../types/core';
 import { CONFIG } from '../config';
-import { CLASS_TIERS, LIFE_STAGES, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
+import { CLASS_TIERS, GRADE_LEVELS, LIFE_STAGES, SKILL_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
 import { MARGIN_BANDS, ladder, naturalEdge, pickSeconds, rollMargin, stackType, tierOf } from './index';
 import { MILESTONES } from './perks';
@@ -31,7 +32,6 @@ export type EquationGroup = { key: string; title: string; about: string; equatio
 const n = (x: number) => `${+x.toFixed(2)}`;
 const sg = (x: number) => `${x > 0 ? '+' : ''}${n(x)}`;
 const pct = (k: number) => `${n(k)}%`;
-const list = (o: Record<string, number>) => Object.entries(o).map(([k, v]) => `${k} ${sg(v)}`).join(' · ');
 const D100 = Array.from({ length: 100 }, (_, i) => i + 1);
 const W = () => CONFIG.SKILL_WEIGHT, NEED = () => CONFIG.ROLL_NEEDED;
 /** the number-boost perks' milestones (the 40/80/120 perks): every other milestone, from the second */
@@ -73,7 +73,7 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab; perks and achievements such as Master of the Moment add to it). A function roll counts every skill with the function at 1 (with the Perception All-150 Every Sense One, a sight or hearing roll counts the skills of both).`],
           ['gear', `skill effects of worn, held or carried items, also × share; a standard kit gives EQUIP_FACTOR (${n(CONFIG.EQUIP_FACTOR)}) × its need, shared once per roll (the best piece)`],
           ['augments', `each skill that augments this one (SkillDef.augments) adds its true skill × its share (default 1) × its tier, on every roll of this skill or only the roll kinds it lists; its tree must be open (Shrewd Dealing augments Barter). A perk can give one too (PerkDef.augments: Grit, Endurance × ${n(CONFIG.GRIT_SHARE)} to Resolve)`],
-          ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')],
+          ['tier multiplier', SKILL_TIERS.keys.map((k) => `${SKILL_TIERS.name(k)} ×${CONFIG.SKILL_TIER_MULT[k]}`).join(' · ')],
           ['age', `old-age decline (ageMult · src/ruleset/age.ts): skills in the ${CONFIG.AGE_DECLINE_GROUPS.map(groupName).join(', ')} groups halve for every (the race\'s Ancient start − its ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} start) years past the start of ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)}; full before then, for other skills and for ageless races`]],
         notes: [`Example: ${skillName(EFF_EX.standIn)} ${EFF_EX.trueSkill} with +${EFF_EX.gear} ${skillName(EFF_EX.standIn)} gear, standing in for ${skillName(EFF_EX.skill)} 0 → (${EFF_EX.trueSkill} + ${EFF_EX.gear}) × ${n(CONFIG.SUBSTITUTE_EFFICIENCY)} × ${n(tierMult(EFF_EX.standIn))} = ${n(effExample())}. Gear for the named skill (the held weapon's bonus) does not pass to a stand-in.`] },
       { name: 'Skill roll', at: 'roll · src/ruleset/index.ts',
@@ -92,7 +92,7 @@ export function equations(lib: Library): EquationGroup[] {
           rows: [0, 20, 40, 50, 60, 80, 100].map((s) => [String(s), pct(chanceAtLeast(s, 'near_miss')), pct(chanceAtLeast(s, 'success')), pct(chanceAtLeast(s, 'great_success')), pct(chanceAtLeast(s, 'critical_success'))]) } },
       { name: 'Check (no roll)', at: 'check · src/ruleset/index.ts',
         formula: 'passes when effective skill + modifiers ≥ the scenario\'s difficulty',
-        terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k.replace('_', ' ')} ${v}`).join(' · ')]],
+        terms: [['difficulty', GRADE_LEVELS.keys.map((k) => `${GRADE_LEVELS.name(k)} ${CONFIG.DIFFICULTY[k]}`).join(' · ')]],
         notes: ['Modifiers add in full here, with no stacking.'] },
       { name: 'Contest', at: 'contested · src/ruleset/index.ts',
         formula: 'gap = tier of B − tier of A; the side with the higher tier wins, equal tiers tie' },
@@ -119,7 +119,7 @@ export function equations(lib: Library): EquationGroup[] {
         notes: ['It reads the same tier table as a skill roll. The natural edge applies here too. There are no tier shifts.', `The tier stops at Critical Success and Critical Failure unless perks or achievements open tiers past them (tierUnlocks, added up along a chain). Each tier opened above widens the natural critical range by ${CONFIG.EVENT_CRIT_NATURALS} (CONFIG.EVENT_CRIT_NATURALS): with one opened, d100 ${101 - CONFIG.EVENT_CRIT_NATURALS}–100 is Critical Success+ and ${101 - 2 * CONFIG.EVENT_CRIT_NATURALS}–${100 - CONFIG.EVENT_CRIT_NATURALS} Critical Success; with two, the next ${CONFIG.EVENT_CRIT_NATURALS} below that is Critical Success too and the top tier is ++. Tiers opened below work the same from 01 up.`, 'Threadbound perks (D-218) widen it both ways without moving its middle: eventEdges shifts that many naturals just inside each critical range a tier outward; eventSpread counts the die that many times as far from 50.5 (modifiers unchanged); an armed active rolls two dice and keeps the one farther from 50.5, or makes 51–100 Critical Success and 01–50 Critical Failure.'] },
       { name: 'Picking a lock', at: 'doPick · src/engine/resolve.ts; pickSeconds · src/ruleset/index.ts',
         formula: `a Lockpicking function roll (Thievery; lockpicks in use add theirs) + the lock's grade; time = ${n(CONFIG.PICK_SECONDS_AT_50)} s × 2^((50 − effective) ÷ ${n(CONFIG.PICK_HALVING_PER)})`,
-        terms: [['grade', list(CONFIG.LOCK_GRADE_MOD)], ['effective', `the picker's effective Thievery with its tools${CONFIG.PICK_FAST_CAP === null ? '' : `, counted at most ${CONFIG.PICK_FAST_CAP} for the time (perks carry it further)`}`]],
+        terms: [['grade', GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ')], ['effective', `the picker's effective Thievery with its tools${CONFIG.PICK_FAST_CAP === null ? '' : `, counted at most ${CONFIG.PICK_FAST_CAP} for the time (perks carry it further)`}`]],
         table: { head: ['Effective skill', 'Time'], rows: [25, 50, 75, 100, 150, 200].map((k) => [String(k), `${n(pickSeconds(k))} s`]) },
         notes: ['Success opens it once the time is done: out of a fight the time passes at once; in a fight each turn at it adds a fight turn of work. Near Miss: not yet, keep going. Failure: the lock is beyond the picker until its effective skill is higher than at that try. Critical Failure: the pick snaps and the lockpicks used are lost. Picking is a whisper (hushed).'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
@@ -198,7 +198,7 @@ export function equations(lib: Library): EquationGroup[] {
         notes: [`Every Fall a Lesson (A Nobody, class level ${lib.perks[PK.every_fall_a_lesson]?.classLevel?.level}): losing a contest or a defended attack by exactly one tier step marks the owner\'s skill too, inside the window or not.`] },
       { name: 'Opposition', at: 'markUse · src/ruleset/improve.ts',
         formula: 'check → its difficulty · contest → the other side\'s true skill in the skill it rolled · attack → each side against the other\'s true skill',
-        terms: [['difficulty', Object.entries(CONFIG.DIFFICULTY).map(([k, v]) => `${k.replace('_', ' ')} ${v}`).join(' · ')]],
+        terms: [['difficulty', GRADE_LEVELS.keys.map((k) => `${GRADE_LEVELS.name(k)} ${CONFIG.DIFFICULTY[k]}`).join(' · ')]],
         notes: ['When a stand-in makes the roll, the stand-in and the skill the action asked for each mark, each against its own window.',
           'Stealth and ambush contests mark the watcher\'s sight or hearing skill (the one that rolled) as well as the sneaker\'s skill.'] },
       { name: 'Augmenting skills', at: 'markAugments · src/ruleset/improve.ts',

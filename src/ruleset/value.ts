@@ -2,6 +2,7 @@
 // from the item itself (kit bonus, stated skill and roll bonuses, reach, armor, pools), so an item whose benefits
 // don't come from its need is priced right too. Quality multiplies on top (SL8).
 import type { GameState, ItemDef } from '../types';
+import { qualityMult } from './quality';
 import { CONFIG } from '../config';
 import { getLibrary, itemDef } from '../library';
 import { kitBonus, modeReach } from './gear';
@@ -38,7 +39,7 @@ const priced = (def: ItemDef) => !def.consumable && (!!def.weapon || !!def.armor
  * weapons are worth 0. Consumables and items with no benefit numbers (a signet ring, a curio, coin) keep their
  * hand-set value. Any other piece is worth its summed benefits, at least 1. */
 export function itemValue(state: GameState | null | undefined, def: ItemDef): number {
-  if (def.base) return itemValue(state, itemDef(state, def.base.itemId)) * CONFIG.QUALITY_PRICE_FACTOR * def.base.quality;
+  if (def.base) return itemValue(state, itemDef(state, def.base.itemId)) * CONFIG.QUALITY_PRICE_FACTOR * qualityMult(def.base.quality);
   if (def.tags?.includes('improvised')) return 0;
   if (!priced(def)) return def.value;
   return Math.max(1, Math.round(benefits(def).reduce((n, b) => n + b.coin, 0)));

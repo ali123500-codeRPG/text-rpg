@@ -53,6 +53,7 @@ import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
 import type { TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { met } from '../ruleset/hits';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
@@ -462,7 +463,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
   }
   // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
-  if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, PK.one_two)
+  if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
     && isActive(t) && t.zone === a.zone && freeHand(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
     if (fist) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
@@ -535,7 +536,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
     }
   }
   // T2b Volley: once per engagement, after a ranged hit, a free shot at a foe already fighting the owner (hostile, or sparring) that it sees
-  if (ranged && ONE_TWO_HITS.has(res.outcome) && hasPerk(a, PK.volley) && isActive(a) && readyThisEngagement(state, a, PK.volley)) {
+  if (ranged && met(res.outcome) && hasPerk(a, PK.volley) && isActive(a) && readyThisEngagement(state, a, PK.volley)) {
     const mode = usableModes(state, a).find((x) => x.itemId === itemId && x.mode.tree === 'ranged');
     const foes = allActors(state).filter((x) => x !== a && isActive(x) && foe(state, x, a) && atLeast(beliefStatus(state, a, x), 'aware')
       && sightDistM(state, a, x) <= (mode?.mode.reach ?? -1));
@@ -553,7 +554,6 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
     emit(ctx, ev);
   }
 }
-const ONE_TWO_HITS = new Set(['grazed', 'blocked', 'full_hit', 'heavy_hit', 'crushing_hit']);
 
 /** Rest [Proposed]: no active hostile actor in the zone, at most once every REST_COOLDOWN_MIN game minutes (T7). */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {

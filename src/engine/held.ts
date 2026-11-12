@@ -8,13 +8,13 @@ import { heldBy, isActive } from './relations';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from './feats';
+import { met } from '../ruleset/hits';
 
 const GRAPPLE = SK.unarmed_grapple;
-const MISSES = new Set(['missed', 'dodged', 'parried']);
 
 /** after a grapple attack: lock on if the attacker has Hold and the roll was a Great Success or better that hit */
 export function applyHold(A: Actor, D: Actor, r: AttackResult, modeSkill: string): Effect | null {
-  if (modeSkill !== GRAPPLE || !hasPerk(A, PK.hold) || MISSES.has(r.outcome) || !tierAtLeast(r.attack, 'great_success') || !isActive(D)) return null;
+  if (modeSkill !== GRAPPLE || !hasPerk(A, PK.hold) || !met(r.outcome) || !tierAtLeast(r.attack, 'great_success') || !isActive(D)) return null;
   D.heldBy = A.id;
   return { kind: 'held', actorId: D.id, data: { by: A.id } };
 }

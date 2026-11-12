@@ -21,7 +21,7 @@ describe('126 Equip requirements', () => {
     expect(requirement(itemDef(null, IT.plate_harness))).toEqual({ skill: SK.heavy_armor, level: 'superior', need: 75 });
     expect(requirement(itemDef(null, IT.round_shield))).toEqual({ skill: SK.block, level: 'common', need: 25 });
     expect(requirement(itemDef(null, IT.bandage))).toBeNull();
-    const minted = (q: 1 | 2 | 3 | 4, base: string = IT.crossbow): ItemDef => ({ ...itemDef(null, base), base: { itemId: base, quality: q, boosts: '' } });
+    const minted = (q: 1 | 2 | 3 | 4, base: string = IT.crossbow): ItemDef => ({ ...itemDef(null, base), base: { itemId: base, quality: (['quality_1', 'quality_2', 'quality_3', 'quality_4'] as const)[q - 1], boosts: '' } });
     expect(itemLevel(minted(2))).toBe('superior');
     expect(itemLevel(minted(3))).toBe('masterwork');
     expect(requirement(minted(4))?.need).toBe(100);
