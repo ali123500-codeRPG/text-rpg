@@ -91,9 +91,10 @@ describe('121 NPC stealth', () => {
     expect(ev.find((e) => e.actorId === 'thief_1')?.perception.player).toBeUndefined();
     vi.restoreAllMocks();
     rig({ player: 1 });
-    turn(s, { thief_1: act('hide') });
+    const won = turn(s, { thief_1: act('hide') });
     expect(seen(s)).toBe('aware');
     expect(inView(s)?.level).toBe('full');
+    expect(won.find((e) => e.actorId === 'thief_1' && e.kind === 'hide')?.perception.player).toBeDefined(); // BG-64: the deed you spot them by is told
   });
 
   it('NS4: a tie leaves you suspicious: you half see someone', () => {

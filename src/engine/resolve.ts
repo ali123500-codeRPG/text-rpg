@@ -157,7 +157,11 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   noteSightings(ev, state);
   updateBeliefs(state, { kind: 'event', event: ev, result });
   if (ev.actorId === state.player.id && isMajorAction(ev)) detectPlayer(state, ev, rng);
-  else if (isMajorAction(ev) && actorById(state, ev.actorId)?.posture === 'stealthy') stealthDetect(state, ev, rng); // NS2
+  else if (isMajorAction(ev) && actorById(state, ev.actorId)?.posture === 'stealthy') {
+    stealthDetect(state, ev, rng); // NS2
+    // BG-64: whoever just spotted the stealthy actor perceives the very deed they spotted it by
+    for (const [id, p] of Object.entries(computePerception(ev, state, rng))) ev.perception[id] ??= p;
+  }
   if (ev.kind === 'attack' && ev.target && !ev.spar) setAttackOverrides(state, ev); // SP1: a sparring blow changes no stance
   ctx.events.push(ev);
   if (ev.kind === 'speak' && !ev.bark && ev.line?.introduces && ev.perception[state.player.id]?.level === 'full') {

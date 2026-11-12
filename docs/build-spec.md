@@ -3113,6 +3113,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-60 | An NPC called Wren "he" though she was introduced as "she": NPC views gave pronouns only for people in sight, never in beliefs, so an agent speaking of someone out of sight guessed (playtest run 55, turn 9). Fixed: each belief carries the other person's pronouns | 12/11/2026 | fixed | this PR |
 | BG-61 | Answering Dobb, who had just spoken through the barred tavern door, got "Who do you mean?": he was out of sight, so he was in neither the player's actor list nor talkingWith, and the addressee was refused (playtest run 56, turn 2). Fixed: talkingWith lists everyone whose words just reached the player, seen or only heard, with a name; a speech's addressee or target may be anyone in it | 12/11/2026 | fixed | this PR |
 | BG-62 | Walking over to talk to someone ended in the wrong zone (behind the counter) | 12/11/2026 | fixed | this PR |
+| BG-64 | Spotting a sneaking NPC gave achievements but the story never said whom you spotted | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
