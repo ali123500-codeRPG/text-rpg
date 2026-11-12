@@ -94,4 +94,11 @@ describe('158 autopilot saves', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(g.lines().find((l) => l.kind === 'player')).toMatchObject({ text: 'I strike the guard at his left leg', aimed: true });
   });
+
+  it('BG-30: every move the agent is told the ways out it can see, so it never invents a door', () => {
+    const v = makeVillage({});
+    const p = autopilotTurn([], '', '', [], undefined, v);
+    expect(p).toContain('Where you are: the common room. Ways out you can see from here: behind the bar; out the front door');
+    expect(p).toContain('never head for a door, stair or path that isn\'t listed');
+  });
 });
