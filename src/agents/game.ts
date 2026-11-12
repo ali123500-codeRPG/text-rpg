@@ -31,7 +31,7 @@ import type { GuidedCtx } from './crossroads';
 
 import { callNarrator, callParser, callPlanner, callResponder, callVoice } from './wrappers';
 import { buildLeakContext } from './narration';
-import { isComm, noticeCue } from '../perception';
+import { barkOnly, isComm, noticeCue } from '../perception';
 import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
@@ -783,8 +783,8 @@ export function pruneRecent(s: GameState, all: GameEvent[]): GameEvent[] {
   const n = CONFIG.RECENT_EVENTS;
   for (const a of [s.player, ...s.actors]) {
     const seen = all.filter((e) => e.perception[a.id]);
-    if (a.mind) noteEarlier(s, a, seen.filter((e) => !e.bark).slice(0, -n));
-    for (const e of seen.filter((e) => !e.bark).slice(-n)) keep.add(e);
+    if (a.mind) noteEarlier(s, a, seen.filter((e) => !barkOnly(e)).slice(0, -n));
+    for (const e of seen.filter((e) => !barkOnly(e)).slice(-n)) keep.add(e);
     for (const e of seen.filter(isComm).slice(-n)) keep.add(e);
     const hit = [...seen].reverse().find((e) => e.kind === 'attack' && e.target === a.id);
     if (hit) keep.add(hit);

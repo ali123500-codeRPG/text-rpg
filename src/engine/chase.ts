@@ -11,6 +11,7 @@ import { getLibrary } from '../library';
 import { atLeast, bandById, chaseLost, hostile, isActive, zoneById } from './relations';
 import { applyMemoryOps } from './memory';
 import { logCode } from './effects';
+import { barkOnly } from '../perception';
 
 /** CH7/SC23: what each pursuer remembers when the player got away (its grudge is the price) */
 export const CHASE_LOST_MEMORY = 'The player fled from me and got away.';
@@ -134,7 +135,7 @@ export function checkGround(state: GameState): void {
 export function roamStart(state: GameState, events: GameEvent[]): string | null {
   const p = state.player;
   for (const e of events) {
-    if (e.bark) continue;
+    if (barkOnly(e)) continue;
     if (e.kind === 'speak' && ((e.actorId === p.id && (!!e.target || !!e.speech?.addressees.length)) || (e.target === p.id && e.actorId !== p.id))) return 'talk';
     if (['buy', 'sell', 'buy_refused', 'sell_refused'].includes(e.kind) && (e.actorId === p.id || e.target === p.id)) return 'trade';
     if (e.kind === 'attack' && (e.actorId === p.id || e.target === p.id)) return 'attack';
