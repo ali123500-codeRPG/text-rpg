@@ -54,7 +54,8 @@ export const ACH = {
   won_above_100: 'AC165', won_above_250: 'AC166', won_above_500: 'AC167',
   won_pct_25: 'AC168', won_pct_50: 'AC169', won_pct_100: 'AC170',
   calmed_rest_100: 'AC171', calmed_rest_1000: 'AC172', calmed_rest_10000: 'AC173', calmed_natural_50: 'AC174', calmed_natural_500: 'AC175', calmed_natural_2500: 'AC176', calmed_perk_50: 'AC177', calmed_perk_500: 'AC178', calmed_perk_2500: 'AC179', hp_lost_100: 'AC180', hp_lost_1000: 'AC181', hp_lost_10000: 'AC182', morale_lost_100: 'AC183', morale_lost_1000: 'AC184', morale_lost_10000: 'AC185',
-  event_crit_1: 'AC186', event_crit_2: 'AC187', event_crit_3: 'AC188', event_crit_fail_1: 'AC189', event_crit_fail_2: 'AC190', event_crit_fail_3: 'AC191'
+  event_crit_1: 'AC186', event_crit_2: 'AC187', event_crit_3: 'AC188', event_crit_fail_1: 'AC189', event_crit_fail_2: 'AC190', event_crit_fail_3: 'AC191',
+  first_knot: 'AC192', room_for_no_more: 'AC193',
 } as const;
 /** achievement tags (unordered categories, so the key is the ID); a row can carry several. Display names live only here. */
 export const ACH_TAGS: Record<AchievementTag, string> = {
@@ -83,6 +84,7 @@ export const ACH_RULE_TEXT: Record<AchievementRule, string> = {
   quests_unpaid: 'quests finished for someone who promised no pay',
   class_max: 'classes at their top level', class_max_tiers: 'class tiers with a class at its top level',
   char_level: 'character levels, again at every multiple',
+  essences_taken: 'essences taken', essence_room: 'character level with every essence slot full',
   spar_wins: 'spars won', cruel_spar_wins: 'cruel spars won (fought to Incapacitated)', spar_losses: 'spars lost', defeated: 'fights lost: you went Down, or got away while a foe still fought you',
   won_panicking: 'fights won while your morale is Panicking', morale_breaks: 'times your morale broke',
   healed: 'HP healed from one source (a healing-table row: Rest, Natural recovery, Perks…)',
@@ -119,6 +121,7 @@ export const ACH_RULE_ONE: Partial<Record<AchievementRule, string>> = {
   defeated: 'fight lost: you went Down, or got away while a foe still fought you',
   won_panicking: 'fight won while your morale is Panicking', morale_breaks: 'time your morale broke',
   achievements: 'other achievement earned (scars and these totals do not count; a replaced level still does)',
+  essences_taken: 'essence taken', essence_room: 'character level with every essence slot full',
 };
 /** the tree mastery achievement for an All-XXX step, by the tree's rating (TREE_RATINGS): each rating has its own line,
  * grander the higher the rating; an inferior tree earns none */

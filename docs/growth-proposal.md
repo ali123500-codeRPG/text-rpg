@@ -389,4 +389,4 @@ Questions page "Growth Proposal Round Three": https://claude.ai/artifact/SvZsDfF
 - **EG16:** a new way to roll skill gain overall gets its own document, written next.
 - **EG17 a, max 1.25:** the ending factor is the Weaver's part. Every ending's factor is kept between ENDING\_FACTOR\_MIN (0.5) and ENDING\_FACTOR\_MAX (1.25).
 
-**Built:** scenario-end growth (section 3 as answered: EG7, EG8, EG10, EG13, EG17 and the rounds rule). Essences are next.
+**Built:** scenario-end growth (section 3 as answered: EG7, EG8, EG10, EG13, EG17 and the rounds rule), then essences (section 2 as answered; spec Part 1, Essences). The parks proposed as D-226 to D-228 became D-227 (NPCs holding essences), D-228 (a per-skill cap) and D-229 (essence content rows and traits), since D-226 is LF3. One fix to 2.4: the offer margin is d100 + base − 150, which gives the odds the section states (31% at base 80, 51% at 100).

@@ -44,6 +44,7 @@ import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
 import { noteGains } from './growth';
+import { expireOffers, offersFromDefeats } from './essence';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
 import { answerYield, playerYields, yieldBars } from './yield';
@@ -588,7 +589,8 @@ function restRow(state: GameState, a: Actor): string {
   return Object.values(getLibrary().healing ?? {}).find((h) => h.placeKinds?.includes(kind) && a.paid?.includes(h.id))?.id ?? HL.rest;
 }
 
-const threatHere = (state: GameState, a: Actor): boolean =>
+/** an active hostile shares the zone with `a` (what blocks a rest) */
+export const threatHere = (state: GameState, a: Actor): boolean =>
   allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
 
 /** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
@@ -1071,6 +1073,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (input.intent?.yields && isActive(state.player)) (sparOf(state, state.player.id) ? yieldSpar(state, state.player) : playerYields(state));
   if (state.scratch?.firedOrders) state.scratch = { ...state.scratch, firedOrders: [] };
   const defeated = payDefeats(state, ctx.events);
+  offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence
+  expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
   passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
   updateQuests(state, ctx.events, defeated);

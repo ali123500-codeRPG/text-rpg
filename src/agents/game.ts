@@ -73,7 +73,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
+  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -480,6 +480,23 @@ export function createGame(deps: GameDeps): Game {
         if (!list.length) return say('You have no achievements to wear yet.');
         return say([`Title: ${wornTitle(s) ?? 'none'}. Type /title and a number to wear one, or /title off.`,
           ...list.map((x, i) => `${i + 1}. ${achievementName(s, x)}`)].join('\n'));
+      }
+      case 'essence': case 'essences': {
+        // growth proposal 2.5: /essence lists offers and held essences; take N [give up M], pass N, remove M (at rest)
+        const pr = s.player.progression;
+        const [verb, a1, , a3] = arg.toLowerCase().split(/\s+/);
+        const n = (x?: string) => (x && /^\d+$/.test(x) ? Number(x) - 1 : -1);
+        const done = (err: string | null, ok: string) => say(err ?? ok);
+        if (verb === 'take') return done(engine.takeEssence(s, n(a1), engine.playerAtRest(s), a3 !== undefined ? n(a3) : undefined), 'Taken. It is part of you now.');
+        if (verb === 'pass') return done(engine.passEssence(s, n(a1)), 'You let it go.');
+        if (verb === 'remove') return done(engine.removeEssence(s, n(a1), engine.playerAtRest(s)), 'Gone, and it cost you: one level\'s worth of XP.');
+        const offers = pr?.essenceOffers ?? [], held = pr?.essences ?? [];
+        return say([
+          `Essences: ${held.length} of ${engine.essenceSlots(s.player)} slots.`,
+          ...held.map((e, i) => `${i + 1}. ${engine.essenceText(e, skillName)}`),
+          ...(offers.length ? ['On offer:', ...offers.map((o, i) => `${i + 1}. ${engine.essenceText(o, skillName)}, until turn ${o.until}`)] : ['Nothing on offer.']),
+          'Type /essence take 1 (with every slot full: /essence take 1 give 2), /essence pass 1, or /essence remove 1 (at rest; costs one level of XP).',
+        ].join('\n'));
       }
       case 'yield':
         // MB40: yield as a command; the words go to the Parser as the player's line

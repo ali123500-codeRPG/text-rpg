@@ -51,6 +51,8 @@ export type ScenarioGains = {
   achievements: AchievementNote[]; // granted at the end, scars included
   xp: { gained: number; fromLevel: number; fromPct: number; toLevel: number; toPct: number }; // pct = the sheet's XP bar fill
   levelUps: { classId: string; level: number }[];
+  /** growth proposal 2.5: essences offered at this ending moment (name and grade; take or pass with /essence) */
+  essences?: { name: string; grade: string }[];
 };
 
 /** a hall-of-fame row: the fallen character, whose story it was, and its story id */
