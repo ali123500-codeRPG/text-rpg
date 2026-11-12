@@ -40,6 +40,7 @@ import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode } from './effects';
+import { falseName } from '../words';
 import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
@@ -167,7 +168,7 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   }
   if (ev.kind === 'attack' && ev.target && !ev.spar) setAttackOverrides(state, ev); // SP1: a sparring blow changes no stance
   ctx.events.push(ev);
-  learnNames(state, ev);
+  learnNames(state, ev, ctx.events);
   afterEvent(ctx, ev);
 }
 
@@ -361,14 +362,16 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? SK.persuasion, addressees: o.addressees ?? [] };
   // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers
   const p = state.player;
-  const push = a.kind === 'npc' && PUSH_TYPES.includes(o.type) && o.target === p.id && isActive(p);
+  // NM3: a false name for itself is a lie, even if the agent called it talk, so it can be caught (backstop to PUSH_RULE)
+  const type = o.type === 'talk' && falseName(a, line?.text) ? 'deceive' : o.type;
+  const push = a.kind === 'npc' && PUSH_TYPES.includes(type) && o.target === p.id && isActive(p);
   if (push) {
     ev.perception = computePerception(ev, state, ctx.rng);
     const heard = ev.perception[p.id];
     if (hearsWords(heard)) {
-      const contest = pushContest(state, a, o.type, ctx.rng);
+      const contest = pushContest(state, a, type, ctx.rng);
       ev.contest = contest;
-      ev.push = { type: o.type, listener: p.id, landed: contest.winner === 'a', ...applySpeech(a, p, o.type, contest),
+      ev.push = { type, listener: p.id, landed: contest.winner === 'a', ...applySpeech(a, p, type, contest),
         ...(atLeast(beliefStatus(state, a, p), 'aware') ? { seen: true as const } : {}) }; // NT10: the speaker sees how it was taken
       if (ev.push.status === 'shaken') fear(ctx, p, FR.lost_intimidation, { gap: contest.gap }); // MB15/MB28
     }
@@ -383,7 +386,7 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
     }
   }
   emit(ctx, ev, undefined, push);
-  if (o.type === 'deceive') overhearLie(state, ev, ev.push ? [ev.push.listener] : [], ctx.rng, ev.contest?.a); // LI5a
+  if (type === 'deceive') overhearLie(state, ev, ev.push ? [ev.push.listener] : [], ctx.rng, ev.contest?.a); // LI5a
 }
 
 /** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
@@ -1047,6 +1050,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
       // a wordless opening (talk with no line) has no line to show or remember
       ...(input.intent?.spoken?.trim() ? { line: { text: input.intent.spoken, volume } } : {}), noise: VOLUME_NOISE[volume], tier: ex.playerTier,
       speech: { skill: ex.skill, impression: ex.impression ?? undefined, addressees: input.spokespeople },
+      ...(Object.values(ex.perSpokesperson).some((r) => r.tell) ? { seenThrough: Object.keys(ex.perSpokesperson).filter((sp) => ex.perSpokesperson[sp].tell) } : {}), // NM3
     });
     emit(ctx, ev);
     if (playerOrder.type === 'deceive') overhearLie(state, ev, Object.keys(ex.perSpokesperson), ctx.rng, Object.values(ex.perSpokesperson)[0]?.contest.a); // LI5a
