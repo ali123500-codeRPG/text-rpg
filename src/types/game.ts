@@ -44,12 +44,16 @@ export type ScenarioEndNote = { as: import('./hidden').ScenarioEnding; name: str
 /** D-226: what the player gained in a scenario, for the ending moment's gains pop-up (on the narration line of the turn that
  * ended it, LogLine.scenarioGains). Achievements and All-XXX are granted at the end; skill raises, XP and levels are what the
  * scenario brought in all. An empty list = nothing of that kind. */
+/** one row of the gains moment's XP sum: kind says what earned it, label names it for the player */
+export type XpPart = { kind: 'defeat' | 'achievement' | 'quest' | 'other'; label: string; amount: number };
 export type ScenarioGains = {
   skills: { skill: string; from: number; to: number }[]; // raw skill before and after
   perks: { skill: string; milestone: number }[]; // milestone perks unlocked (never named)
   allPerks: { tree: string; step: number; name: string }[]; // All-XXX earned: tree id, step (50, 100…), its name
   achievements: AchievementNote[]; // granted at the end, scars included
-  xp: { gained: number; fromLevel: number; fromPct: number; toLevel: number; toPct: number }; // pct = the sheet's XP bar fill
+  xp: { gained: number; fromLevel: number; fromPct: number; toLevel: number; toPct: number; // pct = the sheet's XP bar fill
+    /** where gained came from, in the order first earned: foes defeated together in one row, each achievement and quest its own */
+    parts?: XpPart[] };
   levelUps: { classId: string; level: number }[];
 };
 

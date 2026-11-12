@@ -77,7 +77,9 @@ function endTurn(st: GameState): Partial<LogLine> {
     scenarioEnd: { as: 'resolved', name: 'resolved', closing: 'The cellar is quiet now, and the job is done.' },
     scenarioGains: {
       skills, perks: [{ skill: SK.block, milestone: 20 }], allPerks: [{ tree: 'TR1', step: 50, name: 'All-50: Melee' }],
-      achievements: earned.achievements ?? [], xp: { gained: 180, fromLevel, fromPct: 62, toLevel: fromLevel + 1, toPct: 30 }, levelUps: lvl.levelUps ?? [],
+      achievements: earned.achievements ?? [], xp: { gained: 180, fromLevel, fromPct: 62, toLevel: fromLevel + 1, toPct: 30, parts: [
+        { kind: 'defeat', label: '3 foes defeated', amount: 90 }, ...(earned.achievements ?? []).map((a) => ({ kind: 'achievement' as const, label: a.name, amount: 25 })),
+        { kind: 'quest', label: 'Clear the cellar for the barkeep', amount: 40 }] }, levelUps: lvl.levelUps ?? [],
     },
   };
 }

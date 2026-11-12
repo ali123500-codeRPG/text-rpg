@@ -6,11 +6,11 @@
 // finishing or motion off always shows every gain at once. Each step's length comes from the --m-* tokens, never from how
 // long the turn took (M-03); only how many gains there are sets how long it runs, as long as the moment needs.
 import { h } from './kit';
-import { arrive, bar as barMove, count, impact, later, motionOn, ms, play, stamp } from './motion';
+import { arrive, bar as barMove, count, impact, later, motionOn, ms, paced, play, stamp } from './motion';
 import { skillName } from './creation';
 import { perkSeries } from './perks';
 import { getLibrary } from '../library';
-import type { AchievementNote, ScenarioEndNote, ScenarioGains } from '../types';
+import type { AchievementNote, ScenarioEndNote, ScenarioGains, XpPart } from '../types';
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
@@ -78,10 +78,15 @@ export function gainsPanel(g: ScenarioGains, o: Opts): HTMLElement {
     secs.push(sec('ach', achs ? 'Achievements' : scars ? 'Scars' : 'Achievements and scars', ...g.achievements.map(o.achCard)));
   }
   const levelled = g.xp.toLevel > g.xp.fromLevel;
+  const KIND: Record<XpPart['kind'], string> = { defeat: 'Defeats', achievement: 'Achievement', quest: 'Quest', other: 'Other' };
+  const parts = (g.xp.parts ?? []).filter((x) => x.amount);
   if (g.xp.gained || levelled) secs.push(sec('xp', 'The Thread', h('div', { class: 'g-xp' },
-    h('p', { class: 'g-xp-row' }, h('b', { class: 'g-xp-n', 'data-m': 'gained' }, `+${g.xp.gained}`), h('span', {}, ' XP'),
-      h('span', { class: 'g-xp-lv', 'data-m': 'lvl' }, `Level ${g.xp.toLevel}`)),
-    h('div', { class: 'cs-bar g-xp-bar', 'data-m': 'xp-track' }, h('b', { style: `width:${g.xp.toPct}%` })))));
+    // the sum: where the XP came from, row by row, above the total it adds up to
+    parts.length ? h('ul', { class: 'g-xp-sum' }, parts.map((x) => h('li', { 'data-amount': String(x.amount) },
+      h('span', { class: 'k' }, KIND[x.kind]), h('span', { class: 'l' }, x.label), h('b', { class: 'a' }, `+${x.amount}`)))) : null,
+    h('p', { class: 'g-xp-row' }, parts.length ? h('span', { class: 'k' }, 'Total') : null, h('b', { class: 'g-xp-n', 'data-m': 'gained' }, `+${g.xp.gained}`), h('span', {}, ' XP')),
+    h('div', { class: 'g-xp-line' }, h('div', { class: 'cs-bar g-xp-bar', 'data-m': 'xp-track' }, h('b', { style: `width:${g.xp.toPct}%` })),
+      h('span', { class: 'g-xp-lv', 'data-m': 'lvl' }, `Level ${g.xp.toLevel}`)))));
   if (g.levelUps.length) secs.push(sec('level', g.levelUps.length === 1 ? 'Level up' : 'Levels up', h('div', { class: 'g-level' },
     h('p', { class: 'g-level-n' }, h('span', {}, 'Level'), h('b', {}, String(g.xp.toLevel))),
     h('ul', { class: 'g-level-l' }, g.levelUps.map((u) => h('li', {}, u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: level ${u.level}`))),
@@ -105,6 +110,10 @@ export function gainsPanel(g: ScenarioGains, o: Opts): HTMLElement {
  * leaves it once. The thread draws down each section while its gains land, so it reaches the next knot as they finish. */
 export function playGains(veil: HTMLElement, g: ScenarioGains, t0: number): number {
   if (!motionOn()) return 0;
+  // the moment runs slower than a turn's beats: every token inside it is stretched by --m-gains-pace
+  return paced(ms('--m-gains-pace') || 1, () => gainsTimeline(veil, g, t0));
+}
+function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number {
   const state = ms('--m-state'), gap = ms('--m-gain-gap'), hold = ms('--m-hold'), scen = ms('--m-scenario');
   play(veil, [{ opacity: 0 }, { opacity: 1 }], { dur: state, delay: t0 });
   const rule = veil.querySelector('.g-rule');
@@ -141,11 +150,30 @@ export function playGains(veil: HTMLElement, g: ScenarioGains, t0: number): numb
         t += honor(it, t) + gap;
       } else if (key === 'xp') {
         const levelled = g.xp.toLevel > g.xp.fromLevel;
+        const total = it.querySelector<HTMLElement>('[data-m="gained"]');
         arrive(it, t);
-        count(it.querySelector<HTMLElement>('[data-m="gained"]'), 0, g.xp.gained, (n) => `+${Math.round(n)}`, t + state);
-        barMove(it.querySelector<HTMLElement>('[data-m="xp-track"]'), it.querySelector<HTMLElement>('[data-m="xp-track"] > b'), g.xp.fromPct, g.xp.toPct, t + state, levelled);
-        if (levelled) stamp(it.querySelector<HTMLElement>('[data-m="lvl"]'), t + state + ms('--m-trail'), `Level ${g.xp.fromLevel}`);
-        t += state + ms('--m-trail') * (levelled ? 2 : 1);
+        t += state;
+        // the sum: each source lands in turn and the total counts on by its amount, so the final number is shown being made
+        const rows = Array.from(it.querySelectorAll<HTMLElement>('.g-xp-sum > li'));
+        if (rows.length) {
+          let sum = 0;
+          for (const r of rows) {
+            const n = Number(r.dataset.amount);
+            arrive(r, t, 6);
+            count(total, sum, sum + n, (v) => `+${Math.round(v)}`, t + state);
+            sum += n; t += gap + state;
+          }
+          // the rule under the sum draws, then the total lands in its struck pose
+          play(it.querySelector('.g-xp-sum'), [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { dur: state * 2, delay: t, pseudo: '::after' });
+          impact(total, t + state);
+          t += state * 2 + hold;
+        } else {
+          count(total, 0, g.xp.gained, (n) => `+${Math.round(n)}`, t);
+          t += ms('--m-count');
+        }
+        barMove(it.querySelector<HTMLElement>('[data-m="xp-track"]'), it.querySelector<HTMLElement>('[data-m="xp-track"] > b'), g.xp.fromPct, g.xp.toPct, t, levelled);
+        if (levelled) stamp(it.querySelector<HTMLElement>('[data-m="lvl"]'), t + ms('--m-trail'), `Level ${g.xp.fromLevel}`);
+        t += ms('--m-trail') * (levelled ? 2 : 1);
       } else if (key === 'level') {
         // the finale: a held breath, the number rises in and lands in its struck pose, then one ring of light leaves it
         t += hold;
