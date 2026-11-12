@@ -55,6 +55,8 @@ export type ScenarioFrame = {
   /** CH1: the scenario's ground: the zone the player stood in when it began, every zone its plans built (opening plan,
    * frontier extensions, check-in frontiers once built) and the stage zones they name. Off it with no one chasing: left. */
   ground?: string[];
+  /** BG-41: what happened in it, one short hidden line per notable thing (spars, yields, defeats, gives, trades, jobs, deals) */
+  happened?: { turn: number; text: string }[];
 };
 /** SC8/SC15: why a Weaver check-in is asked */
 export type CheckinReason = 'beat' | 'budget' | 'judged' | 'stuck';
