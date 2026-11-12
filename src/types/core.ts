@@ -43,8 +43,9 @@ export type Band = {
   chase?: import('../scales').ChaseRange;
 };
 
-/** drop (SD7): a window or ledge down to a lower zone: only jumped down, with fall damage from the drop; never walked or climbed */
-/** barrier: SD3–SD5 a barrier on this way, by its id in GameState.barriers (one record for both sides of the way) */
+/** a way out of a zone. drop (SD7): a window or ledge down to a lower zone: only jumped down, with fall damage from the
+ * drop; never walked or climbed. barrier: SD3–SD5 a barrier on this way, by its id in GameState.barriers (one record for
+ * both sides of the way) */
 export type ZoneLink = { to: string; label: string; sight: boolean; frontier?: true; drop?: true; barrier?: string };
 /** SD3–SD5, BA2–BA7: a door, gate, grate or blocked passage on a way. One record serves both sides; the links on each side
  * name it by id. Breaking one (wear, material, thickness) belongs to the walls thread; this record leaves room for it. */
@@ -135,7 +136,7 @@ export type GameEvent = {
   spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):
-  line?: { text: string; volume: 'whisper' | 'normal' | 'shout'; introduces?: string[] };
+  line?: { text: string; volume: import('./agents').Volume; introduces?: string[] };
   fromZone?: string; // moves
   fromPos?: { x: number; y: number }; // BG-23: a leg that left a zone: where in fromZone it set off
   heading?: string; // BG-22: a leg that stays in its zone on the way to another: the zone it heads for

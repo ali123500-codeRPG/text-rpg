@@ -19,7 +19,7 @@ import { travel, tripGoal } from './travel';
 import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, wayLeftM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
-import { defaultMode, effectiveSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
+import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
@@ -650,11 +650,8 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   return true;
 }
 
-/** SE23: a solo roll against a task grade moves by (moderate − grade) at the roll's skill weight, so a task graded at
- * the roller's own skill plays the same at every level (62% Success or better at 50 and at 300) */
-export function gradeMod(target: number): number {
-  return CONFIG.SKILL_WEIGHT * (CONFIG.DIFFICULTY.moderate - target);
-}
+/** SE23 (the rule lives in the ruleset) */
+export { gradeMod };
 
 function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;

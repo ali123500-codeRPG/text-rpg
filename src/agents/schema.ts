@@ -18,9 +18,9 @@ const bool: V<boolean> = (v, p, e) => (typeof v === 'boolean' ? v : (e.push(`${p
 const any: V<unknown> = (v) => v;
 const oneOf = <T extends string | number>(vals: readonly T[]): V<T> => (v, p, e) =>
   vals.includes(v as T) ? (v as T) : (e.push(`${p}: expected one of ${vals.join(', ')}`), vals[0]);
-/** missing (undefined) or null both read as null */
 /** a skill an agent named: its ID, display name or code alias, read as the ID (skill IDs are SK + a number) */
 const skillStr: V<string> = (v, p, e) => { const s = str(v, p, e); return s ? skillIdOf(s, SKILL_NAMES) : s; };
+/** missing (undefined) or null both read as null */
 const nul = <T>(c: V<T>): V<T | null> => (v, p, e) => (v === undefined || v === null ? null : c(v, p, e));
 const arr = <T>(c: V<T>): V<T[]> => (v, p, e) => (Array.isArray(v) ? v.map((x, i) => c(x, `${p}[${i}]`, e)) : (e.push(`${p}: expected array`), []));
 /** optional array: absent stays absent */
@@ -221,7 +221,6 @@ export const checkVoice = run(voice);
 export const checkNarrator = run(narrator);
 export const checkStagePlan = run(weaver);
 
-/** SC8: the Weaver's check-in answer; what it may say is checked by engine/scenarioEnd.ts checkinErrors */
 /** SC12: arrivals use the stage plan's own band, cast and seed checks */
 const arrivals: V<NonNullable<CheckinAnswer['arrivals']>> = (v, p, e) => {
   if (!isObj(v)) { e.push(`${p}: expected object`); return { bands: [], cast: [] }; }
@@ -229,6 +228,7 @@ const arrivals: V<NonNullable<CheckinAnswer['arrivals']>> = (v, p, e) => {
     bands: v.bands ?? [], cast: v.cast ?? [], seeds: v.seeds ?? { plans: [], triggers: [], secrets: [] } }, p, e);
   return { bands: r.bands, cast: r.cast, seeds: r.seeds };
 };
+/** SC8: the Weaver's check-in answer; what it may say is checked by engine/scenarioEnd.ts checkinErrors */
 const checkin = obj<CheckinAnswer>({
   verdict: oneOf(['continue', 'end'] as const), as: str, text: str, beats: optArr(trigger) as V<CheckinAnswer['beats']>, note: str,
   change: obj<NonNullable<CheckinAnswer['change']>>({ question: str, scale: str, endings: arr(any) as V<NonNullable<NonNullable<CheckinAnswer['change']>['endings']>> }, ['question', 'scale', 'endings']),

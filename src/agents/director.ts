@@ -54,12 +54,12 @@ export function createDirector(clock: Clock): ScenarioDirector {
       (state.scratch ??= {}).eventRoll = r.eventRoll; // put on the turn record by the pipeline (spec: record holds the event roll)
       return r.events;
     },
-    async afterResolve(state: GameState, _events: GameEvent[], rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
+    async afterResolve(state: GameState, events: GameEvent[], rng: Rng, c: AgentCtx): Promise<GameEvent[]> {
       const key = state.scratch?.frontierCrossed as string | undefined;
       if (!key) {
         // SC8: a check-in that came back since the last turn: applied now, to the scenario it was about
         const ci = d.takeCheckin();
-        if (ci) applyCheckin(state, ci.number, ci.answer, _events, { errors: (a) => checkinPlanErrors(state, a), apply: (a) => applyCheckinPlan(state, a, rng) });
+        if (ci) applyCheckin(state, ci.number, ci.answer, events, { errors: (a) => checkinPlanErrors(state, a), apply: (a) => applyCheckinPlan(state, a, rng) });
         // scenarioBreak (P7, D-30): rest, a beat that ends the scenario, or a stall. A frontier crossing goes first; the break waits a turn.
         if (!state.stage.breakCause) return [];
         ctx = c;
@@ -71,7 +71,7 @@ export function createDirector(clock: Clock): ScenarioDirector {
       delete (state.scratch as Record<string, unknown>).frontierCrossed;
       const r = await d.cross(state, key, rng, state.player.posture === 'stealthy' ? 'stealthy' : 'open');
       // BG-73: the crossing's move event ends where the player now stands, so it reads as leaving for the new zone
-      const crossed = _events.find((e) => e.kind === 'move' && e.actorId === state.player.id && e.effects.some((f) => f.kind === 'frontier_crossed' && f.data.frontier === key));
+      const crossed = events.find((e) => e.kind === 'move' && e.actorId === state.player.id && e.effects.some((f) => f.kind === 'frontier_crossed' && f.data.frontier === key));
       if (crossed && state.player.zone !== crossed.zone) Object.assign(crossed, { fromZone: crossed.zone, fromPos: crossed.pos, zone: state.player.zone, pos: state.player.pos, target: state.player.zone });
       if (!r.eventRoll) return [];
       // CH3 a: free roam crossed an unbuilt frontier, which started a scenario there
