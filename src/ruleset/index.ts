@@ -85,8 +85,9 @@ export function extraBands(margin: number, reach: Reach): number {
   for (let k = 1; k <= reach.down; k++) if (margin < bottom - CONFIG.TIER_EXTRA_BAND * k) n--;
   return n;
 }
-export function naturalEdge(d: number): -2 | -1 | 0 | 1 | 2 {
-  return d === 1 ? -2 : d <= 5 ? -1 : d === 100 ? 2 : d >= 96 ? 1 : 0;
+/** a natural low roll drops one tier and a natural high roll raises one (CONFIG.NATURAL_EDGE at each end); never two */
+export function naturalEdge(d: number): -1 | 0 | 1 {
+  return d <= CONFIG.NATURAL_EDGE ? -1 : d > 100 - CONFIG.NATURAL_EDGE ? 1 : 0;
 }
 const sumShifts = (s: TierShift[]) => s.reduce((t, x) => t + x.value, 0);
 /** Part 1 §4: the margin of a skill roll */
@@ -193,7 +194,7 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   const reach = tierReach(actor, 'event');
   const top = TIERS.keys.length - 1, B = CONFIG.EVENT_CRIT_NATURALS;
   // D-218 Loose Odds: the `edges` naturals just inside the critical range (however wide opened tiers make it) shift a tier outward
-  const hi = reach.up ? 100 - B * (reach.up + 1) : 95, lo = reach.down ? B * (reach.down + 1) : 5;
+  const hi = 100 - (reach.up ? B * (reach.up + 1) : CONFIG.NATURAL_EDGE), lo = reach.down ? B * (reach.down + 1) : CONFIG.NATURAL_EDGE;
   const loose = d > hi - edges && d <= hi ? 1 : d > lo && d <= lo + edges ? -1 : 0;
   let level = (arm === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(margin)) + naturalEdge(d) + loose;
   if (reach.up && d > 100 - B * (reach.up + 1)) level = Math.max(level, top + reach.up - Math.floor((100 - d) / B));

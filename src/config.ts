@@ -30,6 +30,8 @@ const DEFAULTS = {
   /** Pairs of skills that never stand in for each other, even when they share a function (the three defenses) */
   NO_STAND_IN: [[SK.dodge, SK.block], [SK.block, SK.parry], [SK.dodge, SK.parry]] as [string, string][],
   EVENT_BASE: 50,
+  /** natural edges: the lowest and the highest this many d100 results shift any roll one tier down or up */
+  NATURAL_EDGE: 5,
   /** event rolls: naturals per tier opened past Critical (tierUnlocks); each opened tier widens the natural critical range by this many */
   EVENT_CRIT_NATURALS: 5,
   /** D-211: width of each extra margin band a tier unlock opens past either end of the skill-roll table */
@@ -68,8 +70,6 @@ const DEFAULTS = {
   MARK_STACK_EVERY: 3,
   /** SM2: owed rolls are made at the end of the turn of the mark instead of when the engagement ends or the scenario breaks */
   SKILL_UP_INSTANT: true,
-  /** an improvement roll of this or more always improves, whatever the target (Part 1 §6: keeps the chance at 2% or more) */
-  IMPROVE_AUTO_PASS: 99,
   /** a successful improvement roll adds 1d(this) raw */
   SKILL_GAIN_DIE: 3,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */

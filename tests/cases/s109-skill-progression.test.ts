@@ -47,4 +47,14 @@ describe('109 skill progression', () => {
     expect(lines).toContain('New perk unlocked: Eyesight 40');
     expect(lines.some((l) => l.startsWith('Earshot'))).toBe(false);
   });
+  it('no natural roll forces a gain: a 99 or 00 that does not beat the target improves nothing', () => {
+    const s = makeVillage();
+    const p = s.player;
+    p.core.skills[SK.eyesight] = { raw: 99, state: 'tagged' };
+    p.core.skills[SK.earshot] = { raw: 100, state: 'tagged' };
+    p.progression!.marks = [SK.eyesight, SK.earshot];
+    expect(improveMarked(s, forcedRng([99, 100]))).toEqual([]); // sight 99 ≤ 99, hearing 100 ≤ 100
+    p.progression!.marks = [SK.eyesight];
+    expect(improveMarked(s, forcedRng([100, 1]))).toMatchObject([{ skill: SK.eyesight, from: 99, to: 100 }]); // 100 > 99 still beats it
+  });
 });

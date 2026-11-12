@@ -11,8 +11,8 @@ describe('96 Armor pool', () => {
     g.core.inventory = g.core.inventory.filter((i) => i.itemId !== IT.mail_hauberk);
     g.core.inventory.push({ id: 'plate', itemId: IT.plate_harness, equippedIn: ['armor'], pools: { head: 100 } });
     g.core.skills[SK.parry] = { raw: 30, state: 'normal' };
-    // aimed head: 100 → Great Success + 2 = 3; guard parry 40 + 15 − 63.5 → Near Miss (-1): gap −4, 2×
-    const r = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: 'head', aimed: true }, s, forcedRng([100, 40]));
+    // aimed head: 100 → Great Success + 1 = 2; guard parry 20 + 15 − 63.5 → Failure (-2): gap −4, 2×
+    const r = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: 'head', aimed: true }, s, forcedRng([100, 20]));
     expect(r.location).toBe('head');
     expect(r.damage).toBeCloseTo((50 - 6) * 0.55, 9); // 24.2, not rounded (OQ-25)
     ruleset.applyEffects(r, s);

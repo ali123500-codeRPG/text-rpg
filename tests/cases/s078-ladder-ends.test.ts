@@ -3,6 +3,7 @@ import { IT } from '../../src/library/itemIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage, place, forcedRng } from '../harness';
 import { ladder, ruleset } from '../../src/ruleset';
+import { SK } from '../../src/library/skillIds';
 
 describe('78 Ladder ends', () => {
   it('a gap past +5 or −10 uses the end entry; −6 has its own row', () => {
@@ -13,7 +14,8 @@ describe('78 Ladder ends', () => {
     }
     const s = makeVillage();
     place(s, 'player', 'field_mid');
-    // player 100: Great Success + 2 = 3; slime dodge 0: 3 − 63.5 → Failure (-2), natural −1 → -3. gap −6
+    // player melee 60 + 20 kit, 100: 100 + 40 − 63.5 = 76.5 → Critical Success + 1 = 3; slime dodge 0: 3 − 63.5 → Failure (-2), natural −1 → -3. gap −6
+    s.player.core.skills[SK.melee_medium].raw = 60;
     const r = ruleset.attack({ attackerId: 'player', targetId: 'slime_1', weaponId: `player_${IT.arming_sword}_1`, targetPart: null, aimed: false }, s, forcedRng([100, 3, 50]));
     expect(r.gap).toBe(-6);
     expect(r.multiplier).toBe(CONFIG.GAP_LADDER.dodge[-6]);

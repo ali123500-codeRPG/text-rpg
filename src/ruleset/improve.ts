@@ -137,8 +137,8 @@ export function markResolve(state: GameState, actor: Actor, lostPct: number): vo
   if (actor.id === state.player.id && lostPct >= CONFIG.RESOLVE_MARK_PCT) mark(actor, SK.resolve);
 }
 
-/** Part 1 §6: an improvement roll passes above its target, or at IMPROVE_AUTO_PASS or more */
-export const improves = (roll: number, target: number) => roll > target || roll >= CONFIG.IMPROVE_AUTO_PASS;
+/** Part 1 §6: an improvement roll passes only above its target; no natural roll passes it (so a target of 100 or more never improves) */
+export const improves = (roll: number, target: number) => roll > target;
 
 /** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit */
 function improveRolls(a: Actor, raw: number): number {
