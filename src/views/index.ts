@@ -153,13 +153,18 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     // NS2/NS4: a stealthy NPC outside the viewer's band shows only to those who see it; a suspicious viewer half sees someone
     const hidden = a.id !== state.player.id && a.posture === 'stealthy' && a.bandId !== viewer.bandId ? beliefStatus(state, viewer, a) : 'aware';
     if (hidden === 'unaware') continue;
-    if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [] }); continue; }
+    // BG-92: where someone is, even half seen, so nobody mistakes them for another person elsewhere
+    const place = {
+      ...(a.pos && viewer.pos ? { distanceM: Math.round(sightDistM(state, viewer, a) * 10) / 10 } : {}),
+      ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
+    };
+    if (hidden === 'suspicious') { out.push({ id: a.id, label: 'someone', zone: a.zone, level: 'partial', gear: [], ...place }); continue; }
     // P3: in a dark zone someone is half seen, unless they share the viewer's zone and the viewer perceived them
     // fully this scenario (spoke face to face, say): then they stay seen
     const keptSight = viewer.journal?.clearSight?.[a.id] === a.zone; // Q17: seen clearly and has not moved
     const level = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
     // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
-    if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [] }); continue; }
+    if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
     const name = viewer.id === state.player.id ? (nameKnown(state, a) ? a.names.current : undefined) : viewer.bandId === a.bandId ? a.names.current : undefined;
     const h = healthLevel(a);
     const parts = partStates(state, a);
@@ -170,8 +175,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
       ...(stageOf(state, a) ? { age: stageOf(state, a)! } : {}), // AG16: the life stage, never the number
-      ...(a.pos && viewer.pos ? { distanceM: Math.round(sightDistM(state, viewer, a) * 10) / 10 } : {}),
-      ...(sideFrom(viewer, a.pos) ? { side: sideFrom(viewer, a.pos)! } : {}),
+      ...place,
       ...(look ? { activityLook: look } : {}),
       ...(healthShows(h, reads(state, viewer, a)) || readsHealthOf(viewer, a) ? { health: h } : {}),
       // someone Down (incapacitated or dead) shows no mood
@@ -583,7 +587,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
     heard,
-    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}) })),
+    actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.distanceM !== undefined ? { distanceM: Math.round(s.distanceM) } : {}), ...(s.side ? { side: s.side } : {}), ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
     // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)

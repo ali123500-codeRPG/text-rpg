@@ -233,7 +233,7 @@ export type NarrationView = {
   player: { name: string; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; morale?: string; activityLook?: string; age?: string }[]; // age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
+  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; activityLook?: string; age?: string }[]; // age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
