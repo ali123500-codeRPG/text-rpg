@@ -577,6 +577,8 @@ export function createGame(deps: GameDeps): Game {
   }
 
   async function resume(owner: StoryOwner = 'player'): Promise<boolean> {
+    // BG-63: switching stories while an opening or a turn is still being written would land that turn on the other story
+    if (busy) throw new Error('the story is still being written; switch once it has finished');
     // the owner's newest story runs (same order as save.listStories): one story per owner, the player's and the autopilot's
     const latest = (await save.listStories(store)).find((m) => (m.owner ?? 'player') === owner);
     // a story closed during its opening (turn 0 never saved): start that opening again from the kept build
