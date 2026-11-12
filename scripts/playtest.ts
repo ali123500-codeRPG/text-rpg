@@ -46,7 +46,7 @@ const screenNotes = (l: LogLine): string[] => {
 (CONFIG as { WEAVER_TIMEOUT_MS: number }).WEAVER_TIMEOUT_MS = 360_000;
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };
-// --set KEY=VALUE (repeatable): a config override for this run only, e.g. --set SKILL_UP_INSTANT=true
+// --set KEY=VALUE (repeatable): a config override for this run only, e.g. --set GROWTH_AT_SCENARIO_END=false
 process.argv.forEach((x, i) => {
   if (x !== '--set') return;
   const [k, v] = process.argv[i + 1].split('=');

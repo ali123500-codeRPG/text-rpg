@@ -1075,8 +1075,9 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (ended) unpaidQuests(state); // QT23
   if (ended && fight) fightEnded(state, fight, ctx.events);
   turnFeats(state, ctx.events);
-  // SM2: with SKILL_UP_INSTANT, owed rolls are made every turn; SM3: marks still count per engagement (or per scenario)
-  if (ended || state.stage.breakCause || CONFIG.SKILL_UP_INSTANT) { improveMarked(state, rng); unlockClasses(state); }
+  // EG7: owed rolls wait for the scenario's end (closeScenario pays them); with that off they are made every turn.
+  // SM3: marks still count per engagement (or per scenario) for stacking
+  if (!CONFIG.GROWTH_AT_SCENARIO_END) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
   for (const x of allActors(state)) { if (x !== state.player || !growthWaits(state)) grantAllSteps(state, x); // D-226: the player's wait for the scenario's end
@@ -1084,7 +1085,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
   noteGains(state); // D-226: this turn's raises go on the scenario's gains summary
-  if (state.stage.breakCause) closeScenario(state); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
+  if (state.stage.breakCause) closeScenario(state, rng); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
   state.events.push(...ctx.events);
   return ctx.events;
 }

@@ -68,8 +68,6 @@ const DEFAULTS = {
   /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (3: marks 1, 4, 7...).
    * Infinity: one roll per skill per engagement. */
   MARK_STACK_EVERY: 3,
-  /** SM2: owed rolls are made at the end of the turn of the mark instead of when the engagement ends or the scenario breaks */
-  SKILL_UP_INSTANT: true,
   /** a successful improvement roll adds 1d(this) raw */
   SKILL_GAIN_DIE: 3,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
@@ -295,6 +293,19 @@ const DEFAULTS = {
   /** D-226 (LF3): while a scenario runs, the player's achievements and All-XXX steps wait for the scenario's end and are
    * granted there together (one gains summary for the ending moment); in free roam they come at once. false: at once always */
   GROWTH_AT_SCENARIO_END: true,
+  /** EG7/EG13 (growth proposal): improvement rolls a scenario pays at its end = round(owed rolls marked in it × this share, by
+   * the scenario's event-roll tier, × the ending's factor), plus GROWTH_ROLLS_PAST_CRIT per step past Critical Success
+   * (placeholders). Marks never roll on their own while GROWTH_AT_SCENARIO_END is on. */
+  GROWTH_TIER_SHARE: { critical_failure: 0.5, failure: 0.6, near_miss: 0.7, success: 0.8, great_success: 0.9, critical_success: 1 } as Record<string, number>,
+  GROWTH_ROLLS_PAST_CRIT: 1,
+  /** EG5 b: what each ending pays (judged endings too: by which ending it was). EG17 a: every factor is kept between
+   * ENDING_FACTOR_MIN and ENDING_FACTOR_MAX, so no ending the Weaver writes or picks can pay outside them (placeholders) */
+  ENDING_FACTOR: { resolved: 1, lost: 0.75, broken_off: 0.75, left: 0.5, escaped: 0.5, interrupted: 0.5, worn_out: 0.5 } as Record<string, number>,
+  ENDING_FACTOR_MIN: 0.5,
+  ENDING_FACTOR_MAX: 1.25,
+  /** EG10 b: a scenario that marked anything pays this many extra rolls while the character level is below GROWTH_LOW_LEVEL_BELOW */
+  GROWTH_LOW_LEVEL_BONUS: 1,
+  GROWTH_LOW_LEVEL_BELOW: 5,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
