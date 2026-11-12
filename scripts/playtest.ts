@@ -203,7 +203,10 @@ async function main() {
     if (stop) { console.log('stop_play:', stop.text); break; }
     // spoken lines are shown under the narration on screen (the Narrator does not quote them), so the player sees them too
     const recent = game.lines().slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`), ...screenNotes(l), ...(MECHANICS ? (l.mechanics ?? []).map((m) => `  (${m})`) : [])].join('\n')).join('\n');
-    const ask = `${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}${charLine}\n${GOAL_RULES}\n\nThe story so far (latest last):\n${recent}`;
+    // the play screen's Map always shows where the player stands and its ways out; the test player reads it as text
+    const here = game.state() ? game.state()!.zones.find((z) => z.id === game.state()!.player.zone) : undefined;
+    const map = here ? `\n[screen] Map: you are in ${here.name}; ways out: ${here.links.map((l) => l.label).join(' · ') || 'none'}` : '';
+    const ask = `${PLAYER_BRIEF}${PERSONA ? `\n${PERSONA}` : ''}${charLine}\n${GOAL_RULES}\n\nThe story so far (latest last):\n${recent}${map}`;
     const first = (r: { text: string }) => {
       const lines = (r.text || 'I look around.').split('\n').map((x) => x.trim()).filter(Boolean);
       for (const x of lines.filter((x) => /^REPORT:/i.test(x))) { reports.push(`turn ${t}: ${x.replace(/^REPORT:\s*/i, '')}`); console.log(`turn ${t} REPORT: ${x.slice(7).trim()}`); }
