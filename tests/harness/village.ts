@@ -78,7 +78,7 @@ export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId
 }
 
 /** at: the game minute it started (NW10; the test clock is unset, so it reads as the start of day) */
-function withRoutine(a: Actor, setId: string, slots: Record<string, string | string[]>, anchorTurn = 0, at = CONFIG.TIME_OF_DAY_FROM.day): Actor {
+function withRoutine(a: Actor, setId: string, slots: Record<string, string | string[]>, anchorTurn = 0, at = CONFIG.TIME_OF_DAY_FROM.morning): Actor {
   const set = routineSet(setId)!;
   a.mind!.routineSetId = setId;
   a.mind!.routines = [...set.routines];

@@ -136,14 +136,16 @@ export type RoutineSet = {
   routines: string[]; // [default, ...others]
 };
 export type RoutineStep = { slot: string; duration: DurationId; activity: string };
+export type TimedSteps = { at: import('../scales').TimeOfDay[]; steps: RoutineStep[] };
 export type Routine = {
   id: string;
   brief: string;
   kind: 'schedule' | 'follow' | 'wait' | 'head'; // head (NW2): walk to slot 'dest', then back to the routine before it
   loop: boolean;
   steps: RoutineStep[]; // schedule only; [] otherwise. NW10: the steps at any time of day `times` does not name
-  /** NW10: the steps at a time of day (dawn, day, dusk, night), when they differ from `steps` */
-  times?: Partial<Record<import('../scales').TimeOfDay, RoutineStep[]>>;
+  /** NW10: the steps at some times of day, when they differ from `steps`. NW13: one entry may cover several times
+   * (`at: ['evening', 'night']`); no time of day is named twice. */
+  times?: TimedSteps[];
   activity?: string; // follow, wait and head only
   alert?: string;
   onAlert: OrderTemplate | null;

@@ -17,7 +17,7 @@ import { tally } from '../engine/xp';
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
 /** at: the game minute now (NW10; an unset clock reads as the start of day) */
-export function installRoutines(actor: Actor, setId: string, slots: Record<string, string | string[]>, startAt: string | undefined, turn: number, rng: Rng, at = CONFIG.TIME_OF_DAY_FROM.day): void {
+export function installRoutines(actor: Actor, setId: string, slots: Record<string, string | string[]>, startAt: string | undefined, turn: number, rng: Rng, at = CONFIG.TIME_OF_DAY_FROM.morning): void {
   const set = routineSet(setId);
   if (!set) throw new Error(`unknown routine set ${setId}`);
   const mind = actor.mind!;

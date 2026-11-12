@@ -187,7 +187,7 @@ export function roadShape(length: string | number | undefined, danger: string | 
 export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext, opts: { entry: 'open' | 'stealthy'; degrade?: PlanError[] }, rng: Rng): void {
   const turn = state.turn;
   // T8: the story's first plan sets the clock (to the start of day if it names no time)
-  if (!clockSet(state)) startClock(state, TIME_OF_DAY.has(plan.timeOfDay) ? plan.timeOfDay : 'day');
+  if (!clockSet(state)) startClock(state, TIME_OF_DAY.has(plan.timeOfDay) ? plan.timeOfDay : 'morning');
   const allZoneIds = new Set([...state.places.flatMap((p) => p.zones.map((z) => z.id)), ...stageFrontiers(state)]);
 
   // ---- keys -> stable ids (plan keys first, then existing ids) ----
