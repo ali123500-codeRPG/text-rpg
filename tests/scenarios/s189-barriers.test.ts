@@ -48,13 +48,13 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(pickSeconds(75)).toBe(CONFIG.PICK_SECONDS_AT_50 / 2);
     expect(pickSeconds(25)).toBe(CONFIG.PICK_SECONDS_AT_50 * 2);
   });
-  it('scaling: picking time halves per 25 points to the cap, and keeps halving with no cap', () => {
+  it('scaling: picking time keeps halving per 25 points past 100, and a cap would stop it', () => {
     makeVillage();
     expect(pickSeconds(100)).toBe(15);
-    expect(pickSeconds(200)).toBe(CONFIG.PICK_FAST_CAP === null ? 0.9375 : 15);
-    CONFIG.PICK_FAST_CAP = null;
     expect(pickSeconds(150)).toBe(3.75);
     expect(pickSeconds(200)).toBe(0.9375);
+    CONFIG.PICK_FAST_CAP = 100;
+    expect(pickSeconds(200)).toBe(15);
   });
   it('a locked door stops a walker without its key: trying it shows it locked', () => {
     const s = quiet();

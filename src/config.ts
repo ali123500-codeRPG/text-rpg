@@ -317,9 +317,9 @@ const DEFAULTS = {
    * PICK_HALVING_PER points above 50 and doubled for every PICK_HALVING_PER below */
   PICK_SECONDS_AT_50: 60,
   PICK_HALVING_PER: 25,
-  /** scaling: the skill past which picking gets no faster from skill alone (100: about 15 s), so perks carry it further;
-   * null keeps halving forever (150: about 4 s, 200: about 1 s). Waits on Ali's call. */
-  PICK_FAST_CAP: 100 as number | null,
+  /** scaling: picking keeps halving forever (150: about 4 s, 200: about 1 s, so supernatural fingers open locks at a touch);
+   * a number stops the halving at that skill instead */
+  PICK_FAST_CAP: null as number | null,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
    * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");
