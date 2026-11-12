@@ -3135,6 +3135,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-74 | Talking to the barkeep 6.1 m off in the busy tavern: a normal voice is not clear there, so his reply came through without words; talking to someone in view who would not hear you clearly now steps up to them first (BG-62's spot) | 12/11/2026 | fixed | this PR |
 | BG-75 | The Weaver's view gave the player's level as the sum of class levels only, leaving out bonus levels, so the Weaver saw a lower level than the sheet (code scan 2). Fixed: it reads charLevel | 12/11/2026 | fixed | this PR |
 | BG-76 | The library viewer's Stacking tab listed morale levels by their code keys (afraid −5) instead of their names (code scan 2). Fixed: the row reads the morale scale's names | 12/11/2026 | fixed | this PR |
+| BG-77 | Following the watchman into the tavern while talking to him: the talk-move rule (BG-62) turned the move through the door into a step beside him in the lane; a move through a doorway to another room now stands, only a step over a counter, fence or rail (or a move aimed at them) ends beside them | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 

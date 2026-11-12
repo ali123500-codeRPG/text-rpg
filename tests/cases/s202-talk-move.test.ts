@@ -44,3 +44,10 @@ it('BG-74: talking to someone in view who would not hear the player clearly from
   p.pos = { x: -2.5, y: -3.5 }; // 1 m: clear
   expect(talkMove(s, { ...talk('patron_1', {}), move: null })).toBeNull();
 });
+
+it('BG-77: talking to someone beside you while going through a doorway to another room (following them in): the move stands', () => {
+  const s = village();
+  s.zones.find((x) => x.id === 'tav_common')!.edges!.n = EK.wall; // the counter zone is now through a doorway
+  expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter' }))).toMatchObject({ toZone: 'tav_counter' });
+  expect(talkMove(s, talk('patron_1', { toZone: 'tav_counter', spot: { near: 'patron_1' } }))).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
+});
