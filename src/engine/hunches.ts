@@ -1,7 +1,7 @@
 // LI5b/LI6 Gut Feeling (Insight 20): a hunch of being watched. At the start of each turn, the owner rolls Insight
 // against the Stealth of each hidden watcher: someone opposed or hostile to the owner (LI6 b), aware of it, in its zone
 // or one sight link away, whom the owner has not seen or heard. A win is a hunch from the watcher's zone, never who:
-// the owner turns suspicious of the watcher there. Each watcher sets it off at most once a scene.
+// the owner turns suspicious of the watcher there. Each watcher sets it off at most once a scenario.
 import type { Actor, ContestResult, GameState, Rng } from '../types';
 import { hasPerk, markUse, ruleset } from '../ruleset';
 import { PK } from '../library/perkIds';
@@ -22,13 +22,13 @@ export function hiddenWatcher(state: GameState, owner: Actor, w: Actor): boolean
   return !!path && beliefStatus(state, owner, w) === 'unaware'; // RD3: any distance, as long as the watcher has sight of the owner
 }
 
-/** the turn's Gut Feeling rolls, every owner against each hidden watcher that hasn't set it off this scene */
+/** the turn's Gut Feeling rolls, every owner against each hidden watcher that hasn't set it off this scenario */
 export function gutFeelings(state: GameState, rng: Rng): Hunch[] {
   const out: Hunch[] = [];
-  const scene = state.stage.sceneStartTurn;
+  const scenario = state.stage.scenarioStartTurn;
   for (const owner of allActors(state)) {
     if (!isActive(owner) || !hasPerk(owner, PK.gut_feeling)) continue;
-    if (owner.hunches?.scene !== scene) owner.hunches = { scene, ids: [] };
+    if (owner.hunches?.scenario !== scenario) owner.hunches = { scenario, ids: [] };
     for (const w of allActors(state)) {
       if (owner.hunches.ids.includes(w.id) || !hiddenWatcher(state, owner, w)) continue;
       const contest = ruleset.contested(

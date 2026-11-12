@@ -6,7 +6,7 @@ import { TIME_OF_DAY } from '../scales';
 import { meltAwayHere } from '../ruleset/perks';
 import { PK } from '../library/perkIds';
 import { modeIdOf } from '../ruleset/gear';
-import { compassOf } from '../scene/geometry';
+import { compassOf } from '../scenario/geometry';
 
 // ---------------- Parser ----------------
 

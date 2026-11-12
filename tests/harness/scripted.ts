@@ -1,4 +1,4 @@
-// Scripted Claude: returns logged agent outputs, records every request. Repeatable scenario tests.
+// Scripted Claude: returns logged agent outputs, records every request. Repeatable case tests.
 import type { AgentName, ClaudeClient, ClaudeRequest, ClaudeResponse, Clock } from '../../src/types';
 
 export type Script = { agent: AgentName; actorId?: string; response: ClaudeResponse | ((req: ClaudeRequest) => ClaudeResponse); delayMs?: number };

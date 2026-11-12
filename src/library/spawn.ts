@@ -268,7 +268,7 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
   const p: Actor = {
     id: 'player', storyId, kind: 'player', names: { current: build.name.trim(), past: [] }, ...(build.pronouns ? { pronouns: build.pronouns } : {}),
     label: getLibrary().classes[build.classId ?? PLAYER_CLASS]?.label ?? 'a stranger', // the starting class's stranger label
-    placeId: '', zone: '', // GAP: set by story-start scene setup (the village tavern, Part 2 Scene setup)
+    placeId: '', zone: '', // GAP: set by story-start scenario setup (the village tavern, Part 2 Scenario setup)
     posture: 'open', bandId: 'player_band',
     core: {
       ...newPlayer(build.classId ?? PLAYER_CLASS),

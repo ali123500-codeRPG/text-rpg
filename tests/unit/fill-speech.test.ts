@@ -1,7 +1,7 @@
 // run 24: a barter the Parser left with spoken and addressees null never reached the seller
 import { expect, it } from 'vitest';
 import { makeVillage } from '../harness';
-import { intent } from '../scenarios/w4-kit';
+import { intent } from '../cases/w4-kit';
 import { fillSpeech, selectSpokespeople } from '../../src/engine';
 
 it('a speech action with no words or listeners takes the player line and its target', () => {

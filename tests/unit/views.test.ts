@@ -68,7 +68,7 @@ describe('NPC views', () => {
     actor(s, 'trader').mind!.knowledge.patron_1 = { status: 'aware', source: 'seen', revealed: [], [LEAK]: LEAK } as never;
     const views = [
       ...npcViews(s, 'trader'), buildPlayerView(s), buildNarrationView(s, s.events, null),
-      buildWeaverView(s, { kind: 'scene', placeId: 'tavern' }),
+      buildWeaverView(s, { kind: 'scenario', placeId: 'tavern' }),
     ];
     for (const v of views) expect(JSON.stringify(v)).not.toContain(LEAK);
   });
@@ -216,13 +216,13 @@ describe('place facts and headlines', () => {
     expect(buildPlayerView(s).facts).toEqual(['FACT the brawl broke a bench']);
     expect(buildPlayerView(s).headlines).toEqual(['HEADLINE a brawl at The Crooked Kettle']);
     expect(buildNarrationView(s, [], null).headlines).toHaveLength(1);
-    expect(buildWeaverView(s, { kind: 'scene', placeId: 'tavern' }).headlines).toContain('HEADLINE a brawl at The Crooked Kettle');
+    expect(buildWeaverView(s, { kind: 'scenario', placeId: 'tavern' }).headlines).toContain('HEADLINE a brawl at The Crooked Kettle');
     for (const v of npcViews(s, 'patron_1')) expect(JSON.stringify(v)).not.toMatch(/FACT|HEADLINE/);
   });
 });
 
 describe('P3 seen clearly stays seen', () => {
-  it('someone in a dark zone is half seen until the player fully perceives them this scene', () => {
+  it('someone in a dark zone is half seen until the player fully perceives them this scenario', () => {
     const s = makeVillage();
     const zone = s.zones.find((z) => z.id === 'tav_common')!;
     zone.light = 'dark';

@@ -85,7 +85,7 @@ watcher and talking to them as it happens: gasp, cheer, fret, tease, get proud o
 Now and then, not every line, a Japanese word or exclamation slips out, and it must fit this exact moment and differ from
 your recent lines: draw on the whole spoken language (e.g. uso!, maji de?, kowai, itai!, hayaku!, chotto matte, nani kore,
 ganbare, dame!, yokatta, ara ara, mou!, sasuga, osoi!, shimatta, iku yo!), never one fixed set. Never call the watcher by
-a name or an honorific. You are in the scene with them, never a narrator describing it.`;
+a name or an honorific. You are in the scenario with them, never a narrator describing it.`;
 
 /** how the agent speaks (the agent bar's Voice style): its words, and whether it speaks Japanese; the voice itself is the bar's Speaker */
 export const VOICE_STYLES: [string, string, string][] = [

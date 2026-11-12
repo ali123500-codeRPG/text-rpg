@@ -37,7 +37,7 @@ function fire(state: GameState, ownerId: string, t: Trigger, turn: number, bind:
   state.hidden.firedLog.push({ triggerId: t.id, turn, ownerId });
   // a beat is news, so its turn isn't quiet: −1 here becomes 0 when the turn ends (P7, updatePacing)
   if (t.when.type === 'quiet_turns') { state.stage.quiet = -1; state.stage.beatTurn = turn; } // SC8: a beat fired: a check-in moment
-  if (t.endsScene) state.stage.breakCause = 'story_beat';
+  if (t.endsScenario) state.stage.breakCause = 'story_beat';
   const plan = state.hidden.plans[ownerId];
   if (t.once && plan) plan.triggers = plan.triggers.filter((x) => x !== t);
   if (!bind) return null;

@@ -42,7 +42,7 @@ body { grid-template-columns: var(--rail-w) minmax(0, 1fr); height: auto; }
 .lv-norm { fill: var(--accent); background: var(--accent); }
 .lv-non { fill: var(--c3); background: var(--c3); }
 .lv-key { display: inline-block; width: 10px; height: 10px; border-radius: var(--r-sm); margin: 0 var(--space-2) 0 var(--space-1); }
-.lv-slot { color: var(--scene-mark); font-style: normal; font-weight: 700; }
+.lv-slot { color: var(--scenario-mark); font-style: normal; font-weight: 700; }
 .lv-ladder { overflow-x: auto; }
 .lv-ladder td { min-width: 150px; }
 .lv-cell { display: block; padding: var(--space-1) var(--space-2); border-radius: var(--r-md); color: var(--text); text-decoration: none; font-weight: 600;

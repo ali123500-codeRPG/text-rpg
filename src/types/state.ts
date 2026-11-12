@@ -11,27 +11,27 @@ export type Pending = { turn: number; mode: Mode; engaged: string[]; fired: stri
 export type StageInfo = {
   zoneIds: string[];
   tier: Tier;
-  /** steps the scene's event roll went past its Critical tier (an achievement opened them) */
+  /** steps the scenario's event roll went past its Critical tier (an achievement opened them) */
   tierBeyond?: number;
-  sceneNumber: number;
-  sceneStartTurn: Turn;
+  scenarioNumber: number;
+  scenarioStartTurn: Turn;
   fallback?: { reason: string; turn: Turn };
   routineFallback?: { actors: string[]; turn: Turn };
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
-  /** P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere
-   * safe; scene_end: one of the scene's endings was met, SC7). Rest, sleep and time skips never end a scene (SC4, SC9). */
-  breakCause?: 'story_beat' | 'knocked_out' | 'encounter' | 'scene_end' | 'roam';
-  /** SC1/SC2/SC7: the scene's question, scale and endings (absent before the first scene, or on an old save) */
-  scene?: import('./hidden').SceneFrame;
-  /** SC4: the bigger scene (Episode or Venture) this one sits inside, one level deep; it carries on when this one ends */
-  outer?: import('./hidden').SceneFrame;
-  /** SC7/SC13: an ending that was met, waiting for a clear turn (no fight, chase or talk) before it ends the scene */
-  ending?: { as: import('./hidden').SceneEnding; text: string; outer?: true; turn: number; roam?: true };
-  /** SC10: how the scene that just ended ended, set with breakCause and recorded when the next one begins */
-  ended?: { as: import('./hidden').SceneEnding; text: string; outer?: true; roam?: true };
-  /** SD1: how the last scene ended and the turn it was closed (the play page's ending moment reads it that turn) */
-  closed?: { as: import('./hidden').SceneEnding; turn: number };
-  /** SD2 a: free roam, since this turn: no scene runs until something starts one (CH2), or an unbuilt frontier (CH3 a) */
+  /** P7: set by the engine; the director starts a new scenario after this turn (knocked_out: D-54, the player wakes somewhere
+   * safe; scenario_end: one of the scenario's endings was met, SC7). Rest, sleep and time skips never end a scenario (SC4, SC9). */
+  breakCause?: 'story_beat' | 'knocked_out' | 'encounter' | 'scenario_end' | 'roam';
+  /** SC1/SC2/SC7: the scenario's question, scale and endings (absent before the first scenario, or on an old save) */
+  scenario?: import('./hidden').ScenarioFrame;
+  /** SC4: the bigger scenario (Episode or Venture) this one sits inside, one level deep; it carries on when this one ends */
+  outer?: import('./hidden').ScenarioFrame;
+  /** SC7/SC13: an ending that was met, waiting for a clear turn (no fight, chase or talk) before it ends the scenario */
+  ending?: { as: import('./hidden').ScenarioEnding; text: string; outer?: true; turn: number; roam?: true };
+  /** SC10: how the scenario that just ended ended, set with breakCause and recorded when the next one begins */
+  ended?: { as: import('./hidden').ScenarioEnding; text: string; outer?: true; roam?: true };
+  /** SD1: how the last scenario ended and the turn it was closed (the play page's ending moment reads it that turn) */
+  closed?: { as: import('./hidden').ScenarioEnding; turn: number };
+  /** SD2 a: free roam, since this turn: no scenario runs until something starts one (CH2), or an unbuilt frontier (CH3 a) */
   roam?: { since: number };
   /** CH6: frontiers the player crossed during the current chase: from the zone before it to the zone it led to */
   crossings?: { from: string; to: string; turn: number }[];
@@ -39,10 +39,10 @@ export type StageInfo = {
   checkinDue?: import('./hidden').CheckinReason;
   /** SC8: the turn a beat (a quiet_turns trigger) last fired */
   beatTurn?: number;
-  /** TV4: an encounter on the road: its event roll (the next scene's tier), whether the player saw it coming (TV8), and
+  /** TV4: an encounter on the road: its event roll (the next scenario's tier), whether the player saw it coming (TV8), and
    * where on the road it stands; cleared at the start of the next turn */
   encounter?: { eventRoll: import('./ruleset').EventRollResult; noticed: boolean; zone: string; at: { x: number; y: number } };
-  /** OQ-27 (c): the NPC the player last spoke with this scene (sticky dialogue partner) */
+  /** OQ-27 (c): the NPC the player last spoke with this scenario (sticky dialogue partner) */
   partner?: string;
 };
 
@@ -64,7 +64,7 @@ export type Quest = {
   giver: string; dealId: string; goal: QuestGoal; progress: number;
   /** defeat goals: summed power of the counted foes, each taken when it fell (QX2/QX4) */
   foePower?: number;
-  level: QuestRewardLevel; // QT9/QT28: from the scene's gain grade when accepted
+  level: QuestRewardLevel; // QT9/QT28: from the scenario's gain grade when accepted
   startTurn: number; endTurn?: number;
   startAt?: number; // game clock minutes when it was given (set with `due`: the 'quests_early' achievement)
   after?: string; // QT24: the quest it follows
@@ -78,7 +78,7 @@ export type Quest = {
 /** SP1/SP3: a spar between sides (one actor each for one against one; every actor on its own side for a free-for-all).
  * out: who has yielded or reached the limit (SP4, SP5), with the turn; last: the turn of the latest blow between sides (or the start). */
 export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
-/** MB40–MB43: the player's yield this scene: foes yet to answer, those that took it (truce) and those that fought on */
+/** MB40–MB43: the player's yield this scenario: foes yet to answer, those that took it (truce) and those that fought on */
 export type PlayerYield = { turn: number; pending: string[]; accepted: string[]; refused: string[]; ended?: boolean }; // ended: YD3, the fight already ended on it
 
 // In-memory working state, built from Part 4's pages on load. Never saved as one document.
@@ -101,18 +101,18 @@ export type GameState = {
   places: Place[];
   facts: StoryFact[];
   stage: StageInfo;
-  sceneCaps: { promotions: number; minted: number };
+  scenarioCaps: { promotions: number; minted: number };
   clocks: Record<string, number>;
   flags: Record<string, string | number | boolean>;
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
-  yielding?: PlayerYield; // MB40: cleared when the scene ends
+  yielding?: PlayerYield; // MB40: cleared when the scenario ends
   barriers?: Record<string, import('./core').Barrier>; // SD3–SD5: doors, gates, grates and rubble on ways, by id
   settings: Settings;
   libraryVersion: number;
   blueprints: BlueprintPage[]; // story blueprints (story first, then library)
   meta: StoryMeta;
-  /** derived per turn, never saved: actor id -> ids of actors that hit it this scene (latest last) */
+  /** derived per turn, never saved: actor id -> ids of actors that hit it this scenario (latest last) */
   scratch?: Record<string, unknown>;
   /** never saved: earlier turns' events, pruned to each actor's last RECENT_EVENTS perceived ones, so NPC views keep what they saw and heard */
   recentEvents?: GameEvent[];
@@ -168,7 +168,7 @@ export type EnginePage = {
   rngState: number;
   pending: Pending;
   stage: StageInfo;
-  sceneCaps: { promotions: number; minted: number };
+  scenarioCaps: { promotions: number; minted: number };
   clocks: Record<string, number>;
   flags: Record<string, string | number | boolean>;
   bands: Band[];

@@ -32,12 +32,12 @@ export type LogLine = {
   wounds?: { id: string; from: string; to: string }[]; // M-30: the player's body parts whose state got worse this turn (part state names)
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
   place?: { id: string; name: string; zone?: string }; // where the player ended the turn; name like "River path · the Riverside", zone like "cellar"
-  scene?: number; // stage.sceneNumber when the turn ended
-  /** SD1: this turn ended a scene: how (SCENE_ENDINGS key and its name), and the Narrator's closing line for it, which the
-   * play page shows before the scene break; text is then the rest of the turn and the next scene's opening */
-  sceneEnd?: SceneEndNote;
+  scenario?: number; // stage.scenarioNumber when the turn ended
+  /** SD1: this turn ended a scenario: how (SCENARIO_ENDINGS key and its name), and the Narrator's closing line for it, which the
+   * play page shows before the scenario break; text is then the rest of the turn and the next scenario's opening */
+  scenarioEnd?: ScenarioEndNote;
 };
-export type SceneEndNote = { as: import('./hidden').SceneEnding; name: string; closing?: string };
+export type ScenarioEndNote = { as: import('./hidden').ScenarioEnding; name: string; closing?: string };
 
 /** a hall-of-fame row: the fallen character, whose story it was, and its story id */
 export type FallenCharacter = import('./state').FameEntry & { owner: import('./state').StoryOwner; storyId: string };
@@ -59,7 +59,7 @@ export type LineCheck = {
 };
 
 export type Notice =
-  | { kind: 'scene_fallback'; text: string } // "Scene planning failed: placeholder area"
+  | { kind: 'scenario_fallback'; text: string } // "Scenario planning failed: placeholder area"
   | { kind: 'rate_limited'; text: string }
   | { kind: 'stop_play'; text: string } // not_granted, sampling_disabled, session_expired
   | { kind: 'read_only'; text: string } // another window holds the turn lock
@@ -80,9 +80,9 @@ export interface GameApi {
   lines(): LogLine[];
   notices(): Notice[];
   busy(): boolean;
-  /** SD1: while a turn that ended a scene is still running (the next scene's Weaver and Narrator calls), how it ended, so the
+  /** SD1: while a turn that ended a scenario is still running (the next scenario's Weaver and Narrator calls), how it ended, so the
    * play page can start the ending moment then; null otherwise */
-  sceneEnding(): SceneEndNote | null;
+  scenarioEnding(): ScenarioEndNote | null;
   fell(): boolean; // "You fell" screen (lethal fight incapacitated the player)
   subscribe(cb: () => void): () => void;
   validateBuild(build: CreationBuild): string[]; // empty = valid
@@ -101,8 +101,8 @@ export interface GameApi {
   /** free text or a /command; aimed comes from the Aim toggle */
   submit(text: string, opts: { aimed: boolean }): Promise<void>;
   reset(): Promise<void>; // confirmed by the UI first
-  /** SC15: the GM view's End scene button: the running scene ends after the next turn */
-  endScene(): void;
+  /** SC15: the GM view's End scenario button: the running scenario ends after the next turn */
+  endScenario(): void;
   gm(): GmSnapshot;
   calls(): number; // Claude calls made in this session (page load), counted by code
   /** Claude calls in flight now, oldest first: which agent and since when (Date.now ms) */

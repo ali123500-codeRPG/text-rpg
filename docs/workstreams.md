@@ -14,6 +14,6 @@ smallest reading, mark it `// GAP:` in code with a one-line note, and list it in
 - Nothing from `state.hidden` reaches the Parser, Narrator or Voice.
 - Ask-before list (do NOT do these; report instead): change a ruleset number, add a Claude call to a turn type, send state.hidden to Parser/Narrator/Voice, settle a deferred item (D-n).
 - Other workstreams' functions may still be stubs (`todo()` throws). Unit-test your module with small local fakes where you depend on others.
-- Scenario tests: one file per test in `tests/scenarios/`, named `sNNN-short-name.test.ts`, using `tests/harness`. Write them
+- Scenario tests: one file per test in `tests/cases/`, named `sNNN-short-name.test.ts`, using `tests/harness`. Write them
   against the real contracts. If one can't pass until another workstream lands, still write it fully; it will go green at integration.
 - `npx tsc --noEmit` must pass for your files. Commit on your branch with clear messages. Don't push.

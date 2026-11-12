@@ -630,10 +630,10 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 *Story:* Words say one thing. Faces say the rest. You see how anyone who speaks to you really stands toward you (hostile, opposed, friendly and so on), even when they hide it.
 
 - **Kind:** Always on
-- **Trigger:** Someone the owner sees clearly has spoken to the owner this scene.
+- **Trigger:** Someone the owner sees clearly has spoken to the owner this scenario.
 - **Conditions:** The owner sees the speaker clearly (not in the dark or half seen).
 - **Effect:** The owner sees that speaker's stance toward the owner.
-- **Lasts:** While the owner sees them, for the rest of the scene.
+- **Lasts:** While the owner sees them, for the rest of the scenario.
 
 ### Dread Presence (Intimidation) · I1
 
@@ -718,7 +718,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The start of each turn.
-- **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and in the owner's zone or one sight link away. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scene.
+- **Conditions:** A watcher is opposed or hostile to the owner, aware of the owner, and in the owner's zone or one sight link away. The owner has not seen or heard the watcher (is unaware of them). Each watcher sets it off at most once a scenario.
 - **Effect:** The owner's Insight against the watcher's stealth (Combat Stealth in a fight, Sneaking otherwise). If the owner wins, it gets a hunch of being watched from the watcher's zone, never who, and turns suspicious of the watcher there. It can then look or listen for them as usual.
 - **Lasts:** Until the owner's belief changes on its own.
 - **Open:** Built, then parked by Ali until it has a place on the ladder (Insight 20 holds Overheard); D-176.

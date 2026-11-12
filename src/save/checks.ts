@@ -122,7 +122,7 @@ export function migrate(pages: Pages, from: number, to: number, r: CheckReport):
 type Kind = 'string' | 'number' | 'object' | 'array' | 'boolean';
 const T = (v: unknown, k: Kind) => (k === 'array' ? Array.isArray(v) : k === 'object' ? !!v && typeof v === 'object' && !Array.isArray(v) : typeof v === k);
 const SHAPES: Record<string, Record<string, Kind>> = {
-  engine: { storyId: 'string', turn: 'number', mode: 'string', rngSeed: 'number', rngState: 'number', pending: 'object', stage: 'object', sceneCaps: 'object', clocks: 'object', flags: 'object', bands: 'array', quests: 'array' },
+  engine: { storyId: 'string', turn: 'number', mode: 'string', rngSeed: 'number', rngState: 'number', pending: 'object', stage: 'object', scenarioCaps: 'object', clocks: 'object', flags: 'object', bands: 'array', quests: 'array' },
   hidden: { storyId: 'string', plans: 'object', memory: 'object', secrets: 'array', firedLog: 'array', weaverNote: 'string', stage: 'object' },
   actor: { id: 'string', storyId: 'string', kind: 'string', names: 'object', label: 'string', placeId: 'string', zone: 'string', bandId: 'string', core: 'object' },
   core: { bodyTypeId: 'string', skills: 'object', classes: 'array', perks: 'array', condition: 'object', inventory: 'array', standingDefense: 'string' },
@@ -265,7 +265,7 @@ export function repairReferences(pages: Pages, lib: Library, r: CheckReport): vo
       p.headlines = keep(k, p.headlines, (f) => factIds.has(f), 'headlines');
       // an item the library no longer has would make every zone view throw: drop it, as for inventories
       for (const z of p.zones) z.groundItems = keep(k, z.groundItems ?? [], (it) => L.hasItem(it.itemId), `unknown ground items in ${z.id}`);
-      // every link runs both ways (scenes planned before the fix kept one-way links among their new zones)
+      // every link runs both ways (scenarios planned before the fix kept one-way links among their new zones)
       for (const z of p.zones) for (const l of z.links) {
         if (l.frontier) continue;
         const ok = keys.filter((x) => x.startsWith('place.')).map((x) => [x, (pages[x] as Place).zones.find((zz) => zz.id === l.to)] as const).find(([, zz]) => zz);

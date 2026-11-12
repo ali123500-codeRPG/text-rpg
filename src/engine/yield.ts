@@ -1,7 +1,7 @@
 // The player's yield in a real fight (MB40–MB43). In a spar, "I yield" still just leaves the spar (SP5).
 // YD1: the yield reaches the foes fighting the player (engaged with them, YD6), and hostile foes who perceive the player
 // by any sense (a yield is said aloud, at normal volume) and are fighting someone on the player's side. One run by Claude, of an Intelligent race, decides in its
-// next output (acceptYield); the rest ignore it and fight on. An accepted yield is a truce until the scene ends: neither
+// next output (acceptYield); the rest ignore it and fight on. An accepted yield is a truce until the scenario ends: neither
 // is hostile to the other, neither can attack the other (MB43), and the fight counts as lost (defeated).
 // YD2/YD7: a taken yield also covers the taker's bandmates who are together with it (each perceives the other right now)
 // and did not refuse it themselves; bandmates apart act as the band's faction and keep fighting. YD3: once everyone who
@@ -42,7 +42,7 @@ export function yieldHearers(state: GameState): Actor[] {
     && (fightingWith(state, a, p) || (perceivesNow(state, a, p, 'normal') && side.some((o) => fightingWith(state, a, o)))));
 }
 
-/** MB40: the player yields to every foe that hears it (YD1) and has not answered an earlier yield this scene */
+/** MB40: the player yields to every foe that hears it (YD1) and has not answered an earlier yield this scenario */
 export function playerYields(state: GameState): void {
   const p = state.player;
   const y = (state.yielding ??= { turn: state.turn, pending: [], accepted: [], refused: [] });

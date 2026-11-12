@@ -1,7 +1,7 @@
 // In-memory fake GameApi with canned lines, for building and screenshotting the screens until W7's pipeline lands.
-import { placeZones } from '../scene/geometry';
+import { placeZones } from '../scenario/geometry';
 import { EK, PA, VL, ZK } from '../library/tableIds';
-import { roadShape } from '../scene/apply';
+import { roadShape } from '../scenario/apply';
 import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
 import type { CreationBuild, GameApi, GameState, GmSnapshot, LogLine, Notice } from '../types';
@@ -116,8 +116,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       agentLog: [{ turn: 3, agent: 'narrator', input: { view: 'NarrationView…' }, output: { text: NARRATION[2] }, status: 'ok', errors: [], modelTierApplied: 'complex' } as GameState['agentLog'][number],
         { turn: 3, agent: 'parser', input: { text: 'block and cut back' }, output: { intent: 'attack', target: 'slime_1' }, status: 'ok', errors: [], modelTierApplied: 'quick' } as GameState['agentLog'][number]],
       log: [{ turn: 3, code: 'planner_late' }, { turn: 3, code: 'skill_improved', detail: { skill: SK.block, from: 37, to: 40, milestone: 40 } }], rngSeed: 1, rngState: 1, pending: { turn: 3, mode: 'tactical', engaged: ['slime_1'], fired: [] },
-      places: FAKE_PLACES(), facts: [], stage: { zoneIds: [], tier: 'success', sceneNumber: 2, sceneStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scene planning failed: placeholder area', turn: 2 } } : {}) },
-      sceneCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
+      places: FAKE_PLACES(), facts: [], stage: { zoneIds: [], tier: 'success', scenarioNumber: 2, scenarioStartTurn: 2, ...(opts.banner ? { fallback: { reason: 'Scenario planning failed: placeholder area', turn: 2 } } : {}) },
+      scenarioCaps: { promotions: 0, minted: 0 }, clocks: {}, flags: {},
       quests: [
         { id: 'q0', state: 'done', text: 'Find a bed for the night', giver: 'guard_1', dealId: 'deal_0', goal: { kind: 'other' }, progress: 0, level: 'zero', startTurn: 1, endTurn: 2 },
         { id: 'q1', state: 'active', text: 'Clear the slimes from the field', giver: 'guard_1', dealId: 'ag_1', goal: { kind: 'defeat', by: 'race', of: slime.core.raceId!, count: 3, noun: 'slimes' }, progress: 1, level: 'i', startTurn: 2, after: 'q0', pay: { coin: 10 }, paid: { coin: 0, qty: 0 }, due: 3 * 1440 + 1080, dueBy: 'dusk' },
@@ -129,11 +129,11 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['hand:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
     lines = [
-      { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scene: 1 },
+      { turn: 1, kind: 'narration', text: NARRATION[0], place: KETTLE, scenario: 1 },
       { turn: 2, kind: 'player', text: 'I head out through the gate to the field' },
-      { turn: 2, kind: 'narration', text: NARRATION[1], place: KETTLE, scene: 2, gear: ['Now held: right hand · Arming sword', 'Now held: left hand · Round shield'] },
+      { turn: 2, kind: 'narration', text: NARRATION[1], place: KETTLE, scenario: 2, gear: ['Now held: right hand · Arming sword', 'Now held: left hand · Round shield'] },
       { turn: 3, kind: 'player', text: 'I raise my shield and cut back at it', aimed: true },
-      { turn: 3, kind: 'narration', text: NARRATION[2], place: KETTLE, scene: 2,
+      { turn: 3, kind: 'narration', text: NARRATION[2], place: KETTLE, scenario: 2,
         check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'success' }, result: 'full hit, body' },
         speech: [{ speaker: 'a gate guard', volume: 'shout', text: 'That’s one! Watch your left!' }],
         heals: [{ source: HL.bandage, from: 'Hurt', to: 'Bruised', parts: [{ id: 'left_leg', from: 'Damaged', to: 'Healthy' }] }],
@@ -151,7 +151,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     lines: () => lines,
     notices: () => notices,
     busy: () => busy,
-    sceneEnding: () => null,
+    scenarioEnding: () => null,
     fell: () => fell,
     subscribe(cb) { subs.add(cb); return () => subs.delete(cb); },
     validateBuild: validateBuildLocal,
@@ -202,11 +202,11 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
       const earned = hurt || /^spar\b/i.test(text) ? earnTurn(state, hurt ? [ACH.crippled_1] : [ACH.spar_losses_1]) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scene: state.stage.sceneNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}) }];
+        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
-    endScene() {},
+    endScenario() {},
     calls: () => n * 3 + 4,
     working: () => [],
     gm(): GmSnapshot { return { state, agentLog: state?.agentLog ?? [], log: state?.log ?? [], fallbackBanner: !!state?.stage.fallback, backups: state ? [{ turn: 0, path: 'stories/fake/backups/0' }] : [] }; },

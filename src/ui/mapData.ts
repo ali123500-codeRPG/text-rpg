@@ -1,13 +1,13 @@
 // The Map page's data: only what the character knows. Zones it stood in or saw across a sight link (journal.zonesSeen),
 // what it sees now (PlayerView), its trail, and the places the Journal lists. Never the hidden store: light, cover,
 // people and things on the ground show only for zones in view now; a remembered zone keeps its name, look and exits.
-import { compassOf as geoCompass } from '../scene/geometry';
+import { compassOf as geoCompass } from '../scenario/geometry';
 import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
 import { zoneById } from '../engine/relations';
 import { knownZoneIds } from '../engine/trail';
 import { journalPlaces } from './pages';
-import { heightOf } from '../scene/heights';
+import { heightOf } from '../scenario/heights';
 import { ZK } from '../library/tableIds';
 
 export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string };
@@ -81,9 +81,9 @@ export function knownMap(s: GameState): KnownMap {
 }
 
 /** a compass hint from an exit's words ("north gate", "the east road"); null when it names no direction. Up and down are
- *  heights, not directions (src/scene/heights.ts verticalOf): stairs never push a zone north or south. */
+ *  heights, not directions (src/scenario/heights.ts verticalOf): stairs never push a zone north or south. */
 export function compassOf(label: string): [number, number] | null {
-  const c = geoCompass(label); // the scene's reading of compass words, flipped to screen (y down)
+  const c = geoCompass(label); // the scenario's reading of compass words, flipped to screen (y down)
   return c ? [c[0], -c[1] || 0] : null;
 }
 

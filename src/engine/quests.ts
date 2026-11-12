@@ -174,7 +174,7 @@ export function handInQuests(state: GameState, talkedTo: (id: string) => boolean
   for (const q of state.quests) if (q.state === 'ready' && talkedTo(q.giver)) endQuest(state, q, 'done', 'hand_in');
 }
 
-// ---- goal checks, shared by quest goals and scene endings (SC7: one rule for the same thing) ----
+// ---- goal checks, shared by quest goals and scenario endings (SC7: one rule for the same thing) ----
 /** is the player in zone or place `place` (a place counts with every place inside it) */
 export function playerIn(state: GameState, place: string): boolean {
   const p = state.player;

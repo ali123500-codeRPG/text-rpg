@@ -56,7 +56,7 @@ export type WareView = { id: string; name: string; price: string; stock?: number
 /** SL9: what a Trader would pay for one of the player's items: id is the player's item, for a sell's item */
 export type OfferView = { id: string; name: string; price: string };
 
-/** MB40–MB43: the player's yield this scene, by name: who took it (truce), who has yet to answer, who fought on */
+/** MB40–MB43: the player's yield this scenario, by name: who took it (truce), who has yet to answer, who fought on */
 export type YieldView = { took: string[]; waiting: string[]; refused: string[] };
 
 export type SeenActor = {
@@ -91,7 +91,7 @@ export type PlayerView = {
     standingDefense: DefenseKind;
     heldBy?: string; // A8 Hold: who holds the player (as the player calls them); trying to leave is a break-free try
     spar?: SparView; // SP1: the spar the player fights in
-    yielded?: YieldView; // MB40: the player yielded in a real fight this scene
+    yielded?: YieldView; // MB40: the player yielded in a real fight this scenario
   };
   zone: ZoneView;
   zones: ZoneView[]; // zones the player perceives (own + sight links)
@@ -226,8 +226,8 @@ export type NarrationView = {
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)
-  /** SD1: this turn ended a scene, and how (an ending name: escaped, resolved...); the Narrator gives a closing line */
-  sceneEnded?: string;
+  /** SD1: this turn ended a scenario, and how (an ending name: escaped, resolved...); the Narrator gives a closing line */
+  scenarioEnded?: string;
 };
 
 // ---------- WeaverView: Agent Weaver ----------
@@ -238,10 +238,10 @@ export type WeaverView = {
   stakes: string;
   ways: string; // BA8: how the tier leans the ways in and out (locks, bars, guards), never a limit
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
-  target: { kind: 'scene' | 'frontier' | 'checkin'; placeId: string; label?: string; frontierKey?: string; wake?: true;
-    /** SC8: why this check-in was asked, and the running scene it is about */
+  target: { kind: 'scenario' | 'frontier' | 'checkin'; placeId: string; label?: string; frontierKey?: string; wake?: true;
+    /** SC8: why this check-in was asked, and the running scenario it is about */
     reason?: import('./hidden').CheckinReason;
-    scene?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean };
+    scenario?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean };
     /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
     encounter?: { zone: string; danger: string; noticed: boolean } };
   headlines: string[];
@@ -252,10 +252,10 @@ export type WeaverView = {
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
   player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel };
   previousNote: string;
-  /** SC6: how the last few scenes went, oldest first (question, scale, tier, ending, who fell, what the player gained) */
-  lastScenes: { question: string; scale: string; tier: TierName; ending: string; note: string; turns: number; fallen: string[]; gained: string[]; inner?: true }[];
-  /** SC4: the bigger scene (Episode or Venture) this new scene sits inside; it carries on when this one ends */
-  outerScene?: { question: string; scale: string };
+  /** SC6: how the last few scenarios went, oldest first (question, scale, tier, ending, who fell, what the player gained) */
+  lastScenarios: { question: string; scale: string; tier: TierName; ending: string; note: string; turns: number; fallen: string[]; gained: string[]; inner?: true }[];
+  /** SC4: the bigger scenario (Episode or Venture) this new scenario sits inside; it carries on when this one ends */
+  outerScenario?: { question: string; scale: string };
   catalogs: {
     templates: { id: string; label: string; raceId: string; classId?: string }[];
     services: { id: string; name: string; price: number }[]; // PY3: base prices, before the markup

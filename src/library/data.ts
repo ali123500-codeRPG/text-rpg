@@ -264,7 +264,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.lockpicks, kind: 'tool', name: 'lockpicks', look: 'a roll of lockpicks', bulk: 0, value: 15, hands: 1,
     effects: [{ kind: 'skill', skill: SK.thievery, value: 25, active: 'inUse', scope: 'withItem' }] },
   { id: IT.healing_draught, kind: 'consumable', name: 'healing draught', look: 'a stoppered vial', bulk: 1, value: 10, hands: 1, stackable: true, consumable: true },
-  // generic bases for minted items with no close match, and for scene objects the player grabs (loot L2, L3)
+  // generic bases for minted items with no close match, and for scenario objects the player grabs (loot L2, L3)
   { id: IT.improvised_light, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something small grabbed to fight with', bulk: 1, value: 0, hands: 1, tags: ['improvised'],
     weapon: { modes: IMPROVISED_MODES('light', 1) } },
   { id: IT.improvised_medium, level: 'common', gearClass: GC.improvised, kind: 'weapon', name: 'improvised weapon', look: 'something grabbed to fight with', bulk: 2, value: 0, hands: 1, tags: ['improvised'],
@@ -348,7 +348,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
     focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.parry }, { treeId: TR.perception, skill: SK.eyesight }],
-    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard', chase: 'ground', // CH5: guards keep to the scene's ground
+    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard', chase: 'ground', // CH5: guards keep to the scenario's ground
   },
   [TP.trader]: {
     id: TP.trader, raceId: RC.human, classId: CL.trader, generation: 'copy',

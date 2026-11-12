@@ -1,8 +1,8 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
-import { checkSceneEnd, closeScene } from './sceneEnd';
+import { checkScenarioEnd, closeScenario } from './scenarioEnd';
 import { checkRoam, updateChase } from './chase';
 import { noteLeft, noteZonesSeen } from './trail';
-import { heightOf } from '../scene/heights';
+import { heightOf } from '../scenario/heights';
 import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
@@ -249,7 +249,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   const link = zoneById(state, a.zone)?.links.find((l) => l.to === goal.zone);
   if (link?.frontier) {
     if (a.kind !== 'player') return null; // [Proposed] NPC orders into frontiers are dropped
-    // GAP: the player crossing a frontier stays in its zone; scene setup / stage extension places it (pipeline reads scratch).
+    // GAP: the player crossing a frontier stays in its zone; scenario setup / stage extension places it (pipeline reads scratch).
     state.scratch = { ...(state.scratch ?? {}), frontierCrossed: goal.zone };
     emit(ctx, mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] }));
     return 'spent';
@@ -574,7 +574,7 @@ const threatHere = (state: GameState, a: Actor): boolean =>
   allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
 
 /** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
- * Blocked like rest when a hostile is in the zone; otherwise the clock moves on and the scene breaks (time skip, D-30). */
+ * Blocked like rest when a hostile is in the zone; otherwise the clock moves on and the scenario breaks (time skip, D-30). */
 function doWait(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   if (a !== state.player) return hold(ctx, a, o);
@@ -598,7 +598,7 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       for (let i = 0; i < Math.floor(minutes / CONFIG.REST_COOLDOWN_MIN); i++) applyHealing(state, a, restRow(state, a));
       state.clocks[`rest:${a.id}`] = now(state);
     }
-    ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } }); // SC4/SC9: a time skip never ends the scene
+    ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } }); // SC4/SC9: a time skip never ends the scenario
   }
   emit(ctx, ev);
 }
@@ -646,10 +646,10 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   const ev = bark(withActivity(ctx, a, mk(ctx, a, kind, { target: o.target ?? undefined }), o.activity), o);
   let result: CheckResult | undefined;
   if (o.skill && o.type === 'observe' && a.id === state.player.id && noticeCue(o.skill)) {
-    // Q17: looking is a roll against the scene's difficulty; Success or better shows everyone in sight clearly
+    // Q17: looking is a roll against the scenario's difficulty; Success or better shows everyone in sight clearly
     const target = CONFIG.DIFFICULTY[state.hidden.stage.challenge] ?? CONFIG.DIFFICULTY.moderate;
     const modifiers = [
-      ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scene difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
+      ...(target !== CONFIG.DIFFICULTY.moderate ? [{ source: 'scenario difficulty', type: 'situational' as const, value: CONFIG.DIFFICULTY.moderate - target }] : []),
       ...situational(state, fnRoller(state, a, noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight), { light: zoneById(state, a.zone), actor: a }).modifiers, // ST21: light by the rolling skill's tags (Q3)
     ];
     const r = ruleset.roll({ actorId: a.id, skill: o.skill, modifiers, tierShifts: [], fn: noticeCue(o.skill) === 'sound' ? FN.hearing : FN.sight }, state, rng); // function roll
@@ -830,7 +830,7 @@ function step(ctx: Ctx, id: string): void {
   if (o.moveAfter && !o.way) move(false); // AE3: act, then move
 }
 
-/** TV1–TV8: the trip: one travel event where it ends; an encounter breaks the scene (the next one starts there, with the
+/** TV1–TV8: the trip: one travel event where it ends; an encounter breaks the scenario (the next one starts there, with the
  * encounter's event roll); reaching a frontier at the road's end crosses it */
 function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof tripGoal>>): void {
   const { state } = ctx;
@@ -922,8 +922,8 @@ function setPosture(state: GameState, a: Actor, o: Order): void {
 
 export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameEvent[] {
   noteZonesSeen(state); // where the turn starts: a frontier crossed after the last turn's end
-  placeAll(state); // ZP1: anyone new on stage, or moved by a scene, gets a spot in their zone
-  delete state.stage.encounter; // TV4: an encounter's scene has placed its people by now
+  placeAll(state); // ZP1: anyone new on stage, or moved by a scenario, gets a spot in their zone
+  delete state.stage.encounter; // TV4: an encounter's scenario has placed its people by now
   const learnedBefore = learned(state);
   const playerUp = isActive(state.player);
   // MB41: foes asked by the player's yield answer in this turn's output, before anyone acts
@@ -1024,30 +1024,30 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
   updateChase(state); // CH6/CH7: pursuers follow through frontiers; a chase lost for CHASE_LOST_TURNS turns ends
-  checkSceneEnd(state, ctx.events); // SC7/SC13: the scene's endings, held while fighting, chased or talking; SC16 its ground
-  checkRoam(state, ctx.events); // SD2 a/CH2: in free roam, what happened this turn may start a new scene
-  updateSpars(state, ctx.events); // after the scene-break checks, so a break ends the spar this turn
-  // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
+  checkScenarioEnd(state, ctx.events); // SC7/SC13: the scenario's endings, held while fighting, chased or talking; SC16 its ground
+  checkRoam(state, ctx.events); // SD2 a/CH2: in free roam, what happened this turn may start a new scenario
+  updateSpars(state, ctx.events); // after the scenario-break checks, so a break ends the spar this turn
+  // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scenario breaks
   const fight = state.player.engagement?.fight;
   const ended = updateEngagements(state, ctx.events);
   if (ended) unpaidQuests(state); // QT23
   if (ended && fight) fightEnded(state, fight, ctx.events);
   turnFeats(state, ctx.events);
-  // SM2: with SKILL_UP_INSTANT, owed rolls are made every turn; SM3: marks still count per engagement (or per scene)
+  // SM2: with SKILL_UP_INSTANT, owed rolls are made every turn; SM3: marks still count per engagement (or per scenario)
   if (ended || state.stage.breakCause || CONFIG.SKILL_UP_INSTANT) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
   for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); syncThreadboundItemPerks(x, state.turn); } grantThreadboundItem(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
-  if (state.stage.breakCause) closeScene(state); // SC6: record the scene; SC4: an inner scene's end resumes the bigger one
+  if (state.stage.breakCause) closeScenario(state); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
   state.events.push(...ctx.events);
   return ctx.events;
 }
 
 /** D-54: the player went down this turn. The fight is lethal when an active actor hostile to the player belongs to a band
  * marked lethal (the default): the story ends on the "You fell" screen. Otherwise (a band marked not lethal, a spar, or no
- * one left to finish the job) one survival roll: Near Miss or better wakes somewhere safe at Critical (the next scene). */
+ * one left to finish the job) one survival roll: Near Miss or better wakes somewhere safe at Critical (the next scenario). */
 function playerDown(state: GameState, rng: Rng): void {
   const p = state.player;
   if (p.engagement?.fight) p.engagement.fight.down = true; // a lost fight, even if the player wakes (the Loser scars)
@@ -1073,16 +1073,16 @@ function learned(state: GameState): number {
 
 /**
  * A quiet turn: no attack, nothing new learned, no beat fired (the beat's own reset). A stall (STALL_TURNS quiet turns
- * with no beat left) marks the scene to end as worn out; the director starts the next one. Rest, sleep and time skips
- * never end a scene (SC4, SC9).
+ * with no beat left) marks the scenario to end as worn out, and free roam starts (SD2 a). Rest, sleep and time skips
+ * never end a scenario (SC4, SC9).
  */
 function updatePacing(state: GameState, events: GameEvent[], learnedBefore: number): void {
   const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
   state.stage.quiet = quiet ? (state.stage.quiet ?? 0) + 1 : 0;
-  if (state.stage.breakCause || state.stage.roam) return; // SD2 a: no stall in free roam, since no scene runs
+  if (state.stage.breakCause || state.stage.roam) return; // SD2 a: no stall in free roam, since no scenario runs
   if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) {
     state.stage.breakCause = 'story_beat';
-    logCode(state, 'scene_stalled', { number: state.stage.sceneNumber, quiet: state.stage.quiet }); // SC12: code ended it, not the Weaver: a bug
+    logCode(state, 'scenario_stalled', { number: state.stage.scenarioNumber, quiet: state.stage.quiet }); // SC12: code ended it, not the Weaver: a bug
   }
 }
 

@@ -189,7 +189,7 @@ export async function callVoice(
 export async function callNarrator(view: NarrationView, ctx: AgentCtx, leak: LeakContext): Promise<DialogueResult<NarratorOutput>> {
   const viewText = JSON.stringify(view);
   const accept = (v: NarratorOutput): Attempt<NarratorOutput> => {
-    if (!view.sceneEnded) delete v.closing; // SD1: a closing line only on a turn that ended a scene
+    if (!view.scenarioEnded) delete v.closing; // SD1: a closing line only on a turn that ended a scenario
     const leaks = leakScan(v.closing ? `${v.closing}\n${v.text}` : v.text, viewText, leak);
     const facts = factCheck(v, view);
     if (!leaks.length && !facts.length) return { kind: 'ok', value: v };

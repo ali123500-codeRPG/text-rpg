@@ -1,5 +1,5 @@
 // CO7/CO17 prebuilt layouts: a common building's zones, sizes, sides and exits, ready made so the Weaver only picks one
-// by id (and may rename its zones). Exit labels carry compass words, so code places the zones (src/scene/geometry.ts);
+// by id (and may rename its zones). Exit labels carry compass words, so code places the zones (src/scenario/geometry.ts);
 // up and down words set heights. A building type can have several layouts; add a row to add one.
 import type { LayoutDef } from '../types';
 import { EK, LY, ZK } from './tableIds';

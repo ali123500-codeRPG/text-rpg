@@ -1,6 +1,6 @@
 // Travel on the road (TV1–TV9): a walk along a road, which is one long zone, in one turn. Code walks it in legs of up to
 // TRAVEL_LEG_MIN game minutes at the travel pace; each leg on a road rolls for an encounter by the road's danger, and an
-// encounter's event roll sets what it is (the next scene's tier). The trip stops on arrival, at an encounter, or at dusk
+// encounter's event roll sets what it is (the next scenario's tier). The trip stops on arrival, at an encounter, or at dusk
 // (unless the trip set off in the dark: then it presses on, at a slow pace, with a worse event roll and more encounters).
 import { CONFIG } from '../config';
 import { FN } from '../library/functionIds';

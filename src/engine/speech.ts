@@ -57,7 +57,7 @@ export function fillSpeech(state: GameState, intent: Intent, text: string): Inte
 
 /**
  * Dialogue turn step 2, with OQ-27 (c): for an addressed band, the sticky partner (state.stage.partner, the NPC the
- * player last spoke with this scene) answers if it is an active member in reach; else the nearest member.
+ * player last spoke with this scenario) answers if it is an active member in reach; else the nearest member.
  * GAP: "everyone in earshot" read as NPCs in the player's zone or one link away.
  */
 /** A15 Quick Word: in a fight, a one-sentence line said beside a non-speech action resolves as talk without using the

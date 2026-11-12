@@ -20,7 +20,7 @@ export type AgentCtx = {
 };
 
 /**
- * Q4 (Motion Rules Review): the turn's own calls (Parser, dialogue calls, Narrator, a scene-start Weaver) always
+ * Q4 (Motion Rules Review): the turn's own calls (Parser, dialogue calls, Narrator, a scenario-start Weaver) always
  * go ahead of background Planner and Weaver calls in the viewer's call slots. Background calls start only while no
  * turn call is waiting or running, and never take the last slot, so a turn call never queues behind them and a fight
  * with more significant NPCs answers no slower (that would hint who is significant). A call already running is never

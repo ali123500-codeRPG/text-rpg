@@ -140,8 +140,8 @@ export function perksSection(api: GameApi): HTMLElement {
         h('span', { class: 'pk-pts' + (pts ? '' : ' none') }, `✦ ${pts} point${pts === 1 ? '' : 's'}`)),
       // the two perk series, in the colours their milestones use everywhere
       h('ul', { class: 'pk-key', 'aria-label': 'Perk series' },
-        h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, '20, 60, 100, 140'), ' change what you can do'),
-        h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, '40, 80, 120'), ' raise your numbers')),
+        h('li', { 'data-series': '20' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Breakthrough'), ' 20, 60, 100, 140'),
+        h('li', { 'data-series': '40' }, h('i', { 'aria-hidden': 'true' }), h('b', {}, 'Refinement'), ' 40, 80, 120')),
       innate(p),
       ...(ui.view === 'tree'
         ? [h('div', { class: 'pk-tabs', role: 'tablist' }, trees.map((t) => h('button', { type: 'button', role: 'tab', 'aria-selected': String(t.id === ui.tree), onclick: () => { ui.tree = t.id; ui.sel = null; redraw(); } }, t.name))),
