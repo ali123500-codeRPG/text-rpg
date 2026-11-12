@@ -16,7 +16,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, tripGoal } from './travel';
-import { distM, placeAll, sightDistM, spotOf, spotPoint, walkLeg, wayLeftM, type Located } from './position';
+import { distM, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -288,11 +288,16 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone
-  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from, ...(fromPos ? { fromPos } : {}) } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot } : {}) };
+  const leg = { metres: Math.round(walked * 10) / 10, ...(a.zone !== from ? { fromZone: from, ...(fromPos ? { fromPos } : {}) } : toward ? { target: toward, ...(goal.zone !== a.zone ? toGo(state, a, goal.zone) : reachedSpot(a, goal, stopShort) ? { beside: true as const } : {}) } : goal.zone !== a.zone ? { heading: goal.zone, ...toGo(state, a, goal.zone) } : {}), ...(spot && a.zone === goal.zone ? { spot: reachedSpot(a, goal, stopShort) ? spot : spotOnTheWay(spot) } : {}) };
   let ev = withActivity(ctx, a, mk(ctx, a, 'move', { ...leg, ...(o.vanish ? { vanish: true as const } : {}) }), o.activity);
   if (withBark) ev = bark(ev, o);
   emit(ctx, ev);
   return walked;
+}
+
+/** BG-81: the walker stands at the spot it walked for (within its stopShort, and a step's rounding) */
+function reachedSpot(a: Actor, goal: Located, stopShort: number): boolean {
+  return !goal.pos || !a.pos || Math.hypot(a.pos.x - goal.pos.x, a.pos.y - goal.pos.y) <= stopShort + 0.1;
 }
 
 /** BG-47: on a leg that stops short of the way to another zone, how far that way still is (whole metres; none once there) */

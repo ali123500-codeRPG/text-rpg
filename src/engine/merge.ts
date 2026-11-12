@@ -1,40 +1,55 @@
 // One order per active actor: trigger > broken > agent (dialogue call, else Planner) > onAlert > routine / combat list.
-import type { ActorView, GameState, Intent, NpcAction, Order, Rng } from '../types';
+import type { Actor, ActorView, GameState, Intent, NpcAction, Order, Rng, Volume } from '../types';
+import type { NoiseKey } from '../scales';
+import { CONFIG } from '../config';
 import { SPEECH_ACTIONS } from '../types';
-import { getLibrary } from '../library';
-import { reachesOver } from '../scenario/geometry';
 import { hearingOf, VOLUME_NOISE } from '../perception/noise';
 import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } from '../minds';
-import { actorById, isEngaged, seesAcross, zoneById } from './relations';
+import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 
-/** BG-78: buying and selling are called out too, so they step up the same way */
-const TRADE = ['buy', 'sell'];
+/** BG-80: what an action needs of the actor's distance to its target. One table for every actor, player or NPC:
+ * - voice: the target must hear it clearly (words, an order called out: BG-74, BG-78);
+ * - hand: the target must be within hand reach: the same zone, or across a counter, fence or rail (edge kind "Low"). */
+const NEEDS: Record<string, 'voice' | 'hand'> = {
+  ...Object.fromEntries(SPEECH_ACTIONS.map((t) => [t, 'voice' as const])), buy: 'voice', sell: 'voice', give: 'hand',
+};
 
-/** BG-62: going over to talk to someone ends beside them in the player's own zone, or on the player's side of a counter, fence
- * or rail between them unless the player goes behind it (move.behind); any other move stands as given */
-export function talkMove(state: GameState, intent: Intent | null): Intent['move'] {
-  const a = intent?.action;
-  let m = intent?.move ?? null;
-  if (!a?.target || !(SPEECH_ACTIONS as readonly string[]).includes(a.type) && !TRADE.includes(a.type)) return m;
-  const t = actorById(state, a.target), here = state.player.zone;
-  if (!t || t.id === state.player.id) return m;
-  // BG-74: talking to someone who would not hear the player's voice clearly from here steps up to them first
+/** does `actor` already stand near enough `t` for an action that needs `need` */
+function nearEnough(state: GameState, actor: Actor, t: Actor, need: 'voice' | 'hand', noise: NoiseKey): boolean {
+  if (need === 'hand') return t.zone === actor.zone || reachesAcross(state, actor.zone, t.zone);
+  return hearingOf(state, noise, actor, t) === 'full';
+}
+
+/** BG-80: the move an actor makes for an action at someone (one rule for talking, trading and handing over):
+ * - no move given and the target is in view but not near enough: step up to them first (BG-74);
+ * - going over to someone ends beside them in the actor's own zone, or on the actor's side of a counter, fence or rail
+ *   unless they go behind it (move.behind) (BG-62);
+ * - a move through a doorway to another room while acting (following someone in) stands (BG-77). */
+export function approachMove(state: GameState, actor: Actor, act: { type: string; target: string | null; volume?: Volume; way?: boolean }, given: Intent['move']): Intent['move'] {
+  let m = given;
+  const need = NEEDS[act.type];
+  if (!need || !act.target) return m;
+  const t = actorById(state, act.target), here = actor.zone;
+  if (!t || t.id === actor.id) return m;
+  const noise: NoiseKey = TRADE_KINDS.includes(act.type) ? CONFIG.ORDER_NOISE : VOLUME_NOISE[act.volume ?? 'normal'];
   const inView = t.zone === here || !!zoneById(state, here)?.links.some((l) => l.to === t.zone && seesAcross(state, l));
-  if (!m && !intent?.way && inView && hearingOf(state, VOLUME_NOISE[intent?.volume ?? 'normal'], state.player, t) !== 'full') m = { toZone: t.zone };
-  if (!m || m.after || m.jump || intent?.way) return m;
-  const over = (to: string) => {
-    const A = zoneById(state, here), B = zoneById(state, to);
-    return !!A && !!B && A.links.some((l) => l.to === B.id) && reachesOver(A, B, getLibrary().edgeKinds ?? {});
-  };
+  if (!m && !act.way && inView && !nearEnough(state, actor, t, need, noise)) m = { toZone: t.zone };
+  if (!m || m.after || m.jump || act.way) return m;
   if (t.zone === here) {
     if (m.toZone === here) return m.spot ? m : { ...m, toZone: here, spot: { near: t.id } };
-    // BG-77: a move through a doorway to another room while talking (following someone in) stands; only a step over a
-    // counter, fence or rail, or a move aimed at them, ends beside them
-    return m.spot?.near === t.id || over(m.toZone) ? { ...m, toZone: here, spot: { near: t.id } } : m;
+    return m.spot?.near === t.id || reachesAcross(state, here, m.toZone) ? { ...m, toZone: here, spot: { near: t.id } } : m;
   }
   if (m.toZone !== t.zone || m.behind) return m;
-  return over(t.zone) ? { ...m, toZone: here, spot: { near: t.zone } } : m;
+  return reachesAcross(state, here, t.zone) ? { ...m, toZone: here, spot: { near: t.zone } } : m;
+}
+const TRADE_KINDS = ['buy', 'sell'];
+
+/** the player's move for the Parser's intent (approachMove) */
+export function talkMove(state: GameState, intent: Intent | null): Intent['move'] {
+  const a = intent?.action;
+  if (!a) return intent?.move ?? null;
+  return approachMove(state, state.player, { type: a.type, target: a.target, volume: intent?.volume, way: !!intent?.way }, intent?.move ?? null);
 }
 
 /** Order for the player from the Parser's intent (aimed is code-set). Spoken words beside a non-speech action are a bark. */
@@ -75,11 +90,17 @@ export function npcActionToOrder(actorId: string, action: NpcAction, extra: Part
 
 /** Q2: a Planner or Responder's move beside its action, as the player's; an action that is itself a move keeps only that */
 const MOVE_ACTIONS = ['move', 'flee', 'sneak', 'vanish'];
-function npcMove(o: AcceptedAgentOutput): Partial<Order> {
-  if (o.agent === 'voice') return {};
-  const m = o.output.move;
-  if (!m?.toZone || MOVE_ACTIONS.includes(o.output.action.type)) return {};
-  return { move: m.toZone, ...(m.after ? { moveAfter: true } : {}) };
+function npcMove(state: GameState, o: AcceptedAgentOutput): Partial<Order> {
+  const act = o.output.action;
+  if (MOVE_ACTIONS.includes(act.type)) return {};
+  const m = o.agent === 'voice' ? null : o.output.move?.toZone ? o.output.move : null;
+  // BG-80: an NPC talking to, trading with or handing something to someone steps up to them the same way as the player
+  const a = actorById(state, o.actorId);
+  const vol = o.agent === 'voice' ? o.output.volume : o.output.dialogue?.volume;
+  const given: Intent['move'] = m ? { toZone: m.toZone, ...(m.after ? { after: true } : {}) } : null;
+  const mv = a ? approachMove(state, a, { type: act.type, target: act.target, volume: vol }, given) : given;
+  if (!mv?.toZone) return {};
+  return { move: mv.toZone, ...(mv.after ? { moveAfter: true } : {}), ...(mv.spot ? { moveSpot: mv.spot } : {}) };
 }
 
 export function agentLine(o: AcceptedAgentOutput): Order['line'] {
@@ -109,7 +130,7 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   const agent = new Map<string, Order>();
   for (const o of usableAgentOutputs(input)) {
     if (!views.has(o.actorId) || agent.has(o.actorId)) continue;
-    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o), ...npcMove(o) });
+    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o), ...npcMove(state, o) });
     // BG-34: a follower out of a fight walks after the player beside the action its agent gave
     const follow = !order.move && !MOVE_ACTIONS.includes(order.type) && !isEngaged(state, state.actors.find((x) => x.id === o.actorId)!) ? followMove(views.get(o.actorId)!) : null;
     agent.set(o.actorId, follow ? { ...order, move: follow } : order);

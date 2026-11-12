@@ -3,6 +3,8 @@ import type { Actor, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '.
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
 import { barrierOn, knowsShut, linkPassage } from './barriers';
+import { reachesOver } from '../scenario/geometry';
+import { getLibrary } from '../library';
 
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
@@ -162,4 +164,10 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
     }
   }
   return null;
+}
+
+/** across a counter, fence or rail from zone `a` into the next zone `b`: see and reach across it (edge kind Low) */
+export function reachesAcross(state: GameState, a: string, b: string): boolean {
+  const A = zoneById(state, a), B = zoneById(state, b);
+  return !!A && !!B && A.links.some((l) => l.to === B.id) && reachesOver(A, B, getLibrary().edgeKinds ?? {});
 }
