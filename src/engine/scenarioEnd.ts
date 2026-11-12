@@ -9,6 +9,7 @@ import { now, timeOfDay } from '../time';
 import { actorById, isActive, isEngaged } from './relations';
 import { givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
+import { flushGrowth, xpBar } from './growth';
 import { triggerErrors } from '../scenario/triggers';
 import { checkGround, offGround, onGround, pursuers } from './chase';
 
@@ -30,6 +31,7 @@ export function frameOf(state: GameState, scenario: StagePlan['scenario'], tier:
     question: scenario?.question ?? '', scale: SCENARIO_SCALES.keyOf(scenario?.scale) ?? 'situation', endings, tier,
     startTurn: state.turn, startMinute: now(state), number: state.stage.scenarioNumber,
     upAtStart: state.actors.filter(isActive).map((a) => a.id), heldAtStart: state.player.core.inventory.map((i) => i.itemId),
+    xpFrom: state.player.progression?.xpLog?.length ?? 0, xpStart: xpBar(state),
   };
 }
 const PLAN_AS = new Set<string>(['resolved', 'lost', 'left', 'escaped', 'interrupted']);
@@ -232,6 +234,15 @@ function keep(state: GameState, r: ScenarioRecord): void {
  * scenario runs until something starts one (SD2 a): after leaving the ground (SC16), escaping off it (CH7), or any ending
  * CONFIG.ROAM_AFTER lists (every ending for now, so players can explore the world).
  */
+/** D-226: two scenarios' raises and All-XXX as one (the bigger scenario's first) */
+type Part = NonNullable<ScenarioFrame['gains']>;
+function mergeGains(a?: Part, b?: Part): Part | undefined {
+  if (!a || !b) return a ?? b;
+  const skills = a.skills.map((x) => ({ ...x }));
+  for (const x of b.skills) { const s = skills.find((y) => y.skill === x.skill); if (s) s.to = x.to; else skills.push({ ...x }); }
+  return { skills, perks: [...a.perks, ...b.perks], allPerks: [...a.allPerks, ...b.allPerks] };
+}
+
 export function closeScenario(state: GameState): 'resume' | 'new' | 'roam' {
   const st = state.stage;
   const cause = st.breakCause;
@@ -241,6 +252,8 @@ export function closeScenario(state: GameState): 'resume' | 'new' | 'roam' {
   // free roam after the endings CONFIG.ROAM_AFTER lists; a road encounter or a knock-out starts the next scenario instead
   const roam = !!cur && cause !== 'encounter' && cause !== 'knocked_out' && (!!st.ended?.roam || CONFIG.ROAM_AFTER.includes(as));
   const endsOuter = !!st.ended?.outer || cause === 'knocked_out';
+  // D-226: what waited for the end is granted now, with one gains summary (both scenarios' when the bigger one ends too)
+  if (cur) flushGrowth(state, endsOuter && outer ? { ...cur, gains: mergeGains(outer.gains, cur.gains), xpFrom: outer.xpFrom, xpStart: outer.xpStart, startTurn: outer.startTurn } : cur);
   if (cur) keep(state, record(state, cur, endsOuter && outer ? 'interrupted' : as, text, !!outer));
   if (outer && endsOuter) keep(state, record(state, outer, as, text, false));
   if (cur) st.closed = { as, turn: state.turn }; // SD1: the ending moment reads it after resolveTurn
@@ -248,6 +261,7 @@ export function closeScenario(state: GameState): 'resume' | 'new' | 'roam' {
   if (outer && !endsOuter) {
     if (cause === 'encounter') { delete st.scenario; return 'new'; } // a new inner scenario in the same bigger one
     st.scenario = outer; delete st.outer; // SC4: the bigger scenario carries on
+    outer.xpFrom = state.player.progression?.xpLog?.length ?? 0; outer.xpStart = xpBar(state); // D-226: the inner scenario's XP was in its own summary
     delete st.breakCause;
     logCode(state, 'scenario_resumed', { number: outer.number });
     return 'resume';

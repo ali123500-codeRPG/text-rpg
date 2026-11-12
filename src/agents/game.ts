@@ -7,6 +7,7 @@ import type { AgentName, StoryOwner, TierRoll,
 } from '../types';
 import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type ScenarioEndNote } from '../types';
 import { pendingEnding } from '../engine/scenarioEnd';
+import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
 import { HEALTH_LEVELS, PART_STATES, TIME_OF_DAY, type TimeOfDay } from '../scales';
@@ -392,7 +393,10 @@ export function createGame(deps: GameDeps): Game {
     const mechanics = mechanicsLines(s, events, record.eventRoll);
     const turn = s.turn;
     const narrLog = turnLog;
-    const notes = turnNotes(s);
+    // D-226: the turn that ended a scenario carries its gains summary, and then not the same achievements, unlocks and levels again
+    const scenarioGains = rec.ended ? scenarioGainsNow(s) : undefined;
+    const { achievements: _a, unlocks: _u, levelUps: _l, ...notesRest } = turnNotes(s);
+    const notes = scenarioGains ? { ...notesRest, scenarioGains } : turnNotes(s);
     // shown again after a reload: what the turn changed in the gear, and where the player ended it
     const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
     // M-30: the player's body parts that got worse this turn, so the play screen can name them (shown again after a reload)

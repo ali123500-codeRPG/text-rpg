@@ -4,7 +4,7 @@
 // further skill reaching 50 adds its part. Every tree, with a bundle or without, earns the player its mastery achievements at
 // 50, 100 and 150 on the same rule, from its rating's line (MASTERY_ACH: normal Adept/Master/Grandmaster, superior
 // Paragon/Ascendant/Transcendent Sovereign, legendary Chosen/Incarnate/The Heavens Kneel).
-// Checked at the end of every turn, so raises, perks and spawns all count.
+// Checked at the end of every turn, so raises, perks and spawns all count; the player's while a scenario runs only at its end (D-226).
 // Also the rolls that read All-50 parts on the other side (Dodgy) or after the dice (Curiouser and Curiouser).
 import { TR } from '../library/treeIds';
 import type { Actor, GameState, Mod, TierShift } from '../types';
@@ -38,11 +38,12 @@ export function treeAt(a: Actor, treeId: string, step: number): boolean {
   return need !== null && skillsAt(a, treeId, step).length >= need;
 }
 
-export function grantAllSteps(state: GameState, a: Actor): void {
+/** now: grant the mastery achievements at once (the scenario's end, D-226) instead of queueing them */
+export function grantAllSteps(state: GameState, a: Actor, now = false): void {
   const lib = getLibrary(), perks = lib.perks;
   if (a.id === state.player.id) for (const treeId of Object.keys(lib.trees)) // each rating has its own line (MASTERY_ACH)
     for (const [step, key] of Object.entries(MASTERY_ACH[lib.trees[treeId].rating ?? 'normal'] ?? {}))
-      if (treeAt(a, treeId, Number(step))) grantAchievement(state, key, treeId); // once only (B4)
+      if (treeAt(a, treeId, Number(step))) grantAchievement(state, key, treeId, undefined, now); // once only (B4)
   for (const step of ALL_STEPS) for (const treeId of Object.keys(lib.trees)) { // All-50, All-100 and All-150 work alike
     if (!treeAt(a, treeId, step)) continue;
     const at = skillsAt(a, treeId, step), parts = STEP_PARTS[step];
