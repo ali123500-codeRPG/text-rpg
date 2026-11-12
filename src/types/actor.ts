@@ -77,6 +77,7 @@ export type Core = {
   standingDefense: DefenseKind;
   perksOff?: string[]; // perks the owner switched off (Cover Ally, A11); absent = all on
   personality?: Personality; // PL1: Nerve and personality points, before what perks, classes and achievements add (personalityOf)
+  bornDay?: number; // AG2: the game day it was born (before day 1 is 0 and below); left out = no age (an ageless race)
 };
 
 /** PL1: Nerve runs Cautious (−100) to Daring (+100); traits are points by personality axis (PA…, −100 to +100); values
@@ -184,6 +185,8 @@ export type NpcTemplate = {
   perks?: LibraryRef[];
   /** CH5: how far NPCs made from it chase the player when their band names no range */
   chase?: import('../scales').ChaseRange;
+  /** AG13: the life stages NPCs made from it are drawn from; left out = CONFIG.NPC_AGE_STAGES */
+  ageStages?: import('../scales').LifeStageKey[];
 };
 
 export type Journal = {

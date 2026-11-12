@@ -5,7 +5,7 @@ import type { AgentTurnLog, Volume } from './agents';
 import type { Tier } from './core';
 import type { LogEntry } from './core';
 
-export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; classId?: string /* the starting class; left out = swordsman */; pronouns?: Pronouns /* the character's gender as others speak of them; left out = they */; personality?: import('./actor').Personality /* PL14: left out = no lean */ };
+export type CreationBuild = { name: string; skills: Record<string, number>; tagged: string[]; classId?: string /* the starting class; left out = swordsman */; pronouns?: Pronouns /* the character's gender as others speak of them; left out = they */; personality?: import('./actor').Personality /* PL14: left out = no lean */; age?: number /* AG15: whole years; left out = the start's default */ };
 
 export type LogLine = {
   turn: number;

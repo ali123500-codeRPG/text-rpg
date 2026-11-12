@@ -3,7 +3,8 @@ import { TR } from '../library/treeIds';
 import type { Actor, CreationBuild, GameApi, Pronouns } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import { classFloors, createPlayer, creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
+import { classFloors, createPlayer, creationAge, creationAgeRange, creationPoints, newPlayer, recommendedBuild, startLevel } from '../library/spawn';
+import { lifeStage, stageName } from '../ruleset/age';
 import { blankPersonality, personalityPicker } from './personality';
 import { SKILL_NAMES, skillName } from '../library/skillNames';
 import { classTree, skillOpen, treeOpen } from '../ruleset/access';
@@ -40,7 +41,7 @@ export function creationScreen(api: GameApi, onStarted: () => void, classId: str
 
 // name and gender carry over when the player switches starting class
 const GENDERS: [Pronouns, string][] = [['he', 'Man'], ['she', 'Woman'], ['they', 'Other']];
-const identity: { name: string; pronouns: Pronouns } = { name: 'Aldric', pronouns: 'he' };
+const identity: { name: string; pronouns: Pronouns; age?: number } = { name: 'Aldric', pronouns: 'he' }; // age: left out = the start's default (AG15)
 const persona = { p: blankPersonality() }; // PL14: carries over too
 
 function classScreen(api: GameApi, onStarted: () => void, classId: string, switchTo: (id: string) => void): HTMLElement {
@@ -55,7 +56,7 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
   const reset = () => { open.forEach((k) => (st.v[k] = floors[k] ?? 0)); st.tags.clear(); };
   const recommended = () => { const r = recommendedBuild(classId); reset(); Object.assign(st.v, r.skills); r.tagged.forEach((k) => st.tags.add(k)); };
   const left = () => total() - open.reduce((a, k) => a + st.v[k], 0);
-  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, classId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p) });
+  const build = (): CreationBuild => ({ name: identity.name.trim(), pronouns: identity.pronouns, classId, skills: { ...st.v }, tagged: [...st.tags], personality: structuredClone(persona.p), age: identity.age ?? creationAge(classId) });
   const picker = personalityPicker(persona, () => createPlayer(build(), 'preview', { preview: true }));
   const setVal = (k: string, n: number) => { st.v[k] = Math.max(floors[k] ?? 0, Math.min(cap(), st.v[k] + left(), Math.round(n))); render(); };
 
@@ -176,7 +177,16 @@ function classScreen(api: GameApi, onStarted: () => void, classId: string, switc
     return h('div', { class: 'who-row' },
       h('label', { class: 'hs-label' }, 'Name ', h('input', { class: 'hs-input', type: 'text', maxLength: 40, value: identity.name, 'aria-label': 'Name', autocomplete: 'off',
         oninput: (e: Event) => { identity.name = (e.target as HTMLInputElement).value; } })),
-      h('span', { class: 'hs-label' }, 'Gender'), gender);
+      h('span', { class: 'hs-label' }, 'Gender'), gender, ageField());
+  }
+  /** AG15: whole years from the race's Youth start to its Venerable start, with the life stage it gives */
+  function ageField(): HTMLElement | null {
+    const raceId = newPlayer(classId).raceId, range = creationAgeRange(raceId);
+    if (!range) return null;
+    const word = (n: number) => { const s = lifeStage(raceId, n); return s ? stageName(s) : ''; };
+    const stage = h('span', { class: 'hs-note' }, word(identity.age ?? creationAge(classId)));
+    return h('label', { class: 'hs-label' }, 'Age ', h('input', { class: 'hs-input', type: 'number', min: range.min, max: range.max, step: 1, value: identity.age ?? creationAge(classId), 'aria-label': 'Age', style: 'width:5em',
+      oninput: (e: Event) => { const n = Math.round(Number((e.target as HTMLInputElement).value)); if (Number.isFinite(n)) { identity.age = Math.max(range.min, Math.min(range.max, n)); stage.textContent = word(identity.age); } } }), ' ', stage);
   }
   const root = h('main', {},
     stopped ? h('div', { class: 'hs-hl bad', role: 'status' }, h('span', { class: 'hs-hl-b', 'data-kind': 'Play stopped' }, stopped.text)) : null,

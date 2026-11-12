@@ -193,6 +193,13 @@ const DEFAULTS = {
   CREATION_POINTS: 250,
   START_LEVEL: 4, // EQ13: the player starts at level 4
   CREATION_MAX_SKILL: 60,
+  // Character age (AG1–AG22; placeholders)
+  YEAR_DAYS: 365, // AG2: game days in a year; age = (today − birth day) ÷ YEAR_DAYS
+  AGE_PLUS_NUMBER_FROM: 4, // AG7: from this many steps past the last life stage the name reads "Ancient +4" instead of "Ancient++++"
+  AGE_DECLINE_FROM: 'stage_4' as import('./scales').LifeStageKey, // AG17: decline starts at the start of Old
+  AGE_DECLINE_GROUPS: [GR.melee, GR.ranged, GR.defense, GR.health, GR.stealth, GR.notice] as string[], // AG19: body skills and the senses
+  CREATION_AGE_DEFAULT: 20, // AG15: the creation picker's default (a start may set its own, ClassDef.creation.age)
+  NPC_AGE_STAGES: ['stage_2', 'stage_3'] as import('./scales').LifeStageKey[], // AG13: the stages an NPC is drawn from when its template names none
   CREATION_TAGS: 3,
   STARTING_COIN: 20,
   // Trade (D-93, PY4–PY10; placeholders): price = base × MARKUP × haggle × Hard Bargain, rounded up, at least 1
@@ -258,7 +265,7 @@ const DEFAULTS = {
   /** SC6: scenario records kept in the save, and how many the next Weaver gets */
   SCENARIO_RECORDS_SAVED: 30,
   SCENARIO_RECORDS_SHOWN: 5,
-  /** SC8 Weaver check-ins (placeholders): at least this many turns apart, and at most this many per scenario (/stuck excepted) */
+  /** SC8 Weaver check-ins (placeholders): at least this many turns apart, and at most this many per scenario (/stuck and the over-time check-in excepted, BG-42) */
   CHECKIN_GAP_TURNS: 5,
   CHECKIN_MAX_PER_SCENARIO: 6,
   /** SC12: at this many times its budget, code ends the scenario as worn out (after any fight or chase) and files a bug */

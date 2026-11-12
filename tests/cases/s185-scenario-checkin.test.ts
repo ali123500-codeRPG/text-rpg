@@ -74,6 +74,18 @@ describe('185 when a check-in is asked (SC8)', () => {
     checkScenarioEnd(s, []);
     expect(s.stage.checkinDue).toBeUndefined(); // the scenario used all its check-ins
   });
+  it('BG-42: the over-time check-in still comes when the scenario has used all its check-ins, and does not count', () => {
+    const s = calm();
+    frame(s);
+    s.stage.scenario!.checkins = CONFIG.CHECKIN_MAX_PER_SCENARIO;
+    s.stage.scenario!.lastCheckin = s.turn;
+    s.turn = s.stage.scenario!.startTurn + CONFIG.SCENARIO_SCALE.moment.budgetTurns!;
+    checkScenarioEnd(s, []);
+    expect(s.stage.checkinDue).toBe('budget');
+    const d = new ScenarioDirector({ weave: async () => null, clock: new VirtualClock(), checkin: async () => null });
+    expect(d.startCheckin(s)).toBe(true);
+    expect(s.stage.scenario!.checkins).toBe(CONFIG.CHECKIN_MAX_PER_SCENARIO);
+  });
   it('a beat that fires is a check-in moment', () => {
     const s = calm();
     frame(s, 'situation', [{ when: { kind: 'hold', item: 'nothing_here' }, as: 'resolved', text: '' }, { when: { kind: 'leave', place: 'tavern' }, as: 'left', text: '' }]);

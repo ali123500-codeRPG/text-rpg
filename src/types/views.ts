@@ -62,6 +62,7 @@ export type YieldView = { took: string[]; waiting: string[]; refused: string[] }
 export type SeenActor = {
   id: ActorId; label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string;
   level: Perception; activityLook?: string;
+  age?: string; // AG16: the life stage it looks (full sight only), never the number
   /** BG-18: where it stands by the way the viewer faces (engine/position.ts sideFrom) */
   side?: 'ahead' | 'left' | 'right' | 'behind';
   distanceM?: number; // ZP5: metres from the viewer, once both stand at points on the map (to 0.1 m)
@@ -122,6 +123,7 @@ export type ActorView = {
   time: TimeView;
   self: {
     id: ActorId; label: string; name: string; kind: 'npc';
+    age?: string; // AG16: its own age and life stage ("Age 31 · Adult"); left out when ageless
     zone: string; placeId: string; bandId: string;
     health: HealthLevel; parts: { id: string; state: PartState }[];
     morale: string; // the morale bar's level
@@ -208,6 +210,7 @@ export type NarrationEvent = {
   from?: string; // BG-22: a move that left a zone: the zone it left (where is the zone it entered)
   within?: true; // BG-22: a move that stayed inside `where` (across it, toward someone, a spot or its way out)
   heading?: string; // BG-22: a leg within `where` on the way to another zone: that zone's name
+  toGo?: number; // BG-47: with heading, metres still to walk to the way into it: not there yet
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
   changes?: string[]; // visible condition changes
@@ -219,10 +222,10 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
-  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; morale?: string; activityLook?: string }[]; // health: Wounded or worse, morale: Afraid or worse, as the player sees it
+  actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; health?: HealthLevel; morale?: string; activityLook?: string; age?: string }[]; // age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
   facts: string[];
   headlines: string[];
   notices?: string[]; // out-of-character notices (none sent to the Narrator by default)

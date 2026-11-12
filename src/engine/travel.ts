@@ -9,7 +9,9 @@ import { moveSpeed } from './speed';
 import { walkLeg, spotOf, distM, frontierPoint, spotPoint, type Located, type Pos } from './position';
 export { frontierPoint };
 import { together } from './yield';
-import { advanceClock, minutesUntil, now, timeOfDay } from '../time';
+import { minutesUntil, now, timeOfDay } from '../time';
+import { advanceAging } from '../ruleset/age';
+import { logCode } from './effects';
 import { passiveHealing } from './heal';
 import { getLibrary } from '../library';
 import { TIERS, type TravelPaceKey } from '../scales';
@@ -92,7 +94,7 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     if (walked <= 0) break;
     minutes = walked / speed;
     trip.metres += walked; trip.minutes += minutes; trip.legs += 1;
-    advanceClock(state, minutes);
+    advanceAging(state, minutes, (c, d) => logCode(state, c, d)); // AG16
     passiveHealing(state, minutes);
     // TV4: on a road, a chance per hour by its danger (more in the dark) that something meets you here
     const road = zoneById(state, a.zone);
