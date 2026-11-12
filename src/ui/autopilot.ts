@@ -32,7 +32,7 @@ function readPrefs(): Prefs {
 }
 /** Claude's own voices: the page's tts capability (null where it can't speak, e.g. not declared or not offered) */
 const CLAUDE_VOICES = ['buttery', 'airy', 'glassy', 'rounded'];
-type Tts = { speak(text: string, o: { voice: string; rate: number; language: string }): Promise<unknown>; stop(): Promise<void>; onState?(cb: (s: { state: string }) => void): unknown };
+type Tts = { speak(text: string, o: { voice: string; rate: number; language: string }): Promise<unknown>; stop(): Promise<void>; onState?(cb: (s: { state: string }) => void): unknown; voices?(): Promise<unknown> };
 const writePrefs = (p: Prefs) => { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* per-PC convenience only */ } };
 /** what the bar was doing, kept for this tab so a reload or a new version of the page carries on where it was */
 const RUN = 'rpg.autopilot.run';
@@ -51,7 +51,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   let restore = readRun(); // carried on once the story has loaded
   let open = !!restore?.open, playing = false, stepping = false, switching = false;
   let status = '', said = '', saidJa = '', voiceNote = '';
-  let tts: Tts | null = null, talking = false;
+  let tts: Tts | null = null, talking = false, claudeVoices = CLAUDE_VOICES;
   // the RPG Voice (the page's mcp capability): the line playing, which speak() is current, and whether it has failed for good
   let mcp: Mcp | null = null, audio: HTMLAudioElement | null = null, speakSeq = 0, rpgDown = false, voices = RPG_VOICES, listed = false;
   // guided mode (GA1–GA17)
@@ -62,9 +62,11 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   void (async () => {
     try { tts = ((await (globalThis as { claude?: { use(n: string): Promise<unknown> } }).claude?.use('tts')) ?? null) as Tts | null; } catch { tts = null; }
     tts?.onState?.((s) => { talking = s.state !== 'idle' || !!audio; update(); });
+    // the voices Claude offers pages right now (four today), so a new one shows up without a change here
+    try { const v = await tts?.voices?.(); if (Array.isArray(v) && v.length && v.every((x) => typeof x === 'string')) claudeVoices = v; } catch { /* keep the known four */ }
     update();
   })();
-  void (async () => {
+  if (CONFIG.RPG_VOICE_ON) void (async () => {
     try { mcp = ((await (globalThis as { claude?: { use(n: string): Promise<unknown> } }).claude?.use('mcp')) ?? null) as Mcp | null; } catch { mcp = null; }
     update();
   })();
@@ -74,7 +76,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
   const agentStory = () => api.state()?.meta.owner === 'agent';
   const stopped = () => api.notices().some((n) => n.kind === 'stop_play' || n.kind === 'read_only');
 
-  const claudeVoice = () => (prefs.voiceName.startsWith('claude:') ? prefs.voiceName.slice(7) : CLAUDE_VOICES[0]);
+  const claudeVoice = () => (prefs.voiceName.startsWith('claude:') && claudeVoices.includes(prefs.voiceName.slice(7)) ? prefs.voiceName.slice(7) : claudeVoices[0]);
   /** the RPG Voice's voice to use, or null for Claude's */
   const rpgVoice = () => (!mcp ? null : prefs.voiceName.startsWith('rpg:') ? prefs.voiceName.slice(4) : prefs.voiceName ? null : RPG_DEFAULT_VOICE);
   function hush() {
@@ -268,7 +270,7 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     const rv = rpgVoice();
     const voicePick = h('select', { 'aria-label': 'Speaking voice', onchange: (e: Event) => { prefs.voiceName = (e.target as HTMLSelectElement).value; rpgDown = false; voiceNote = ''; writePrefs(prefs); } },
       mcp ? h('optgroup', { label: 'RPG Voice (acted)' }, voices.map(({ voice, style }) => h('option', { value: `rpg:${voice}`, selected: rv === voice }, style ? `${voice} · ${style}` : voice))) : '',
-      h('optgroup', { label: 'Claude' }, CLAUDE_VOICES.map((v) => h('option', { value: `claude:${v}`, selected: !rv && claudeVoice() === v }, `${v[0].toUpperCase()}${v.slice(1)}`))));
+      h('optgroup', { label: 'Claude' }, claudeVoices.map((v) => h('option', { value: `claude:${v}`, selected: !rv && claudeVoice() === v }, `${v[0].toUpperCase()}${v.slice(1)}`))));
     const rate = h('select', { 'aria-label': 'Speaking speed', onchange: (e: Event) => { prefs.rate = +(e.target as HTMLSelectElement).value; writePrefs(prefs); } },
       RATES.map((r) => h('option', { value: String(r), selected: prefs.rate === r }, `${r}×`)));
     const noVoice = prefs.voice && !tts && !rv ? 'Claude’s voice isn’t available in this view, so the commentary is shown only.' : '';
