@@ -190,6 +190,19 @@ export function walkLeg(state: GameState, a: Located & { placeId?: string }, goa
   return used;
 }
 
+/** BG-49: at story start outdoors, the player stands at the way from its zone into the building of the scenario's place (`placeId`; else any other
+ * place), PLACE_GAP_M back from it toward the zone's centre, as the openings tell it (arriving at the door) */
+export function startAtDoor(state: GameState, placeId?: string): void {
+  const p = state.player, z = zoneById(state, p.zone);
+  if (!z?.rect || !z.outdoor) return; // starting indoors: already in
+  const others = z.links.map((l) => zoneById(state, l.to)).filter((b): b is Zone => !!b?.rect && !b.outdoor && b.placeId !== z.placeId);
+  const b = others.find((o) => o.placeId === placeId) ?? others[0];
+  if (!b) return;
+  const out = crossing(z, b).out, c = centre(z)!, d = flat(out, c);
+  const k = d > EPS ? Math.min(1, CONFIG.PLACE_GAP_M / d) : 0;
+  p.pos = { x: out.x + (c.x - out.x) * k, y: out.y + (c.y - out.y) * k };
+}
+
 /** BG-47: metres still to walk from `a` to the way out of its zone toward `goal` (undefined without positions or a way) */
 export function wayLeftM(state: GameState, a: Located, goal: string, walker?: Actor): number | undefined {
   const A = spotOf(state, a);

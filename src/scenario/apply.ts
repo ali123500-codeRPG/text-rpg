@@ -6,7 +6,7 @@ import { LIFE_STAGES, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales'
 import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
-import { placeAll } from '../engine/position';
+import { placeAll, startAtDoor } from '../engine/position';
 import { clockSet, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate } from '../library';
 import { spawnNpc } from '../library/spawn';
@@ -241,7 +241,8 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   // an extension's entry, or (CH3 a) a scenario started in free roam by crossing an unbuilt frontier
   if (ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0]);
   // GAP: at story start the player has no zone on the stage yet; it starts in the plan's first zone.
-  if (firstZone && !state.stage.zoneIds.includes(state.player.zone)) moveTo(state, state.player, firstZone);
+  const storyStart = !!firstZone && !state.stage.zoneIds.includes(state.player.zone);
+  if (storyStart) moveTo(state, state.player, firstZone!);
   else if (ctx.wake && firstZone) moveTo(state, state.player, firstZone); // D-54: the player wakes somewhere safe
 
   // ---- bands (existing bands keep theirs) ----
@@ -388,6 +389,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     setFallbackFlags(state, 'routine_fallback', 'routine_fallback', opts.degrade!.filter((e) => e.routineOnly), actors);
   }
   placeAll(state); // ZP1: the cast and anyone moved by the scenario get spots in their zones
+  if (storyStart) startAtDoor(state, ctx.placeId); // BG-49: the story opens with the player at the door
 }
 
 /** GAP: at story start the player's place has no node yet; a bare one is made so the Weaver's plan (and the fallback) can use its id. */
