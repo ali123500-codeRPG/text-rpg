@@ -92,6 +92,13 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     turn(none, intent({ way: { toZone: 'tav_common', op: 'lock' } }));
     expect(nb.lock!.locked).toBe(false); // no key, no lock
   });
+  it('BG-54: a way op that cannot be done (a plain hatch "unbarred") leaves the move to happen', () => {
+    const s = quiet('street_door');
+    put(s, 'tav_common', 'street_door', { kind: BK.hatch });
+    turn(s, intent({ move: { toZone: 'tav_common' }, way: { toZone: 'tav_common', op: 'unbar' } }));
+    expect(s.player.zone).toBe('tav_common');
+    expect(s.log.some((l) => l.code === 'way_op_dropped')).toBe(true);
+  });
   it('BA4: a bar slides back only from the bolt\'s side', () => {
     const inside = quiet();
     const b = put(inside, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });

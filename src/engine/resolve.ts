@@ -686,12 +686,15 @@ const barrierTo = (state: GameState, a: Actor, to: string | null | undefined): B
   to ? barrierOn(state, zoneById(state, a.zone)?.links.find((l) => l.to === to)) : undefined;
 
 /** BA3/BA4: a key turned or a bar slid on purpose, in the move slot (o.way); it stands in for the turn's move */
-function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>): void {
+function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>): boolean {
   const { state } = ctx;
   const b = barrierTo(state, a, w.toZone);
-  const why = !b ? 'no_barrier' : !useMoveSlot(ctx, a, false) ? 'no_move' : wayOp(b, a, a.zone, w.op);
-  if (why || !b) return logCode(state, 'way_op_dropped', { actorId: a.id, to: w.toZone, op: w.op, reason: why });
+  // BG-54: try it on a copy first, so an op that can't be done spends no move slot
+  const dry = b && { ...b, ...(b.lock ? { lock: { ...b.lock } } : {}), ...(b.bar ? { bar: { ...b.bar } } : {}) };
+  const why = !b || !dry ? 'no_barrier' : wayOp(dry, a, a.zone, w.op) ?? (!useMoveSlot(ctx, a, false) ? 'no_move' : wayOp(b, a, a.zone, w.op));
+  if (why || !b) { logCode(state, 'way_op_dropped', { actorId: a.id, to: w.toZone, op: w.op, reason: why }); return false; }
   emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: w.op } }));
+  return true;
 }
 
 /** BA2: picking the lock on the way to o.target: a Lockpicking function roll (Thievery; lockpicks help) at the lock's
@@ -832,8 +835,9 @@ function step(ctx: Ctx, id: string): void {
     if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
-  if (o.way) doWayOp(ctx, a, o.way); // BA3/BA4: the key or the bar takes the move slot
-  else if (!o.moveAfter) move(o.type === 'hold');
+  // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen
+  const turned = !!o.way && doWayOp(ctx, a, o.way);
+  if (!turned && !o.moveAfter) move(o.type === 'hold');
   if (closeIn && foe && !inReach(state, a, o)) {
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) walk(ctx, a, spotOf(state, foe), o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: Math.max(0, m.mode.reach - 0.01), toward: foe.id });
@@ -842,7 +846,7 @@ function step(ctx: Ctx, id: string): void {
   // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting)
   const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > 0.01);
   if (useMain(ctx, a) && !(o.type === 'hold' && moved && !o.line)) doMain(ctx, a, o);
-  if (o.moveAfter && !o.way) move(false); // AE3: act, then move
+  if (o.moveAfter && !turned) move(false); // AE3: act, then move
 }
 
 /** TV1–TV8: the trip: one travel event where it ends; an encounter breaks the scenario (the next one starts there, with the
