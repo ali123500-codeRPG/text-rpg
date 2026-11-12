@@ -8,10 +8,12 @@ import { CONFIG } from '../config';
 import { LAYOUTS } from './layouts';
 import type { ArmorWeightKey, LifeStageKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
-import { noiseReach } from '../perception/noise';
+import { openAirReachM } from '../perception/noise';
 import { sightReach } from '../perception/sight';
 
 /** a zone link count in words, for the Noise and Visibility levels tables */
+/** HB1: how far a sound carries in the open against a quiet place's background (40 dB) */
+const inQuiet = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you, in a quiet place' : `${m} m in a quiet place`);
 const links = (n: number) => (n < 0 ? 'nowhere' : n === 0 ? 'same zone' : n === 1 ? '1 link away' : `${n} links away`);
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
@@ -420,6 +422,12 @@ export const ROUTINES: Record<string, Routine> = Object.fromEntries([
 
 const set = (id: string, brief: string, place: string[], role: string[], time: RoutineSet['tags']['time'], slots: RoutineSet['slots'], routines: string[]): RoutineSet =>
   ({ id, brief, tags: { place, role, time, event: ['ordinary'] }, slots, routines });
+/** HB3: each zone kind's background (BACKGROUND key): rooms and town outdoors quiet (40 dB), a cellar calm (35), the open
+ * country hushed (20); a busy room (a tavern's common room) names its own */
+const ZONE_BACKGROUND: Record<string, import('../scales').BackgroundKey> = {
+  [ZK.room]: 'quiet', [ZK.corridor]: 'quiet', [ZK.stairs]: 'quiet', [ZK.cellar]: 'calm', [ZK.street]: 'quiet', [ZK.square]: 'quiet',
+  [ZK.gate]: 'quiet', [ZK.yard]: 'quiet', [ZK.field]: 'hush', [ZK.woods]: 'hush', [ZK.road]: 'hush',
+};
 const z = (hint: string) => ({ kind: 'zone' as const, hint });
 const r = (hint: string) => ({ kind: 'route' as const, hint });
 export const ROUTINE_SETS: Record<string, RoutineSet> = Object.fromEntries([
@@ -596,24 +604,25 @@ export function prototypeLibrary(): Library {
       [ZK.cellar, 'Cellar or cave', false, 'some', 'dark', 'room', 1], [ZK.street, 'Street', true, 'none', 'dark', 'yard', 4], [ZK.square, 'Square', true, 'none', 'dark', 'open', 1],
       [ZK.gate, 'Gate', true, 'none', 'dark', 'small', 2], [ZK.yard, 'Yard', true, 'some', 'dark', 'yard', 1], [ZK.field, 'Field', true, 'none', 'dark', 'open', 1],
       [ZK.woods, 'Woods', true, 'heavy', 'dark', 'open', 1], [ZK.road, 'Road', true, 'none', 'dark', 'vast', 1],
-    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall, ...(id === ZK.road ? { road: true as const } : {}) }])),
+    ] as const).map(([id, name, outdoor, cover, light, size, aspect]) => [id, { id, name, outdoor, cover, light, size, aspect, edge: outdoor ? EK.open : EK.wall,
+      background: ZONE_BACKGROUND[id], ...(id === ZK.road ? { road: true as const } : {}) }])),
     // TV3/TV4: a road is one long zone; its length and danger words
     roadLengths: Object.fromEntries(ROAD_LENGTHS.keys.map((k) => [k, { id: k, name: ROAD_LENGTHS.name(k), km: CONFIG.ROAD_LENGTH_KM[k] }])),
     roadDangers: Object.fromEntries(ROAD_DANGERS.keys.map((k) => [k, { id: k, name: ROAD_DANGERS.name(k), encounterPct: CONFIG.ROAD_ENCOUNTER_PCT[k] }])),
     edgeKinds: Object.fromEntries(([
-      [EK.wall, 'Wall', false, false, false, false, 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
-      [EK.open, 'Open', true, true, true, false, 'Nothing in the way: walk and see across anywhere along it.'],
-      [EK.low, 'Low', false, true, true, true, 'A counter, fence or rail: see and reach across it, cross it by climbing.'],
-      [EK.window, 'Window', false, true, false, false, 'See through it; no walking or reaching across.'],
-    ] as const).map(([id, name, walk, see, reach, climb, text]) => [id, { id, name, walk, see, reach, climb, text }])),
+      [EK.wall, 'Wall', false, false, false, false, 'wall', 'Solid: no seeing or walking across; doorways in it are the zone\'s links.'],
+      [EK.open, 'Open', true, true, true, false, 'open', 'Nothing in the way: walk and see across anywhere along it.'],
+      [EK.low, 'Low', false, true, true, true, 'open', 'A counter, fence or rail: see and reach across it, cross it by climbing.'],
+      [EK.window, 'Window', false, true, false, false, 'window', 'See through it; no walking or reaching across.'],
+    ] as const).map(([id, name, walk, see, reach, climb, sound, text]) => [id, { id, name, walk, see, reach, climb, sound, text }])),
     // SD3–SD5: barriers on ways. A grate is bars you see through; rubble is a blockage only clearing opens (the walls thread)
     barrierKinds: Object.fromEntries(([
-      [BK.door, 'Door', true, true, false, false, 'A wooden door: it may be locked with a key, or barred from one side.'],
-      [BK.gate, 'Gate', true, true, false, false, 'A gate in a wall or fence: locked, or barred from the inside.'],
-      [BK.grate, 'Grate', true, true, false, true, 'Iron bars across a way: you see through it, but it may be locked or barred.'],
-      [BK.hatch, 'Hatch', true, true, false, false, 'A trapdoor in a floor or ceiling: locked, or bolted from one side.'],
-      [BK.rubble, 'Rubble', false, false, true, false, 'A cave-in or fallen stone: no way through until it is cleared.'],
-    ] as const).map(([id, name, lock, bar, blocked, seeThrough, text]) => [id, { id, name, lock, bar, blocked, seeThrough, text }])),
+      [BK.door, 'Door', true, true, false, false, 'door', 'A wooden door: it may be locked with a key, or barred from one side.'],
+      [BK.gate, 'Gate', true, true, false, false, 'door', 'A gate in a wall or fence: locked, or barred from the inside.'],
+      [BK.grate, 'Grate', true, true, false, true, 'open', 'Iron bars across a way: you see through it, but it may be locked or barred.'],
+      [BK.hatch, 'Hatch', true, true, false, false, 'door', 'A trapdoor in a floor or ceiling: locked, or bolted from one side.'],
+      [BK.rubble, 'Rubble', false, false, true, false, 'wall', 'A cave-in or fallen stone: no way through until it is cleared.'],
+    ] as const).map(([id, name, lock, bar, blocked, seeThrough, sound, text]) => [id, { id, name, lock, bar, blocked, seeThrough, sound, text }])),
     zoneSizes: Object.fromEntries(ZONE_SIZES.keys.map((k) => [k, { id: k, name: ZONE_SIZES.name(k), m2: CONFIG.ZONE_SIZE_M2[k], like: ({
       cramped: 'A ship\'s cabin, a cell, a closet (about 3 × 3 m)',
       small: 'A peasant cottage\'s one room, an inn bedroom (about 5 × 5 m)',
@@ -623,7 +632,7 @@ export function prototypeLibrary(): Library {
       open: 'A village green or small market (about 40 × 40 m)',
       vast: 'A city market square (Kraków\'s is about 200 × 200 m, four of these)',
     } as Record<string, string>)[k] }])),
-    noiseLevels: Object.fromEntries(NOISE.keys.map((k) => [k, { id: k, name: NOISE.name(k), decibels: CONFIG.NOISE_DB[k], clearTo: links(noiseReach(k)[0]), heardTo: links(noiseReach(k)[1]), like: ({
+    noiseLevels: Object.fromEntries(NOISE.keys.map((k) => [k, { id: k, name: NOISE.name(k), decibels: CONFIG.NOISE_DB[k], clearTo: inQuiet(openAirReachM(k, 'quiet')?.[0]), heardTo: inQuiet(openAirReachM(k, 'quiet')?.[1]), like: ({
       silent: 'No sound at all: standing still and holding your breath',
       faint: 'Breathing, rustling leaves, a cloth brushing a wall (about 20 dB)',
       hushed: 'A whisper (about 30 dB)',

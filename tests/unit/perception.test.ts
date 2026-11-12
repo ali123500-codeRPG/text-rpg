@@ -29,21 +29,22 @@ describe('computePerception', () => {
     expect(sightReach('unseen')).toEqual([-1, -1]);
     expect(sightReach('faint')).toEqual([-1, 0]); // a palmed coin: glimpsed in your zone, never made out
   });
-  it('sound from another zone is partial and stops after `noise` links; no sight through a closed link', () => {
+  it('sound from another zone, 16 m and a shut door off, is partial when loud and lost when normal; no sight through a closed link', () => {
     const s = makeVillage({ playerZone: 'street_door' });
-    const e = ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'normal', visibility: 'normal' });
-    expect(computePerception(e, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' }); // a voice, not its words
-    expect(computePerception({ ...e, noise: 'quiet' }, s, createRng(1)).player).toBeUndefined();
+    const e = ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'loud', visibility: 'normal' });
+    expect(computePerception(e, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' }); // 34 dB: a voice, not its words
+    expect(computePerception({ ...e, noise: 'normal' }, s, createRng(1)).player).toBeUndefined();
   });
-  it('NV1–NV6: hushed stays in its zone, loud and deafening are clear one link away, murmur only partly; close is made out in its zone only', () => {
+  it('BG-57: through the shut front door 8 m off, loud and deafening are clear, raised only partly, normal lost; a whisper beside you not meant for you is heard without its words; close is made out in its zone only', () => {
     const s = makeVillage({ playerZone: 'street_door' });
     const e = ev({ actorId: 'trader', kind: 'speak', zone: 'tav_common', noise: 'hushed', visibility: 'unseen' });
     expect(computePerception(e, s, createRng(1)).player).toBeUndefined();
     expect(computePerception({ ...e, noise: 'deafening' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
     expect(computePerception({ ...e, noise: 'loud' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
-    expect(computePerception({ ...e, noise: 'normal' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
-    expect(computePerception({ ...e, noise: 'murmur' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' }); // heard only partly: no words
-    expect(computePerception({ ...e, zone: 'street_door' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true });
+    expect(computePerception({ ...e, noise: 'raised' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' }); // heard only partly: no words
+    expect(computePerception({ ...e, noise: 'normal' }, s, createRng(1)).player).toBeUndefined();
+    expect(computePerception({ ...e, zone: 'street_door' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'sound' });
+    expect(computePerception({ ...e, zone: 'street_door', target: 'player' }, s, createRng(1)).player).toEqual({ level: 'full', cue: 'sound', heard: true }); // HB8: leaning in
     const v = makeVillage({ playerZone: 'street_square' });
     const hid = ev({ actorId: 'slime_1', kind: 'idle', zone: 'gate_inner', noise: 'silent', visibility: 'close' });
     expect(computePerception(hid, v, createRng(1)).player).toEqual({ level: 'partial', cue: 'sight' }); // a nod 8 m off: glimpsed, not read
@@ -83,7 +84,7 @@ describe('updateBeliefs', () => {
   it('partial sound makes an unaware observer suspicious, source heard', () => {
     const s = makeVillage();
     place(s, 'guard_1', 'street_door');
-    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'murmur' }));
+    run(s, ev({ actorId: 'trader', kind: 'move', zone: 'tav_counter', noise: 'raised' })); // with the guard's Keen Ear: 26 dB
     expect(actor(s, 'guard_1').mind!.knowledge.trader).toMatchObject({ status: 'suspicious', source: 'heard' });
   });
   it('an attack on a bandmate sets an override to opposed toward the attacker', () => {

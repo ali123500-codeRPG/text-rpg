@@ -131,14 +131,28 @@ const DEFAULTS = {
   COVER_GAP: { none: 0, some: 1, heavy: 2 } as Record<string, number>, // keyed by COVER key
   /** loudness of each NOISE level in decibels at 1 m, from real references (the library's noiseLevels rows); null = no sound */
   NOISE_DB: { silent: null, faint: 20, hushed: 30, quiet: 40, murmur: 50, normal: 60, raised: 70, loud: 88, blaring: 100, deafening: 120 } as Record<string, number | null>,
-  /** hearing (perception noiseReach): a sound is heard while it is at least HEAR_DB at the listener (0 dB is the threshold
-   * of human hearing) and heard clearly (who and what) from CLEAR_HEAR_DB. It weakens 20·log10(metres) with distance (the
-   * inverse-square law), a listener in the same zone counts as SAME_ZONE_M away, a zone link is LINK_PACES × PACE_M metres,
-   * and each link costs LINK_SOUND_LOSS_DB more (a doorway, a corner, a wall to get round). Placeholders until step 2's positions. */
-  HEAR_DB: 0,
-  CLEAR_HEAR_DB: 25,
+  /** hearing (perception/noise.ts, BG-57, HB1–HB5): a sound weakens 20·log10(metres) with distance (the inverse-square
+   * law, never nearer than SAME_ZONE_M) and loses SOUND_LOSS_DB at each crossing on its way, by the least-loss route. It is
+   * heard while at least the listener's background (HB1) and heard clearly (who and what) from CLEAR_ABOVE_BACKGROUND_DB
+   * over it: ANSI/ASA S12.60 asks a classroom's speech to stand 15 dB over its background. */
   SAME_ZONE_M: 1,
-  LINK_SOUND_LOSS_DB: 12,
+  CLEAR_ABOVE_BACKGROUND_DB: 15,
+  /** HB6: every background counts at this share of its sourced decibels (BACKGROUND_DB), a game lever */
+  BACKGROUND_SCALE: 0.5,
+  /** HB8: a whisper to someone within WHISPER_REACH_M is said leaning in, WHISPER_LEAN_M from their ear (an estimate:
+   * no measured leaning distance was found) */
+  WHISPER_REACH_M: 1,
+  WHISPER_LEAN_M: 0.3,
+  /** HB2: background loudness per BACKGROUND level, dB(A): still 10 (Haleakala crater, NPS), hush 20 (light wind in trees,
+   * Québec; a remote Grand Canyon trail, NPS), calm 35 (a very quiet room, Seattle), quiet 40 (a library or a quiet street
+   * at night, Québec), lived-in 45 (the noise of normal living, Seattle), busy 60 (normal conversation, Québec, NPS), street
+   * 70 (a busy street, Québec), crowded 81 (the average of 1,800+ New York bars in the evening, acoustics.org) */
+  BACKGROUND_DB: { still: 10, hush: 20, calm: 35, quiet: 40, lived_in: 45, busy: 60, street: 70, crowded: 81 } as Record<string, number>,
+  /** a zone with no kind (hand-built test worlds) and no background of its own */
+  DEFAULT_BACKGROUND: 'quiet' as import('./scales').BackgroundKey,
+  /** HB4: decibels lost at each crossing, by SOUND_LOSS level: an open gap nothing; a shut window about 30, a shut door about
+   * 30, a wall about 35 (their sound transmission class, STC) */
+  SOUND_LOSS_DB: { open: 0, window: 30, door: 30, wall: 35 } as Record<string, number>,
   /** sight (perception sightReach): how far each VISIBILITY level is made out clearly (who and what) and glimpsed
    * (something, not who), in metres, in daylight with a clear view, from real references (the library's
    * visibilityLevels rows); null = nothing to see. Links come from the same metres-to-links conversion as reach; an
@@ -225,7 +239,7 @@ const DEFAULTS = {
    * reachZone: per zone of reach (its best attack mode); armorStop: per point of damage stopped, per part covered;
    * armorCut: per percent of damage cut by the armor multiplier, per part covered; poolPoint: per point of a shield or armor pool */
   ITEM_VALUE: { skillPoint: 1, reachZone: 5, armorStop: 2, armorCut: 0.1, poolPoint: 0.25 },
-  ORDER_NOISE: 'normal' as NoiseKey, // RD2: an order is called out in a normal voice; the seller must hear it clearly (trade orderReach)
+  ORDER_NOISE: 'normal' as NoiseKey, // RD2: an order is called out in a normal voice; the seller must hear it clearly (trade hearsOrder)
   WARES_CAP: 8, // goods lines plus services per seller
   // PY9: coin is one unit in the game; narration names it in these coins, largest first
   COIN_NAMES: [['gold', 100], ['silver', 10], ['copper', 1]] as [string, number][],

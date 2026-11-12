@@ -109,8 +109,22 @@ export function distM(state: GameState, a: Located, b: Located): number {
   if (A.zone === B.zone) return A.pos && B.pos ? flat(A.pos, B.pos) : 0;
   const seen = sightDistM(state, A, B);
   if (A.pos && B.pos && seen < Infinity) return seen;
-  const r = route(state, A, B);
-  if (!r) return Infinity;
+  const path = shortestPath(state, A.zone, B.zone);
+  return path ? pathM(state, A, B, path) : Infinity;
+}
+
+/** metres from A to B along a given route (the zone ids after A's, ending in B's): through the doorways, or where zones
+ * touch the middle of what they share; a zone link of metres per step in zones without rectangles */
+export function pathM(state: GameState, a: Located, b: Located, path: string[]): number {
+  const A = spotOf(state, a), B = spotOf(state, b);
+  if (!path.length) return A.pos && B.pos ? flat(A.pos, B.pos) : 0;
+  let prev = zoneById(state, A.zone)!;
+  const r = path.map((id) => {
+    const z = zoneById(state, id)!;
+    const c = prev.rect && z.rect ? crossing(prev, z) : undefined;
+    prev = z;
+    return { zone: z, ...(c ? { at: c.at, out: c.out } : {}) };
+  });
   if (!A.pos || !B.pos || r.some((s) => !s.at)) return r.length * linkM();
   let m = 0, cur = A.pos, h = heightOf(zoneById(state, A.zone));
   for (const s of r) { m += flat(cur, s.out!) + Math.abs(heightOf(s.zone) - h); cur = s.at!; h = heightOf(s.zone); }

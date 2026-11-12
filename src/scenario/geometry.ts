@@ -27,7 +27,7 @@ export function edgeToward(r: Rect, d: [number, number]): { x: number; y: number
 
 const STEP: Record<Side, [number, number]> = { n: [0, 1], e: [1, 0], s: [0, -1], w: [-1, 0] };
 const sideOf = (d: [number, number]): Side => (Math.abs(d[0]) >= Math.abs(d[1]) ? (d[0] >= 0 ? 'e' : 'w') : d[1] >= 0 ? 'n' : 's');
-const sameFloor = (a: Zone, b: Zone) => Math.abs(heightOf(a) - heightOf(b)) < CONFIG.STOREY_HEIGHT / 2;
+export const sameFloor = (a: Zone, b: Zone) => Math.abs(heightOf(a) - heightOf(b)) < CONFIG.STOREY_HEIGHT / 2;
 const overlaps = (a: Rect, b: Rect) => Math.abs(a.x - b.x) * 2 < a.w + b.w - 0.01 && Math.abs(a.y - b.y) * 2 < a.d + b.d - 0.01;
 
 /** width (east-west) and depth (north-south) of a zone's rectangle: its area at its aspect, the long side along `axis` */
@@ -120,6 +120,12 @@ export function doorway(a: Zone, b: Zone): { x: number; y: number } | null {
 
 /** metres between two zones' centres across the map (height left out) */
 export const zoneDistanceM = (a: Zone, b: Zone): number | null => (a.rect && b.rect ? Math.hypot(a.rect.x - b.rect.x, a.rect.y - b.rect.y) : null);
+
+/** HB4: the edge kind id of `a`'s side facing `b` (its kind's default when unnamed); null without rectangles */
+export function edgeFacing(a: Zone, b: Zone): string | null {
+  if (!a.rect || !b.rect) return null;
+  return a.edges?.[sideOf([b.rect.x - a.rect.x, b.rect.y - a.rect.y])] ?? null;
+}
 
 /** BG-62: whether `a`'s side facing `b` is an edge you reach over but don't walk across (a counter, fence or rail) */
 export function reachesOver(a: Zone, b: Zone, edgeKinds: Record<string, { walk: boolean; reach: boolean }>): boolean {
