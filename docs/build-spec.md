@@ -3126,6 +3126,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-70 | Opening a door just to look in did nothing (no door state): doors now open and shut, and an open one is seen through (Ali chose this) | 12/11/2026 | fixed | this PR |
 | BG-71 | The player could not shout: every player line was a normal voice, so a shout through a barred door went unheard once hearing used real metres. The Parser now gives volume (whisper, normal, shout) | 12/11/2026 | fixed | this PR |
 | BG-72 | Words said to the player from out of sight (e.g. behind a shut door) counted as touch by the event-target rule, so narration had the gate shudder; speech is now reached only by sound or sight | 12/11/2026 | fixed | this PR |
+| BG-73 | Crossing a frontier the Weaver builds that turn left the player's move event inside the old zone, so narration had them walk the street while the screen showed the new zone; the event now leaves for the zone built there | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
