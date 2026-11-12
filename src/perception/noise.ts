@@ -1,10 +1,10 @@
 // BG-57, HB1–HB5: hearing by real metres. A sound's decibels at 1 m (CONFIG.NOISE_DB) weaken 20·log10(metres) with
 // distance (the inverse-square law) and lose SOUND_LOSS_DB at each crossing between zones (an open gap nothing, a shut door
-// or window 30, a wall 35), by whichever route keeps it loudest. The listener hears it while it is at least their zone's
-// background (BACKGROUND_DB at BACKGROUND_SCALE) and clearly (who and what) from CLEAR_ABOVE_BACKGROUND_DB over it.
+// or window 30, a wall 35), by whichever route keeps it loudest. The listener hears it while it is at least HEARING_FLOOR_DB
+// and clearly (who and what) from CLEAR_ABOVE_FLOOR_DB over it (per-zone background noise is parked: D-231).
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
-import type { BackgroundKey, NoiseKey, SoundLossKey } from '../scales';
+import type { NoiseKey, SoundLossKey } from '../scales';
 import type { GameState, Perception, Zone, ZoneLink } from '../types';
 import { pathM, sightDistM, spotOf, type Located } from '../engine/position';
 import { zoneById } from '../engine/relations';
@@ -12,13 +12,6 @@ import { doorway, edgeFacing, sameFloor } from '../scenario/geometry';
 
 /** NV5: the noise of a spoken line by its volume (one table for the player's and NPCs' lines) */
 export const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const satisfies Record<import('../types').Volume, NoiseKey>;
-
-/** HB3: how loud a zone is anyway, in dB: its own background, else its kind's, else DEFAULT_BACKGROUND */
-export function backgroundOf(zone: Zone | undefined): BackgroundKey {
-  return zone?.background ?? (zone?.kind ? getLibrary().zoneKinds?.[zone.kind]?.background : undefined) ?? CONFIG.DEFAULT_BACKGROUND;
-}
-/** HB6: the sourced level at CONFIG.BACKGROUND_SCALE */
-export const backgroundDb = (zone: Zone | undefined): number => CONFIG.BACKGROUND_DB[backgroundOf(zone)] * CONFIG.BACKGROUND_SCALE;
 
 const lossDb = (k: SoundLossKey | undefined): number => CONFIG.SOUND_LOSS_DB[k ?? 'open'];
 
@@ -85,21 +78,21 @@ export function soundDb(state: GameState, noise: NoiseKey | undefined, from: Loc
   return base + keenDb - 20 * Math.log10(near ? CONFIG.WHISPER_LEAN_M : Math.max(m, CONFIG.SAME_ZONE_M)) - r.loss;
 }
 
-/** HB1: how well the listener hears it: 'full' (who and what) from CLEAR_ABOVE_BACKGROUND_DB over their zone's background,
- * 'partial' (a sound, not who) at the background, else null */
+/** HB1: how well the listener hears it: 'full' (who and what) from CLEAR_ABOVE_FLOOR_DB over HEARING_FLOOR_DB, 'partial'
+ * (a sound, not who) at the floor, else null */
 export function hearingOf(state: GameState, noise: NoiseKey | undefined, from: Located, listener: Located, keenDb = 0, leanIn = false): Perception | null {
   const db = soundDb(state, noise, from, listener, keenDb, leanIn);
   if (db === null) return null;
-  const bg = backgroundDb(zoneById(state, spotOf(state, listener).zone));
-  return db >= bg + CONFIG.CLEAR_ABOVE_BACKGROUND_DB ? 'full' : db >= bg ? 'partial' : null;
+  const floor = CONFIG.HEARING_FLOOR_DB;
+  return db >= floor + CONFIG.CLEAR_ABOVE_FLOOR_DB ? 'full' : db >= floor ? 'partial' : null;
 }
 
-/** how many metres a sound of this noise carries in the open (no walls) against a background, [clearly, at all] (0: not
- * even at SAME_ZONE_M; null: silence). For the library's noise table and the Keen Ear text. */
-export function openAirReachM(noise: NoiseKey, background: BackgroundKey, keenDb = 0): [number, number] | null {
+/** how many metres a sound of this noise carries in the open (no walls), [clearly, at all] (0: not even at SAME_ZONE_M;
+ * null: silence). For the library's noise table and the Keen Ear text. */
+export function openAirReachM(noise: NoiseKey, keenDb = 0): [number, number] | null {
   const base = CONFIG.NOISE_DB[noise];
   if (base === null || base === undefined) return null;
-  const bg = CONFIG.BACKGROUND_DB[background] * CONFIG.BACKGROUND_SCALE;
+  const floor = CONFIG.HEARING_FLOOR_DB;
   const far = (min: number) => { const m = 10 ** ((base + keenDb - min) / 20); return m < CONFIG.SAME_ZONE_M ? 0 : Math.round(m); };
-  return [far(bg + CONFIG.CLEAR_ABOVE_BACKGROUND_DB), far(bg)];
+  return [far(floor + CONFIG.CLEAR_ABOVE_FLOOR_DB), far(floor)];
 }

@@ -93,7 +93,7 @@ vi.mock('../../src/perception', async () => {
     }
   },
   applyBeliefDecay: () => {},
-  hears: (state: GameState, o: Actor, zone: string, noise: string) => o.zone === zone && noise !== 'silent',
+  hears: (state: GameState, o: Actor, at: string | { zone: string }, noise: string) => o.zone === (typeof at === 'string' ? at : at.zone) && noise !== 'silent',
   noteSightings: () => {},
   // the old rule: NPCs read their knowledge; the player sees everyone
   beliefStatus: (_s: GameState, o: Actor, about: Actor) => (o.kind === 'player' ? 'aware' : o.mind?.knowledge[about.id]?.status ?? 'unaware'),
@@ -257,7 +257,10 @@ describe('dialogue', () => {
   it('spokespeople: one per band, named member, never inactive, capped', () => {
     s.actors.push({ ...structuredClone(actor(s, 'patron_1')), id: 'patron_2' });
     const i = intent({ action: { type: 'talk' }, addressees: ['patron_2', 'tavern_folk', 'guard_1'], spoken: 'hi' });
+    expect(selectSpokespeople(s, i)).toEqual(['patron_2']); // BG-84: the guard out at the gate cannot hear a normal voice
+    actor(s, 'guard_1').zone = s.player.zone;
     expect(selectSpokespeople(s, i)).toEqual(['patron_2', 'guard_1']);
+    actor(s, 'guard_1').zone = 'gate_inner';
     expect(selectSpokespeople(s, intent({ action: { type: 'attack' }, addressees: ['patron_1'] }))).toEqual([]);
     actor(s, 'patron_1').core.condition.hpLostPct = 100;
     expect(selectSpokespeople(s, intent({ action: { type: 'talk' }, addressees: ['patron_1'] }))).toEqual([]);

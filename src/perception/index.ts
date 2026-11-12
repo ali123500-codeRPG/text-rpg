@@ -7,7 +7,7 @@ import { hearingOf } from './noise';
 import type { Located } from '../engine/position';
 import { sightLevel } from './sight';
 import { seeingM } from '../engine/position';
-export { backgroundDb, backgroundOf, hearingOf, openAirReachM, soundDb } from './noise';
+export { hearingOf, openAirReachM, soundDb } from './noise';
 import { zoneLight } from '../time';
 import { actorById, allActors, atLeast, isActive, zoneById } from '../engine/relations';
 import { getLibrary, itemDef, resolveAlias } from '../library';
@@ -35,7 +35,7 @@ export const hearsWords = (p: { heard?: true } | undefined): boolean => !!p?.hea
 const better = (a: Seen | null, b: Seen | null): Seen | null => (!a ? b : !b ? a : b.level === 'full' && a.level !== 'full' ? b : a);
 
 // Each VISIBILITY level is seen out to its metres (CONFIG.SIGHT_M) measured with sight from where the event happened
-// (seeingM); a sound is heard by its decibels where the listener stands against their zone's background (hearingOf). Dark zone: sight at most partial.
+// (seeingM); a sound is heard by its decibels where the listener stands against the hearing floor (hearingOf). Dark zone: sight at most partial.
 // Sound heard only partly gives something, not who (test 4).
 // The event is perceived at its own zone (a move: the destination zone).
 /** NS2: how many metres a figure keeping still is made out clearly (the Low visibility level's clear metres) */
@@ -97,7 +97,7 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // unseen zone. BG-72/BG-89: only contact is felt; words, a walk toward them, a trade or a wasted action reach them only by
   // sound or sight
   if (event.target === observer.id && CONTACT.has(event.kind)) best = better(best, { level: 'partial', cue: 'touch' });
-  // words need the sound heard clearly (CLEAR_ABOVE_BACKGROUND_DB over the background: who and what; a sound heard only partly is a voice without its
+  // words need the sound heard clearly (CLEAR_ABOVE_FLOOR_DB over the hearing floor: who and what; a sound heard only partly is a voice without its
   // words), or Every Sense One
   return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;
 }

@@ -8,6 +8,8 @@ import { hearsClearly } from '../perception';
 import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } from '../minds';
 import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
+import { slotMetres } from './speed';
+import { distM, gateAhead, spotPoint, walkLeg, type Located } from './position';
 
 /** BG-80: what an action needs of the actor's distance to its target. One table for every actor, player or NPC:
  * - voice: the target must hear it clearly (words, an order called out: BG-74, BG-78);
@@ -53,6 +55,25 @@ export function talkMove(state: GameState, intent: Intent | null): Intent['move'
   const a = intent?.action;
   if (!a) return intent?.move ?? null;
   return approachMove(state, state.player, { type: a.type, target: a.target, volume: intent?.volume, way: !!intent?.way }, intent?.move ?? null);
+}
+
+/** BG-84: where the player says this turn's words from: the exchange walk (BG-58: walk over, then speak) projected on a
+ * copy of the player's spot, one move slot, stopping at a way that is not open to them as the real walk does */
+export function speakingSpot(state: GameState, intent: Intent): Located {
+  const p = state.player, o = fromIntent(state, intent, false);
+  const at: Located & { placeId?: string } = { zone: p.zone, ...(p.pos ? { pos: { ...p.pos } } : {}), placeId: p.placeId };
+  if (!o.move || o.moveAfter || intent.way) return at;
+  const sp = o.moveSpot ? spotPoint(state, o.move, o.moveSpot, p) : null;
+  const goal: Located = sp ? { zone: o.move, pos: sp.pos } : { zone: o.move };
+  const stop = sp?.stopShort ?? 0;
+  let left = slotMetres(state, p, 'move');
+  for (let legs = 0, fresh = true; legs < 100 && left > 0.01; legs++, fresh = false) {
+    if (goal.pos ? distM(state, at, goal) <= stop + 0.01 : at.zone === goal.zone) break;
+    const r = walkLeg(state, at, goal, left, stop, fresh, p, !!gateAhead(state, { ...p, ...at }, goal.zone));
+    if (!r) break;
+    left -= r;
+  }
+  return at;
 }
 
 /** Order for the player from the Parser's intent (aimed is code-set). Spoken words beside a non-speech action are a bark. */

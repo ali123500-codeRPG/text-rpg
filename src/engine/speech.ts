@@ -13,7 +13,8 @@ import { tally } from './xp';
 import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
 import { countTry, repeatTryMods } from '../ruleset/pressure';
-import { hearsClearly, hearsWords } from '../perception';
+import { hears, hearsClearly, hearsWords } from '../perception';
+import { speakingSpot } from './merge';
 import { VOLUME_NOISE } from '../perception/noise';
 
 export const SPEECH_SKILL: Record<string, string> = {
@@ -40,6 +41,17 @@ export const BEAT_OPENING = '(the player has said nothing to you: you speak firs
 
 /** what the listener hears for a talk action that has no words: only that the player wants a word with them */
 export const NO_WORDS = '(no words yet: they only catch your eye to talk)';
+/** BG-84: a listener who hears the player's voice but not the words */
+export const MUFFLED = '(you hear their voice, but you cannot make out the words)';
+
+/** BG-84: who hears the player's line this turn, from where it is said (after this turn's walk over, BG-58) and as loud
+ * as it is said: `clear` gets the words, `heard` at least the voice */
+export function playerVoice(state: GameState, intent: Intent): { clear: (a: Actor) => boolean; heard: (a: Actor) => boolean } {
+  const from = quickWord(state, intent) ? state.player : speakingSpot(state, intent);
+  const noise = VOLUME_NOISE[intent.volume ?? 'normal'];
+  const clear = (a: Actor) => hearsClearly(state, from, a, noise);
+  return { clear, heard: (a) => clear(a) || hears(state, a, from, noise) };
+}
 
 export function isSpeech(type: string | undefined | null): boolean {
   return !!type && (SPEECH_ACTIONS as readonly string[]).includes(type);
@@ -97,7 +109,8 @@ export function quickWord(state: GameState, intent: Intent): boolean {
 export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   if ((!isSpeech(intent.action?.type) && !quickWord(state, intent)) || !intent.addressees?.length) return [];
   const dist = (a: Actor) => shortestPath(state, state.player.zone, a.zone)?.length ?? Infinity;
-  const live = state.actors.filter(isActive);
+  const voice = playerVoice(state, intent);
+  const live = state.actors.filter((a) => isActive(a) && voice.heard(a)); // BG-84: only someone who hears the player answers
   const nearest = (members: Actor[]) =>
     [...members].sort((a, b) => dist(a) - dist(b) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)).find((a) => dist(a) < Infinity);
   const out: string[] = [];
@@ -109,7 +122,7 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   };
   for (const ad of intent.addressees) {
     if (ad === 'everyone') {
-      const heard = live.filter((a) => hearsClearly(state, state.player, a, VOLUME_NOISE[intent.volume ?? 'normal'])); // who hears the player's voice clearly (BG-57, BG-71, BG-88)
+      const heard = live.filter(voice.clear); // who hears the player's words (BG-57, BG-71, BG-88, BG-84)
       const bands = [...new Set(heard.map((a) => a.bandId))].map((b) => ({ b, m: nearest(heard.filter((a) => a.bandId === b))! }));
       bands.sort((x, y) => dist(x.m) - dist(y.m) || (x.m.id < y.m.id ? -1 : 1));
       for (const { b, m } of bands) take(b, m);
@@ -117,7 +130,7 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
     }
     const named = state.actors.find((a) => a.id === ad);
     if (named) {
-      if (isActive(named)) take(named.bandId, named); // inactive actors are never picked
+      if (live.includes(named)) take(named.bandId, named); // inactive actors and those out of earshot are never picked
       continue;
     }
     if (state.bands.some((b) => b.id === ad)) {
@@ -175,8 +188,10 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
   const a: RollResult = ruleset.roll(req(p.id), state, die);
   const aT: RollResult | null = spokespeople.some(threat) ? ruleset.roll({ ...req(p.id), fullValue: [SK.intimidation] }, state, die) : null;
   const perSpokesperson: ExchangeSpeech['perSpokesperson'] = {};
+  const clear = playerVoice(state, intent).clear;
   let shown = a;
   for (const sp of spokespeople) {
+    if (!clear(state.actors.find((x) => x.id === sp)!)) continue; // BG-84: words not made out move no one
     const t = aT && threat(sp);
     const mine = t ? aT : a;
     if (t && spokespeople.every(threat)) shown = aT;
