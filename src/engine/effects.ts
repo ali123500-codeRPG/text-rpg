@@ -1,15 +1,17 @@
 // Agent side effects, applied when the turn resolves. Every model output is a request; the engine decides.
-import type { Actor, AgreementMade, GameState, Trigger } from '../types';
+import type { Actor, AgreementMade, GameEvent, GameState, Trigger } from '../types';
 import { STANCES } from '../scales';
 import { CONFIG } from '../config';
 import { calmBandmatesSwitch, headTo, switchRoutine } from '../minds';
-import { actorById, isActive, isEngaged, stance } from './relations';
+import { actorById, isActive, isEngaged, knowsName, stance } from './relations';
 import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
 import type { TurnInput } from './types';
 import { applyMemoryOps, endAgreements, makeAgreement } from './memory';
 import { agentQuestEnd, makeQuest } from './quests';
 import { tally } from './xp';
+import { seesClearlyNow } from '../views';
+import { hearsWords } from '../perception';
 import { startSpar, yieldSpar } from './spar';
 
 const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
@@ -18,16 +20,27 @@ export function logCode(state: GameState, code: string, detail?: Record<string, 
   state.log.push({ turn: state.turn, code, ...(detail ? { detail } : {}) });
 }
 
-/** introduces: only the speaker, or actors in its knows (a knows fact with that id, or naming that actor). */
-export function applyIntroduces(state: GameState, speaker: Actor, ids: string[] | undefined): void {
-  const j = state.player.journal;
-  for (const id of ids ?? []) {
-    const who = actorById(state, id);
-    const ok = !!who && (id === speaker.id || !!speaker.mind?.knows.some((f) => f.id === id || f.text.includes(who.names.current)));
-    if (!ok) logCode(state, 'invalid_introduce', { actorId: speaker.id, id });
-    else if (j && !j.namesKnown.includes(id)) j.namesKnown.push(id);
+/** BG-95: one rule for every speaker and listener, player and NPC. Whoever hears a line's words learns each name in it
+ * that the speaker knows, when they see clearly whom it belongs to right then (the speaker naming themselves, or
+ * someone in view). A name counts when the line holds it whole or its first word that is not a title
+ * (CONFIG.NAME_TITLE_WORDS: "Wenna" for Old Wenna, "Hobb" for Hobb Tallow). A false name matches no one, so it teaches nothing. */
+export function learnNames(state: GameState, ev: GameEvent): void {
+  const text = ev.line?.text;
+  const speaker = actorById(state, ev.actorId);
+  if (!text || !speaker || ev.bark) return; // a passing remark teaches no one, as it enters no one's knowledge (BG-59)
+  const named = [state.player, ...state.actors].filter((x) => knowsName(state, speaker, x) && nameSaid(text, x.names.current));
+  for (const [id, p] of Object.entries(ev.perception)) {
+    const listener = actorById(state, id);
+    if (!listener || listener === speaker || !hearsWords(p)) continue;
+    const list = listener === state.player ? state.player.journal?.namesKnown : listener.mind ? (listener.mind.namesKnown ??= []) : undefined;
+    for (const x of named) if (list && !knowsName(state, listener, x) && seesClearlyNow(state, listener, x.id)) list.push(x.id);
   }
 }
+const nameSaid = (text: string, name: string): boolean => {
+  const short = name.split(/\s+/).find((w) => !CONFIG.NAME_TITLE_WORDS.includes(w.toLowerCase()));
+  // case kept, so the name Will is not the word "will"
+  return [name, short].some((w) => !!w && new RegExp(`\\b${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text));
+};
 
 function sanitizeTriggers(triggers: Trigger[] | undefined, ownerId: string): Trigger[] {
   return (triggers ?? [])

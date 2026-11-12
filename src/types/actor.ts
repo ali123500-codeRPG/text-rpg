@@ -168,6 +168,8 @@ export type Mind = {
   xpPaid?: true; // its defeat has paid XP (B4)
   essenceRolled?: true; // growth proposal 2.3: its defeat has rolled for an essence (one offer per foe, ever)
   knowledge: Record<ActorId, Belief>;
+  /** BG-95: names this NPC heard said aloud while it saw who they belong to (learnNames) */
+  namesKnown?: ActorId[];
   overrides?: Record<ActorId, Stance>;
   knows: Fact[];
   /** at (NW10): the game minute the routine started; its steps run on the clock from there */

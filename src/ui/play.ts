@@ -289,7 +289,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     finishAll(); // M-12: and finishes everything still moving
     const cmd = text.split(/\s+/)[0].toLowerCase();
     open = null;
-    if (NAV_COMMANDS[cmd] && text === cmd) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
+    // the agent's /inv, /stats or /quests is answered in the story, never by taking the watcher to another page
+    if (NAV_COMMANDS[cmd] && text === cmd && !byAgent) { input.value = ''; nav(NAV_COMMANDS[cmd]); return; }
     if (cmd === '/aim' && text === cmd) { aimed = !aimed; input.value = ''; update(); return; }
     input.value = '';
     suggestion = '';

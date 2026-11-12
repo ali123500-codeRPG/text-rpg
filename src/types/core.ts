@@ -96,7 +96,6 @@ export type Zone = {
   /** CO16 long side ÷ short side, from the kind (corridors and streets are long) */
   aspect?: number;
   /** HB3 how loud it is anyway, when not its kind's (a tavern's busy common room) */
-  background?: import('../scales').BackgroundKey;
   /** the zone kind id (ZK) it was built from (Z2); hand-built test zones may have none */
   kind?: string;
   /** TV4 a road's danger (ROAD_DANGERS); only roads have one */
@@ -138,7 +137,7 @@ export type GameEvent = {
   spar?: true; // SP1/SP11: an attack between sides of a live spar; anyone who sees it sees a spar
   bark?: boolean; // speech flavor only: narrated, copies no belief, never in NPC views
   // structured payload (code only; views decide what to copy):
-  line?: { text: string; volume: import('./agents').Volume; introduces?: string[] };
+  line?: { text: string; volume: import('./agents').Volume };
   fromZone?: string; // moves
   beside?: true; // BG-81: a walk at someone (target) that reached them
   fromPos?: { x: number; y: number }; // BG-23: a leg that left a zone: where in fromZone it set off

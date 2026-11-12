@@ -3,7 +3,7 @@
 import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, TierName, Grade, Fact } from './core';
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
-import type { DefenseKind } from './actor';
+import type { DefenseKind, Pronouns } from './actor';
 import type { HealthLevelKey, PartStateKey } from '../scales';
 
 /** keys of the HEALTH_LEVELS and PART_STATES scales (scales.ts); views show their display names */
@@ -32,6 +32,7 @@ export type BeliefView = {
   lost?: true; // CH7: self chased this actor and lost them; it has not seen or heard them since
   active: boolean;
   label: string; // public label or known name
+  name?: string; // BG-95: the player's name, once self has heard it (label stays 'player')
   title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
 };
 
@@ -83,7 +84,7 @@ export type SeenActor = {
 export type PlayerView = {
   turn: number;
   player: {
-    id: 'player'; name: string; classes: { id: string; name: string }[];
+    id: 'player'; name: string; pronouns?: Pronouns; classes: { id: string; name: string }[];
     skills: { id: string; name: string }[]; // skill ID (SK…) and its name; no skill values
     perks: { id: string; name: string }[]; // perk ID (PK…) and its name
     summonable?: { id: string; name: string }[]; // TB6: the player's Threadbound items not on them (gear op summon)
@@ -230,7 +231,7 @@ export type NarrationView = {
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor
   events: NarrationEvent[];
-  player: { name: string; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
+  player: { name: string; pronouns?: Pronouns; health: HealthLevel; morale: string; parts: { id: string; state: PartState }[]; zone: string; stealthy?: true; gear?: string[]; title?: string; personality?: string; age?: string; yielded?: YieldView }; // personality: the player's sheet words, narration flavour only // ST3: moving or hiding unseen; gear: everything the character has
   surroundings: ZoneView[]; // own zone + sight links (frontiers by label)
   heard: { speaker: string; text: string; volume: Volume }[];
   actors: { label: string; name?: string; pronouns?: 'he' | 'she' | 'they' | 'it'; zone: string; distanceM?: number; side?: 'ahead' | 'left' | 'right' | 'behind'; health?: HealthLevel; morale?: string; activityLook?: string; age?: string }[]; // age: the life stage they look (AG16); health: Wounded or worse, morale: Afraid or worse, as the player sees it
@@ -267,7 +268,7 @@ export type WeaverView = {
   quests: { id: string; state: string; text: string }[];
   flags: Record<string, string | number | boolean>;
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
-  player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel;
+  player: { level: number; pronouns?: Pronouns; currentClass: { id: string; name: string } | null; health: HealthLevel;
     /** NW6: where the player stands (place and area) */
     standsIn: { place: string; placeName: string; area: string } };
   previousNote: string;

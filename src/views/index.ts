@@ -15,7 +15,7 @@ import { timeView, zoneLight, clockSet, now, timeOfDay } from '../time';
 import { charLevel, wornTitle } from '../engine/xp';
 import { sideFrom, sightDistM } from '../engine/position';
 import { chaseLost, chaseZones } from '../engine/chase';
-import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, knowsName, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
@@ -85,16 +85,17 @@ function whereLabel(state: GameState, from: string, to: string): string | undefi
   return path?.length ? zoneById(state, from)?.links.find((l) => l.to === path[0])?.label : undefined;
 }
 
-const nameKnown = (state: GameState, a: Actor) => a.id === state.player.id || !!a.knownOnSight || !!state.player.journal?.namesKnown.includes(a.id);
-/** what `viewerId` calls `id`: the player by 'player'; for the player, names only once known; NPCs know bandmates' names */
+const nameKnown = (state: GameState, a: Actor) => knowsName(state, state.player, a);
+/** what `viewerId` calls `id`: the player by 'player'; anyone else by name once the viewer knows it, else by label */
 export function callName(state: GameState, viewerId: string, id: string): string {
   const a = actorById(state, id);
   if (!a) return 'someone';
   if (a.id === state.player.id) return 'player';
   const viewer = actorById(state, viewerId);
-  if (viewerId === state.player.id) return nameKnown(state, a) ? a.names.current : a.label;
-  return viewer && viewer.bandId === a.bandId ? a.names.current : a.label;
+  return viewer && knowsName(state, viewer, a) ? a.names.current : a.label;
 }
+/** whoever `viewer` sees clearly right now (BG-95: a name heard is put to this face) */
+export const seesClearlyNow = (state: GameState, viewer: Actor, id: string): boolean => seenActors(state, viewer).some((x) => x.id === id && x.level === 'full');
 
 function ownGear(state: GameState, a: Actor): OwnGearView[] {
   return a.core.inventory.map((i) => {
@@ -165,7 +166,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const level = zoneLight(state, zoneById(state, a.zone)) === 'dark' && !keptSight && !(a.zone === viewer.zone && seenClearly(state, viewer.id, a.id)) ? 'partial' : 'full';
     // GAP: a partially perceived actor keeps its id (needed as a target) but shows only 'someone'.
     if (level === 'partial') { out.push({ id: a.id, label: 'someone', zone: a.zone, level, gear: [], ...place }); continue; }
-    const name = viewer.id === state.player.id ? (nameKnown(state, a) ? a.names.current : undefined) : viewer.bandId === a.bandId ? a.names.current : undefined;
+    const name = knowsName(state, viewer, a) ? a.names.current : undefined;
     const h = healthLevel(a);
     const parts = partStates(state, a);
     const crippled = parts.filter((p) => p.state === 'crippled').map((p) => p.id);
@@ -208,7 +209,7 @@ function knowsStep(state: GameState, viewer: Actor, e: GameEvent): boolean {
   const p = e.perception[viewer.id];
   const a = actorById(state, e.actorId);
   if (!p || p.level === 'full' || p.cue !== 'sound' || !a || a === viewer || !hasPerk(viewer, PK.know_the_step)) return false;
-  return viewer.id === state.player.id ? nameKnown(state, a) : !!viewer.bandId && viewer.bandId === a.bandId;
+  return knowsName(state, viewer, a);
 }
 
 function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
@@ -319,7 +320,7 @@ export function buildPlayerView(state: GameState): PlayerView {
   return {
     turn: state.turn,
     player: {
-      id: 'player', name: p.names.current,
+      id: 'player', name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), // BG-97: never guessed from the name
       classes: p.core.classes.map((c) => ({ id: c.classId, name: getLibrary().classes[c.classId]?.name ?? c.classId })),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
@@ -376,6 +377,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       stance: stance(state, a, other), hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
       ...(chaseLost(b) ? { lost: true as const } : {}),
       active: isActive(other), label: callName(state, a.id, about),
+      ...(about === state.player.id && knowsName(state, a, other) ? { name: other.names.current } : {}), // BG-95: the player's name, once heard
       ...(other.pronouns ? { pronouns: other.pronouns } : {}), // BG-60: so an NPC speaks of someone out of sight as they are
       // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
       ...(about === state.player.id && b.source === 'seen' && atLeast(b.status, 'aware') && wornTitle(state) ? { title: wornTitle(state) } : {}),
@@ -582,7 +584,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
+    player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
@@ -695,7 +697,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
-    player: { level: charLevel(state.player), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
+    player: { level: charLevel(state.player), ...(state.player.pronouns ? { pronouns: state.player.pronouns } : {}), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
       standsIn: { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone } },
     previousNote: state.hidden.weaverNote,
     lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),

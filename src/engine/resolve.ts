@@ -16,7 +16,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { distM, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, type Located } from './position';
+import { distM, gateAhead, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -39,7 +39,7 @@ import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
 import { buy, sell } from './trade';
-import { applyAgentEffects, applyIntroduces, logCode } from './effects';
+import { applyAgentEffects, learnNames, logCode } from './effects';
 import { gutFeelings } from './hunches';
 import { PUSH_TYPES, SPEECH_SKILL, applySpeech, isSpeech, overhearLie, pushContest } from './speech';
 import { growthWaits, payDefeats, tally, unlockClasses } from './xp';
@@ -167,9 +167,7 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   }
   if (ev.kind === 'attack' && ev.target && !ev.spar) setAttackOverrides(state, ev); // SP1: a sparring blow changes no stance
   ctx.events.push(ev);
-  if (ev.kind === 'speak' && !ev.bark && ev.line?.introduces && ev.perception[state.player.id]?.level === 'full') {
-    applyIntroduces(state, actorById(state, ev.actorId)!, ev.line.introduces);
-  }
+  learnNames(state, ev);
   afterEvent(ctx, ev);
 }
 
@@ -305,15 +303,6 @@ function reachedSpot(a: Actor, goal: Located, stopShort: number): boolean {
 function toGo(state: GameState, a: Actor, goal: string): { toGo?: number } {
   const m = wayLeftM(state, a, goal, a);
   return m !== undefined && m >= 1 ? { toGo: Math.round(m) } : {};
-}
-
-/** SD3–SD5: the barrier on the next way of `a`'s walk to `goal`, when it is not simply open to `a` */
-function gateAhead(state: GameState, a: Actor, goal: string): { b: Barrier; to: string; pass: Passage } | null {
-  if (goal === a.zone) return null;
-  const next = wayPath(state, a.zone, goal, a)?.[0];
-  const b = next ? barrierOn(state, zoneById(state, a.zone)?.links.find((l) => l.to === next)) : undefined;
-  const pass = b ? passage(b, a, a.zone) : 'open';
-  return b && next && pass !== 'open' ? { b, to: next, pass } : null;
 }
 
 /** SD3–SD5: at the barrier: a key turns and the bar slides back on the way through (BA3, BA4), or a shut one is tried and
