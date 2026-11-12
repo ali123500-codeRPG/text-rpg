@@ -21,7 +21,7 @@ const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: '
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const crossbow = (s: GameState) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
-  s.player.core.inventory.push({ id: 'xb', itemId: IT.crossbow, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  s.player.core.inventory.push({ id: 'xb', itemId: IT.crossbow, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
   fit(s.player, IT.crossbow);
 };
 const bolt = { attackerId: 'player', targetId: 'patron_1', weaponId: 'xb', modeId: AM.shoot, targetPart: 'left_leg', aimed: true };

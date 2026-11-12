@@ -3,6 +3,7 @@ import type { Actor, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '.
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
 import { barrierOn, knowsShut, linkPassage } from './barriers';
+import { withinGrip } from './position';
 import { reachesOver } from '../scenario/geometry';
 import { getLibrary } from '../library';
 
@@ -20,10 +21,10 @@ export function bandById(state: GameState, id: string) {
 export function isActive(actor: Actor): boolean {
   return actor.core.condition.hpLostPct < 100;
 }
-/** A8 Hold: the actor holding `a`, while that hold still stands (the holder is active and in a's zone) */
+/** A8 Hold: the actor holding `a`, while that hold still stands (the holder is active and `a` within its grip reach: BG-104) */
 export function heldBy(state: GameState, a: Actor): Actor | undefined {
   const h = a.heldBy ? actorById(state, a.heldBy) : undefined;
-  return h && isActive(h) && h.zone === a.zone && isActive(a) ? h : undefined;
+  return h && isActive(h) && withinGrip(state, h, a) && isActive(a) ? h : undefined;
 }
 /** broken and surrendered actors count on neither side of engagement (Part 3, Morale). */
 export function countsInFight(actor: Actor): boolean {

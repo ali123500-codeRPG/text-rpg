@@ -11,7 +11,7 @@ import { IT } from '../../src/library/itemIds';
 
 const holdImprovised = (s: GameState) => {
   for (const i of s.player.core.inventory) delete i.equippedIn;
-  s.player.core.inventory.push({ id: 'vase', itemId: IT.improvised_light, equippedIn: ['hand:right_arm'] } as never);
+  s.player.core.inventory.push({ id: 'vase', itemId: IT.improvised_light, equippedIn: ['grip:right_arm'] } as never);
 };
 const setSkills = (s: GameState, raw: Record<string, number>) => {
   for (const k of [SK.unarmed_improvised, SK.unarmed_strike, SK.unarmed_grapple, SK.melee_light, SK.melee_medium, SK.melee_heavy, SK.ranged_light, SK.ranged_medium, SK.ranged_heavy])

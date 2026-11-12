@@ -77,12 +77,13 @@ export type ItemInstance = {
   id: string;
   itemId: LibraryRef;
   qty?: number;
-  equippedIn?: string[]; // 'hand:<gripPartId>' | 'armor' | 'acc:<n>'; absent = carried (stowed)
+  equippedIn?: string[]; // 'grip:<grip part id>' | 'armor' | 'acc:<n>'; absent = carried (stowed)
   pools?: Record<string, number>; // % left: 'shield', or a covered part id
   opens?: string[]; // BA3: a key: the barriers (GameState.barriers ids) it locks and unlocks
   boundTo?: string; // D-218: a Threadbound item's owner (actor id)
   armed?: LibraryRef; // D-218: the active ability (perk id) waiting for the owner's next event roll
   usedAt?: Record<string, number>; // D-218: game minute each active ability was last used, by perk id
+  at?: { x: number; y: number }; // FR2: where it lies on the ground (a point in its zone); absent while carried
 };
 
 export type GearOp = {

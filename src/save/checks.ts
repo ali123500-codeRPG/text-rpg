@@ -233,7 +233,7 @@ export function checkInvariants(pages: Pages, storyId: string, lib: Library, r: 
       for (const slot of it.equippedIn ?? []) {
         if (slots.has(slot)) r.errors.push(`invariant: ${a.id} slot ${slot} used twice`);
         slots.add(slot);
-        if (slot.startsWith('hand:') && !parts.has(slot.slice(5))) r.errors.push(`invariant: ${a.id} slot ${slot} names a part it lacks`);
+        if (slot.startsWith('grip:') && !parts.has(slot.slice(5))) r.errors.push(`invariant: ${a.id} slot ${slot} names a part it lacks`);
         if (slot === 'armor') for (const p of def?.armor?.covers ?? []) {
           if (covered.has(p)) r.errors.push(`invariant: ${a.id} part ${p} covered by two worn items`);
           covered.add(p);

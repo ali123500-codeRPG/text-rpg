@@ -10,7 +10,7 @@ import { IT } from '../../src/library/itemIds';
 it.each([11, 22, 33, 44])('93 Thrown (seed %i)', (seed) => {
   const s = makeVillage({ playerZone: 'tav_common', seed });
   s.player.core.inventory.find((i) => i.id === `player_${IT.round_shield}_2`)!.equippedIn = undefined;
-  s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
+  s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['grip:left_arm'] });
   place(s, 'patron_1', 'tav_common').mind!.slots!.seat = 'tav_common'; // keep it there (its routine would walk it away first)
   const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', skill: SK.ranged_light, item: 'dg', mode: AM.throw } }) }, seed);
   expect(ev.find((e) => e.actorId === 'player')).toMatchObject({ kind: 'attack', target: 'patron_1' });

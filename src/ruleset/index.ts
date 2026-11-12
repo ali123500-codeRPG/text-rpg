@@ -438,7 +438,7 @@ function applyEffects(result: CheckResult | ContestResult | AttackResult, state:
         for (const inst of T.core.inventory.filter((i) => handsOf(i).includes(part.id))) {
           T.core.inventory = T.core.inventory.filter((i) => i !== inst);
           const { equippedIn: _, ...loose } = inst;
-          zone?.groundItems.push(loose);
+          zone?.groundItems.push(T.pos ? { ...loose, at: { ...T.pos } } : loose); // FR2: it falls where they stand
           out.push({ kind: 'item_dropped', actorId: T.id, data: { itemId: inst.id, zone: T.zone, part: part.id } });
         }
       }

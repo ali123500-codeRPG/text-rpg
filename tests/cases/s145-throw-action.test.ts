@@ -14,7 +14,7 @@ afterEach(() => resetLibrary());
 
 const withDagger = () => {
   const s = makeVillage();
-  s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['hand:left_arm'] });
+  s.player.core.inventory.push({ id: 'dg', itemId: IT.dagger, equippedIn: ['grip:left_arm'] });
   s.player.core.inventory.find((i) => i.itemId === IT.round_shield)!.equippedIn = undefined;
   return s;
 };
@@ -34,7 +34,7 @@ describe('145 The throw action', () => {
     expect(dagger.reachM).toBe(CONFIG.THROW_M.knife); // a throw mode's reach is its own throw range
     const s = withDagger();
     expect(throwOf(s).reach).toBe(CONFIG.THROW_M.knife); // metres
-    s.player.core.inventory.push({ id: 'sp', itemId: IT.spear, equippedIn: ['hand:right_arm'] });
+    s.player.core.inventory.push({ id: 'sp', itemId: IT.spear, equippedIn: ['grip:right_arm'] });
     s.player.core.inventory.find((i) => i.itemId === IT.arming_sword)!.equippedIn = undefined;
     expect(throwOf(s, 'sp').reach).toBe(CONFIG.THROW_M.spear); // 17.5 m
     getLibrary().perks.far_arm = { id: 'far_arm', name: 'Far Arm', throwReach: 8 }; // metres

@@ -111,7 +111,7 @@ describe('updateBeliefs', () => {
   });
   it('a concealed item used in a perceived attack is revealed', () => {
     const s = makeVillage();
-    actor(s, 'trader').core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['hand:right_arm'] });
+    actor(s, 'trader').core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['grip:right_arm'] });
     place(s, 'trader', 'tav_common');
     run(s, ev({ actorId: 'trader', kind: 'attack', zone: 'tav_common', target: 'slime_1', itemId: 'blade_1' }));
     expect(actor(s, 'patron_1').mind!.knowledge.trader.revealed).toContain('item:blade_1');

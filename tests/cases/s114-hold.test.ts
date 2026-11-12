@@ -37,7 +37,7 @@ describe('114 Hold', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
     for (const i of s.player.core.inventory) delete i.equippedIn;
-    s.player.core.inventory.push({ id: 'axe', itemId: IT.greataxe, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+    s.player.core.inventory.push({ id: 'axe', itemId: IT.greataxe, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
     expect(usableModes(s, s.player).some((m) => m.itemId === 'axe')).toBe(true);
     s.player.heldBy = wim.id;
     wim.zone = s.player.zone;

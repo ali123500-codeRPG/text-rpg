@@ -25,7 +25,7 @@ const wear = (a: Actor, itemId: string) => {
 const arm = (s: GameState, id: string) => {
   const a = s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
-  a.core.inventory.push({ id: `w_${id}`, itemId: IT.dagger, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  a.core.inventory.push({ id: `w_${id}`, itemId: IT.dagger, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
   fit(a, IT.dagger);
 };
 
@@ -132,7 +132,7 @@ describe('127 20 perks for the new skills', () => {
     const run = (perk: boolean) => {
       const s = makeVillage();
       place(s, 'patron_1', s.player.zone);
-      s.player.core.inventory.push({ id: 'w_player', itemId: IT.dagger, equippedIn: ['hand:right_arm'] });
+      s.player.core.inventory.push({ id: 'w_player', itemId: IT.dagger, equippedIn: ['grip:right_arm'] });
       fit(s.player, IT.dagger);
       if (perk) give(s.player, PK.in_and_out);
       s.player.posture = 'stealthy';
@@ -151,7 +151,7 @@ describe('127 20 perks for the new skills', () => {
       place(s, 'patron_1', s.player.zone);
       arm(s, 'patron_1');
       for (const i of s.player.core.inventory) delete i.equippedIn;
-      if (itemId) { s.player.core.inventory.push({ id: 'guard', itemId, equippedIn: ['hand:right_arm'] }); fit(s.player, itemId); }
+      if (itemId) { s.player.core.inventory.push({ id: 'guard', itemId, equippedIn: ['grip:right_arm'] }); fit(s.player, itemId); }
       s.player.core.standingDefense = stance;
       if (perk) give(s.player, perk);
       const r = ruleset.attack({ attackerId: 'patron_1', targetId: 'player', weaponId: 'w_patron_1', targetPart: null, aimed: false, context: { defensesThisTurn: 1 } }, s, forcedRng([60, 50, 50, 50, 50]));

@@ -20,8 +20,8 @@ import { intent, play } from './w4-kit';
 const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: 'mastery', gainedTurn: 0 });
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const hold = (a: Actor, itemId: string, id = `${a.id}_w`) => {
-  for (const i of a.core.inventory) if (i.equippedIn?.some((h) => h.startsWith('hand:'))) delete i.equippedIn;
-  a.core.inventory.push({ id, itemId, equippedIn: ['hand:right_arm', 'hand:left_arm'] });
+  for (const i of a.core.inventory) if (i.equippedIn?.some((h) => h.startsWith('grip:'))) delete i.equippedIn;
+  a.core.inventory.push({ id, itemId, equippedIn: ['grip:right_arm', 'grip:left_arm'] });
   fit(a, itemId);
 };
 const skill = (a: Actor, id: string, raw: number) => { a.core.skills[id] = { raw, state: 'normal' }; };
@@ -63,7 +63,7 @@ describe('157 All-50 round 3', () => {
   it('Iron Rim: the shield pool takes ×0.75', () => {
     const s = makeVillage();
     const wim = npc(s, 'patron_1');
-    fit(wim, IT.round_shield).core.inventory.push({ id: 'wim_shield', itemId: IT.round_shield, equippedIn: ['hand:left_arm'] });
+    fit(wim, IT.round_shield).core.inventory.push({ id: 'wim_shield', itemId: IT.round_shield, equippedIn: ['grip:left_arm'] });
     wim.core.standingDefense = 'block';
     hold(s.player, IT.greataxe, 'axe');
     const req = { attackerId: 'player', targetId: 'patron_1', weaponId: 'axe', targetPart: null, aimed: false };

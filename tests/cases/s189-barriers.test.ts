@@ -205,7 +205,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     });
     it('Critical Failure snaps the pick: the lockpicks used are lost', () => {
       const { s } = setup('extreme');
-      s.player.core.inventory.push({ id: 'picks', itemId: IT.lockpicks, equippedIn: ['hand:right_hand'] });
+      s.player.core.inventory.push({ id: 'picks', itemId: IT.lockpicks, equippedIn: ['grip:right_hand'] });
       const ev = turn(s, pick('street_door'), d(1));
       expect(ev.find((e) => e.kind === 'pick')!.way!.did).toBe('pick_broke');
       expect(s.player.core.inventory.some((i) => i.id === 'picks')).toBe(false);

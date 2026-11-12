@@ -14,7 +14,7 @@ import { IT } from '../../src/library/itemIds';
 const arm = (s: GameState, id: string) => {
   const a = id === 'player' ? s.player : s.actors.find((x) => x.id === id)!;
   for (const i of a.core.inventory) delete i.equippedIn;
-  a.core.inventory.push({ id: `w_${id}`, itemId: IT.dagger, equippedIn: ['hand:right_arm'] });
+  a.core.inventory.push({ id: `w_${id}`, itemId: IT.dagger, equippedIn: ['grip:right_arm'] });
 };
 const fight = (s: GameState) => {
   place(s, 'patron_1', s.player.zone);
