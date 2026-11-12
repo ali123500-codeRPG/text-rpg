@@ -320,7 +320,7 @@ export function buildPlayerView(state: GameState): PlayerView {
   return {
     turn: state.turn,
     player: {
-      id: 'player', name: p.names.current,
+      id: 'player', name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), // BG-97: never guessed from the name
       classes: p.core.classes.map((c) => ({ id: c.classId, name: getLibrary().classes[c.classId]?.name ?? c.classId })),
       skills: Object.keys(p.core.skills).map((id) => ({ id, name: skillName(id) })),
       perks: p.core.perks.map((x) => ({ id: x.perkId, name: getLibrary().perks[x.perkId]?.name ?? x.perkId })),
@@ -584,7 +584,7 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     time: timeView(state),
     ...(a ? { approach: a.approach, stance: a.stance } : {}),
     events: out,
-    player: { name: p.names.current, health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
+    player: { name: p.names.current, ...(p.pronouns ? { pronouns: p.pronouns } : {}), health: healthLevel(p), morale: moraleWord(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), zone: zoneById(state, p.zone)?.name ?? '', ...(p.posture === 'stealthy' ? { stealthy: true } : {}), ...(yieldView(state) ? { yielded: yieldView(state) } : {}), ...(wornTitle(state) ? { title: wornTitle(state) } : {}), personality: personalityText(p, moraleWord(p)), ...(ageText(state, p) ? { age: ageText(state, p)! } : {}),
       // the only gear the player character has: the Narrator may not describe any other (playtest run 20)
       gear: ownGear(state, p).map((g) => `${g.name}${g.qty && g.qty > 1 ? ` ×${g.qty}` : ''} (${g.equippedIn.some((x) => x.startsWith('hand')) ? 'held' : g.equippedIn.length ? 'worn' : 'carried'})`) },
     surroundings: perceivedZones(state, p.zone, p),
@@ -697,7 +697,7 @@ export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverV
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
-    player: { level: charLevel(state.player), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
+    player: { level: charLevel(state.player), ...(state.player.pronouns ? { pronouns: state.player.pronouns } : {}), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
       standsIn: { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone } },
     previousNote: state.hidden.weaverNote,
     lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),
