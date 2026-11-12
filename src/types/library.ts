@@ -151,6 +151,8 @@ export type ZoneKind = {
   aspect: number;
   /** TV3 a road: one long zone whose length and danger the Weaver names (ROAD_LENGTHS, ROAD_DANGERS) */
   road?: true;
+  /** NW4 a zone of this kind leads onward: besides the way in, it must link to another zone or a frontier (no dead-end streets) */
+  onward?: true;
   /** HB3 how loud a zone of this kind is anyway, unless the zone names its own (Zone.background) */
   background: import('../scales').BackgroundKey;
 };

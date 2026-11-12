@@ -1224,8 +1224,9 @@ Agent Weaver plans what a scenario is about and who is in it. It runs at scenari
 **WeaverView** (built deny-by-default, like every view):
 
 - the tier and its stakes group;
-- the place or frontier being planned, its ancestors' headlines, and the current stage's zones;
-- actors on the stage, with their plans and secrets;
+- the place or frontier being planned, by id and name, and its ancestors' headlines;
+- where the player stands (player.standsIn: place id, place name, zone);
+- the stage sorted by place (NW6): each place by name, kind and parent, with its zones and the actors in them, each actor with its plans and secrets. Nobody on the stage is hidden, so far-off people can turn up when the story fits; sorting by place is what keeps the Weaver planning in the right town (the flat zone and actor lists made it lose the thread in tests);
 - quests and flags; the bands on the stage, with their goals and relations;
 - the player's level, current class and health-track level;
 - the previous Weaver note;
@@ -1321,8 +1322,9 @@ who is there, so the scenario fits the hand the dice dealt. You never narrate,
 never decide outcomes and never roll dice.
 
 You receive WEAVER_VIEW: the tier and what it means for this scenario's stakes,
-the place or frontier to plan, the stage so far, who is already present and
-what they are up to, the story's quests and flags, the bands present with
+the place or frontier to plan (target, by id and name), where the player
+stands (player.standsIn), the stage so far sorted by place (places: each place
+with its areas and the people in them, and what they are up to), the story's quests and flags, the bands present with
 their goals and relations, a short
 summary of the player, your previous note, and the catalogs of ids you may use.
 
@@ -1478,7 +1480,7 @@ Every model output is checked before it touches state or the screen, and every f
 | Facts on the Voice | A shares id not in knows, or a name or fact in line outside the NPC's view | Regenerate once; then a neutral line from the NPC's sheet |
 | Leak scan on the Narrator | Names, ids, leakTerms of unrevealed secrets, or facts from unperceived events that are not in NarrationView; the active stage's hiddenTerms; names of actors not in namesKnown | Regenerate once with a note; then the fallback narration |
 | Fact check on the Narrator | An id in narrated that isn't in NarrationView; a full event that changes the player's condition, inventory or position missing from narrated; a full presence event missing from narrated; names of characters or items outside the view | Same as the leak scan |
-| Stage-plan validation on the Weaver | Unresolved ids, caps, broken links, unparseable triggers, grades that don't fit the tier, hiddenTerms or leakTerms in public text, over-long text, unresolved routine sets, missing or invalid slot bindings, unreachable bound zones, a bad startAt | One repair retry with the errors; then the flagged fallback stage; after it, routine-only errors degrade those actors to idle\_here |
+| Stage-plan validation on the Weaver | Unresolved ids, caps, broken links, dead ends (NW4: a street, square, gate, field, woods or road must link somewhere besides the way in, to a zone or a frontier; the zone kinds table marks these onward; yards and indoor zones may be dead ends), unparseable triggers, grades that don't fit the tier, hiddenTerms or leakTerms in public text, over-long text, unresolved routine sets, missing or invalid slot bindings, unreachable bound zones, a bad startAt | One repair retry with the errors; then the flagged fallback stage; after it, routine-only errors degrade those actors to idle\_here |
 | Routine switch (Planner, Responder, Voice, calm bandmates) | An id not in the actor's routines list, or a routine reading a slot the actor has not bound | Drop the switch; keep the current routine; log invalid\_routine (bandmates: routine\_skip) |
 | Routine bank import (designer tool, not play) | Unresolved ids; a schedule with no steps, or steps on follow or wait; a slot read but not declared in every set that lists the routine; a shared routine reading a non-standard slot; an alert id not in the same set; a $slot target not declared | Entry not promoted; errors shown to the designer. The library never holds a failing entry |
 | Call failed: upstream\_error \[Proposed\] | A transient service or connection failure | That agent's fallback this turn; no automatic retry; log call\_failed |
@@ -2867,11 +2869,11 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-43 | Late and failed agent outputs | 2 | Settled | Settled by Ali (07/11/2026) as built: a late Planner output is discarded whole and the actor uses its combat list; the Responder and Voice share one fallback: one retry, then a neutral line as a talk action. Every late or failed Planner, Responder or Voice call is also filed for review in the play artifact's db (code planner\_late or agent\_fallback). Every bug is numbered (see Bug log): bugs/BG-\<n> from one counter (bugs\_meta/counter), status open until a build thread marks it fixed or wont\_fix (src/save/bugs.ts). A Weaver plan that fails validation (it went outside its catalogs, scales or ids) is filed as weaver\_off\_catalog even when the repair call fixes it |
 | D-44 | Undo and Planner outputs | 2, 4 | Deferred | Proposed: the redone turn reuses the stored Planner outputs; Parser, dialogue and Narrator calls run fresh. Until then undo calls the Planners again |
 | D-45 | Retries and timing | 2 | Deferred | Any retry adds a call. Two are skewed: the Voice's fact-check regeneration happens only to NPCs without secrets, and the Narrator's leak-scan regeneration is likelier near secrets. Reviewed: no regeneration while the player waits; gates sized for one retry |
-| D-46 | Routines outside the stage | 2, 4 | Deferred | Whether actors off the stage keep running routines each turn, and whether a stage trim may cut off a zone bound to an active actor's slot. Interim: an actor with no path holds its zone (Part 2, Explore mode). Related: D-67 and OQ-13 |
+| D-46 | Routines outside the stage | 2, 4 | Settled | Settled (NW5 C, NW9 A): nobody leaves the stage and nothing freezes; every NPC follows its routine and heals every turn, code only (revisit if the game lags). Routines on the clock (NW10–NW12) are still open. Was: Whether actors off the stage keep running routines each turn, and whether a stage trim may cut off a zone bound to an active actor's slot. Interim: an actor with no path holds its zone (Part 2, Explore mode). Related: D-67 and OQ-13 |
 | D-47 | Raw step lengths | 2 | Deferred | A library-only override that lets a step hold an exact turn count beside its duration id, for rhythms the four ids can't express |
 | D-48 | Large-bank filtering | 2 | Deferred | Code pre-filters routine sets by place tag before the Weaver call once the bank is too large to send whole |
 | D-49 | Time of day within a scenario | 2 | Deferred | Routines that change with the clock mid-scenario (T9: later); for now, the set is chosen at scenario start and its time tags must fit the time of day |
-| D-50 | Leaving the stage | 2 | Deferred | An exit routine that takes an NPC off the stage through a frontier; today orders into a frontier are dropped (OQ-13) |
+| D-50 | Leaving the stage | 2 | Settled | Settled (NW1): no exit. An NPC the player has met always stands in a real zone; it leaves a scenario only when no agent runs it any more and the player can't perceive it, and its routine carries on. Was: An exit routine that takes an NPC off the stage through a frontier; today orders into a frontier are dropped (OQ-13) |
 | D-51 | Companion warning on alert | 2 | Deferred | A one-off onAlert for companions (a warning shout), to revisit after stealth playtests |
 | D-52 | Band formations | 2 | Deferred | Coordinated band routines; folded into the existing shared-plans question |
 | D-53 | routineGap review | 2 | Deferred | How gap notes reach bank drafting: a GM-view list grouped by what the Weaver asked for |
