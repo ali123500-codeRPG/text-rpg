@@ -7,7 +7,7 @@ import { CL } from '../library/classIds';
 import { IT } from '../library/itemIds';
 import { gradesFitText } from '../scenario/validate';
 import { GRADES, ORDER_TYPES } from '../types';
-import { CHASE_RANGES, COVER, LIFE_STAGES, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
+import { CHASE_RANGES, COVER, LIFE_STAGES, LIGHT, NERVE_LINES, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS, type Scale } from '../scales';
 /** a scale's levels as the JSON choices Claude may write (G4) */
 const words = <K extends string>(sc: Scale<K>) => sc.keys.map((k) => JSON.stringify(sc.name(k))).join('|');
 /** V7 (flavor voice): the story's tone colors NPC speech without overriding character */
@@ -103,7 +103,7 @@ export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain"
    "slots":{slot:zone|[zone]} (a route slot lists 1 to ${CONFIG.MAX_ROUTE_ZONES} zones; one zone means stay there),"startAt"?:slot,"routineGap"?:string,
    "awarenessOfPlayer":awareness,"awarenessOfBands"?:[{"band":bandKey|bandId,"awareness":awareness}],"overrides"?:[{"actor","stance"}],"motive":string,
    "wares"?:{"items":[{"item":itemId,"qty"?:number}],"services":[serviceId]},
-   "personality"?:{"nerve"?:"cautious"|"steady"|"daring","types"?:[up to 2 type ids from catalogs.personality.types],"values"?:[up to 2 value ids from catalogs.personality.values]},"age"?:${words(LIFE_STAGES)} (a new actor's life stage; code picks the years)}],
+   "personality"?:{"nerve"?:${Object.keys(NERVE_LINES).map((k) => JSON.stringify(k)).join('|')},"types"?:[up to 2 type ids from catalogs.personality.types],"values"?:[up to 2 value ids from catalogs.personality.values]},"age"?:${words(LIFE_STAGES)} (a new actor's life stage; code picks the years)}],
  "seeds":{"plans":[{"ownerId","goal","steps":[short phrase],"triggers":[trigger, ownerId defaults to the plan owner],"createdTurn":number}],"triggers":[trigger],"secrets":[{"id","holderId","fact","leakTerms":[string, at least one],"revealWhen":{"type":"event_in_zone","kind","zone"}|{"type":"check_passed","skill":skill id from catalogs.skills,"minTier":tier,"againstActorId"}}]},
  "rewards":[{"item":itemId|{"base","quality":1|2|3|4,"boosts","name","look"},"qty"?:number,"place":{"carriedBy":key}|{"groundIn":zone}}],
  "hiddenTerms":[string],"weaverNote":string,

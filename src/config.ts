@@ -68,6 +68,8 @@ const DEFAULTS = {
   MARK_STACK_EVERY: 3,
   /** SM2: owed rolls are made at the end of the turn of the mark instead of when the engagement ends or the scenario breaks */
   SKILL_UP_INSTANT: true,
+  /** an improvement roll of this or more always improves, whatever the target (Part 1 §6: keeps the chance at 2% or more) */
+  IMPROVE_AUTO_PASS: 99,
   /** a successful improvement roll adds 1d(this) raw */
   SKILL_GAIN_DIE: 3,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
@@ -363,17 +365,17 @@ const DEFAULTS = {
   CLASS_TIER0_MAX_LEVEL: 5,
   CLASS_LEVELS_PER_TIER: 5,
   // Defeat XP from stats (X18–X23): per skill group, skills' training effort ranked high to low at 1, ½, ¼…, × the
-  // group's XP factor; defeat XP = power × taper × KILL_XP_MULT. Placeholders, tuned later (X19).
+  // group's XP factor; defeat XP = power × taper × DEFEAT_XP_MULT. Placeholders, tuned later (X19).
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
   XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full' } as Record<string, string>,
-  KILL_XP_MULT: 1, // X20: ×1 for now
+  DEFEAT_XP_MULT: 1, // X20: ×1 for now
   /** held and worn gear adds this × its coin value to the rating, on both sides (the foe's and the player's) */
   GEAR_RATING_FACTOR: 0.25,
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (LEVEL_XP × L(L−1)/2) */
   LEVEL_RATING_SHARE: 0.02,
-  KILL_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
+  DEFEAT_XP_TAPER: 2, // × min(1, TAPER × foe rating ÷ player rating) (X19)
   /** D-111 Bane bonuses: an achievement earned against a race or body type gives this much skill on
    * top of the bonus of the lower level it builds on (I = +5, II = +10, III = +15), on rolls against that race or type. The best race one and the best body type one both count, stacked as one modifier type */
   BANE_SKILL_PER_LEVEL: 5,
@@ -389,6 +391,7 @@ const DEFAULTS = {
   IRON_KNUCKLES_MULT: 1.1, // All-50 Iron Knuckles: unarmed hits deal a tenth more (placeholder)
   BARE_HANDED_GUARD: 5, // All-50 Bare-Handed Guard: Dodge effective skill while holding no weapon (placeholder)
   STEADY_GUARD: 5, // All-50 Steady Guard: Parry effective skill with a medium melee weapon (placeholder)
+  SHIELD_BREAKER_MULT: 2, // A3 Shield Breaker: a heavy melee blow on a shield drains its pool by this multiple of the damage (placeholder)
   IRON_RIM_MULT: 0.75, // All-50 Iron Rim (Block's part): damage the owner's shield pool takes (placeholder)
   GRIT_SHARE: 0.25, // All-50 Grit (Resolve's part): share of Endurance that augments Resolve (placeholder)
   THICK_HIDE_MULT: 0.95, // All-50 Thick Hide: health lost from each hit (placeholder)
@@ -414,7 +417,6 @@ const DEFAULTS = {
   AUTOPILOT_SAID_KEPT: 6, // the agent's last commentary lines it is shown, so it doesn't repeat its words
   AUTOPILOT_TIMEOUT_MS: 60_000, // a Watch-an-agent-play move that takes longer is given up and asked again, so the bar never hangs
   MAX_ROUTE_ZONES: 4, // Q2
-  MAX_STAGE_ZONES: 12, // Q2
   PLAN_CAPS: { cast: 8, zones: 8, frontiers: 4, places: 4, bands: 3, knows: 5 }, // Q2
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
