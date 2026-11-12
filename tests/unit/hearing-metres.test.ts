@@ -1,14 +1,14 @@
 // BG-57, HB1–HB8: hearing by real metres. Inverse-square loss, a loss per crossing (open gap 0, shut door or window 30,
-// wall 35) on the least-loss route, heard at the listener's background, clear 15 dB over it; backgrounds at half their
-// sourced level (HB6); a whisper to someone within 1 m is said leaning in (HB8). The test village has no rectangles: a
+// wall 35) on the least-loss route, heard from the hearing floor (HEARING_FLOOR_DB; per-zone background is parked, D-231),
+// clear 15 dB over it; a whisper to someone within 1 m is said leaning in (HB8). The test village has no rectangles: a
 // zone link is 8 m, the same zone 1 m.
 import { describe, expect, it } from 'vitest';
 import { NOISE } from '../../src/scales';
 import { CONFIG } from '../../src/config';
-import { backgroundDb, backgroundOf, hearingOf, openAirReachM, soundDb } from '../../src/perception';
+import { hearingOf, openAirReachM, soundDb } from '../../src/perception';
 import { zoneById } from '../../src/engine/relations';
 import { makeVillage } from '../harness';
-import { BK, ZK } from '../../src/library/tableIds';
+import { BK } from '../../src/library/tableIds';
 import type { Barrier, GameState } from '../../src/types';
 
 const door = (s: GameState, a: string, b: string, extra: Partial<Barrier> = {}): Barrier => {
@@ -22,22 +22,14 @@ const door = (s: GameState, a: string, b: string, extra: Partial<Barrier> = {}):
 describe('hearing by real metres (BG-57)', () => {
   it('open air in a quiet place: one equation for every level, louder never carries less', () => {
     makeVillage();
-    expect(openAirReachM('silent', 'quiet')).toBeNull();
-    expect(openAirReachM('normal', 'quiet')).toEqual([18, 100]);
-    expect(openAirReachM('hushed', 'quiet')).toEqual([0, 3]);
-    const r = NOISE.keys.map((k) => openAirReachM(k, 'quiet') ?? [0, 0]);
+    expect(openAirReachM('silent')).toBeNull();
+    expect(openAirReachM('normal')).toEqual([18, 100]);
+    expect(openAirReachM('hushed')).toEqual([0, 3]);
+    const r = NOISE.keys.map((k) => openAirReachM(k) ?? [0, 0]);
     for (let i = 1; i < r.length; i++) { expect(r[i][0]).toBeGreaterThanOrEqual(r[i - 1][0]); expect(r[i][1]).toBeGreaterThanOrEqual(r[i - 1][1]); }
-    expect(openAirReachM('normal', 'quiet', 10)![0]).toBeGreaterThan(openAirReachM('normal', 'quiet')![0]); // Keen Ear
+    expect(openAirReachM('normal', 10)![0]).toBeGreaterThan(openAirReachM('normal')![0]); // Keen Ear
   });
-  it('HB2, HB3, HB6: backgrounds by kind, a zone may name its own, each at half its sourced level', () => {
-    const s = makeVillage();
-    const z = zoneById(s, 'tav_common')!;
-    expect(backgroundOf(z)).toBe(CONFIG.DEFAULT_BACKGROUND);
-    expect(backgroundOf({ ...z, kind: ZK.field })).toBe('hush');
-    expect(backgroundOf({ ...z, kind: ZK.cellar })).toBe('calm');
-    expect(backgroundDb({ ...z, background: 'busy' })).toBe(30);
-  });
-  it('HB1: a voice is clear while 15 dB over the background, heard down to it, then lost', () => {
+  it('HB1: a voice is clear while 15 dB over the hearing floor, heard down to it, then lost', () => {
     const s = makeVillage({ playerZone: 'tav_common' });
     const at = (zone: string) => ({ zone });
     expect(hearingOf(s, 'normal', at('tav_common'), at('tav_common'))).toBe('full'); // 60 dB at 1 m vs 20
@@ -45,7 +37,7 @@ describe('hearing by real metres (BG-57)', () => {
     expect(hearingOf(s, 'quiet', at('tav_common'), at('tav_counter'))).toBe('partial'); // 22
     expect(hearingOf(s, 'hushed', at('tav_common'), at('tav_counter'))).toBeNull(); // 12
     expect(hearingOf(s, 'normal', at('tav_common'), at('street_door'))).toBeNull(); // the front door, shut (no sight): 12
-    zoneById(s, 'tav_counter')!.background = 'crowded'; // 40.5: the same voice drowns
+    CONFIG.HEARING_FLOOR_DB = 30; // a higher floor: the same voice (42 dB) is only heard
     expect(hearingOf(s, 'normal', at('tav_common'), at('tav_counter'))).toBe('partial');
   });
   it('HB4, BG-70: a shut door costs 30 dB, an open one nothing; a doorway with no sight is a shut door', () => {
@@ -65,7 +57,7 @@ describe('hearing by real metres (BG-57)', () => {
     const here = { zone: 'tav_common' };
     expect(soundDb(s, 'hushed', here, here, 0, true)! - soundDb(s, 'hushed', here, here)!).toBeCloseTo(-20 * Math.log10(CONFIG.WHISPER_LEAN_M));
     expect(soundDb(s, 'hushed', here, { zone: 'street_door' }, 0, true)).toBeCloseTo(soundDb(s, 'hushed', here, { zone: 'street_door' })!);
-    zoneById(s, 'tav_common')!.background = 'busy'; // 30: a whisper leaned in (40.5) is heard, not understood
+    CONFIG.HEARING_FLOOR_DB = 30; // a whisper leaned in (40.5) is heard, not understood
     expect(hearingOf(s, 'hushed', here, here, 0, true)).toBe('partial');
   });
 });

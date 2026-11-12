@@ -32,6 +32,7 @@ export type BeliefView = {
   lost?: true; // CH7: self chased this actor and lost them; it has not seen or heard them since
   active: boolean;
   label: string; // public label or known name
+  name?: string; // BG-95: the player's name, once self has heard it (label stays 'player')
   title?: string; // T18: the title the player wears, only once self has seen them (not heard of or told about them)
 };
 

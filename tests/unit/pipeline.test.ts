@@ -26,10 +26,11 @@ vi.mock('../../src/engine', () => ({
   unclearAddressee: () => null,
   fillSpeech: (_s: GameState, i: Intent) => i,
   quickWord: () => false,
-  resolveSpeech: () => ({ skill: SK.persuasion, playerTier: 'success', impression: 'convincing', perSpokesperson: {} }),
+  resolveSpeech: (_s: GameState, _i: Intent, sp: string[]) => ({ skill: SK.persuasion, playerTier: 'success', impression: 'convincing', perSpokesperson: Object.fromEntries(sp.map((id) => [id, {}])) }),
   firedOrders: () => H.firedOrders,
   beatSpeakers: () => H.beat,
   BEAT_OPENING: '(you speak first)',
+  MUFFLED: '(muffled)',
   resolveTurn: (s: GameState, input: TurnInput) => {
     H.resolved.push({ at: H.clockNow(), input });
     H.onResolve?.(s);
