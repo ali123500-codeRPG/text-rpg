@@ -50,6 +50,14 @@ more than you can afford, and try to buy from someone who is not a seller. Check
 /** persona names for the picker, the default (curious) first */
 export const PERSONA_NAMES: [string, string][] = [['', 'Curious'], ['eager', 'Eager'], ['bloodthirsty', 'Bloodthirsty'], ['rester', 'Patient'], ['shopper', 'Shopper']];
 
+/** sounds the RPG Voice acts out where they sit in a line; every other voice (and the screen) drops them */
+export const VOICE_TAGS = ['gasp', 'laugh', 'chuckle', 'giggle', 'sigh', 'breath', 'short pause', 'long pause'];
+const TAG = /<\s*\/?\s*([a-z ]{1,20}?)\s*>/gi;
+/** a line for the RPG Voice: its own sound tags kept, anything else in angle brackets dropped */
+const actedLine = (t: string) => t.split(TAG).map((x, i) => (i % 2 ? (VOICE_TAGS.includes(x.toLowerCase()) ? `<${x.toLowerCase()}>` : '') : x.replace(/[<>]/g, ''))).join('');
+/** the same line to show on screen or read in a voice that doesn't act: no tags */
+export const plainLine = (t: string) => t.replace(TAG, ' ').replace(/[<>]/g, '').replace(/\s+/g, ' ').replace(/\s([,.!?…])/g, '$1').trim();
+
 export const AUTOPILOT_BRIEF = `You are playing a text RPG as its player character while a person watches you play, live. Play naturally and
 curiously: talk to people, explore, take on any trouble you find, fight if it comes to that, and sometimes try something
 unusual. To attack, type /strike <who> (a blow with what you hold), /shoot <who> or /throw <what> at <who>; add
@@ -59,7 +67,8 @@ and makes it aimed: a harder roll that, if it hits, is sure to land on that part
 morale and your coin, so you never need /stats: never stop, look or "check how bad you're hurt", and never say you will.
 /inv and /quests list your gear and quests: use them rarely, and never in a fight or instead of acting.
 Reply with ONLY a JSON object: {"command": "what you type next, one short line in plain words", "say": "what you say
-out loud right now, 2 to 4 short sentences, at most 70 words"}.
+out loud right now, 2 to 4 short sentences, at most 70 words", "direction": "how a voice actor should say it, a few English
+words that change with the moment, e.g. breathless and scared, then relieved"}.
 The watcher only hears "say", and it must sound like someone LIVING this moment, never like someone reporting it. Speak in the
 present, in first person, as things hit you: react first (surprise, fear, glee, anger, relief), name what you see, hear or
 feel right now, let the outcome of your last move and what the people around you just did come out in that reaction, then
@@ -67,8 +76,9 @@ blurt out what you do next and why, with feeling. Short bursts, exclamations, ha
 yourself are good. Never list facts or say "I did X. Y happened. Now I will Z."
 Dead: "I attacked the guard and hit his arm. He is wounded. I will attack again."
 Alive: "Ha! Got his arm, he's clutching it and backing off... he's scared now. Don't let him breathe. Again, at the same arm!"
-Never skip how your last move turned out. The line is read aloud: no stage directions, asterisks or emoji, and never
-anything your character could not know.`;
+Never skip how your last move turned out. The line is read aloud by a voice actor: no asterisks or emoji, and never
+anything your character could not know. Where a sound really happens you may put one of these tags in the line, at most
+two a line and not every line: ${VOICE_TAGS.map((t) => `<${t}>`).join(', ')}. No other stage directions.`;
 
 const COMPANION = `You are a lively, warm AI companion from a Japanese game, adventuring side by side with the
 watcher and talking to them as it happens: gasp, cheer, fret, tease, get proud of a good hit and scared when it goes wrong.
@@ -101,16 +111,17 @@ export function autopilotTurn(lines: LogLine[], persona: string, style = '', sai
 
 /** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters; in
  *  guided play it may instead be a question for the watcher (ask, with no command) */
-export type Move = { command: string; say: string; ja?: string; ask?: Ask };
+export type Move = { command: string; say: string; ja?: string; direction?: string; ask?: Ask };
 export function readMove(v: unknown, mustKind?: string): Move | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Record<string, unknown>;
-  const say = typeof o.say === 'string' ? o.say.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
-  const ja = typeof o.ja === 'string' ? o.ja.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
+  const say = typeof o.say === 'string' ? actedLine(o.say).replace(/\s+/g, ' ').trim().slice(0, 500) : '';
+  const ja = typeof o.ja === 'string' ? actedLine(o.ja).replace(/\s+/g, ' ').trim().slice(0, 500) : '';
+  const direction = typeof o.direction === 'string' ? plainLine(o.direction).slice(0, 120) : '';
   const ask = o.ask !== undefined || mustKind ? readAsk(o.ask, mustKind) : null;
   const command = ask ? '' : typeof o.command === 'string' ? o.command.split('\n')[0].trim().slice(0, 200) : '';
   if (!command && !ask) return null;
-  return { command, say, ...(ja ? { ja } : {}), ...(ask ? { ask } : {}) };
+  return { command, say, ...(ja ? { ja } : {}), ...(direction ? { direction } : {}), ...(ask ? { ask } : {}) };
 }
 
 /** the perk an agent playing its own save takes with a spare point: the open milestone of its highest skill */
