@@ -5,7 +5,7 @@ import type { AgreementMade, CheckinAnswer, Intent, MoveSpot, NarratorOutput, Pl
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { COVER, LIGHT, STANCES, TACTICS, TIME_OF_DAY, TRAVEL_PACES, type Scale, type TravelPaceKey } from '../scales';
+import { CHASE_RANGES, COVER, LIGHT, STANCES, TACTICS, TIME_OF_DAY, TRAVEL_PACES, type Scale, type TravelPaceKey } from '../scales';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
 export type Checked<T> = { value: T; errors: string[] };
@@ -181,7 +181,7 @@ const weaver = obj<StagePlan>({
     tactics: level(TACTICS),
     lethal: (v, p, e) => (v === undefined || v === null ? true : bool(v, p, e)),
     relations: (v, p, e) => (v === undefined || v === null ? {} : record(STANCE_WORD)(v, p, e)),
-    chase: str as V<NonNullable<StagePlan['bands'][number]['chase']>>, // CH5: the validator checks the word
+    chase: level(CHASE_RANGES), // CH5; BG-40: the schema shows the names ("Ground"), so a name is read as its key
   }, ['chase'])),
   cast: arr(obj<Cast>({
     template: str, actor: str, label: str, name: str, appearance: str, pronouns: oneOf(['he', 'she', 'they', 'it'] as const),
