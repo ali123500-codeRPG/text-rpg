@@ -16,7 +16,7 @@ const broken = (b: Barrier) => b.state === 'destroyed';
 const squeezes = (b: Barrier, a: Actor) => b.state === 'crippled' && a.core.bodyTypeId === BT.amorphous;
 
 /** shut to someone with no key on the wrong side of the bar: locked, barred or blocked, and not broken through */
-export const isShut = (b: Barrier): boolean => !broken(b) && (!!b.blocked || !!b.lock?.locked || !!b.bar?.drawn);
+export const isShut = (b: Barrier): boolean => !broken(b) && !b.open && (!!b.blocked || !!b.lock?.locked || !!b.bar?.drawn);
 /** BA3: `a` carries a key naming this barrier */
 export const holdsKey = (a: Actor, b: Barrier): boolean => a.core.inventory.some((i) => i.opens?.includes(b.id));
 /** BA4: `from` is the bolt's side */
@@ -62,9 +62,24 @@ export function noteTried(b: Barrier, a: Actor): void {
   if (!(b.tried ??= []).includes(a.id)) b.tried.push(a.id);
 }
 
-export type WayOp = 'lock' | 'unlock' | 'bar' | 'unbar';
-/** BA3/BA4: a deliberate turn of the key or slide of the bar, in a move slot: the reason it can't be done, or null when done */
+export type WayOp = 'lock' | 'unlock' | 'bar' | 'unbar' | 'open' | 'shut';
+/** BA3/BA4: a deliberate turn of the key or slide of the bar, in a move slot: the reason it can't be done, or null when done.
+ * BG-70: opening it to stand open (its key turns and the bar on this side slides back with it) or shutting it again; a
+ * way shut to `a` returns 'shut' (the caller lets them try it) */
 export function wayOp(b: Barrier, a: Actor, from: string, op: WayOp): string | null {
+  if (op === 'open') {
+    if (b.open || broken(b)) return 'already';
+    if (passage(b, a, from) === 'shut') return 'shut';
+    openWay(b, a, from);
+    b.open = true;
+    return null;
+  }
+  if (op === 'shut') {
+    if (!b.open) return 'already';
+    delete b.open;
+    return null;
+  }
+  if (b.open) return 'open';
   if (op === 'lock' || op === 'unlock') {
     if (!b.lock) return 'no_lock';
     if (!holdsKey(a, b)) return 'no_key';
@@ -81,11 +96,12 @@ export function wayOp(b: Barrier, a: Actor, from: string, op: WayOp): string | n
 
 /** what `viewer` standing in `from` can tell of a barrier: its kind; that it is blocked or broken (plain to see); a drawn bar
  * from the bolt's side; and a lock or a bar from the far side only once they tried it, or hold its key */
-export function barrierView(b: Barrier, viewer: Actor | undefined, from: string): { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string } {
+export function barrierView(b: Barrier, viewer: Actor | undefined, from: string): { kind: string; open?: true; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string } {
   const knows = !viewer || b.tried?.includes(viewer.id) || false;
   const key = !!viewer && holdsKey(viewer, b);
   return {
     kind: barrierName(b),
+    ...(b.open ? { open: true as const } : {}),
     ...(b.blocked && !broken(b) ? { blocked: true as const } : {}),
     ...(b.lock?.locked && (knows || key) ? { locked: true as const } : {}),
     ...(b.bar?.drawn && (knows || boltSide(b, from)) ? { barred: true as const } : {}),

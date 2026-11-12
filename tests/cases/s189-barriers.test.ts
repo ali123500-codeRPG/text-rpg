@@ -119,6 +119,33 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     giveKey(s, s.barriers!.front_door);
     expect(shortestPath(s, 'tav_common', 'street_door', false, s.player)?.[0]).toBe('tav_counter'); // no key opens rubble
   });
+  it('BG-70: a door opened to look in stands open: seen through without going in, and shut again', () => {
+    const s = quiet('street_door');
+    const b = put(s, 'tav_common', 'street_door');
+    expect(buildPlayerView(s).zones.map((z) => z.id)).not.toContain('tav_common');
+    const ev = turn(s, intent({ way: { toZone: 'tav_common', op: 'open' } }));
+    expect(ev.find((e) => e.kind === 'way')!.way).toMatchObject({ did: 'open', barrier: b.id });
+    expect(s.player.zone).toBe('street_door');
+    expect(b.open).toBe(true);
+    const v = buildPlayerView(s);
+    expect(v.zones.map((z) => z.id)).toContain('tav_common');
+    expect(v.zone.links.find((l) => l.to === 'tav_common')).toMatchObject({ sight: true, way: { open: true } });
+    expect(buildNarrationView(s, ev).events.find((e) => e.kind === 'way')!.way!.did).toBe('opened it and left it standing open');
+    turn(s, intent({ way: { toZone: 'tav_common', op: 'shut' } }));
+    expect(b.open).toBeUndefined();
+    expect(buildPlayerView(s).zones.map((z) => z.id)).not.toContain('tav_common');
+  });
+  it('BG-70: opening a door locked against you is trying it: you learn it is locked', () => {
+    const s = quiet('street_door');
+    const b = put(s, 'tav_common', 'street_door', { lock: { locked: true } });
+    const ev = turn(s, intent({ way: { toZone: 'tav_common', op: 'open' } }));
+    expect(ev.find((e) => e.kind === 'way')!.way!.did).toBe('found_locked');
+    expect(b.open).toBeUndefined();
+    expect(b.tried).toContain('player');
+    giveKey(s, b);
+    turn(s, intent({ way: { toZone: 'tav_common', op: 'open' } }));
+    expect(b).toMatchObject({ open: true, lock: { locked: false } });
+  });
   it('BG-69: the player walks to a door barred out of sight and tries it, never round it unseen; once tried, round it', () => {
     const s = quiet('street_door');
     zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', sight: false });

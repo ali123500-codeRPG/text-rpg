@@ -15,7 +15,7 @@ import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
 import { sideFrom, sightDistM } from '../engine/position';
 import { chaseLost, chaseZones } from '../engine/chase';
-import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
+import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { talkingWith } from '../engine/speech';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
@@ -71,7 +71,7 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
   };
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
-    links: z.links.map((l) => ({ to: l.to, label: l.label, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
+    links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
     groundItems: z.groundItems.map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })),
   };
 }
@@ -407,7 +407,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },
     // BA7: code paths treat a way shut to this actor (no key, the far side of the bar, rubble) as no way
-    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: l.sight, ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
+    map: stageZones(state).map((z) => ({ id: z.id, links: z.links.map((l) => ({ to: l.to, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...(linkPassage(state, l, a, z.id) === 'shut' ? { shut: true } : {}) })) })),
     zones: perceivedZones(state, a.zone, a),
     seen: seenActors(state, a),
     ...(jobs.length ? { jobs } : {}),
@@ -604,6 +604,7 @@ const WAY_WORDS: Record<WayDid, string> = {
   unlocked: 'unlocked it with a key on the way through', unbarred: 'slid its bar back on the way through',
   found_locked: 'tried it: locked', found_barred: 'tried it: barred from the other side', found_blocked: 'blocked: no way through',
   lock: 'locked it with a key', unlock: 'unlocked it with a key', bar: 'slid its bar across', unbar: 'slid its bar back',
+  open: 'opened it and left it standing open', shut: 'shut it',
   picked: 'picked the lock: it opens', picking: 'working at the lock, not open yet', not_yet: 'working at the lock: not yet',
   beyond: 'the lock is beyond them for now', pick_broke: 'the pick snapped in the lock',
   found_open: 'checked it: nothing locks it, it opens freely', found_opens: 'checked it: shut, but they can open it (their key, or the bolt on their side)',

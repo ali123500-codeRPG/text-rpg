@@ -4,7 +4,7 @@
 import { compassOf as geoCompass } from '../scenario/geometry';
 import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
-import { zoneById } from '../engine/relations';
+import { seesAcross, zoneById } from '../engine/relations';
 import { knownZoneIds } from '../engine/trail';
 import { journalPlaces } from './pages';
 import { heightOf } from '../scenario/heights';
@@ -54,7 +54,7 @@ export function knownMap(s: GameState): KnownMap {
     const links: MapLink[] = z.links.map((l) => {
       const to = zoneById(s, l.to);
       const otherPlace = to && to.placeId !== z.placeId ? s.places.find((x) => x.id === to.placeId)?.names.current : undefined;
-      return { to: l.to, label: l.label, sight: l.sight, frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}) };
+      return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}) };
     });
     const you = id === p.zone && p.pos && z.rect ? { x: p.pos.x, y: p.pos.y } : undefined;
     const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), ...(z.rect ? { rect: z.rect, edges: z.edges } : {}), links,

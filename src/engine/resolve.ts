@@ -699,7 +699,14 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>): boolean {
   const b = barrierTo(state, a, w.toZone);
   // BG-54: try it on a copy first, so an op that can't be done spends no move slot
   const dry = b && { ...b, ...(b.lock ? { lock: { ...b.lock } } : {}), ...(b.bar ? { bar: { ...b.bar } } : {}) };
-  const why = !b || !dry ? 'no_barrier' : wayOp(dry, a, a.zone, w.op) ?? (!useMoveSlot(ctx, a, false) ? 'no_move' : wayOp(b, a, a.zone, w.op));
+  const dryWhy = !b || !dry ? 'no_barrier' : wayOp(dry, a, a.zone, w.op);
+  // BG-70: opening a way shut to them is trying it: the move slot goes on it and they learn why it won't open
+  if (dryWhy === 'shut' && b && useMoveSlot(ctx, a, false)) {
+    noteTried(b, a);
+    emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: `found_${shutBy(b, a, a.zone)}` as WayDid } }));
+    return true;
+  }
+  const why = dryWhy ?? (!useMoveSlot(ctx, a, false) ? 'no_move' : wayOp(b!, a, a.zone, w.op));
   if (why || !b) { logCode(state, 'way_op_dropped', { actorId: a.id, to: w.toZone, op: w.op, reason: why }); return false; }
   emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: w.op } }));
   return true;
