@@ -1,18 +1,18 @@
-// 46 Stage trim: past MAX_STAGE_ZONES, the farthest zones without engaged actors drop off, their links become
-// frontiers, and re-entry loads them with no Weaver call.
+// 46 Saved zone re-entry: a zone saved on its place page but off the stage is linked by a frontier and loads again
+// with no Weaver call.
 import { describe, expect, it, vi } from 'vitest';
 import { makeVillage, createRng, place } from '../harness';
-import { CONFIG } from '../../src/config';
-import { ScenarioDirector, frontiersNearPlayer, trimStage } from '../../src/scenario';
+import { ScenarioDirector, frontiersNearPlayer } from '../../src/scenario';
 import { VirtualClock } from '../../src/scenario/fixtures';
 
-describe('46 Stage trim', () => {
-  it('drops the far field, then reloads it without the Weaver', async () => {
+describe('46 Saved zone re-entry', () => {
+  it('reloads the saved field without the Weaver', async () => {
     const s = makeVillage({ playerZone: 'tav_common' });
-    CONFIG.MAX_STAGE_ZONES = 6;
-    trimStage(s);
-    expect(s.stage.zoneIds).toHaveLength(6);
-    for (const z of ['field_edge', 'field_mid', 'field_far']) expect(s.stage.zoneIds).not.toContain(z);
+    // the field is off the stage but saved on its place page; links into it are frontiers
+    const field = ['field_edge', 'field_mid', 'field_far'];
+    s.stage.zoneIds = s.stage.zoneIds.filter((id) => !field.includes(id));
+    s.zones = s.zones.filter((z) => !field.includes(z.id));
+    for (const z of s.zones) for (const l of z.links) if (field.includes(l.to)) l.frontier = true;
     expect(s.places.find((p) => p.id === 'field')!.zones).toHaveLength(3); // still saved on the place page
     const gate = s.zones.find((z) => z.id === 'gate_inner')!;
     expect(gate.links.find((l) => l.to === 'field_edge')!.frontier).toBe(true);

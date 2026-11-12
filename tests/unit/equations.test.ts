@@ -1,16 +1,16 @@
 // The Equations tab is built from equations(); it must build from the live library and CONFIG without throwing.
 import { describe, expect, it } from 'vitest';
-import { EFF_EX, effExample, equations } from '../../src/ruleset/equations';
+import { EFF_EX, SKILL_ROLL_EX, effExample, equations } from '../../src/ruleset/equations';
 import { effectiveSkill } from '../../src/ruleset/gear';
 import { getLibrary } from '../../src/library';
 import { actor, forcedRng, makeVillage } from '../harness';
-import { moraleRoll, tierLevel } from '../../src/ruleset';
+import { moraleRoll, ruleset, tierLevel } from '../../src/ruleset';
 import { maxMorale, tierCostMult } from '../../src/ruleset/morale';
 import { SK } from '../../src/library/skillIds';
 import { prototypeLibrary } from '../../src/library/data';
 import { xpToNext } from '../../src/engine/xp';
 import { classMaxLevel } from '../../src/library/spawn';
-import { CLASS_TIERS } from '../../src/scales';
+import { CLASS_TIERS, TIERS } from '../../src/scales';
 
 describe('equations for the library viewer', () => {
   it('builds every group with numbers from CONFIG', () => {
@@ -56,5 +56,31 @@ describe('equations for the library viewer', () => {
     const eff = effectiveSkill(s, p, EFF_EX.skill);
     expect(eff.skill).toBe(EFF_EX.standIn);
     expect(eff.value).toBeCloseTo(effExample());
+  });
+
+  // CS6 (b): the worked examples and tables are checked against the real roll, not a copy of its maths
+  const rollAt = (skill: number) => {
+    const s = makeVillage(), p = s.player;
+    p.core.skills = { [SK.melee_medium]: { raw: skill, state: 'normal' } };
+    p.core.perks = []; p.core.inventory = [];
+    expect(effectiveSkill(s, p, SK.melee_medium).value).toBe(skill);
+    return (d: number) => ruleset.roll({ actorId: p.id, skill: SK.melee_medium, modifiers: [], tierShifts: [], auto: false }, s, forcedRng([d]));
+  };
+  const rolls = () => equations(prototypeLibrary()).find((g) => g.key === 'rolls')!.equations;
+
+  it('the skill roll example matches ruleset.roll', () => {
+    const r = rollAt(SKILL_ROLL_EX.eff)(SKILL_ROLL_EX.d);
+    const note = rolls().find((e) => e.name === 'Skill roll')!.notes![0];
+    expect(note).toContain(`margin ${+r.margin.toFixed(2)} → ${TIERS.name(TIERS.at(tierLevel(r)))}.`);
+  });
+
+  it('the chance table matches ruleset.roll over every d100', () => {
+    const t = rolls().find((e) => e.name === 'Chance by effective skill')!.table!;
+    const at = ['near_miss', 'success', 'great_success', 'critical_success'] as const;
+    for (const [skill, ...cells] of t.rows) {
+      const roll = rollAt(Number(skill));
+      const levels = Array.from({ length: 100 }, (_, i) => tierLevel(roll(i + 1)));
+      expect(cells).toEqual(at.map((k) => `${levels.filter((l) => l >= TIERS.pos(k)).length}%`));
+    }
   });
 });

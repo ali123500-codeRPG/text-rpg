@@ -816,7 +816,7 @@ function questsView(): HTMLElement[] {
           return [QUEST_REWARD_LEVELS.name(lv), String(CONFIG.QUEST_REWARD_XP[lv] ?? 0), g.length ? g.join(', ') : 'none yet (kept for story quests)'];
         })))),
       fixed(card('quests', 'defeat-xp', {}, 'Defeat jobs against weak foes', [chip('questXp · weakFoeTaper')],
-        h('p', { class: 'lv-formula' }, `XP × min(1, ${CONFIG.KILL_XP_TAPER} × average foe power ÷ your power)`),
+        h('p', { class: 'lv-formula' }, `XP × min(1, ${CONFIG.DEFEAT_XP_TAPER} × average foe power ÷ your power)`),
         h('p', { class: 'hs-note' }, 'A defeat job pays less when its foes were far weaker than you, using the same taper as defeat XP. Each foe\'s power is taken when it falls; yours is taken when you hand in.'))),
       fixed(card('quests', 'pay', {}, 'Pay', [chip('payText')],
         row('Promise', 'The giver may promise coin, an item, or both.'),
