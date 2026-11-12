@@ -44,7 +44,7 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     ...(a?.for ? { for: a.for } : {}),
     mode: a?.mode ?? null,
     gear: intent?.gear ?? null,
-    line: intent?.spoken ? { text: intent.spoken, volume: 'normal' } : null,
+    line: intent?.spoken ? { text: intent.spoken, volume: intent.volume ?? 'normal' } : null,
     addressees: intent?.addressees ?? undefined,
   };
 }

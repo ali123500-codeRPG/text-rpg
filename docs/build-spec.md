@@ -3124,6 +3124,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-68 | Parser split a spoken line into deferred actions (asks to the listener are speech) | 12/11/2026 | fixed | this PR |
 | BG-69 | The player's walk went round a door barred out of sight (through the yard gate, sliding its bar) before ever trying it; knocking on a door became a move inside | 12/11/2026 | fixed | this PR |
 | BG-70 | Opening a door just to look in did nothing (no door state): doors now open and shut, and an open one is seen through (Ali chose this) | 12/11/2026 | fixed | this PR |
+| BG-71 | The player could not shout: every player line was a normal voice, so a shout through a barred door went unheard once hearing used real metres. The Parser now gives volume (whisper, normal, shout) | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
