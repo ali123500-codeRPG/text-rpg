@@ -233,6 +233,24 @@ describe('190 chases and free roam', () => {
     expect(pendingEnding(s)).toBe('resolved');
   });
 
+  it('SD2 a: every ending starts free roam for now; a road encounter or a knock-out starts the next scene', () => {
+    for (const cause of ['scene_end', 'story_beat'] as const) {
+      const s = makeVillage();
+      scene(s, ['tav_common']);
+      if (cause === 'scene_end') s.stage.ended = { as: 'resolved', text: '' };
+      s.stage.breakCause = cause;
+      expect(closeScene(s)).toBe('roam');
+      expect(s.stage.breakCause).toBeUndefined();
+    }
+    for (const cause of ['encounter', 'knocked_out'] as const) {
+      const s = makeVillage();
+      scene(s, ['tav_common']);
+      s.stage.breakCause = cause;
+      expect(closeScene(s)).toBe('new');
+      expect(s.stage.roam).toBeUndefined();
+    }
+  });
+
   it('templates carry the CH5 defaults', () => {
     const s = makeVillage();
     expect(chaseRange(s, actor(s, 'guard_1'))).toBe('ground');

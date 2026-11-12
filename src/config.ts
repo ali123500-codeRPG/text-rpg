@@ -261,6 +261,9 @@ const DEFAULTS = {
   CHECKIN_MAX_PER_SCENE: 6,
   /** SC12: at this many times its budget, code ends the scene as worn out (after any fight or chase) and files a bug */
   SCENE_OVERRUN_MULT: 2,
+  /** SD2 a: scene endings (SCENE_ENDINGS) after which free roam starts instead of the next scene. Every ending for now, so
+   * players can explore the world; broken_off is a knock-out, whose wake-up is always a new scene */
+  ROAM_AFTER: ['resolved', 'lost', 'left', 'escaped', 'interrupted', 'worn_out'] as string[],
   /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
   CHASE_LOST_TURNS: 3,
   /** CH5: the chase range of a code-run NPC whose band and template give none (a CHASE_RANGES key; placeholder) */

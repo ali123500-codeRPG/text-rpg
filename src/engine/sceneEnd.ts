@@ -226,16 +226,18 @@ function keep(state: GameState, r: SceneRecord): void {
 /**
  * At a break, before the next scene starts: record how the scene went, and say what comes next. 'resume' = an inner scene
  * ended inside a bigger one, which carries on (no event roll, no Weaver call); 'new' = a new scene starts (an encounter
- * inside an Episode or Venture starts an inner one, keeping the bigger scene as `outer`); 'roam' = the player left the
- * ground (SC16) or escaped off it (CH7): free roam starts, and no scene runs until something starts one (SD2 a).
+ * inside an Episode or Venture starts an inner one, keeping the bigger scene as `outer`); 'roam' = free roam starts, and no
+ * scene runs until something starts one (SD2 a): after leaving the ground (SC16), escaping off it (CH7), or any ending
+ * CONFIG.ROAM_AFTER lists (every ending for now, so players can explore the world).
  */
 export function closeScene(state: GameState): 'resume' | 'new' | 'roam' {
   const st = state.stage;
   const cause = st.breakCause;
   const as = st.ended?.as ?? (cause ? BREAK_ENDING[cause] : undefined) ?? 'interrupted';
   const text = st.ended?.text ?? '';
-  const roam = !!st.ended?.roam;
   const cur = st.scene, outer = st.outer;
+  // free roam after the endings CONFIG.ROAM_AFTER lists; a road encounter or a knock-out starts the next scene instead
+  const roam = !!cur && cause !== 'encounter' && cause !== 'knocked_out' && (!!st.ended?.roam || CONFIG.ROAM_AFTER.includes(as));
   const endsOuter = !!st.ended?.outer || cause === 'knocked_out';
   if (cur) keep(state, record(state, cur, endsOuter && outer ? 'interrupted' : as, text, !!outer));
   if (outer && endsOuter) keep(state, record(state, outer, as, text, false));
