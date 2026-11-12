@@ -24,3 +24,15 @@ it('a plain talk with no words reaches the listener as an opening, never as the 
   const filled = fillSpeech(s, bare, 'I talk to the trader');
   expect([filled.spoken, filled.addressees]).toEqual([null, ['trader']]);
 });
+
+it('BG-46: words with no action are a talk to whoever they are for, so they are said', () => {
+  const s = makeVillage({ playerZone: 'tav_counter' });
+  const lone = { ...intent({}), action: null, spoken: "Hello? Who's there?", addressees: ['everyone'] };
+  const filled = fillSpeech(s, lone, 'I call out');
+  expect(filled.action).toMatchObject({ type: 'talk', target: null });
+  expect(filled.addressees).toEqual(['everyone']);
+  const named = fillSpeech(s, { ...lone, addressees: ['trader'] }, 'x');
+  expect(named.action).toMatchObject({ type: 'talk', target: 'trader' });
+  // no words: still a turn with no action
+  expect(fillSpeech(s, { ...lone, spoken: null }, 'x').action).toBeNull();
+});
