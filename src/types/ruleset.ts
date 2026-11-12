@@ -70,7 +70,7 @@ export type RollResult = {
   margin: number;
   tier: Tier; // clamped to the TIERS table
   beyond?: number; // steps a shifted roll went past the end tier (+ above, − below); tierLevel() adds it
-  natural: -2 | -1 | 0 | 1 | 2;
+  natural: -1 | 0 | 1;
   modifiers: Mod[];
   tierShifts: TierShift[];
 };

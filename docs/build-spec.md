@@ -69,7 +69,7 @@ A Flaw is something the character functionally struggles to improve. Near 100 a 
 
 **Limits:**
 
-- 100 is the mortal limit for raw skill. Above 99, improvement happens only on a 99+ roll. Workaround mechanics come later.
+- 100 is the mortal limit for raw skill. No natural roll forces an improvement (LF4, Ali, 12/11/2026; a 99 or 00 used to pass any target): an improvement roll passes only above its target, so training stops once raw + burden reaches 100 (a skill at 99 can still land on 100–102 with its last gain). Scaling: past 100 raw skill does not grow by training at all; perks, achievements and gear still carry true and effective skill to 150, 200 and beyond. Workaround mechanics for raw come later (D-6).
 - Soft cap on raw skill and hard cap on effective skill. Values and behaviour are *placeholders*.
 
 **Three skill values** (Ali, 07/11/2026):
@@ -108,7 +108,7 @@ Only three sources may modify the roll, each its own modifier type: perks, gear 
 | 75–124 | Great Success (1) | Good fortune: gain major, challenge none to moderate, a windfall or a chance worth taking (ER1) |
 | 125+ | Critical Success (2) | The best of luck: gain extreme, challenge none to major (ER1) |
 
-**Natural edges** apply after the bands: a natural 01 drops two tiers, 02–05 one tier, 96–99 raises one tier, 00 two tiers. The result stops at Critical Success and Critical Failure unless the player has opened tiers past them (`tierUnlocks` on perks and achievements, D-211). Each opened tier widens the natural critical range by EVENT\_CRIT\_NATURALS (5): with one opened above, 96–100 is Critical Success+ and 91–95 Critical Success; failures mirror from 01. The Weaver is told the tier with its plus or minus signs.
+**Natural edges** apply after the bands: a natural 01–05 drops one tier and 96–100 raises one tier (CONFIG.NATURAL\_EDGE, 5 at each end); no natural roll moves two tiers (Ali, 12/11/2026: the old 01 −2 and 00 +2 are gone). The result stops at Critical Success and Critical Failure unless the player has opened tiers past them (`tierUnlocks` on perks and achievements, D-211). Each opened tier widens the natural critical range by EVENT\_CRIT\_NATURALS (5): with one opened above, 96–100 is Critical Success+ and 91–95 Critical Success; failures mirror from 01. The Weaver is told the tier with its plus or minus signs.
 
 **Layer 2 — skill checks.** No dice. Effective skill is compared with the scenario's target number. Result is pass or fail only; the margin does not matter. The target comes from the stage plan's challenge grade through DIFFICULTY: none 20, minor 35, moderate 50, major 65, extreme 80 (placeholders). Past Extreme the table goes on for tasks beyond a human body (CR4): mortal limit 100, beyond 150, mythic 200, divine 300, each the skill that just manages it. These four are task grades only (CR12): a scenario's gain, a lock's grade and the Weaver's choices stay within none to extreme, and nothing picks them in play until D-219 says when they apply. A check passes when effective skill plus situational modifiers is at least the target. The same rule applies to every actor. Wounds don't apply (settles OQ-15). Exception, looking around (Ali, 07/11/2026, Q17): the player's observe action with a notice skill (sight, hearing) is a roll, not a check: d100 with the skill, a scenario difficulty modifier, (moderate − the challenge grade's target) × the roll's skill weight 0.5 (SE23: a grade counts half a point, as skill does, so a task graded at your own skill gives Success or better 62% at 50 and at 300; Extreme is −15, Divine −125) and the light modifier of the player's zone. Success or better shows everyone in the player's zone and the zones in sight of it clearly.
 
@@ -141,7 +141,7 @@ Modifier types (each type diminishes within itself; values per type are deferred
 
 One roll point equals two skill points; write roll modifiers small.
 
-**Tier shifts**, applied after banding: natural edges (01 −2 tiers, 02–05 −1, 96–99 +1, 00 +2) and tier perks. They apply to attack and defense rolls, never to the location roll. There is no clamp: a shifted tier may go past Critical Success or below Critical Failure. Narration and the packet show the nearest of the six named tiers with one + or − per step past the end: ID 3 is "Critical Success+", ID 4 "Critical Success++", ID −4 "Critical Failure−".
+**Tier shifts**, applied after banding: natural edges (01–05 −1 tier, 96–100 +1, never two: Ali, 12/11/2026) and tier perks. They apply to attack and defense rolls, never to the location roll. There is no clamp: a shifted tier may go past Critical Success or below Critical Failure. Narration and the packet show the nearest of the six named tiers with one + or − per step past the end: ID 3 is "Critical Success+", ID 4 "Critical Success++", ID −4 "Critical Failure−".
 
 **Gap shifts**, applied to the gap (Part 3, Damage flow): heavy weapon vs block −1, cover, and perks that add a tier to block or dodge.
 
@@ -192,7 +192,7 @@ For each marked skill:
   Normal : Target = Skill + Burden   ; roll 1d100
   Flawed : Target = Skill + Burden   ; roll 2d100, keep LOWER
 
-  If roll > Target OR roll >= 99:
+  If roll > Target:            (no natural roll passes on its own: LF4)
      old   = Skill
      Skill += 1d3 (SKILL_GAIN_DIE)
      For each threshold T in (50, 100, 150):
@@ -879,7 +879,7 @@ type RollResult = {
   actorId: string; skill: string; d100: number; margin: number;
   tier: Tier;                       // clamped to the table
   beyond?: number;                  // steps a shifted roll went past the end tier (+ above, − below); tierLevel() adds it
-  natural: -2 | -1 | 0 | 1 | 2;
+  natural: -1 | 0 | 1;
   modifiers: RollRequest['modifiers']; tierShifts: RollRequest['tierShifts'];
 };
 type AttackRequest = { attackerId: string; targetId: string; weaponId: string;
@@ -1666,7 +1666,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 34 | Fallback is flagged | A plan that fails twice yields the fallback stage, and all four flags appear: stage record, weaver\_fallback log, GM banner, play-screen marker |
 | 35 | Stakes only | A Failure-tier plan whose threats are unaware and unalert passes validation |
 | 36 | Event-roll modifiers | A perk naming the event roll changes its total; a Wounded health level and a terrain bonus do not |
-| 37 | Natural edge | A natural 01 on the event roll lowers the tier by two |
+| 37 | Natural edge | A natural 01 on the event roll lowers the tier by one, never two; only the lowest and highest NATURAL\_EDGE results shift a tier |
 | 38 | Hidden terms | A public zone description containing one of the plan's hiddenTerms fails validation |
 | 39 | Opening narration covers who is seen | Every full presence event appears in the Narrator's narrated list; a narration that omits one fails the fact check |
 | 40 | Nothing hidden in the opening | The logged NarrationView at scenario start holds no tier, grade, event summary, Weaver note or opening belief |
@@ -1706,7 +1706,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 74 | Import rejects | A shared routine that reads slot counter is not promoted, and the error names the slot |
 | 75 | Attack floor | An attack whose shifted tier is Failure or worse logs a miss and makes no defense roll |
 | 76 | Gap ladder | With forced dice, gap +1 against dodge gives 0.8×, and gap 0 against block lands on a Non-essential part or the general area |
-| 77 | No clamp | Great Success plus a natural 00 gives Critical Success with beyond 1; the packet shows Critical Success+ |
+| 77 | No clamp | Critical Success plus a natural 00 gives Critical Success with beyond 1; the packet shows Critical Success+ |
 | 78 | Ladder ends | A gap of +6 or −6 uses the ±5 entry |
 | 79 | Named part | At gap −2 a hit rolled on the general area moves to the named left leg; one rolled on an arm stays |
 | 80 | Aim is code-set | The Parser output never carries aimed; /aim sets it for one turn only |
@@ -1738,7 +1738,7 @@ One hundred and three tests: the original eight, updated, eight for the rev. 2 c
 | 105 | Story pacing | Quiet turns count up and an attack resets them; a quiet\_turns 2 beat fires on the third turn start and, with endsScenario, marks a break; rest never ends the scenario; a stall marks one only with no live beat left; the director then starts a new scenario with one Weaver call |
 | 107 | Opposed standoff | An opposed guard who notices the player is alarmed (its onAlert fires) but not engaged, so the turn stays Explore; made hostile, it engages |
 | 108 | Look around | Someone sitting still one zone away is a shape; a successful look shows them clearly and they stay seen while they stay put; a move the player can't see clearly forgets them; looking is a sight roll, not a check |
-| 109 | Skill progression | A use marks a skill only when the opposition is within MARK\_WINDOW of raw or true skill, once, and only for the player; a hit costing ENDURANCE\_MARK\_PCT marks endurance; a marked skill whose roll beats its target gains 1d3 (SKILL\_GAIN\_DIE) and shows "Sight 38 → 41" plus "New perk unlocked" past a milestone; a failed roll shows nothing; marks clear |
+| 109 | Skill progression | A use marks a skill only when the opposition is within MARK\_WINDOW of raw or true skill, once, and only for the player; a hit costing ENDURANCE\_MARK\_PCT marks endurance; a marked skill whose roll beats its target gains 1d3 (SKILL\_GAIN\_DIE) and shows "Sight 38 → 41" plus "New perk unlocked" past a milestone; a failed roll shows nothing; a natural 99 or 00 that does not beat the target gains nothing (LF4); marks clear |
 | 110 | Healing | Rest heals HP and working parts but not a Crippled part; a clinic lifts it; a bandage heals its row in the turn it is used, is used up, and shows "Bandage: Hurt → Bruised"; with nothing to heal it stays in the pack and says so (Q3, 08/11/2026) |
 | 111 | Game clock | Each action costs its durations row; waiting until dawn moves the clock to dawn, keeps the scenario and shows "Time passes: 11 h (Day 2 · Dawn)"; a hostile in the zone blocks it; outdoor zones are dark at night unless lit; the Narrator sees the day and time of day; the Weaver picks the hour only at story start; a night-only routine set by day is a routine error; rest cools down in game minutes; natural recovery heals 0.5% an hour at endurance 50, never a Crippled part, fights included |
 | 113 | Action economy | A ranged attack in reach drops the move; out of reach the move stands and the attack is dropped; a move two links away with no action is a dash, stopped by a Crippled leg; "after" resolves the action before the move |
@@ -2824,7 +2824,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-3 | Soft cap and hard cap | 1 | Deferred | Values and behaviour |
 | D-4 | Burden fine-tuning | 1 | Deferred | K, default 20 |
 | D-5 | Potential at creation | 1 | Partly settled | A fixed POTENTIAL (300, placeholder) with a per-character override (Part 1 §6); the value waits for a balance pass |
-| D-6 | Beyond the mortal limit (100) | 1 | Deferred | Also makes the All-150 tier unreachable through training. Scaling review (Ali, 11/11/2026, page "Scaling Past 100", CR1–CR11): sight reach, hearing reach, weapon damage and health keep their base rules past 100, because perks will make them scale (CR5, CR6, CR8, CR9). The roll ceiling is D-213, loudness past Deafening D-214, louder supernatural blows D-215. Task grades past Extreme (CR4) are agreed. Grading tasks against a solo roll (CR3) moved to the search redesign; the shared might curve (CR7) moved to the breakable-walls design. |
+| D-6 | Beyond the mortal limit (100) | 1 | Deferred | Also makes the All-150 tier unreachable through training: no natural roll forces an improvement, so training stops once raw + burden reaches 100 (LF4, Ali, 12/11/2026). Scaling review (Ali, 11/11/2026, page "Scaling Past 100", CR1–CR11): sight reach, hearing reach, weapon damage and health keep their base rules past 100, because perks will make them scale (CR5, CR6, CR8, CR9). The roll ceiling is D-213, loudness past Deafening D-214, louder supernatural blows D-215. Task grades past Extreme (CR4) are agreed. Grading tasks against a solo roll (CR3) moved to the search redesign; the shared might curve (CR7) moved to the breakable-walls design. |
 | D-7 | Difficulty tier names and target numbers | 1 | Deferred | Names are the challenge grades (Part 1 §4, Layer 2); values are placeholders until set. Rows past Extreme added (CR4, CR12): mortal limit 100, beyond 150, mythic 200, divine 300, task grades only |
 | D-8 | Sneaking; Stealth skills and Perception's third skill | 1–2 | Partly settled | Stealth tree settled (Ali, 08/11/2026, ST1–ST10; Part 2, Stealthy posture). NPC stealth settled (NS1–NS10, 08/11/2026). Still open: Perception's third skill, what a larger contest gap does, and combined skill checks (such as sight with hearing) |
 | D-9 | All-XXX checks use raw skill | 1 | To confirm | Assumed in Part 1 §5 |

@@ -56,7 +56,8 @@ export const SKILL_ROLL_EX = { d: 60, eff: 50 };
 export const effExample = () => (EFF_EX.trueSkill + EFF_EX.gear) * CONFIG.SUBSTITUTE_EFFICIENCY * tierMult(EFF_EX.standIn);
 
 export function equations(lib: Library): EquationGroup[] {
-  const edges = [[1, 1], [2, 5], [96, 99], [100, 100]].map(([a, b]) => [a === b ? `${a}` : `${a}–${b}`, sg(naturalEdge(a))]);
+  const N = CONFIG.NATURAL_EDGE;
+  const edges = [[1, N], [101 - N, 100]].map(([a, b]) => [a === b ? `${a}` : `${a}–${b}`, sg(naturalEdge(a))]);
   const ex = SKILL_ROLL_EX;
   const exMargin = rollMargin(ex.d, ex.eff, []);
   const exLevel = rollLevel(ex.d, ex.eff);
@@ -82,7 +83,7 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Tier of a roll', at: 'band · naturalEdge · tierAt · src/ruleset/index.ts',
         formula: 'tier = band of the margin + unlocked extra bands + natural edge + tier shifts',
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
-        terms: [['natural edge', edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
+        terms: [['natural edge', `${edges.map(([d, v]) => `d100 ${d}: ${v}`).join(' · ')} (CONFIG.NATURAL_EDGE at each end); never more than one tier`], ['tier shifts', 'whole tiers from cover, Hidden Strike, achievements such as The Unseen Death on an unaware target, marks, falling short on gear, Curiouser and Curiouser']],
         notes: ['A tier pushed past either end keeps the end name with one + or − per step (Critical Success+).',
           `Unlocked extra bands (D-211): each tier past Critical Success a perk or achievement opens for this kind of roll (tierUnlocks) adds a band ${n(CONFIG.TIER_EXTRA_BAND)} wider past the end, so Critical Success+ is reached from margin ${n(MARGIN_BANDS[MARGIN_BANDS.length - 1] + CONFIG.TIER_EXTRA_BAND)} and Critical Success++ from ${n(MARGIN_BANDS[MARGIN_BANDS.length - 1] + 2 * CONFIG.TIER_EXTRA_BAND)}; each tier below Critical Failure opened adds one below ${n(MARGIN_BANDS[0] - CONFIG.TIER_EXTRA_BAND)}, and so on. Without an unlock the table above is the whole table.`] },
       { name: 'Chance by effective skill', at: 'tierOf · src/ruleset/index.ts',
@@ -161,11 +162,12 @@ export function equations(lib: Library): EquationGroup[] {
         formula: `burden = max(0, floor((sum of raw of untagged skills − potential) ÷ ${CONFIG.K}))`,
         terms: [['potential', `CONFIG.POTENTIAL = ${CONFIG.POTENTIAL}, plus any adjustments`], [String(CONFIG.K), 'CONFIG.K']] },
       { name: 'Improvement roll', at: 'improveMarked · src/ruleset/improve.ts',
-        formula: `target = raw + burden (a tagged skill: raw). Improves if d100 > target, or d100 is ${CONFIG.IMPROVE_AUTO_PASS} or more`,
+        formula: `target = raw + burden (a tagged skill: raw). Improves only if d100 > target`,
         terms: [['flawed skill', 'rolls two d100 and keeps the lower'], ['gain', `+1d${CONFIG.SKILL_GAIN_DIE} raw (1 to ${CONFIG.SKILL_GAIN_DIE}, CONFIG.SKILL_GAIN_DIE)`],
           ['rolls', `1 per roll owed${quick.length ? `; ${quick.map((p) => `${p.name}: ${p.improveRolls!.rolls} rolls while raw is below ${p.improveRolls!.below}`).join('; ')}` : ''}`]],
-        table: { head: ['Target', 'Chance', 'Flawed'], rows: [0, 20, 40, 60, 80, 95].map((t) => [String(t), pct(improveChance(t, false)), pct(improveChance(t, true))]) },
-        notes: [`Crossing a milestone (${MILESTONES.join(', ')}) on true skill is logged with the gain.`] },
+        table: { head: ['Target', 'Chance', 'Flawed'], rows: [0, 20, 40, 60, 80, 95, 100].map((t) => [String(t), pct(improveChance(t, false)), pct(improveChance(t, true))]) },
+        notes: ['No natural roll passes a target it does not beat, so training stops once the target reaches 100 (raw + burden); perks, achievements and gear still raise true skill past it.',
+          `Crossing a milestone (${MILESTONES.join(', ')}) on true skill is logged with the gain.`] },
     ] },
     { key: 'levels', title: 'Levels', about: 'How XP turns into levels.', equations: [
       { name: 'XP to the next level', at: 'xpToNext · spendXp · src/engine/xp.ts',
