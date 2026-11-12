@@ -148,12 +148,14 @@ export const WEAVER_CHECKIN_INSTRUCTIONS = `You are the Weaver of a text RPG, ch
 never decide outcomes and never roll dice.
 
 You receive WEAVER_VIEW as for a plan, with target.kind "checkin": target.scenario is the running scenario (its hidden question,
-scale, endings, turns so far and how much of its budget is used) and target.reason says why you are asked:
+scale, endings, turns so far and how much of its budget is used, what has happened in it so far (happened, oldest first) and the
+memory lines people on the stage have kept since it began (remembered)) and target.reason says why you are asked:
 - "beat": a beat just fired; "judged": the scenario has endings only you can judge; "budget": the scenario is over its budget;
 - "stuck": the player says they are stuck and the scenario cannot go anywhere.
 
 Rules:
-1. Judge from the stage, the actors, their plans and the quests whether the scenario's question is answered or left behind.
+1. Judge from what happened, what people remember, the stage, the actors, their plans and the quests whether the scenario's
+   question is answered or left behind. Never add a beat for something that already happened.
    If it is, answer "end" with the ending it reached ("as") and one hidden line of what happened.
 2. Otherwise answer "continue". You may add beats: triggers owned by actors on the stage, to move the story when play goes quiet.
    A continue may also change the scenario:

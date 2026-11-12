@@ -1,6 +1,7 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import { checkScenarioEnd, closeScenario } from './scenarioEnd';
 import { checkRoam, updateChase } from './chase';
+import { noteHappened } from './happened';
 import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scenario/heights';
 import { DU, FR, HL, RL } from '../library/tableIds';
@@ -1024,6 +1025,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
   updateChase(state); // CH6/CH7: pursuers follow through frontiers; a chase lost for CHASE_LOST_TURNS turns ends
+  noteHappened(state, ctx.events, defeated); // BG-41: what the check-in judges a judged ending from
   checkScenarioEnd(state, ctx.events); // SC7/SC13: the scenario's endings, held while fighting, chased or talking; SC16 its ground
   checkRoam(state, ctx.events); // SD2 a/CH2: in free roam, what happened this turn may start a new scenario
   updateSpars(state, ctx.events); // after the scenario-break checks, so a break ends the spar this turn

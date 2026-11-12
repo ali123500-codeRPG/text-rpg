@@ -580,6 +580,9 @@ function checkinScenario(state: GameState, f: ScenarioFrame): NonNullable<Weaver
     question: f.question, scale: SCENARIO_SCALES.name(f.scale), endings: f.endings.map((e) => ({ when: e.when, as: e.as, text: e.text })),
     turns: state.turn - f.startTurn, budget: c?.budgetTurns ? `${c.budgetTurns} turns, fights not counted` : `${c?.budgetDays ?? '?'} days`,
     used: Math.round(budgetUsed(state, f) * 100) / 100, overTime: budgetUsed(state, f) >= 1,
+    happened: (f.happened ?? []).map((h) => ({ ...h })),
+    remembered: state.actors.filter((a) => state.stage.zoneIds.includes(a.zone)).flatMap((a) =>
+      (state.hidden.memory[a.id] ?? []).filter((m) => m.turn >= f.startTurn).map((m) => ({ who: a.id, turn: m.turn, text: m.text }))),
   };
 }
 /** SD3–SD5, BA2: what was done at a barrier, for the Narrator */
