@@ -74,6 +74,10 @@ export type ScenarioScale = (typeof SCENARIO_SCALES.keys)[number];
  * Agent-run NPCs decide for themselves. A new range is a new row here and a branch in engine/chase.ts chaseZones. */
 export const CHASE_RANGES = scale([['post', 'Post'], ['ground', 'Ground'], ['near', 'Near'], ['far', 'Far']]);
 export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
+/** AG3: life stages, youngest first; each race lists the age in years at which each starts (RaceDef.ageStages).
+ * Past the last row a + per step (AG7, ruleset/age.ts). */
+export const LIFE_STAGES = scale([['stage_0', 'Child'], ['stage_1', 'Youth'], ['stage_2', 'Adult'], ['stage_3', 'Middle-aged'], ['stage_4', 'Old'], ['stage_5', 'Venerable'], ['stage_6', 'Ancient']]);
+export type LifeStageKey = (typeof LIFE_STAGES.keys)[number];
 export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]);
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */

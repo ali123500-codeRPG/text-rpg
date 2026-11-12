@@ -1046,6 +1046,12 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     const t = timeView(s);
     out.push(`Time passes: ${[Math.floor(m / 60) ? `${Math.floor(m / 60)} h` : '', m % 60 ? `${m % 60} min` : ''].filter(Boolean).join(' ')} (Day ${t.day} · ${t.timeOfDay})`);
   }
+  // AG16: the player's life stage changed as time passed
+  for (const l of s.log) {
+    if (l.turn !== turn || l.code !== 'stage_changed') continue;
+    const d = l.detail as { actorId: string; stage: string; years: number };
+    if (d.actorId === s.player.id) out.push(`You are now ${d.stage} (age ${d.years})`);
+  }
   // SP10/SP11: skill gains and newly reached milestones; failed improvement rolls show nothing
   for (const l of s.log) {
     if (l.turn !== turn || l.code !== 'skill_improved') continue;

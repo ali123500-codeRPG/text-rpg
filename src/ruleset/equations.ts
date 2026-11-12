@@ -3,13 +3,14 @@
 // (band, naturalEdge, ladder, stackType …), so the page follows the code.
 import type { Library } from '../types';
 import { CONFIG } from '../config';
-import { CLASS_TIERS, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
+import { CLASS_TIERS, LIFE_STAGES, MORALE_LEVELS, TIERS, type MoraleLevel } from '../scales';
 import { tierCostMult } from './morale';
 import { MARGIN_BANDS, band, ladder, naturalEdge, pickSeconds, stackType } from './index';
 import { MILESTONES } from './perks';
 import { learningWindow } from './improve';
 import { tierMult } from './gear';
 import { skillName } from '../library/skillNames';
+import { groupName } from '../library/functionNames';
 import { SK } from '../library/skillIds';
 import { FR } from '../library/tableIds';
 
@@ -62,11 +63,12 @@ export function equations(lib: Library): EquationGroup[] {
         terms: [['raw', 'the points in the skill'], ['perk true skill', 'the 40/80/120 perks of the skill (trueSkill, +functionBoost to skills sharing its group, trueSkillTo), perks that add to every skill of a function (fnSkill), and linked perks that add to every aura skill (auraSkill, Crushing Presence)'], ['achievement true skill', 'skillAdd on your current achievements, lower levels of the chain included (achievementSkill · src/ruleset/achRewards.ts)']],
         notes: ['A dormant skill, or one in a tree the actor can\'t use, counts as 0.'] },
       { name: 'Effective skill', at: 'effectiveSkill · src/ruleset/gear.ts',
-        formula: 'effective skill = best of ( true skill + gear ) × share × tier multiplier, over the skill and its stand-ins; + augments',
+        formula: 'effective skill = best of ( true skill + gear ) × share × tier multiplier × age, over the skill and its stand-ins; + augments × age',
         terms: [['share', `1 for the skill itself; a stand-in counts at its share (flat ${n(CONFIG.SUBSTITUTE_EFFICIENCY)}, see the Stand-ins tab; perks and achievements such as Master of the Moment add to it). A function roll counts every skill with the function at 1 (with the Perception All-150 Every Sense One, a sight or hearing roll counts the skills of both).`],
           ['gear', `skill effects of worn, held or carried items, also × share; a standard kit gives EQUIP_FACTOR (${n(CONFIG.EQUIP_FACTOR)}) × its need, shared once per roll (the best piece)`],
           ['augments', 'each skill that augments this one (SkillDef.augments) adds its true skill × its share (default 1) × its tier, on every roll of this skill or only the roll kinds it lists; its tree must be open (Shrewd Dealing augments Barter). A perk can give one too (PerkDef.augments: Grit, Endurance × ${n(CONFIG.GRIT_SHARE)} to Resolve)'],
-          ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')]],
+          ['tier multiplier', Object.entries(CONFIG.SKILL_TIER_MULT).map(([k, v]) => `${k.replace('_', ' ')} ×${v}`).join(' · ')],
+          ['age', `old-age decline (ageMult · src/ruleset/age.ts): skills in the ${CONFIG.AGE_DECLINE_GROUPS.map(groupName).join(', ')} groups keep 0.5 ^ (years past the start of ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} ÷ (the race\'s Ancient start − its ${LIFE_STAGES.name(CONFIG.AGE_DECLINE_FROM)} start)); 1 before then, for other skills and for ageless races`]],
         notes: [`Example: ${skillName(EFF_EX.standIn)} ${EFF_EX.trueSkill} with +${EFF_EX.gear} ${skillName(EFF_EX.standIn)} gear, standing in for ${skillName(EFF_EX.skill)} 0 → (${EFF_EX.trueSkill} + ${EFF_EX.gear}) × ${n(CONFIG.SUBSTITUTE_EFFICIENCY)} × ${n(tierMult(EFF_EX.standIn))} = ${n(effExample())}. Gear for the named skill (the held weapon's bonus) does not pass to a stand-in.`] },
       { name: 'Skill roll', at: 'roll · src/ruleset/index.ts',
         formula: `margin = d100 + ${n(W())} × effective skill + modifiers − ${n(NEED())}`,
