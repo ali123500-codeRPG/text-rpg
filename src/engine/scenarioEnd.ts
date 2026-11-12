@@ -10,7 +10,7 @@ import { now, timeOfDay } from '../time';
 import { actorById, isActive, isEngaged } from './relations';
 import { givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
-import { flushGrowth, xpBar } from './growth';
+import { flushGrowth, keepGains, xpBar } from './growth';
 import { triggerErrors } from '../scenario/triggers';
 import { checkGround, offGround, onGround, pursuers } from './chase';
 
@@ -270,6 +270,7 @@ export function closeScenario(state: GameState, rng?: Rng): 'resume' | 'new' | '
     const r = rng ?? createRng(state.rngState);
     flushGrowth(state, f, as, r);
     if (!rng) state.rngState = r.state;
+    keepGains(state, as); // the Gains page keeps every scenario's gains
   }
   if (cur) keep(state, record(state, cur, endsOuter && outer ? 'interrupted' : as, text, !!outer));
   if (outer && endsOuter) keep(state, record(state, outer, as, text, false));

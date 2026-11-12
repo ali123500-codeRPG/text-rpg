@@ -22,12 +22,19 @@ export function applyMotion(): void {
   if (typeof document !== 'undefined') document.documentElement.classList.toggle('calm', !motionOn());
 }
 
-/** a duration token in ms ('--m-beat' → 220) */
+/** a duration token in ms ('--m-beat' → 220); inside paced(), durations are stretched by its factor (unitless tokens are not) */
+let pace = 1;
 export function ms(name: string): number {
   if (typeof getComputedStyle !== 'function') return 0;
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const n = parseFloat(v);
-  return Number.isFinite(n) ? (v.endsWith('ms') ? n : v.endsWith('s') ? n * 1000 : n) : 0;
+  return Number.isFinite(n) ? (v.endsWith('ms') ? n * pace : v.endsWith('s') ? n * 1000 * pace : n) : 0;
+}
+/** runs fn with every duration token stretched by k: one moment can run slower than the turn's beats (the gains moment) */
+export function paced<T>(k: number, fn: () => T): T {
+  const was = pace;
+  pace = k;
+  try { return fn(); } finally { pace = was; }
 }
 const easeOf = (name: string) => (typeof getComputedStyle === 'function' && getComputedStyle(document.documentElement).getPropertyValue(name).trim()) || 'ease-out';
 
@@ -54,12 +61,17 @@ export function play(el: Element | null | undefined, frames: Keyframe[], o: { du
   a.onfinish = end; a.oncancel = end;
 }
 
-/** a number counting from its old value to the final one already in the element (M-36); its text is final when skipped */
+/** a number counting from its old value to the final one already in the element (M-36); its text is final when skipped.
+ * Several counts on one element run as a running sum: each leaves its own end value, and the last one leaves the final text. */
+const counts = new Map<HTMLElement, number>(); // counts still pending on each element
 export function count(el: HTMLElement | null | undefined, from: number, to: number, fmt: (n: number) => string, delay: number): void {
   if (!el || !canAnimate(el) || from === to || typeof requestAnimationFrame !== 'function') return;
-  const final = el.textContent ?? '';
+  const pending = counts.get(el) ?? 0;
+  if (!pending) { el.dataset.final = el.textContent ?? ''; el.textContent = fmt(from); }
+  counts.set(el, pending + 1);
+  const final = el.dataset.final ?? '';
   const dur = ms('--m-count');
-  let raf = 0;
+  let raf = 0, over = false;
   const timer = setTimeout(() => {
     const t0 = performance.now();
     const step = (t: number) => {
@@ -69,9 +81,15 @@ export function count(el: HTMLElement | null | undefined, from: number, to: numb
     };
     raf = requestAnimationFrame(step);
   }, delay);
-  const r: Running = { finish: () => { clearTimeout(timer); cancelAnimationFrame(raf); el.textContent = final; running.delete(r); } };
+  const r: Running = { finish: () => {
+    clearTimeout(timer); cancelAnimationFrame(raf); running.delete(r);
+    if (over) return;
+    over = true;
+    const left = (counts.get(el) ?? 1) - 1;
+    if (left > 0) { counts.set(el, left); el.textContent = fmt(to); return; }
+    counts.delete(el); el.textContent = final; delete el.dataset.final;
+  } };
   running.add(r);
-  el.textContent = fmt(from);
 }
 
 /** a small "+3" or "−12" that rises from a number and fades (M-36); tone is a colour token. It sits on the number's
@@ -132,7 +150,8 @@ export function bar(track: HTMLElement | null | undefined, fill: HTMLElement | n
 export function stamp(el: HTMLElement | null | undefined, delay: number, old?: string): void {
   if (!el || !canAnimate(el)) return;
   const final = el.textContent ?? '';
-  const land = () => play(el, [{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { dur: ms('--m-beat') });
+  const beat = ms('--m-beat');
+  const land = () => play(el, [{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'none' }], { dur: beat });
   if (delay <= 0) { land(); return; }
   // until its beat the old word stays readable; skipping shows the new one at once
   if (old !== undefined) el.textContent = old;
