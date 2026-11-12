@@ -1,4 +1,5 @@
 // Part 2, Game state model, plus Part 4 §9 ids. Shared by every workstream: change only through the integration owner.
+import { GRADE_LEVELS, WEAVER_GRADE_TOP, type GradeLevel } from '../scales';
 
 export type StoryId = string;
 export type ActorId = string;
@@ -7,8 +8,9 @@ export type FactId = string;
 export type LibraryRef = string; // id in the story's blueprints or the library (story first)
 export type SlotKey = string; // '<subject>.<attribute>'
 export type Turn = number;
-export type Grade = 'none' | 'minor' | 'moderate' | 'major' | 'extreme'; // [Proposed] scale
-export const GRADES: readonly Grade[] = ['none', 'minor', 'moderate', 'major', 'extreme'];
+/** a Weaver grade: GRADE_LEVELS (src/scales.ts) from none up to WEAVER_GRADE_TOP; the task grades past it are GradeLevel only */
+export type Grade = Extract<GradeLevel, 'none' | 'minor' | 'moderate' | 'major' | 'extreme'>;
+export const GRADES = GRADE_LEVELS.keys.slice(0, GRADE_LEVELS.pos(WEAVER_GRADE_TOP) + 1) as readonly Grade[];
 
 /** a tier's display name, only in text for people and for Claude */
 export type TierName = string;

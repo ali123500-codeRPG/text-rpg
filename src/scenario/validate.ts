@@ -5,7 +5,7 @@ import { triggerErrors } from './triggers';
 import { scaleFor } from '../engine/scenarioEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { CHASE_RANGES, COVER, LIFE_STAGES, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { CHASE_RANGES, COVER, GRADE_LEVELS, LIFE_STAGES, LIGHT, SCENARIO_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
@@ -15,7 +15,7 @@ import { itemValue } from '../ruleset/value';
 
 const BELIEFS = ['unaware', 'suspicious', 'aware'];
 
-const g = (x: Grade) => GRADES.indexOf(x);
+const g = (x: Grade) => GRADE_LEVELS.pos(x);
 
 /** gainVsChallenge: for the middle tiers, the gain's grade minus the challenge's, lowest and highest */
 type Fit = { challenge: [Grade, Grade]; gain: [Grade, Grade]; gainVsChallenge?: [number, number] };

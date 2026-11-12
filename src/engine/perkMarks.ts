@@ -17,8 +17,8 @@ import { canBlock, defenseItem, effectiveSkill, parryItem, usableDefense } from 
 import { allActors, isActive, stance, warm } from './relations';
 import { SK, DEFENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { met } from '../ruleset/hits';
 
-const HITS = new Set(['grazed', 'blocked', 'full_hit', 'heavy_hit', 'crushing_hit']);
 export const MARK_SOURCE: Record<string, string> = { [PK.set_them_up]: 'Set Them Up', [PK.turn_the_blade]: 'Turn the Blade', [PK.hunters_mark]: 'Hunter’s Mark', [PK.make_them_stumble]: 'Make Them Stumble', [PK.leg_bolt]: 'Leg Bolt', [PK.dirt_in_the_eyes]: 'Dirt in the Eyes' };
 
 const drop = (a: Actor, f: (m: NonNullable<Actor['perkMarks']>[number]) => boolean) => {
@@ -72,7 +72,7 @@ export function afterAttack(state: GameState, A: Actor, D: Actor, r: AttackResul
   const clean = r.gap !== null && r.gap >= 2;
   // A2 Turn the Blade: a clean parry made with a weapon (not barehanded)
   if (!ranged && clean && r.defenseType === 'parry' && hasPerk(D, PK.turn_the_blade) && parryItem(state, D)) add(D, { perk: PK.turn_the_blade, target: A.id });
-  if (ranged && HITS.has(r.outcome) && hasPerk(A, PK.hunters_mark)) add(A, { perk: PK.hunters_mark, target: D.id });
+  if (ranged && met(r.outcome) && hasPerk(A, PK.hunters_mark)) add(A, { perk: PK.hunters_mark, target: D.id });
   if (!ranged && clean && r.defenseType === 'dodge' && hasPerk(D, PK.make_them_stumble)) add(A, { perk: PK.make_them_stumble, until: state.turn + 1 });
 }
 

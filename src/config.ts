@@ -1,5 +1,5 @@
 import type { DefenseKind, SkillFunction } from './types';
-import type { HealthLevelKey, NoiseKey, QuestRewardLevel } from './scales';
+import type { GradeLevel, HealthLevelKey, NoiseKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -38,7 +38,7 @@ const DEFAULTS = {
   TIER_EXTRA_BAND: 50,
   /** task grades: the skill that just manages a task (D-7 placeholders). mortal_limit and up are tasks past what a human
    * body can do (CR4); they are challenge rows only (CR12): no gain, lock or Weaver use until D-219 says when they apply */
-  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, divine: 300 } as Record<string, number>,
+  DIFFICULTY: { none: 20, minor: 35, moderate: 50, major: 65, extreme: 80, mortal_limit: 100, beyond: 150, mythic: 200, divine: 300 } as Record<GradeLevel, number>,
   SKILL_WEIGHT: 0.5,
   ROLL_NEEDED: 63.5,
   /** stacking within one modifier type: the x-th largest counts at STACK_RATIO^(x−1), so 1, 0.5, 0.25, 0.125 … */
@@ -352,7 +352,7 @@ const DEFAULTS = {
    * many more bands lighter, so a supernatural dodger can land a tower jump unhurt (past Critical Failure: its own row) */
   FALL_LANDING_PAST_STEP: 1,
   /** BA2: a Lockpicking roll's modifier by the lock's grade (placeholders); master or magic locks would add grades past extreme */
-  LOCK_GRADE_MOD: { none: 0, minor: -10, moderate: -20, major: -35, extreme: -50 } as Record<string, number>,
+  LOCK_GRADE_MOD: { none: 0, minor: -10, moderate: -20, major: -35, extreme: -50 } as Record<GradeLevel, number>,
   /** BA2: seconds to pick a lock at effective skill 50 (about a minute for a common lock, placeholder), halved for every
    * PICK_HALVING_PER points above 50 and doubled for every PICK_HALVING_PER below */
   PICK_SECONDS_AT_50: 60,
