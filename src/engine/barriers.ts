@@ -53,6 +53,10 @@ export function shutBy(b: Barrier, a: Actor, from: string): 'blocked' | 'barred'
   return 'locked';
 }
 
+/** BG-69: the player plans a walk around a shut way only once they know it is shut (tried it, or rubble in plain view);
+ * a bolt on the far side is not known from the near side. NPCs know their own place's ways. */
+export const knowsShut = (b: Barrier, a: Actor): boolean => a.kind !== 'player' || !!b.blocked || !!b.tried?.includes(a.id);
+
 /** someone who tried the barrier and found it shut knows it is locked or barred */
 export function noteTried(b: Barrier, a: Actor): void {
   if (!(b.tried ??= []).includes(a.id)) b.tried.push(a.id);
