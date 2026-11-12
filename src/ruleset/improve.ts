@@ -2,7 +2,10 @@
 // A use marks a skill when the opposition is from MARK_WINDOW below its raw skill to MARK_WINDOW above its true skill (SP2, SP6); a hit that
 // costs ENDURANCE_MARK_PCT health or more marks endurance (SP5); a hit your armor covers can mark its armor skill (AR5). Marked skills roll at the end of the
 // scenario (EG7, engine/growth.ts payScenario), in rounds (payRolls). Only the player keeps marks for now (SP7). Failed improvement rolls show nothing (SP11).
-import type { Actor, AttackResult, CheckResult, ContestResult, GameState, RollKind, Rng } from '../types';
+import type { Actor, AttackResult, CheckResult, ContestResult, GameState, RollKind, Rng, SkillEntry } from '../types';
+import { TIERS } from '../scales';
+import { band, extraBands, naturalEdge } from './index';
+import { tierReach } from './achRewards';
 import { CONFIG } from '../config';
 import { actorById } from '../engine/relations';
 import { MILESTONES, hasPerk, trueSkill } from './perks';
@@ -137,8 +140,23 @@ export function markResolve(state: GameState, actor: Actor, lostPct: number): vo
   if (actor.id === state.player.id && lostPct >= CONFIG.RESOLVE_MARK_PCT) mark(actor, SK.resolve);
 }
 
-/** Part 1 §6: an improvement roll passes only above its target; no natural roll passes it (so a target of 100 or more never improves) */
-export const improves = (roll: number, target: number) => roll > target;
+/** the most raw training can reach: SKILL_CAP, plus TAG_CAP_BONUS for a tagged skill (EG16) */
+export const skillCap = (s: Pick<SkillEntry, 'state'>): number => CONFIG.SKILL_CAP + (s.state === 'tagged' ? CONFIG.TAG_CAP_BONUS : 0);
+
+/** SG1 C: one improvement roll. margin = d100 + (cap − raw − burden) − GROWTH_ROLL_NEEDED, read on the tier table; the
+ * gain is GROWTH_GAIN by tier, plus GROWTH_GAIN_PAST_CRIT per band past Critical Success. `d` is the die (a Flawed skill
+ * passes the lower of two). The room left below the cap is the bonus, so the roll gets harder smoothly near the cap.
+ * A tagged skill carries no burden. SG3 (GROWTH_TAG_CAP_IN_ROLL) picks which cap the room counts from. */
+export function growthRoll(d: number, s: Pick<SkillEntry, 'raw' | 'state'>, burden: number, reach = { up: 0, down: 0 }): { margin: number; level: number; gain: number } {
+  const cap = CONFIG.GROWTH_TAG_CAP_IN_ROLL ? skillCap(s) : CONFIG.SKILL_CAP;
+  const margin = d + (cap - s.raw - (s.state === 'tagged' ? 0 : burden)) - CONFIG.GROWTH_ROLL_NEEDED;
+  const level = band(margin) + extraBands(margin, reach) + (CONFIG.GROWTH_NATURAL_EDGES ? naturalEdge(d) : 0);
+  const crit = TIERS.pos('critical_success');
+  const gain = level < TIERS.pos('success') ? 0
+    : level > crit ? (CONFIG.GROWTH_GAIN.critical_success ?? 0) + (level - crit) * CONFIG.GROWTH_GAIN_PAST_CRIT
+    : CONFIG.GROWTH_GAIN[TIERS.at(level)] ?? 0;
+  return { margin, level, gain: Math.max(0, Math.min(gain, skillCap(s) - s.raw)) }; // raw never passes its cap
+}
 
 /** improvement rolls a marked skill at `raw` gets: 1, or more from a perk's improveRolls while raw is below its limit */
 function improveRolls(a: Actor, raw: number): number {
@@ -163,17 +181,18 @@ export function payRolls(state: GameState, rng: Rng, rolls: [string, number][]):
   const a = state.player;
   const left = new Map(rolls.filter(([id, n]) => n > 0 && getLibrary().skills[id] && skillOpen(a, id)));
   const gains: SkillGain[] = [];
+  const reach = tierReach(a, undefined); // only tier unlocks for 'any' roll reach past Critical Success
   while (left.size) {
     const burden = burdenOf(a);
     for (const [id, n] of [...left]) {
       if (n <= 1) left.delete(id); else left.set(id, n - 1);
       const s = a.core.skills[id] ?? { raw: 0, state: 'normal' as const }; // not on the sheet yet: it joins with its first gain
-      const target = s.state === 'tagged' ? s.raw : s.raw + burden;
       for (let k = improveRolls(a, s.raw); k > 0; k--) { // Quick Study: two rolls below 15, each with its own gain
         const roll = s.state === 'flawed' ? Math.min(rng.d100(), rng.d100()) : rng.d100();
-        if (!improves(roll, target)) continue;
+        const { gain } = growthRoll(roll, s, burden, reach);
+        if (!gain) continue;
         const from = s.raw, trueBefore = trueSkill(a, id);
-        s.raw += rng.int(1, CONFIG.SKILL_GAIN_DIE);
+        s.raw += gain;
         a.core.skills[id] = s;
         const crossed = MILESTONES.filter((m) => trueBefore < m && trueSkill(a, id) >= m).pop();
         gains.push({ skill: id, from, to: s.raw, ...(crossed ? { milestone: crossed } : {}) });
