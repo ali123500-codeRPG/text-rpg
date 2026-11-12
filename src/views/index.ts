@@ -287,9 +287,10 @@ function need(state: GameState, id: string): Actor {
 }
 
 // ---------- PlayerView ----------
-/** BG-55: who the player was just talking with, still in sight (engine talkingWith) */
-function talkingWithSeen(state: GameState, seen: SeenActor[]): string[] {
-  return talkingWith(state).filter((id) => seen.some((x) => x.id === id && x.level === 'full'));
+/** BG-55: who the player was just talking with (engine talkingWith); BG-61: heard counts too (a voice through a barred
+ * door), since their words reached the player */
+function talkingWithSeen(state: GameState): { id: string; name: string }[] {
+  return talkingWith(state).map((id) => ({ id, name: callName(state, state.player.id, id) }));
 }
 /** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
  * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
@@ -327,7 +328,7 @@ export function buildPlayerView(state: GameState): PlayerView {
     zones: perceivedZones(state, p.zone, p),
     actors,
     ...(lastSeen(state, actors).length ? { lastSeen: lastSeen(state, actors) } : {}),
-    ...(talkingWithSeen(state, actors).length ? { talkingWith: talkingWithSeen(state, actors) } : {}),
+    ...(talkingWithSeen(state).length ? { talkingWith: talkingWithSeen(state) } : {}),
     ...(knownDestinations(state).length ? { known: knownDestinations(state) } : {}),
     ...(p.journal?.trail?.length ? { cameFrom: p.journal.trail.map((x) => ({ zone: x.zone, name: zoneById(state, x.zone)?.name ?? x.zone, leftTurn: x.left })) } : {}),
     facts: factsFor(state, p.placeId, actors.filter((a) => a.level === 'full').map((a) => a.id)),

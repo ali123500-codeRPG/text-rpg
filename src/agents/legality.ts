@@ -32,6 +32,9 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
 export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: string[] = []): ParserLegality {
   const zones = new Set([view.zone.id, ...view.zone.links.map((l) => l.to), ...view.zones.map((z) => z.id)]);
   const actors = new Set(view.actors.map((a) => a.id));
+  // BG-61: someone the player was just talking with can be spoken to though out of sight (a voice through a barred door)
+  const talking = new Set([...actors, ...(view.talkingWith ?? []).map((t) => t.id)]);
+  const isSpeechType = (t: string) => (SPEECH_ACTIONS as readonly string[]).includes(t);
   const dead = new Set(view.actors.filter((a) => a.health === 'Dead').map((a) => a.id));
   const own = view.player.inventory;
   const ground = new Set([view.zone, ...view.zones].flatMap((z) => z.groundItems.map((g) => g.id)));
@@ -75,7 +78,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
         if (k) a.target = k;
         else illegal.push(`action.time ${a.target}`);
       }
-    } else if (a.target !== null && a.target !== 'player' && !actors.has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
+    } else if (a.target !== null && a.target !== 'player' && !(isSpeechType(a.type) ? talking : actors).has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
       illegal.push(`action.target ${a.target}`);
     // BG-13: the dead can't be fought (the Parser aimed at a slime its view listed as Dead while a live one attacked)
     else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);
@@ -106,7 +109,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     out.perkMove = null;
   }
   if (out.addressees) {
-    const okAddr = (x: string) => x === 'everyone' || actors.has(x) || bandIds.includes(x);
+    const okAddr = (x: string) => x === 'everyone' || talking.has(x) || bandIds.includes(x);
     for (const x of out.addressees) if (!okAddr(x)) illegal.push(`addressee ${x}`);
   }
   if (out.gear) {
