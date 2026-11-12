@@ -352,7 +352,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     const bound: string[] = [];
     for (const [s, def] of Object.entries(set.slots)) {
       const v = slots[s];
-      if (v === undefined) { rerr('missing_slot', `cast ${k}: slot ${s} is not bound`); continue; }
+      if (v === undefined) { if (!def.optional) rerr('missing_slot', `cast ${k}: slot ${s} is not bound`); continue; }
       const list = def.kind === 'zone' ? (typeof v === 'string' ? [v] : null) : Array.isArray(v) ? v : null;
       if (!list) { rerr('invalid_slot', `cast ${k}: slot ${s} binds ${def.kind === 'zone' ? 'one zone' : 'a list of zones'}`); continue; }
       // a one-zone route means the actor stays there (V9)
