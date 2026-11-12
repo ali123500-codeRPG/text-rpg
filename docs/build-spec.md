@@ -3104,6 +3104,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-51 | The library viewer's Equations tab showed the literal text "${n(CONFIG.GRIT_SHARE)}" in the effective-skill augments term instead of the Grit share: the string used plain quotes, not a template (code scan, 12/11/2026). Fixed: a template string | 12/11/2026 | fixed | PR #503 |
 | BG-52 | The Equations tab said the attack gap is kept between −5 and +5, while code clamps it to GAP_MIN..GAP_MAX (−10..+5, the ladder's rows) (code scan). Fixed: the text reads GAP_MIN and GAP_MAX | 12/11/2026 | fixed | PR #503 |
 | BG-53 | The Equations tab said Every Fall a Lesson comes at A Nobody class level 20; A Nobody tops out at 15 and the perk is its level 15 capstone (code scan). Fixed: the text reads the perk's classLevel | 12/11/2026 | fixed | PR #503 |
+| BG-54 | "Open the hatch and climb down" left the player standing still with no word why: the Parser added a way op (unbar) the plain hatch can't take, the op was dropped, and because a way op takes the move slot the move was skipped too (playtest run 49, turn 5). Fixed: a way op that can't be done spends no move slot and the move happens; the Parser is told that opening a way to go through it is only the move | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
