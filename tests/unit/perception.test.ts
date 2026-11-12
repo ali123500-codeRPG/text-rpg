@@ -51,6 +51,13 @@ describe('computePerception', () => {
     expect(computePerception({ ...hid, zone: 'field_mid' }, v, createRng(1)).player).toBeUndefined(); // 24 m: past 20 m
     expect(computePerception({ ...hid, zone: 'street_square' }, v, createRng(1)).player).toEqual({ level: 'full', cue: 'sight' });
   });
+  it('BG-72: words said to you through a shut door are not felt (no touch); a blow aimed at you from out of sight still is', () => {
+    const s = makeVillage({ playerZone: 'street_door' });
+    const said = ev({ actorId: 'trader', kind: 'speak', zone: 'tav_common', noise: 'normal', visibility: 'unseen', target: 'player' });
+    expect(computePerception(said, s, createRng(1)).player).toBeUndefined();
+    expect(computePerception({ ...said, kind: 'talk' }, s, createRng(1)).player).toBeUndefined();
+    expect(computePerception({ ...said, kind: 'attack' }, s, createRng(1)).player).toEqual({ level: 'partial', cue: 'touch' });
+  });
   it('dark zone caps sight at partial', () => {
     const s = makeVillage({ playerZone: 'tav_cellar' });
     place(s, 'patron_1', 'tav_cellar');
