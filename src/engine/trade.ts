@@ -95,7 +95,7 @@ export type BuyResult =
   | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' };
 
 /** RD2, BG-57: a called order carries as far as a voice at CONFIG.ORDER_NOISE is heard clearly where `b` stands (hearingOf,
- * real metres, walls and the background). Farther trades (messengers, letters) stay parked (D-194). */
+ * real metres and walls). Farther trades (messengers, letters) stay parked (D-194). */
 export const hearsOrder = (state: GameState, a: Actor, b: Actor): boolean => hearsClearly(state, a, b, CONFIG.ORDER_NOISE);
 
 /** PY5/PY7: buy qty (default 1) of a ware from seller, for `to` (default the buyer). All or nothing; no roll.

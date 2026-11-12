@@ -5,6 +5,7 @@ import { talkMove } from '../../src/engine/merge';
 import { EK } from '../../src/library/tableIds';
 import { intent } from './w4-kit';
 import { SK } from '../../src/library/skillIds';
+import { CONFIG } from '../../src/config';
 
 const village = () => {
   const s = makeVillage({ without: ['slime_1', 'slime_2'] });
@@ -35,10 +36,10 @@ it('BG-62: a doorway is walked through: only a counter, fence or rail keeps the 
 
 it('BG-74: talking to someone in view who would not hear the player clearly from here steps up to them first', () => {
   const s = village();
-  s.zones.find((x) => x.id === 'tav_common')!.background = 'busy';
+  CONFIG.HEARING_FLOOR_DB = 30; // a loud floor: a normal voice is clear to about 5.6 m
   const p = s.actors.find((a) => a.id === 'patron_1')!;
   p.zone = 'tav_common'; s.player.zone = 'tav_common';
-  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 }; // 8.1 m in a busy room: a normal voice is not clear
+  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 }; // 8.1 m: a normal voice is not clear
   expect(talkMove(s, { ...talk('patron_1', {}), move: null })).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
   expect(talkMove(s, { ...talk('patron_1', {}), move: null, volume: 'shout' })).toBeNull(); // a shout carries
   p.pos = { x: -2.5, y: -3.5 }; // 1 m: clear
@@ -54,7 +55,7 @@ it('BG-77: talking to someone beside you while going through a doorway to anothe
 
 it('BG-78: buying from someone in view who would not hear the order clearly steps up to them first', () => {
   const s = village();
-  s.zones.find((x) => x.id === 'tav_common')!.background = 'busy';
+  CONFIG.HEARING_FLOOR_DB = 30; // a loud floor: a normal voice is clear to about 5.6 m
   const p = s.actors.find((a) => a.id === 'patron_1')!;
   p.zone = 'tav_common'; s.player.zone = 'tav_common';
   s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 };
@@ -65,7 +66,7 @@ it('BG-78: buying from someone in view who would not hear the order clearly step
 it('BG-80: one approach rule for every actor: an NPC talking to the player from too far steps up the same way', async () => {
   const { approachMove } = await import('../../src/engine/merge');
   const s = village();
-  s.zones.find((x) => x.id === 'tav_common')!.background = 'busy';
+  CONFIG.HEARING_FLOOR_DB = 30; // a loud floor: a normal voice is clear to about 5.6 m
   const p = s.actors.find((a) => a.id === 'patron_1')!;
   p.zone = 'tav_common'; s.player.zone = 'tav_common';
   s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 };
