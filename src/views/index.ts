@@ -632,7 +632,36 @@ const STAKES: Record<Tier, string> = {
   critical_success: 'The best of luck: the biggest gain, with at most a major challenge',
 };
 
-export function buildWeaverView(state: GameState, target: WeaverView['target']): WeaverView {
+const placeName = (state: GameState, id: string) => state.places.find((p) => p.id === id)?.names.current ?? id;
+
+/** NW6: the stage sorted by place, in stage order: each place named, with its parent, its areas and
+ * the people standing in them. Nobody is left out; the sorting is what keeps the Weaver on the right place (the test
+ * on 12/11 lost the thread with two flat lists). */
+function weaverPlaces(state: GameState, onStage: Actor[]): WeaverView['places'] {
+  const out = new Map<string, WeaverView['places'][number]>();
+  for (const z of stageZones(state)) {
+    let e = out.get(z.placeId);
+    if (!e) {
+      const pl = state.places.find((p) => p.id === z.placeId);
+      const parent = pl?.parentId ? { id: pl.parentId, name: placeName(state, pl.parentId) } : null;
+      out.set(z.placeId, e = { id: z.placeId, name: pl?.names.current ?? z.placeId, kind: pl?.kind ?? '', parent, areas: [], people: [] });
+    }
+    e.areas.push(zoneView(state, z));
+  }
+  for (const a of onStage) {
+    const plan = state.hidden.plans[a.id];
+    out.get(zoneById(state, a.zone)!.placeId)?.people.push({
+      id: a.id, label: a.label, name: a.names.current, zone: a.zone, band: a.bandId,
+      ...(a.core.templateId ? { templateId: a.core.templateId } : {}),
+      ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
+      secrets: state.hidden.secrets.filter((s) => s.holderId === a.id).map((s) => ({ id: s.id, holderId: s.holderId, fact: s.fact, leakTerms: [...s.leakTerms], revealWhen: { ...s.revealWhen } })),
+    });
+  }
+  return [...out.values()];
+}
+
+export type WeaverTarget = Omit<WeaverView['target'], 'placeName'>;
+export function buildWeaverView(state: GameState, target: WeaverTarget): WeaverView {
   const lib = getLibrary();
   const stage = new Set(state.stage.zoneIds);
   const onStage = state.actors.filter((a) => stage.has(a.zone));
@@ -650,24 +679,16 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     time: clockSet(state) ? timeView(state) : null,
     ways: WAYS_LEAN[state.stage.tier] ?? '',
     stakes: (STAKES[state.stage.tier] ?? '') + (state.stage.tierBeyond ? `; beyond Critical by ${Math.abs(state.stage.tierBeyond)}: push it further still, the luck ${state.stage.tierBeyond > 0 ? 'almost unbelievable' : 'cruel to the point of irony'}` : ''),
-    target: { kind: target.kind, placeId: target.placeId, ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
+    target: { kind: target.kind, placeId: target.placeId, placeName: placeName(state, target.placeId), ...(target.label !== undefined ? { label: target.label } : {}), ...(target.frontierKey !== undefined ? { frontierKey: target.frontierKey } : {}), ...(target.wake ? { wake: true as const } : {}),
       ...(target.kind === 'checkin' && state.stage.scenario ? { reason: target.reason, scenario: checkinScenario(state, state.stage.scenario) } : {}),
       ...(target.kind === 'scenario' && state.stage.encounter ? { encounter: { zone: state.stage.encounter.zone, danger: zoneById(state, state.stage.encounter.zone)?.danger ?? 'quiet', noticed: state.stage.encounter.noticed } } : {}) },
     headlines: headlinesFor(state, target.placeId, true),
-    stage: stageZones(state).map((z) => zoneView(state, z)),
-    actors: onStage.map((a) => {
-      const plan = state.hidden.plans[a.id];
-      return {
-        id: a.id, label: a.label, name: a.names.current, zone: a.zone, band: a.bandId,
-        ...(a.core.templateId ? { templateId: a.core.templateId } : {}),
-        ...(plan ? { plan: { goal: plan.goal, steps: [...plan.steps], triggers: structuredClone(plan.triggers), createdTurn: plan.createdTurn } } : {}),
-        secrets: state.hidden.secrets.filter((s) => s.holderId === a.id).map((s) => ({ id: s.id, holderId: s.holderId, fact: s.fact, leakTerms: [...s.leakTerms], revealWhen: { ...s.revealWhen } })),
-      };
-    }),
+    places: weaverPlaces(state, onStage),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
     bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
-    player: { level: charLevel(state.player), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player) },
+    player: { level: charLevel(state.player), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player),
+      standsIn: { place: state.player.placeId, placeName: placeName(state, state.player.placeId), area: state.player.zone } },
     previousNote: state.hidden.weaverNote,
     lastScenarios: lastScenarios(state).map((r) => ({ question: r.question, scale: SCENARIO_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENARIO_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),
     ...(state.stage.outer ? { outerScenario: { question: state.stage.outer.question, scale: SCENARIO_SCALES.name(state.stage.outer.scale) } } : {}),

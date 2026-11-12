@@ -246,7 +246,7 @@ export type WeaverView = {
   stakes: string;
   ways: string; // BA8: how the tier leans the ways in and out (locks, bars, guards), never a limit
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
-  target: { kind: 'scenario' | 'frontier' | 'checkin'; placeId: string; label?: string; frontierKey?: string; wake?: true;
+  target: { kind: 'scenario' | 'frontier' | 'checkin'; placeId: string; /** NW6 */ placeName: string; label?: string; frontierKey?: string; wake?: true;
     /** SC8: why this check-in was asked, and the running scenario it is about */
     reason?: import('./hidden').CheckinReason;
     scenario?: { question: string; scale: string; endings: { when: import('./hidden').EndCheck; as: string; text: string }[]; turns: number; budget: string; used: number; overTime: boolean;
@@ -255,12 +255,16 @@ export type WeaverView = {
     /** TV4/TV8: something meets the travelling player on this road zone; noticed: the player saw it coming */
     encounter?: { zone: string; danger: string; noticed: boolean } };
   headlines: string[];
-  stage: ZoneView[];
-  actors: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[];
+  /** NW6: the stage sorted by place, each place named, with its areas and the people in them */
+  places: { id: string; name: string; kind: string; parent: { id: string; name: string } | null;
+    areas: ZoneView[];
+    people: { id: string; label: string; name: string; zone: string; band: string; templateId?: string; plan?: Plan; secrets: Secret[] }[] }[];
   quests: { id: string; state: string; text: string }[];
   flags: Record<string, string | number | boolean>;
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
-  player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel };
+  player: { level: number; currentClass: { id: string; name: string } | null; health: HealthLevel;
+    /** NW6: where the player stands (place and area) */
+    standsIn: { place: string; placeName: string; area: string } };
   previousNote: string;
   /** SC6: how the last few scenarios went, oldest first (question, scale, tier, ending, who fell, what the player gained) */
   lastScenarios: { question: string; scale: string; tier: TierName; ending: string; note: string; turns: number; fallen: string[]; gained: string[]; inner?: true }[];

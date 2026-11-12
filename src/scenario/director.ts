@@ -6,7 +6,7 @@ import { noteCrossing } from '../engine/chase';
 import type { CheckinAnswer, Clock, GameEvent, GameState, Rng, EventRollResult, StagePlan, WeaverView } from '../types';
 import { CONFIG } from '../config';
 import { ruleset } from '../ruleset';
-import { buildWeaverView } from '../views';
+import { buildWeaverView, type WeaverTarget } from '../views';
 import { zoneById } from '../engine/relations';
 import type { PlanContext, PlanError } from './index';
 import { validateStagePlan } from './validate';
@@ -85,7 +85,7 @@ export class ScenarioDirector {
     const ctx: PlanContext = { tier: eventRoll.tier, kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey } : {}) };
     // GAP: WEAVER_TIMEOUT bounds the whole scenario-start wait (first call and repair together).
     const deadline = this.opts.clock.now() + CONFIG.WEAVER_TIMEOUT_MS;
-    const target: WeaverView['target'] = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
+    const target: WeaverTarget = { kind: 'scenario', placeId, ...(wake ? { wake: true as const } : {}), ...(frontierKey ? { frontierKey, ...(label !== undefined ? { label } : {}) } : {}) };
     const planned = await this.plan(state, ctx, target, deadline);
     const res = { ...this.finish(state, ctx, planned, rng, entry), eventRoll };
     if (frontierKey && entry === 'stealthy') stealthyArrival(state, rng);
@@ -154,7 +154,7 @@ export class ScenarioDirector {
   }
 
   /** one call plus one repair retry with the validator's errors. */
-  private async plan(state: GameState, ctx: PlanContext, target: WeaverView['target'], deadline?: number): Promise<Planned> {
+  private async plan(state: GameState, ctx: PlanContext, target: WeaverTarget, deadline?: number): Promise<Planned> {
     const view = buildWeaverView(state, target);
     const first = await this.timed(this.call(view), deadline);
     if (first === TIMEOUT) return { plan: null, errors: [], reason: 'weaver_timeout' };
