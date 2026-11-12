@@ -6,7 +6,7 @@ import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
 import { actorById, isActive, zoneById } from './relations';
-import { summon } from '../ruleset/threadbound';
+import { summon } from '../ruleset/threadboundItems';
 import { freeAccSlot } from '../ruleset/gear';
 
 export function gripParts(state: GameState, actor: Actor): string[] {
