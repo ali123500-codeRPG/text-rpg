@@ -1,5 +1,6 @@
 // W3 — Perception per event, the single belief writer, communication events, belief decay.
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
+import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
 import { AWARENESS } from '../scales';
 import { hearingOf } from './noise';
@@ -74,15 +75,17 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   }
   // HB8: a whisper said to this observer (its target or one it was addressed to) is said leaning in
   const toMe = event.target === observer.id || !!event.speech?.addressees.includes(observer.id);
-  const nl = soundReach(state, observer, at, event.noise, event.noise === 'hushed' && toMe && (['speak', 'talk'].includes(event.kind) || !!event.speech));
+  const words = event.kind === 'speak' || (SPEECH_ACTIONS as readonly string[]).includes(event.kind) || !!event.speech;
+  const nl = soundReach(state, observer, at, event.noise, event.noise === 'hushed' && toMe && words);
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);
   // Perception All-150 Every Sense One: what the owner hears it sees, and what it sees it hears. The better sense sets the
   // level for both: a full perception shows everything (read as sight), a partial one is heard too (its words come through)
   const oneSense = !!best && hasPerk(observer, PK.one_sense);
   if (best && oneSense) best = { level: best.level, cue: best.level === 'full' ? 'sight' : 'sound' };
-  // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone.
-  if (event.target === observer.id) best = better(best, { level: 'partial', cue: 'touch' });
+  // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone. BG-72: words
+  // said to someone are not felt; they reach them only by sound or sight
+  if (event.target === observer.id && !words) best = better(best, { level: 'partial', cue: 'touch' });
   // words need the sound heard clearly (CLEAR_ABOVE_BACKGROUND_DB over the background: who and what; a sound heard only partly is a voice without its
   // words), or Every Sense One
   return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;
