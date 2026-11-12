@@ -3121,6 +3121,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-66 | A step already taken was also offered as 'put off to next turn' | 12/11/2026 | fixed | this PR |
 | BG-67 | 'Tell her' went to the barkeep instead of the woman you were talking to | 12/11/2026 | fixed | this PR |
 | BG-68 | Parser split a spoken line into deferred actions (asks to the listener are speech) | 12/11/2026 | fixed | this PR |
+| BG-69 | The player's walk went round a door barred out of sight (through the yard gate, sliding its bar) before ever trying it; knocking on a door became a move inside | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 

@@ -119,9 +119,20 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     giveKey(s, s.barriers!.front_door);
     expect(shortestPath(s, 'tav_common', 'street_door', false, s.player)?.[0]).toBe('tav_counter'); // no key opens rubble
   });
+  it('BG-69: the player walks to a door barred out of sight and tries it, never round it unseen; once tried, round it', () => {
+    const s = quiet('street_door');
+    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', sight: false });
+    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', sight: false });
+    const b = put(s, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });
+    expect(shortestPath(s, 'street_door', 'tav_common', false, s.player)).toEqual(['tav_common']);
+    const ev = turn(s, go('tav_common'));
+    expect(ev.find((e) => e.kind === 'way')!.way).toMatchObject({ did: 'found_barred', barrier: b.id });
+    expect(s.player.zone).toBe('street_door');
+    expect(shortestPath(s, 'street_door', 'tav_common', false, s.player)?.[0]).toBe('street_square');
+  });
   it('BA7: a broken barrier: Destroyed opens to all, Crippled lets an amorphous body through', () => {
     const s = quiet();
-    const b = put(s, 'tav_common', 'street_door', { lock: { locked: true }, state: 'crippled' });
+    const b = put(s, 'tav_common', 'street_door', { lock: { locked: true }, state: 'crippled', tried: ['player'] }); // BG-69: known shut
     expect(shortestPath(s, 'tav_common', 'street_door', false, s.player)).toBeNull();
     s.player.core.bodyTypeId = BT.amorphous;
     expect(shortestPath(s, 'tav_common', 'street_door', false, s.player)).toEqual(['street_door']);

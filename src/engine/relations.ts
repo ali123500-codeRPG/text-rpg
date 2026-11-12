@@ -2,7 +2,7 @@
 import type { Actor, Belief, BeliefStatus, GameState, Stance } from '../types';
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
-import { linkPassage } from './barriers';
+import { barrierOn, knowsShut, linkPassage } from './barriers';
 
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
@@ -143,7 +143,7 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
     for (const l of z?.links ?? []) {
       // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
       if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !l.sight) || (l.drop && !sightOnly)) continue;
-      if (walker && linkPassage(state, l, walker, cur) === 'shut') continue;
+      if (walker && linkPassage(state, l, walker, cur) === 'shut' && knowsShut(barrierOn(state, l)!, walker)) continue;
       seen.add(l.to);
       prev.set(l.to, cur);
       if (l.to === to) {
