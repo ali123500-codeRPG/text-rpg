@@ -44,6 +44,8 @@ export type Intent = {
   way?: { toZone: string; op: import('../engine/barriers').WayOp } | null;
   gear: GearOp[] | null;
   spoken: string | null;
+  /** BG-71: how loud the player says it (whisper, normal, shout); normal when left out */
+  volume?: Volume;
   addressees: string[] | null; // actor ids, band ids or "everyone"
   deferred: string[];
   clarify: string | null;

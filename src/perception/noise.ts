@@ -10,6 +10,9 @@ import { pathM, sightDistM, spotOf, type Located } from '../engine/position';
 import { zoneById } from '../engine/relations';
 import { doorway, edgeFacing, sameFloor } from '../scenario/geometry';
 
+/** NV5: the noise of a spoken line by its volume (one table for the player's and NPCs' lines) */
+export const VOLUME_NOISE = { whisper: 'hushed', normal: 'normal', shout: 'loud' } as const satisfies Record<import('../types').Volume, NoiseKey>;
+
 /** HB3: how loud a zone is anyway, in dB: its own background, else its kind's, else DEFAULT_BACKGROUND */
 export function backgroundOf(zone: Zone | undefined): BackgroundKey {
   return zone?.background ?? (zone?.kind ? getLibrary().zoneKinds?.[zone.kind]?.background : undefined) ?? CONFIG.DEFAULT_BACKGROUND;

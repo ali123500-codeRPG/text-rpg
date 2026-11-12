@@ -14,7 +14,7 @@ import { contestFeat } from './feats';
 import { applyHaggle, isSeller } from './trade';
 import { countTry, repeatTryMods } from '../ruleset/pressure';
 import { hearsWords } from '../perception';
-import { hearingOf } from '../perception/noise';
+import { hearingOf, VOLUME_NOISE } from '../perception/noise';
 
 export const SPEECH_SKILL: Record<string, string> = {
   talk: SK.persuasion, persuade: SK.persuasion, deceive: SK.lying, intimidate: SK.intimidation, barter: SK.barter,
@@ -109,7 +109,7 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
   };
   for (const ad of intent.addressees) {
     if (ad === 'everyone') {
-      const heard = live.filter((a) => hearingOf(state, 'normal', state.player, a) === 'full'); // who hears a normal voice clearly (BG-57)
+      const heard = live.filter((a) => hearingOf(state, VOLUME_NOISE[intent.volume ?? 'normal'], state.player, a) === 'full'); // who hears the player's voice clearly (BG-57, BG-71)
       const bands = [...new Set(heard.map((a) => a.bandId))].map((b) => ({ b, m: nearest(heard.filter((a) => a.bandId === b))! }));
       bands.sort((x, y) => dist(x.m) - dist(y.m) || (x.m.id < y.m.id ? -1 : 1));
       for (const { b, m } of bands) take(b, m);
