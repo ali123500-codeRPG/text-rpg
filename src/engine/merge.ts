@@ -20,10 +20,18 @@ export function talkMove(state: GameState, intent: Intent | null): Intent['move'
   const inView = t.zone === here || !!zoneById(state, here)?.links.some((l) => l.to === t.zone && seesAcross(state, l));
   if (!m && !intent?.way && inView && hearingOf(state, VOLUME_NOISE[intent?.volume ?? 'normal'], state.player, t) !== 'full') m = { toZone: t.zone };
   if (!m || m.after || m.jump || intent?.way) return m;
-  if (t.zone === here) return m.toZone !== here || !m.spot ? { ...m, toZone: here, spot: { near: t.id } } : m;
+  const over = (to: string) => {
+    const A = zoneById(state, here), B = zoneById(state, to);
+    return !!A && !!B && A.links.some((l) => l.to === B.id) && reachesOver(A, B, getLibrary().edgeKinds ?? {});
+  };
+  if (t.zone === here) {
+    if (m.toZone === here) return m.spot ? m : { ...m, toZone: here, spot: { near: t.id } };
+    // BG-77: a move through a doorway to another room while talking (following someone in) stands; only a step over a
+    // counter, fence or rail, or a move aimed at them, ends beside them
+    return m.spot?.near === t.id || over(m.toZone) ? { ...m, toZone: here, spot: { near: t.id } } : m;
+  }
   if (m.toZone !== t.zone || m.behind) return m;
-  const A = zoneById(state, here), B = zoneById(state, t.zone);
-  return A && B && A.links.some((l) => l.to === B.id) && reachesOver(A, B, getLibrary().edgeKinds ?? {}) ? { ...m, toZone: here, spot: { near: t.zone } } : m;
+  return over(t.zone) ? { ...m, toZone: here, spot: { near: t.zone } } : m;
 }
 
 /** Order for the player from the Parser's intent (aimed is code-set). Spoken words beside a non-speech action are a bark. */
