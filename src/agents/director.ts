@@ -11,6 +11,7 @@ import { FIXED } from './prompts';
 import { checkCheckin, checkStagePlan } from './schema';
 import { applyCheckin } from '../engine/scenarioEnd';
 import { formatWeaverView } from './format';
+import { computePerception } from '../perception';
 
 /** V11 switch: send the rejected plan back with the repair (set by the V11 test) */
 export let REPAIR_WITH_PLAN = true;
@@ -75,10 +76,16 @@ export function createDirector(clock: Clock): ScenarioDirector {
       // BG-73: the crossing's move event ends where the player now stands, so it reads as leaving for the new zone
       const crossed = events.find((e) => e.kind === 'move' && e.actorId === state.player.id && e.effects.some((f) => f.kind === 'frontier_crossed' && f.data.frontier === key));
       if (crossed && state.player.zone !== crossed.zone) Object.assign(crossed, { fromZone: crossed.zone, fromPos: crossed.pos, zone: state.player.zone, pos: state.player.pos, target: state.player.zone });
-      if (!r.eventRoll) return [];
+      // BG-90: those who followed the player through come in with them: a move event each, so the story shows them along
+      const follows = (r.followed ?? []).map((id): GameEvent => {
+        const ev: GameEvent = { id: `t${state.turn}_follow_${id}`, turn: state.turn, actorId: id, kind: 'move', zone: state.player.zone, ...(crossed?.fromZone ? { fromZone: crossed.fromZone } : {}), effects: [], noise: 'quiet', visibility: 'normal', perception: {} };
+        ev.perception = computePerception(ev, state, rng);
+        return ev;
+      });
+      if (!r.eventRoll) return follows;
       // CH3 a: free roam crossed an unbuilt frontier, which started a scenario there
       (state.scratch ??= {}).eventRoll = r.eventRoll;
-      return openingEvents(state, rng);
+      return [...follows, ...openingEvents(state, rng)];
     },
     afterSave(state: GameState, c: AgentCtx): void {
       ctx = c;

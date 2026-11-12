@@ -49,10 +49,20 @@ function soundReach(state: GameState, observer: Actor, at: Located, noise: GameE
   return hearingOf(state, noise, at, observer, perkSum(observer, 'hearingDb'), leanIn);
 }
 
+/** BG-88: `listener` hears words said at this noise from `from` clearly (who and what): the same reach as perception, with
+ * the listener's hearing perks (Keen Ear), and a whisper said to them leaning in (HB8). One rule for orders, stepping up
+ * to speak and who answers. */
+export function hearsClearly(state: GameState, from: Located, listener: Actor, noise: GameEvent['noise']): boolean {
+  return soundReach(state, listener, from, noise, noise === 'hushed') === 'full';
+}
+
 /** C1 Never Surprised: the owner can hear a sound of this noise made there (a zone, or a point in it), stealth aside */
 export function hears(state: GameState, observer: Actor, at: string | Located, noise: GameEvent['noise']): boolean {
   return isActive(observer) && soundReach(state, observer, typeof at === 'string' ? { zone: at } : at, noise) !== null;
 }
+
+/** BG-89: event kinds that touch their target */
+const CONTACT = new Set(['attack', 'give', 'break_free']);
 
 /** raw perception of an event by one observer, ignoring the unaware-of-player rule (detectPlayer uses this). */
 export function perceptionOf(event: GameEvent, state: GameState, observer: Actor): Seen | null {
@@ -83,9 +93,10 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
   // level for both: a full perception shows everything (read as sight), a partial one is heard too (its words come through)
   const oneSense = !!best && hasPerk(observer, PK.one_sense);
   if (best && oneSense) best = { level: best.level, cue: best.level === 'full' ? 'sight' : 'sound' };
-  // GAP: the target of an event always feels it (at least partial, touch), e.g. a missile from an unseen zone. BG-72: words
-  // said to someone are not felt; they reach them only by sound or sight
-  if (event.target === observer.id && !words) best = better(best, { level: 'partial', cue: 'touch' });
+  // GAP: the target of a blow, a hand-over or a grip broken always feels it (at least partial, touch), e.g. a missile from an
+  // unseen zone. BG-72/BG-89: only contact is felt; words, a walk toward them, a trade or a wasted action reach them only by
+  // sound or sight
+  if (event.target === observer.id && CONTACT.has(event.kind)) best = better(best, { level: 'partial', cue: 'touch' });
   // words need the sound heard clearly (CLEAR_ABOVE_BACKGROUND_DB over the background: who and what; a sound heard only partly is a voice without its
   // words), or Every Sense One
   return best && (sound?.level === 'full' || oneSense) ? { ...best, heard: true } : best;
