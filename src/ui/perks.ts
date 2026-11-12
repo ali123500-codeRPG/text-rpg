@@ -13,7 +13,9 @@ const EFFECTS: [PerkEffect, string][] = [['attack', 'Attack'], ['defense', 'Defe
 const TOP = 150;
 // Story or Rules: the player picks which write-up the perk card shows; kept per browser
 const readText = (): 'story' | 'rules' => { try { return localStorage.getItem('perkText') === 'rules' ? 'rules' : 'story'; } catch { return 'story'; } };
-const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel: null as null | { skill: string; milestone: number }, folded: new Set<string>() };
+const ui = { view: 'tree' as 'tree' | 'effect', text: readText(), tree: '', sel: null as null | { skill: string; milestone: number }, folded: new Set<string>(),
+  /** where the floating perk card was dragged to (viewport px); null = beside the tapped milestone */
+  pos: null as null | { left: number; top: number } };
 type Show = MilestoneState | 'other';
 /** which perk series a milestone belongs to: 20/60/100/140 change what you can do, 40/80/120 raise numbers; each series has its own colour */
 export const perkSeries = (milestone: number): '20' | '40' => (milestone % 40 === 20 ? '20' : '40');
@@ -87,8 +89,11 @@ function card(s: GameState, p: Actor, api: GameApi) {
   if (st === 'sealed') return null;
   const d = milestonePerk(skill, milestone);
   const pts = p.progression?.unspentPerkPoints ?? 0;
-  return h('aside', { class: 'pk-card', 'data-series': perkSeries(milestone), role: 'dialog', 'aria-label': d?.name ?? `${skillName(skill)} ${milestone}` },
-    h('p', { class: 'k' }, `${skillName(skill)} · ${milestone}`),
+  // a floating card like the details pop-ups: dragged by its head, closed with ✕ or Esc, and it stays where it was put
+  const head = h('div', { class: 'pk-card-head' }, h('p', { class: 'k' }, `${skillName(skill)} · ${milestone}`),
+    h('button', { type: 'button', class: 'hs-icon-btn', 'aria-label': 'Close', title: 'Close (Esc)', onclick: () => { ui.sel = null; redraw(); } }, '✕'));
+  return h('aside', { class: 'pk-card', 'data-series': perkSeries(milestone), role: 'dialog', 'aria-modal': 'false', 'aria-label': d?.name ?? `${skillName(skill)} ${milestone}` },
+    head,
     d ? [h('h4', {}, d.name), ...writeup(d)] : h('p', {}, 'No perk is written for this milestone yet.'),
     st === 'open' && d?.built === false ? h('p', { class: 'tiny' }, 'Not in the game yet.') : null,
     st === 'open' && d?.built !== false ? h('button', { type: 'button', class: 'hs-btn-main pk-take', disabled: pts < 1 || api.busy(), onclick: () => api.takePerk(d!.id) }, pts < 1 ? 'No perk point' : 'Take · 1 point') : null,
@@ -151,17 +156,28 @@ export function perksSection(api: GameApi): HTMLElement {
     el.replaceChildren(...kids.filter((x): x is HTMLElement => !!x));
     place();
   };
-  // the card sits beside the tapped milestone; on narrow screens CSS drops it below the board
+  // the card floats over the page: first beside the tapped milestone, then wherever it was dragged to
   function place() {
     const c = el.querySelector<HTMLElement>('.pk-card');
     if (!c || !ui.sel) return;
-    const n = Array.from(el.querySelectorAll<HTMLElement>(`[data-k="${ui.sel.skill}:${ui.sel.milestone}"]`)).find((x) => x.offsetParent);
-    if (!n || getComputedStyle(c).position !== 'absolute') return;
-    const box = el.getBoundingClientRect(), r = n.getBoundingClientRect();
-    const left = r.right - box.left + 12, top = Math.max(0, r.top - box.top - c.offsetHeight / 2);
-    c.style.left = `${left + c.offsetWidth > box.width ? r.left - box.left - c.offsetWidth - 12 : left}px`;
-    c.style.top = `${top}px`;
+    const fit = (left: number, top: number) => ({ left: Math.max(8, Math.min(innerWidth - c.offsetWidth - 8, left)), top: Math.max(8, Math.min(innerHeight - c.offsetHeight - 8, top)) });
+    let at = ui.pos ? fit(ui.pos.left, ui.pos.top) : null;
+    if (!at) {
+      const n = Array.from(el.querySelectorAll<HTMLElement>(`[data-k="${ui.sel.skill}:${ui.sel.milestone}"]`)).find((x) => x.offsetParent);
+      const r = n?.getBoundingClientRect();
+      at = r ? fit(r.right + 16 + c.offsetWidth > innerWidth ? r.left - c.offsetWidth - 16 : r.right + 16, r.top + r.height / 2 - c.offsetHeight / 2) : fit(innerWidth - c.offsetWidth - 32, 96);
+    }
+    c.style.left = `${at.left}px`; c.style.top = `${at.top}px`;
+    const head = c.querySelector<HTMLElement>('.pk-card-head');
+    head?.addEventListener('pointerdown', (ev) => {
+      if ((ev.target as Element).closest('button')) return;
+      const b = c.getBoundingClientRect(), dx = ev.clientX - b.left, dy = ev.clientY - b.top;
+      const move = (m: PointerEvent) => { ui.pos = fit(m.clientX - dx, m.clientY - dy); c.style.left = `${ui.pos.left}px`; c.style.top = `${ui.pos.top}px`; };
+      const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+      addEventListener('pointermove', move); addEventListener('pointerup', up);
+    });
   }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.sel && el.isConnected && el.querySelector('.pk-card')) { ui.sel = null; redraw(); } });
   redraw();
   return el;
 }
