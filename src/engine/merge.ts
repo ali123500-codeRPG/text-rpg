@@ -8,12 +8,15 @@ import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } fro
 import { actorById, isEngaged, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 
+/** BG-78: buying and selling are called out too, so they step up the same way */
+const TRADE = ['buy', 'sell'];
+
 /** BG-62: going over to talk to someone ends beside them in the player's own zone, or on the player's side of a counter, fence
  * or rail between them unless the player goes behind it (move.behind); any other move stands as given */
 export function talkMove(state: GameState, intent: Intent | null): Intent['move'] {
   const a = intent?.action;
   let m = intent?.move ?? null;
-  if (!a?.target || !(SPEECH_ACTIONS as readonly string[]).includes(a.type)) return m;
+  if (!a?.target || !(SPEECH_ACTIONS as readonly string[]).includes(a.type) && !TRADE.includes(a.type)) return m;
   const t = actorById(state, a.target), here = state.player.zone;
   if (!t || t.id === state.player.id) return m;
   // BG-74: talking to someone who would not hear the player's voice clearly from here steps up to them first

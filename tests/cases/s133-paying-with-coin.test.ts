@@ -121,9 +121,9 @@ it('133h trade reach: as far as a called order is heard clearly (hearsOrder)', (
   wim.zone = 'tav_common'; // beside the buyer
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim).ok).toBe(true);
   wim.zone = 'tav_cellar'; // behind the shut cellar door from the seller, farther from the buyer
-  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim)).toEqual({ ok: false, reason: 'not_here' });
+  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1, wim)).toEqual({ ok: false, reason: 'out_of_earshot' });
   s.player.zone = 'street_door'; // 16 m and the shut front door from the counter: not heard clearly
-  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1)).toEqual({ ok: false, reason: 'not_here' });
+  expect(buy(s, s.player, mags, `service:${SV.drink}`, 1)).toEqual({ ok: false, reason: 'out_of_earshot' });
   CONFIG.ORDER_NOISE = 'blaring'; // a bellowed order carries through
   expect(buy(s, s.player, mags, `service:${SV.drink}`, 1).ok).toBe(true);
   resetConfig();
