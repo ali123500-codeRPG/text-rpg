@@ -89,7 +89,8 @@ describe('roads (TV3, TV4)', () => {
     const s = toStoryStart(makeVillage());
     const plan = villageStagePlan();
     plan.zones.push({ key: 'north_road', place: plan.zones.find((z) => z.key === 'street_door')!.place, kind: ZK.road, name: 'the north road', look: 'a rutted cart track',
-      length: 'day', danger: 'wild', links: [{ to: 'street_door', label: 'back to the village, south', sight: true }] });
+      length: 'day', danger: 'wild', links: [{ to: 'street_door', label: 'back to the village, south', sight: true }, { to: 'far_north', label: 'on north', sight: true }] });
+    plan.frontiers.push({ key: 'far_north', label: 'on north' });
     plan.zones.find((z) => z.key === 'street_door')!.links.push({ to: 'north_road', label: 'the north road', sight: true });
     expect(validateStagePlan(s, plan, ctx)).toEqual([]);
     applyStagePlan(s, plan, ctx, { entry: 'open' }, createRng(1));

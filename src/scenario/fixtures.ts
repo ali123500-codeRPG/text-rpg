@@ -78,11 +78,11 @@ export function villageStagePlan(tier: Tier = 'success'): StagePlan {
 /** A one-zone extension for the 'woods' frontier off the village field (entry zone 'grove'). */
 export function grovePlan(tier: Tier = 'success'): StagePlan {
   return {
-    ...villageStagePlan(tier), places: [], bands: [], cast: [], rewards: [], frontiers: [], hiddenTerms: [],
+    ...villageStagePlan(tier), places: [], bands: [], cast: [], rewards: [], frontiers: [{ key: 'deep_woods', label: 'deeper into the woods' }], hiddenTerms: [],
     event: { summary: 'a quiet grove', ...(FITTING_GRADES[tier] ?? FITTING_GRADES.success) },
     scenario: { question: 'what is in the grove?', scale: 'moment', endings: [
       { when: { kind: 'judged' }, as: 'resolved', text: 'the grove is explored' }, { when: { kind: 'judged' }, as: 'left', text: 'the player walks on' }] },
-    zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove of birches', cover: 'some', links: [{ to: 'field_far', label: 'back to the field', sight: true }] }],
+    zones: [{ key: 'grove', place: 'field', kind: ZK.woods, name: 'a grove', look: 'a quiet grove of birches', cover: 'some', links: [{ to: 'field_far', label: 'back to the field', sight: true }, { to: 'deep_woods', label: 'deeper into the woods', sight: false }] }],
   };
 }
 
