@@ -149,12 +149,17 @@ export function roamStart(state: GameState, events: GameEvent[]): string | null 
   return null;
 }
 
-/** SD2 a: in free roam (from a turn before this one), the first thing that happens starts a new scenario after this turn */
+/** FR1 b: the starts that never wait out ROAM_MIN_TURNS (danger always gets its plan) */
+export const ROAM_DANGER = ['attack', 'spotted'];
+
+/** SD2 a: in free roam (from a turn before this one), the first thing that happens starts a new scenario after this turn.
+ * FR1 b: a calm start counts only once free roam has lasted CONFIG.ROAM_MIN_TURNS turns; danger never waits. */
 export function checkRoam(state: GameState, events: GameEvent[]): void {
   const st = state.stage;
   if (!st.roam || st.roam.since >= state.turn || st.scenario || st.breakCause) return;
   const why = roamStart(state, events);
   if (!why) return;
+  if (!ROAM_DANGER.includes(why) && state.turn - st.roam.since < CONFIG.ROAM_MIN_TURNS) return;
   st.breakCause = 'roam';
   logCode(state, 'roam_scenario', { why });
 }

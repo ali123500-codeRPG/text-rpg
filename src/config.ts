@@ -273,6 +273,9 @@ const DEFAULTS = {
   /** SD2 a: scenario endings (SCENARIO_ENDINGS) after which free roam starts instead of the next scenario. Every ending for now, so
    * players can explore the world; broken_off is a knock-out, whose wake-up is always a new scenario */
   ROAM_AFTER: ['resolved', 'lost', 'left', 'escaped', 'interrupted', 'worn_out'] as string[],
+  /** FR1 b (placeholder): a calm start (talk, trade, a quest goal reached) starts a scenario only once free roam has lasted this
+   * many turns; danger (an attack, a hostile spotting the player), road encounters and unbuilt frontiers never wait */
+  ROAM_MIN_TURNS: 5,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
