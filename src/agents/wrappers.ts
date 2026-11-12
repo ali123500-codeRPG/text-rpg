@@ -6,7 +6,7 @@ import type {
 import { FIXED } from './prompts';
 import { checkIntent, checkNarrator, checkPlanner, checkResponder, checkStagePlan, checkVoice } from './schema';
 import { formatDialogueView, formatNarrationView, formatOppositionView, formatPlayerView, formatResponderInput, formatWeaverView } from './format';
-import { checkNpcLegality, checkParserLegality, illegalClarify, routineAllowed, type NpcViewBase } from './legality';
+import { checkNpcLegality, checkParserLegality, spokenOnly, illegalClarify, routineAllowed, type NpcViewBase } from './legality';
 import { fallbackNarration, factCheck, leakScan, mentions, type LeakContext } from './narration';
 import { runAgent, type AgentCtx, type Attempt, type RunResult } from './call';
 
@@ -50,6 +50,19 @@ function npcAccept<T extends { action: NpcAction; gear: PlannerOutput['gear']; s
 ): { orderError: string | null; errors: string[] } {
   const box = { action: value.action, gear: value.gear, stance: value.stance, introduces: getIntro(value) };
   const leg = checkNpcLegality(box, view, world, alsoKnown);
+  // BG-93: one rule for every NPC agent: a line is only the words spoken
+  const v = value as { dialogue?: { line: string } | null; line?: string };
+  if (v.dialogue) {
+    const line = spokenOnly(v.dialogue.line);
+    if (/[*[]/.test(v.dialogue.line)) leg.errors.push('stage_direction');
+    if (line) v.dialogue.line = line;
+    else v.dialogue = null;
+  }
+  if (typeof v.line === 'string') {
+    const line = spokenOnly(v.line);
+    if (/[*[]/.test(v.line)) leg.errors.push('stage_direction');
+    v.line = line;
+  }
   value.gear = box.gear;
   value.stance = box.stance;
   if (box.introduces) setIntro(value, box.introduces);

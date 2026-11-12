@@ -3165,6 +3165,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-90 | NPCs who followed the player through a frontier (NW8) arrived with no move event, so the Narrator was told nobody walked along with the player (bug-fix review, sibling of BG-73). Fixed: each follower gets a move event into the new zone | 12/11/2026 | fixed | this PR |
 | BG-91 | The library viewer's Stacking tab still showed part-state keys (damaged, crippled) for wound penalties instead of their names (bug-fix review, sibling of BG-76). Fixed: the row reads the part-state scale's names | 12/11/2026 | fixed | this PR |
 | BG-92 | Run 74b turn 22: a figure half seen back in Mill Lane, 2.5 km south, was narrated as "resolving into" the man in the alder hollow beside the player, so the player thought south led west. The Narrator had no place for half-seen actors and no rule against merging them with someone else. Now every seen actor, half-seen included, carries side and distance in the narration view, and Narrator rule 23 keeps each person apart. | 12/11/2026 | fixed | this PR |
+| BG-93 | Kishirika study: an NPC wrote a stage direction inside its spoken line ("*She's already got half of it in her mouth* Mmf."). One rule for every speaker now: Planner, Responder and Voice prompts say a line holds only words said aloud, the Parser says the same for the player's spoken, and code cuts *...* and [...] from every NPC line and the player's spoken as a backstop (logged as stage_direction) | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 

@@ -43,6 +43,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
   const illegal: string[] = [];
   const gearErrors: string[] = [];
   const out: Intent = { ...intent, move: intent.move ? { ...intent.move } : null, action: intent.action ? { ...intent.action } : null };
+  if (out.spoken) out.spoken = spokenOnly(out.spoken) || null; // BG-93
 
   // a move to the zone the player already stands in is no move (runs 11–13: it was the most common clarify), unless it
   // goes to a spot in it (BG-12: "walk to the back of the cellar")
@@ -151,6 +152,12 @@ type NpcOut = {
   stance: StanceStep | null;
   introduces?: string[];
 };
+
+/** BG-93: a spoken line holds only the words said aloud. Stage directions an agent writes into it (*takes a bite*,
+ * [laughs]) are cut, for every speaker, NPC or player; the deed belongs in the action. '' = nothing was said. */
+export function spokenOnly(text: string): string {
+  return text.replace(/\*[^*]*\*|\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim();
+}
 
 /**
  * Checks the order's target against the view (world = every real id, to tell view_leak from invalid_target),
