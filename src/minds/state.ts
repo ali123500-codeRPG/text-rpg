@@ -7,7 +7,7 @@ import { actorById, allActors, atLeast, isActive, isEngaged, sparring, wary, zon
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
 import { markUse, ruleset, situational, fnRoller, tierLevel, usableModes, defaultMode, modeSkill } from '../ruleset';
 import { hasPerk } from '../ruleset/perks';
-import { bindTemplate, expandSteps, offeredRoutines, slotsRead } from './routines';
+import { bindTemplate, expandSteps, HEAD_TO, offeredRoutines, slotsRead } from './routines';
 import { SK, SENSE_SKILL } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { contestFeat } from '../engine/feats';
@@ -46,6 +46,43 @@ export function switchRoutine(state: GameState, actor: Actor, routineId: string,
   if (r.kind === 'wait') mind.slots = { ...mind.slots, here: actor.zone };
   if (mind.alarm?.returnTo) delete mind.alarm.returnTo;
   return true;
+}
+
+/** NW2: an agent sends its NPC somewhere further than one move (a zone or a frontier on the stage): it switches to the
+ * shared head_to routine, walks there by code on later turns with no more calls, then goes back to the routine it had.
+ * A second headTo on the way changes only where it is going. Returns false (logged) for a place not on the stage. */
+export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent' | 'weaver' | 'yield' = 'agent'): boolean {
+  const mind = actor.mind;
+  const onStage = state.stage.zoneIds.includes(dest) || state.zones.some((z) => state.stage.zoneIds.includes(z.id) && z.links.some((l) => l.frontier && l.to === dest));
+  if (!mind || !onStage) {
+    log(state, 'invalid_head_to', { actorId: actor.id, dest, by });
+    return false;
+  }
+  if (dest === actor.zone) return true;
+  if (mind.routine?.id !== HEAD_TO) {
+    if (mind.routine) mind.headBack = { ...mind.routine };
+    else delete mind.headBack;
+  }
+  mind.routine = { id: HEAD_TO, anchorTurn: state.turn };
+  mind.slots = { ...mind.slots, dest };
+  if (mind.alarm?.returnTo) delete mind.alarm.returnTo;
+  log(state, 'head_to', { actorId: actor.id, dest, by });
+  return true;
+}
+
+/** NW2: a head_to walk that got where it was going goes back to the routine it had, from there (end of turn) */
+export function headArrivals(state: GameState): void {
+  for (const a of state.actors) {
+    const m = a.mind;
+    if (m?.routine?.id !== HEAD_TO) continue;
+    const dest = m.slots?.dest;
+    if ((Array.isArray(dest) ? dest[0] : dest) !== a.zone) continue;
+    if (m.headBack) m.routine = m.headBack;
+    else delete m.routine;
+    delete m.headBack;
+    if (m.slots) delete m.slots.dest;
+    log(state, 'head_to_arrived', { actorId: a.id, zone: a.zone });
+  }
 }
 
 function getRoutineOrNull(id: string) {

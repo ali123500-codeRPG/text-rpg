@@ -8,6 +8,18 @@ import { routine as getRoutine } from '../library';
 export const FOLLOW_ROUTINE = 'follow';
 /** the routines an NPC's agent may pick: its set's, plus follow (BG-34) */
 export const offeredRoutines = (own: string[] | undefined): string[] => [...new Set([...(own ?? []), FOLLOW_ROUTINE])];
+/** NW2: the shared routine an agent's headTo switches an NPC to: it walks to slot 'dest', then back to its routine */
+export const HEAD_TO = 'head_to';
+
+/** NW2: where a head_to walk goes: the destination zone, or for a frontier the nearest zone with a way into it (it
+ * steps through from there); null when the destination is not on its map */
+function headGoal(view: ActorView, dest: string): { zone: string; frontier?: string } | null {
+  if (view.map.some((z) => z.id === dest)) return { zone: dest };
+  const edges = view.map.filter((z) => z.links.some((l) => l.frontier && l.to === dest)).map((z) => z.id);
+  if (!edges.length) return null;
+  const dist = (z: string) => mapPath(view.map, view.self.zone, z)?.length ?? Infinity;
+  return { zone: edges.reduce((best, z) => (dist(z) < dist(best) ? z : best)), frontier: dest };
+}
 
 export type Stop = { slot: string; zone: string; turns: number; activity: string };
 
@@ -39,6 +51,12 @@ export function desiredState(view: ActorView): { zone: string; activity: string 
     const b = view.beliefs.find((x) => x.about === 'player');
     // GAP: follow with no belief about the player: the smallest reading is to stay where it is.
     return { zone: b?.lastKnownZone ?? view.self.zone, activity: r.activity ?? 'rest' };
+  }
+  if (r.kind === 'head') {
+    const dest = view.self.slots.dest;
+    const g = headGoal(view, (Array.isArray(dest) ? dest[0] : dest) ?? view.self.zone);
+    // GAP: a destination gone from its map (or never bound): it stays where it is until code sends it back
+    return { zone: g?.zone ?? view.self.zone, activity: r.activity ?? 'walk' };
   }
   if (r.kind === 'wait') {
     const here = view.self.slots.here;
@@ -84,12 +102,23 @@ export function mapPath(map: MapZone[], from: string, to: string): string[] | nu
 const order = (view: ActorView, type: string, source: Order['source'], intent: string, extra: Partial<Order> = {}): Order =>
   ({ actorId: view.self.id, type, target: null, skill: null, intent, source, ...extra });
 
-/** BG-34: an agent-run NPC on a follow routine walks toward the player beside whatever action its agent gave (a zone, or null) */
+/** BG-34: an agent-run NPC on a follow routine walks toward the player beside whatever action its agent gave (a zone, or
+ * null); NW2: on head_to it walks on toward where it is going, the same way */
 export function followMove(view: ActorView): string | null {
   const cur = view.self.routine;
-  if (!cur || getRoutine(cur.id).kind !== 'follow') return null;
+  const kind = cur ? getRoutine(cur.id).kind : null;
+  if (kind !== 'follow' && kind !== 'head') return null;
   const d = desiredState(view);
+  if (d && d.zone === view.self.zone && kind === 'head') return headFrontier(view);
   return d && d.zone !== view.self.zone && mapPath(view.map, view.self.zone, d.zone) ? d.zone : null;
+}
+/** NW2: a head_to walk standing at the edge of the frontier it is bound for steps into it (a frontier id), else null */
+function headFrontier(view: ActorView): string | null {
+  const cur = view.self.routine;
+  if (!cur || getRoutine(cur.id).kind !== 'head') return null;
+  const dest = view.self.slots.dest;
+  const g = headGoal(view, (Array.isArray(dest) ? dest[0] : dest) ?? view.self.zone);
+  return g?.frontier && g.zone === view.self.zone ? g.frontier : null;
 }
 
 /** marks a routine order whose desired zone has no path; the engine logs routine_unreachable [Proposed]. */
@@ -98,6 +127,8 @@ export const UNREACHABLE = 'routine_unreachable';
 export function routineOrder(view: ActorView): Order {
   const d = desiredState(view);
   if (!d) return order(view, 'hold', 'routine', 'hold');
+  const into = headFrontier(view);
+  if (into) return order(view, 'move', 'routine', `walk into ${into}`, { target: into, activity: d.activity });
   if (d.zone === view.self.zone) return order(view, 'idle', 'routine', d.activity, { activity: d.activity });
   const path = mapPath(view.map, view.self.zone, d.zone);
   if (!path) return order(view, 'idle', 'routine', UNREACHABLE, { activity: d.activity });
