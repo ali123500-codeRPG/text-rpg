@@ -3154,6 +3154,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-79 | 'Order a drink, then take a table by the hearth': the Parser deferred the move though the turn's move slot was free; Parser rule 2 now says a place asked for beside the action fills the move, and a spot with no id is named by someone there or a side | 12/11/2026 | fixed | this PR |
 | BG-80 | Nearness was fixed action by action (talk BG-74, buy BG-78): NPCs never stepped up and give needed the same zone though a counter is see-and-reach-across. One rule now (engine/merge.ts approachMove, NEEDS voice/hand) covers talking, trading and handing over, for the player and NPCs; give works across a counter, fence or rail | 12/11/2026 | fixed | this PR |
 | BG-81 | A walk that reached its spot (the bridge gate) still told the narrator 'toward the bridge gate', so narration kept the gate 'a stretch away'; spot words now say 'at …' once there and 'toward …' on the way, and a walk up to a person says it reached them | 12/11/2026 | fixed | this PR |
+| BG-82 | Coming into the kitchen to find the cellar, the narration never named the cellar hatch, though it was one of the kitchen's ways out; the Narrator now names a new zone's ways out in passing and never leaves out one the player is after, and the playtest player reads the Map's ways out as a real player does | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 
