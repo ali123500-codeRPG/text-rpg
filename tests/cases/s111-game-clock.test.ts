@@ -25,7 +25,7 @@ const zone = (s: GameState, id: string) => s.zones.find((z) => z.id === id)!;
 describe('111 game clock', () => {
   it('every turn costs its action time from the durations table', () => {
     const s = makeVillage();
-    startClock(s, 'day');
+    startClock(s, 'morning');
     const t0 = now(s);
     turn(s, act('observe'));
     expect(now(s) - t0).toBe(1);
@@ -47,7 +47,7 @@ describe('111 game clock', () => {
     expect(mechanicsLines(s, again)).toContain("Wait: it's already dawn");
 
     const f = makeVillage();
-    startClock(f, 'day');
+    startClock(f, 'morning');
     f.player.zone = 'field_mid'; // slime_1 is here
     turn(f, act('sleep'));
     const fev = f.events.slice(-5);
@@ -59,7 +59,7 @@ describe('111 game clock', () => {
   });
   it('sleep takes the sleep row and heals a rest per 4 hours; a plain wait runs to the next time of day', () => {
     const s = makeVillage();
-    startClock(s, 'day');
+    startClock(s, 'morning');
     s.player.core.condition.hpLostPct = 80;
     const t0 = now(s);
     turn(s, act('sleep'));
@@ -67,9 +67,9 @@ describe('111 game clock', () => {
     expect(s.log.filter((l) => l.code === 'healed' && (l.detail as { source: string }).source === HL.rest)).toHaveLength(2);
     expect(s.player.core.condition.hpLostPct).toBeLessThan(80 - 2 * CONFIG.REST_HEAL_PCT);
     const w = makeVillage();
-    startClock(w, 'day');
+    startClock(w, 'morning');
     turn(w, act('wait'));
-    expect(timeOfDay(now(w))).toBe('dusk');
+    expect(timeOfDay(now(w))).toBe('afternoon');
   });
   it('outdoor zones follow the sky unless their own light is brighter; indoors do not', () => {
     const s = makeVillage();
@@ -82,7 +82,7 @@ describe('111 game clock', () => {
     expect(zoneLight(s, zone(s, 'tav_common'))).toBe('bright');
     field.light = 'dim'; // torches
     expect(zoneLight(s, field)).toBe('dim');
-    startClock(s, 'day');
+    startClock(s, 'morning');
     expect(zoneLight(s, field)).toBe('bright');
   });
   it('the Narrator sees the day and time of day; the Weaver picks the hour only at story start', () => {
@@ -91,7 +91,7 @@ describe('111 game clock', () => {
     expect(buildWeaverView(s, { kind: 'scenario', placeId: 'tavern' }).time).toBeNull();
     const ctx = { tier: 'success' as const, kind: 'scenario' as const, placeId: 'tavern' };
     expect(validateStagePlan(s, { ...villageStagePlan(), timeOfDay: 'night' }, ctx).filter((e) => e.code === 'bad_time')).toEqual([]);
-    startClock(s, 'day');
+    startClock(s, 'morning');
     expect(clockSet(s)).toBe(true);
     expect(validateStagePlan(s, { ...villageStagePlan(), timeOfDay: 'night' }, ctx).some((e) => e.code === 'bad_time')).toBe(true);
   });
@@ -102,14 +102,14 @@ describe('111 game clock', () => {
   });
   it('a routine set whose time tags do not fit the hour is a routine error', () => {
     const s = toStoryStart(makeVillage());
-    startClock(s, 'day');
+    startClock(s, 'morning');
     const p = villageStagePlan();
     p.cast[0].routineSetId = 'sleeper';
     expect(validateStagePlan(s, p, { tier: 'success', kind: 'scenario', placeId: 'tavern' }).some((e) => e.code === 'wrong_time' && e.routineOnly)).toBe(true);
   });
   it('rest cools down in game minutes', () => {
     const s = makeVillage();
-    startClock(s, 'day');
+    startClock(s, 'morning');
     s.player.core.condition.hpLostPct = 80;
     turn(s, act('rest'));
     turn(s, act('rest'));

@@ -24,7 +24,7 @@ export type Trip = { metres: number; minutes: number; legs: number; pace: Travel
 
 export const isRoad = (z: Zone | undefined) => !!z?.kind && !!getLibrary().zoneKinds?.[z.kind]?.road;
 /** dusk and night are dark enough to stop a trip (TV5) */
-export const darkOut = (t: number) => ['dusk', 'night'].includes(timeOfDay(t));
+export const darkOut = (t: number) => CONFIG.ROAD_DARK.includes(timeOfDay(t));
 
 /** TV2: travel speed in m/s at a pace: a share of the walking speed (body type, armor, speed factor all count) */
 export const travelSpeed = (state: GameState, a: Actor, pace: TravelPaceKey): number => moveSpeed(state, a).walk * CONFIG.TRAVEL_PACE_SHARE[pace];

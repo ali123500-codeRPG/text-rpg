@@ -24,7 +24,7 @@ function headGoal(view: ActorView, dest: string): { zone: string; frontier?: str
 export type Stop = { slot: string; zone: string; minutes: number; activity: string };
 
 /** NW10: a routine's steps at a time of day: its own for that time, else its steps for any time */
-export const stepsAt = (r: Routine, dayPart?: TimeOfDay) => (dayPart && r.times?.[dayPart]) || r.steps;
+export const stepsAt = (r: Routine, dayPart?: TimeOfDay) => (dayPart && r.times?.find((t) => t.at.includes(dayPart))?.steps) || r.steps;
 
 /** a route slot expands to one stop per bound zone; an unbound slot gives no stop. NW10: each stop lasts game minutes. */
 export function expandSteps(r: Routine, slots: Record<string, string | string[]>, dayPart?: TimeOfDay): Stop[] {
@@ -39,7 +39,7 @@ export function expandSteps(r: Routine, slots: Record<string, string | string[]>
 
 /** slots a routine reads (steps and onAlert $slot targets); 'here' is code-written and left out. */
 export function slotsRead(r: Routine): string[] {
-  const s = new Set([...r.steps, ...Object.values(r.times ?? {}).flat()].map((st) => st!.slot));
+  const s = new Set([...r.steps, ...(r.times ?? []).flatMap((t) => t.steps)].map((st) => st.slot));
   const t = r.onAlert?.target;
   if (typeof t === 'string' && t.startsWith('$slot:')) s.add(t.slice(6));
   s.delete('here');

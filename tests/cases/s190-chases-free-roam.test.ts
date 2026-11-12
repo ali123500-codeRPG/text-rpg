@@ -240,7 +240,7 @@ describe('190 chases and free roam', () => {
 
   it('SD1: a scenario that ends inside resolveTurn still reports its ending afterwards', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
-    s.stage.scenario = frameOf(s, { question: 'q', scale: 'situation', endings: [{ when: { kind: 'time', at: 'day' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }] }, 'success', (_k, r) => r);
+    s.stage.scenario = frameOf(s, { question: 'q', scale: 'situation', endings: [{ when: { kind: 'time', at: 'morning' }, as: 'resolved', text: 'x' }, { when: { kind: 'judged' }, as: 'lost', text: 'y' }] }, 'success', (_k, r) => r);
     s.clocks = { minutes: 9 * 60 } as never;
     play(s);
     expect(s.hidden.scenarios?.at(-1)?.ending).toBe('resolved');

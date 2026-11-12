@@ -10,7 +10,7 @@ const from = (k: TimeOfDay): number => CONFIG.TIME_OF_DAY_FROM[k];
 /** has the story's clock been set (false at story start and in saves from before the clock) */
 export const clockSet = (state: GameState): boolean => state.clocks.time !== undefined;
 /** game minutes now; an unset clock reads as day 1 at the start of day */
-export const now = (state: GameState): number => state.clocks.time ?? from('day');
+export const now = (state: GameState): number => state.clocks.time ?? from('morning');
 export const dayOf = (t: number): number => Math.floor(t / DAY_MINUTES) + 1;
 
 export function timeOfDay(t: number): TimeOfDay {
