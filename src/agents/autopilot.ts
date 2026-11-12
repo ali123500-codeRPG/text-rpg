@@ -7,6 +7,8 @@ import { healthLevel, partStates } from '../ruleset/body';
 import { moraleLevel } from '../ruleset/morale';
 import { MORALE_LEVELS } from '../scales';
 import { coinWords, coins } from '../engine/trade';
+import { buildPlayerView } from '../views';
+import type { WayView } from '../types/views';
 
 /** playstyles: the playtest script's --persona and the autopilot's persona picker */
 /** --persona eager: an over-enthusiastic adventurer who drives the story forward on their own (P7 pacing test) */
@@ -103,10 +105,22 @@ export function condition(s: GameState): string {
   return `How you are right now (you always know this; never stop to check it): health ${healthLevel(p)}${hurt.length ? `, ${hurt.join(', ')}` : ', no wounded parts'}; morale ${MORALE_LEVELS.name(moraleLevel(p))}; you carry ${coinWords(coins(p))}${points ? `; ${points} perk point${points > 1 ? 's' : ''} to spend` : ''}.`;
 }
 
+/** BG-30: where the character stands and the ways out it can see (what the player sees on the map), so it never invents one */
+export function surroundings(s: GameState): string {
+  const v = buildPlayerView(s), here = new Set(v.zone.links.map((l) => l.to));
+  const ways = v.zone.links.map((l) => {
+    const w = l.way as WayView | undefined, to = v.zones.find((z) => z.id === l.to)?.name;
+    const shut = [w?.locked && 'locked', w?.barred && 'barred', w?.blocked && 'blocked'].filter(Boolean).join(', ');
+    return `${l.label}${to && to !== l.label ? ` (to the ${to})` : ''}${shut ? ` [${shut}]` : ''}`;
+  });
+  const known = (v.known ?? []).filter((k) => k.id !== v.zone.id && !here.has(k.id)).map((k) => k.name);
+  return `Where you are: the ${v.zone.name}. Ways out you can see from here: ${ways.join('; ') || 'none'}.${known.length ? ` Other places you know, which a move can name: ${known.join('; ')}.` : ''} To leave, use only these: never head for a door, stair or path that isn't listed, however likely one seems (a tavern may have no cellar door you know of).`;
+}
+
 export function autopilotTurn(lines: LogLine[], persona: string, style = '', said: string[] = [], guided?: { state: GameState | null; ctx: GuidedCtx }, me?: GameState | null): string {
   const recent = lines.slice(-14).map((l) => [`[${l.kind}] ${l.text}`, ...(l.speech ?? []).map((sp) => `  ${sp.speaker}: "${sp.text}"`)].join('\n')).join('\n');
   const voice = VOICE_STYLES.find(([id]) => id === style)?.[2];
-  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
+  return `${PERSONAS[persona] ? `Your playstyle: ${PERSONAS[persona]}\n\n` : ''}${voice ? `Your voice: ${voice}\n\n` : ''}${said.length ? `What you said on your last turns (never reuse their exclamations, Japanese words, openings or phrases):\n${said.map((x) => `- ${x}`).join('\n')}\n\n` : ''}The story so far (latest last):\n${recent || '(the story is about to start)'}${me ? `\n\n${condition(me)}\n${surroundings(me)}` : ''}${guided ? `\n\n${guidedPrompt(guided.state, lines, guided.ctx)}` : ''}`;
 }
 
 /** the agent's reply, made safe: one line of at most 200 characters, and a commentary of at most 500 characters; in
