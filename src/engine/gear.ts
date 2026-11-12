@@ -7,6 +7,7 @@ import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
 import { actorById, isActive, zoneById } from './relations';
 import { summon } from '../ruleset/threadbound';
+import { freeAccSlot } from '../ruleset/gear';
 
 export function gripParts(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts.filter((p) => p.roles.includes(RL.grip)).map((p) => p.id);
@@ -56,8 +57,7 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         if (!inst || inst.equippedIn?.length || itemDef(state, inst.itemId).slot !== 'accessory') break;
         // TB6: a Threadbound item is the player's alone: no one else can wear it
         if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id))) break;
-        const used = new Set(actor.core.inventory.flatMap((i) => i.equippedIn ?? []));
-        const slot = Array.from({ length: CONFIG.ACCESSORY_SLOTS }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
+        const slot = freeAccSlot(actor);
         if (slot) { inst.equippedIn = [slot]; ok = true; }
         if (ok && itemDef(state, inst.itemId).threadbound) inst.boundTo ??= actor.id; // D-218: binds to the player on first wear
         break;

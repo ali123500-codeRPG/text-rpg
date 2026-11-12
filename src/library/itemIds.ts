@@ -13,5 +13,5 @@ export const IT = {
   light_crossbow: 'IT33', stirrup_crossbow: 'IT34', boiled_leather: 'IT35', brigandine: 'IT36', lamellar_coat: 'IT37',
   half_plate: 'IT38', kite_shield: 'IT39',
   key: 'IT40', // BA3: a key; the instance names the barriers it opens (ItemInstance.opens)
-  gamblers_loop: 'IT41', // D-218: the first Threadbound item, an earring
+  varos_loop: 'IT41', // D-218: the first Threadbound item, an earring
 } as const;

@@ -150,41 +150,41 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
   [PK.always_yours]: {
-    id: PK.always_yours, name: 'What Was Always Yours', built: true, classLevel: { classId: CL.threadbounded, level: 1 }, grantsThreadbound: true,
+    id: PK.always_yours, name: 'What Was Always Yours', built: true, classLevel: { classId: CL.threadbounded, level: 1 }, grantsThreadbound: { minMyth: 'myth_4' },
     story: 'Something was tied to you before you can remember. It has never once left your side for long.',
-    rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: ['a Threadbound item is not yet in the world'], effect: 'the owner gets one such item at random, bound to them and worn', lasts: 'once' },
+    rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: ['a Threadbound item of Myth IV or higher is not yet in the world'], effect: 'the owner gets one such item at random, bound to them and worn', lasts: 'once' },
   },
-  // D-218: the Gambler's Loop's abilities, given while its owner wears it and holds the achievement its grant names.
+  // D-218: the Varo's Loop's abilities, given while its owner wears it and holds the achievement its grant names.
   // They widen the event roll both ways and never move its middle.
   [PK.loose_odds]: {
     id: PK.loose_odds, name: 'Loose Odds', built: true, eventEdges: 5,
     story: 'Fate already turned on you once. Now it turns more easily, either way.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Gambler\'s Loop and has earned Fate Meant It as a Curse'], effect: 'the 5 naturals just inside each critical range shift a tier outward: with no tiers opened, 91–95 raise a tier and 06–10 drop one; each opened tier moves them 5 further in', lasts: 'while worn' },
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate Meant It as a Curse'], effect: 'the 5 naturals just inside each critical range shift a tier outward: with no tiers opened, 91–95 raise a tier and 06–10 drop one; each opened tier moves them 5 further in', lasts: 'while worn' },
   },
-  [PK.both_ends_open]: {
-    id: PK.both_ends_open, name: 'Both Ends Open', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
+  [PK.twin_abyss]: {
+    id: PK.twin_abyss, name: 'Twin Abyss', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
     story: 'You have seen how bad it gets. The earring promises it can get better by as much.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Gambler\'s Loop and has earned Fate Has a Sense of Humour'], effect: 'one more tier opens past Critical Success and one below Critical Failure', lasts: 'while worn' },
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate Has a Sense of Humour'], effect: 'one more tier opens past Critical Success and one below Critical Failure', lasts: 'while worn' },
   },
   [PK.call_the_toss]: {
     id: PK.call_the_toss, name: 'Call the Toss', built: true, eventArm: { kind: 'farther', cooldownMin: 1440 },
     story: 'You flick the earring and call it. Whatever comes next will not be ordinary.',
-    rules: { kind: 'active', trigger: 'the owner turns the earring (a free perk move)', conditions: ['the owner wears the Gambler\'s Loop and has earned Fortune\'s Favourite Accident'], effect: 'the owner\'s next event roll rolls two dice and keeps the one farther from the middle (50.5)', lasts: 'until the next event roll', cooldown: 'Once per game day.' },
+    rules: { kind: 'active', trigger: 'the owner turns the earring (a free perk move)', conditions: ['the owner wears the Varo\'s Loop and has earned Fortune\'s Favourite Accident'], effect: 'the owner\'s next event roll rolls two dice and keeps the one farther from the middle (50.5)', lasts: 'until the next event roll', cooldown: 'Once per game day.' },
   },
   [PK.pull_to_the_edges]: {
     id: PK.pull_to_the_edges, name: 'Pull to the Edges', built: true, eventSpread: 1.5,
     story: 'Nothing that happens around you is merely fine any more.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Gambler\'s Loop and has earned Cursed by Coincidence'], effect: 'the die counts 1.5 times as far from the middle (50.5) for the margin; modifiers and the natural edges are unchanged', lasts: 'while worn' },
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Cursed by Coincidence'], effect: 'the die counts 1.5 times as far from the middle (50.5) for the margin; modifiers and the natural edges are unchanged', lasts: 'while worn' },
   },
   [PK.all_or_nothing]: {
     id: PK.all_or_nothing, name: 'All or Nothing', built: true, eventArm: { kind: 'all_or_nothing', cooldownMin: 10080 },
     story: 'You stake everything on the next turn of fortune. It will be the best of luck or the worst.',
-    rules: { kind: 'active', trigger: 'the owner turns the earring (a free perk move)', conditions: ['the owner wears the Gambler\'s Loop and has earned The Joke Is on Fate'], effect: 'the owner\'s next event roll is Critical Success on 51–100 and Critical Failure on 01–50; the natural edges and opened tiers still carry it further', lasts: 'until the next event roll', cooldown: 'Once per 7 game days.' },
+    rules: { kind: 'active', trigger: 'the owner turns the earring (a free perk move)', conditions: ['the owner wears the Varo\'s Loop and has earned The Joke Is on Fate'], effect: 'the owner\'s next event roll is Critical Success on 51–100 and Critical Failure on 01–50; the natural edges and opened tiers still carry it further', lasts: 'until the next event roll', cooldown: 'Once per 7 game days.' },
   },
-  [PK.further_still]: {
-    id: PK.further_still, name: 'Further Still', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
+  [PK.beyond_the_last_thread]: {
+    id: PK.beyond_the_last_thread, name: 'Beyond the Last Thread', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
     story: 'Fate keeps finding new ways to laugh at you. You have started laughing back.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Gambler\'s Loop and has earned Fate\'s Favourite Punchline'], effect: 'one more tier opens past Critical Success and one below Critical Failure (on top of Both Ends Open)', lasts: 'while worn' },
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate\'s Favourite Punchline'], effect: 'one more tier opens past Critical Success and one below Critical Failure (on top of Twin Abyss)', lasts: 'while worn' },
   },
 };
 
@@ -252,11 +252,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } },
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, hands: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
   // D-218 Threadbound: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
-  { id: IT.gamblers_loop, kind: 'accessory', name: 'Gambler\'s Loop', look: 'a small hoop earring of dark silver, worn smooth', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
-    threadbound: { grants: [
-      { perk: PK.loose_odds, achievement: ACH.event_crit_1 }, { perk: PK.both_ends_open, achievement: ACH.event_crit_fail_1 },
+  { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
+    threadbound: { myth: 'myth_4', grants: [
+      { perk: PK.loose_odds, achievement: ACH.event_crit_1 }, { perk: PK.twin_abyss, achievement: ACH.event_crit_fail_1 },
       { perk: PK.call_the_toss, achievement: ACH.event_crit_2 }, { perk: PK.pull_to_the_edges, achievement: ACH.event_crit_fail_2 },
-      { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
+      { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.beyond_the_last_thread, achievement: ACH.event_crit_fail_3 },
     ] } },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
@@ -468,7 +468,7 @@ export function prototypeLibrary(): Library {
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
       // TB7: the Threadbound start (50 points, level 1); its level 1 perk gives a random Threadbound item. No unlock: creation only
-      [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_2', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, creation: { points: 50, level: 1, name: 'The Threadbound' }, levelPerks: { 1: [PK.always_yours] } },
+      [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, creation: { points: 50, level: 1, name: 'The Threadbound' }, levelPerks: { 1: [PK.always_yours] } },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.
       [CL.sword_dancer]: { id: CL.sword_dancer, name: 'Sword-dancer', tier: 'tier_1', story: 'Blade and footwork, drilled until the step comes before the thought does.', floors: {}, unlock: { [SK.dodge]: 40 }, unlockAny: [{ [SK.melee_light]: 40, [SK.melee_medium]: 40 }] },

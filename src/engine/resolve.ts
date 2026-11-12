@@ -1037,7 +1037,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (ended || state.stage.breakCause || CONFIG.SKILL_UP_INSTANT) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
-  for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); syncThreadbound(x, state.turn); } grantThreadbound(state.player, CONFIG.ACCESSORY_SLOTS, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
+  for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); syncThreadbound(x, state.turn); } grantThreadbound(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
   if (state.stage.breakCause) closeScene(state); // SC6: record the scene; SC4: an inner scene's end resumes the bigger one

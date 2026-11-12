@@ -4,7 +4,8 @@
 import type { Actor, GameState, ItemDef, ItemInstance, Turn } from '../types';
 import { getLibrary } from '../library';
 import { createRng } from '../rng';
-import { isWorn } from './gear';
+import { freeAccSlot, isWorn } from './gear';
+import { MYTH_RANKS } from '../scales';
 
 const libItem = (id: string): ItemDef | undefined => getLibrary().items[id];
 
@@ -43,7 +44,8 @@ function holders(state: GameState): ItemInstance[][] {
 export const summonable = (state: GameState, a: Actor): ItemInstance[] =>
   holders(state).filter((l) => l !== a.core.inventory).flat().filter((i) => i.boundTo === a.id && libItem(i.itemId)?.threadbound);
 
-/** TB6: brings the actor's own Threadbound item to it from wherever it is (stowed); false if it isn't theirs */
+/** TB6: brings the actor's own Threadbound item to it from wherever it is; it lands worn if a slot for it is free, else
+ * stowed (TB12). False if it isn't theirs */
 export function summon(state: GameState, a: Actor, instId: string): boolean {
   for (const list of holders(state)) {
     const i = list.findIndex((x) => x.id === instId);
@@ -52,22 +54,26 @@ export function summon(state: GameState, a: Actor, instId: string): boolean {
     const [it] = list.splice(i, 1);
     delete it.equippedIn;
     a.core.inventory.push(it);
+    const slot = libItem(it.itemId)!.slot === 'accessory' ? freeAccSlot(a) : undefined;
+    if (slot) it.equippedIn = [slot];
     return true;
   }
   return false;
 }
 
-/** TB7: each owned perk with grantsThreadbound gives, once, a random Threadbound item not yet in the world (state given),
- * bound to the owner and worn in a free accessory slot. The pick is seeded by the story id, so a replay gives the same. */
-export function grantThreadbound(a: Actor, slots: number, state?: GameState): void {
+/** TB7: each owned perk with grantsThreadbound gives, once, a random Threadbound item of at least its Myth rank (TB11) not
+ * yet in the world (state given), bound to the owner and worn in a free accessory slot. The pick is seeded by the story
+ * id, so a replay gives the same. */
+export function grantThreadbound(a: Actor, state?: GameState): void {
   const lib = getLibrary();
   for (const p of a.core.perks) {
-    if (p.dormant || p.granted || !lib.perks[p.perkId]?.grantsThreadbound) continue;
-    const free = Object.values(lib.items).filter((d) => d.threadbound && !(state && inWorld(state, d.id)) && !a.core.inventory.some((i) => i.itemId === d.id));
+    const grant = lib.perks[p.perkId]?.grantsThreadbound;
+    if (p.dormant || p.granted || !grant) continue;
+    const free = Object.values(lib.items).filter((d) => d.threadbound && MYTH_RANKS.pos(d.threadbound.myth) >= MYTH_RANKS.pos(grant.minMyth)
+      && !(state && inWorld(state, d.id)) && !a.core.inventory.some((i) => i.itemId === d.id));
     if (!free.length) continue;
     const pick = free[createRng([...a.storyId].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1).int(0, free.length - 1)];
-    const used = new Set(a.core.inventory.flatMap((i) => i.equippedIn ?? []));
-    const slot = Array.from({ length: slots }, (_, n) => `acc:${n}`).find((s) => !used.has(s));
+    const slot = pick.slot === 'accessory' ? freeAccSlot(a) : undefined;
     a.core.inventory.push({ id: `${pick.id}_${a.id}`, itemId: pick.id, boundTo: a.id, ...(slot ? { equippedIn: [slot] } : {}) });
     p.granted = pick.id;
   }

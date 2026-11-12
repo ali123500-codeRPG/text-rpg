@@ -121,6 +121,9 @@ export type XpFactorKey = (typeof XP_FACTORS.keys)[number];
 /** Class tiers: how strong a class is, to compare classes and to place NPC templates */
 export const CLASS_TIERS = scale([['tier_0', 'Common'], ['tier_1', 'Trained'], ['tier_2', 'Seasoned'], ['tier_3', 'Renowned'], ['tier_4', 'Heroic'], ['tier_5', 'Legendary']]);
 export type ClassTierKey = (typeof CLASS_TIERS.keys)[number];
+/** TB11: a Threadbound item's Myth rank, weakest first. Adding a rank means adding a row here */
+export const MYTH_RANKS = scale([['myth_1', 'Myth I'], ['myth_2', 'Myth II'], ['myth_3', 'Myth III'], ['myth_4', 'Myth IV'], ['myth_5', 'Myth V'], ['myth_6', 'Myth VI']]);
+export type MythRankKey = (typeof MYTH_RANKS.keys)[number];
 /** a skill tree's rating, weakest first: sets how many of its skills at a step earn its All-XXX (CONFIG.ALL_STEP_SKILLS) */
 export const TREE_RATINGS = scale([['inferior', 'Inferior'], ['normal', 'Normal'], ['superior', 'Superior'], ['legendary', 'Legendary']]);
 export type TreeRatingKey = (typeof TREE_RATINGS.keys)[number];
