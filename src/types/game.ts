@@ -37,8 +37,21 @@ export type LogLine = {
   /** SD1: this turn ended a scenario: how (SCENARIO_ENDINGS key and its name), and the Narrator's closing line for it, which the
    * play page shows before the scenario break; text is then the rest of the turn and the next scenario's opening */
   scenarioEnd?: ScenarioEndNote;
+  /** D-226: the gains of the scenario this turn ended; while set, that line carries no achievements, unlocks or levelUps of its own */
+  scenarioGains?: ScenarioGains;
 };
 export type ScenarioEndNote = { as: import('./hidden').ScenarioEnding; name: string; closing?: string };
+/** D-226: what the player gained in a scenario, for the ending moment's gains pop-up (on the narration line of the turn that
+ * ended it, LogLine.scenarioGains). Achievements and All-XXX are granted at the end; skill raises, XP and levels are what the
+ * scenario brought in all. An empty list = nothing of that kind. */
+export type ScenarioGains = {
+  skills: { skill: string; from: number; to: number }[]; // raw skill before and after
+  perks: { skill: string; milestone: number }[]; // milestone perks unlocked (never named)
+  allPerks: { tree: string; step: number; name: string }[]; // All-XXX earned: tree id, step (50, 100…), its name
+  achievements: AchievementNote[]; // granted at the end, scars included
+  xp: { gained: number; fromLevel: number; fromPct: number; toLevel: number; toPct: number }; // pct = the sheet's XP bar fill
+  levelUps: { classId: string; level: number }[];
+};
 
 /** a hall-of-fame row: the fallen character, whose story it was, and its story id */
 export type FallenCharacter = import('./state').FameEntry & { owner: import('./state').StoryOwner; storyId: string };

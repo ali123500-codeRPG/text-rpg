@@ -301,12 +301,17 @@ export function tally(state: GameState, rule: AchievementRule, o: { by?: Achieve
 /** Each achievement is granted once (B4). key is its row in the library table; of the body type, race or tree it names.
  * Saves keep only key and of, so renaming a row or moving its reward level edits only the table. */
 /** `reached`: the tally that earned it (shown as why it was earned) */
-export function grantAchievement(state: GameState, key: string, of?: string, reached?: number): void {
+export function grantAchievement(state: GameState, key: string, of?: string, reached?: number, now = false): void {
   const pr = state.player.progression;
   const d = getLibrary().achievements?.[key];
   if (!pr || !d) return;
   const id = of ? `${d.id}:${of}` : d.id;
   if (pr.achievements?.some((x) => x.id === id)) return;
+  if (!now && growthWaits(state)) { // D-226: while a scenario runs, it is granted at the scenario's end (flushGrowth)
+    const q = (pr.pendingAchievements ??= []);
+    if (!q.some((x) => x.key === key && x.of === of)) q.push({ key, ...(of ? { of } : {}), ...(reached !== undefined ? { reached } : {}) });
+    return;
+  }
   // a higher level switches off every lower level of its chain, so only the highest one is checked
   const lib = getLibrary().achievements ?? {};
   for (let k = d.after, i = 0; k && i < 20; k = lib[k]?.after, i++)
@@ -321,6 +326,9 @@ export function grantAchievement(state: GameState, key: string, of?: string, rea
   if (!d.scar && d.rule !== 'achievements')
     tally(state, 'achievements', { to: pr.achievements!.filter((x) => { const k = lib[x.key ?? '']; return k && !k.scar && k.rule !== 'achievements'; }).length });
 }
+
+/** D-226: the player's growth waits for the running scenario's end (CONFIG.GROWTH_AT_SCENARIO_END); in free roam it doesn't */
+export const growthWaits = (state: GameState): boolean => CONFIG.GROWTH_AT_SCENARIO_END && !!state.stage.scenario;
 
 /** T18: the title the player wears, by its name: the worn achievement, or the level that replaced it (a title moves up
  * its chain); never a scar */

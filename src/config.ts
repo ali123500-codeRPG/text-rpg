@@ -292,6 +292,9 @@ const DEFAULTS = {
   /** FR1 b (placeholder): a calm start (talk, trade, a quest goal reached) starts a scenario only once free roam has lasted this
    * many turns; danger (an attack, a hostile spotting the player), road encounters and unbuilt frontiers never wait */
   ROAM_MIN_TURNS: 5,
+  /** D-226 (LF3): while a scenario runs, the player's achievements and All-XXX steps wait for the scenario's end and are
+   * granted there together (one gains summary for the ending moment); in free roam they come at once. false: at once always */
+  GROWTH_AT_SCENARIO_END: true,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
