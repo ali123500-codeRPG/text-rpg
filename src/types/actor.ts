@@ -99,7 +99,7 @@ export type OwnedPerk = {
   dormant?: boolean;
   /** a linked perk of kind 'merge' replaced this one (it is dormant until the merge no longer holds) */
   mergedInto?: LibraryRef;
-  /** TB7: the Threadbound item (library id) this perk already gave; grantsThreadbound gives only once */
+  /** TB7: the Threadbound item (library id) this perk already gave; grantsThreadboundItem gives only once */
   granted?: LibraryRef;
 };
 

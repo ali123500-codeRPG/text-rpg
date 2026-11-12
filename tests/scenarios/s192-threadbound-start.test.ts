@@ -8,7 +8,7 @@ import { createPlayer, recommendedBuild, validateBuild } from '../../src/library
 import { applyGearOps } from '../../src/engine/gear';
 import { buildPlayerView } from '../../src/views';
 import { getLibrary } from '../../src/library';
-import { grantThreadbound } from '../../src/ruleset/threadbound';
+import { grantThreadboundItem } from '../../src/ruleset/threadboundItems';
 import { CONFIG } from '../../src/config';
 import { checkParserLegality } from '../../src/agents/legality';
 import { CL } from '../../src/library/classIds';
@@ -83,17 +83,17 @@ describe('192 the Threadbound start', () => {
     expect(loopOf(s.player.core.inventory)?.equippedIn).toBeUndefined();
   });
 
-  it('TB11: Threadbounded is tier 4 and gives only items of Myth IV or higher', () => {
+  it('TB11: Threadbounded is tier 4 and gives only items of Rank IV or higher', () => {
     const s = makeVillage();
     expect(getLibrary().classes![CL.threadbounded].tier).toBe('tier_4');
     const loop = getLibrary().items[IT.varos_loop];
-    expect(loop.threadbound!.myth).toBe('myth_4');
-    loop.threadbound!.myth = 'myth_3';
+    expect(loop.threadbound!.rank).toBe('rank_4');
+    loop.threadbound!.rank = 'rank_3';
     s.player.core.perks.push({ perkId: PK.always_yours, source: 'class', gainedTurn: 0 });
-    grantThreadbound(s.player, s);
+    grantThreadboundItem(s.player, s);
     expect(loopOf(s.player.core.inventory)).toBeUndefined();
-    loop.threadbound!.myth = 'myth_4';
-    grantThreadbound(s.player, s);
+    loop.threadbound!.rank = 'rank_4';
+    grantThreadboundItem(s.player, s);
     expect(loopOf(s.player.core.inventory)?.boundTo).toBe('player');
   });
 });

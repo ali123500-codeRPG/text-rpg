@@ -5,7 +5,7 @@ import type { Actor, GameState, ItemDef, ItemInstance, Turn } from '../types';
 import { getLibrary } from '../library';
 import { createRng } from '../rng';
 import { freeAccSlot, isWorn } from './gear';
-import { MYTH_RANKS } from '../scales';
+import { THREADBOUND_RANKS } from '../scales';
 
 const libItem = (id: string): ItemDef | undefined => getLibrary().items[id];
 
@@ -13,24 +13,24 @@ const libItem = (id: string): ItemDef | undefined => getLibrary().items[id];
 export const earned = (a: Actor, achievement: string) => !!a.progression?.achievements?.some((x) => x.key === achievement);
 
 /** the Threadbound items the actor wears and owns */
-export const ownThreadbound = (a: Actor): ItemInstance[] =>
+export const ownThreadboundItems = (a: Actor): ItemInstance[] =>
   a.core.inventory.filter((i) => i.boundTo === a.id && isWorn(i) && libItem(i.itemId)?.threadbound);
 
 /** the perks the actor's worn Threadbound items give now */
-export function threadboundPerks(a: Actor): string[] {
-  return ownThreadbound(a).flatMap((i) => libItem(i.itemId)!.threadbound!.grants.filter((g) => earned(a, g.achievement)).map((g) => g.perk));
+export function threadboundItemPerks(a: Actor): string[] {
+  return ownThreadboundItems(a).flatMap((i) => libItem(i.itemId)!.threadbound!.grants.filter((g) => earned(a, g.achievement)).map((g) => g.perk));
 }
 
 /** adds the perks the actor's worn Threadbound items give and takes away those they no longer give */
-export function syncThreadbound(a: Actor, turn: Turn): void {
-  const want = new Set(threadboundPerks(a));
+export function syncThreadboundItemPerks(a: Actor, turn: Turn): void {
+  const want = new Set(threadboundItemPerks(a));
   a.core.perks = a.core.perks.filter((p) => p.source !== 'item' || want.has(p.perkId));
   for (const id of want) if (!a.core.perks.some((p) => p.perkId === id && p.source === 'item')) a.core.perks.push({ perkId: id, source: 'item', gainedTurn: turn });
 }
 
 /** the worn Threadbound item that gives this perk to the actor */
-export const threadboundOf = (a: Actor, perk: string): ItemInstance | undefined =>
-  ownThreadbound(a).find((i) => libItem(i.itemId)!.threadbound!.grants.some((g) => g.perk === perk));
+export const threadboundItemFor = (a: Actor, perk: string): ItemInstance | undefined =>
+  ownThreadboundItems(a).find((i) => libItem(i.itemId)!.threadbound!.grants.some((g) => g.perk === perk));
 
 /** a Threadbound item is one of a kind: true when one is already carried by anyone or lies on any ground */
 export const inWorld = (state: GameState, itemId: string): boolean => holders(state).some((l) => l.some((i) => i.itemId === itemId));
@@ -41,7 +41,7 @@ function holders(state: GameState): ItemInstance[][] {
 }
 
 /** TB6: the actor's bound Threadbound items it is not carrying */
-export const summonable = (state: GameState, a: Actor): ItemInstance[] =>
+export const summonableThreadboundItems = (state: GameState, a: Actor): ItemInstance[] =>
   holders(state).filter((l) => l !== a.core.inventory).flat().filter((i) => i.boundTo === a.id && libItem(i.itemId)?.threadbound);
 
 /** TB6: brings the actor's own Threadbound item to it from wherever it is; it lands worn if a slot for it is free, else
@@ -61,15 +61,15 @@ export function summon(state: GameState, a: Actor, instId: string): boolean {
   return false;
 }
 
-/** TB7: each owned perk with grantsThreadbound gives, once, a random Threadbound item of at least its Myth rank (TB11) not
+/** TB7: each owned perk with grantsThreadboundItem gives, once, a random Threadbound item of at least its Rank (TB11) not
  * yet in the world (state given), bound to the owner and worn in a free accessory slot. The pick is seeded by the story
  * id, so a replay gives the same. */
-export function grantThreadbound(a: Actor, state?: GameState): void {
+export function grantThreadboundItem(a: Actor, state?: GameState): void {
   const lib = getLibrary();
   for (const p of a.core.perks) {
-    const grant = lib.perks[p.perkId]?.grantsThreadbound;
+    const grant = lib.perks[p.perkId]?.grantsThreadboundItem;
     if (p.dormant || p.granted || !grant) continue;
-    const free = Object.values(lib.items).filter((d) => d.threadbound && MYTH_RANKS.pos(d.threadbound.myth) >= MYTH_RANKS.pos(grant.minMyth)
+    const free = Object.values(lib.items).filter((d) => d.threadbound && THREADBOUND_RANKS.pos(d.threadbound.rank) >= THREADBOUND_RANKS.pos(grant.minRank)
       && !(state && inWorld(state, d.id)) && !a.core.inventory.some((i) => i.itemId === d.id));
     if (!free.length) continue;
     const pick = free[createRng([...a.storyId].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) || 1).int(0, free.length - 1)];

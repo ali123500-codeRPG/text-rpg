@@ -34,9 +34,9 @@ export type ItemDef = {
   gearClass?: string; // GC id: which skill its requirement asks for (library gearClasses)
   base?: { itemId: LibraryRef; quality: 1 | 2 | 3 | 4; boosts: string };
   tags?: string[]; // 'kit' marks a standard-kit piece (one shared bonus per roll)
-  /** D-218 Threadbound: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each
-   * grant's perk is theirs once they have earned its achievement (src/ruleset/threadbound.ts) */
-  threadbound?: { myth: import('../scales').MythRankKey; grants: { perk: LibraryRef; achievement: string }[] }; // myth: TB11, its Myth rank
+  /** D-218 Threadbound item: one of a kind in the world. It binds to the first who wears it; while its owner wears it, each
+   * grant's perk is theirs once they have earned its achievement (src/ruleset/threadboundItems.ts) */
+  threadbound?: { rank: import('../scales').ThreadboundRankKey; grants: { perk: LibraryRef; achievement: string }[] }; // rank: TB11, its Rank (THREADBOUND_RANKS)
 };
 
 export type RollKind = 'hit' | 'dodge' | 'block' | 'parry' | 'perception' | 'stealth' | 'event' | 'initiative';

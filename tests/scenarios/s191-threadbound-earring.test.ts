@@ -6,7 +6,7 @@ import { makeVillage, forcedRng } from '../harness';
 import { intent, play } from './w4-kit';
 import { ruleset, tierName } from '../../src/ruleset';
 import { tierReach } from '../../src/ruleset/achRewards';
-import { syncThreadbound } from '../../src/ruleset/threadbound';
+import { syncThreadboundItemPerks } from '../../src/ruleset/threadboundItems';
 import { applyGearOps } from '../../src/engine/gear';
 import { perkMoveBlock } from '../../src/engine/perkMoves';
 import { tidyRewards } from '../../src/scene/validate';
@@ -25,7 +25,7 @@ const worn = (earned: string[] = []) => {
   s.player.core.inventory.push({ id: LOOP, itemId: IT.varos_loop });
   applyGearOps(s, s.player, [{ op: 'wear_acc', item: LOOP }]);
   earn(s.player, ...earned);
-  syncThreadbound(s.player, s.turn);
+  syncThreadboundItemPerks(s.player, s.turn);
   return s;
 };
 const ev = (s: GameState, ...d: number[]) => ruleset.eventRoll(s.player, s, forcedRng(d));
@@ -40,7 +40,7 @@ describe('191 the Varo\'s Loop', () => {
     const other = s.actors[0];
     other.core.inventory.push({ ...inst, id: 'loop_2', equippedIn: ['acc:0'] });
     earn(other, ACH.event_crit_1);
-    syncThreadbound(other, s.turn);
+    syncThreadboundItemPerks(other, s.turn);
     expect(has(other, PK.loose_odds)).toBe(false);
   });
 
@@ -48,10 +48,10 @@ describe('191 the Varo\'s Loop', () => {
     const s = worn();
     expect(s.player.core.perks.some((p) => p.source === 'item')).toBe(false);
     earn(s.player, ACH.event_crit_fail_1);
-    syncThreadbound(s.player, s.turn);
+    syncThreadboundItemPerks(s.player, s.turn);
     expect(has(s.player, PK.twin_abyss)).toBe(true);
     applyGearOps(s, s.player, [{ op: 'remove_acc', item: LOOP }]);
-    syncThreadbound(s.player, s.turn);
+    syncThreadboundItemPerks(s.player, s.turn);
     expect(has(s.player, PK.twin_abyss)).toBe(false);
   });
 
@@ -69,7 +69,7 @@ describe('191 the Varo\'s Loop', () => {
     expect(at(8, false)).toBe('Failure');
   });
 
-  it('Twin Abyss and Beyond the Last Thread open tiers past each Critical', () => {
+  it('Twin Abyss and Further Still open tiers past each Critical', () => {
     expect(tierReach(worn([ACH.event_crit_fail_1]).player, 'event')).toEqual({ up: 1, down: 2 }); // the scar's own + the loop's
     const both = worn([ACH.event_crit_fail_1, ACH.event_crit_fail_3]);
     const loop = tierReach(both.player, 'event');

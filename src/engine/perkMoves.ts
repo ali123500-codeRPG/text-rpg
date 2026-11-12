@@ -20,7 +20,7 @@ import { contestFeat } from './feats';
 import { answerRoll, answerSkill, toContest } from './speech';
 import { getLibrary } from '../library';
 import { now } from '../time';
-import { threadboundOf } from '../ruleset/threadbound';
+import { threadboundItemFor } from '../ruleset/threadboundItems';
 
 /** the actor has a working Grip arm with nothing held in it */
 export const freeHand = (state: GameState, a: Actor) => {
@@ -43,7 +43,7 @@ export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId
   if (!def || !hasPerk(a, perk)) return 'not_owned';
   const arm = getLibrary().perks[perk]?.eventArm;
   if (arm) { // D-218: a Threadbound item's active ability
-    const inst = threadboundOf(a, perk);
+    const inst = threadboundItemFor(a, perk);
     if (!inst) return 'not_owned';
     if (inst.armed) return 'already_armed';
     const last = inst.usedAt?.[perk];
@@ -59,8 +59,8 @@ export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId
 }
 
 /** D-218: arms the owner's next event roll with a Threadbound item's active ability (checked by perkMoveBlock first) */
-export function armThreadbound(state: GameState, a: Actor, perk: string): Effect[] {
-  const inst = threadboundOf(a, perk)!;
+export function armThreadboundItem(state: GameState, a: Actor, perk: string): Effect[] {
+  const inst = threadboundItemFor(a, perk)!;
   inst.armed = perk;
   (inst.usedAt ??= {})[perk] = now(state);
   return [{ kind: 'event_roll_armed', actorId: a.id, data: { perk, itemId: inst.itemId } }];

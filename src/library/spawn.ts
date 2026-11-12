@@ -4,7 +4,7 @@ import type { Actor, CreationBuild, DefenseKind, GameState, ItemDef, ItemInstanc
 import { CONFIG } from '../config';
 import { bodyType, race, getLibrary, hasTemplate, itemDef, npcTemplate } from './index';
 import { skillOpen } from '../ruleset/access';
-import { grantThreadbound, syncThreadbound } from '../ruleset/threadbound';
+import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { itemLevel, requirement, shortBy, skillToward } from '../ruleset/requirements';
 import { CLASS_TIERS, EQUIP_LEVELS } from '../scales';
 import { createRng } from '../rng';
@@ -286,8 +286,8 @@ export function createPlayer(build: CreationBuild, storyId: string, opts: { prev
     journal: { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] },
   };
   p.core.inventory.unshift(...starterKit(p)); // the starter kit reads the finished sheet's skills
-  grantThreadbound(p); // TB7: the Threadbound start's level 1 perk
-  syncThreadbound(p, 0);
+  grantThreadboundItem(p); // TB7: the Threadbound start's level 1 perk
+  syncThreadboundItemPerks(p, 0);
   return p;
 }
 

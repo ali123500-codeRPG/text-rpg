@@ -225,9 +225,9 @@ export type PerkDef = {
   /** D-218 active ability (a free perk move): arms the owner's next event roll. 'farther': roll twice, keep the die
    * farther from the middle; 'all_or_nothing': 51–100 is Critical Success, 1–50 Critical Failure. cooldownMin: game minutes */
   eventArm?: { kind: 'farther' | 'all_or_nothing'; cooldownMin: number };
-  /** TB7: owning it gives a random Threadbound item not yet in the world, of at least this Myth rank (TB11), bound to the
+  /** TB7: owning it gives a random Threadbound item not yet in the world, of at least this Rank (TB11), bound to the
    * owner and worn (once) */
-  grantsThreadbound?: { minMyth: import('../scales').MythRankKey };
+  grantsThreadboundItem?: { minRank: import('../scales').ThreadboundRankKey };
 };
 /** a 40/80/120 perk's numbers; each applies only to rolls of the perk's own ladder skill */
 export type BoostNumbers = { aimMult?: number; damageMult?: number; armorPierce?: number; recoveryMult?: number; hitAdd?: number; rollAdd?: number };

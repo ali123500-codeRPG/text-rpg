@@ -27,9 +27,9 @@ import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks
 import { battleCry, engagementAuras } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
-import { grantThreadbound, syncThreadbound } from '../ruleset/threadbound';
+import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds } from './held';
-import { armThreadbound, countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { armThreadboundItem, countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, bandById, foe, isActive, isEngaged, hostile, shortestPath, sparBetween, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
@@ -851,7 +851,7 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
   if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
-  if (getLibrary().perks[pm.perk]?.eventArm) return emit(ctx, mk(ctx, a, 'perk_move', { effects: armThreadbound(ctx.state, a, pm.perk) }));
+  if (getLibrary().perks[pm.perk]?.eventArm) return emit(ctx, mk(ctx, a, 'perk_move', { effects: armThreadboundItem(ctx.state, a, pm.perk) }));
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
 }
@@ -1037,7 +1037,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   if (ended || state.stage.breakCause || CONFIG.SKILL_UP_INSTANT) { improveMarked(state, rng); unlockClasses(state); }
   if (ended || state.stage.breakCause) clearMarkCounts(state.player);
   for (const x of allActors(state)) expireMarks(state, x);
-  for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); syncThreadbound(x, state.turn); } grantThreadbound(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
+  for (const x of allActors(state)) { grantAllSteps(state, x); syncPerkLinks(x, state.turn); syncThreadboundItemPerks(x, state.turn); } grantThreadboundItem(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
   releaseHolds(state, allActors(state));
   if (state.stage.breakCause) closeScene(state); // SC6: record the scene; SC4: an inner scene's end resumes the bigger one

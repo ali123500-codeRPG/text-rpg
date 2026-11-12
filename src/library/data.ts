@@ -150,9 +150,9 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'passive', trigger: 'an improvement roll for a marked skill', conditions: ['the skill\'s raw value is below 15'], effect: 'roll twice; each roll that passes adds its own gain', lasts: 'always' },
   },
   [PK.always_yours]: {
-    id: PK.always_yours, name: 'What Was Always Yours', built: true, classLevel: { classId: CL.threadbounded, level: 1 }, grantsThreadbound: { minMyth: 'myth_4' },
+    id: PK.always_yours, name: 'What Was Always Yours', built: true, classLevel: { classId: CL.threadbounded, level: 1 }, grantsThreadboundItem: { minRank: 'rank_4' },
     story: 'Something was tied to you before you can remember. It has never once left your side for long.',
-    rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: ['a Threadbound item of Myth IV or higher is not yet in the world'], effect: 'the owner gets one such item at random, bound to them and worn', lasts: 'once' },
+    rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: ['a Threadbound item of Rank IV or higher is not yet in the world'], effect: 'the owner gets one such item at random, bound to them and worn', lasts: 'once' },
   },
   // D-218: the Varo's Loop's abilities, given while its owner wears it and holds the achievement its grant names.
   // They widen the event roll both ways and never move its middle.
@@ -181,8 +181,8 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'You stake everything on the next turn of fortune. It will be the best of luck or the worst.',
     rules: { kind: 'active', trigger: 'the owner turns the earring (a free perk move)', conditions: ['the owner wears the Varo\'s Loop and has earned The Joke Is on Fate'], effect: 'the owner\'s next event roll is Critical Success on 51–100 and Critical Failure on 01–50; the natural edges and opened tiers still carry it further', lasts: 'until the next event roll', cooldown: 'Once per 7 game days.' },
   },
-  [PK.beyond_the_last_thread]: {
-    id: PK.beyond_the_last_thread, name: 'Beyond the Last Thread', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
+  [PK.further_still]: {
+    id: PK.further_still, name: 'Further Still', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],
     story: 'Fate keeps finding new ways to laugh at you. You have started laughing back.',
     rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Varo\'s Loop and has earned Fate\'s Favourite Punchline'], effect: 'one more tier opens past Critical Success and one below Critical Failure (on top of Twin Abyss)', lasts: 'while worn' },
   },
@@ -251,12 +251,12 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.half_plate, level: 'fine', gearClass: GC.armor_heavy, tags: ['starter'], kind: 'armor', name: 'half plate', look: 'a breastplate with arm and leg plates', bulk: 3, value: 120, slot: 'armor', effects: [WEIGHT(CONFIG.ARMOR_DODGE.heavy)],
     armor: { covers: ['general', 'left_arm', 'right_arm', 'left_leg', 'right_leg'], ...ARMOR('heavy', 'fine') } },
   { id: IT.kite_shield, level: 'fine', gearClass: GC.shield, tags: ['starter'], kind: 'shield', name: 'kite shield', look: 'a tall kite shield', bulk: 3, value: 20, hands: 1, effects: [KIT(SK.block)], shield: POOL('fine') },
-  // D-218 Threadbound: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
+  // D-218 Threadbound items: one of a kind; binds to the first who wears it; its abilities open with its owner's achievements
   { id: IT.varos_loop, kind: 'accessory', name: 'Varo\'s Loop', look: 'a small hoop earring of dark silver, worn smooth', bulk: 0, value: 400, boon: 20, slot: 'accessory', visible: true,
-    threadbound: { myth: 'myth_4', grants: [
+    threadbound: { rank: 'rank_4', grants: [
       { perk: PK.loose_odds, achievement: ACH.event_crit_1 }, { perk: PK.twin_abyss, achievement: ACH.event_crit_fail_1 },
       { perk: PK.call_the_toss, achievement: ACH.event_crit_2 }, { perk: PK.pull_to_the_edges, achievement: ACH.event_crit_fail_2 },
-      { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.beyond_the_last_thread, achievement: ACH.event_crit_fail_3 },
+      { perk: PK.all_or_nothing, achievement: ACH.event_crit_3 }, { perk: PK.further_still, achievement: ACH.event_crit_fail_3 },
     ] } },
   { id: IT.signet_ring, kind: 'accessory', name: 'signet ring', look: 'a heavy signet ring', bulk: 0, value: 40, slot: 'accessory', visible: true },
   { id: IT.lucky_charm, kind: 'misc', name: 'lucky charm', look: 'a small knotted charm', bulk: 0, value: 50,
@@ -467,7 +467,7 @@ export function prototypeLibrary(): Library {
       [CL.late_bloomer]: { id: CL.late_bloomer, name: 'Unwritten Legend', tier: 'tier_5', label: 'a young stranger', story: 'No song carries your name, no master claimed you, and no road was chosen for you. You start late, in rough clothes with empty hands. Whatever story ends with your name, you will write it yourself.', floors: {}, creation: { points: 50, level: 1 }, levelPerks: { 1: [PK.quick_study] }, capstone: [PK.as_far_as_the_road_goes],
         capstones: [{ perk: PK.write_your_own_ending, needs: { must: [{ kind: 'classes', id: '', level: 7 }] } },
           { perk: PK.no_road_closed, needs: { must: [{ kind: 'allStep', id: '50', level: 1 }, { kind: 'skillsAbove', id: '15', level: 10 }] } }] },
-      // TB7: the Threadbound start (50 points, level 1); its level 1 perk gives a random Threadbound item. No unlock: creation only
+      // TB7: the Threadbounded class, used only by The Threadbound start (50 points, level 1); its level 1 perk gives a random Threadbound item. No unlock
       [CL.threadbounded]: { id: CL.threadbounded, name: 'Threadbounded', tier: 'tier_4', label: 'a young stranger', story: 'Something was tied to you before you were old enough to know it. It answers when you call, and nothing has ever taken it from you for long.', floors: {}, creation: { points: 50, level: 1, name: 'The Threadbound' }, levelPerks: { 1: [PK.always_yours] } },
       // Sword-dancer mirrors the Swordsman: its skills and perks are meant to be the Swordsman's, built for Dodge and
       // light or medium blades. Unlocks at Dodge 40 and Light or Medium Weapons 40; no tree, floors or creation start yet.

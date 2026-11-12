@@ -475,7 +475,7 @@ export function tidyRewards(state: GameState, plan: StagePlan): { rewards: Rewar
     let item: Reward['item'];
     if (typeof r.item === 'string') {
       if (!known(r.item)) return note('reward_dropped', `${where}: item ${r.item} unknown`);
-      if (known(r.item)!.threadbound) return note('reward_dropped', `${where}: ${r.item} is Threadbound; the Weaver does not place those (D-220)`);
+      if (known(r.item)!.threadbound) return note('reward_dropped', `${where}: ${r.item} is a Threadbound item; the Weaver does not place those (D-220)`);
       item = r.item;
     } else {
       const m = r.item;
