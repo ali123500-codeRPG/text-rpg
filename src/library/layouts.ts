@@ -15,7 +15,12 @@ export const LAYOUTS: Record<string, LayoutDef> = Object.fromEntries(([
     { key: 'yard', kind: ZK.yard, name: 'back yard', look: 'Stacked firewood and a rain barrel inside a fence.', size: 'yard', edges: { n: EK.low, e: EK.low, s: EK.low },
       links: [['common', 'the back door, west', false]] },
     { key: 'upstairs', kind: ZK.corridor, name: 'upstairs landing', look: 'A narrow landing with doors to the rooms let for the night.', size: 'small',
-      links: [['common', 'the stairs down', false]] },
+      links: [['common', 'the stairs down', false], ['room1', 'the first door, north', false], ['room2', 'the second door, south', false]] },
+    // BG-56: the landing's doors lead somewhere: two rooms let for the night
+    { key: 'room1', kind: ZK.room, name: 'front room', look: 'A narrow bed, a stool and a shuttered window over the lane.', size: 'cramped',
+      links: [['upstairs', 'the door to the landing, south', false]] },
+    { key: 'room2', kind: ZK.room, name: 'back room', look: 'A narrow bed and a chest under the eaves, a window over the yard.', size: 'cramped',
+      links: [['upstairs', 'the door to the landing, north', false]] },
     { key: 'cellar', kind: ZK.cellar, name: 'cellar', look: 'Barrels and sacks in the damp dark.', size: 'room',
       links: [['kitchen', 'the hatch, up', false]] },
   ] },
