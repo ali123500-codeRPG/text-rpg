@@ -3112,6 +3112,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-59 | An NPC forgot being handed coin when the player spoke while handing it over: words beside a deed make the deed's event a bark, and every bark was dropped from NPC views and history, so the watchman kept demanding coin (playtest run 54, turns 4 to 6). Fixed: only a bark that is nothing but words is left out (barkOnly); a deed with a bark still counts in NPC views, history and free roam's scenario start, with its line dropped | 12/11/2026 | fixed | this PR |
 | BG-60 | An NPC called Wren "he" though she was introduced as "she": NPC views gave pronouns only for people in sight, never in beliefs, so an agent speaking of someone out of sight guessed (playtest run 55, turn 9). Fixed: each belief carries the other person's pronouns | 12/11/2026 | fixed | this PR |
 | BG-61 | Answering Dobb, who had just spoken through the barred tavern door, got "Who do you mean?": he was out of sight, so he was in neither the player's actor list nor talkingWith, and the addressee was refused (playtest run 56, turn 2). Fixed: talkingWith lists everyone whose words just reached the player, seen or only heard, with a name; a speech's addressee or target may be anyone in it | 12/11/2026 | fixed | this PR |
+| BG-62 | Walking over to talk to someone ended in the wrong zone (behind the counter) | 12/11/2026 | fixed | this PR |
 
 ## Check on release
 

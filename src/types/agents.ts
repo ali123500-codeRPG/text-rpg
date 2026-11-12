@@ -23,7 +23,7 @@ export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
  * names ("north", "south-west") */
 export type MoveSpot = { near?: string; awayFrom?: string; side?: string };
 export type Intent = {
-  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean } | null; // after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
+  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62, the player goes behind a counter, fence or rail; after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
   action: {
     type: ParserActionType;
     skill: string;

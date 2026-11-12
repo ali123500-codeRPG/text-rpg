@@ -120,3 +120,10 @@ export function doorway(a: Zone, b: Zone): { x: number; y: number } | null {
 
 /** metres between two zones' centres across the map (height left out) */
 export const zoneDistanceM = (a: Zone, b: Zone): number | null => (a.rect && b.rect ? Math.hypot(a.rect.x - b.rect.x, a.rect.y - b.rect.y) : null);
+
+/** BG-62: whether `a`'s side facing `b` is an edge you reach over but don't walk across (a counter, fence or rail) */
+export function reachesOver(a: Zone, b: Zone, edgeKinds: Record<string, { walk: boolean; reach: boolean }>): boolean {
+  if (!a.rect || !b.rect) return false;
+  const k = edgeKinds[a.edges?.[sideOf([b.rect.x - a.rect.x, b.rect.y - a.rect.y])] ?? ''];
+  return !!k && k.reach && !k.walk;
+}

@@ -1,12 +1,28 @@
 // One order per active actor: trigger > broken > agent (dialogue call, else Planner) > onAlert > routine / combat list.
 import type { ActorView, GameState, Intent, NpcAction, Order, Rng } from '../types';
+import { SPEECH_ACTIONS } from '../types';
+import { getLibrary } from '../library';
+import { reachesOver } from '../scenario/geometry';
 import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } from '../minds';
-import { isEngaged } from './relations';
+import { actorById, isEngaged, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
+
+/** BG-62: going over to talk to someone ends beside them in the player's own zone, or on the player's side of a counter, fence
+ * or rail between them unless the player goes behind it (move.behind); any other move stands as given */
+export function talkMove(state: GameState, intent: Intent | null): Intent['move'] {
+  const m = intent?.move ?? null, a = intent?.action;
+  if (!m || m.after || m.jump || intent?.way || !a?.target || !(SPEECH_ACTIONS as readonly string[]).includes(a.type)) return m;
+  const t = actorById(state, a.target), here = state.player.zone;
+  if (!t || t.id === state.player.id) return m;
+  if (t.zone === here) return m.toZone !== here || !m.spot ? { ...m, toZone: here, spot: { near: t.id } } : m;
+  if (m.toZone !== t.zone || m.behind) return m;
+  const A = zoneById(state, here), B = zoneById(state, t.zone);
+  return A && B && A.links.some((l) => l.to === B.id) && reachesOver(A, B, getLibrary().edgeKinds ?? {}) ? { ...m, toZone: here, spot: { near: t.zone } } : m;
+}
 
 /** Order for the player from the Parser's intent (aimed is code-set). Spoken words beside a non-speech action are a bark. */
 export function fromIntent(state: GameState, intent: Intent | null, aimed: boolean): Order {
-  const a = intent?.action;
+  const a = intent?.action, mv = talkMove(state, intent);
   return {
     actorId: state.player.id,
     type: a?.type ?? 'hold',
@@ -14,11 +30,11 @@ export function fromIntent(state: GameState, intent: Intent | null, aimed: boole
     skill: a?.skill ?? null,
     intent: a?.approach ?? '',
     source: 'player',
-    move: intent?.move?.toZone ?? null,
-    ...(intent?.move?.after ? { moveAfter: true } : {}),
-    ...(intent?.move?.pace ? { pace: intent.move.pace } : {}),
-    ...(intent?.move?.spot ? { moveSpot: intent.move.spot } : {}),
-    ...(intent?.move?.jump ? { jump: true as const } : {}),
+    move: mv?.toZone ?? null,
+    ...(mv?.after ? { moveAfter: true } : {}),
+    ...(mv?.pace ? { pace: mv.pace } : {}),
+    ...(mv?.spot ? { moveSpot: mv.spot } : {}),
+    ...(mv?.jump ? { jump: true as const } : {}),
     ...(intent?.perkMove ? { perkMove: intent.perkMove } : {}),
     ...(intent?.way ? { way: intent.way } : {}),
     targetPart: a?.targetPart ?? null,
