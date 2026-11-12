@@ -154,7 +154,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
   [PK.loose_odds]: {
     id: PK.loose_odds, name: 'Loose Odds', built: true, eventEdges: 5,
     story: 'Fate already turned on you once. Now it turns more easily, either way.',
-    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Gambler\'s Loop and has earned Fate Meant It as a Curse'], effect: 'the one-tier natural edges widen by 5 at each end: 02–10 drops a tier, 91–99 raises one', lasts: 'while worn' },
+    rules: { kind: 'passive', trigger: 'the owner\'s event roll', conditions: ['the owner wears the Gambler\'s Loop and has earned Fate Meant It as a Curse'], effect: 'the 5 naturals just inside each critical range shift a tier outward: with no tiers opened, 91–95 raise a tier and 06–10 drop one; each opened tier moves them 5 further in', lasts: 'while worn' },
   },
   [PK.both_ends_open]: {
     id: PK.both_ends_open, name: 'Both Ends Open', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],

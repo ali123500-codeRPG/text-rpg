@@ -188,8 +188,10 @@ function eventRoll(actor: Actor, state: GameState, rng: Rng, extra: EventRollRes
   // critical range by EVENT_CRIT_NATURALS: with one opened above, 96-100 is Critical Success+ and 91-95 Critical Success
   const reach = tierReach(actor, 'event');
   const top = TIERS.keys.length - 1, B = CONFIG.EVENT_CRIT_NATURALS;
-  const edge = d === 1 ? -2 : d <= 5 + edges ? -1 : d === 100 ? 2 : d >= 96 - edges ? 1 : 0;
-  let level = (arm === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(margin)) + edge;
+  // D-218 Loose Odds: the `edges` naturals just inside the critical range (however wide opened tiers make it) shift a tier outward
+  const hi = reach.up ? 100 - B * (reach.up + 1) : 95, lo = reach.down ? B * (reach.down + 1) : 5;
+  const loose = d > hi - edges && d <= hi ? 1 : d > lo && d <= lo + edges ? -1 : 0;
+  let level = (arm === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(margin)) + naturalEdge(d) + loose;
   if (reach.up && d > 100 - B * (reach.up + 1)) level = Math.max(level, top + reach.up - Math.floor((100 - d) / B));
   if (reach.down && d <= B * (reach.down + 1)) level = Math.min(level, -reach.down + Math.floor((d - 1) / B));
   level = Math.max(-reach.down, Math.min(top + reach.up, level));

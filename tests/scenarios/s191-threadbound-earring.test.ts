@@ -54,11 +54,18 @@ describe('191 the Gambler\'s Loop', () => {
     expect(has(s.player, PK.both_ends_open)).toBe(false);
   });
 
-  it('Loose Odds widens the one-tier edges at both ends', () => {
-    expect(tierName(ev(worn(), 92))).toBe('Great Success');
-    const s = worn([ACH.event_crit_1]);
-    expect(tierName(ev(s, 92))).toBe('Critical Success'); // 91-99 raises a tier
-    expect(tierName(ev(s, 8))).toBe('Critical Failure'); // 02-10 drops one
+  it('Loose Odds shifts the 5 naturals just inside each critical range a tier outward, wherever opened tiers put it', () => {
+    // its own achievement opens a tier above, so 91-100 is the critical range there; nothing is opened below
+    const at = (d: number, loop = true) => {
+      const s = worn([ACH.event_crit_1]);
+      if (!loop) s.player.core.perks = s.player.core.perks.filter((p) => p.source !== 'item');
+      return tierName(ev(s, d));
+    };
+    expect(at(88)).toBe('Critical Success'); // 86-90 raise a tier
+    expect(at(88, false)).toBe('Great Success');
+    expect(at(85)).toBe('Great Success');
+    expect(at(8)).toBe('Critical Failure'); // 06-10 drop one
+    expect(at(8, false)).toBe('Failure');
   });
 
   it('Both Ends Open and Further Still open tiers past each Critical', () => {

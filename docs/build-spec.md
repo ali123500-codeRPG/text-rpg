@@ -2787,14 +2787,14 @@ Asked by Ali (12/11/2026): unique, soul-bound gear whose abilities open through 
 
 | Ability | Kind | Opens with | Effect |
 | --- | --- | --- | --- |
-| Loose Odds | passive | Fate Meant It as a Curse | one-tier natural edges widen by 5 at each end: 02–10 drop a tier, 91–99 raise one |
+| Loose Odds | passive | Fate Meant It as a Curse | the 5 naturals just inside each critical range shift a tier outward (no tiers opened: 91–95 raise one, 06–10 drop one; each opened tier moves them 5 further in) |
 | Both Ends Open | passive | Fate Has a Sense of Humour | one more tier past Critical Success and one below Critical Failure |
 | Call the Toss | active, once per game day | Fortune's Favourite Accident | the next event roll rolls two dice and keeps the one farther from 50.5 |
 | Pull to the Edges | passive | Cursed by Coincidence | the die counts 1.5 × as far from 50.5 for the margin; modifiers unchanged |
 | All or Nothing | active, once per 7 game days | The Joke Is on Fate | the next event roll is Critical Success on 51–100, Critical Failure on 01–50; natural edges and opened tiers carry it further |
 | Further Still | passive | Fate's Favourite Punchline | one more tier past each Critical, on top of Both Ends Open |
 
-- **Scaling.** The event roll has no skill, so none of this changes at skill 50, 75, 100 or 200; that is by design (the roll stays random). Opened tiers have no ceiling. Loose Odds overlaps the critical range that opened tiers widen (EVENT\_CRIT\_NATURALS), so past two opened tiers its upper edge is swallowed.
+- **Scaling.** The event roll has no skill, so none of this changes at skill 50, 75, 100 or 200; that is by design (the roll stays random). Opened tiers have no ceiling. Loose Odds follows the critical range as opened tiers widen it (EVENT\_CRIT\_NATURALS), so it never gets swallowed.
 
 ## Deferred items
 

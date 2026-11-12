@@ -218,7 +218,7 @@ export type PerkDef = {
   auraSkill?: number;
   /** a linked perk (src/library/perkLinks.ts): granted by owning a set of perks, never taken */
   linked?: true;
-  /** D-218 event-roll variance: the one-tier natural edges widen by this many at each end */
+  /** D-218 event-roll variance: this many naturals just inside each critical range (however wide opened tiers make it) shift a tier outward */
   eventEdges?: number;
   /** D-218: the die lands this many times as far from the middle (50.5) for the margin; the natural edges read the real die */
   eventSpread?: number;
