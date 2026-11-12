@@ -86,8 +86,9 @@ function makeBarriers(state: GameState, plan: StagePlan, zoneRef: (r: string) =>
   return out;
 }
 
-/** an extension's entry: links into the crossed frontier now lead to `entry`, and the player stands there. */
-function enterFrontier(state: GameState, frontierKey: string, entry: Zone): void {
+/** an extension's entry: links into the crossed frontier now lead to `entry`, and the player stands there (NW3: unless it
+ * was built ahead for an NPC, when the player stays where it is). */
+function enterFrontier(state: GameState, frontierKey: string, entry: Zone, movePlayer = true): void {
   for (const z of state.zones) {
     for (const l of z.links) {
       if (l.frontier && l.to === frontierKey) {
@@ -97,7 +98,9 @@ function enterFrontier(state: GameState, frontierKey: string, entry: Zone): void
     }
   }
   ensureBackLinks(state, [entry]);
-  moveTo(state, state.player, entry.id);
+  // NW2: anyone heading for the frontier now heads for the zone beyond it
+  for (const a of state.actors) if (a.mind?.slots?.dest === frontierKey) a.mind.slots.dest = entry.id;
+  if (movePlayer) moveTo(state, state.player, entry.id);
 }
 
 function setFallbackFlags(state: GameState, reason: string, code: 'weaver_fallback' | 'routine_fallback', errors: PlanError[], actors?: string[]): void {
@@ -241,7 +244,7 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   const firstZone = newZones[0]?.id;
   const startZone = state.player.zone; // CH1: the zone the player stood in when the scenario began is ground
   // an extension's entry, or (CH3 a) a scenario started in free roam by crossing an unbuilt frontier
-  if (ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0]);
+  if (ctx.frontierKey && newZones[0]) enterFrontier(state, ctx.frontierKey, newZones[0], !ctx.ahead);
   // GAP: at story start the player has no zone on the stage yet; it starts in the plan's first zone.
   const storyStart = !!firstZone && !state.stage.zoneIds.includes(state.player.zone);
   if (storyStart) moveTo(state, state.player, firstZone!);
@@ -424,7 +427,7 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     const zone: Zone = { id: freshId(ctx.frontierKey, taken), placeId: ctx.placeId, name: link?.label ?? ctx.frontierKey, look: '', links: [], cover: 'none', light: 'bright', groundItems: [] };
     place?.zones.push(zone);
     putOnStage(state, zone);
-    enterFrontier(state, ctx.frontierKey, zone);
+    enterFrontier(state, ctx.frontierKey, zone, !ctx.ahead);
     if (state.stage.scenario?.ground && ctx.kind === 'extension') state.stage.scenario.ground.push(zone.id); // CH1
   } else {
     if (place?.zones.length) for (const z of place.zones) putOnStage(state, z);
