@@ -3,17 +3,23 @@ import type { ActorView, GameState, Intent, NpcAction, Order, Rng } from '../typ
 import { SPEECH_ACTIONS } from '../types';
 import { getLibrary } from '../library';
 import { reachesOver } from '../scenario/geometry';
+import { hearingOf, VOLUME_NOISE } from '../perception/noise';
 import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } from '../minds';
-import { actorById, isEngaged, zoneById } from './relations';
+import { actorById, isEngaged, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 
 /** BG-62: going over to talk to someone ends beside them in the player's own zone, or on the player's side of a counter, fence
  * or rail between them unless the player goes behind it (move.behind); any other move stands as given */
 export function talkMove(state: GameState, intent: Intent | null): Intent['move'] {
-  const m = intent?.move ?? null, a = intent?.action;
-  if (!m || m.after || m.jump || intent?.way || !a?.target || !(SPEECH_ACTIONS as readonly string[]).includes(a.type)) return m;
+  const a = intent?.action;
+  let m = intent?.move ?? null;
+  if (!a?.target || !(SPEECH_ACTIONS as readonly string[]).includes(a.type)) return m;
   const t = actorById(state, a.target), here = state.player.zone;
   if (!t || t.id === state.player.id) return m;
+  // BG-74: talking to someone who would not hear the player's voice clearly from here steps up to them first
+  const inView = t.zone === here || !!zoneById(state, here)?.links.some((l) => l.to === t.zone && seesAcross(state, l));
+  if (!m && !intent?.way && inView && hearingOf(state, VOLUME_NOISE[intent?.volume ?? 'normal'], state.player, t) !== 'full') m = { toZone: t.zone };
+  if (!m || m.after || m.jump || intent?.way) return m;
   if (t.zone === here) return m.toZone !== here || !m.spot ? { ...m, toZone: here, spot: { near: t.id } } : m;
   if (m.toZone !== t.zone || m.behind) return m;
   const A = zoneById(state, here), B = zoneById(state, t.zone);

@@ -32,3 +32,15 @@ it('BG-62: a doorway is walked through: only a counter, fence or rail keeps the 
   expect(talkMove(s, talk('trader', { toZone: 'tav_counter' }))).toMatchObject({ toZone: 'tav_counter' });
   expect(talkMove(s, { ...talk('trader', { toZone: 'tav_counter' }), move: null })).toBeNull();
 });
+
+it('BG-74: talking to someone in view who would not hear the player clearly from here steps up to them first', () => {
+  const s = village();
+  s.zones.find((x) => x.id === 'tav_common')!.background = 'busy';
+  const p = s.actors.find((a) => a.id === 'patron_1')!;
+  p.zone = 'tav_common'; s.player.zone = 'tav_common';
+  s.player.pos = { x: -3.5, y: -3.5 }; p.pos = { x: 3.5, y: 0.5 }; // 8.1 m in a busy room: a normal voice is not clear
+  expect(talkMove(s, { ...talk('patron_1', {}), move: null })).toMatchObject({ toZone: 'tav_common', spot: { near: 'patron_1' } });
+  expect(talkMove(s, { ...talk('patron_1', {}), move: null, volume: 'shout' })).toBeNull(); // a shout carries
+  p.pos = { x: -2.5, y: -3.5 }; // 1 m: clear
+  expect(talkMove(s, { ...talk('patron_1', {}), move: null })).toBeNull();
+});
