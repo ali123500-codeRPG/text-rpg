@@ -35,6 +35,9 @@ export function impressionWords(actionType: string, tier: Tier): string {
   return (actionType === 'intimidate' ? THREATENING : CONVINCING)[tier];
 }
 
+/** BG-50: what a Responder voicing a beat hears from the player: nothing yet; it speaks first */
+export const BEAT_OPENING = '(the player has said nothing to you: you speak first, as COMMITTED says)';
+
 /** what the listener hears for a talk action that has no words: only that the player wants a word with them */
 export const NO_WORDS = '(no words yet: they only catch your eye to talk)';
 

@@ -348,8 +348,9 @@ function dropped(ctx: Ctx, a: Actor, o: Order): void {
 
 function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
-  const line = o.line ?? { text: '', volume: 'normal' as const };
-  const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, line, noise: VOLUME_NOISE[line.volume] });
+  // BG-50: a speak with no words (a code-run beat, or a call that gave no line) carries no line at all, never an empty one
+  const line = o.line?.text?.trim() ? o.line : undefined;
+  const ev = mk(ctx, a, 'speak', { target: o.target ?? undefined, ...(line ? { line } : {}), noise: VOLUME_NOISE[line?.volume ?? 'normal'] });
   if (a.kind === 'player') ev.speech = { skill: SPEECH_SKILL[o.type] ?? SK.persuasion, addressees: o.addressees ?? [] };
   // OQ-29: an NPC's persuade, deceive, intimidate or barter at the player rolls when the player hears it; the player answers
   const p = state.player;

@@ -23,5 +23,7 @@ export type TurnInput = {
   quickWord?: boolean;
   /** orders fired at turn start (from pending), already bound */
   fired?: Order[];
+  /** BG-50: owners of a fired talk beat at the player, not spokespeople, whose Responder call wrote the beat's words */
+  beatSpeakers?: string[];
 };
 export type { Intent, GameEvent };
