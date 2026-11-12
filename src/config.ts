@@ -258,7 +258,7 @@ const DEFAULTS = {
   /** SC6: scenario records kept in the save, and how many the next Weaver gets */
   SCENARIO_RECORDS_SAVED: 30,
   SCENARIO_RECORDS_SHOWN: 5,
-  /** SC8 Weaver check-ins (placeholders): at least this many turns apart, and at most this many per scenario (/stuck excepted) */
+  /** SC8 Weaver check-ins (placeholders): at least this many turns apart, and at most this many per scenario (/stuck and the over-time check-in excepted, BG-42) */
   CHECKIN_GAP_TURNS: 5,
   CHECKIN_MAX_PER_SCENARIO: 6,
   /** SC12: at this many times its budget, code ends the scenario as worn out (after any fight or chase) and files a bug */
