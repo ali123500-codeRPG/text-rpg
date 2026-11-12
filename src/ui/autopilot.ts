@@ -213,9 +213,10 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     void loop().catch((e) => pause(`The agent stopped: ${(e as Error).message}`));
   }
 
+  const waitNote = 'You can switch stories once this turn has been written';
   /** switch the Play screen to the agent's own save (made on first use) or back to the player's story */
   async function useSave(owner: 'player' | 'agent') {
-    if (switching || (owner === 'agent') === agentStory()) return;
+    if (switching || api.busy() || (owner === 'agent') === agentStory()) return; // BG-63: never mid-opening or mid-turn
     pause('');
     switching = true; set(owner === 'agent' ? 'Opening the agent’s own story…' : 'Opening your story…');
     try {
@@ -282,8 +283,8 @@ export function autopilotBar(api: GameApi, typeAndSend: (text: string) => Promis
     el.replaceChildren(h('div', { class: 'auto-panel' },
       h('div', { class: 'auto-row' },
         h('div', { class: 'hs-picker', role: 'group', 'aria-label': 'Which story' },
-          btn('On my story', () => void useSave('player'), { pressed: !agentStory(), disabled: switching }),
-          btn('Its own story', () => void useSave('agent'), { pressed: agentStory(), disabled: switching, agent: true })),
+          btn('On my story', () => void useSave('player'), { pressed: !agentStory(), disabled: switching || api.busy(), title: api.busy() ? waitNote : undefined }),
+          btn('Its own story', () => void useSave('agent'), { pressed: agentStory(), disabled: switching || api.busy(), agent: true, title: api.busy() ? waitNote : undefined })),
         h('label', { class: 'auto-field' }, 'Mode', mode),
         h('label', { class: 'auto-field' }, 'Playstyle', persona),
         h('label', { class: 'auto-field' }, 'Pace', wait),
