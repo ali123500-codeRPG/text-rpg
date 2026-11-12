@@ -76,6 +76,7 @@ function endTurn(st: GameState): Partial<LogLine> {
   const scenarioGains: NonNullable<LogLine['scenarioGains']> = {
     skills, perks: [{ skill: SK.block, milestone: 20 }], allPerks: [{ tree: 'TR1', step: 50, name: 'All-50: Melee' }],
     achievements: earned.achievements ?? [], xp: { gained: parts.reduce((n, x) => n + x.amount, 0), fromLevel, fromPct: 62, toLevel: fromLevel + 1, toPct: 30, parts }, levelUps: lvl.levelUps ?? [],
+    essences: [{ name: 'Gel Patience', grade: 'fine' }],
   };
   const closing = 'The cellar is quiet now, and the job is done.';
   (p.progression!.gainsLog ??= []).push({ ...scenarioGains, number: st.stage.scenarioNumber ?? 1, ending: 'resolved', endTurn: st.turn, closing });

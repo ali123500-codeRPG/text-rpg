@@ -144,11 +144,15 @@ export function xpParts(state: GameState, since: XpAward[], achs: AchievementNot
   return out;
 }
 
+/** anything worth the moment: a scenario that gave nothing opens no panel and is not kept */
+export const anyGains = (g: ScenarioGains | undefined): g is ScenarioGains =>
+  !!g && (g.skills.length + g.perks.length + g.allPerks.length + g.achievements.length + g.levelUps.length + (g.essences?.length ?? 0) > 0 || g.xp.gained > 0);
+
 /** the scenario that just ended goes on the character's gains log (the Gains page), if it gave anything */
 export function keepGains(state: GameState, as: ScenarioEnding): void {
   const g = scenarioGainsNow(state), pr = state.player.progression, n = state.stage.gains?.number;
   if (!g || !pr || n === undefined) return;
-  if (!(g.skills.length + g.perks.length + g.allPerks.length + g.achievements.length + g.levelUps.length) && !g.xp.gained) return;
+  if (!anyGains(g)) return;
   (pr.gainsLog ??= []).push({ ...g, number: n, ending: as, endTurn: state.turn });
 }
 

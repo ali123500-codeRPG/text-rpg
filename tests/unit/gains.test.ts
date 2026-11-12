@@ -10,6 +10,7 @@ describe('scenario-end gains panel (M-39)', () => {
     expect(anyGains(none)).toBe(false);
     expect(anyGains({ ...none, xp: { ...none.xp, gained: 5 } })).toBe(true);
     expect(anyGains({ ...none, perks: [{ skill: 'SK12', milestone: 20 }] })).toBe(true);
+    expect(anyGains({ ...none, essences: [{ name: 'Gel Patience', grade: 'fine' }] })).toBe(true); // an offer alone is worth the moment
   });
   it('sums the gains in one line for the story and screen readers', () => {
     const g: ScenarioGains = { ...none,
@@ -18,5 +19,8 @@ describe('scenario-end gains panel (M-39)', () => {
       achievements: [{ id: 'a', name: 'Untouched' }, { id: 'b', name: 'First Crack', scar: true }],
       xp: { gained: 180, fromLevel: 3, fromPct: 60, toLevel: 4, toPct: 30 }, levelUps: [{ classId: 'CL1', level: 4 }] };
     expect(gainsSummary(g)).toBe('2 skills up · All-50: Melee · 1 achievement · 1 scar · +180 XP · level 4');
+  });
+  it('names essences on offer', () => {
+    expect(gainsSummary({ ...none, essences: [{ name: 'Gel Patience', grade: 'fine' }] })).toBe('1 essence offered');
   });
 });

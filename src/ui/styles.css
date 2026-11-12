@@ -988,6 +988,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .g-skill .cs-bar { grid-area: bar; height: 6px; }
 .g-skill .cs-bar > b { background: var(--scenario-mark); }
 .g-all { --scenario-mark: var(--perk-40); position: relative; overflow: hidden; font-size: 15px; }
+.g-ess { --scenario-mark: var(--accent); font-size: 15px; } /* an essence offered: blue, apart from gold perks and violet tree perks */
 .g-all::after { content: ''; position: absolute; inset: 0; pointer-events: none; transform: translateX(-100%);
   background: linear-gradient(100deg, transparent 35%, color-mix(in oklch, var(--scenario-mark) 28%, transparent) 50%, transparent 65%); }
 /* the Thread: what the scenario added to XP, filling the bar (and wrapping for each level) */
