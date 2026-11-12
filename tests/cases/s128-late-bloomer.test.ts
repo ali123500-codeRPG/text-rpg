@@ -50,9 +50,9 @@ describe('128 Late bloomer and class-level perks', () => {
     const b = recommendedBuild();
     const p = createPlayer({ ...b, skills: { ...b.skills, [SK.melee_medium]: 40, [SK.earshot]: 40, [SK.dodge]: 0, [SK.block]: 25 } }, 's1'); // Block 25 meets the round shield
     const kit = p.core.inventory.filter((i) => getLibrary().items[i.itemId].tags?.includes('starter'));
-    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.gambeson, ['armor']], [IT.round_shield, ['hand:left_arm']], [IT.hand_axe, ['hand:right_arm']]]); // Medium Weapons 40: the Common hand axe
+    expect(kit.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.gambeson, ['armor']], [IT.round_shield, ['grip:left_arm']], [IT.hand_axe, ['grip:right_arm']]]); // Medium Weapons 40: the Common hand axe
     const q = createPlayer(b, 's1');
-    expect(q.core.inventory.find((i) => i.equippedIn?.includes('hand:right_arm'))?.itemId).toBe(IT.arming_sword);
+    expect(q.core.inventory.find((i) => i.equippedIn?.includes('grip:right_arm'))?.itemId).toBe(IT.arming_sword);
   });
 
   it('Swordsman unlocks at Medium Weapons 40 and Parry 40', () => {

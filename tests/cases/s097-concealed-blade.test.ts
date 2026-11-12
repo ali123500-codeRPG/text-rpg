@@ -8,7 +8,7 @@ import { IT } from '../../src/library/itemIds';
 
 it('97 Concealed blade', () => {
   const s = makeVillage();
-  actor(s, 'patron_1').core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['hand:right_arm'] });
+  actor(s, 'patron_1').core.inventory.push({ id: 'blade_1', itemId: IT.hidden_blade, equippedIn: ['grip:right_arm'] });
   const gearSeen = () => buildActorView(s, 'trader').seen.find((x) => x.id === 'patron_1')?.gear.map((g) => g.id) ?? [];
   // trader behind the bar sees the common room through a sight link
   expect(buildActorView(s, 'trader').seen.some((x) => x.id === 'patron_1')).toBe(true);

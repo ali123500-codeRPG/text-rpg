@@ -10,13 +10,13 @@ import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/mor
 import { bestReward } from '../ruleset/achRewards';
 import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, GameEvent, GameState, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type Passage } from './barriers';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { distM, gateAhead, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, type Located } from './position';
+import { distM, gateAhead, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -32,12 +32,12 @@ import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds } from './held';
 import { armThreadboundItem, countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, bandById, foe, isActive, isEngaged, hostile, shortestPath, sparBetween, wayPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, bandById, foe, isActive, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
-import { fromIntent, mergeOrders, usableAgentOutputs } from './merge';
+import { NEEDS, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { applyGearOps, dropToGround, equipArmor, giveItem, improvise } from './gear';
+import { applyGearOps, dropToGround, equipArmor, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode } from './effects';
 import { falseName } from '../words';
@@ -453,7 +453,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   if (spar) checkOut(state, spar); // SP4: at the limit, the fighter is out: a later blow on it is a real attack (SP7)
   ev.tier = res.attack.tier;
   ev.attack = res;
-  if (m.mode.thrown && dropToGround(state, a, m.itemId, t.zone)) {
+  if (m.mode.thrown && dropToGround(state, a, m.itemId, t.zone, t.pos)) { // it lands where they stand, hit or miss
     ev.effects.push({ kind: 'item_landed', actorId: a.id, data: { itemId: m.itemId, zone: t.zone } });
   }
   emit(ctx, ev, res, true);
@@ -668,6 +668,7 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
   let result: CheckResult | undefined;
   // BG-65: checking a door or other way out of the zone says what holds it: open, shut but theirs to open, or locked/barred/blocked
   const link = o.type === 'interact' && o.target ? zoneById(state, a.zone)?.links.find((l) => l.to === o.target) : undefined;
+  if (link && !atDoor(state, a, link.to)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   if (link) {
     const b = barrierOn(state, link), pass = b ? passage(b, a, a.zone) : 'open';
     if (b && pass === 'shut') noteTried(b, a);
@@ -698,20 +699,21 @@ function doGeneric(ctx: Ctx, a: Actor, o: Order): void {
 const barrierTo = (state: GameState, a: Actor, to: string | null | undefined): Barrier | undefined =>
   to ? barrierOn(state, zoneById(state, a.zone)?.links.find((l) => l.to === to)) : undefined;
 
-/** BA3/BA4: a key turned or a bar slid on purpose, in the move slot (o.way); it stands in for the turn's move */
-function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>): boolean {
+/** BA3/BA4: a key turned or a bar slid on purpose, in the move slot (o.way); it stands in for the turn's move. `mainToo`:
+ * with the move slot gone on the walk to the door (BG-86), the free main action does it */
+function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = false): boolean {
   const { state } = ctx;
   const b = barrierTo(state, a, w.toZone);
   // BG-54: try it on a copy first, so an op that can't be done spends no move slot
   const dry = b && { ...b, ...(b.lock ? { lock: { ...b.lock } } : {}), ...(b.bar ? { bar: { ...b.bar } } : {}) };
   const dryWhy = !b || !dry ? 'no_barrier' : wayOp(dry, a, a.zone, w.op);
   // BG-70: opening a way shut to them is trying it: the move slot goes on it and they learn why it won't open
-  if (dryWhy === 'shut' && b && useMoveSlot(ctx, a, false)) {
+  if (dryWhy === 'shut' && b && useMoveSlot(ctx, a, mainToo)) {
     noteTried(b, a);
     emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: `found_${shutBy(b, a, a.zone)}` as WayDid } }));
     return true;
   }
-  const why = dryWhy ?? (!useMoveSlot(ctx, a, false) ? 'no_move' : wayOp(b!, a, a.zone, w.op));
+  const why = dryWhy ?? (!useMoveSlot(ctx, a, mainToo) ? 'no_move' : wayOp(b!, a, a.zone, w.op));
   if (why || !b) { logCode(state, 'way_op_dropped', { actorId: a.id, to: w.toZone, op: w.op, reason: why }); return false; }
   emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: w.op } }));
   return true;
@@ -725,6 +727,7 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const b = barrierTo(state, a, o.target);
   if (!b?.lock?.locked) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: b?.lock ? 'not_locked' : 'no_lock' }), o));
+  if (!atDoor(state, a, o.target)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   const to = o.target!;
   const way = (did: WayDid, extra: Partial<GameEvent> = {}) => bark(mk(ctx, a, 'pick', { target: to, way: { to, barrier: b.id, did }, ...extra }), o);
   const skill = fnRoller(state, a, FN.lockpicking);
@@ -823,7 +826,9 @@ function step(ctx: Ctx, id: string): void {
   ctx.acted.add(id);
   const o = ctx.orders.get(id)!;
   if (o.defense) a.core.standingDefense = o.defense;
-  const g = applyGearOps(state, a, o.gear); // free, before the action
+  // FR2: a pick-up out of grip reach waits for the walk over to it (closeIn); the rest are free, before the action
+  const later = (o.gear ?? []).filter((op) => op.op === 'pick_up' && !reachable(state, a, op));
+  const g = applyGearOps(state, a, (o.gear ?? []).filter((op) => !later.includes(op)));
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   for (const id of g.summoned) emit(ctx, mk(ctx, a, 'summon', { itemId: id })); // TB6
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
@@ -841,9 +846,10 @@ function step(ctx: Ctx, id: string): void {
   }
   // ZP3 closing in: a melee attack on someone out of reach, with no other move planned before the blow, walks at them on
   // the move slot first and stops once in reach; still out of reach, the blow is lost (doAttack wastes it)
-  const foe = o.type === 'attack' && o.target ? actorById(state, o.target) : undefined;
-  const closeIn = !!foe && foe !== a && isActive(foe) && !o.moveAfter && (!o.move || o.move === foe.zone) && !rangedHere(state, a, o);
-  if (closeIn) o.move = null;
+  // FR4: the same for every action that needs grip or weapon reach (NEEDS), and for a door worked on purpose (BG-86)
+  const near = reachOf(state, a, o);
+  const closeIn = !!near && !o.moveAfter && (!!o.way || !o.move || o.move === near.at.zone);
+  if (closeIn && !o.way) o.move = null;
   // CO13/ZP2: a move slot walks slotMetres(…'move') toward the move's zone, and with no main action planned (hold) a main
   // slot runs slotMetres(…'main') more once the move slots run out: a dash (AE2), which a lame actor can't make
   // BG-12: a move to a spot walks to that point of the zone (beside someone, by a way out, the far side, a compass side)
@@ -855,12 +861,23 @@ function step(ctx: Ctx, id: string): void {
     if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
-  // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen
-  const turned = !!o.way && doWayOp(ctx, a, o.way);
+  const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!); };
+  // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen.
+  // BG-86: out of reach of the door, the move slot walks to it, and the op takes the main action if that is free
+  let turned = false;
+  if (o.way) {
+    const walked = closeIn && !near!.ok();
+    closer();
+    if (near!.ok()) turned = doWayOp(ctx, a, o.way, o.type === 'hold');
+    else logCode(state, 'way_op_dropped', { actorId: id, to: o.way.toZone, op: o.way.op, reason: 'out_of_reach' });
+    turned ||= walked;
+  }
   if (!turned && !o.moveAfter) move(o.type === 'hold');
-  if (closeIn && foe && !inReach(state, a, o)) {
-    const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
-    if (m) walk(ctx, a, spotOf(state, foe), o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: Math.max(0, m.mode.reach - 0.01), toward: foe.id });
+  if (!o.way) closer();
+  if (later.length) {
+    const g2 = applyGearOps(state, a, later);
+    for (const p of g2.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
+    if (g2.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g2.invalid, reason: 'out_of_reach' });
   }
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
   // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting)
@@ -917,6 +934,49 @@ function attackMode(state: GameState, a: Actor, o: Order, from: Located = a) {
   return { m: named ?? defaultMode(state, a, dist), dist };
 }
 const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && dist <= m.mode.reach; };
+/** FR4 (the NEEDS table): where this turn's action is done and whether the actor is near enough: a foe within the attack's
+ * reach (melee), someone to hand to within both grip reaches, the doorway of a way worked, picked or tried within grip
+ * reach; with none, the first item to pick up out of reach. null: nothing to close in on. */
+function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number; toward?: string; ok: () => boolean } | null {
+  const door = (to: string | null | undefined): Located | null => {
+    if (!to || !zoneById(state, a.zone)?.links.some((l) => l.to === to)) return null;
+    const p = wayPoint(state, a.zone, to, a);
+    return { zone: a.zone, ...(p ? { pos: p } : {}) };
+  };
+  const grip = (at: Located, extra = 0, toward?: string) => ({ at, m: gripReachM(state, a) + extra, ...(toward ? { toward } : {}), ok: () => withinGrip(state, a, at, extra) });
+  const at = o.way && door(o.way.toZone);
+  if (at) return grip(at);
+  const need = NEEDS[o.type], t = o.target ? actorById(state, o.target) : undefined;
+  if (need === 'weapon' && t && t !== a && isActive(t) && !rangedHere(state, a, o)) {
+    const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
+    if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
+  }
+  if (need === 'grip' && o.type === 'give' && t && t !== a) return grip(t, gripReachM(state, t), t.id);
+  const d = need === 'grip' && !t ? door(o.target) : null;
+  if (d) return grip(d);
+  for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op); if (p) return grip(p); }
+  return null;
+}
+
+/** BG-86: the actor is within grip reach of the doorway to `to` (a zone without a rectangle has no point to measure) */
+function atDoor(state: GameState, a: Actor, to: string | null | undefined): boolean {
+  const p = to ? wayPoint(state, a.zone, to, a) : null;
+  return !p || withinGrip(state, a, { zone: a.zone, pos: p });
+}
+
+/** FR2: a pick-up whose item is within grip reach (or gone: applyGearOps reports it) */
+const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUpAt(state, op); return !p || withinGrip(state, a, p); };
+
+/** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; across a counter, fence or rail
+ * from the actor's zone it is reached over from the actor's side of it (BG-62) */
+function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>): void {
+  const { state } = ctx;
+  const over = near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
+  const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
+  const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
+  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: p ? 0 : Math.max(0, near.m - 0.01), ...(near.toward ? { toward: near.toward } : {}) });
+}
+
 /** AE1: the attack would be ranged from here, or (out of reach here) from where the move leads */
 const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const here = attackMode(state, a, o);

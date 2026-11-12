@@ -17,9 +17,9 @@ const give = (a: Actor, perkId: string) => a.core.perks.push({ perkId, source: '
 const npc = (s: GameState, id: string) => s.actors.find((a) => a.id === id)!;
 const hold = (a: Actor, items: string[]) => {
   a.core.inventory = a.core.inventory.filter((i) => !i.id.startsWith(`${a.id}_h`));
-  for (const i of a.core.inventory) if (i.equippedIn?.some((h) => h.startsWith('hand:'))) delete i.equippedIn;
+  for (const i of a.core.inventory) if (i.equippedIn?.some((h) => h.startsWith('grip:'))) delete i.equippedIn;
   items.forEach((itemId, n) => {
-    a.core.inventory.push({ id: `${a.id}_h${n}`, itemId, equippedIn: [n ? 'hand:left_arm' : 'hand:right_arm'] });
+    a.core.inventory.push({ id: `${a.id}_h${n}`, itemId, equippedIn: [n ? 'grip:left_arm' : 'grip:right_arm'] });
     fit(a, itemId);
   });
 };
@@ -80,7 +80,7 @@ describe('153 Parry', () => {
     const s = setup();
     const p = npc(s, 'patron_1');
     hold(p, [IT.greataxe]);
-    p.core.inventory.find((i) => i.id === 'patron_1_h0')!.equippedIn = ['hand:right_arm', 'hand:left_arm'];
+    p.core.inventory.find((i) => i.id === 'patron_1_h0')!.equippedIn = ['grip:right_arm', 'grip:left_arm'];
     p.core.skills[SK.melee_heavy] = { raw: 60, state: 'normal' };
     const r = swings(s).find((x) => x.defense);
     expect(r?.gapShifts).toContainEqual({ source: 'heavy vs parry', value: CONFIG.HEAVY_VS_BLOCK_GAP });
