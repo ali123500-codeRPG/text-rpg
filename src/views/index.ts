@@ -13,6 +13,7 @@ import { COVER, LIGHT, NERVE_LINES, SCENE_SCALES } from '../scales';
 import { timeView, zoneLight, clockSet } from '../time';
 import { wornTitle } from '../engine/xp';
 import { sideFrom, sightDistM } from '../engine/position';
+import { chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
 import { knownDestinations } from '../engine/trail';
 import { barrierName, barrierOn, barrierView, linkPassage } from '../engine/barriers';
@@ -353,6 +354,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(b.lastSeenTurn !== undefined ? { lastSeenTurn: b.lastSeenTurn } : {}),
       source: b.source, revealed: [...b.revealed],
       stance: stance(state, a, other), hostile: hostile(state, a, other), ...(sparring(state, a, other) ? { sparring: true as const } : {}),
+      ...(chaseLost(b) ? { lost: true as const } : {}),
       active: isActive(other), label: callName(state, a.id, about),
       // T18: a worn title reaches only someone who has seen the player, never by sound or hearsay, so stealth keeps it hidden
       ...(about === state.player.id && b.source === 'seen' && atLeast(b.status, 'aware') && wornTitle(state) ? { title: wornTitle(state) } : {}),
@@ -360,6 +362,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   }
   const band = bandById(state, a.bandId);
   const jobs = jobViews(state, a.id);
+  const chase = chaseZones(state, a);
   return {
     turn: state.turn,
     time: timeView(state),
@@ -380,6 +383,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
       ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
+      ...(chase ? { chaseZones: chase } : {}),
     },
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
@@ -638,7 +642,7 @@ export function buildWeaverView(state: GameState, target: WeaverView['target']):
     }),
     quests: state.quests.map((q) => ({ id: q.id, state: q.state, text: q.text })),
     flags: { ...state.flags },
-    bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations } })),
+    bands: state.bands.filter((b) => bandIds.has(b.id)).map((b) => ({ id: b.id, name: b.name, goals: b.goals, relations: { ...b.relations }, ...(b.chase ? { chase: b.chase } : {}) })),
     player: { level: state.player.core.classes.reduce((n, c) => n + c.level, 0), currentClass: cur ? { id: cur.classId, name: lib.classes[cur.classId]?.name ?? cur.classId } : null, health: healthLevel(state.player) },
     previousNote: state.hidden.weaverNote,
     lastScenes: lastScenes(state).map((r) => ({ question: r.question, scale: SCENE_SCALES.name(r.scale), tier: tierName(r.tier), ending: SCENE_ENDING_NAMES[r.ending], note: r.text, turns: r.endTurn - r.startTurn, fallen: [...r.fallen], gained: r.gained.map((i) => lib.items?.[i]?.name ?? i), ...(r.inner ? { inner: true as const } : {}) })),

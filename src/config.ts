@@ -261,6 +261,10 @@ const DEFAULTS = {
   CHECKIN_MAX_PER_SCENE: 6,
   /** SC12: at this many times its budget, code ends the scene as worn out (after any fight or chase) and files a bug */
   SCENE_OVERRUN_MULT: 2,
+  /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
+  CHASE_LOST_TURNS: 3,
+  /** CH5: the chase range of a code-run NPC whose band and template give none (a CHASE_RANGES key; placeholder) */
+  CHASE_RANGE_DEFAULT: 'ground',
   IMPROVISED_HIT_ADJ: -10,
   /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
   MOVE_SLOTS: 1,

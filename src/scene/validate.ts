@@ -5,7 +5,7 @@ import { triggerErrors } from './triggers';
 import { scaleFor } from '../engine/sceneEnd';
 import { mentions } from '../words';
 import { CONFIG } from '../config';
-import { COVER, LIGHT, SCENE_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
+import { CHASE_RANGES, COVER, LIGHT, SCENE_SCALES, STANCES, TACTICS, TIERS, TIME_OF_DAY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { SIDES } from '../types';
 import { clockSet, now, timeOfDay } from '../time';
 import { tierName } from '../ruleset';
@@ -253,6 +253,7 @@ export function validateStagePlan(state: GameState, plan: StagePlan, ctx: PlanCo
     text(`band ${b.key} temperament`, b.temperament, false);
     if (!TACTICS.has(b.tactics)) err('bad_band', `band ${b.key}: tactics is ${TACTICS.list()}`);
     if (b.lethal !== undefined && typeof b.lethal !== 'boolean') err('bad_band', `band ${b.key}: lethal is true or false`);
+    if (b.chase !== undefined && !CHASE_RANGES.has(b.chase)) err('bad_band', `band ${b.key}: chase is ${CHASE_RANGES.list()}`); // CH5
     for (const [other, st] of Object.entries(b.relations ?? {})) {
       if (!isBand(other)) err('unresolved_band', `band ${b.key}: relation to unknown band ${other}`);
       if (!STANCES.has(st)) err('bad_stance', `band ${b.key}: relation ${st}`);

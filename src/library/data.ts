@@ -295,7 +295,7 @@ const pers = (nerve: number, traits: Record<string, number> = {}, values: string
 export const TEMPLATES: Record<string, NpcTemplate> = {
   [TP.slime]: {
     id: TP.slime, raceId: RC.slime, generation: 'copy', minimums: { [SK.unarmed_natural]: 30, [SK.tremor]: 50 },
-    level: 0, bonusPoints: 0, focus: [], resolve: 50, personality: pers(0), control: 'code', label: 'a slime',
+    level: 0, bonusPoints: 0, focus: [], resolve: 50, personality: pers(0), control: 'code', label: 'a slime', chase: 'far', // CH5: monsters hunt anywhere
     fallback: { attackSkill: SK.unarmed_natural },
   },
   [TP.guard]: {
@@ -304,26 +304,26 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
     focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.parry }, { treeId: TR.perception, skill: SK.eyesight }],
-    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard',
+    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard', chase: 'ground', // CH5: guards keep to the scene's ground
   },
   [TP.trader]: {
     id: TP.trader, raceId: RC.human, classId: CL.trader, generation: 'copy',
     minimums: { [SK.eyesight]: 25, [SK.earshot]: 25, [SK.barter]: 40, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0, // Villagers are at least level 2
     focus: [{ treeId: TR.perception, skill: SK.earshot }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
-    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.wealth]), control: 'code', label: 'the barkeep',
+    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.wealth]), control: 'code', label: 'the barkeep', chase: 'post', // CH5: townsfolk never leave their own place
   },
   // NS7: a village thief, the first stealthy NPC
   [TP.thief]: {
     id: TP.thief, raceId: RC.human, generation: 'copy',
     minimums: { [SK.sneaking]: 40, [SK.combat_stealth]: 30, [SK.vanishing]: 30, [SK.melee_light]: 35, [SK.light_armor]: 25, [SK.dodge]: 30, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.lying]: 30 }, level: 4, bonusPoints: 10, // fighting experience: level 4
     focus: [{ treeId: TR.stealth, skill: SK.sneaking }, { treeId: TR.melee, skill: SK.melee_light }, { treeId: TR.defense, skill: SK.dodge }],
-    resolve: 30, personality: pers(-40, { [PA.honesty]: -40 }, [VL.wealth]), loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager',
+    resolve: 30, personality: pers(-40, { [PA.honesty]: -40 }, [VL.wealth]), loadout: [IT.dagger, IT.gambeson], control: 'agent', label: 'a shifty villager', chase: 'post',
   },
   [TP.patron]: {
     id: TP.patron, raceId: RC.human, generation: 'copy',
     minimums: { [SK.unarmed_strike]: 20, [SK.eyesight]: 20, [SK.persuasion]: 30 }, level: 2, bonusPoints: 0,
     focus: [{ treeId: TR.unarmed, skill: SK.unarmed_strike }, { treeId: TR.defense, skill: SK.dodge }, { treeId: TR.perception, skill: SK.eyesight }],
-    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.pleasure]), control: 'code', label: 'a tavern patron',
+    resolve: 30, personality: pers(-40, { [PA.sociability]: 20 }, [VL.pleasure]), control: 'code', label: 'a tavern patron', chase: 'post',
   },
 };
 

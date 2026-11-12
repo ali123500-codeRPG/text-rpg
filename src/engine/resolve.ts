@@ -1,5 +1,6 @@
 // The Resolution engine: one turn of pure resolution. Same state + same input + same rng = same events.
 import { checkSceneEnd, closeScene } from './sceneEnd';
+import { checkRoam, updateChase } from './chase';
 import { noteLeft, noteZonesSeen } from './trail';
 import { heightOf } from '../scene/heights';
 import { DU, FR, HL, RL } from '../library/tableIds';
@@ -1019,7 +1020,9 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   updateQuests(state, ctx.events, defeated);
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
-  checkSceneEnd(state, ctx.events); // SC7/SC13: the scene's endings, held while fighting, chased or talking
+  updateChase(state); // CH6/CH7: pursuers follow through frontiers; a chase lost for CHASE_LOST_TURNS turns ends
+  checkSceneEnd(state, ctx.events); // SC7/SC13: the scene's endings, held while fighting, chased or talking; SC16 its ground
+  checkRoam(state, ctx.events); // SD2 a/CH2: in free roam, what happened this turn may start a new scene
   updateSpars(state, ctx.events); // after the scene-break checks, so a break ends the spar this turn
   // E1: engagements (talk and fights); SP3: marked skills roll when the player's engagement ends, or when the scene breaks
   const fight = state.player.engagement?.fight;
@@ -1073,7 +1076,7 @@ function learned(state: GameState): number {
 function updatePacing(state: GameState, events: GameEvent[], learnedBefore: number): void {
   const quiet = !events.some((e) => e.kind === 'attack') && learned(state) === learnedBefore;
   state.stage.quiet = quiet ? (state.stage.quiet ?? 0) + 1 : 0;
-  if (state.stage.breakCause) return;
+  if (state.stage.breakCause || state.stage.roam) return; // SD2 a: no stall in free roam, since no scene runs
   if (state.stage.quiet >= CONFIG.STALL_TURNS && !beatsLeft(state)) {
     state.stage.breakCause = 'story_beat';
     logCode(state, 'scene_stalled', { number: state.stage.sceneNumber, quiet: state.stage.quiet }); // SC12: code ended it, not the Weaver: a bug

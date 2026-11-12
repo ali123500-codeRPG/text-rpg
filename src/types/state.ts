@@ -20,15 +20,21 @@ export type StageInfo = {
   quiet?: number; // P7: quiet turns in a row (no attack, nothing new learned, no beat)
   /** P7: set by the engine; the director starts a new scene after this turn (knocked_out: D-54, the player wakes somewhere
    * safe; scene_end: one of the scene's endings was met, SC7). Rest, sleep and time skips never end a scene (SC4, SC9). */
-  breakCause?: 'story_beat' | 'knocked_out' | 'encounter' | 'scene_end';
+  breakCause?: 'story_beat' | 'knocked_out' | 'encounter' | 'scene_end' | 'roam';
   /** SC1/SC2/SC7: the scene's question, scale and endings (absent before the first scene, or on an old save) */
   scene?: import('./hidden').SceneFrame;
   /** SC4: the bigger scene (Episode or Venture) this one sits inside, one level deep; it carries on when this one ends */
   outer?: import('./hidden').SceneFrame;
   /** SC7/SC13: an ending that was met, waiting for a clear turn (no fight, chase or talk) before it ends the scene */
-  ending?: { as: import('./hidden').SceneEnding; text: string; outer?: true; turn: number };
+  ending?: { as: import('./hidden').SceneEnding; text: string; outer?: true; turn: number; roam?: true };
   /** SC10: how the scene that just ended ended, set with breakCause and recorded when the next one begins */
-  ended?: { as: import('./hidden').SceneEnding; text: string; outer?: true };
+  ended?: { as: import('./hidden').SceneEnding; text: string; outer?: true; roam?: true };
+  /** SD1: how the last scene ended and the turn it was closed (the play page's ending moment reads it that turn) */
+  closed?: { as: import('./hidden').SceneEnding; turn: number };
+  /** SD2 a: free roam, since this turn: no scene runs until something starts one (CH2), or an unbuilt frontier (CH3 a) */
+  roam?: { since: number };
+  /** CH6: frontiers the player crossed during the current chase: from the zone before it to the zone it led to */
+  crossings?: { from: string; to: string; turn: number }[];
   /** SC8: a Weaver check-in is due after this turn is saved, and why */
   checkinDue?: import('./hidden').CheckinReason;
   /** SC8: the turn a beat (a quiet_turns trigger) last fired */

@@ -149,7 +149,7 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
   if (s.broken || s.surrendered) return flee(view, 'fallback');
   // 2. Attack
   const here = view.beliefs
-    .filter((b) => (b.hostile || b.sparring) && b.active && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)
+    .filter((b) => (b.hostile || b.sparring) && b.active && !b.lost && AWARENESS.pos(b.status) >= AWARENESS.pos('aware') && b.lastKnownZone === s.zone)
     .map((b) => b.about)
     .sort();
   if (here.length) {
@@ -158,16 +158,18 @@ export function fallbackOrder(view: ActorView, rng: Rng): Order {
       : here.length === 1 ? here[0] : here[rng.int(0, here.length - 1)];
     return order(view, 'attack', 'fallback', 'attack', { target, skill: s.attackSkill, targetPart: null, aimed: false });
   }
-  // 3. Close in / 4. Search
-  const recent = hostileBeliefs(view)
-    .filter((b) => b.lastKnownZone)
+  // 3. Close in / 4. Search (CH7: not after someone whose chase it lost; CH5: a code-run actor stops at its chase range)
+  const hunted = hostileBeliefs(view).filter((b) => b.lastKnownZone);
+  const recent = hunted.filter((b) => !b.lost)
     .sort((a, b) => (b.lastSeenTurn ?? -1) - (a.lastSeenTurn ?? -1) || a.about.localeCompare(b.about))[0];
   if (recent) {
     const zone = recent.lastKnownZone!;
     if (zone === s.zone) return order(view, 'search', 'fallback', 'search', { target: zone });
     const path = mapPath(view.map, s.zone, zone);
-    if (path) return order(view, 'move', 'fallback', `close in on ${zone}`, { target: path[0] });
+    if (path && (!s.chaseZones || s.chaseZones.includes(path[0]))) return order(view, 'move', 'fallback', `close in on ${zone}`, { target: path[0] });
   }
+  // CH7: it lost everyone it was after: back to its routine
+  if (!recent && hunted.length) return routineOrder(view);
   // 5. Hold
   return order(view, 'hold', 'fallback', 'hold');
 }

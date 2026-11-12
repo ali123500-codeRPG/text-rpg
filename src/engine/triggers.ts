@@ -23,7 +23,7 @@ export function triggerHolds(state: GameState, t: Trigger, owner: Actor, events:
     case 'alarm_heard':
       return when === 'start' && events.some((e) => e.kind === 'alarm' && !!e.perception[owner.id]);
     case 'quiet_turns':
-      return when === 'start' && (state.stage.quiet ?? 0) >= w.turns;
+      return when === 'start' && !state.stage.roam && (state.stage.quiet ?? 0) >= w.turns; // CH2: beats don't run in free roam
   }
   return false;
 }

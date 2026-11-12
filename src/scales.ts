@@ -69,6 +69,11 @@ export type QuestRewardLevel = (typeof QUEST_REWARD_LEVELS.keys)[number];
  * a new scale is a new row here and a row there. */
 export const SCENE_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['venture', 'Venture']]);
 export type SceneScale = (typeof SCENE_SCALES.keys)[number];
+/** CH5/SC19: how far a code-run pursuer follows the player, least first: post (never leaves its own place), ground (stays on
+ * the scene's ground), near (the ground and one place beyond it), far (anywhere, through frontiers after the player).
+ * Agent-run NPCs decide for themselves. A new range is a new row here and a branch in engine/chase.ts chaseZones. */
+export const CHASE_RANGES = scale([['post', 'Post'], ['ground', 'Ground'], ['near', 'Near'], ['far', 'Far']]);
+export type ChaseRange = (typeof CHASE_RANGES.keys)[number];
 export const TIME_OF_DAY = scale([['dawn', 'Dawn'], ['day', 'Day'], ['dusk', 'Dusk'], ['night', 'Night']]);
 export type TimeOfDay = (typeof TIME_OF_DAY.keys)[number];
 /** body-part states, best first; ruleset/body.ts poolState names them (H12: healing reach is a key here, so perks shift it by steps) */

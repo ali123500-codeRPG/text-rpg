@@ -1,5 +1,5 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
-import type { Actor, BeliefStatus, GameState, Stance } from '../types';
+import type { Actor, Belief, BeliefStatus, GameState, Stance } from '../types';
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
 import { linkPassage } from './barriers';
@@ -82,15 +82,18 @@ export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): bo
   return AWARENESS.pos(status ?? 'unaware') >= AWARENESS.pos(min);
 }
 
+/** CH7: the chase after this actor was lost and the chaser has not seen or heard it since */
+export const chaseLost = (b: Belief | undefined): boolean => b?.lostTurn !== undefined && (b.lastSeenTurn ?? -Infinity) <= b.lostTurn;
+
 /** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to
- * or sparring with (SP1). */
+ * or sparring with (SP1). A chase it lost (CH7) does not count until it sees or hears them again. */
 export function isEngaged(state: GameState, actor: Actor): boolean {
   if (!countsInFight(actor)) return false;
   // the player has no beliefs: it is in a fight while someone who counts in one is fighting it, for real or in a spar
-  if (actor.kind === 'player') return allActors(state).some((o) => o !== actor && countsInFight(o) && foe(state, o, actor) && atLeast(o.mind?.knowledge?.[actor.id]?.status, 'suspicious'));
+  if (actor.kind === 'player') return allActors(state).some((o) => { const b = o.mind?.knowledge?.[actor.id]; return o !== actor && countsInFight(o) && foe(state, o, actor) && atLeast(b?.status, 'suspicious') && !chaseLost(b); });
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
-    if (!atLeast(b.status, 'suspicious')) return false;
+    if (!atLeast(b.status, 'suspicious') || chaseLost(b)) return false;
     const other = actorById(state, id);
     return !!other && countsInFight(other) && foe(state, actor, other);
   });

@@ -69,8 +69,11 @@ export function createDirector(clock: Clock): SceneDirector {
       }
       ctx = c;
       delete (state.scratch as Record<string, unknown>).frontierCrossed;
-      await d.cross(state, key, rng, state.player.posture === 'stealthy' ? 'stealthy' : 'open');
-      return [];
+      const r = await d.cross(state, key, rng, state.player.posture === 'stealthy' ? 'stealthy' : 'open');
+      if (!r.eventRoll) return [];
+      // CH3 a: free roam crossed an unbuilt frontier, which started a scene there
+      (state.scratch ??= {}).eventRoll = r.eventRoll;
+      return openingEvents(state, rng);
     },
     afterSave(state: GameState, c: AgentCtx): void {
       ctx = c;

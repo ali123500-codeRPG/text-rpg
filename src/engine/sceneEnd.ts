@@ -6,10 +6,11 @@ import type { CheckinAnswer, CheckinReason, EndCheck, GameEvent, GameState, Grad
 import { CONFIG } from '../config';
 import { SCENE_SCALES, TIME_OF_DAY, type SceneScale } from '../scales';
 import { now, timeOfDay } from '../time';
-import { actorById, atLeast, isActive, isEngaged } from './relations';
+import { actorById, isActive, isEngaged } from './relations';
 import { givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
 import { triggerErrors } from '../scene/triggers';
+import { checkGround, offGround, pursuers } from './chase';
 
 /** SC4: does a scene of this scale hold smaller scenes inside it */
 export const holdsInner = (s: SceneScale): boolean => SCENE_SCALES.pos(s) >= SCENE_SCALES.pos(CONFIG.SCENE_HOLDS_FROM as SceneScale);
@@ -81,7 +82,7 @@ export function checkMet(state: GameState, w: EndCheck, events: GameEvent[], fra
 export function endingHeld(state: GameState, events: GameEvent[]): string | null {
   const p = state.player;
   if (isEngaged(state, p)) return 'fight';
-  if (state.actors.some((a) => isActive(a) && atLeast(a.mind?.knowledge[p.id]?.status, 'hunting') && !a.mind?.moraleState)) return 'chase';
+  if (pursuers(state).length) return 'chase'; // CH4
   if (events.some((e) => e.kind === 'speak' && (e.actorId === p.id || e.target === p.id))) return 'talk';
   return null;
 }
@@ -100,6 +101,9 @@ export function checkSceneEnd(state: GameState, events: GameEvent[]): void {
     }
     if (st.ending) logCode(state, 'scene_ending_met', { as: st.ending.as, outer: !!st.ending.outer });
   }
+  checkGround(state); // SC16/CH1: off the scene's ground with no one chasing: left
+  // a ground ending held over a fight or a talk lapses if the player is back on the ground by then
+  if (st.ending?.roam && !offGround(state).off) { logCode(state, 'scene_ground_back', { as: st.ending.as }); delete st.ending; }
   const f = st.scene;
   // SC12: no Weaver can overrun the budget: at SCENE_OVERRUN_MULT times it, code ends the scene (a bug: the check-in should have)
   if (f && !st.ending && !st.breakCause && budgetUsed(state, f) >= CONFIG.SCENE_OVERRUN_MULT) {
@@ -110,7 +114,7 @@ export function checkSceneEnd(state: GameState, events: GameEvent[]): void {
   if (!st.ending || st.breakCause) return;
   const held = endingHeld(state, events);
   if (held) { logCode(state, 'scene_ending_held', { as: st.ending.as, why: held }); return; }
-  endScene(state, st.ending.as, st.ending.text, st.ending.outer);
+  endScene(state, st.ending.as, st.ending.text, st.ending.outer, st.ending.roam);
 }
 
 /** SC2/SC12: how much of its budget the scene has used (1 = all of it); turns spent fighting don't count */
@@ -175,8 +179,8 @@ export function applyCheckin(state: GameState, number: number, a: CheckinAnswer 
 }
 
 /** ends the scene this turn with `as` (outer: the bigger scene's own ending, which ends both) */
-export function endScene(state: GameState, as: SceneEnding, text = '', outer?: boolean): void {
-  state.stage.ended = { as, text, ...(outer ? { outer: true as const } : {}) };
+export function endScene(state: GameState, as: SceneEnding, text = '', outer?: boolean, roam?: boolean): void {
+  state.stage.ended = { as, text, ...(outer ? { outer: true as const } : {}), ...(roam ? { roam: true as const } : {}) };
   state.stage.breakCause = 'scene_end';
   delete state.stage.ending;
   logCode(state, 'scene_ended', { as, outer: !!outer });
@@ -185,12 +189,13 @@ export function endScene(state: GameState, as: SceneEnding, text = '', outer?: b
 /** SD1: how the scene ends at this turn's break, before closeScene records it (null: no break, or no scene yet) */
 export function pendingEnding(state: GameState): SceneEnding | null {
   const st = state.stage;
+  if (st.closed?.turn === state.turn) return st.closed.as; // the turn already closed it (resolveTurn records the scene)
   if (!st.breakCause || !st.scene) return null;
   return st.ended?.as ?? BREAK_ENDING[st.breakCause] ?? 'interrupted';
 }
 
 /** how a break that is not an ending ends the scene (SC9, SC10) */
-const BREAK_ENDING: Record<string, SceneEnding> = { knocked_out: 'broken_off', encounter: 'interrupted', story_beat: 'worn_out' };
+const BREAK_ENDING: Record<string, SceneEnding> = { knocked_out: 'broken_off', encounter: 'interrupted', story_beat: 'worn_out', roam: 'interrupted' };
 
 function record(state: GameState, f: SceneFrame, as: SceneEnding, text: string, inner: boolean): SceneRecord {
   const name = (id: string) => actorById(state, id)?.names.current ?? id;
@@ -221,17 +226,20 @@ function keep(state: GameState, r: SceneRecord): void {
 /**
  * At a break, before the next scene starts: record how the scene went, and say what comes next. 'resume' = an inner scene
  * ended inside a bigger one, which carries on (no event roll, no Weaver call); 'new' = a new scene starts (an encounter
- * inside an Episode or Venture starts an inner one, keeping the bigger scene as `outer`).
+ * inside an Episode or Venture starts an inner one, keeping the bigger scene as `outer`); 'roam' = the player left the
+ * ground (SC16) or escaped off it (CH7): free roam starts, and no scene runs until something starts one (SD2 a).
  */
-export function closeScene(state: GameState): 'resume' | 'new' {
+export function closeScene(state: GameState): 'resume' | 'new' | 'roam' {
   const st = state.stage;
   const cause = st.breakCause;
   const as = st.ended?.as ?? (cause ? BREAK_ENDING[cause] : undefined) ?? 'interrupted';
   const text = st.ended?.text ?? '';
+  const roam = !!st.ended?.roam;
   const cur = st.scene, outer = st.outer;
   const endsOuter = !!st.ended?.outer || cause === 'knocked_out';
   if (cur) keep(state, record(state, cur, endsOuter && outer ? 'interrupted' : as, text, !!outer));
   if (outer && endsOuter) keep(state, record(state, outer, as, text, false));
+  if (cur) st.closed = { as, turn: state.turn }; // SD1: the ending moment reads it after resolveTurn
   delete st.ended; delete st.ending;
   if (outer && !endsOuter) {
     if (cause === 'encounter') { delete st.scene; return 'new'; } // a new inner scene in the same bigger one
@@ -243,6 +251,12 @@ export function closeScene(state: GameState): 'resume' | 'new' {
   delete st.outer;
   if (cur && !endsOuter && cause === 'encounter' && holdsInner(cur.scale)) st.outer = cur; // SC4: the encounter is an inner scene
   delete st.scene;
+  if (roam) {
+    delete st.breakCause;
+    st.roam = { since: state.turn };
+    logCode(state, 'free_roam', { as });
+    return 'roam';
+  }
   return 'new';
 }
 
