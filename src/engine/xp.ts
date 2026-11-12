@@ -216,7 +216,7 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
 
 /** Training effort to raise a skill from 0 to s (Part 1 §6: a point at s costs about 100 ÷ (3 × (100 − s)) trainings;
  * the floor of 2 keeps the effort finite from 98 up, where training stops). */
-export const effort = (s: number) => (100 / 3) * Math.log(100 / Math.max(100 - Math.max(0, s), 2));
+export const effort = (s: number) => CONFIG.EFFORT_SCALE * Math.log(100 / Math.max(100 - Math.max(0, s), 2));
 
 /** a skill group's XP factor: its level on the XP_FACTORS scale (CONFIG.XP_GROUP_FACTOR) × CONFIG.XP_FACTOR_MULT; no level counts 0 */
 export const xpGroupFactor = (group: string): number => CONFIG.XP_FACTOR_MULT[CONFIG.XP_GROUP_FACTOR[group]] ?? 0;
