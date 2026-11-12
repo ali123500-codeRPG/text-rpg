@@ -6,7 +6,7 @@ import { RC } from '../../src/library/raceIds';
 import type { Actor, Band, Cover, Light, GameState, Place, Zone, ZoneLink } from '../../src/types';
 import { spawnNpc, equipLoadout, fullParts } from '../../src/library/spawn';
 import { resetLibrary } from '../../src/library';
-import { resetConfig } from '../../src/config';
+import { CONFIG, resetConfig } from '../../src/config';
 import { getLibrary, itemDef, routineSet } from '../../src/library';
 import { requirement } from '../../src/ruleset/requirements';
 import { SK } from '../../src/library/skillIds';
@@ -77,12 +77,13 @@ export function recommendedPlayer(storyId = 'test', zone = 'tav_common', placeId
   };
 }
 
-function withRoutine(a: Actor, setId: string, slots: Record<string, string | string[]>, anchorTurn = 0): Actor {
+/** at: the game minute it started (NW10; the test clock is unset, so it reads as the start of day) */
+function withRoutine(a: Actor, setId: string, slots: Record<string, string | string[]>, anchorTurn = 0, at = CONFIG.TIME_OF_DAY_FROM.day): Actor {
   const set = routineSet(setId)!;
   a.mind!.routineSetId = setId;
   a.mind!.routines = [...set.routines];
   a.mind!.slots = slots;
-  a.mind!.routine = { id: set.routines[0], anchorTurn };
+  a.mind!.routine = { id: set.routines[0], anchorTurn, at };
   return a;
 }
 

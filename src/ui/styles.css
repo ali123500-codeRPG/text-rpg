@@ -842,6 +842,17 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   padding: 5px 14px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; text-align: left; }
 .map-floor.on { color: var(--text); border-color: var(--accent); }
 .map-floor .you { color: var(--scenario-mark); }
+/* barriers you know stop you, on their exit: amber locked or barred, red blocked, green when you hold the key */
+.map-way { --wc: var(--warn); }
+.map-way.blocked { --wc: var(--danger); }
+.map-way.key { --wc: var(--ok); }
+.map-way circle { fill: var(--bg); stroke: var(--wc); stroke-width: 2; }
+.map-way rect, .map-way path, .map-way line { stroke: var(--wc); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.map-way.locked rect { fill: var(--wc); }
+.k-way { flex: none; overflow: visible; }
+.map-exit-way.locked, .map-exit-way.barred { color: var(--warn); }
+.map-exit-way.blocked { color: var(--danger); }
+.map-exit-way.key { color: var(--ok); }
 .map-stair circle { fill: var(--bg); stroke: var(--accent); stroke-width: 2; }
 .map-stair text { fill: var(--accent); font-size: 11px; font-weight: 800; pointer-events: none; }
 .map-stair:not(.unknown) { cursor: pointer; }
@@ -977,6 +988,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .g-skill .cs-bar { grid-area: bar; height: 6px; }
 .g-skill .cs-bar > b { background: var(--scenario-mark); }
 .g-all { --scenario-mark: var(--perk-40); position: relative; overflow: hidden; font-size: 15px; }
+.g-ess { --scenario-mark: var(--accent); font-size: 15px; } /* an essence offered: blue, apart from gold perks and violet tree perks */
 .g-all::after { content: ''; position: absolute; inset: 0; pointer-events: none; transform: translateX(-100%);
   background: linear-gradient(100deg, transparent 35%, color-mix(in oklch, var(--scenario-mark) 28%, transparent) 50%, transparent 65%); }
 /* the Thread: what the scenario added to XP, filling the bar (and wrapping for each level) */

@@ -45,6 +45,16 @@ export type TreeDef = { id: string; name: string; skills: string[]; access?: Tre
   /** TREE_RATINGS key (default normal): how many skills at a step earn the tree's All-XXX (CONFIG.ALL_STEP_SKILLS) */
   rating?: import('../scales').TreeRatingKey };
 /** PY3: a service a seller can offer; heals names the healing row it pays for */
+/** growth proposal 2.2: an essence row. A beaten foe of its race or body type, or a scenario's deeds, can offer it; its points
+ * are true skill split over `skills` by weight; a deed row (deed: true) puts its points on the scenario's most-marked skill */
+export type EssenceDef = {
+  id: string; name: string;
+  from: { race?: string; bodyType?: string; deed?: true };
+  weight: number;
+  skills: { skill: string; weight: number }[];
+  trait?: string; quirk?: string; // perk rows (OwnedPerk source 'essence'); none written yet (D-228 content round)
+  story: string;
+};
 export type ServiceDef = { id: string; name: string; price: number; heals?: string };
 export type ClassDef = {
   id: string; name: string; floors: Record<string, number>;
@@ -124,6 +134,7 @@ export type Library = {
   personalityAxes?: Record<string, PersonalityAxisDef>; // PL6: PA…
   values?: Record<string, { id: string; name: string }>; // PL19: VL…, what a character cares about
   personalityTypes?: Record<string, PersonalityTypeDef>; // PL10: PY…, named mixes read from the points
+  essences?: Record<string, EssenceDef>; // growth proposal: ES…, packages a beaten foe or a scenario's deeds can offer
   services?: Record<string, ServiceDef>; // PY3: services sellers offer, by fixed ID (SV…)
   durations?: Record<string, DurationDef>; // T1: how long each action takes on the game clock
   races?: Record<string, RaceDef>; // Part 4 §4: a race sets the body type and its innate perks and quirks
@@ -309,7 +320,8 @@ export type AchievementRule = 'defeats' | 'mastery' | 'unaware_defeats' | 'yield
   | 'clean_defense' | 'unseen_moves' | 'vanished' | 'spotted' | 'speech_won' | 'talked_down' | 'outmatched' | 'enemy_to_friend' | 'won_without_blow'
   | 'coin_spent' | 'coin_earned' | 'mended' | 'back_from_down' | 'holds' | 'aimed_hits'
   | 'quests_for_giver' | 'quest_givers' | 'quest_chains' | 'quests_early' | 'quests_unpaid' | 'spar_wins' | 'cruel_spar_wins' | 'spar_losses' | 'achievements' | 'defeated'
-  | 'won_panicking' | 'morale_breaks' | 'healed' | 'calmed' | 'hp_lost' | 'morale_lost' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct' | 'event_crits' | 'event_crit_fails';
+  | 'won_panicking' | 'morale_breaks' | 'healed' | 'calmed' | 'hp_lost' | 'morale_lost' | 'survived_above' | 'survived_above_pct' | 'won_above' | 'won_above_pct' | 'event_crits' | 'event_crit_fails'
+  | 'essences_taken' | 'essence_room';
 /** what a per-kind achievement is earned once for: the granted id is <id>:<that kind's id> */
 export type AchievementBy = 'body_type' | 'race' | 'group' | 'class' | 'class_tier' | 'function' | 'skill' | 'size' | 'giver' | 'heal_source' | 'morale_source';
 /** scar: a negative achievement, listed under Scars instead of Achievements */

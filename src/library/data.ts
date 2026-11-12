@@ -26,6 +26,7 @@ import { ACH } from './achievementIds';
 import { FN, GR } from './functionIds';
 import { CL } from './classIds';
 import { SV } from './serviceIds';
+import { ES } from './essenceIds';
 import { PK } from './perkIds';
 import { IT } from './itemIds';
 
@@ -509,6 +510,18 @@ export function prototypeLibrary(): Library {
       [SV.bath]: { id: SV.bath, name: 'bath', price: 2 },
       [SV.clinic]: { id: SV.clinic, name: 'clinic care', price: 20, heals: HL.clinic },
     },
+    // growth proposal 2.2: essences. Placeholder rows for the engine; the content round (one table per race and body type,
+    // with traits) belongs to the lore and loot threads (D-228). EG11 b: the story may name the thread; never numbers.
+    essences: {
+      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.endurance, weight: 2 }, { skill: SK.tremor, weight: 1 }],
+        story: 'Something slow and unhurried settles low in your gut, a strand of the slime\'s patience tied into your own. Pain arrives later than it used to.' },
+      [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+        story: 'You catch yourself turning a shoulder toward the door before you decide to, as if someone else\'s long watches were knotted into yours.' },
+      [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
+        story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
+      [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
+        story: 'What you did again and again here has pulled tight and held. Something in you will remember it.' },
+    },
     roles: { [RL.sense]: { name: 'sense', shared: true }, [RL.grip]: { name: 'grip', shared: false }, [RL.move]: { name: 'move', shared: true }, [RL.fly]: { name: 'fly', shared: true }, [RL.strike]: { name: 'strike', shared: false }, [RL.speech]: { name: 'speech', shared: true } },
     bodyTypes: BODY_TYPES,
     // Healing sources (H1–H6); amounts are placeholders. A source's tier is its row: add rows for more.
@@ -872,6 +885,9 @@ export function prototypeLibrary(): Library {
       [ACH.char_level_10]: { id: ACH.char_level_10, name: 'Woven Past Counting ({level})', level: 'minus_1', rule: 'char_level', tags: ['progression'], count: 10, every: 10, levelStep: 1,
         names: { 10: 'No Longer Green', 20: 'Steady Hand', 30: 'Battle-Tested', 40: 'A Name Worth Knowing', 50: 'Half a Hundred Roads',
           60: 'Something Tugs at the Edges', 70: 'The Pattern Takes Notice', 80: 'Caught in the Weave', 90: 'A Thread That Will Not Fray', 100: 'One Who Pulls the Threads' } },
+      // growth proposal EG12 a (approved): take your first essence; fill every essence slot at character level 8 or higher
+      [ACH.first_knot]: { id: ACH.first_knot, name: 'First Knot', level: 'i', rule: 'essences_taken', tags: ['progression'], count: 1 },
+      [ACH.room_for_no_more]: { id: ACH.room_for_no_more, name: 'Room for No More', level: 'ii', rule: 'essence_room', tags: ['progression'], count: 8 },
     },
   });
   // ST1: a skill's tree is wherever the trees table lists it, so moving a skill is one edit there

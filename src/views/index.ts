@@ -11,7 +11,7 @@ import type { AttackOutcome, ScenarioFrame, Tier,
 import { GRADES } from '../types';
 import { CONFIG } from '../config';
 import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES } from '../scales';
-import { timeView, zoneLight, clockSet } from '../time';
+import { timeView, zoneLight, clockSet, now, timeOfDay } from '../time';
 import { charLevel, wornTitle } from '../engine/xp';
 import { sideFrom, sightDistM } from '../engine/position';
 import { chaseLost, chaseZones } from '../engine/chase';
@@ -390,7 +390,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill,
-      ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn } } : {}),
+      ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn, elapsed: Math.max(0, now(state) - (m.routine.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {}),
       routines: offeredRoutines(m.routines).map((id) => ({ id, brief: routine(id).brief })),
       ...(m.routineSetId ? { routineSetId: m.routineSetId } : {}),
       slots: Object.fromEntries(Object.entries(m.slots ?? {}).map(([k, v]) => [k, Array.isArray(v) ? [...v] : v])),
@@ -586,6 +586,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     actors: seen.map((s) => ({ label: s.label, ...(s.name ? { name: s.name } : {}), ...(s.pronouns ? { pronouns: s.pronouns } : {}), zone: zoneById(state, s.zone)?.name ?? '', ...(s.health ? { health: s.health } : {}), ...(s.morale ? { morale: s.morale } : {}), ...(s.activityLook ? { activityLook: s.activityLook } : {}), ...(s.age ? { age: s.age } : {}) })),
     facts: factsFor(state, p.placeId, seen.filter((s) => s.level === 'full').map((s) => s.id)),
     headlines: headlinesFor(state, p.placeId, false),
+    // growth proposal 2.7/EG11 b: essences offered this turn, as the character feels them (never numbers or grades)
+    ...((offered) => offered.length ? { essences: offered } : {})((p.progression?.essenceOffers ?? []).filter((o) => o.turn === state.turn)
+      .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, story: getLibrary().essences?.[o.essence]?.story ?? '' }))),
   };
 }
 

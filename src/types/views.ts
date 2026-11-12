@@ -138,7 +138,8 @@ export type ActorView = {
     heldBy?: ActorId; // A8 Hold: who holds this actor; trying to leave is a break-free try
     gear: OwnGearView[];
     attackSkill: string; // fallback.attackSkill (template, else body type)
-    routine?: { id: string; anchorTurn: number };
+    /** elapsed (NW10): game minutes since it started; dayPart: the time of day now */
+    routine?: { id: string; anchorTurn: number; elapsed: number; dayPart: import('../scales').TimeOfDay };
     routines: { id: string; brief: string }[];
     routineSetId?: string;
     slots: Record<string, string | string[]>;
@@ -223,6 +224,8 @@ export type NarrationEvent = {
 };
 
 export type NarrationView = {
+  /** growth proposal 2.7: essences offered this turn: what the character feels (EG11 b: the thread may be named) */
+  essences?: { name: string; story: string }[];
   style: { tone: string; length: string };
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor

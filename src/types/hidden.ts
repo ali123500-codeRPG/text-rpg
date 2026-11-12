@@ -61,6 +61,8 @@ export type ScenarioFrame = {
   gains?: Pick<import('./game').ScenarioGains, 'skills' | 'perks' | 'allPerks'>;
   /** D-226: the player's XP log length, level and XP bar fill when it began (the summary's XP and levels count from there) */
   xpFrom?: number; xpStart?: { level: number; pct: number };
+  /** growth proposal 2.3: the foes the player beat in it (their races and body types make its ending's essence table) */
+  beaten?: string[];
   /** EG13: steps past Critical Success on its event roll (each pays GROWTH_ROLLS_PAST_CRIT more rolls at its end) */
   beyond?: number;
   /** SC4/EG13: while an inner scenario runs, the player's owed rolls and waiting achievements from this (outer) one, kept
@@ -139,7 +141,9 @@ export type Routine = {
   brief: string;
   kind: 'schedule' | 'follow' | 'wait' | 'head'; // head (NW2): walk to slot 'dest', then back to the routine before it
   loop: boolean;
-  steps: RoutineStep[]; // schedule only; [] otherwise
+  steps: RoutineStep[]; // schedule only; [] otherwise. NW10: the steps at any time of day `times` does not name
+  /** NW10: the steps at a time of day (dawn, day, dusk, night), when they differ from `steps` */
+  times?: Partial<Record<import('../scales').TimeOfDay, RoutineStep[]>>;
   activity?: string; // follow, wait and head only
   alert?: string;
   onAlert: OrderTemplate | null;

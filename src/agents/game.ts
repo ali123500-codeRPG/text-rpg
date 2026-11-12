@@ -3,10 +3,11 @@
 // → plan updates → save → NarrationView → advance (turn N+1 pending, background Planners) → Narrator → [DIALOGUE_WINDOW] → display.
 import type { AgentName, StoryOwner, TierRoll,
   AgentTurnLog, ClaudeClient, ClaudeErrorCode, Clock, CreationBuild, DialogueInput, GameApi, GameEvent, GameState,
-  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor,
+  GmSnapshot, HealNote, Intent, LineCheck, LogLine, NarrationView, Notice, OppositionView, PartState, HealthLevel, PlannerOutput, Rng, TurnRecord, Actor, WayDid,
 } from '../types';
 import { SCENARIO_ENDING_NAMES, SPEECH_ACTIONS, type ScenarioEndNote } from '../types';
 import { pendingEnding } from '../engine/scenarioEnd';
+import { barrierName } from '../engine/barriers';
 import { scenarioGainsNow } from '../engine/growth';
 import { CONFIG } from '../config';
 import { now, timeOfDay, timeView } from '../time';
@@ -73,7 +74,7 @@ type Background = {
 
 const HELP_TEXT =
   'Type what you do in plain words. Commands: /stats, /inv, /quests, /achievements, /undo (rewind one turn; dice are not rolled back), ' +
-  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
+  '/help, /difficulty [setting], /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
 export function createGame(deps: GameDeps): Game {
   const { client, clock, store, director } = deps;
@@ -401,7 +402,8 @@ export function createGame(deps: GameDeps): Game {
     const gear = rec.gearBefore ? gearRows(rec.gearBefore, gearSnap(s, s.player)) : [];
     // M-30: the player's body parts that got worse this turn, so the play screen can name them (shown again after a reload)
     const wounds = rec.partsBefore ? partsWorse(rec.partsBefore, partStates(s, s.player)) : [];
-    const where = { ...(gear.length ? { gear } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
+    const ways = wayRows(s, events);
+    const where = { ...(gear.length ? { gear } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
@@ -483,6 +485,23 @@ export function createGame(deps: GameDeps): Game {
         if (!list.length) return say('You have no achievements to wear yet.');
         return say([`Title: ${wornTitle(s) ?? 'none'}. Type /title and a number to wear one, or /title off.`,
           ...list.map((x, i) => `${i + 1}. ${achievementName(s, x)}`)].join('\n'));
+      }
+      case 'essence': case 'essences': {
+        // growth proposal 2.5: /essence lists offers and held essences; take N [give up M], pass N, remove M (at rest)
+        const pr = s.player.progression;
+        const [verb, a1, , a3] = arg.toLowerCase().split(/\s+/);
+        const n = (x?: string) => (x && /^\d+$/.test(x) ? Number(x) - 1 : -1);
+        const done = (err: string | null, ok: string) => say(err ?? ok);
+        if (verb === 'take') return done(engine.takeEssence(s, n(a1), engine.playerAtRest(s), a3 !== undefined ? n(a3) : undefined), 'Taken. It is part of you now.');
+        if (verb === 'pass') return done(engine.passEssence(s, n(a1)), 'You let it go.');
+        if (verb === 'remove') return done(engine.removeEssence(s, n(a1), engine.playerAtRest(s)), 'Gone, and it cost you: one level\'s worth of XP.');
+        const offers = pr?.essenceOffers ?? [], held = pr?.essences ?? [];
+        return say([
+          `Essences: ${held.length} of ${engine.essenceSlots(s.player)} slots.`,
+          ...held.map((e, i) => `${i + 1}. ${engine.essenceText(e, skillName)}`),
+          ...(offers.length ? ['On offer:', ...offers.map((o, i) => `${i + 1}. ${engine.essenceText(o, skillName)}, until turn ${o.until}`)] : ['Nothing on offer.']),
+          'Type /essence take 1 (with every slot full: /essence take 1 give 2), /essence pass 1, or /essence remove 1 (at rest; costs one level of XP).',
+        ].join('\n'));
       }
       case 'yield':
         // MB40: yield as a command; the words go to the Parser as the player's line
@@ -885,6 +904,30 @@ export function gearRows(a: GearSnap, b: GearSnap): string[] {
     else if (was) rows.push(`Put away: ${x.name}`);
   }
   for (const [id, x] of a) if (!b.has(id)) rows.push(`Gone: ${x.name}`);
+  return rows;
+}
+
+/** what the player did at a barrier, as the play screen's Way row words it (BG-65: a way with nothing on it says "way") */
+const WAY_ROW: Record<WayDid, string> = {
+  unlocked: 'unlocked with your key on the way through', unbarred: 'you slid its bar back on the way through',
+  found_locked: 'locked', found_barred: 'barred from the other side', found_blocked: 'blocked, no way through',
+  lock: 'you locked it', unlock: 'you unlocked it', bar: 'you slid its bar across', unbar: 'you slid its bar back',
+  open: 'you left it standing open', shut: 'you shut it',
+  picked: 'lock picked, it opens', picking: 'picking the lock, not open yet', not_yet: 'picking the lock, not open yet',
+  beyond: 'this lock is beyond you for now', pick_broke: 'your pick snapped in the lock',
+  found_open: 'nothing locks it', found_opens: 'shut, but you can open it',
+};
+/** ready-to-show rows for what the player did at barriers this turn: "Door to the cellar: locked" */
+export function wayRows(s: GameState, events: GameEvent[]): string[] {
+  const rows: string[] = [];
+  for (const e of events) {
+    if (e.actorId !== s.player.id || !e.way) continue;
+    const b = e.way.barrier ? s.barriers?.[e.way.barrier] : undefined;
+    const what = b ? barrierName(b) : 'way';
+    const to = zoneById(s, e.way.to)?.name ?? e.way.to;
+    const row = `${what.charAt(0).toUpperCase()}${what.slice(1)} to ${to}: ${WAY_ROW[e.way.did]}`;
+    if (!rows.includes(row)) rows.push(row);
+  }
   return rows;
 }
 

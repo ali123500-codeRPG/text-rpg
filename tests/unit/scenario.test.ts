@@ -13,7 +13,7 @@ vi.mock('../../src/minds', () => ({
   installRoutines: vi.fn((a: Actor, setId: string, slots: Record<string, string | string[]>, _s: string | undefined, turn: number) => {
     a.mind!.routineSetId = setId;
     a.mind!.slots = slots;
-    a.mind!.routine = { id: setId, anchorTurn: turn };
+    a.mind!.routine = { id: setId, anchorTurn: turn, at: 420 };
   }),
   desiredState: vi.fn((v: { self: { zone: string } }) => ({ zone: v.self.zone, activity: 'rest' })),
 }));
@@ -314,7 +314,7 @@ describe('applyStagePlan', () => {
     const errs = validateStagePlan(s, p, ctx);
     applyStagePlan(s, p, ctx, { entry: 'open', degrade: errs }, createRng(1));
     const slime = s.actors.find((a) => a.id === 'slime_1')!;
-    expect(slime.mind!.routine).toEqual({ id: 'idle_here', anchorTurn: 0 });
+    expect(slime.mind!.routine).toEqual({ id: 'idle_here', anchorTurn: 0, at: 420 });
     expect(slime.mind!.slots).toEqual({ here: 'field_far' });
     expect(s.actors.find((a) => a.id === 'slime_2')!.mind!.routine!.id).toBe('slime_wander');
     expect(s.stage.fallback).toEqual({ reason: 'routine_fallback', turn: 0 });

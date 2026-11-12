@@ -1,4 +1,5 @@
 // Applying a stage plan (Scenario setup steps 4–8), the fallback stage, opening events.
+import { expireOffers } from '../engine/essence';
 import { frameOf } from '../engine/scenarioEnd';
 import { qualityMult } from '../ruleset/quality';
 import type { Actor, Barrier, GameEvent, GameState, ItemDef, ItemInstance, Place, Rng, StagePlan, Tier, Zone, ZoneLink, OrderTemplate, Trigger, Secret } from '../types';
@@ -8,7 +9,7 @@ import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
 import { placeAll, startAtDoor } from '../engine/position';
-import { clockSet, startClock } from '../time';
+import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate } from '../library';
 import { spawnNpc } from '../library/spawn';
 import { personalityFrom } from '../ruleset/personality';
@@ -109,12 +110,12 @@ function setFallbackFlags(state: GameState, reason: string, code: 'weaver_fallba
   state.log.push({ turn: state.turn, code, detail: { reason, errors: errors.map((e) => ({ ...e })) } });
 }
 
-function idleHere(a: Actor, here: string, turn: number): void {
+function idleHere(a: Actor, here: string, turn: number, at: number): void {
   const m = a.mind!;
   m.routines = ['idle_here'];
   m.slots = { here };
   delete m.routineSetId;
-  m.routine = { id: 'idle_here', anchorTurn: turn };
+  m.routine = { id: 'idle_here', anchorTurn: turn, at };
 }
 
 export function mint(state: GameState, m: Exclude<StagePlan['rewards'][number]['item'], string>, n: number): string {
@@ -152,6 +153,7 @@ export function beginScenario(state: GameState, tier: Tier, beyond?: number): vo
   state.stage.quiet = 0;
   delete state.stage.breakCause;
   delete state.stage.roam; // SD2 a: free roam ends when a scenario starts
+  expireOffers(state, true); // growth proposal 2.5: an essence offer lasts until a new scenario starts
   state.scenarioCaps = { promotions: 0, minted: 0 };
   endYields(state);
 }
@@ -295,10 +297,10 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     for (const o of c.overrides ?? []) (a.mind!.overrides ??= {})[actorRef(o.actor)] = o.stance;
     if (degraded.has(c.key)) {
       const here = Object.values(c.slots ?? {}).flat().find((z) => typeof z === 'string' && isZoneRef(z));
-      idleHere(a, here ? zoneRef(here) : (firstZone ?? a.zone), turn);
+      idleHere(a, here ? zoneRef(here) : (firstZone ?? a.zone), turn, now(state));
     } else {
       const slots = Object.fromEntries(Object.entries(c.slots ?? {}).map(([k, v]) => [k, Array.isArray(v) ? v.map(zoneRef) : zoneRef(v)]));
-      installRoutines(a, c.routineSetId, slots, c.startAt, turn, rng);
+      installRoutines(a, c.routineSetId, slots, c.startAt, turn, rng, now(state));
     }
     // NW7: a reused actor stays where it is. One the player can't perceive walks to its start (head_to), then takes up
     // its new routine; one the player perceives is not sent anywhere, and its new routine walks it on from where it stands.

@@ -1,7 +1,7 @@
 // The scenario-end gains moment (D-226, proposed M-39): when a scenario ends, everything it gave the player opens in one
 // panel over the story, between the old scenario's closing line and the new one's opening. A gold thread (XP is the
 // Thread) runs down the panel and each gain is knotted onto it in turn, from the commonest to the rarest: skills, perks,
-// All-XXX perks, achievements and scars, then the XP the Thread gathered, and last the levels it brought.
+// All-XXX perks, achievements and scars, any essence offered, then the XP the Thread gathered, and last the levels it brought.
 // Like every play-screen motion it plays on top of the final state (M-74): the panel is built complete, so skipping,
 // finishing or motion off always shows every gain at once. Each step's length comes from the --m-* tokens, never from how
 // long the turn took (M-03); only how many gains there are sets how long it runs, as long as the moment needs.
@@ -15,9 +15,7 @@ import { SCENARIO_ENDING_NAMES, type AchievementNote, type GameApi, type Scenari
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
-/** anything worth the moment: a scenario that gave nothing opens no panel */
-export const anyGains = (g: ScenarioGains | undefined): g is ScenarioGains =>
-  !!g && (g.skills.length + g.perks.length + g.allPerks.length + g.achievements.length + g.levelUps.length > 0 || g.xp.gained > 0);
+export { anyGains } from '../engine/growth'; // one test for "the scenario gave something", shared with the gains log
 
 /** one line saying what the scenario gave, for the story's record of it and for screen readers */
 export function gainsSummary(g: ScenarioGains): string {
@@ -28,6 +26,7 @@ export function gainsSummary(g: ScenarioGains): string {
     ...g.allPerks.map((a) => a.name),
     achs ? plural(achs, 'achievement') : '',
     scars ? plural(scars, 'scar') : '',
+    g.essences?.length ? plural(g.essences.length, 'essence') + ' offered' : '',
     g.xp.gained ? `+${g.xp.gained} XP` : '',
     g.xp.toLevel > g.xp.fromLevel ? `level ${g.xp.toLevel}` : '',
   ].filter(Boolean).join(' · ');
@@ -67,13 +66,13 @@ export function gainsPanel(g: ScenarioGains, o: Opts): HTMLElement {
       // SD1: the old scenario's closing line sits under its ending, so the panel is that scenario's last word
       end?.closing ? h('p', { class: 'g-closing' }, end.closing) : null,
       h('h2', { id: 'gains-h', class: 'g-title' }, 'What you gained'),
-      gainsSpine(g, o.achCard),
+      gainsSpine(g, o.achCard, true),
       h('div', { class: 'g-foot' }, h('button', { type: 'button', class: 'hs-btn-main', onclick: o.onContinue }, 'Continue'),
         h('span', { class: 'hs-note' }, 'or press Enter or Esc'))));
 }
 
 /** the knots and their gains, as the panel and the Gains page show them */
-function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLElement): HTMLElement {
+function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLElement, live = false): HTMLElement {
   const lib = getLibrary();
   const star = (mark = '✦') => h('span', { class: 'st', 'aria-hidden': 'true' }, mark);
   const sec = (key: string, label: string, ...items: HTMLElement[]) =>
@@ -91,6 +90,9 @@ function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLEleme
     const scars = g.achievements.every((a) => a.scar), achs = g.achievements.every((a) => !a.scar);
     secs.push(sec('ach', achs ? 'Achievements' : scars ? 'Scars' : 'Achievements and scars', ...g.achievements.map(achCard)));
   }
+  // an essence is an offer, not yet taken: the player answers it with /essence after the moment
+  if (g.essences?.length) secs.push(sec('ess', g.essences.length === 1 ? 'An essence is offered' : 'Essences are offered', ...g.essences.map((e) =>
+    h('div', { class: 'perk-new g-ess' }, star('◆'), h('div', {}, e.name, h('small', {}, live ? `${cap(e.grade)} grade. Type /essence to take or pass it` : `${cap(e.grade)} grade`))))));
   const levelled = g.xp.toLevel > g.xp.fromLevel;
   const KIND: Record<XpPart['kind'], string> = { defeat: 'Defeats', achievement: 'Achievement', quest: 'Quest', other: 'Other' };
   const parts = (g.xp.parts ?? []).filter((x) => x.amount);
@@ -147,7 +149,7 @@ function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number 
         barMove(it.querySelector<HTMLElement>('.cs-bar'), it.querySelector<HTMLElement>('.cs-bar > b'), Math.min(100, from), Math.min(100, to), t + state);
         arrive(it.querySelector('.g-up'), t + state, 0);
         t += gap;
-      } else if (key === 'perks') {
+      } else if (key === 'perks' || key === 'ess') {
         arrive(it, t, 6);
         impact(it.querySelector('.st'), t + state);
         t += gap + hold;

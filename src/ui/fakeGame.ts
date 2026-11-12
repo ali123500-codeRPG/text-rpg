@@ -1,6 +1,6 @@
 // In-memory fake GameApi with canned lines, for building and screenshotting the screens until W7's pipeline lands.
 import { placeZones } from '../scenario/geometry';
-import { EK, PA, VL, ZK } from '../library/tableIds';
+import { BK, EK, PA, VL, ZK } from '../library/tableIds';
 import { roadShape } from '../scenario/apply';
 import { HL } from '../library/tableIds';
 import { TP } from '../library/templateIds';
@@ -76,6 +76,7 @@ function endTurn(st: GameState): Partial<LogLine> {
   const scenarioGains: NonNullable<LogLine['scenarioGains']> = {
     skills, perks: [{ skill: SK.block, milestone: 20 }], allPerks: [{ tree: 'TR1', step: 50, name: 'All-50: Melee' }],
     achievements: earned.achievements ?? [], xp: { gained: parts.reduce((n, x) => n + x.amount, 0), fromLevel, fromPct: 62, toLevel: fromLevel + 1, toPct: 30, parts }, levelUps: lvl.levelUps ?? [],
+    essences: [{ name: 'Gel Patience', grade: 'fine' }],
   };
   const closing = 'The cellar is quiet now, and the job is done.';
   (p.progression!.gainsLog ??= []).push({ ...scenarioGains, number: st.stage.scenarioNumber ?? 1, ending: 'resolved', endTurn: st.turn, closing });
@@ -117,6 +118,20 @@ const FAKE_PLACES = (): GameState['places'] => placed([
 /** code places every fake zone in metres, as applyStagePlan does for real ones */
 function placed(ps: GameState['places']): GameState['places'] { placeZones({ places: ps } as GameState, ps.flatMap((p) => p.zones)); return ps; }
 
+/** barriers on the fake map's exits, so the Map shows its marks: the kitchen door (locked, tried), the back door (barred
+ *  from the yard, tried), the front door (locked, the player holds its key) and the yard gate to the lane (blocked) */
+function fakeBarriers(st: GameState): void {
+  const put = (id: string, a: string, b: string, rec: Omit<import('../types').Barrier, 'id'>) => {
+    (st.barriers ??= {})[id] = { id, ...rec };
+    for (const z of st.places.flatMap((p) => p.zones)) for (const l of z.links) if ((z.id === a && l.to === b) || (z.id === b && l.to === a)) l.barrier = id;
+  };
+  put('fb_kitchen', 'tav_common', 'tav_kitchen', { kind: BK.door, grade: 'moderate', lock: { locked: true }, tried: [st.player.id] });
+  put('fb_back', 'tav_common', 'tav_yard', { kind: BK.door, grade: 'minor', bar: { side: 'tav_yard', drawn: true }, tried: [st.player.id] });
+  put('fb_front', 'tav_common', 'v_square', { kind: BK.door, grade: 'minor', lock: { locked: true } });
+  put('fb_lane', 'tav_yard', 'f_lane', { kind: BK.gate, grade: 'minor', blocked: true });
+  st.player.core.inventory.push({ id: 'fake_key', itemId: IT.key, qty: 1, opens: ['fb_front'] } as typeof st.player.core.inventory[number]);
+}
+
 export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; notices?: Notice[]; banner?: boolean } = {}): GameApi {
   let state: GameState | null = null;
   let lines: LogLine[] = [];
@@ -150,6 +165,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       settings, libraryVersion: 1, blueprints: [], meta: { storyId: 'fake', title: 'The slime field', schemaVersion: 1, createdAt: '2026-11-07', settings },
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
+    fakeBarriers(state);
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['hand:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
@@ -208,6 +224,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       await new Promise((r) => setTimeout(r, 600));
       ending = null;
       const ended = /^end\b/i.test(text) ? endTurn(state) : null;
+      // "door" tries and opens doors, to show the play screen's Way rows
+      const ways = /^door\b/i.test(text) ? { ways: ['Door to kitchen: locked', 'Door to back yard: barred from the other side', 'Door to village square: unlocked with your key on the way through'] } : null;
       state.turn = t + 1;
       if (/^(sneak|hide|vanish)\b/i.test(text)) state.player.posture = 'stealthy'; // shows the stealthy badge and bar
       const drop = /^charge\b/i.test(text); // "charge" drops the player, to show the fall on the fake page
@@ -231,7 +249,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
       const earned = hurt || /^spar\b/i.test(text) ? earnTurn(state, hurt ? [ACH.crippled_1] : [ACH.spar_losses_1]) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}) }];
+        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}), ...(ways ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },

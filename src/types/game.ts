@@ -32,6 +32,7 @@ export type LogLine = {
   downedBy?: DownedBy; // the turn left the player down: the last blow that hurt them, as they knew it ("You fell" screen)
   wounds?: { id: string; from: PartStateKey; to: PartStateKey }[]; // M-30: the player's body parts whose state got worse this turn
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
+  ways?: string[]; // what the player did at doors, gates and other barriers this turn, ready to show: "Door to the cellar: locked"
   place?: { id: string; name: string; zone?: string }; // where the player ended the turn; name like "River path · the Riverside", zone like "cellar"
   scenario?: number; // stage.scenarioNumber when the turn ended
   /** SD1: this turn ended a scenario: how (SCENARIO_ENDINGS key and its name), and the Narrator's closing line for it, which the
@@ -58,6 +59,8 @@ export type ScenarioGains = {
     /** where gained came from, in the order first earned: foes defeated together in one row, each achievement and quest its own */
     parts?: XpPart[] };
   levelUps: { classId: string; level: number }[];
+  /** growth proposal 2.5: essences offered at this ending moment (name and grade; take or pass with /essence) */
+  essences?: { name: string; grade: string }[];
 };
 
 /** a hall-of-fame row: the fallen character, whose story it was, and its story id */

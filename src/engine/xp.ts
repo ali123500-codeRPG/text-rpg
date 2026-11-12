@@ -214,20 +214,20 @@ export function payDefeats(state: GameState, events: GameEvent[]): Actor[] {
   return defeated;
 }
 
-/** Training effort to raise a skill from 0 to s (Part 1 §6: a point at s costs about 100 ÷ (3 × (100 − s)) trainings;
- * the floor of 2 keeps the effort finite from 98 up, where training stops). */
-export const effort = (s: number) => CONFIG.EFFORT_SCALE * Math.log(100 / Math.max(100 - Math.max(0, s), 2));
+/** LF15: a skill's worth in the rating, from what it does rather than what it cost to train: SKILL_RATING_AT_50 at 50,
+ * growing as the SKILL_RATING_POWER power of the skill, with no cap. */
+export const skillRating = (s: number) => CONFIG.SKILL_RATING_AT_50 * (Math.max(0, s) / 50) ** CONFIG.SKILL_RATING_POWER;
 
 /** a skill group's XP factor: its level on the XP_FACTORS scale (CONFIG.XP_GROUP_FACTOR) × CONFIG.XP_FACTOR_MULT; no level counts 0 */
 export const xpGroupFactor = (group: string): number => CONFIG.XP_FACTOR_MULT[CONFIG.XP_GROUP_FACTOR[group]] ?? 0;
 
-/** X18–X23: a foe's stat rating. Per skill group (a skill's first group) the skills' efforts, highest first, count at 1, ½, ¼…, × the group's XP factor. */
+/** X18–X23: an actor's stat rating, the same for the player and a foe. Per skill group (a skill's first group) the skills' worths, highest first, count at 1, ½, ¼…, × the group's XP factor. */
 export function rating(a: Actor): number {
   const lib = getLibrary();
   const by: Record<string, number[]> = {};
-  for (const [id, e] of Object.entries(a.core.skills)) {
+  for (const id of Object.keys(a.core.skills)) {
     const cat = groupsOf(lib.skills[id])[0] ?? ''; // the skill's first group; no group counts 0
-    (by[cat] ??= []).push(effort(skillOpen(a, id) ? e.raw * tierMult(id) : 0)); // the tier counts in the rating
+    (by[cat] ??= []).push(skillRating(trueSkill(a, id) * tierMult(id))); // LF16: true skill × tier; a closed tree counts 0
   }
   return levelRating(a) + Object.entries(by).reduce((n, [cat, es]) =>
     n + xpGroupFactor(cat) * es.sort((p, q) => q - p).reduce((m, v, i) => m + v / 2 ** i, 0), 0);

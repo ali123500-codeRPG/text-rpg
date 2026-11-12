@@ -389,4 +389,14 @@ Questions page "Growth Proposal Round Three": https://claude.ai/artifact/SvZsDfF
 - **EG16:** a new way to roll skill gain overall gets its own document, written next.
 - **EG17 a, max 1.25:** the ending factor is the Weaver's part. Every ending's factor is kept between ENDING\_FACTOR\_MIN (0.5) and ENDING\_FACTOR\_MAX (1.25).
 
-**Built:** scenario-end growth (section 3 as answered: EG7, EG8, EG10, EG13, EG17 and the rounds rule). Essences are next.
+**Built:** scenario-end growth (section 3 as answered: EG7, EG8, EG10, EG13, EG17 and the rounds rule), then essences (section 2 as answered; spec Part 1, Essences). The parks proposed as D-226 to D-228 became D-227 (NPCs holding essences), D-228 (a per-skill cap) and D-229 (essence content rows and traits), since D-226 is LF3. One fix to 2.4: the offer margin is d100 + base − 150, which gives the odds the section states (31% at base 80, 51% at 100).
+
+## 11. Skill gain roll
+
+Questions page "Skill Gain Roll Options": https://claude.ai/artifact/86PT4FAa8FPMYCadfmzXi2.
+
+- **SG1 c (Ali, in the thread: "C is nice"):** the improvement roll reads its gain off the tier table. Margin = d100 + (cap − raw − Burden) − 90; Success +1, Great Success +2, Critical Success +3, plus 1 per band past it; raw never passes its cap (100, or 125 tagged). Built (`growthRoll` in src/ruleset/improve.ts; spec Part 1 §6).
+- **SG2 a:** natural edges do not move the roll (GROWTH\_NATURAL\_EDGES false).
+- **SG3 a:** each skill's own cap is in the roll (GROWTH\_CAP\_IN\_ROLL true).
+- **Flaws (Ali, with SG1–SG3):** a flawed skill's cap is 25 lower, 75 (FLAW\_CAP\_PENALTY). Tags and flaws keep no roll advantage: the flawed "2d100 keep the lower" is gone, so every state rolls one d100 and only the cap moves.
+- **SG4:** moot with C, which never makes fractions.

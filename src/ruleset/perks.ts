@@ -55,8 +55,10 @@ export function trueSkill(a: Actor, skill: string): number {
     // (docs/skill-tags.md: "+1 function (including itself)"; F1: the broad group)
     if (d.functionBoost && own && (own === skill || groupsOf(skills[own]).some((g) => groups.includes(g)))) v += d.functionBoost;
     return n + v;
-  }, 0) + achievementSkill(a, skill);
+  }, 0) + achievementSkill(a, skill) + essenceSkill(a, skill);
 }
+/** growth proposal 2.2/EG4 a: the true skill the actor's held essences add (thread, not body: it counts everywhere true skill does) */
+export const essenceSkill = (a: Actor, skill: string): number => (a.progression?.essences ?? []).reduce((n, e) => n + (e.points[skill] ?? 0), 0);
 
 /** F4: the owner's perk change to the stand-in share for a function (PerkDef.standIn) */
 export const standInAdd = (a: Actor, fn: string): number =>

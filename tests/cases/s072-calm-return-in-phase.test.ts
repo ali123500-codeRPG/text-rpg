@@ -17,7 +17,7 @@ it('72 Calm return in phase: alarmed on turn 10, calm on turn 16, back to work w
   s.turn = 10;
   const attack: GameEvent = { id: 'ev_1', turn: 10, actorId: 'slime_1', kind: 'attack', zone: 'street_square', target: 'guard_1', effects: [], noise: 'normal', visibility: 'normal', perception: { worker: { level: 'full', cue: 'sight' } } };
   updateAlarms(s, [attack]);
-  expect(w.mind!.routine).toEqual({ id: 'flee_to_refuge_alert', anchorTurn: 10 });
+  expect(w.mind!.routine).toEqual({ id: 'flee_to_refuge_alert', anchorTurn: 10, at: 420 });
   expect(desiredState(buildActorView(s, 'worker'))!.zone).toBe('street_door');
   for (s.turn = 11; s.turn <= 15; s.turn++) {
     updateAlarms(s, []);

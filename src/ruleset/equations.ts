@@ -8,7 +8,7 @@ import { CLASS_TIERS, GRADE_LEVELS, LIFE_STAGES, SKILL_TIERS, MORALE_LEVELS, TIE
 import { tierCostMult } from './morale';
 import { MARGIN_BANDS, ladder, naturalEdge, pickSeconds, rollMargin, stackType, tierOf } from './index';
 import { MILESTONES } from './perks';
-import { improves, learningWindow } from './improve';
+import { growthRoll, learningWindow } from './improve';
 import { tierMult } from './gear';
 import { skillName } from '../library/skillNames';
 import { groupName } from '../library/functionNames';
@@ -45,9 +45,9 @@ const rollLevel = (d: number, effective: number) => tierOf(d, effective, [], [])
 const chanceAtLeast = (effective: number, k: Parameters<typeof TIERS.pos>[0]) => D100.filter((d) => rollLevel(d, effective) >= TIERS.pos(k)).length;
 /** the band rows: the margins that reach each tier */
 const bandRows = (bands: number[]) => TIERS.keys.map((k, i) => [TIERS.name(k), i === 0 ? `below ${bands[0]}` : i === bands.length ? `${bands[i - 1]} or more` : `${bands[i - 1]} to below ${bands[i]}`]);
-const improveChance = (target: number, flawed: boolean) => flawed
-  ? D100.reduce((s, a) => s + D100.filter((b) => improves(Math.min(a, b), target)).length, 0) / 100
-  : D100.filter((d) => improves(d, target)).length;
+/** % chance an improvement roll at `raw` gains at least `atLeast` (SG1 C), no burden */
+const growthChance = (raw: number, state: 'normal' | 'tagged' | 'flawed', atLeast: number) =>
+  D100.filter((d) => growthRoll(d, { raw, state }, 0).gain >= atLeast).length;
 
 /** the effective skill worked example; tests/unit/equations.test.ts checks it against effectiveSkill */
 export const EFF_EX = { skill: SK.melee_medium, standIn: SK.melee_light, trueSkill: 60, gear: 20 };
@@ -165,12 +165,17 @@ export function equations(lib: Library): EquationGroup[] {
       { name: 'Burden', at: 'burdenOf · payRolls · src/ruleset/improve.ts',
         formula: `burden = max(0, floor((sum of raw of untagged skills − potential) ÷ ${CONFIG.K}))`,
         terms: [['potential', `CONFIG.POTENTIAL = ${CONFIG.POTENTIAL}, plus any adjustments`], [String(CONFIG.K), 'CONFIG.K']] },
-      { name: 'Improvement roll', at: 'payRolls · src/ruleset/improve.ts',
-        formula: `target = raw + burden (a tagged skill: raw). Improves only if d100 > target`,
-        terms: [['flawed skill', 'rolls two d100 and keeps the lower'], ['gain', `+1d${CONFIG.SKILL_GAIN_DIE} raw (1 to ${CONFIG.SKILL_GAIN_DIE}, CONFIG.SKILL_GAIN_DIE)`],
+      { name: 'Improvement roll', at: 'growthRoll · payRolls · src/ruleset/improve.ts',
+        formula: `margin = d100 + (cap − raw − burden) − ${CONFIG.GROWTH_ROLL_NEEDED}, read on the tier table; gain by tier`,
+        terms: [['cap', `${CONFIG.SKILL_CAP} (CONFIG.SKILL_CAP); a tagged skill ${CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS} (+ CONFIG.TAG_CAP_BONUS); a flawed skill ${CONFIG.SKILL_CAP - CONFIG.FLAW_CAP_PENALTY} (− CONFIG.FLAW_CAP_PENALTY)${CONFIG.GROWTH_CAP_IN_ROLL ? '' : '; every skill rolls against ' + CONFIG.SKILL_CAP} (CONFIG.GROWTH_CAP_IN_ROLL)`],
+          ['burden', 'Burden; a tagged skill carries none'], [String(CONFIG.GROWTH_ROLL_NEEDED), 'CONFIG.GROWTH_ROLL_NEEDED'],
+          ['gain', `${Object.entries(CONFIG.GROWTH_GAIN).map(([k, v]) => `${k.replace(/_/g, ' ')} +${v}`).join(', ')}; +${CONFIG.GROWTH_GAIN_PAST_CRIT} per band past Critical Success; Near Miss or worse +0 (CONFIG.GROWTH_GAIN, GROWTH_GAIN_PAST_CRIT)`],
+          ['tagged and flawed', 'roll one d100 like any skill; only the cap moves'],
+          ['natural edges', CONFIG.GROWTH_NATURAL_EDGES ? 'move the tier one step, as on every roll (CONFIG.GROWTH_NATURAL_EDGES)' : 'do not move this roll: no skill grows from the die face alone (CONFIG.GROWTH_NATURAL_EDGES)'],
           ['rolls', `1 per roll owed${quick.length ? `; ${quick.map((p) => `${p.name}: ${p.improveRolls!.rolls} rolls while raw is below ${p.improveRolls!.below}`).join('; ')}` : ''}`]],
-        table: { head: ['Target', 'Chance', 'Flawed'], rows: [0, 20, 40, 60, 80, 95, 100].map((t) => [String(t), pct(improveChance(t, false)), pct(improveChance(t, true))]) },
-        notes: ['No natural roll passes a target it does not beat, so training stops once the target reaches 100 (raw + burden); perks, achievements and gear still raise true skill past it.',
+        table: { head: ['Raw', 'Gains (+1 or more)', 'Great (+2 or more)', 'Flawed: gains'], rows: [25, 50, 65, 75, 90, 99].map((r) => [String(r), pct(growthChance(r, 'normal', 1)), pct(growthChance(r, 'normal', 2)), pct(growthChance(r, 'flawed', 1))]) },
+        notes: ['Raw never passes its cap: a gain that would is cut to the cap. The room left below the cap is the bonus, so the roll gets harder smoothly with no wall; perks, achievements and gear still raise true skill past it.',
+          `A tagged skill at raw ${CONFIG.SKILL_CAP} rolls like an untagged ${CONFIG.SKILL_CAP - (CONFIG.GROWTH_CAP_IN_ROLL ? CONFIG.TAG_CAP_BONUS : 0)} and keeps going to ${CONFIG.SKILL_CAP + CONFIG.TAG_CAP_BONUS}.`,
           `Crossing a milestone (${MILESTONES.join(', ')}) on true skill is logged with the gain.`] },
     ] },
     { key: 'levels', title: 'Levels', about: 'How XP turns into levels.', equations: [

@@ -1,4 +1,4 @@
-import type { DefenseKind, SkillFunction } from './types';
+import type { DefenseKind, SkillFunction, Tier } from './types';
 import type { GradeLevel, HealthLevelKey, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
@@ -68,8 +68,25 @@ const DEFAULTS = {
   /** SM1: the first mark on a skill in an engagement owes a roll, and so does every Nth mark after it (3: marks 1, 4, 7...).
    * Infinity: one roll per skill per engagement. */
   MARK_STACK_EVERY: 3,
-  /** a successful improvement roll adds 1d(this) raw */
-  SKILL_GAIN_DIE: 3,
+  /** SG1 C: the mortal limit raw skill can train to (Part 1 §6) */
+  SKILL_CAP: 100,
+  /** EG16: a tagged skill's cap is SKILL_CAP plus this */
+  TAG_CAP_BONUS: 25,
+  /** a flawed skill's cap is SKILL_CAP minus this */
+  FLAW_CAP_PENALTY: 25,
+  /** SG1 C: an improvement roll's margin = d100 + (cap − raw − Burden) − this, read on the tier table (placeholder: 90 keeps
+   * the old speed through the human range, about one point a roll at raw 50) */
+  GROWTH_ROLL_NEEDED: 90,
+  /** SG1 C: raw gained by the improvement roll's tier; worse tiers gain nothing (placeholders) */
+  GROWTH_GAIN: { success: 1, great_success: 2, critical_success: 3 } as Partial<Record<Tier, number>>,
+  /** SG1 C: extra raw per band past Critical Success (only a roll with a tier unlock for 'any' roll reaches one) */
+  GROWTH_GAIN_PAST_CRIT: 1,
+  /** SG2 a: natural edges (01–05, 96–100) do not move the improvement roll's tier: no skill grows from the die face
+   * alone (LF4) */
+  GROWTH_NATURAL_EDGES: false,
+  /** SG3 a: true = a skill's own cap (125 tagged, 75 flawed) is in the roll too, so the room left counts from it;
+   * false = every skill rolls against SKILL_CAP and only its stop moves */
+  GROWTH_CAP_IN_ROLL: true,
   /** SP5: a hit costing this much health (%) or more marks endurance (placeholder) */
   ENDURANCE_MARK_PCT: 10,
   // ---- Part 3 ----
@@ -308,6 +325,23 @@ const DEFAULTS = {
   /** EG10 b: a scenario that marked anything pays this many extra rolls while the character level is below GROWTH_LOW_LEVEL_BELOW */
   GROWTH_LOW_LEVEL_BONUS: 1,
   GROWTH_LOW_LEVEL_BELOW: 5,
+  /** growth proposal 2 (essences; placeholders). Points = max(1, round(ESSENCE_SHARE × source skill × grade multiplier)) */
+  ESSENCE_SHARE: 0.07,
+  ESSENCE_GRADE_MULT: { common: 1, fine: 1.5, rare: 2.5, epic: 4, legendary: 6 } as Record<string, number>,
+  /** each grade past the last row multiplies the last row's multiplier by this */
+  ESSENCE_GRADE_PAST_MULT: 1.5,
+  /** a beaten foe is notable (may offer) when its power is at least this share of the player's, or its template is notable or unique */
+  ESSENCE_NOTABLE_SHARE: 0.75,
+  /** the offer roll: margin = d100 + base − ESSENCE_ROLL_NEEDED on the tier table (base 80: offers 31%; 100: 51%) */
+  ESSENCE_ROLL_NEEDED: 150,
+  ESSENCE_ROLL_BASE: { foe: 80, great_success: 80, critical_success: 100 } as Record<string, number>,
+  /** EG2: room for essences = ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels (2 at 7, 3 at 14), no top */
+  ESSENCE_SLOTS_BASE: 1,
+  ESSENCE_SLOT_EVERY: 7,
+  /** an offer waits this many turns (or until a new scenario starts) */
+  ESSENCE_OFFER_TURNS: 10,
+  /** EG3 b + EG15 b: removing a held essence (at rest) costs this many levels' worth of XP; the bar may go into debt */
+  ESSENCE_REMOVE_LEVELS: 1,
   /** BG-41: lines of what happened kept per scenario for the Weaver check-in (newest kept; placeholder) */
   SCENARIO_HAPPENED_MAX: 30,
   /** CH7/SC18: a chase is lost when no pursuer has seen or heard the player for this many turns (placeholder) */
@@ -337,6 +371,7 @@ const DEFAULTS = {
   /** TV2 travel paces as shares of the walking speed: a body that walks 1.4 m/s (an everyday walk) travels slow 3, normal
    * 4.5 and fast 6 km/h (D&D's 3.2 / 4.8 / 6.4 km/h, a brisk real walk about 5) */
   TRAVEL_PACE_SHARE: { slow: 0.6, normal: 0.9, fast: 1.2 } as Record<string, number>,
+  CATCH_UP_PACE: 'normal' as import('./scales').TravelPaceKey, // NW11: the pace NPCs keep while a turn's time moves them on
   /** TV8 the noticing roll's modifier by pace: slow notices more, fast less (placeholders) */
   TRAVEL_NOTICE_MOD: { slow: 10, normal: 0, fast: -10 } as Record<string, number>,
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */
@@ -394,15 +429,16 @@ const DEFAULTS = {
    * (tier 0 → 5, tier 1 → 10, tier 2 → 15, tier 3 and up → 20) */
   CLASS_TIER0_MAX_LEVEL: 5,
   CLASS_LEVELS_PER_TIER: 5,
-  // Defeat XP from stats (X18–X23): per skill group, skills' training effort ranked high to low at 1, ½, ¼…, × the
+  // Defeat XP from stats (X18–X23): per skill group, skills' worth ranked high to low at 1, ½, ¼…, × the
   // group's XP factor; defeat XP = power × taper × DEFEAT_XP_MULT. Placeholders, tuned later (X19).
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
   XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full' } as Record<string, string>,
   DEFEAT_XP_MULT: 1, // X20: ×1 for now
-  /** training effort scale in the rating: effort(s) = EFFORT_SCALE × ln(100 ÷ (100 − s)). 100/3 came from the old 1d5 gain (LF10); the curve is being revisited */
-  EFFORT_SCALE: 100 / 3,
+  /** a skill's worth in the rating (LF15): SKILL_RATING_AT_50 × (s ÷ 50)^SKILL_RATING_POWER, s = true skill × tier; no cap */
+  SKILL_RATING_AT_50: 23.1,
+  SKILL_RATING_POWER: 2,
   /** held and worn gear adds this × its coin value to the rating, on both sides (the foe's and the player's) */
   GEAR_RATING_FACTOR: 0.25,
   /** levels in the rating, both sides: this share of the XP the actor's levels cost (LEVEL_XP × L(L−1)/2) */
@@ -455,7 +491,7 @@ const DEFAULTS = {
   TEXT_CAP: 200, // Q2: free-text length cap for public text (names, looks, labels, knows)
   NOTE_CAP: 400, // V6: hidden-only notes (summary, goals, motive, Weaver note, secret facts) are trimmed to this
   SCENARIO_CAPS: { promotions: 3, minted: 2 }, // Q2
-  DURATIONS: { brief: 1, short: 3, medium: 6, long: 12 } as Record<string, number>,
+  DURATIONS: { brief: 5, short: 30, medium: 120, long: 360 } as Record<string, number>, // NW10: game minutes a routine step lasts (placeholders)
   RECENT_EVENTS: 8, // compact views: last few relevant events
   MEMORY_ENTRIES: 8, // PM1: an NPC's memory list holds at most this many entries (placeholder)
   EARLIER_LINES: 6, // PM6: code-made lines about events older than RECENT_EVENTS (placeholder)

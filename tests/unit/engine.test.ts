@@ -118,12 +118,13 @@ vi.mock('../../src/minds', () => {
     alertOrders: (_s: GameState, views: { self: { id: string } }[]) => F.alerts.filter((a) => views.some((v) => v.self.id === a.actorId)),
     updateAlarms: () => {},
     headArrivals: () => {},
+    desiredState: () => null,
     headTo: (...a: unknown[]) => (F.headTo.push(a), true),
     detectPlayer: () => {},
     resolveAmbush: () => ({ surprised: F.surprise }),
     switchRoutine: (state: GameState, a: Actor, id: string) => {
       if (!a.mind?.routines?.includes(id)) return false;
-      a.mind.routine = { id, anchorTurn: state.turn };
+      a.mind.routine = { id, anchorTurn: state.turn, at: 420 };
       return true;
     },
   };

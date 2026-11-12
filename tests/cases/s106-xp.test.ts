@@ -6,7 +6,7 @@ import { ACH } from '../../src/library/achievementIds';
 import { describe, expect, it } from 'vitest';
 import { makeVillage } from '../harness';
 import { actor } from '../harness/village';
-import { achievementName, awardXp, effort, gearRating, defeatXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
+import { achievementName, awardXp, skillRating, gearRating, defeatXp, payDefeats, rating, xpGroupFactor, xpToNext } from '../../src/engine/xp';
 import { CONFIG } from '../../src/config';
 import { REWARD_LEVELS } from '../../src/scales';
 import { getLibrary } from '../../src/library';
@@ -23,7 +23,7 @@ describe('106 XP and levels', () => {
     const s = makeVillage();
     const slime = actor(s, 'slime_1');
     // one offensive skill, plus tremor (50, tier 0 so read as 25) at the notice weight (Taste removed), plus steady Resolve 50 (Will)
-    expect(rating(slime)).toBeCloseTo(effort(30) + xpGroupFactor(GR.notice) * effort(25) + xpGroupFactor(GR.will) * effort(50), 5);
+    expect(rating(slime)).toBeCloseTo(skillRating(30) + xpGroupFactor(GR.notice) * skillRating(25) + xpGroupFactor(GR.will) * skillRating(50), 5);
     const g = actor(s, 'guard_1');
     expect(rating(g)).toBeGreaterThan(rating(slime));
     const t = Math.min(1, CONFIG.DEFEAT_XP_TAPER * rating(slime) / (rating(s.player) + gearRating(s, s.player))); // the player's gear counts too

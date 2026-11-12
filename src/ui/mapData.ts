@@ -9,8 +9,12 @@ import { knownZoneIds } from '../engine/trail';
 import { journalPlaces } from './pages';
 import { heightOf } from '../scenario/heights';
 import { ZK } from '../library/tableIds';
+import { barrierOn, barrierView } from '../engine/barriers';
 
-export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string };
+/** a barrier on an exit as the character knows it: what it is, and whether it stops them (locked or barred only once they
+ *  have tried it, or hold its key, or see the bolt on their side; blocked rubble shows to anyone) */
+export type MapWay = { kind: string; shut?: 'locked' | 'barred' | 'blocked'; open?: true; key?: true };
+export type MapLink = { to: string; label: string; sight: boolean; frontier: boolean; known: boolean; otherPlace?: string; way?: MapWay };
 export type MapPerson = { id: string; name: string; now: boolean };
 export type MapZone = {
   id: string; placeId: string; name: string; look: string; outdoor: boolean; here: boolean; inView: boolean;
@@ -54,7 +58,10 @@ export function knownMap(s: GameState): KnownMap {
     const links: MapLink[] = z.links.map((l) => {
       const to = zoneById(s, l.to);
       const otherPlace = to && to.placeId !== z.placeId ? s.places.find((x) => x.id === to.placeId)?.names.current : undefined;
-      return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}) };
+      const b = barrierOn(s, l), w = b ? barrierView(b, p, z.id) : undefined;
+      const way: MapWay | undefined = w && { kind: w.kind, ...(w.blocked ? { shut: 'blocked' as const } : w.barred ? { shut: 'barred' as const } : w.locked ? { shut: 'locked' as const } : {}),
+        ...(w.open ? { open: true as const } : {}), ...(w.key ? { key: true as const } : {}) };
+      return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}), ...(way ? { way } : {}) };
     });
     const you = id === p.zone && p.pos && z.rect ? { x: p.pos.x, y: p.pos.y } : undefined;
     const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), ...(z.rect ? { rect: z.rect, edges: z.edges } : {}), links,

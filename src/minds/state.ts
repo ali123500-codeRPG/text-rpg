@@ -2,6 +2,7 @@
 import { FN } from '../library/functionIds';
 import type { Actor, ActorView, GameEvent, GameState, Order, Rng, RollResult } from '../types';
 import { CONFIG } from '../config';
+import { now, timeOfDay } from '../time';
 import { routine as getRoutine, routineSet, actorBody, npcTemplate } from '../library';
 import { actorById, allActors, atLeast, isActive, isEngaged, sparring, wary, zoneById } from '../engine/relations';
 import { beliefStatus, computePerception, perceptionOf, updateBeliefs } from '../perception';
@@ -15,7 +16,8 @@ import { tally } from '../engine/xp';
 
 const log = (state: GameState, code: string, detail: Record<string, unknown>) => state.log.push({ turn: state.turn, code, detail });
 
-export function installRoutines(actor: Actor, setId: string, slots: Record<string, string | string[]>, startAt: string | undefined, turn: number, rng: Rng): void {
+/** at: the game minute now (NW10; an unset clock reads as the start of day) */
+export function installRoutines(actor: Actor, setId: string, slots: Record<string, string | string[]>, startAt: string | undefined, turn: number, rng: Rng, at = CONFIG.TIME_OF_DAY_FROM.day): void {
   const set = routineSet(setId);
   if (!set) throw new Error(`unknown routine set ${setId}`);
   const mind = actor.mind!;
@@ -23,13 +25,14 @@ export function installRoutines(actor: Actor, setId: string, slots: Record<strin
   mind.routines = [...set.routines];
   mind.slots = { ...slots };
   const r = getRoutine(set.routines[0]);
-  const stops = r.kind === 'schedule' ? expandSteps(r, mind.slots) : [];
-  const total = stops.reduce((n, s) => n + s.turns, 0);
-  let anchorTurn = turn;
+  const stops = r.kind === 'schedule' ? expandSteps(r, mind.slots, timeOfDay(at)) : [];
+  const total = stops.reduce((n, s) => n + s.minutes, 0);
+  // NW10: started back in time so it stands at its startAt step, or (a loop) somewhere along it at random
+  let back = 0;
   const i = startAt ? stops.findIndex((s) => s.slot === startAt) : -1;
-  if (i >= 0) anchorTurn = turn - stops.slice(0, i).reduce((n, s) => n + s.turns, 0);
-  else if (!startAt && r.loop && total > 0) anchorTurn = turn - rng.int(0, total - 1);
-  mind.routine = { id: r.id, anchorTurn };
+  if (i >= 0) back = stops.slice(0, i).reduce((n, s) => n + s.minutes, 0);
+  else if (!startAt && r.loop && total > 0) back = rng.int(0, total - 1);
+  mind.routine = { id: r.id, anchorTurn: turn, at: at - back };
 }
 
 export function switchRoutine(state: GameState, actor: Actor, routineId: string, reason: 'agent' | 'bandmate'): boolean {
@@ -42,7 +45,7 @@ export function switchRoutine(state: GameState, actor: Actor, routineId: string,
     log(state, reason === 'agent' ? 'invalid_routine' : 'routine_skip', { actorId: actor.id, routineId, ...(unbound.length ? { unbound } : {}) });
     return false;
   }
-  mind.routine = { id: routineId, anchorTurn: state.turn };
+  mind.routine = { id: routineId, anchorTurn: state.turn, at: now(state) };
   if (r.kind === 'wait') mind.slots = { ...mind.slots, here: actor.zone };
   if (mind.alarm?.returnTo) delete mind.alarm.returnTo;
   return true;
@@ -63,7 +66,7 @@ export function headTo(state: GameState, actor: Actor, dest: string, by: 'agent'
     if (mind.routine) mind.headBack = { ...mind.routine };
     else delete mind.headBack;
   }
-  mind.routine = { id: HEAD_TO, anchorTurn: state.turn };
+  mind.routine = { id: HEAD_TO, anchorTurn: state.turn, at: now(state) };
   mind.slots = { ...mind.slots, dest };
   if (mind.alarm?.returnTo) delete mind.alarm.returnTo;
   log(state, 'head_to', { actorId: actor.id, dest, by });
@@ -132,7 +135,7 @@ export function raiseAlarm(state: GameState, a: Actor): void {
   if (r.onAlert) alarm.onAlertDue = r.id;
   if (r.alert && mind.routines?.includes(r.alert)) {
     alarm.returnTo = { ...mind.routine };
-    mind.routine = { id: r.alert, anchorTurn: state.turn };
+    mind.routine = { id: r.alert, anchorTurn: state.turn, at: now(state) };
   }
 }
 
