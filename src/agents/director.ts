@@ -70,6 +70,9 @@ export function createDirector(clock: Clock): ScenarioDirector {
       ctx = c;
       delete (state.scratch as Record<string, unknown>).frontierCrossed;
       const r = await d.cross(state, key, rng, state.player.posture === 'stealthy' ? 'stealthy' : 'open');
+      // BG-73: the crossing's move event ends where the player now stands, so it reads as leaving for the new zone
+      const crossed = _events.find((e) => e.kind === 'move' && e.actorId === state.player.id && e.effects.some((f) => f.kind === 'frontier_crossed' && f.data.frontier === key));
+      if (crossed && state.player.zone !== crossed.zone) Object.assign(crossed, { fromZone: crossed.zone, fromPos: crossed.pos, zone: state.player.zone, pos: state.player.pos, target: state.player.zone });
       if (!r.eventRoll) return [];
       // CH3 a: free roam crossed an unbuilt frontier, which started a scenario there
       (state.scratch ??= {}).eventRoll = r.eventRoll;
