@@ -21,12 +21,21 @@ import { answerRoll, answerSkill, toContest } from './speech';
 import { getLibrary } from '../library';
 import { now } from '../time';
 import { threadboundItemFor } from '../ruleset/threadboundItems';
+import { hearsClearly } from '../perception';
+import { VOLUME_NOISE } from '../perception/noise';
 
 /** the actor has a working Grip arm with nothing held in it */
 export const freeHand = (state: GameState, a: Actor) => {
   const busy = new Set(a.core.inventory.filter(isHeld).flatMap(handsOf));
   return usableGrips(state, a).some((g: string) => !busy.has(g));
 };
+
+/** how near the target must be, by what the move is: a lie must be heard clearly at a normal voice (the speech rule);
+ * Dirt in the Eyes still the old same-zone check until ZR1 is answered */
+function inRange(state: GameState, a: Actor, t: Actor, perk: string): boolean {
+  if (perk === PK.bluff) return hearsClearly(state, a, t, VOLUME_NOISE.normal);
+  return t.zone === a.zone;
+}
 
 /** the key a move's uses are counted under this engagement: per foe for a perFoe move */
 const useKey = (perk: string, targetId: string | null) => PERK_MOVES[perk]?.perFoe ? `${perk}:${targetId}` : perk;
@@ -51,7 +60,7 @@ export function perkMoveBlock(state: GameState, a: Actor, perk: string, targetId
   }
   if (def.untargeted) return def.perEngagement && a.engagement && !usableThisEngagement(a, perk, def.perEngagement) ? 'used_this_engagement' : null;
   const t = targetId ? actorById(state, targetId) : undefined;
-  if (!t || t === a || !isActive(t) || t.zone !== a.zone) return 'no_target';
+  if (!t || t === a || !isActive(t) || !inRange(state, a, t, perk)) return 'no_target';
   if (def.perEngagement && a.engagement && !usableThisEngagement(a, useKey(perk, targetId), def.perEngagement)) return 'used_this_engagement';
   if (perk === PK.dirt_in_the_eyes && !freeHand(state, a)) return 'no_free_hand';
   if (perk === PK.bluff && !wary(state, a, t) && !wary(state, t, a)) return 'not_a_foe';

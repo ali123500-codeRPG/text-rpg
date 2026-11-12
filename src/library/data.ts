@@ -9,12 +9,9 @@ import { LAYOUTS } from './layouts';
 import type { ArmorWeightKey, LifeStageKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
-import { sightReach } from '../perception/sight';
 
-/** a zone link count in words, for the Noise and Visibility levels tables */
 /** HB1: how far a sound carries in the open */
 const inOpen = (m: number | undefined) => (m === undefined ? 'nowhere' : m === 0 ? 'only right beside you' : `${m} m in the open`);
-const links = (n: number) => (n < 0 ? 'nowhere' : n === 0 ? 'same zone' : n === 1 ? '1 link away' : `${n} links away`);
 import type { AccessCond, ActivityDef, BodyType, ItemDef, ItemEffect, Library, NpcTemplate, PerkDef, Personality, Routine, RoutineSet, SituationTag, SkillDef } from '../types';
 import { FUNCTION_GROUP } from './functionNames';
 import { PERK_WRITEUPS } from './perks';
@@ -654,7 +651,7 @@ export function prototypeLibrary(): Library {
       blaring: 'A scream, a hammer on an anvil, a war horn (about 100 dB)',
       deafening: 'A thunderclap overhead, a church bell up close, an alarm bell (about 120 dB)',
     } as Record<string, string>)[k] }])),
-    visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, clearTo: links(sightReach(k)[0]), glimpsedTo: links(sightReach(k)[1]), like: ({
+    visibilityLevels: Object.fromEntries(VISIBILITY.keys.map((k) => [k, { id: k, name: VISIBILITY.name(k), clearM: CONFIG.SIGHT_M[k]?.[0] ?? null, glimpsedM: CONFIG.SIGHT_M[k]?.[1] ?? null, like: ({
       unseen: 'Nothing to see: keeping still out of sight',
       faint: 'A palmed coin, a hand slipping to a purse: made out within half a metre, glimpsed within 2 m',
       close: 'A nod, a hand sign, a change of expression: read at about 6 m, noticed out to about 20 m',

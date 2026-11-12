@@ -5,8 +5,9 @@
 // stays one engagement, so once-per-engagement effects and the end-of-engagement improvement rolls happen once.
 import type { Actor, EngagementKind, GameEvent, GameState } from '../types';
 import { CONFIG } from '../config';
-import { actorById, allActors, atLeast, countsInFight, hostile, isActive, shortestPath, sparring } from './relations';
+import { actorById, allActors, atLeast, countsInFight, hostile, isActive, sparring } from './relations';
 import { logCode } from './effects';
+import { distM } from './position';
 import { calm } from './heal';
 import { CP } from '../library/tableIds';
 import { yieldAllTaken } from './yield';
@@ -30,7 +31,6 @@ function press(state: GameState, a: Actor, b: Actor, status: 'hunting' | 'engage
   const next = atLeast(cur?.status, status) ? cur!.status : status;
   k[b.id] = { ...(cur ?? { source: 'seen', revealed: [] }), status: next, closedTurn: state.turn, lastKnownZone: b.zone, lastSeenTurn: state.turn };
 }
-const links = (state: GameState, from: string, to: string) => shortestPath(state, from, to)?.length ?? Infinity;
 
 /** YD6 each turn, after the blows and moves: a real (not sparring) blow engages attacker and target, and the target's
  * bandmates who saw or heard it, once they know who struck. A hostile that knows where someone is and moves closer is hunting
@@ -49,10 +49,11 @@ export function noteFighting(state: GameState, events: GameEvent[]): void {
       if (knows(t)) press(state, t, a, 'engaged');
       for (const m of allActors(state)) if (m !== t && m !== a && m.bandId === t.bandId && e.perception[m.id] && knows(m)) press(state, m, a, 'engaged');
     }
-    if (e.kind === 'move' && (e.fromZone || e.target)) {
+    if (e.kind === 'move') {
       for (const b of allActors(state)) {
-        // a move into a zone nearer b, or a step inside one zone that closes in on b (step 2)
-        const closer = e.fromZone ? links(state, a.zone, b.zone) < links(state, e.fromZone, b.zone) : e.target === b.id;
+        // a leg that ends nearer b in metres than it set off, or a walk at b
+        const start = { zone: e.fromZone ?? e.zone, pos: e.fromPos };
+        const closer = e.target === b.id || distM(state, { zone: e.zone, pos: e.pos }, b) < distM(state, start, b) - 0.01;
         if (b === a || !isActive(b) || !closer) continue;
         const mine = a.mind?.knowledge?.[b.id], theirs = b.mind?.knowledge?.[a.id];
         if (hostile(state, a, b) && atLeast(mine?.status, 'aware')) press(state, a, b, 'hunting');

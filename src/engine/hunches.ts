@@ -1,6 +1,6 @@
 // LI5b/LI6 Gut Feeling (Insight 20): a hunch of being watched. At the start of each turn, the owner rolls Insight
-// against the Stealth of each hidden watcher: someone opposed or hostile to the owner (LI6 b), aware of it, in its zone
-// or one sight link away, whom the owner has not seen or heard. A win is a hunch from the watcher's zone, never who:
+// against the Stealth of each hidden watcher: someone opposed or hostile to the owner (LI6 b), aware of it, with sight
+// of it at any distance (RD3), whom the owner has not seen or heard. A win is a hunch from the watcher's zone, never who:
 // the owner turns suspicious of the watcher there. Each watcher sets it off at most once a scenario.
 import type { Actor, ContestResult, GameState, Rng } from '../types';
 import { hasPerk, markUse, ruleset } from '../ruleset';
