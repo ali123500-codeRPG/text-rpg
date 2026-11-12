@@ -33,7 +33,7 @@ describe('136 achievement rewards', () => {
   });
   it('Death Keeps Waiting: once a game day, a hit that would take you Down leaves you at Critical', () => {
     const s = makeVillage();
-    const top = CONFIG.HEALTH_TRACK.find(([l]) => l === 'Critical')![1];
+    const top = CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
     expect(deathsDoor(s, s.player, 50, 120)).toBe(120);
     grantAchievement(s, ACH.brink_5);
     expect(deathsDoor(s, s.player, 50, 120)).toBe(top);
@@ -44,7 +44,7 @@ describe('136 achievement rewards', () => {
   });
   it('Not Yet: the same save, refilled once every 7 game days', () => {
     const s = makeVillage();
-    const top = CONFIG.HEALTH_TRACK.find(([l]) => l === 'Critical')![1];
+    const top = CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
     grantAchievement(s, ACH.brink_3);
     expect(deathsDoor(s, s.player, 50, 120)).toBe(top);
     s.player.progression!.charges![ACH.brink_3] -= 6;

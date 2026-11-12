@@ -4,7 +4,7 @@ import type { Actor, FearDef, Mod, PartDef } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { SK } from '../library/skillIds';
-import { MORALE_LEVELS, PART_STATES, TIERS, type MoraleLevel } from '../scales';
+import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, TIERS, type HealthLevelKey, type MoraleLevel, type PartStateKey } from '../scales';
 import { skillOpen } from './access';
 import { currentAchievements } from './achRewards';
 
@@ -33,28 +33,25 @@ export const moraleShows = (l: MoraleLevel): boolean => MORALE_LEVELS.pos(l) >= 
 
 /** MB21: the health level a health fear starts from, moved by the owner's perks and achievements (fearFrom) */
 export function fearFrom(a: Actor, f: FearDef): number {
-  const L = CONFIG.HEALTH_TRACK.map(([l]) => l);
   const perks = getLibrary().perks ?? {};
   const steps = [...a.core.perks.filter((p) => !p.dormant).map((p) => perks[p.perkId]?.fearFrom), ...currentAchievements(a).map((x) => x.d.fearFrom)]
     .reduce((n, x) => n + (x && x.fear === f.id ? x.steps : 0), 0);
-  return L.indexOf(f.health!.from) + steps;
+  return HEALTH_LEVELS.pos(f.health!.from) + steps;
 }
 /** the health fear (if any) a new health level sets off: the row whose from..to range holds it */
-export function healthFear(a: Actor, level: string): FearDef | undefined {
-  const at = CONFIG.HEALTH_TRACK.findIndex(([l]) => l === level);
-  const to = (f: FearDef) => CONFIG.HEALTH_TRACK.findIndex(([l]) => l === f.health!.to);
-  return Object.values(getLibrary().fears ?? {}).find((f) => f.health && at >= fearFrom(a, f) && at <= to(f));
+export function healthFear(a: Actor, level: HealthLevelKey): FearDef | undefined {
+  const at = HEALTH_LEVELS.pos(level);
+  return Object.values(getLibrary().fears ?? {}).find((f) => f.health && at >= fearFrom(a, f) && at <= HEALTH_LEVELS.pos(f.health.to));
 }
 
 /** the part fears a hit sets off, each with the parts that reached (or passed) its state from a better one.
- * before and after are part states by display name, as partStates gives them. */
-export function partFears(before: { id: string; state: string }[], after: { id: string; state: string }[]): { fear: FearDef; parts: string[] }[] {
-  const pos = (name: string) => PART_STATES.pos(PART_STATES.keyOf(name as never)!);
-  const was = new Map(before.map((p) => [p.id, pos(p.state)]));
+ * before and after are part states as partStates gives them. */
+export function partFears(before: { id: string; state: PartStateKey }[], after: { id: string; state: PartStateKey }[]): { fear: FearDef; parts: string[] }[] {
+  const was = new Map(before.map((p) => [p.id, PART_STATES.pos(p.state)]));
   return Object.values(getLibrary().fears ?? {}).flatMap((f) => {
     if (!f.part) return [];
-    const at = PART_STATES.pos(f.part as never);
-    const parts = after.filter((p) => { const from = was.get(p.id); return from !== undefined && from < at && pos(p.state) >= at; }).map((p) => p.id);
+    const at = PART_STATES.pos(f.part);
+    const parts = after.filter((p) => { const from = was.get(p.id); return from !== undefined && from < at && PART_STATES.pos(p.state) >= at; }).map((p) => p.id);
     return parts.length ? [{ fear: f, parts }] : [];
   });
 }

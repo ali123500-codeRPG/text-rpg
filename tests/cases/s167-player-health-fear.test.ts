@@ -14,6 +14,7 @@ import { getLibrary } from '../../src/library';
 import { BT } from '../../src/library/raceIds';
 import { isActive } from '../../src/engine/relations';
 import { FR } from '../../src/library/tableIds';
+import type { PartStateKey } from '../../src/scales';
 
 it('167 a hit that moves the player to a new health level pays the health fear', () => {
   let checked = 0;
@@ -31,11 +32,11 @@ it('167 a hit that moves the player to a new health level pays the health fear',
 });
 
 it('167b a hit that cripples a part rolls the part fear, once per hit; Destroyed rolls again', () => {
-  const ids = (b: string, a: string) => partFears([{ id: 'arm', state: b }], [{ id: 'arm', state: a }]).map((x) => x.fear.id);
-  expect(ids('Damaged', 'Crippled')).toEqual([FR.own_part_crippled]);
-  expect(ids('Healthy', 'Destroyed')).toEqual([FR.own_part_crippled, FR.own_part_destroyed]);
-  expect(ids('Crippled', 'Destroyed')).toEqual([FR.own_part_destroyed]);
-  expect(ids('Healthy', 'Damaged')).toEqual([]);
+  const ids = (b: PartStateKey, a: PartStateKey) => partFears([{ id: 'arm', state: b }], [{ id: 'arm', state: a }]).map((x) => x.fear.id);
+  expect(ids('damaged', 'crippled')).toEqual([FR.own_part_crippled]);
+  expect(ids('healthy', 'destroyed')).toEqual([FR.own_part_crippled, FR.own_part_destroyed]);
+  expect(ids('crippled', 'destroyed')).toEqual([FR.own_part_destroyed]);
+  expect(ids('healthy', 'damaged')).toEqual([]);
   // costs by impact for a 6-part body (5 / 15 / 30), scaled by 6 ÷ the body's parts; Destroyed is 1.5 × Crippled
   const fears = getLibrary().fears!;
   const human = getLibrary().bodyTypes[BT.humanoid].parts;

@@ -1,5 +1,5 @@
 import type { DefenseKind, SkillFunction } from './types';
-import type { NoiseKey, QuestRewardLevel } from './scales';
+import type { HealthLevelKey, NoiseKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -75,15 +75,15 @@ const DEFAULTS = {
   // ---- Part 3 ----
   HP_BASE: 50,
   HP_PER_END: 1,
-  HEALTH_SHOWN_FROM: 'Wounded', // others' health level shows from this level down (Voyage C2)
+  HEALTH_SHOWN_FROM: 'wounded' as HealthLevelKey, // others' health level shows from this level down (Voyage C2)
   /** health % lost stops here: Dead at 150% */
   HP_LOST_MAX: 150,
   HEALTH_TRACK: [
-    // [level, max % lost, wounds modifier]
-    ['Unhurt', 0, 0], ['Bruised', 15, 0], ['Hurt', 30, -5], ['Injured', 45, -10],
-    ['Wounded', 60, -15], ['Mauled', 75, -20], ['Critical', 99.999, -30], ['Incapacitated', 149.999, 0],
-    ['Dead', Infinity, 0], // dead at 150% lost (was 200%); the player's own Dead is never shown; others clearly seen show Dead
-  ] as [string, number, number][],
+    // [HEALTH_LEVELS key, max % lost, wounds modifier], in the scale's order
+    ['unhurt', 0, 0], ['bruised', 15, 0], ['hurt', 30, -5], ['injured', 45, -10],
+    ['wounded', 60, -15], ['mauled', 75, -20], ['critical', 99.999, -30], ['incapacitated', 149.999, 0],
+    ['dead', Infinity, 0], // dead at 150% lost (was 200%); the player's own Dead is never shown; others clearly seen show Dead
+  ] as [HealthLevelKey, number, number][],
   PART_SHARE: { tiny: 0.15, extra_small: 0.15, small: 0.2, normal: 0.3, big: 0.5 } as Record<string, number>,
   HIT_WEIGHT: { tiny: 0.25, extra_small: 0.5, small: 1, normal: 2, big: 4 } as Record<string, number>,
   AIM_PENALTY: { tiny: -40, extra_small: -35, small: -30, normal: -20, big: -10, general: 0 } as Record<string, number>,
@@ -119,7 +119,7 @@ const DEFAULTS = {
   OVERWHELM_MORALE_SHARE: 0.5, // ... a target whose max morale is at most this share of the owner's
   AURA_REACH_M: 8, // I3/RD1: metres an engagement aura reaches (today's one zone link); the aura skill sets it once RD9's formula is chosen (D-193)
   ENGAGEMENT_END_TURNS: 3, // E1: an engagement ends after this many turns with no one engaged with the actor; YD6: hunting and engaged drop to tracking after this many turns with no blow or closing in
-  SPAR_LIMIT: 'Critical', // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
+  SPAR_LIMIT: 'critical' as HealthLevelKey, // SP4 (placeholder): a fighter at this health level or worse is out of the spar; a cruel spar uses Incapacitated
   /** ranged attacks: the penalty by how far the target is as a share of the mode's reach (both from real metres), first
    * band the share fits in; a longbow at 50 m is barely stretched, a shortbow at 50 m is at its limit */
   RANGE_SHARE_MODS: [[0.25, 0], [0.5, -5], [0.75, -10], [1, -15]] as [number, number][],
@@ -428,8 +428,8 @@ const DEFAULTS = {
   SHOW_MECHANICS: true, // master switch: false removes Show rolls everywhere
   SHOW_ROLLS_DEFAULT: false, // a new story starts with Show rolls off; the player turns it on from the play header
   /** M-33: reaching this health level or worse pulses the play screen's edge red once; from MOTION_EDGE_STEADY on the edge keeps a steady tint */
-  MOTION_EDGE_FROM: 'Wounded',
-  MOTION_EDGE_STEADY: 'Critical',
+  MOTION_EDGE_FROM: 'wounded' as HealthLevelKey,
+  MOTION_EDGE_STEADY: 'critical' as HealthLevelKey,
   TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder)
   WEAVER_MODEL: 'claude-opus-5-5',
   WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',

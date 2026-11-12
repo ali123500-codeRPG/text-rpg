@@ -19,7 +19,7 @@ import { PERK_WRITEUPS } from '../library/perks';
 import { BOOST_PERKS } from '../library/boostPerks';
 import { FUNCTION_GROUP, FUNCTION_ROLLS, GROUP_NAMES, groupName, groupsOf, functionName } from '../library/functionNames';
 import { CONFIG } from '../config';
-import { NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, type PartStateKey, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
+import { NERVE_LINES, type NerveLine, type Scale, INTELLIGENCE, CLASS_TIERS, EQUIP_LEVELS, PART_STATES, QUEST_REWARD_LEVELS, REWARD_LEVELS, SKILL_TIERS, XP_FACTORS, type XpFactorKey } from '../scales';
 import { earnedAtText, sourceRowName, xpGroupFactor } from '../engine/xp';
 import { GOAL_KINDS, QUEST_STATES, type GameState, type QuestState } from '../types/state';
 import { QUEST_STATE_NAME } from '../engine/quests';
@@ -429,10 +429,10 @@ function fears(): HTMLElement[] {
     return `${b.name} (${b.parts.length} parts): ${imps.map((imp) => `${impName(imp)} ${+partFearCost(f, [b.parts.find((p) => p.impact === imp)!.id], b.parts).toFixed(2)}`).join(', ')}`;
   }) : [];
   return [h('div', { class: 'lv-grid' }, all.map((f) => card('fears', f.id, f, f.name,
-    [f.part ? chip(`part ${PART_STATES.name(f.part as PartStateKey)}`) : null],
+    [f.part ? chip(`part ${PART_STATES.name(f.part)}`) : null],
     row('Cost', cost(f)),
     perBody(f).length ? row('One part, by body', h('ul', { class: 'lv-names' }, perBody(f).map((t) => h('li', {}, t)))) : null,
-    f.part ? row('When', `one of your parts reaches ${PART_STATES.name(f.part as PartStateKey)}`) : null,
+    f.part ? row('When', `one of your parts reaches ${PART_STATES.name(f.part)}`) : null,
     row('Rolled', f.rolled ? 'yes: a morale roll sets how much of the cost you take' : 'no: the cost applies as it stands'),
     ...fields(f as unknown as Entry, ['id', 'name', 'cost', 'perTier', 'part', 'partCost', 'refParts', 'partCostOf', 'rolled']))))];
 }
@@ -902,7 +902,7 @@ const perkSkills = (d: PerkDef & { skill?: string }): string[] => [...new Set([d
 const specialReward = (d: AchievementDef): boolean => (isBane(d) && baneSkill(d.id) > 0) || (d.rule === 'defeats' && !d.by && defeatsRoll(d.id) > 0) || rewardLines(d).length > 0;
 const FACETS: Record<string, Facets> = {
   composure: (d: ComposureDef) => [['In fight', d.inFight ? 'yes' : 'no'], ['Kind', d.countOnly ? 'tally only' : d.hourly ? 'hourly' : 'one-off']],
-  fears: (f: FearDef) => [['Roll', f.rolled ? 'rolled' : 'flat'], ['Cost', f.partCost || f.partCostOf ? 'by part' : f.perTier ? 'per tier' : f.cost < 0 ? 'restores' : 'flat cost'], ['Part', f.part && PART_STATES.name(f.part as PartStateKey)]],
+  fears: (f: FearDef) => [['Roll', f.rolled ? 'rolled' : 'flat'], ['Cost', f.partCost || f.partCostOf ? 'by part' : f.perTier ? 'per tier' : f.cost < 0 ? 'restores' : 'flat cost'], ['Part', f.part && PART_STATES.name(f.part)]],
   gearClasses: (g: { use?: string }) => [['Use', g.use]],
   healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? 'health hourly' : undefined],
     ...(['hpPct', 'partPct', 'composure'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', composure: 'morale' }[k]])],

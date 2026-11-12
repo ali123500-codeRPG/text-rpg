@@ -5,7 +5,7 @@ import { personalityText } from '../ruleset/personality';
 import { ageText, stageOf } from '../ruleset/age';
 import type { ScenarioFrame, Tier, TierRoll,
   Actor, ActorView, AttackMode, BeliefView, CombatPacket, DialogueInput, DialogueView, Effect, EventView, GameEvent, GameState, ItemDef,
-  AgreementView, HealthLevel, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
+  AgreementView, HealthLevel, PartState, YieldView, Intent, JobView, Quest, NarrationEvent, NarrationView, OppositionView, OwnGearView, PlayerView, RollResult, SeenActor, SeenGearView,
   SparView, WayDid, WeaverView, Zone, ZoneLink, ZoneView,
 } from '../types';
 import { GRADES } from '../types';
@@ -35,7 +35,7 @@ import { IT } from '../library/itemIds';
 import { modeName } from '../ruleset/gear';
 import { itemValue } from '../ruleset/value';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
-import { MORALE_LEVELS } from '../scales';
+import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 /** MB40: the player's yield this scenario, in the player's names for each foe */
@@ -48,13 +48,11 @@ function yieldView(state: GameState): YieldView | undefined {
 
 // GAP: Part 4 §5 says "the top few headlines of each ancestor" with no number; placeholder kept here (not in CONFIG).
 const HEADLINES_PER_PLACE = 3;
-const VISIBLE_PART = ['Crippled', 'Destroyed'];
 /** others' health shows from CONFIG.HEALTH_SHOWN_FROM down (Voyage C2); Read Wounds (A13) shows it one step earlier on
  * the health track, by position, against a foe (an actor either side is opposed or hostile to) */
-const LEVEL_POS = (l: string) => CONFIG.HEALTH_TRACK.findIndex(([x]) => x === l);
 const foe = (state: GameState, a: Actor, b: Actor) => wary(state, a, b) || wary(state, b, a);
 const reads = (state: GameState, viewer: Actor | undefined, other: Actor | undefined) => !!viewer && !!other && hasPerk(viewer, PK.read_wounds) && foe(state, viewer, other);
-const healthShows = (level: string, sharp: boolean) => LEVEL_POS(level) >= LEVEL_POS(CONFIG.HEALTH_SHOWN_FROM) - (sharp ? 1 : 0);
+const healthShows = (level: HealthLevel, sharp: boolean) => HEALTH_LEVELS.pos(level) >= HEALTH_LEVELS.pos(CONFIG.HEALTH_SHOWN_FROM) - (sharp ? 1 : 0);
 
 // ---------- shared helpers ----------
 const stageZones = (state: GameState) => state.stage.zoneIds.map((id) => zoneById(state, id)).filter((z): z is Zone => !!z);
@@ -164,9 +162,9 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
     const name = viewer.id === state.player.id ? (nameKnown(state, a) ? a.names.current : undefined) : viewer.bandId === a.bandId ? a.names.current : undefined;
     const h = healthLevel(a);
     const parts = partStates(state, a);
-    const crippled = parts.filter((p) => p.state === 'Crippled').map((p) => p.id);
-    const destroyed = parts.filter((p) => p.state === 'Destroyed').map((p) => p.id);
-    const damaged = parts.filter((p) => p.state === 'Damaged').map((p) => p.id);
+    const crippled = parts.filter((p) => p.state === 'crippled').map((p) => p.id);
+    const destroyed = parts.filter((p) => p.state === 'destroyed').map((p) => p.id);
+    const damaged = parts.filter((p) => p.state === 'damaged').map((p) => p.id);
     const look = lookOf(events, viewer.id, a.id);
     out.push({
       id: a.id, label: a.label, ...(name ? { name } : {}), ...(a.pronouns ? { pronouns: a.pronouns } : {}), zone: a.zone, level,
@@ -196,7 +194,7 @@ function sparView(state: GameState, viewer: Actor, name: (id: string) => string)
   const mine = sp.sides.find((s) => s.includes(viewer.id))!;
   return {
     opponents: sp.sides.filter((s) => s !== mine).flat().map(name), allies: mine.filter((id) => id !== viewer.id).map(name),
-    limit: sparLimit(sp) as HealthLevel, cruel: !!sp.cruel, out: viewer.id in sp.out,
+    limit: sparLimit(sp), cruel: !!sp.cruel, out: viewer.id in sp.out,
   };
 }
 
@@ -231,10 +229,12 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
   const out: string[] = [];
   for (const f of effects) {
     const own = f.actorId === viewerId;
-    const to = String(f.data.to ?? '');
     const who = callName(state, viewerId, f.actorId);
     const sharp = reads(state, actorById(state, viewerId), actorById(state, f.actorId));
-    if (f.kind === 'threshold_crossed' && (own || healthShows(to, sharp) || readsHealthOf(actorById(state, viewerId), actorById(state, f.actorId)))) out.push(`${who} is ${to}`);
+    if (f.kind === 'threshold_crossed') {
+      const to = f.data.to as HealthLevel;
+      if (own || healthShows(to, sharp) || readsHealthOf(actorById(state, viewerId), actorById(state, f.actorId))) out.push(`${who} is ${HEALTH_LEVELS.name(to)}`);
+    }
     const by = f.data.by ? callName(state, viewerId, String(f.data.by)) : '';
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);
@@ -253,7 +253,10 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
       const stop = d.stop === 'nightfall' ? ', stopping as night falls' : d.stop === 'encounter' ? ', until something on the road stops ' + (own ? 'you' : who) : '';
       out.push(`${who} travel${own ? '' : 's'} ${km} in ${[h ? `${h} h` : '', m || !h ? `${m} min` : ''].filter(Boolean).join(' ')} at a ${d.pace} pace${d.night ? ' through the dark' : ''}${stop}`);
     }
-    if (f.kind === 'part_state_changed' && (own || VISIBLE_PART.includes(to) || (sharp && to === 'Damaged'))) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${to}`);
+    if (f.kind === 'part_state_changed') {
+      const to = f.data.to as PartState;
+      if (own || PART_STATES.pos(to) >= PART_STATES.pos('crippled') || (sharp && to === 'damaged')) out.push(`${who}'s ${String(f.data.part ?? f.data.partId ?? 'part')} is ${PART_STATES.name(to)}`);
+    }
   }
   return out;
 }

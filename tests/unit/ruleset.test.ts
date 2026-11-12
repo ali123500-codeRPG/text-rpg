@@ -77,7 +77,7 @@ describe('body', () => {
     expect(totalHp(s, s.player)).toBe(90); // endurance 40
     expect(totalHp(s, actor(s, 'slime_1'))).toBe(30);
     const lv = (pct: number) => { s.player.core.condition.hpLostPct = pct; return healthLevel(s.player); };
-    expect([0, 10, 16, 45, 46, 75, 76, 99.5, 100, 149.5, 150].map(lv)).toEqual(['Unhurt', 'Bruised', 'Hurt', 'Injured', 'Wounded', 'Mauled', 'Critical', 'Critical', 'Incapacitated', 'Incapacitated', 'Dead']);
+    expect([0, 10, 16, 45, 46, 75, 76, 99.5, 100, 149.5, 150].map(lv)).toEqual(['unhurt', 'bruised', 'hurt', 'injured', 'wounded', 'mauled', 'critical', 'critical', 'incapacitated', 'incapacitated', 'dead']);
   });
   it('builds the spec hit tables and rebuilds without a Destroyed part', () => {
     const s = makeVillage();
@@ -122,8 +122,8 @@ describe('ruleset methods', () => {
     expect(p.core.condition.hpLostPct).toBeCloseTo((dmg / 50) * 100);
     // 31.25 (25 × the −2 dodge multiplier) wrecks a 15-point arm and takes 62.5% of 50 HP
     expect(fx).toEqual([
-      { kind: 'part_state_changed', actorId: 'patron_1', data: { part: 'left_arm', from: 'Healthy', to: 'Destroyed' } },
-      { kind: 'threshold_crossed', actorId: 'patron_1', data: { who: 'patron_1', from: 'Unhurt', to: 'Mauled' } },
+      { kind: 'part_state_changed', actorId: 'patron_1', data: { part: 'left_arm', from: 'healthy', to: 'destroyed' } },
+      { kind: 'threshold_crossed', actorId: 'patron_1', data: { who: 'patron_1', from: 'unhurt', to: 'mauled' } },
     ]);
   });
   it('a Destroyed arm drops its item; a Destroyed essential part sets HP to 0', () => {
@@ -141,7 +141,7 @@ describe('ruleset methods', () => {
     g.core.condition.parts.neck = -95;
     ruleset.applyEffects({ ...hit, location: 'neck', damage: 1 }, s);
     expect(g.core.condition.hpLostPct).toBe(150);
-    expect(healthLevel(g)).toBe('Dead');
+    expect(healthLevel(g)).toBe('dead');
   });
   it('checks and contests: applyEffects returns []; recordUse only logs', () => {
     const s = makeVillage();

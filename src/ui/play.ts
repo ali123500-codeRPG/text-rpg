@@ -26,7 +26,8 @@ import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
 import { closePop, openPop } from './pop';
-import { PART_STATES, SHOWN_LEVELS, working } from '../ruleset/body';
+import { working } from '../ruleset/body';
+import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
@@ -62,9 +63,6 @@ const OUTCOME_HIT = new Set<AttackOutcome>(['grazed', 'full_hit', 'heavy_hit', '
 /** the outcome label a check line's result starts with ("heavy hit, head" → heavy_hit), if any */
 const outcomeOf = (result: string): AttackOutcome | null =>
   (Object.keys(OUTCOME_BEAT) as AttackOutcome[]).find((k) => result.startsWith(k.replace(/_/g, ' '))) ?? null;
-/** a health level's place on the shown track (Unhurt 0 … Incapacitated last) */
-const levelAt = (l: string) => SHOWN_LEVELS().findIndex(([x]) => x === l);
-const levelOfPart = (st: string) => PART_STATES.indexOf(st as PartState);
 type Around = { who: Record<string, string>; head: Record<string, string>; heal: string };
 
 const SLOW_AFTER_S = 90; // past this the waiting line gets a "taking longer than usual" note
@@ -115,7 +113,7 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
   const [heldN, stowedN, groundN] = [apart(held.map((i) => i.name)), apart(stowed.map((i) => i.name)), apart(pv.zone.groundItems.map((i) => i.name))];
   const the = (n: string) => (n.startsWith('the other ') ? n : `the ${n}`);
   return [
-    { group: 'Fight', items: people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health })), all: true },
+    { group: 'Fight', items: people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health) })), all: true },
     { group: 'Talk', items: people.map((_, i) => ({ text: `Talk to ${names[i]}` })), all: true },
     { group: 'Move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined })) },
     // ST3: sneaking is free; hiding takes the action; ST13: a Vanish slips away by a link, out of sight of those who see you
@@ -143,8 +141,8 @@ function placeLine(s: GameState, pv: PlayerView | null): (Node | string)[] {
 }
 
 /** each body part's state as the UI last saw it, so the body figure opens on the turn a part changes */
-function partsOf(s: GameState, p: Actor): Record<string, string> {
-  const parts: Record<string, string> = {};
+function partsOf(s: GameState, p: Actor): Record<string, PartState> {
+  const parts: Record<string, PartState> = {};
   for (const d of safe(() => actorBody(s, p).parts) ?? []) parts[d.id] = poolState(p.core.condition.parts[d.id] ?? 100);
   return parts;
 }
@@ -364,7 +362,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       gains.length ? row('Skills', ...gains.flatMap(([k, n], i) => [i ? ' · ' : '', h('b', { class: 'skill-up', title: 'Went up this turn' }, `▲ ${skillName(k)} +${n}`)])) : null,
       xp ? row('XP', `+${xp}`) : null,
       ...(l.heals ?? []).map(healCard),
-      ...(l.wounds ?? []).filter((w) => !working(w.to as PartState)).map(woundCard),
+      ...(l.wounds ?? []).filter((w) => !working(w.to)).map(woundCard),
       ...(l.levelUps ?? []).map((u) => goldCard('Level up', u.classId ? `${lib.classes[u.classId]?.name ?? 'Your class'} reached level ${u.level}` : `A bonus level: you reached level ${u.level}`, ['See perks', seePerks], true)),
       ...(l.achievements ?? []).map(achCard),
       // V2a: milestones a skill crossed on this turn; the card never names the perk
@@ -642,7 +640,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       const around = aroundNow();
       if (fresh && !fallen && !readOnly) animateTurn(entries.get(fresh), shownBefore, after, shownAround, around);
       shownBefore = after; shownAround = around;
-      el.classList.toggle('crit', levelAt(after.level) >= levelAt(CONFIG.MOTION_EDGE_STEADY) && !fallen);
+      el.classList.toggle('crit', HEALTH_LEVELS.pos(after.level) >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_STEADY) && !fallen);
     }
     fresh = null;
   }
@@ -768,9 +766,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       }
       barMove(q('[data-m="hp-track"]'), q('[data-m="hp-track"] > b'), b.hpFill, a.hpFill, d);
       if (a.level !== b.level) {
-        stamp(q('[data-m="hp-level"]'), d, b.level);
-        if (levelAt(a.level) > levelAt(b.level) && levelAt(a.level) >= levelAt(CONFIG.MOTION_EDGE_FROM)) {
-          const steady = levelAt(a.level) >= levelAt(CONFIG.MOTION_EDGE_STEADY);
+        stamp(q('[data-m="hp-level"]'), d, HEALTH_LEVELS.name(b.level));
+        const at = HEALTH_LEVELS.pos(a.level);
+        if (at > HEALTH_LEVELS.pos(b.level) && at >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_FROM)) {
+          const steady = at >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_STEADY);
           play(edge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: steady ? 0.45 : 0 }], { dur: ms('--m-scenario'), delay: d });
         }
       }
@@ -780,7 +779,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (changed.length) {
       const d = at(stagger);
       for (const k of changed) {
-        const worse = levelOfPart(a.parts[k]) > levelOfPart(b.parts[k]);
+        const worse = PART_STATES.pos(a.parts[k]) > PART_STATES.pos(b.parts[k]);
         const chip = q(`.cs-pchip[data-part="${k}"]`);
         if (worse) slam(chip, d); else pulse(chip, d);
         // the figure keeps the part's old colour until this beat, then turns and dips once (M-30, M-74: the new
@@ -788,7 +787,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         const path = q(`path[data-part="${k}"]`);
         if (path) {
           const cls = path.getAttribute('class') ?? '';
-          path.setAttribute('class', cls.replace(/\bbf-\w+/, `bf-${b.parts[k].toLowerCase()}`));
+          path.setAttribute('class', cls.replace(/\bbf-\w+/, `bf-${b.parts[k]}`));
           const old = getComputedStyle(path).fill;
           path.setAttribute('class', cls);
           play(path, [{ fill: old, opacity: 1 }, { fill: old, opacity: 0.35, offset: 0.35 }, { opacity: 1 }], { dur: ms('--m-beat') * 2, delay: d });

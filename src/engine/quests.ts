@@ -197,7 +197,7 @@ export function givenTo(state: GameState, events: GameEvent[], item: string, to:
 }
 
 const need = (g: QuestGoal) => (g.kind === 'defeat' ? g.count : g.kind === 'deliver' ? g.qty : 1);
-const dead = (a: Actor | undefined) => !!a && healthLevel(a) === 'Dead';
+const dead = (a: Actor | undefined) => !!a && healthLevel(a) === 'dead';
 const owedOf = (q: Quest) => ({ coin: Math.max(0, (q.pay?.coin ?? 0) - (q.paid?.coin ?? 0)), qty: q.pay?.item ? Math.max(0, (q.pay.qty ?? 1) - (q.paid?.qty ?? 0)) : 0 });
 export const owes = (q: Quest) => { const o = owedOf(q); return o.coin > 0 || o.qty > 0; };
 

@@ -4,9 +4,11 @@ import type { ActorId, BeliefStatus, Cue, Perception, Stance, Tactics, Tier, Tie
 import type { Plan, Secret } from './hidden';
 import type { Volume } from './agents';
 import type { DefenseKind } from './actor';
+import type { HealthLevelKey, PartStateKey } from '../scales';
 
-export type HealthLevel = 'Unhurt' | 'Bruised' | 'Hurt' | 'Injured' | 'Wounded' | 'Mauled' | 'Critical' | 'Incapacitated' | 'Dead';
-export type PartState = 'Healthy' | 'Damaged' | 'Crippled' | 'Destroyed';
+/** keys of the HEALTH_LEVELS and PART_STATES scales (scales.ts); views show their display names */
+export type HealthLevel = HealthLevelKey;
+export type PartState = PartStateKey;
 
 export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number };
 export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' };

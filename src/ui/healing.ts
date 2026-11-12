@@ -2,8 +2,9 @@
 // whose healed segment glows; H3 b, one quick-use slot beside Aim for a healing item, picked in the Inventory
 // (default: the strongest, ties to the one carried most). H2 a (the healed body part glows) is in charsheet.ts.
 import { HL } from '../library/tableIds';
-import type { Actor, GameState, HealNote, HealingDef } from '../types';
+import type { Actor, GameState, HealNote, HealingDef, HealthLevel, PartState } from '../types';
 import { SHOWN_LEVELS } from '../ruleset/body';
+import { HEALTH_LEVELS, PART_STATES } from '../scales';
 import { getLibrary, itemDef } from '../library';
 import { h } from './kit';
 
@@ -11,11 +12,10 @@ const safe = <T>(f: () => T): T | null => { try { return f(); } catch { return n
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 export const partName = (id: string) => cap(id.replace(/_/g, ' '));
 
-/** a health level's or part state's colour class: by its position in its names table */
+/** a health level's or part state's colour class: by its position in its scale */
 const LEVELS = () => SHOWN_LEVELS().map(([l]) => l);
-const PART_STATES = ['Healthy', 'Damaged', 'Crippled', 'Destroyed'];
-const lvTag = (l: string) => h('span', { class: `htag lv${Math.max(0, LEVELS().indexOf(l))}` }, l);
-const psTag = (st: string) => h('span', { class: `htag ps${Math.max(0, PART_STATES.indexOf(st))}` }, st);
+const lvTag = (l: HealthLevel) => h('span', { class: `htag lv${Math.max(0, LEVELS().indexOf(l))}` }, HEALTH_LEVELS.name(l));
+const psTag = (st: PartState) => h('span', { class: `htag ps${PART_STATES.pos(st)}` }, PART_STATES.name(st));
 const arrow = () => h('span', { class: 'ar', 'aria-hidden': 'true' }, '→');
 
 const TITLE: Record<string, string> = { [HL.rest]: 'Rested', [HL.clinic]: 'Treated' };
@@ -24,7 +24,7 @@ const TITLE: Record<string, string> = { [HL.rest]: 'Rested', [HL.clinic]: 'Treat
  * levels healed away are dashed */
 function trackBar(n: HealNote): HTMLElement {
   const lv = LEVELS(), to = Math.max(0, lv.indexOf(n.to)), from = Math.max(0, lv.indexOf(n.from));
-  return h('span', { class: 'hseg', title: `Health: ${n.from === n.to ? n.to : `${n.from} → ${n.to}`}`, 'aria-hidden': 'true' },
+  return h('span', { class: 'hseg', title: `Health: ${n.from === n.to ? HEALTH_LEVELS.name(n.to) : `${HEALTH_LEVELS.name(n.from)} → ${HEALTH_LEVELS.name(n.to)}`}`, 'aria-hidden': 'true' },
     lv.map((_, i) => h('i', { class: i <= to ? `lv${i}${i === to && from > to ? ' new' : ''}` : i <= from ? 'lost' : '' })));
 }
 
@@ -43,9 +43,9 @@ export function healCard(n: HealNote): HTMLElement {
 }
 
 /** M-30: a red card naming a body part that became Crippled or Destroyed this turn, the mirror of "Patched up" */
-export function woundCard(w: { id: string; from: string; to: string }): HTMLElement {
+export function woundCard(w: { id: string; from: PartState; to: PartState }): HTMLElement {
   return h('div', { class: 'hcard wcard', 'data-part': w.id }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✖'),
-    h('div', {}, `${partName(w.id)} ${w.to.toLowerCase()}`, h('p', { class: 'hl' }, psTag(w.from), arrow(), psTag(w.to))));
+    h('div', {}, `${partName(w.id)} ${PART_STATES.name(w.to).toLowerCase()}`, h('p', { class: 'hl' }, psTag(w.from), arrow(), psTag(w.to))));
 }
 
 // ---------------- quick slot (H3) ----------------

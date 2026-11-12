@@ -65,9 +65,9 @@ vi.mock('../../src/ruleset', async (orig) => {
     },
     healthLevel: (a: Actor) => {
       const p = a.core.condition.hpLostPct;
-      return p >= 100 ? 'Incapacitated' : p > 75 ? 'Critical' : p > 60 ? 'Mauled' : p > 45 ? 'Wounded' : p > 30 ? 'Injured' : p > 0 ? 'Hurt' : 'Unhurt';
+      return p >= 100 ? 'incapacitated' : p > 75 ? 'critical' : p > 60 ? 'mauled' : p > 45 ? 'wounded' : p > 30 ? 'injured' : p > 0 ? 'hurt' : 'unhurt';
     },
-    partStates: (_s: GameState, a: Actor) => Object.entries(a.core.condition.parts).map(([id, v]) => ({ id, state: v <= 0 ? 'Destroyed' : 'Healthy' })),
+    partStates: (_s: GameState, a: Actor) => Object.entries(a.core.condition.parts).map(([id, v]) => ({ id, state: v <= 0 ? 'destroyed' : 'healthy' })),
     // the morale roll's tier: steady = Critical Success (pays nothing), broken = Failure, surrendered = Critical Failure
     moraleRoll: () => ({ tier: F.morale === 'surrendered' ? 'critical_failure' : F.morale === 'broken' ? 'failure' : 'critical_success', beyond: 0 }),
     usableModes,

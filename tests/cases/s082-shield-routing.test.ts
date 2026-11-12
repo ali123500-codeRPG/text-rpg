@@ -25,6 +25,6 @@ describe('82 Shield routing', () => {
     expect(shield.pools!.shield).toBeCloseTo(100 - (20 / pool) * 100); // slam 20 of the pool
     expect(s.player.core.condition.hpLostPct).toBe(0);
     expect(s.player.core.condition.parts).toEqual(parts);
-    expect(fx).toEqual([{ kind: 'part_state_changed', actorId: 'player', data: { part: 'shield', from: 'Healthy', to: 'Damaged', itemId: `player_${IT.round_shield}_2` } }]);
+    expect(fx).toEqual([{ kind: 'part_state_changed', actorId: 'player', data: { part: 'shield', from: 'healthy', to: 'damaged', itemId: `player_${IT.round_shield}_2` } }]);
   });
 });

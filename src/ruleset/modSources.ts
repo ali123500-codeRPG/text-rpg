@@ -4,6 +4,7 @@
 import { modeName } from './gear';
 import type { Library, ModType } from '../types';
 import { CONFIG } from '../config';
+import { HEALTH_LEVELS } from '../scales';
 import { baneSkill, defeatsRoll, isBane } from './bane';
 import { skillName } from '../library/skillNames';
 import { PK } from '../library/perkIds';
@@ -76,7 +77,7 @@ export const MOD_SOURCES: ModSource[] = [
     value: 'the effect\'s value', feeds: (lib) => itemRollMods(lib, false) },
   // wounds
   { type: 'wounds', roll: 'skill', source: 'Health level', at: 'src/ruleset/body.ts', when: 'Every roll, by the actor\'s place on the health track.',
-    value: list(Object.fromEntries(CONFIG.HEALTH_TRACK.map(([l, , v]) => [l, v]))) },
+    value: list(Object.fromEntries(CONFIG.HEALTH_TRACK.map(([l, , v]) => [HEALTH_LEVELS.name(l), v]))) },
   { type: 'wounds', roll: 'skill', source: 'Morale level', at: 'src/ruleset/morale.ts', when: 'Every roll, the morale roll included (fear feeds on itself), by the actor\'s morale level (MB3).',
     value: CONFIG.MORALE_TRACK.filter(([, , v]) => v).map(([k, , v]) => `${k} ${v}`).join(', ') },
   { type: 'wounds', roll: 'skill', source: 'Role wounds', at: 'src/ruleset/body.ts',
