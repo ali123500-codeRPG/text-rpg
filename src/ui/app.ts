@@ -8,6 +8,7 @@ import { gmPage } from './gm';
 import { famePage } from './fame';
 import { mapPage } from './map';
 import { bugsPage } from './bugs';
+import { gainsPage } from './gains';
 
 const ICON: Record<string, string> = {
   create: 'M4 20 15 9m2-5 3 3-4 4-3-3zM6 14l4 4',
@@ -16,6 +17,7 @@ const ICON: Record<string, string> = {
   inv: 'M4 8h16v12H4zM9 8V5h6v3M4 13h16',
   quests: 'M6 3v18M6 4h11l-2 4 2 4H6',
   achievements: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6',
+  gains: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18 16l.8 2.2L21 19l-2.2.8L18 22l-.8-2.2L15 19l2.2-.8z',
   gm: 'M4 6h16M4 12h16M4 18h10M18 16l2 2-2 2',
   fame: 'M7 21V10a5 5 0 0 1 10 0v11M5 21h14M12 11v6M9.5 13.5h5',
   map: 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14',
@@ -30,7 +32,7 @@ const icon = (k: string) => {
   return s;
 };
 
-const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['achievements', 'Achievements'], ['journal', 'Journal'], ['map', 'Map'], ['fame', 'Hall of fame'], ['bugs', 'Bugs']] as const;
+const PAGES = [['play', 'Play'], ['stats', 'Character'], ['inv', 'Inventory'], ['quests', 'Quests'], ['achievements', 'Achievements'], ['gains', 'Gains'], ['journal', 'Journal'], ['map', 'Map'], ['fame', 'Hall of fame'], ['bugs', 'Bugs']] as const;
 const GM_KEY = 'rpg.gmDebug';
 const readGm = () => { try { return localStorage.getItem(GM_KEY) === '1'; } catch { return false; } };
 const writeGm = (on: boolean) => { try { localStorage.setItem(GM_KEY, on ? '1' : '0'); } catch { /* per-PC convenience only */ } };
@@ -64,7 +66,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
 
   const play = playScreen(api, (p) => go(p));
   const pages: Record<string, { el: HTMLElement; update: () => void }> = {
-    play, stats: characterPage(api), inv: inventoryPage(api), quests: questsPage(api), achievements: achievementsPage(api), journal: journalPage(api), map: mapPage(api), fame: famePage(api), bugs: bugsPage(api), gm: gmPage(api),
+    play, stats: characterPage(api), inv: inventoryPage(api), quests: questsPage(api), achievements: achievementsPage(api), gains: gainsPage(api), journal: journalPage(api), map: mapPage(api), fame: famePage(api), bugs: bugsPage(api), gm: gmPage(api),
   };
   let creation: HTMLElement | null = null;
 

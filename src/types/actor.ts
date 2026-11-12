@@ -122,6 +122,8 @@ export type Progression = {
   /** SM1/SM3: marks each skill got this engagement (or this scenario, outside one), cleared when it ends */
   markCounts?: Record<LibraryRef, number>;
   xpLog?: XpAward[]; // source trail (B8); every award, in order
+  /** every scenario's gains as the gains moment showed them, oldest first, for the Gains page (D-226); never trimmed */
+  gainsLog?: import('./game').GainsRecord[];
   /** earned, each once (B4, X6). key = the library achievements table row, of = the body type, race or tree it names;
    * the name and XP level live only in that table. name is only on entries from older saves. */
   achievements?: { id: string; key?: string; of?: string; name?: string; turn: Turn; replacedBy?: string; reached?: number }[]; // reached: the tally that earned it

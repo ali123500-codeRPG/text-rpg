@@ -3,7 +3,7 @@
 // scenario ends, closeScenario calls flushGrowth: the scenario pays its improvement rolls (payScenario, in rounds), levels are
 // taken, then achievements and All-XXX are granted, and one gains summary is left (stage.gains, then LogLine.scenarioGains) for
 // the ending moment's pop-up. In free roam achievements come at once (growthWaits); marks wait for the next scenario.
-import type { GameState, Rng, ScenarioEnding, ScenarioFrame, ScenarioGains, Tier } from '../types';
+import type { AchievementNote, GameState, Rng, ScenarioEnding, ScenarioFrame, ScenarioGains, Tier, XpAward, XpPart } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { grantAllSteps } from '../ruleset/allSteps';
@@ -111,9 +111,39 @@ function flush(state: GameState, f: ScenarioFrame, as: ScenarioEnding, rng?: Rng
   const achievements = (pr?.achievements ?? []).filter((a) => ids.includes(a.id)).map((a) => achievementInfo(state, a));
   state.stage.gains = {
     ...g, achievements, number: f.number, turn: state.turn,
-    xp: { gained: since.reduce((n, x) => n + x.amount, 0), fromLevel: start.level, fromPct: start.pct, toLevel: end.level, toPct: end.pct },
+    xp: { gained: since.reduce((n, x) => n + x.amount, 0), fromLevel: start.level, fromPct: start.pct, toLevel: end.level, toPct: end.pct, parts: xpParts(state, since, achievements) },
     levelUps: since.filter((x) => x.levelUp).map((x) => ({ classId: x.levelUp!.classId, level: x.levelUp!.level })),
   };
+}
+
+/** where a scenario's XP came from, for the gains moment's sum: every foe defeated in one row, each
+ * achievement and quest in its own, anything else by its source; in the order each was first earned */
+export function xpParts(state: GameState, since: XpAward[], achs: AchievementNote[]): XpPart[] {
+  const out: XpPart[] = [];
+  let foes = 0;
+  const add = (kind: XpPart['kind'], label: string, amount: number) => {
+    const r = out.find((x) => x.kind === kind && x.label === label);
+    if (r) r.amount += amount; else out.push({ kind, label, amount });
+  };
+  for (const x of since) {
+    if (!x.amount) continue;
+    const at = x.source.indexOf(':'), kind = at < 0 ? x.source : x.source.slice(0, at), id = at < 0 ? '' : x.source.slice(at + 1);
+    if (kind === 'defeat') { foes++; add('defeat', '', x.amount); }
+    else if (kind === 'achievement') add('achievement', achs.find((a) => a.id === id)?.name ?? 'An achievement', x.amount);
+    else if (kind === 'quest') add('quest', state.quests.find((q) => q.id === id)?.text ?? 'A quest', x.amount);
+    else add('other', kind.charAt(0).toUpperCase() + kind.slice(1), x.amount);
+  }
+  const f = out.find((x) => x.kind === 'defeat');
+  if (f) f.label = foes === 1 ? '1 foe defeated' : `${foes} foes defeated`;
+  return out;
+}
+
+/** the scenario that just ended goes on the character's gains log (the Gains page), if it gave anything */
+export function keepGains(state: GameState, as: ScenarioEnding): void {
+  const g = scenarioGainsNow(state), pr = state.player.progression, n = state.stage.gains?.number;
+  if (!g || !pr || n === undefined) return;
+  if (!(g.skills.length + g.perks.length + g.allPerks.length + g.achievements.length + g.levelUps.length) && !g.xp.gained) return;
+  (pr.gainsLog ??= []).push({ ...g, number: n, ending: as, endTurn: state.turn });
 }
 
 /** the gains of the scenario that ended this turn, as the play page reads them (LogLine.scenarioGains) */
