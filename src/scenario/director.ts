@@ -50,7 +50,7 @@ export class ScenarioDirector {
     const st = state.stage, f = st.scenario, reason = st.checkinDue;
     if (!reason || !f || !this.opts.checkin || this.checkin) return false;
     delete st.checkinDue;
-    f.checkins = (f.checkins ?? 0) + 1;
+    if (reason !== 'budget') f.checkins = (f.checkins ?? 0) + 1; // BG-42: the over-time check-in is not counted toward the cap
     f.lastCheckin = state.turn;
     const view = buildWeaverView(state, { kind: 'checkin', placeId: state.player.placeId, reason });
     const c: { number: number; done: boolean; answer: CheckinAnswer | null } = { number: f.number, done: false, answer: null };

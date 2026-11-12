@@ -10,7 +10,7 @@ import { actorById, isActive, isEngaged } from './relations';
 import { givenTo, playerFound, playerIn } from './quests';
 import { logCode } from './effects';
 import { triggerErrors } from '../scenario/triggers';
-import { checkGround, offGround, pursuers } from './chase';
+import { checkGround, offGround, onGround, pursuers } from './chase';
 
 /** SC4: does a scenario of this scale hold smaller scenarios inside it */
 export const holdsInner = (s: ScenarioScale): boolean => SCENARIO_SCALES.pos(s) >= SCENARIO_SCALES.pos(CONFIG.SCENARIO_HOLDS_FROM as ScenarioScale);
@@ -69,7 +69,8 @@ export function checkMet(state: GameState, w: EndCheck, events: GameEvent[], fra
   switch (w.kind) {
     case 'band_out': return bandOut(state, w.band);
     case 'reach': return playerIn(state, w.place);
-    case 'leave': return !playerIn(state, w.place) && !!frame?.beenIn?.includes(w.place);
+    // BG-44: out of the place AND off the scenario's ground (a step into the lane mid-chase is not leaving)
+    case 'leave': return !playerIn(state, w.place) && !!frame?.beenIn?.includes(w.place) && !(frame.ground && onGround(state, frame.ground, state.player.zone));
     case 'find': return playerFound(state, w.actor);
     case 'hold': return state.player.core.inventory.some((i) => i.itemId === w.item);
     case 'deliver': return givenTo(state, events, w.item, w.to) > 0;
@@ -126,8 +127,9 @@ export function budgetUsed(state: GameState, f: ScenarioFrame): number {
 }
 
 /** SC8: may a check-in be asked now (at most CHECKIN_MAX_PER_SCENARIO, CHECKIN_GAP_TURNS apart; /stuck skips both) */
-export function checkinAllowed(state: GameState, f: ScenarioFrame): boolean {
-  return (f.checkins ?? 0) < CONFIG.CHECKIN_MAX_PER_SCENARIO && (f.lastCheckin === undefined || state.turn - f.lastCheckin >= CONFIG.CHECKIN_GAP_TURNS);
+export function checkinAllowed(state: GameState, f: ScenarioFrame, why?: CheckinReason): boolean {
+  // BG-42: the over-time check-in (budget) always happens: the cap never stops it (it waits only for the gap)
+  return (why === 'budget' || (f.checkins ?? 0) < CONFIG.CHECKIN_MAX_PER_SCENARIO) && (f.lastCheckin === undefined || state.turn - f.lastCheckin >= CONFIG.CHECKIN_GAP_TURNS);
 }
 
 /** SC8: the set moments a check-in is asked at: the scenario reached its budget, a beat fired, or the scenario has endings only
@@ -138,7 +140,7 @@ function dueCheckin(state: GameState, f: ScenarioFrame): void {
   if (budgetUsed(state, f) >= 1 && !f.overTime) why = 'budget';
   else if (st.beatTurn === state.turn) why = 'beat';
   else if (f.endings.some((e) => e.when.kind === 'judged') && state.turn - (f.lastCheckin ?? f.startTurn) >= CONFIG.CHECKIN_GAP_TURNS) why = 'judged';
-  if (!why || !checkinAllowed(state, f)) return;
+  if (!why || !checkinAllowed(state, f, why)) return;
   if (why === 'budget') f.overTime = true;
   st.checkinDue = why;
 }

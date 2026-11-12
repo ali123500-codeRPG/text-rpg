@@ -26,11 +26,18 @@ export const pursuers = (state: GameState): Actor[] => state.actors.filter((a) =
 
 /** CH1: the running scenario's ground (none: no scenario, or a scenario from before ground was kept) */
 export const groundOf = (state: GameState): string[] | undefined => state.stage.scenario?.ground;
+/** BG-43: the places a ground touches; every zone of those places is on the ground (a tavern scenario's ground is the whole
+ * tavern: back yard, cellar and upstairs too) */
+const groundPlaces = (state: GameState, ground: string[]) => new Set(ground.map((z) => zoneById(state, z)?.placeId).filter((p): p is string => !!p));
+/** is zone `z` on this ground: one of its zones, or any zone of a place it touches (BG-43) */
+export function onGround(state: GameState, ground: string[], z: string): boolean {
+  return ground.includes(z) || groundPlaces(state, ground).has(zoneById(state, z)?.placeId ?? '');
+}
 /** off the running scenario's ground, and off the bigger scenario's too (outer) */
 export function offGround(state: GameState): { off: boolean; outer: boolean } {
   const z = state.player.zone, st = state.stage;
-  const off = !!st.scenario?.ground && !st.scenario.ground.includes(z);
-  return { off, outer: off && !!st.outer?.ground && !st.outer.ground.includes(z) };
+  const off = !!st.scenario?.ground && !onGround(state, st.scenario.ground, z);
+  return { off, outer: off && !!st.outer?.ground && !onGround(state, st.outer.ground, z) };
 }
 
 /** CH5: an NPC's chase range: its band's, else its template's, else CONFIG.CHASE_RANGE_DEFAULT */
@@ -60,13 +67,13 @@ export function chaseZones(state: GameState, a: Actor): string[] | undefined {
   if (range === 'post') return post;
   const st = state.stage, ground = [...(st.scenario?.ground ?? []), ...(st.outer?.ground ?? [])];
   if (!st.scenario?.ground) return undefined;
-  const inGround = new Set([...post, ...ground]);
+  const places = groundPlaces(state, ground); // BG-43: the ground is every zone of the places it touches
+  const inGround = new Set([...post, ...zonesOfPlaces(state, places)]);
   if (range === 'ground') return [...inGround];
-  const groundPlaces = new Set(ground.map((z) => zoneById(state, z)?.placeId ?? ''));
   const beyond = new Set<string>();
-  for (const z of ground) for (const l of zoneById(state, z)?.links ?? []) {
+  for (const z of inGround) for (const l of zoneById(state, z)?.links ?? []) {
     const p = l.frontier ? undefined : zoneById(state, l.to)?.placeId;
-    if (p && !groundPlaces.has(p)) beyond.add(p);
+    if (p && !places.has(p)) beyond.add(p);
   }
   return [...new Set([...inGround, ...zonesOfPlaces(state, beyond)])];
 }
