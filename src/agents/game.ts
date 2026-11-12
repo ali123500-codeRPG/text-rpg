@@ -281,6 +281,7 @@ export function createGame(deps: GameDeps): Game {
     if (parsed.clarify !== null || !parsed.intent) {
       // the turn stops: no resolution, turn unchanged, Planner outputs kept for this same turn
       lines.push({ turn: s.turn, kind: 'clarify', text: parsed.clarify ?? 'What do you do?' });
+      lastLog = [...turnLog]; // the GM view (and playtests) can see why the Parser asked
       return;
     }
     const intent = engine.fillSpeech(s, parsed.intent, text);
