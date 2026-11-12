@@ -157,6 +157,20 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     expect(s.player.zone).toBe('street_door');
     expect(shortestPath(s, 'street_door', 'tav_common', false, s.player)?.[0]).toBe('street_square');
   });
+  it('FR5: an NPC knows the bolts of a place it lives or works in; a visitor learns by trying, as the player does', () => {
+    const s = quiet('street_door');
+    zoneById(s, 'tav_cellar')!.links.push({ to: 'street_square', label: 'the cellar hatch', sight: false });
+    zoneById(s, 'street_square')!.links.push({ to: 'tav_cellar', label: 'the cellar hatch', sight: false });
+    const b = put(s, 'tav_common', 'street_door', { bar: { side: 'tav_common', drawn: true } });
+    const npc = s.actors.find((a) => a.id === 'trader')!;
+    npc.mind = { ...npc.mind!, slots: { post: 'gate_inner' } }; // works somewhere else: a visitor here
+    expect(shortestPath(s, 'street_door', 'tav_common', false, npc)).toEqual(['tav_common']);
+    npc.mind.slots = { post: 'street_door' }; // works on this street: knows the door is barred
+    expect(shortestPath(s, 'street_door', 'tav_common', false, npc)?.[0]).toBe('street_square');
+    npc.mind.slots = {};
+    b.tried = [npc.id]; // tried it
+    expect(shortestPath(s, 'street_door', 'tav_common', false, npc)?.[0]).toBe('street_square');
+  });
   it('BA7: a broken barrier: Destroyed opens to all, Crippled lets an amorphous body through', () => {
     const s = quiet();
     const b = put(s, 'tav_common', 'street_door', { lock: { locked: true }, state: 'crippled', tried: ['player'] }); // BG-69: known shut

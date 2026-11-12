@@ -1,8 +1,8 @@
 // isActive; bands, relations and overrides; engagement (Part 2, Information model and Who thinks for each actor).
-import type { Actor, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '../types';
+import type { Actor, Barrier, Belief, BeliefStatus, GameState, Stance, ZoneLink } from '../types';
 import { AWARENESS, STANCES } from '../scales';
 import { firstSightOf } from '../ruleset/achRewards';
-import { barrierOn, knowsShut, linkPassage } from './barriers';
+import { barrierOn, linkPassage } from './barriers';
 import { withinGrip } from './position';
 import { reachesOver } from '../scenario/geometry';
 import { getLibrary } from '../library';
@@ -134,6 +134,15 @@ export function perceivedZoneIds(state: GameState, zoneId: string): string[] {
 export const wayPath = (state: GameState, from: string, to: string, walker: Actor): string[] | null =>
   shortestPath(state, from, to, false, walker) ?? shortestPath(state, from, to);
 
+/** BG-69, FR5: a walk is planned around a shut way only by someone who knows it is shut: they tried it, or it is rubble in
+ * plain view; an NPC also knows the ways of a place it lives or works in (one its routine is bound to: mind.slots). A
+ * visitor learns by trying, as the player does; a bolt on the far side is not known from the near side. */
+export function knowsShut(state: GameState, b: Barrier, a: Actor, from: string): boolean {
+  if (b.blocked || b.tried?.includes(a.id)) return true;
+  const place = a.kind === 'player' ? undefined : zoneById(state, from)?.placeId;
+  return !!place && Object.values(a.mind?.slots ?? {}).flat().some((z) => zoneById(state, z)?.placeId === place);
+}
+
 /** shortest path over stage zones (no frontiers). Returns the zone ids after `from`, or null. With a `walker`, a way whose
  * barrier is shut to it (no key, the far side of the bar, rubble) is left out (SD3–SD5); with none, barriers are ignored
  * (how far away, for sound and sight). */
@@ -149,7 +158,7 @@ export function shortestPath(state: GameState, from: string, to: string, sightOn
     for (const l of z?.links ?? []) {
       // SD7: a drop (window, ledge) is seen through but never walked: only a jump takes it (resolve.ts doMove)
       if (l.frontier || !stage.has(l.to) || seen.has(l.to) || (sightOnly && !seesAcross(state, l)) || (l.drop && !sightOnly)) continue;
-      if (walker && linkPassage(state, l, walker, cur) === 'shut' && knowsShut(barrierOn(state, l)!, walker)) continue;
+      if (walker && linkPassage(state, l, walker, cur) === 'shut' && knowsShut(state, barrierOn(state, l)!, walker, cur)) continue;
       seen.add(l.to);
       prev.set(l.to, cur);
       if (l.to === to) {

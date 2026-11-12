@@ -3182,6 +3182,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-108 | Zone review: Spotter tells only band-mates in the same zone | 12/11/2026 | open | question ZR4 |
 | BG-109 | Zone review: the unseen-moves feat counts only watchers in the zone the player sneaked into | 12/11/2026 | open | question ZR5 |
 | BG-110 | Zone review: everyone in the player's zone or a zone in sight is shown in full (name, health) at any distance, so a face 100 m across a market square is known | 12/11/2026 | open | question ZR6 |
+| BG-112 | Every NPC plans its walk around every barred, locked or blocked way in the world without having tried it, even in a house it has never been in; BG-69's rule said only its own place's ways (bug-fix review, FR5) | 12/11/2026 | fixed | Ali (FR5). relations.ts `knowsShut`: an NPC knows a shut way of a place it lives or works in (a zone its routine is bound to, mind.slots), or one it tried; rubble in plain view is known to all. A visitor learns by trying, as the player does. Test: tests/cases/s189-barriers.test.ts. |
 
 ## Check on release
 
