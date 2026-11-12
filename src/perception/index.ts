@@ -26,6 +26,9 @@ export const isComm = (e: GameEvent) =>
 
 type Seen = { level: Perception; cue: Cue; heard?: true };
 /** the words of a line reach only those its sound reaches: seeing someone talk across a field gives no words */
+/** BG-59: a bark is a line said beside a deed. Only a bark that is nothing but words is left out of NPC views and history;
+ * a deed with a bark (a give, an attack) still counts, its line dropped (eventView) */
+export const barkOnly = (e: { bark?: boolean; kind: string }): boolean => !!e.bark && ['speak', 'talk'].includes(e.kind);
 export const hearsWords = (p: { heard?: true } | undefined): boolean => !!p?.heard;
 const better = (a: Seen | null, b: Seen | null): Seen | null => (!a ? b : !b ? a : b.level === 'full' && a.level !== 'full' ? b : a);
 

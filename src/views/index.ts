@@ -23,7 +23,7 @@ import { sparLimit, sparOf } from '../engine/spar';
 import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { summonableThreadboundItems } from '../ruleset/threadboundItems';
-import { beliefStatus, hearsWords, isComm } from '../perception';
+import { barkOnly, beliefStatus, hearsWords, isComm } from '../perception';
 import { skillName } from '../library/skillNames';
 import { offeredRoutines } from '../minds/routines';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
@@ -218,7 +218,7 @@ function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
     ...(full && e.tier !== undefined && e.actorId === viewer.id ? { tier: tierName(e.tier) } : {}),
     level: p.level, cue: p.cue,
     ...(!full ? { where: whereLabel(state, viewer.zone, e.zone) } : {}),
-    ...(e.line && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
+    ...(e.line && !e.bark && hearsWords(p) ? { line: { text: e.line.text, volume: e.line.volume } } : {}),
     ...(full && e.attack ? { outcome: outcomeLabel(e.attack.outcome) } : {}),
     ...(full && e.spar ? { spar: true as const } : {}),
     ...(e.actorId === viewer.id && tookWords(e) ? { took: tookWords(e) } : {}),
@@ -348,7 +348,7 @@ function baseView(state: GameState, actorId: string): BaseView {
   const attackSkill = (a.core.templateId ? npcTemplate(state, a.core.templateId).fallback?.attackSkill : undefined) ?? ct.fallback.attackSkill;
   // never copy bark events into an NPC view (Leak prevention)
   const history = [...(state.recentEvents ?? []), ...state.events];
-  const perceived = history.filter((e) => e.perception[a.id] && !e.bark).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
+  const perceived = history.filter((e) => e.perception[a.id] && !barkOnly(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const told = history.filter((e) => hearsWords(e.perception[a.id]) && isComm(e)).slice(-CONFIG.RECENT_EVENTS).map((e) => eventView(state, a, e));
   const said = history.filter((e) => e.actorId === a.id && e.line?.text && !e.bark).slice(-CONFIG.SAID_LINES).map((e) => e.line!.text);
   const hit = [...history].reverse().find((e) => e.kind === 'attack' && e.target === a.id && e.perception[a.id] && e.attack && !['missed', 'dodged', 'parried'].includes(e.attack.outcome));
