@@ -3201,6 +3201,7 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BG-126 | Run 78b, step 28: crash "zone north_road has no rectangle". A frontier whose build fell back got an empty zone with no kind, size or rectangle (ZR8). | The fallback's empty ground (frontier or place) is open ground with a kind, a size and edges, placed like any built zone. | Fixed in PR #591 |
 | BG-127 | Run 75f, turn 30: "I'm going to check your pockets" at Wren, hidden in the dark: the narration view dropped the action's target, so the Narrator wrote the player searching their own pockets. | The player's own action at someone they cannot see keeps its target as "someone". (Searching a person is not a mechanic yet.) | Fixed in PR #591 |
 | BG-125 | Run 75f, steps 33 to 36: Wren slipped off and hid along the common-room wall; "walk over to Wren" (a spot near him) asked "Where in common room do you want to go?" four turns running. | The player's journal keeps the point where they last perceived each actor (lastSpot); a spot near someone out of sight walks there, never to where they really are. | Fixed in PR #591 |
+| BG-128 | Run 85, turn 13: the Weaver gave Wren a trigger "pick $player" (try the newcomer's purse); it fired as a lock pick at the player and resolved as a wasted "no lock", which the Narrator told as a meaningless lock attempt. | One rule (WAY_ORDERS): a pick's target is a way (a zone), never a person, checked for plan and check-in triggers, NPC agents and the Parser. There is no stealing yet. | Fixed in PR #591 |
 
 ## Check on release
 

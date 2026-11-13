@@ -19,7 +19,7 @@ it('BG-125: walking to someone last seen in the room goes where they were last s
   w.posture = 'stealthy'; w.pos = { x: 4, y: -3 }; delete s.player.journal!.clearSight!.patron_1; // he slips off unseen
   const v = buildPlayerView(s);
   expect(v.actors.some((a) => a.id === 'patron_1')).toBe(false);
-  const r = checkParserLegality(intent({ move: { toZone: 'tav_common', spot: { near: 'patron_1' } }, action: null }), v);
+  const r = checkParserLegality({ ...intent({ move: { toZone: 'tav_common', spot: { near: 'patron_1' } } }), action: null }, v);
   expect(r.illegal).toEqual([]);
   expect(r.intent.move!.spot).toMatchObject({ near: 'patron_1', lastSeen: true });
   play(s, { intent: r.intent });
