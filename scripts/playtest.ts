@@ -119,19 +119,22 @@ const GOAL_RULES = `How to play this test:
 function nearSeller(st: GameState) {
   const seller = st.actors.find((a) => isSeller(a) && st.stage.zoneIds.includes(a.zone));
   if (!seller) { console.log('no seller on the stage; the player starts where the story put them'); return; }
-  const next = st.zones.find((z) => z.id === seller.zone)?.links.find((l) => !l.frontier && st.stage.zoneIds.includes(l.to))?.to;
-  st.player.zone = next ?? seller.zone;
-  console.log(`player placed in ${st.player.zone}, next to ${seller.id} in ${seller.zone}`);
+  placeNextTo(st, seller);
+}
+
+/** the player one zone from `who` on the stage (else in its zone), with the place that zone is in */
+function placeNextTo(st: GameState, who: GameState['actors'][number]) {
+  const next = st.zones.find((z) => z.id === who.zone)?.links.find((l) => !l.frontier && st.stage.zoneIds.includes(l.to))?.to;
+  st.player.zone = next ?? who.zone;
+  st.player.placeId = st.zones.find((z) => z.id === st.player.zone)?.placeId ?? st.player.placeId;
+  console.log(`player placed in ${st.player.zone}, next to ${who.id} in ${who.zone}`);
 }
 
 /** --near-slimes: start the player one zone from the first slime on the stage, else in its zone */
 function nearSlimes(st: GameState) {
   const slime = st.actors.find((a) => a.core.templateId === TP.slime && st.stage.zoneIds.includes(a.zone));
   if (!slime) { console.log('no slime on the stage; the player starts where the story put them'); return; }
-  const next = st.zones.find((z) => z.id === slime.zone)?.links.find((l) => !l.frontier && st.stage.zoneIds.includes(l.to))?.to;
-  st.player.zone = next ?? slime.zone;
-  st.player.placeId = st.zones.find((z) => z.id === st.player.zone)?.placeId ?? st.player.placeId;
-  console.log(`player placed in ${st.player.zone}, next to ${slime.id} in ${slime.zone}`);
+  placeNextTo(st, slime);
 }
 
 async function main() {
