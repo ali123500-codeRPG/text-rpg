@@ -279,13 +279,13 @@ describe('125 All-50 parts', () => {
 describe('125 All-50 moves', () => {
   afterEach(() => vi.restoreAllMocks());
   /** the player attacks `target` with `weapon`; `shape` rewrites the player's first attack result; returns every attack made */
-  const fight = (s: GameState, target: string, weapon: string, shape: (r: AttackResult) => AttackResult) => {
+  const fight = (s: GameState, target: string, weapon: string, shape: (r: AttackResult) => AttackResult, everyBlow = false) => {
     const calls: { by: string; at: string }[] = [];
     const real = ruleset.attack;
     vi.spyOn(ruleset, 'attack').mockImplementation((req, st, rng) => {
       calls.push({ by: req.attackerId, at: req.targetId });
       const r = real(req, st, forcedRng([50, 50, 50, 50]));
-      return calls.length === 1 ? shape(r) : r;
+      return calls.length === 1 || (everyBlow && req.attackerId === 'player') ? shape(r) : r; // AT78: the player's turn holds two blows
     });
     play(s, { intent: intent({ action: { type: 'attack', target, item: weapon } }) });
     return calls;
@@ -319,8 +319,8 @@ describe('125 All-50 moves', () => {
     give(foe, PK.second_wind);
     foe.core.condition.hpLostPct = 50; // Wounded
     const graze = (r: AttackResult) => ({ ...r, outcome: 'grazed' as const, location: 'general', damage: 0.01 });
-    fight(s, 'patron_1', 'w_player', graze);
-    expect(foe.core.condition.hpLostPct).toBeLessThanOrEqual(45); // Injured at most
+    fight(s, 'patron_1', 'w_player', graze, true);
+    expect(foe.core.condition.hpLostPct).toBeLessThanOrEqual(45.05); // Injured at most (the second graze adds a hair)
     expect(foe.engagement?.uses?.[PK.second_wind]).toBe(1);
   });
   it('Strike and Fade: right after an attack from hiding the owner is stealthy again and vanishes in place', () => {

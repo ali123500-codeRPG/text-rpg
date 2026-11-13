@@ -37,6 +37,8 @@ export type Actor = {
    * routine's sleep, which ends with its time. Asleep, an actor perceives nothing and is an unaware target. */
   asleep?: { since: number; until?: number };
   wokeAt?: number; // NW20: the game minute it last woke; it falls asleep again only FALL_ASLEEP_MIN after
+  /** AT20: main and move seconds left after its last finished action, carried into the next turn only (`turn` they came from) */
+  carry?: { main: number; move: number; turn: number };
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
   wares?: { items: string[]; services: string[] };

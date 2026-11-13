@@ -19,7 +19,8 @@ const fight = () => {
 
 it("an NPC's yield in a real fight is a surrender", () => {
   const s = fight();
-  play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }), agentOutputs: [plannerOut('patron_1', act('attack', 'player'))] });
+  // the patron swings first (the player's own blows, two a turn, could down him before he can yield)
+  play(s, { intent: intent(), agentOutputs: [plannerOut('patron_1', act('attack', 'player'))] });
   play(s, { intent: intent(), agentOutputs: [plannerOut('patron_1', act('hold'), { yields: true, dialogue: { spoken: 'Enough, I yield!', volume: 'normal', addressees: ['player'] } })] });
   const codes = s.log.map((l) => l.code);
   expect(codes).not.toContain('invalid_spar_yield');

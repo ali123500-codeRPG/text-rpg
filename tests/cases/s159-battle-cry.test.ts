@@ -49,7 +49,7 @@ describe('159 Battle Cry', () => {
     expect(ideas(pv).find((g) => g.group === 'Perks')?.items.some((i) => i.text === 'Let out a battle cry')).toBe(true);
   });
 
-  it('foes who hear it roll Resolve against Intimidation; allies take heart; it takes the main action', () => {
+  it('foes who hear it roll Resolve against Intimidation; allies take heart; it takes 1 s and the attack follows (AT11)', () => {
     const { s, foe, friend } = setup();
     const before = moraleLost(foe);
     const ev = play(s, { intent: { ...cry, action: { type: 'attack', skill: '', target: 'patron_1', targetPart: null, item: null, mode: null, approach: '', stance: 'normal' } } as never });
@@ -62,7 +62,7 @@ describe('159 Battle Cry', () => {
     expect(roar.effects.find((f) => f.actorId === 'player')?.kind).toBe('rallied'); // the roarer takes heart too
     expect(friend.pressure?.guard_1?.shaken).toBeUndefined();
     expect(moraleLost(friend)).toBeCloseTo(20, 0); // 10 back, and a little natural recovery as the clock moves
-    expect(ev.some((e) => e.kind === 'attack' && e.actorId === 'player')).toBe(false); // the roar was the action
+    expect(ev.findIndex((e) => e.kind === 'battle_cry')).toBeLessThan(ev.findIndex((e) => e.kind === 'attack' && e.actorId === 'player')); // 1 s roar, then the blow
   });
 
   it('once per engagement', () => {

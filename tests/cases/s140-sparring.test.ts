@@ -8,7 +8,7 @@ import { intent, play } from './w4-kit';
 import { CONFIG } from '../../src/config';
 import { healthLevel } from '../../src/ruleset';
 import { applyAgentEffects } from '../../src/engine/effects';
-import { foe, hostile, isEngaged, sparring } from '../../src/engine/relations';
+import { atLeast, foe, hostile, isEngaged, sparring } from '../../src/engine/relations';
 import { startSpar, updateSpars, yieldSpar } from '../../src/engine/spar';
 import { payDefeats } from '../../src/engine/xp';
 import { fallbackOrder } from '../../src/minds';
@@ -79,7 +79,7 @@ describe('140 sparring', () => {
       place(s, 'trader', 'tav_common');
       const ev = play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }) }, seed);
       expect(ev.find((e) => e.kind === 'attack' && e.actorId === 'player')?.spar).toBe(true);
-      if (p.mind!.knowledge.player?.status === 'aware') noticed++;
+      if (atLeast(p.mind!.knowledge.player?.status, 'aware')) noticed++; // a second blow in the same turn may find it engaged
       expect(p.mind!.alarm?.armed ?? false).toBe(false);
       expect(t.mind!.alarm?.armed ?? false).toBe(false);
       expect(p.mind!.overrides?.player).toBeUndefined();

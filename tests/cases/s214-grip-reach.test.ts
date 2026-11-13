@@ -41,20 +41,17 @@ it('FR2: grip reach comes from the body: an arm 0.7 m; a dragon takes things in 
   expect(gripReachM(s, s.player)).toBe(0);
 });
 
-it('BG-86: a door out of reach is walked to on the move slot and opened with the main action when it is free', () => {
+it('BG-86/AT19: a door out of reach is walked to on move time and opened with the move time left', () => {
   const s = laidOut();
   const b = door(s);
   const dp = { zone: 'tav_common', pos: wayPoint(s, 'tav_common', 'street_door', s.player)! };
   s.player.pos = { x: dp.pos.x + (zoneById(s, 'tav_common')!.rect!.x - dp.pos.x) * 0.8, y: dp.pos.y + (zoneById(s, 'tav_common')!.rect!.y - dp.pos.y) * 0.8 };
   expect(withinGrip(s, s.player, dp)).toBe(false);
-  // busy with something else: the walk to the door takes the move, the door waits for the next turn
-  const told = play(s, { intent: intent({ way: { toZone: 'street_door', op: 'open' }, action: { type: 'observe', target: null } }) });
-  expect(b.open).toBeUndefined();
-  expect(s.log.some((l) => l.code === 'way_op_dropped')).toBe(true); // at the door now, with no slot left for it
-  expect(told).toContainEqual(expect.objectContaining({ kind: 'wasted', actorId: s.player.id, reason: 'no_time_left' })); // BG-144: told, not silent
-  expect(withinGrip(s, s.player, dp)).toBe(true);
-  play(s, { intent: intent({ way: { toZone: 'street_door', op: 'open' } }) });
+  // busy with something else: the walk to the door leaves move time, and a door takes 1 s of it (AT11, AT19)
+  play(s, { intent: intent({ way: { toZone: 'street_door', op: 'open' }, action: { type: 'observe', target: null } }) });
   expect(b.open).toBe(true);
+  expect(s.log.some((l) => l.code === 'way_op_dropped')).toBe(false);
+  expect(withinGrip(s, s.player, dp)).toBe(true);
   // from across the room with nothing else to do: walk over, then open it on the main action, in one turn
   const t = laidOut();
   const tb = door(t);

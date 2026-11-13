@@ -1,4 +1,4 @@
-// 91 Free gear ops: a turn with draw, swap and pick up plus an attack resolves one main action; equip on armor takes the main action.
+// 91 Gear ops take time (AT11): picking up from the ground 4 s, stow 2 s, draw 1 s, swap 3 s; a draw and a blow fit one fight turn.
 import { expect, it } from 'vitest';
 import { beside, makeVillage } from '../harness';
 import { intent, play } from './w4-kit';
@@ -17,8 +17,7 @@ it('91 Free gear ops', () => {
     action: { type: 'attack', target: 'patron_1', skill: SK.melee_light },
   }) });
   const mine = ev.filter((e) => e.actorId === 'player');
-  expect(mine.filter((e) => MAIN.has(e.kind))).toHaveLength(1);
-  expect(mine.find((e) => MAIN.has(e.kind))!.kind).toBe('attack');
+  expect(mine.filter((e) => MAIN.has(e.kind))).toHaveLength(0); // 10 s of gear ops use the whole 6 s turn
   const inv = Object.fromEntries(s.player.core.inventory.map((i) => [i.id, i.equippedIn]));
   expect(inv.dg2?.[0]).toMatch(/^grip:/);
   expect(inv.dg).toBeUndefined();
