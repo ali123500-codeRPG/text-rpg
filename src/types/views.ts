@@ -109,7 +109,7 @@ export type PlayerView = {
   known?: { id: string; name: string }[];
   actors: SeenActor[];
   /** people seen clearly earlier who are out of sight now, and the zone they were last seen in */
-  lastSeen?: { id: string; name: string; zone: string; pronouns?: string }[];
+  lastSeen?: { id: string; name: string; zone: string; pronouns?: string; wares?: WareView[] }[]; // wares: BG-155, a seller known to sell
   /** NM2: names the player has heard but cannot yet put a face to */
   heardOf?: string[];
   /** BG-55: who the player was just talking with (actor ids); words with no one named are for them */
@@ -223,6 +223,7 @@ export type NarrationEvent = {
   from?: string; // BG-22: a move that left a zone: the zone it left (where is the zone it entered)
   within?: true; // BG-22: a move that stayed inside `where` (across it, toward someone, a spot or its way out)
   heading?: string; // BG-22: a leg within `where` on the way to another zone: that zone's name
+  round?: string; // BG-148: a way the walk goes round because it is known to be shut, and why
   toGo?: number; // BG-47: with heading, metres still to walk to the way into it: not there yet
   for?: string; // buy: who got it
   reason?: string; // buy_refused: why the sale didn't happen
@@ -235,6 +236,7 @@ export type NarrationView = {
   essences?: { name: string; story: string }[];
   /** essences that appeared this turn but failed their quality roll: felt for a moment, then gone */
   essencesFaded?: { name: string; story: string }[];
+  cameAndWent?: string[]; // BF2e: who the player noticed coming and going over a long turn, one line each, in order
   style: { tone: string; length: string };
   time: TimeView;
   approach?: string; stance?: string; // the player's flavor

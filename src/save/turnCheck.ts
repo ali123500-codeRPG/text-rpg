@@ -5,6 +5,7 @@ import type { Actor, GameEvent, GameState, ItemInstance } from '../types';
 import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import { allActors, zoneById } from '../engine/relations';
+import { fightRenewed } from '../engine/engagement';
 import { healthLevel } from '../ruleset/body';
 import { buildActorView, buildNarrationView, buildPlayerView } from '../views';
 import { toPages } from './pages';
@@ -80,8 +81,8 @@ const RULES: Record<string, (c: Ctx) => string[]> = {
   /** an engagement, or a hunt, that nothing renewed for ENGAGEMENT_END_TURNS turns has ended (BG-5) */
   fight_ends: ({ s }) => allActors(s).flatMap((a) => [
     ...(a.engagement && s.turn - a.engagement.last >= CONFIG.ENGAGEMENT_END_TURNS ? [`${a.id} engagement from turn ${a.engagement.last} still open`] : []),
-    ...Object.entries(a.mind?.knowledge ?? {}).filter(([, b]) => (b.status === 'engaged' || b.status === 'hunting') && b.closedTurn !== undefined && s.turn - b.closedTurn > CONFIG.ENGAGEMENT_END_TURNS)
-      .map(([id, b]) => `${a.id} still ${b.status} ${id} since turn ${b.closedTurn}`),
+    ...Object.entries(a.mind?.knowledge ?? {}).filter(([id, b]) => (b.status === 'engaged' || b.status === 'hunting') && b.closedTurn !== undefined && s.turn - fightRenewed(s, a, id) > CONFIG.ENGAGEMENT_END_TURNS)
+      .map(([id, b]) => `${a.id} still ${b.status} ${id} since turn ${fightRenewed(s, a, id)}`),
   ]),
   /** the load checks hold mid-play too: one player, one current class, slots, grips, worn covers, stacks */
   invariants: ({ s }) => { const r = newReport(); checkInvariants(toPages(s), s.storyId, getLibrary(), r); return r.errors; },

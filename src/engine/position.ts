@@ -252,7 +252,7 @@ export function wayPoint(state: GameState, zoneId: string, to: string, from: Loc
   const z = zoneById(state, zoneId), link = z?.links.find((l) => l.to === to);
   if (!z?.rect || !link) return null;
   const there = zoneById(state, to);
-  return (there?.rect ? doorway(z, there) : null) ?? frontierPoint(z, link.label, spotOf(state, from).pos ?? centre(z)!);
+  return there?.rect ? crossing(z, there).out : frontierPoint(z, link.label, spotOf(state, from).pos ?? centre(z)!); // BG-153: where the walk leaves, as route() has it
 }
 
 export function spotPoint(state: GameState, zoneId: string, spot: MoveSpot, from: Located): { pos: Pos; stopShort: number; toward?: string; words?: string } | null {

@@ -33,11 +33,10 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
 export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: string[] = []): ParserLegality {
   const zones = new Set([view.zone.id, ...view.zone.links.map((l) => l.to), ...view.zones.map((z) => z.id)]);
   const actors = new Set(view.actors.map((a) => a.id));
-  // BG-61: someone the player was just talking with can be spoken to though out of sight (a voice through a barred door)
-  // OA3 (runs 93b, 96b): someone out of sight now can be spoken to on a turn whose move goes to where they were last seen
-  // ("I go back inside and ask Marta ..."): the words are said after the walk, to whoever is really there
-  const goingTo = (l: { zone: string }) => !!intent.move && !intent.move.after && intent.move.toZone === l.zone;
-  const talking = new Set([...actors, ...(view.talkingWith ?? []).map((t) => t.id), ...(view.lastSeen ?? []).filter(goingTo).map((l) => l.id)]);
+  // BG-61: someone the player was just talking with can be spoken to though out of sight (a voice through a barred door);
+  // BG-147: so can anyone the player knows is about (seen or heard earlier), with or without a move to them (OA3: walking
+  // back in to ask them): the words reach whoever really hears them (selectSpokespeople)
+  const talking = new Set([...actors, ...(view.talkingWith ?? []).map((t) => t.id), ...(view.lastSeen ?? []).map((l) => l.id)]);
   const isSpeechType = (t: string) => (SPEECH_ACTIONS as readonly string[]).includes(t);
   const dead = new Set(view.actors.filter((a) => a.health === 'dead').map((a) => a.id));
   const own = view.player.inventory;
@@ -89,7 +88,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
         if (k) a.target = k;
         else illegal.push(`action.time ${a.target}`);
       }
-    } else if (a.target !== null && a.target !== 'player' && !(isSpeechType(a.type) ? talking : actors).has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
+    } else if (a.target !== null && a.target !== 'player' && !(isSpeechType(a.type) || a.type === 'buy' || a.type === 'barter' ? talking : actors).has(a.target) && !zones.has(a.target) && !items.has(a.target) && !seenItems.has(a.target))
       illegal.push(`action.target ${a.target}`);
     // BG-13: the dead can't be fought (the Parser aimed at a slime its view listed as Dead while a live one attacked)
     else if (a.type === 'attack' && a.target && dead.has(a.target)) illegal.push(`action.target_dead ${a.target}`);
@@ -102,7 +101,8 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     else if ((SPEECH_ACTIONS as readonly string[]).includes(a.type)) a.skill = '';
     else if (a.skill && !view.player.skills.some((x) => x.id === a.skill)) illegal.push(`action.skill ${a.skill}`);
     // a buy, or haggling over one, names a ware of the seller it targets (goods:… / service:…), not an item the player can reach
-    const wares = a.type === 'buy' || a.type === 'barter' ? new Set(view.actors.find((x) => x.id === a.target)?.wares?.map((w) => w.id) ?? []) : null;
+    // BG-155: or of a seller known from before, out of clear sight now (lastSeen)
+    const wares = a.type === 'buy' || a.type === 'barter' ? new Set((view.actors.find((x) => x.id === a.target)?.wares ?? view.lastSeen?.find((x) => x.id === a.target)?.wares)?.map((w) => w.id) ?? []) : null;
     // BG-145: a buy names the ware; with one ware it is that one, else the player is asked which (never a refused buy)
     if (a.type === 'buy' && a.item === null && wares) { if (wares.size === 1) a.item = [...wares][0]; else illegal.push(`action.ware ${a.target}`); }
     if (a.item !== null && !(wares ? wares.has(a.item) : items.has(a.item))) illegal.push(`action.item ${a.item}`);

@@ -396,6 +396,7 @@ const DEFAULTS = {
    * 4.5 and fast 6 km/h (D&D's 3.2 / 4.8 / 6.4 km/h, a brisk real walk about 5) */
   TRAVEL_PACE_SHARE: { slow: 0.6, normal: 0.9, fast: 1.2 } as Record<string, number>,
   CATCH_UP_PACE: 'normal' as import('./scales').TravelPaceKey, // NW11: the pace NPCs keep while a turn's time moves them on
+  LONG_TURN_LINES: 5, // BF2e4: a long turn's summary names at most this many people; the rest are "others came and went"
   /** TV8 the noticing roll's modifier by pace: slow notices more, fast less (placeholders) */
   TRAVEL_NOTICE_MOD: { slow: 10, normal: 0, fast: -10 } as Record<string, number>,
   /** TV4 a trip is walked in legs of this many game minutes; each leg on a road rolls for an encounter */

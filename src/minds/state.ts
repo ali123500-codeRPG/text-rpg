@@ -355,8 +355,9 @@ export function searchItems(state: GameState, a: Actor, rng: Rng): { r?: RollRes
 }
 /** SE11: patting someone down needs their consent or force: within grip reach of someone down, asleep, surrendered or
  * held by the searcher */
-export const handsOn = (state: GameState, a: Actor, t: Actor): boolean =>
-  withinGrip(state, a, t) && (!isActive(t) || isAsleep(t) || t.mind?.moraleState === 'surrendered' || t.heldBy === a.id);
+/** SE11: someone who can't stop hands going through their things: down, dead, asleep, yielded, or held by `a` */
+export const openToHands = (a: Actor, t: Actor): boolean => !isActive(t) || isAsleep(t) || t.mind?.moraleState === 'surrendered' || t.heldBy === a.id;
+export const handsOn = (state: GameState, a: Actor, t: Actor): boolean => withinGrip(state, a, t) && openToHands(a, t);
 /** what `a` has found of someone's gear ('item:<instance id>'): the player's journal, an NPC's belief */
 export const revealedTo = (a: Actor, about: string): string[] => (a.kind === 'player' ? a.journal?.revealed : a.mind?.knowledge[about]?.revealed) ?? [];
 /** SE11: searching a person. Hands-on finds all their gear, concealed and stowed, with no roll; anyone else is only looked

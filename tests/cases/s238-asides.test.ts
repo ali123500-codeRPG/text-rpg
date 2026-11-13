@@ -43,7 +43,7 @@ it('238b an attack\'s words stay a bark; in a fight a line beside a deed still n
   expect(quickWord(s, give)).toBe(false); // no Quick Word perk
 });
 
-it('238c walking in to ask someone last seen there is legal; asking them without going there is not', () => {
+it('238c walking in to ask someone last seen there is legal; calling out to them without going is too (BG-147: whoever hears it answers)', () => {
   const s = makeVillage({ playerZone: 'street_door' });
   const view = buildPlayerView(s);
   const wim = actorById(s, 'patron_1')!;
@@ -51,7 +51,7 @@ it('238c walking in to ask someone last seen there is legal; asking them without
   view.actors = view.actors.filter((a) => a.id !== wim.id);
   const ask = (move: { toZone: string } | null) => checkParserLegality(intent({ move, action: { type: 'talk', target: wim.id }, spoken: 'Did you see the ring taken?', addressees: [wim.id] }), view).illegal;
   expect(ask({ toZone: wim.zone })).toEqual([]);
-  expect(ask(null)).toContain(`action.target ${wim.id}`);
+  expect(ask(null)).toEqual([]);
 });
 
 it('238d an aside with a walk: the player walks over first and speaks from there', () => {

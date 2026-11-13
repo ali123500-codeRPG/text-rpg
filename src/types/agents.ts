@@ -25,7 +25,7 @@ export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
 /** lastSeen (BG-125, code-set): near someone the player cannot see now, at the point they last perceived them */
 export type MoveSpot = { near?: string; awayFrom?: string; side?: string; lastSeen?: true };
 export type Intent = {
-  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62, the player goes behind a counter, fence or rail; after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
+  move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62/BG-158, the player crosses a counter, fence or rail (going behind it or coming out); after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
   action: {
     type: ParserActionType;
     skill: string;
