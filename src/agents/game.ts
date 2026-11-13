@@ -318,6 +318,7 @@ export function createGame(deps: GameDeps): Game {
     }
     const ctx = ctxFor(s.turn, turnLog);
     const pv = views.buildPlayerView(s);
+    const doingBefore = doingSnap(pv);
     // NW18: asleep, the turn passes with you doing nothing; nothing you type is read
     const parsed = s.player.asleep || s.mercy ? { clarify: null, intent: ASLEEP_INTENT } // D-239: down, likewise
       : await callParser(text, pv, ctx, { bandIds: pv.actors.map((a) => s.actors.find((x) => x.id === a.id)?.bandId ?? '').filter(Boolean) });
@@ -394,11 +395,11 @@ export function createGame(deps: GameDeps): Game {
     for (const b of checkTurn(s, before, events)) s.log.push({ turn: s.turn, code: 'turn_check', detail: { ...b } });
     aimNext = false;
     yieldNext = false;
-    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
+    await finishTurn(s, events, { playerInput: text, rngBefore, aimed, intent, gearBefore, coinBefore, brokenBefore, partsBefore, doingBefore, ...(ended ? { ended } : {}) }, spokespeople.length ? submitAt : null);
   }
 
   /** save → NarrationView → advance → Narrator → display (shared by every turn and by story start) */
-  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
+  async function finishTurn(s: GameState, events: GameEvent[], rec: { playerInput: string; rngBefore: number; aimed: boolean; intent: Intent | null; gearBefore?: GearSnap; coinBefore?: number; brokenBefore?: boolean; doingBefore?: DoingSnap; partsBefore?: { id: string; state: PartState }[]; ended?: import('../types').ScenarioEnding; opening?: true }, dialogueSubmitAt: number | null): Promise<void> {
     s.events = events;
     // saved with the engine page, so a reloaded story resolves the next turn exactly as continuous play would
     s.recentEvents = pruneRecent(s, [...(s.recentEvents ?? []), ...events]);
@@ -458,7 +459,9 @@ export function createGame(deps: GameDeps): Game {
     // MB12: the player's nerve broke this turn, or an attack was refused because it is broken (shown again after a reload)
     const nerveBroke = rec.brokenBefore === false && moraleLevel(s.player) === 'broken';
     const nerveRefused = events.some((e) => e.actorId === s.player.id && e.kind === 'wasted' && e.reason === 'nerve_broken');
-    const where = { ...(gear.length ? { gear } : {}), ...(coin ? { coin } : {}), ...(nerveBroke ? { nerveBroke: true as const } : {}), ...(nerveRefused ? { nerveRefused: true as const } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
+    // AT11a: the long actions the player saw: going on (seconds to go), finished, broken off or set aside
+    const actions = rec.doingBefore ? actionNotes(s, rec.doingBefore, doingSnap(views.buildPlayerView(s))) : [];
+    const where = { ...(gear.length ? { gear } : {}), ...(coin ? { coin } : {}), ...(actions.length ? { actions } : {}), ...(nerveBroke ? { nerveBroke: true as const } : {}), ...(nerveRefused ? { nerveRefused: true as const } : {}), ...(ways.length ? { ways } : {}), ...(wounds.length ? { wounds } : {}), place: { id: s.player.placeId, name: placeName(s), ...zoneOf(s) }, scenario: s.stage.scenarioNumber };
     advance();
     const narr = await callNarrator(nv, ctxFor(turn, narrLog), leak);
     if (dialogueSubmitAt !== null) await clock.sleep(dialogueSubmitAt + CONFIG.DIALOGUE_WINDOW_MS - clock.now());
@@ -879,6 +882,30 @@ export function worldIds(s: GameState): Set<string> {
 
 /** names the Voice's line is checked against (allowed only where its own view holds them) */
 /** how the player sees an actor: its name if known, else its label, plus the zone when labels repeat */
+/** AT11a: the long actions the player perceives, keyed by actor id: the player's own, and every fully seen actor's */
+export type DoingSnap = Map<string, { who: string; doing?: import('../types').DoingView }>;
+export function doingSnap(pv: ReturnType<typeof views.buildPlayerView>): DoingSnap {
+  const m: DoingSnap = new Map([['player', { who: 'You', ...(pv.player.doing ? { doing: pv.player.doing } : {}) }]]);
+  for (const a of pv.actors) if (a.level === 'full') m.set(a.id, { who: (a.name ?? a.label).replace(/^./, (c) => c.toUpperCase()), ...(a.doing ? { doing: a.doing } : {}) });
+  return m;
+}
+/** AT11a: before and after the turn, as the player saw them. An action seen going on before ends as broken (busy_broken this
+ * turn), set aside (busy_set_aside) or done; one whose actor is out of full sight after the turn is left out (no leak). */
+export function actionNotes(s: GameState, before: DoingSnap, after: DoingSnap): import('../types').ActionNote[] {
+  const out: import('../types').ActionNote[] = [];
+  const ended = (id: string, code: string) => s.log.some((l) => l.turn === s.turn && l.code === code && l.detail?.actorId === id);
+  for (const [id, b] of before) {
+    if (!b.doing) continue;
+    const a = after.get(id);
+    if (!a) continue;
+    if (a.doing && a.doing.what === b.doing.what) { out.push({ who: a.who, ...a.doing, state: 'going' }); continue; }
+    const state = ended(id, 'busy_broken') ? 'broken' : ended(id, 'busy_set_aside') ? 'stopped' : 'done';
+    out.push({ who: a.who, what: b.doing.what, done: state === 'done' ? b.doing.done + b.doing.left : b.doing.done, left: state === 'done' ? 0 : b.doing.left, state });
+  }
+  for (const [id, a] of after) if (a.doing && before.get(id)?.doing?.what !== a.doing.what) out.push({ who: a.who, ...a.doing, state: 'going' });
+  return out.sort((x, y) => Number(y.who === 'You') - Number(x.who === 'You'));
+}
+
 function seenName(pv: ReturnType<typeof views.buildPlayerView>, id: string): string {
   const a = pv.actors.find((x) => x.id === id)!;
   const base = a.name ?? a.label;

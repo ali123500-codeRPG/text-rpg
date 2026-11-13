@@ -13,6 +13,7 @@ import { tierMult } from './gear';
 import { skillName } from '../library/skillNames';
 import { groupName } from '../library/functionNames';
 import { SK } from '../library/skillIds';
+import { FN } from '../library/functionIds';
 import { PK } from '../library/perkIds';
 import { FR } from '../library/tableIds';
 
@@ -118,10 +119,17 @@ export function equations(lib: Library): EquationGroup[] {
         table: { head: ['Tier', 'Margin'], rows: bandRows(MARGIN_BANDS) },
         notes: ['It reads the same tier table as a skill roll. The natural edge applies here too. There are no tier shifts.', `The tier stops at Critical Success and Critical Failure unless perks or achievements open tiers past them (tierUnlocks, added up along a chain). Each tier opened above widens the natural critical range by ${CONFIG.EVENT_CRIT_NATURALS} (CONFIG.EVENT_CRIT_NATURALS): with one opened, d100 ${101 - CONFIG.EVENT_CRIT_NATURALS}–100 is Critical Success+ and ${101 - 2 * CONFIG.EVENT_CRIT_NATURALS}–${100 - CONFIG.EVENT_CRIT_NATURALS} Critical Success; with two, the next ${CONFIG.EVENT_CRIT_NATURALS} below that is Critical Success too and the top tier is ++. Tiers opened below work the same from 01 up.`, 'Threadbound perks (D-218) widen it both ways without moving its middle: eventEdges shifts that many naturals just inside each critical range a tier outward; eventSpread counts the die that many times as far from 50.5 (modifiers unchanged); an armed active rolls two dice and keeps the one farther from 50.5, or makes 51–100 Critical Success and 01–50 Critical Failure.'] },
       { name: 'Picking a lock', at: 'doPick · src/engine/resolve.ts; pickSeconds · src/ruleset/index.ts',
-        formula: `a Lockpicking function roll (Thievery; lockpicks in use add theirs) + the lock's grade; time = ${n(pickSeconds(50))} s (the Action times pick_lock row) × 2^((50 − effective) ÷ ${n(CONFIG.PICK_HALVING_PER)})`,
-        terms: [['grade', GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ')], ['effective', `the picker's effective Thievery with its tools${CONFIG.PICK_FAST_CAP === null ? '' : `, counted at most ${CONFIG.PICK_FAST_CAP} for the time (perks carry it further)`}`]],
+        formula: `a Lockpicking function roll (Lockpicking, or Filching at ${n(CONFIG.SUBSTITUTES[FN.lockpicking][0].k)}; lockpicks in use add theirs) + the lock's grade; time = ${n(pickSeconds(50))} s (the Action times pick_lock row) × 2^((50 − effective) ÷ ${n(CONFIG.PICK_HALVING_PER)})`,
+        terms: [['grade', GRADES.map((k) => `${GRADE_LEVELS.name(k)} ${sg(CONFIG.LOCK_GRADE_MOD[k])}`).join(' · ')], ['effective', `the picker's effective Lockpicking with its tools${CONFIG.PICK_FAST_CAP === null ? '' : `, counted at most ${CONFIG.PICK_FAST_CAP} for the time (perks carry it further)`}`]],
         table: { head: ['Effective skill', 'Time'], rows: [25, 50, 75, 100, 150, 200].map((k) => [String(k), `${n(pickSeconds(k))} s`]) },
         notes: ['Success opens it once the time is done: out of a fight the time passes at once; in a fight each turn at it adds a fight turn of work. Near Miss: not yet, keep going. Failure: the lock is beyond the picker until its effective skill is higher than at that try. Critical Failure: the pick snaps and the lockpicks used are lost. Picking is a whisper (hushed).'] },
+      { name: 'Filching', at: 'filchContest · src/engine/filch.ts',
+        formula: `gap = tier of (each watcher's Sight or Hearing roll + attention + size) − tier of (one Filching roll F)`,
+        terms: [['F', `one Filching function roll per try (Filching, or Lockpicking at ${n(CONFIG.SUBSTITUTES[FN.filching][0].k)})`],
+          ['attention', Object.entries(CONFIG.FILCH_ATTENTION).filter(([k]) => k !== 'asleep').map(([k, v]) => `${k} ${sg(v)}`).join(' · ')],
+          ['size', CONFIG.FILCH_SIZE.map((v, b) => `bulk ${b} ${b > CONFIG.FILCH_MAX_BULK ? 'closed' : sg(v)}`).join(' · ')]],
+        notes: ['Sight: everyone who sees the act at its visibility level. Hearing: the act sounds ' + CONFIG.FILCH_NOISE + ', one level louder per tier F falls below Near Miss, heard by the usual hearing math.',
+          'gap above 0 and the act made out clearly: caught. Above 0 but only glimpsed or heard partly, or 0: suspicious. Below 0: nothing. The worst result decides: caught, nothing taken; suspicious, nothing taken and the owner suspicious; else taken unseen.'] },
       { name: 'Stacking within a type', at: 'stackType · modTotal · src/ruleset/index.ts',
         formula: `type total = biggest + ${n(CONFIG.STACK_RATIO)} × next + ${n(CONFIG.STACK_RATIO ** 2)} × next …, bonuses and penalties apart; types add in full`,
         notes: [`Example: ${STACK_EX.length} × ${sg(STACK_EX[0])} of one type → ${n(stackType(STACK_EX))}.`] },

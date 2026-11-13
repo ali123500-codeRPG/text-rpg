@@ -45,8 +45,8 @@ const giveKey = (s: GameState, b: Barrier, who = s.player) => who.core.inventory
 describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
   it('BA2: Thievery holds the Lockpicking function, and lockpicks help it', () => {
     const s = quiet();
-    s.player.core.skills[SK.thievery] = { raw: 40, state: 'normal' };
-    expect(fnRoller(s, s.player, FN.lockpicking)).toBe(SK.thievery);
+    s.player.core.skills[SK.lockpicking] = { raw: 40, state: 'normal' };
+    expect(fnRoller(s, s.player, FN.lockpicking)).toBe(SK.lockpicking);
     expect(pickSeconds(50)).toBe(60);
     expect(pickSeconds(75)).toBe(30);
     expect(pickSeconds(25)).toBe(120);
@@ -199,7 +199,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
     // alone, so the turn's only other d100 is the player's initiative
     const setup = (grade: Barrier['grade'] = 'minor') => {
       const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1', 'patron_1', 'trader'] });
-      s.player.core.skills[SK.thievery] = { raw: 50, state: 'normal' };
+      s.player.core.skills[SK.lockpicking] = { raw: 50, state: 'normal' };
       const b = put(s, 'tav_common', 'street_door', { grade, lock: { locked: true } });
       return { s, b };
     };
@@ -218,7 +218,7 @@ describe('189 barriers on ways (SD3–SD5, BA2–BA8)', () => {
       expect(turn(s, pick('street_door'), d(12)).find((e) => e.kind === 'pick')!.way!.did).toBe('beyond');
       expect(b.beyond?.player).toBeDefined();
       expect(turn(s, pick('street_door'), d(99)).find((e) => e.kind === 'pick')!.way!.did).toBe('beyond'); // no roll
-      s.player.core.skills[SK.thievery] = { raw: 60, state: 'normal' };
+      s.player.core.skills[SK.lockpicking] = { raw: 60, state: 'normal' };
       expect(turn(s, pick('street_door'), d(95)).find((e) => e.kind === 'pick')!.way!.did).toBe('picked');
       expect(b.lock!.locked).toBe(false);
     });

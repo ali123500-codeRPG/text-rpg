@@ -8,9 +8,9 @@ import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
-import { parryItem } from '../ruleset/gear';
+import { parryItem, rollFnSkills } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
 import { busyNow } from './busy';
@@ -40,7 +40,8 @@ import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
-import { findContainer, openContainer, theft } from './containers';
+import { contentsOf, findContainer, guarded, openContainer, ownerOf, theft, wornPack } from './containers';
+import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName } from '../words';
@@ -65,7 +66,7 @@ import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, w
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
-  way: ['quiet', 'normal'], pick: ['hushed', 'low'], stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
+  way: ['quiet', 'normal'], pick: ['hushed', 'low'], filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts) stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'restrain', 'pick_up']);
@@ -290,8 +291,8 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   if (ev.actorId === state.player.id && isMajorAction(ev)) detectPlayer(state, ev, rng);
   else if (isMajorAction(ev) && actorById(state, ev.actorId)?.posture === 'stealthy') {
     stealthDetect(state, ev, rng); // NS2
-    // BG-64: whoever just spotted the stealthy actor perceives the very deed they spotted it by
-    for (const [id, p] of Object.entries(computePerception(ev, state, rng))) ev.perception[id] ??= p;
+    // BG-64: whoever just spotted the stealthy actor perceives the very deed they spotted it by (a filch has its own contest)
+    if (ev.kind !== 'filch') for (const [id, p] of Object.entries(computePerception(ev, state, rng))) ev.perception[id] ??= p;
   }
   if (ev.kind === 'attack' && ev.target && !ev.spar) setAttackOverrides(state, ev); // SP1: a sparring blow changes no stance
   ctx.events.push(ev);
@@ -1026,7 +1027,7 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = fal
   return true;
 }
 
-/** BA2: picking the lock on the way to o.target: a Lockpicking function roll (Thievery; lockpicks help) at the lock's
+/** BA2: picking the lock on the way to o.target: a Lockpicking function roll (the Lockpicking skill, Filching standing in at 0.3; lockpicks help) at the lock's
  * grade. Success opens it once the picking time is done: out of a fight that time passes at once; in a fight each turn at
  * it adds a fight turn of work (busy until it opens). Near Miss: not yet, keep going. Failure: beyond the picker until its
  * skill or tools get better. Critical Failure: the pick snaps (the lockpicks used are lost). Quiet: a whisper. */
@@ -1036,17 +1037,18 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   const c = findContainer(state, o.target);
   if (c) c.inst.grade ??= 'minor';
   const b = (c?.inst ?? barrierTo(state, a, o.target)) as Pick<Barrier, 'id' | 'grade' | 'lock' | 'beyond' | 'work'> | undefined;
-  if (c && theft(state, a, c)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'theft' }), o));
   if (!b?.lock?.locked) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: b?.lock ? 'not_locked' : 'no_lock' }), o));
   if (c ? !withinGrip(state, a, c.at) : !atDoor(state, a, o.target)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   const to = o.target!;
+  // CT4: picking the lock of a container its owner guards is filching: caught or fumbled, the picking stops there
+  if (c && theft(state, a, c) && !filchStep(ctx, a, o, ownerOf(state, c), c.at, c.inst)) return;
   const way = (did: WayDid, extra: Partial<GameEvent> = {}) => bark(mk(ctx, a, 'pick', { target: to, way: { to, ...(c ? {} : { barrier: b.id }), did }, ...(c ? { itemId: to } : {}), ...extra }), o);
   const skill = fnRoller(state, a, FN.lockpicking);
   const tool = pickTool(state, a, skill).itemId ?? undefined;
-  const eff = effectiveSkill(state, a, skill, { itemId: tool }).value;
+  const eff = effectiveSkill(state, a, FN.lockpicking, { itemId: tool, fullValue: rollFnSkills(a, FN.lockpicking) }).value; // FL1: Filching stands in at its share
   if (b.beyond?.[a.id] !== undefined && eff <= b.beyond[a.id]) return emit(ctx, way('beyond'));
   const modifiers: Mod[] = CONFIG.LOCK_GRADE_MOD[b.grade] ? [{ source: 'lock', type: 'situational', value: CONFIG.LOCK_GRADE_MOD[b.grade] }] : [];
-  const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], fn: FN.lockpicking, ...(tool ? { itemId: tool } : {}) }, state, rng);
+  const r = ruleset.roll({ actorId: a.id, skill: FN.lockpicking, modifiers, tierShifts: [], fn: FN.lockpicking, ...(tool ? { itemId: tool } : {}) }, state, rng);
   ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY[b.grade] ?? CONFIG.DIFFICULTY.moderate, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
   const extra = { roll: r, tier: r.tier };
   if (r.tier === 'critical_failure') {
@@ -1072,12 +1074,68 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
 }
 
 /** CT3: opening a container within grip reach is the turn's action: it stands open and its contents show. Locked, the
- * key turns if they carry it (else they find it locked); one its owner guards is theft, which waits for Filching (CT4). */
+ * key turns if they carry it (else they find it locked). CT4: one its owner guards is opened by filching: a Filching
+ * contest against everyone who could notice (src/engine/filch.ts); caught or fumbled, it stays shut. CT5: a worn pack
+ * its wearer guards is never opened (theft): a hand goes into it by filching. */
 function doOpen(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const c = findContainer(state, o.target);
-  const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : openContainer(state, a, c);
+  // CT5: a pack its wearer guards is never opened, only reached into (filch)
+  if (c && withinGrip(state, a, c.at) && theft(state, a, c) && !(c.holder && wornPack(c.inst)) && !filchStep(ctx, a, o, ownerOf(state, c), c.at, c.inst)) return;
+  const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : openContainer(state, a, c, !(c.holder && wornPack(c.inst)));
   emit(ctx, bark(mk(ctx, a, why ? 'wasted' : 'open', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), ...(why ? { reason: why } : {}) }), o));
+}
+
+/** CT4/FL4: a guarded container opened or picked under watch: the Filching contest, with the container's size. Caught or
+ * fumbled: the filch event says so and the try stops (false); unnoticed: it goes on (true). */
+function filchStep(ctx: Ctx, a: Actor, o: Order, owner: Actor | undefined, at: Located, inst: ItemInstance): boolean {
+  const f = filchContest(ctx.state, a, owner, at, 0, ctx.rng, recentAround(ctx));
+  if (f.outcome === 'taken') return true;
+  filchAftermath(ctx.state, a, owner, itemDef(ctx.state, inst.itemId).name, f);
+  emitFilch(ctx, a, o, owner, inst, f);
+  return false;
+}
+const recentAround = (ctx: Ctx): GameEvent[] => [...(ctx.state.recentEvents ?? []), ...ctx.state.events, ...ctx.events];
+function emitFilch(ctx: Ctx, a: Actor, o: Order, owner: Actor | undefined, inst: ItemInstance, f: Filched, qty?: number): void {
+  const ev = mk(ctx, a, 'filch', { ...(owner ? { target: owner.id } : {}), itemId: inst.id, ...(qty ? { qty } : {}), tier: f.roll.tier, roll: f.roll, filch: f.outcome });
+  ev.noise = f.noise;
+  ev.visibility = CONFIG.FILCH_VISIBILITY;
+  ev.perception = f.perception;
+  emit(ctx, bark(ev, o), undefined, true);
+}
+
+/** FL1–FL7: filching one item from someone (o.target an actor) or an owned container (o.target the container), o.item
+ * the item (an instance id, or a library id for the first of that kind; null: whatever comes to hand). Within grip
+ * reach, not held or worn, no bigger than FILCH_MAX_BULK. From someone down, yielded or not watching over it, it is just
+ * taken; otherwise the Filching contest decides (src/engine/filch.ts). */
+function doFilch(ctx: Ctx, a: Actor, o: Order): void {
+  const { state } = ctx;
+  const wasted = (reason: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), reason }), o));
+  const t = o.target ? actorById(state, o.target) : allActors(state).find((x) => x !== a && x.core.inventory.some((i) => i.id === o.item));
+  const c = t ? null : findContainer(state, o.target);
+  const holder = t ?? (c?.holder && wornPack(c.inst) ? c.holder : undefined);
+  if ((!t && !c) || t === a) return wasted('no_one_to_filch_from');
+  const at: Located = t ?? c!.at, owner = t ?? ownerOf(state, c!);
+  const list = holder ? holder.core.inventory : c!.inst.contents ?? (c!.inst.contents = []);
+  const pool = holder ? filchable(state, holder) : contentsOf(c!).filter((i) => filchSize(itemDef(state, i.itemId).bulk) !== null);
+  const want = o.item?.replace(/^goods:/, '');
+  const named = want ? list.find((i) => i.id === want) ?? list.find((i) => i.itemId === want && pool.includes(i)) ?? list.find((i) => i.itemId === want) : undefined;
+  if (want && !named) return wasted('no_item');
+  if (named && named.equippedIn?.length) return wasted('worn');
+  if (named && !pool.includes(named)) return wasted('too_big');
+  if (!pool.length) return wasted('nothing_to_filch');
+  if (!withinGrip(state, a, at)) return wasted('out_of_reach');
+  const inst = named ?? pool[ctx.rng.int(0, pool.length - 1)];
+  const watched = guarded(state, a, owner);
+  const f = watched ? filchContest(state, a, owner, at, itemDef(state, inst.itemId).bulk, ctx.rng, recentAround(ctx)) : null;
+  if (f && f.outcome !== 'taken') {
+    filchAftermath(state, a, owner, itemDef(state, inst.itemId).name, f);
+    return emitFilch(ctx, a, o, owner, inst, f);
+  }
+  const before = inst.qty;
+  const got = takeFilched(state, a, list, inst, watched ? owner?.id : undefined);
+  if (!f) return emit(ctx, bark(mk(ctx, a, 'filch', { ...(owner ? { target: owner.id } : {}), itemId: got.id, ...(got.qty ? { qty: got.qty } : {}), filch: 'taken' }), o));
+  emitFilch(ctx, a, o, owner, got, f, before !== undefined ? got.qty : undefined);
 }
 
 function doMain(ctx: Ctx, a: Actor, o: Order): void {
@@ -1095,6 +1153,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doRest(ctx, a, o);
     case 'pick':
       return doPick(ctx, a, o);
+    case 'filch':
+      return doFilch(ctx, a, o);
     case 'search':
       return doSearch(ctx, a, o);
     case 'stash':
@@ -1416,7 +1476,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }
   if (o.type === 'search' && t && t !== a && openToHands(a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
-  if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5) or tending (BF13): the user's
+  if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' || o.type === 'filch' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5), tending (BF13) or a filch (FL2): the user's
   const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
   for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p); }
