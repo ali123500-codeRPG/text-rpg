@@ -19,7 +19,7 @@ import type { Actor, RollResult } from '../../src/types';
 const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
 const ROUND_2 = ['src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/engine/merge.ts', 'src/ui/perks.ts'];
 const SCANNED = [...ROUND_1, ...ROUND_2];
-// files whose GAP notes Ali has settled (round 1: CS2)
+// files whose GAP notes are settled into the spec (round 1: CS2)
 const GAPS_SETTLED = ROUND_1;
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
