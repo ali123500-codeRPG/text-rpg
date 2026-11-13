@@ -283,6 +283,7 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
       const names = (f.data.items as string[]).map((id) => itemName(state, id) ?? 'something').join(', ');
       out.push(f.data.on ? `${by} finds ${names} on ${who}` : `${who} finds ${names} hidden here`);
     }
+    if (f.kind === 'found_nothing') out.push(!f.data.on ? `${by} finds nothing here` : f.data.held ? `${by} finds nothing on ${who}` : `${by} sees nothing on ${who}; going through their things needs a hold on them`); // BG-142
     if (f.kind === 'disturbed') out.push(`${who} notices something here has been moved`); // SE8: a search that tied a hidden item
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);

@@ -23,7 +23,7 @@ import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, 
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, handsOn, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
@@ -794,7 +794,9 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const ev = bark(withActivity(ctx, a, mk(ctx, a, 'search', { target: o.target ?? undefined }), o.activity), o);
   const t = o.target ? actorById(state, o.target) : undefined;
+  const logAt = state.log.length;
   const won = searchFor(state, a, ev, rng, t ? { only: t.id } : {});
+  const tied = state.log.slice(logAt).some((l) => l.code === 'search_contest' && l.detail?.gap === 0); // a 'someone' half found
   if (won.length) ev.contest = won[0].r;
   ev.effects.push(...foundEffects(a, won));
   // SE8/SE11: hidden things: on a person seen, their gear; else the ground in reach
@@ -804,6 +806,8 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
     ev.effects.push({ kind: 'found_items', actorId: t?.id ?? a.id, data: { by: a.id, items: items.found.map((i) => i.id), ...(t ? { on: true } : {}) } });
   }
   if (items.hint) ev.effects.push({ kind: 'disturbed', actorId: a.id, data: {} });
+  // BG-142: a search always ends in an outcome; nothing found reads the same whether nothing was there or it was missed (SE6)
+  if (!ev.effects.length && !tied) ev.effects.push({ kind: 'found_nothing', actorId: t?.id ?? a.id, data: { by: a.id, ...(t ? { on: true, held: handsOn(state, a, t) } : {}) } });
   emit(ctx, ev);
 }
 
@@ -828,6 +832,9 @@ function doStash(ctx: Ctx, a: Actor, o: Order): void {
 const barrierTo = (state: GameState, a: Actor, to: string | null | undefined): Barrier | undefined =>
   to ? barrierOn(state, zoneById(state, a.zone)?.links.find((l) => l.to === to)) : undefined;
 
+/** BG-144: why a way op came to nothing, in the words a wasted event carries */
+const WAY_DROP_WORDS: Record<string, string> = { no_move: 'no_time_left', no_barrier: 'nothing_to_work', no_bar: 'nothing_to_work', no_lock: 'nothing_to_work', already: 'already_done', far_side: 'from_the_wrong_side', no_key: 'no_key' };
+
 /** BA3/BA4: a key turned or a bar slid on purpose, in the move slot (o.way); it stands in for the turn's move. `mainToo`:
  * with the move slot gone on the walk to the door (BG-86), the free main action does it */
 function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = false): boolean {
@@ -843,7 +850,11 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = fal
     return true;
   }
   const why = dryWhy ?? (!useMoveSlot(ctx, a, mainToo) ? 'no_move' : wayOp(b!, a, a.zone, w.op));
-  if (why || !b) { logCode(state, 'way_op_dropped', { actorId: a.id, to: w.toZone, op: w.op, reason: why }); return false; }
+  if (why || !b) {
+    logCode(state, 'way_op_dropped', { actorId: a.id, to: w.toZone, op: w.op, reason: why });
+    emit(ctx, mk(ctx, a, 'wasted', { target: w.toZone, reason: WAY_DROP_WORDS[why ?? ''] ?? why ?? 'nothing_to_work' })); // BG-144: told, not silent
+    return false;
+  }
   emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: w.op } }));
   return true;
 }
@@ -1022,7 +1033,10 @@ function step(ctx: Ctx, id: string): void {
     const walked = closeIn && !near!.ok();
     closer();
     if (near!.ok()) turned = doWayOp(ctx, a, o.way, o.type === 'hold');
-    else logCode(state, 'way_op_dropped', { actorId: id, to: o.way.toZone, op: o.way.op, reason: 'out_of_reach' });
+    else { // BG-144: the walk did not reach the way, so the op comes to nothing this turn, and the story says why
+      logCode(state, 'way_op_dropped', { actorId: id, to: o.way.toZone, op: o.way.op, reason: 'out_of_reach' });
+      emit(ctx, mk(ctx, a, 'wasted', { target: o.way.toZone, reason: 'out_of_reach' }));
+    }
     turned ||= walked;
   }
   if (!turned && !o.moveAfter) move(o.type === 'hold');

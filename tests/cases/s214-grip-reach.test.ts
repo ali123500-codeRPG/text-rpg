@@ -48,9 +48,10 @@ it('BG-86: a door out of reach is walked to on the move slot and opened with the
   s.player.pos = { x: dp.pos.x + (zoneById(s, 'tav_common')!.rect!.x - dp.pos.x) * 0.8, y: dp.pos.y + (zoneById(s, 'tav_common')!.rect!.y - dp.pos.y) * 0.8 };
   expect(withinGrip(s, s.player, dp)).toBe(false);
   // busy with something else: the walk to the door takes the move, the door waits for the next turn
-  play(s, { intent: intent({ way: { toZone: 'street_door', op: 'open' }, action: { type: 'observe', target: null } }) });
+  const told = play(s, { intent: intent({ way: { toZone: 'street_door', op: 'open' }, action: { type: 'observe', target: null } }) });
   expect(b.open).toBeUndefined();
   expect(s.log.some((l) => l.code === 'way_op_dropped')).toBe(true); // at the door now, with no slot left for it
+  expect(told).toContainEqual(expect.objectContaining({ kind: 'wasted', actorId: s.player.id, reason: 'no_time_left' })); // BG-144: told, not silent
   expect(withinGrip(s, s.player, dp)).toBe(true);
   play(s, { intent: intent({ way: { toZone: 'street_door', op: 'open' } }) });
   expect(b.open).toBe(true);
