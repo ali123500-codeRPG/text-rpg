@@ -106,7 +106,7 @@ Only three sources may modify the roll, each its own modifier type: perks, gear 
 | 25–49 | Near Miss (−1) | A fair event tilted slightly against the player: gain one step below the challenge (ER2) |
 | 50–74 | Success (0) | A normal event, gain matched to challenge |
 | 75–124 | Great Success (1) | Good fortune: gain major, challenge none to moderate, a windfall or a chance worth taking (ER1) |
-| 125+ | Critical Success (2) | The best of luck: gain extreme, challenge none to major (ER1) |
+| 125+ | Critical Success (2) | The best of luck: gain extreme, challenge major or extreme, the same as Critical Failure (D-247) |
 
 **Natural edges** apply after the bands: a natural 01–05 drops one tier and 96–100 raises one tier (CONFIG.NATURAL\_EDGE, 5 at each end); no natural roll moves two tiers (Ali, 12/11/2026: the old 01 −2 and 00 +2 are gone). The result stops at Critical Success and Critical Failure unless the player has opened tiers past them (`tierUnlocks` on perks and achievements, D-211). Each opened tier widens the natural critical range by EVENT\_CRIT\_NATURALS (5): with one opened above, 96–100 is Critical Success+ and 91–95 Critical Success; failures mirror from 01. The Weaver is told the tier with its plus or minus signs.
 
@@ -1291,9 +1291,12 @@ grade = none | minor | moderate | major | extreme
 | --- | --- | --- |
 | Critical Failure | Major or extreme | None or minor |
 | Failure | Moderate or higher | None or minor |
-| Near Miss, Success | Minor to major | Within one step of challenge |
-| Great Success | At least major | Major |
-| Critical Success | Extreme | Extreme |
+| Near Miss | Minor to major | One step below challenge, none to moderate |
+| Success | Minor to major | Within one step of challenge |
+| Great Success | None to moderate | Major |
+| Critical Success | Major or extreme, the same as Critical Failure | Extreme |
+
+A Critical Success is as dangerous as a Critical Failure (D-247): what sets it apart is the opportunity inside the danger, not a milder danger.
 
 Grades are hidden-side and never reach Agent Narrator. A computed cross-check (cast and rewards against the declared grades) is a stub that passes for the cast; rewards are held to the gain's Boon budget (Part 5 §7, loot V8).
 
@@ -3124,6 +3127,7 @@ These can wait until after the first build. Each item has a fixed ID (D-n) that 
 | D-242 | Being taught by a master | 3 | Parked | Ali (13/11/2026, OE12). Today a skill learns only from opposition near its own level or from a tie, so someone far above the player cannot teach, and no service or action lets anyone teach. To design with the growth work. Options: a a lesson gives one improvement roll on one skill, outside the learning window; b a lesson is a service row paid in coin or a favour; c a teacher at the player's side raises the top of the learning window. Scaling: option a stops mattering near 100, where improvement rolls stop passing; past 100 a lesson would have to grant a perk, an achievement or gear. |
 | D-243 | Hall of fame echoes learn and grow | 1, 2 | Parked | Ali (13/11/2026, HF7 a): an NPC sent from the Hall of fame stays exactly as it was sent: no skill marks, gains, XP, achievements or scars. Ali: "One day we will be able to have NPC learn and grow, but that day is not today." **Options.** a frozen for good (echoes from the afterlife cannot train); b they grow by the player's rules, and what they earn in a world is written back to the universe layer when that world's story ends; c they grow inside one world only and reset in the next. Waits on NPC earning (D-148). |
 | D-244 | Lore of the Hall of fame echoes | 5 | Parked | Ali (13/11/2026, HF1, HF5): the world is a disjointed mix of different times and universes; NPCs sent from the Hall of fame are something like echoes from the afterlife, which is why they cannot train and all their gear is soulbound to them. The full lore is decided later. **Options.** a hand it to the lore thread once the echoes are built; b write it with the build. |
+| D-247 | Critical Success is as dangerous as Critical Failure | 2 | Built | Ali (13/11/2026): "critical success should have the same challenge grade to critical failures. We need to differentiate critical success through the opportunity in the danger, not the degree of danger." The Critical Success challenge range reads the Critical Failure range (major or extreme, one shared value); its gain stays extreme. Replaces ER1's none to major. Great Success is unchanged (challenge none to moderate). A simulated duel at skill 50 against a foe at the grade's check target: the player goes down 87% of the time at major and 98% at extreme. |
 
 ## Bug log
 
