@@ -26,6 +26,7 @@ import { coins, coinWords } from '../engine/trade';
 import { gripParts } from '../engine/gear';
 import { countWords } from '../engine/trade';
 import { iconName, itemIcon, ICONS, type IconName } from './itemIcons';
+import { cap } from '../words';
 
 type Spec = {
   title: string; intro: string; noun: [string, string]; cols: Col[]; empty: string;
@@ -52,7 +53,7 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
 
   function update() {
     const s = api.state();
-    if (!s) { el.replaceChildren(h('h1', {}, spec.title), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
+    if (!s) { el.replaceChildren(h('h1', {}, spec.title), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const all = spec.groups(s);
     const tileOf = spec.tileOf;
     const shown = tileOf ? all.map((g) => ({ ...g, rows: g.rows.filter((r) => visPass(tileOf(s, r), picks)) })).filter((g) => g.rows.length) : all.filter((g) => visPass(g.id, picks));
@@ -96,7 +97,7 @@ export function characterPage(api: GameApi) {
   const perks = perksSection(api);
   function update() {
     const s = api.state();
-    if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
+    if (!s) { el.replaceChildren(h('h1', {}, 'Character'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Character'), h('p', {}, 'Who you are and what you can do. Same as /stats.'))),
       h('div', { class: 'cs-split' }, charCard(s, s.player), treeBars(s, s.player)),
@@ -164,7 +165,6 @@ function threadboundRows(s: GameState, it: { boundTo?: string }, tb: NonNullable
 // Hovering or focusing an item shows its exact stats; Equip and Unequip send the same words the player could type,
 // so the turn rules hold (drawing and putting away are free, armor on or off is the turn's action).
 type InvItem = GameState['player']['core']['inventory'][number];
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
 /** the words an Equip or Unequip button sends; null: the item can't be equipped */
 export function gearWords(s: GameState, it: InvItem): { label: string; text: string } | null {
@@ -490,7 +490,7 @@ export function journalPage(api: GameApi) {
   const field = (title: string) => (row: TRow, key: string) => openPanel(title, Object.entries(row.cells).map(([k, v]) => ({ k, v, edit: k === key })), 'Written by the game as you play, so it is read-only here.');
   function update() {
     const s = api.state();
-    if (!s) { el.replaceChildren(h('h1', {}, 'Journal'), h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.')); return; }
+    if (!s) { el.replaceChildren(h('h1', {}, 'Journal'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); return; }
     const people = journalPeople(s), places = journalPlaces(s);
     const pGroups: TGroup[] = ['In view', 'Not in view'].map((g) => ({ id: 'p-' + g, title: g,
       rows: people.filter((p) => p.where.startsWith(g)).map((p, i) => ({ id: p.id, sortKey: i, cells: { name: p.name, label: p.label, where: p.where, health: p.health } })),

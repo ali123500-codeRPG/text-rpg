@@ -68,11 +68,9 @@ export function modTotal(mods: { type: string; value: number }[]): number {
   return [...byType.values()].reduce((s, vs) => s + stackType(vs), 0);
 }
 
-/** Layer 2b margin bands: the lowest margin for each tier above the worst */
-export const MARGIN_BANDS = [-75, -25, 0, 25, 75];
 /** the tier level a margin reaches */
 export function band(margin: number): number {
-  return MARGIN_BANDS.filter((t) => margin >= t).length;
+  return CONFIG.MARGIN_BANDS.filter((t) => margin >= t).length;
 }
 type Reach = { up: number; down: number };
 const NO_REACH: Reach = { up: 0, down: 0 };
@@ -80,7 +78,7 @@ const NO_REACH: Reach = { up: 0, down: 0 };
  * a band CONFIG.TIER_EXTRA_BAND wider past the end of MARGIN_BANDS: Critical Success+ from margin 75 + 50, Critical
  * Failure− below −75 − 50. Without an unlock a roll reads the table as before. */
 export function extraBands(margin: number, reach: Reach): number {
-  const top = MARGIN_BANDS[MARGIN_BANDS.length - 1], bottom = MARGIN_BANDS[0];
+  const top = CONFIG.MARGIN_BANDS[CONFIG.MARGIN_BANDS.length - 1], bottom = CONFIG.MARGIN_BANDS[0];
   let n = 0;
   for (let k = 1; k <= reach.up; k++) if (margin >= top + CONFIG.TIER_EXTRA_BAND * k) n++;
   for (let k = 1; k <= reach.down; k++) if (margin < bottom - CONFIG.TIER_EXTRA_BAND * k) n--;
@@ -173,12 +171,17 @@ function check(req: CheckRequest, state: GameState, _rng: Rng): CheckResult {
   return { actorId: actor.id, skill: eff.skill, ...(eff.skill !== req.skill ? { asked: req.skill } : {}), target, passed, modifiers: req.modifiers };
 }
 
+/** two rolls as a contest: the gap is b's tier level minus a's; the acting side (a) wins below 0 (Part 1 §4 Contests) */
+export const toContest = (a: RollResult, b: RollResult): ContestResult => {
+  const gap = tierLevel(b) - tierLevel(a);
+  return { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
+};
+
 function contested(a: RollRequest, b: RollRequest, state: GameState, rng: Rng): ContestResult {
   const noAim = (r: RollRequest) => ({ ...r, modifiers: r.modifiers.filter((m) => m.type !== 'aim') });
   const ra = ruleset.roll(noAim({ ...a, against: a.against ?? b.actorId }), state, rng);
   const rb = ruleset.roll(noAim({ ...b, against: b.against ?? a.actorId }), state, rng);
-  const gap = tierLevel(rb) - tierLevel(ra);
-  return { a: ra, b: rb, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
+  return toContest(ra, rb);
 }
 
 // Part 1 §4: read on the normal roll table (MARGIN_BANDS, ER3), the margin being total − 50 with the placeholder base
@@ -487,10 +490,10 @@ export function fallDamage(metres: number, step = 0): number {
   return at <= 0 ? 0 : bands[Math.min(at, bands.length) - 1].damage;
 }
 
-/** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
- * more; a tier past Critical Failure reads Critical Failure's row */
 /** BA2: seconds to pick a lock at effective Lockpicking `skill`: the Action times pick_lock row with its speed function */
 export const pickSeconds = (skill: number): number => actionSeconds(actionRow(DU.pick_lock)!, skill);
+/** SD7: how many bands a landing of tier t moves the fall (negative: lighter). Each tier past Critical Success lightens it
+ * more; a tier past Critical Failure reads Critical Failure's row */
 export const landingStep = (t: Tiered): number => (CONFIG.FALL_LANDING_STEP[t.tier] ?? 0) - Math.max(0, t.beyond ?? 0) * CONFIG.FALL_LANDING_PAST_STEP;
 
 /** SD7: a jump down a drop: a Dodge roll on landing (rollKind dodge) moves the fall a band (FALL_LANDING_STEP), and the damage

@@ -3,7 +3,7 @@ import { FN } from '../library/functionIds';
 import type { Actor, ContestResult, GameEvent, GameState, Intent, Rng, RollResult, Secret, Tier } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { hasPerk, markUse, ruleset, tierAtLeast, tierLevel } from '../ruleset';
+import { hasPerk, markUse, ruleset, tierAtLeast, toContest } from '../ruleset';
 import { getLibrary } from '../library';
 import { isActive, nameBook, wary } from './relations';
 import { distM, type Located } from './position';
@@ -226,10 +226,6 @@ export function resolveSpeech(state: GameState, intent: Intent, spokespeople: st
 /** skills with the Influence function (persuasion, intimidation, barter, lying) */
 const INFLUENCE = () => Object.entries(getLibrary().skills).filter(([, k]) => k.functions?.includes(FN.influence)).map(([id]) => id);
 
-export const toContest = (a: RollResult, b: RollResult): ContestResult => {
-  const gap = tierLevel(b) - tierLevel(a);
-  return { a, b, gap, winner: gap < 0 ? 'a' : gap > 0 ? 'b' : 'tie' };
-};
 
 /** OQ-29: the speech types that roll when an NPC aims them at the player; plain talk does not */
 export const PUSH_TYPES = ['persuade', 'deceive', 'intimidate', 'barter'];

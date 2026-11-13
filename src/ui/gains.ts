@@ -11,8 +11,8 @@ import { skillName } from './creation';
 import { perkSeries } from './perks';
 import { getLibrary } from '../library';
 import { SCENARIO_ENDING_NAMES, type AchievementNote, type GameApi, type ScenarioEndNote, type ScenarioGains, type XpPart } from '../types';
+import { cap } from '../words';
 
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 /** one way to write a number in the moment, counting or still, so a count never ends in a jump (XP can be fractional) */
 const num = (v: number) => String(+v.toFixed(1));
@@ -230,7 +230,7 @@ export function gainsPage(api: GameApi): { el: HTMLElement; update: () => void }
     el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Gains'), h('p', {}, 'What each scenario gave you, newest first, as it showed when the scenario ended.'))),
       s ? (rows.length ? h('div', { class: 'g-past-list' }, ...rows) : h('p', { class: 'empty' }, 'No scenario has ended with a gain yet.'))
-        : h('p', { class: 'empty' }, 'No story yet. Create your swordsman first.'));
+        : h('p', { class: 'empty' }, 'No story yet. Create your character first.'));
   }
   return { el, update };
 }

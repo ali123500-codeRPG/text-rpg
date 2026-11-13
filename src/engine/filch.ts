@@ -16,7 +16,7 @@ import { SENSE_SKILL } from '../library/skillIds';
 import { IT } from '../library/itemIds';
 import { activity, itemDef } from '../library';
 import { NOISE, type AttentionKey, type NoiseKey } from '../scales';
-import { markUse, ruleset, situational, fnRoller, tierLevel } from '../ruleset';
+import { markUse, ruleset, situational, fnRoller, tierLevel, toContest } from '../ruleset';
 import { perkSum } from '../ruleset/perks';
 import { hearingOf } from '../perception/noise';
 import { sightLevel } from '../perception/sight';
@@ -57,8 +57,7 @@ export function filchContest(state: GameState, a: Actor, owner: Actor | undefine
       const fn = sense === 'sight' ? FN.sight : FN.hearing;
       const sit = situational(state, fnRoller(state, w, fn), { light: sense === 'sight' ? zone : undefined, actor: w });
       const r = ruleset.roll({ actorId: w.id, skill: SENSE_SKILL[fn], fn, modifiers: [...sit.modifiers, ...mods], tierShifts: sit.tierShifts, rollKind: 'perception' }, state, rng);
-      const gap = tierLevel(r) - tierLevel(F);
-      const res = { a: F, b: r, gap, winner: gap < 0 ? 'a' as const : gap > 0 ? 'b' as const : 'tie' as const };
+      const res = toContest(F, r), gap = res.gap;
       markUse(state, a, F.skill, res);
       markUse(state, w, r.skill, res);
       if (gap < 0) return null;

@@ -17,11 +17,12 @@ import { ageText } from '../ruleset/age';
 import { callName, staminaOf } from '../views';
 import { fatigueLevel } from '../ruleset/fatigue';
 import { skillName, SKILL_SUB, TREE_VIEW } from './creation';
-import { SK, DEFENSE_SKILL } from '../library/skillIds';
+import { DEFENSE_SKILL } from '../library/skillIds';
 import { CLASS_TIERS, FATIGUE_LEVELS, HEALTH_LEVELS, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import { maxMorale, moraleLevel, moraleLostPct } from '../ruleset/morale';
 import { coins, coinWords } from '../engine/trade';
 import { engagementEndS } from '../ruleset/actionTime';
+import { cap } from '../words';
 
 /** Set by a gear link on the character card; the Inventory page opens that item once. */
 export const invFocus: { id: string | null } = { id: null };
@@ -79,7 +80,6 @@ const winText = (w: Win) => `${w.via ? `via ${w.via} ` : ''}${w.lo}–${w.hi}`;
 const winTitle = (w: Win) => `Learns from opposition ${w.lo} to ${w.hi}${w.via ? `, on ${w.via} rolls it adds to` : ''}`;
 const bar = (raw: number, win?: Win) => h('div', { class: 'cs-bar' }, h('b', { style: `width:${pct(raw)}%` }),
   win ? h('i', { class: 'lw' + (win.via ? ' via' : ''), style: `left:${pct(win.lo)}%;width:${pct(win.hi) - pct(win.lo)}%`, title: winTitle(win) }) : null);
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const whole = (n: number | null) => (n === null ? '—' : String(+n.toFixed(2))); // fractions shown, not rounded (OQ-25); toFixed only drops float noise
 
 /** one row of level names over the card's equal boxes, alternating above (0) and below (1) the bar. The boxes run

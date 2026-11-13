@@ -37,6 +37,9 @@ const DEFAULTS = {
   NATURAL_EDGE: 5,
   /** event rolls: naturals per tier opened past Critical (tierUnlocks); each opened tier widens the natural critical range by this many */
   EVENT_CRIT_NATURALS: 5,
+  /** Part 1 §4 margin bands: the lowest margin for each tier above Critical Failure (Failure −75, Near Miss −25, Success 0,
+   * Great Success 25, Critical Success 75) */
+  MARGIN_BANDS: [-75, -25, 0, 25, 75],
   /** D-211: width of each extra margin band a tier unlock opens past either end of the skill-roll table */
   TIER_EXTRA_BAND: 50,
   /** task grades: the skill that just manages a task (D-7 placeholders). mortal_limit and up are tasks past what a human

@@ -511,7 +511,6 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
   setFallbackFlags(state, reason, 'weaver_fallback', errors);
 }
 
-/** arrival + presence events for the player's perception (scenario setup step 8). */
 /** Scenario setup step 7 (case 42): a stealthy player arriving through a frontier is tested by every observer in range;
  * the plan's opening beliefs were skipped for this entry. Returns the arrival event. */
 export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
@@ -522,6 +521,7 @@ export function stealthyArrival(state: GameState, rng: Rng): GameEvent {
   return ev;
 }
 
+/** arrival + presence events for the player's perception (scenario setup step 8). */
 export function openingEvents(state: GameState, rng: Rng): GameEvent[] {
   const p = state.player;
   const out: GameEvent[] = [];

@@ -91,7 +91,7 @@ export function mountApp(api: GameApi, root: HTMLElement = document.body) {
     // icons only: the name is kept for screen readers and shown in a tip on hover or focus
     const item = (id: string, label: string, enabled: boolean) => h('a', {
       href: enabled ? '#' + id : undefined, 'aria-current': page === id ? 'page' : undefined, 'aria-disabled': enabled ? undefined : 'true',
-      'data-tip': enabled ? label : `${label}: opens once your swordsman is made`,
+      'data-tip': enabled ? label : `${label}: opens once your character is made`,
     }, icon(id), h('span', { class: 'rail-label' }, label), id === 'stats' ? pointsBadge() : null);
     // V2b: perk points waiting to be spent; after a turn the Play screen holds a new count back until its level-up lands (M-38)
     function pointsBadge() {

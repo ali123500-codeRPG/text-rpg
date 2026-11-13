@@ -1,13 +1,16 @@
 // The player's trail: the places it last left, newest first, so the parser can read "go back" or "where I was".
 import { CONFIG } from '../config';
-import type { GameState } from '../types';
+import type { Actor, GameState, Journal } from '../types';
 import { perceivedZoneIds, zoneById } from './relations';
+
+/** the player's journal, made empty the first time it is needed */
+export const journalOf = (p: Actor): Journal => (p.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] });
 
 /** record that the player left `from` this turn (no record for staying put or an empty zone id) */
 export function noteLeft(state: GameState, from: string): void {
   const p = state.player;
   if (!from || from === p.zone) return;
-  const j = (p.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] });
+  const j = journalOf(p);
   j.trail = [{ zone: from, left: state.turn }, ...(j.trail ?? []).filter((x) => x.zone !== from)].slice(0, CONFIG.TRAIL_ZONES);
 }
 
@@ -15,7 +18,7 @@ export function noteLeft(state: GameState, from: string): void {
 export function noteZonesSeen(state: GameState): void {
   const p = state.player;
   if (!p.zone) return;
-  const j = (p.journal ??= { secretsKnown: [], factsWitnessed: [], remembered: {}, namesKnown: [] });
+  const j = journalOf(p);
   const seen = (j.zonesSeen ??= []);
   for (const z of perceivedZoneIds(state, p.zone)) if (!seen.includes(z)) seen.push(z);
 }

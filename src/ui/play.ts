@@ -37,6 +37,7 @@ import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
 import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
+import { cap } from '../words';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
   scenario_fallback: 'Scenario planning failed', rate_limited: 'Slow down', stop_play: 'Play stopped',
@@ -74,7 +75,6 @@ type Around = { who: Record<string, string>; head: Record<string, string>; heal:
 const SLOW_AFTER_S = 90; // past this the waiting line gets a "taking longer than usual" note
 const secs = (since: number) => Math.max(0, Math.round((Date.now() - since) / 1000));
 
-const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 /** Two hands meeting: the mark on the deals chip (K1 c). */
 function dealIcon(): HTMLElement {
   const i = h('span', { class: 'dl-i', 'aria-hidden': 'true' });
@@ -245,7 +245,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   let confirmReset = false;
   // the fall: the story shakes and drains for a moment before "You fell" slams in (only when it happens in play, not on load)
   let wasFallen: boolean | null = null, dyingUntil = 0, fellKey = '';
-  const FALL_MS = () => ms('--m-fall') || 1400;
+  const FALL_MS = () => ms('--m-fall'); // durations come only from the --m-* tokens
   // the story: an append-only list (role=log announces each new entry once); the waiting line sits outside it
   const list = h('div', { class: 'log', role: 'log', 'aria-label': 'Story', tabindex: '0' });
   const waiting = h('p', { class: 'working', role: 'status' });
@@ -783,7 +783,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
           h('div', { class: 'confirm' },
             h('button', { class: 'hs-btn-main', type: 'button', onclick: () => api.submit('/undo', { aimed: false }) }, 'Undo one turn'),
             confirmReset
-              ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and a new swordsman is made.'),
+              ? [h('span', { class: 'hs-note' }, 'Start over? This story ends and you make a new character.'),
                  h('button', { class: 'hs-btn-text danger', type: 'button', onclick: async () => { confirmReset = false; await api.reset(); } }, 'Reset the story'),
                  h('button', { class: 'hs-btn-text', type: 'button', onclick: () => { confirmReset = false; update(); } }, 'Keep it')]
               : h('button', { class: 'hs-btn-text danger', type: 'button', onclick: () => { confirmReset = true; update(); } }, 'Reset')));
@@ -803,8 +803,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     fresh = null;
   }
 
-  /** M-10–M-38: one live turn's motion, all on top of the final state. Prose sentence by sentence, then its results row by
-   * row, then the sheet in the order health, body parts, morale, skills, XP and level, coin, then gold cards. */
   /** Who's here (by the name shown, with its status words), the header's marked pieces and the quick slot, as shown now */
   function aroundNow(): Around {
     const text = (x: Element) => (x.textContent ?? '').trim();
@@ -825,6 +823,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     return d * 0.6;
   }
 
+  /** M-10–M-38: one live turn's motion, all on top of the final state. Prose sentence by sentence, then its results row by
+   * row, then the sheet in the order health, body parts, morale, skills, XP and level, coin, then gold cards. */
   function animateTurn(e: HTMLElement | undefined, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around, gainsLine?: LogLine) {
     finishAll();
     if (!e) return;
@@ -937,9 +937,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         pulse(w, d + fade, o - 1, o > 2);
         if (o === 3 && r.classList.contains('in')) shake([story, sheet], 0.6, d + fade); // a heavy hit on the player: about 1 px
       }
-      // a part that became Crippled or Destroyed: its card flares red, holds, and settles, with no growth that moves its text
       // coin that changed hands: its amount flares in its colour and pulses once (lost coin flares red, like a wound card)
       if (r.classList.contains('coin')) { const c = r.querySelector<HTMLElement>('b'); flare(c, 'color', c?.classList.contains('coin-down') ? 'var(--danger)' : 'var(--scenario-mark)', d + fade); pulse(c, d + fade, 2); }
+      // a part that became Crippled or Destroyed: its card flares red, holds, and settles, with no growth that moves its text
       if (r.classList.contains('wcard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--danger) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }
       // MW2: the "Nerve broken" card lands like a wound card, in the morale violet
       if (r.classList.contains('ncard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--c5) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }
