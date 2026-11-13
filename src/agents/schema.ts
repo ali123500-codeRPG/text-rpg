@@ -58,7 +58,7 @@ const STANCE = nul(obj<{ toward: string; step: 'friendlier' | 'colder' }>({ towa
 
 const intent = obj<Intent>({
   move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean }>({ toZone: str, after: bool, jump: bool, behind: bool, pace: oneOf(TRAVEL_PACES.keys),
-    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str }, ['near', 'awayFrom', 'side'])) }, ['after', 'pace', 'spot', 'jump', 'behind'])),
+    spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str, follow: bool }, ['near', 'awayFrom', 'side', 'follow'])) }, ['after', 'pace', 'spot', 'jump', 'behind'])),
   action: nul(obj<NonNullable<Intent['action']>>({
     type: oneOf(PARSER_ACTIONS),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
