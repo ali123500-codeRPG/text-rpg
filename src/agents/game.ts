@@ -1303,7 +1303,7 @@ export function mechanicsLines(s: GameState, events: GameEvent[], eventRoll?: Tu
     const d = l.detail as { actorId: string; kind: string; why: string; seconds: number };
     if (d.actorId !== s.player.id) continue;
     const why = ({ contact: 'someone or something reached you', closing: 'someone is coming at you', change: 'someone near changed what they were doing', fight: 'a fight in sight or hearing' } as Record<string, string>)[d.why] ?? d.why;
-    out.push(`${d.kind === 'rest' ? 'Rest' : 'Wait'} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
+    out.push(`${({ rest: 'Rest', wait: 'Wait', walk: 'Walk' } as Record<string, string>)[d.kind] ?? d.kind} stopped ${d.seconds < 60 ? 'at once' : `after ${durationText(d.seconds / 60)}`}: ${why}`);
   }
   // NW15/NW18: the night watch, and what woke you
   for (const l of s.log) {

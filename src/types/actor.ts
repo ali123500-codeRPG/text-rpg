@@ -45,6 +45,8 @@ export type Actor = {
   /** AT2/AT17: a long action under way: its Action times row, the order it came from, seconds done of `need`, the turn it last
    * went on; `paused` when broken off or set aside with its work kept (AT6/AT28: picked up again by the same order) */
   busy?: { row: string; key: string; order: { type: string; target: string | null; item: string | null }; done: number; need: number; turn: number; paused?: true };
+  /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered */
+  walking?: NonNullable<import('./agents').Intent['move']>;
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
   wares?: { items: string[]; services: string[] };

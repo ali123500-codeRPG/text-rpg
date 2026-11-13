@@ -6,7 +6,7 @@ import { NOISE, type BodyPoseKey } from '../scales';
 import { itemDef } from '../library';
 import { allActors, atLeast, isActive, isAsleep } from './relations';
 import { perceivesNow } from './yield';
-import { distM, type Located } from './position';
+import { distOrNull, type Located } from './position';
 import { moveSpeed } from './speed';
 
 /** what the watcher noted about someone it accepted: a change from this fires the check again */
@@ -30,6 +30,8 @@ const armed = (state: GameState, x: Actor): number =>
 /** someone whose path ends at the watcher: it is tracking, hunting or engaging them */
 const comingFor = (x: Actor, w: Actor): boolean => atLeast(x.mind?.knowledge?.[w.id]?.status, 'tracking');
 const seen = (state: GameState, x: Actor, closing = false): Seen => ({ sneaking: x.posture === 'stealthy', closing, armed: armed(state, x) });
+/** metres between two spots; Infinity where an old map's zone has no rectangle */
+const distM = (state: GameState, a: Located, b: Located): number => distOrNull(state, a, b) ?? Infinity;
 /** metres from where the watcher stands at which someone closing at `speed` m/s fires the check */
 const triggerM = (w: NearWatch, speed: number): number => CONFIG.HOSTILE_NEAR_M + speed * warnS(w);
 
@@ -73,7 +75,8 @@ export function checkNear(state: GameState, watch: NearWatch, before: Map<string
     const was = watch.accepted.get(x.id);
     if (!perceived(state, w, x)) { watch.accepted.delete(x.id); continue; }
     const d = distM(state, w, x), from = before.get(x.id);
-    const speed = from && seconds > 0 ? (distM(state, w, from) - d) / seconds : 0;
+    const d0 = from ? distM(state, before.get(w.id) ?? w, from) : Infinity;
+    const speed = Number.isFinite(d0) && Number.isFinite(d) && seconds > 0 ? (d0 - d) / seconds : 0; // the watcher may have walked too
     const walk = moveSpeed(state, x).walk;
     const coming = speed > 0 && (comingFor(x, w) || speed > CONFIG.RUSH_SHARE * walk);
     if (was) {

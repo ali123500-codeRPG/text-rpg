@@ -120,6 +120,11 @@ export function distM(state: GameState, a: Located, b: Located): number {
   return path ? pathM(state, a, b, path) : Infinity;
 }
 
+/** distM, or null where a zone on the way has no rectangle (an old map's zone): for checks that must not stop the turn */
+export function distOrNull(state: GameState, a: Located, b: Located): number | null {
+  try { return distM(state, a, b); } catch { return null; }
+}
+
 /** metres from A to B along a given route (the zone ids after A's, ending in B's): through the doorways, or where zones
  * touch the middle of what they share */
 export function pathM(state: GameState, a: Located, b: Located, path: string[]): number {
