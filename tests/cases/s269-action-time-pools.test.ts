@@ -55,6 +55,23 @@ describe('269 action time pools', () => {
     const blows = ev.filter((e) => e.kind === 'attack' && e.actorId === 'player').length;
     expect(blows).toBe(CONFIG.FIGHT_TURN_S / actionSeconds(actionRow(DU.blow)!));
   });
+  it('AT79 Flurry: every punch thrown with two Grip parts free brings a free one, one tier less sure', () => {
+    const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+    const g = s.actors.find((a) => a.id === 'guard_1')!;
+    g.zone = s.player.zone;
+    g.placeId = s.player.placeId;
+    g.pos = { x: s.player.pos!.x + 0.5, y: s.player.pos!.y };
+    for (const i of s.player.core.inventory) delete i.equippedIn;
+    s.player.core.perks.push({ perkId: PK.flurry } as never);
+    s.mode = 'tactical';
+    inFight(s);
+    const ev = turn(s, intent({ target: 'guard_1' }));
+    const mine = ev.filter((e) => e.kind === 'attack' && e.actorId === 'player');
+    const free = mine.filter((e) => e.attack!.attack.tierShifts.some((x) => x.source === 'Flurry'));
+    expect(mine.length).toBeGreaterThanOrEqual(2);
+    expect(free.length).toBe(mine.length / 2);
+    expect(free.every((e) => e.attack!.attack.tierShifts.find((x) => x.source === 'Flurry')!.value === -1)).toBe(true);
+  });
   it('AT58: a fight\'s first turn starts after the reaction time rolled for it; the roll stands for the fight', () => {
     const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
     const g = s.actors.find((a) => a.id === 'guard_1')!;

@@ -561,7 +561,7 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 - **Kind:** Always on
 - **Trigger:** The owner's attack with skill Improvisation hits (outcome grazed, blocked, full, heavy or crushing hit).
-- **Conditions:** The owner has a working Grip arm with an empty hand. The target is still active and within the reach of the owner's fists (metres).
+- **Conditions:** The owner has a working Grip part holding nothing. The target is still active and within the reach of the owner's fists (metres).
 - **Effect:** The owner makes one extra attack with skill Strike (fists) at the same target at once. It doesn't use the owner's action, and can't trigger One-Two again.
 - **Lasts:** That attack.
 
@@ -811,14 +811,13 @@ The 20, 60, 100 and 140 perks change what a character can do. The 40, 80 and 120
 
 ### Flurry (Strike) · D4
 
-*Story:* Faster than the eye can follow. With both hands free, you throw two quick punches a turn; the second is one outcome less sure.
+*Story:* Faster than the eye can follow. With both hands free, every punch you throw brings a second one with it; the second is one outcome less sure.
 
 - **Kind:** Always on
-- **Trigger:** A tactical turn in which the owner's order is an unarmed strike.
-- **Conditions:** Both Grip arms work and hold nothing.
-- **Effect:** The owner attacks twice. The second attack gets tier shift −1.
-- **Lasts:** Each turn.
-- **Needs first:** Action economy.
+- **Trigger:** The owner throws an attack with skill Strike, hit or miss (a free punch from another perk counts; Flurry's own does not).
+- **Conditions:** Two of the owner's Grip parts work and hold nothing. The target is still active and within the reach of the owner's fists (metres).
+- **Effect:** The owner makes one extra attack with skill Strike at the same target at once, with tier shift −1. It costs no time and doesn't use the owner's action, and it triggers every other perk a strike triggers.
+- **Lasts:** That attack.
 - **Banked as:** a later Strike perk, suggested for the 100 perk
 
 ### Roll With It (Dodge) · D5

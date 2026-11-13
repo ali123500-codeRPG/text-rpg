@@ -32,7 +32,7 @@ import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
-import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { countPerkMove, freeGrips, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
@@ -567,7 +567,8 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
 }
 
 /** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
-function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
+/** followUp: a free attack another perk gave (One-Two's punch, a parry's strike back); flurry: Flurry's own free strike */
+function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false): void {
   const { state, rng } = ctx;
   let t = o.target ? actorById(state, o.target) : undefined;
   // BG-25: a wasted attack says why, so the story tells that and not a miss it made up
@@ -615,6 +616,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   else endSparsOf(state, [a.id, t.id]);
   const before = { level: healthLevel(t), parts: partStates(state, t), lost: t.core.condition.hpLostPct, active: isActive(t) };
   const opening = openingShifts(ctx, a, t, m.mode.tree);
+  if (flurry) opening.attackerShifts = [...(opening.attackerShifts ?? []), { source: 'Flurry', value: -1 }]; // AT79: one tier less sure
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
       context: { defenderUnaware: surprised, defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
@@ -646,12 +648,16 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
     fear(ctx, a, FR.foe_downed);
     for (const p of allActors(state)) if (p !== t && !!t.bandId && p.bandId === t.bandId && ev.perception[p.id]) fear(ctx, p, FR.bandmate_down, {}, ev.perception);
   }
-  // B16 One-Two: an improvised hit with the other hand empty is followed by a free punch at the same foe
+  // B16 One-Two: an improvised hit with a Grip part free is followed by a free punch at the same foe
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
     && isActive(t) && freeHand(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
     if (fist && withinM(sightDistM(state, a, t), fist.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
   }
+  // AT79 Flurry: every unarmed strike thrown with two Grip parts free, hit or miss, brings one free strike at the same target
+  // at once (no time, no action). Its own free strike never sets it off again; One-Two's free punch does
+  if (!flurry && modeSkill(m.mode) === SK.unarmed_strike && hasPerk(a, PK.flurry) && isActive(t) && freeGrips(state, a) >= 2
+    && withinM(sightDistM(state, a, t), m.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: m.itemId, mode: m.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, followUp, true);
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
   parryStrike(ctx, a, t, res);
 }
