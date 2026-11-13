@@ -544,6 +544,10 @@ const DEFAULTS = {
   AGENT_MODELS: {
     weaver: { model: 'claude-opus-5-5', effort: 'high' },
     narrator: { model: 'claude-fable-5-2', effort: 'low' },
+    // Opus 5.5 low beat the default tier 48 of 60 in blind judging: fewer unmarked lies, repeats and format slips
+    responder: { model: 'claude-opus-5-5', effort: 'low' },
+    voice: { model: 'claude-opus-5-5', effort: 'low' },
+    planner: { model: 'claude-opus-5-5', effort: 'low' },
   } as Record<string, { model: string; effort: 'low' | 'medium' | 'high' }>,
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,
   STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // (flavor voice V5)
