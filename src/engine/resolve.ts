@@ -1406,7 +1406,9 @@ function step(ctx: Ctx, id: string): void {
   // the move slot first and stops once in reach; still out of reach, the blow is lost (doAttack wastes it)
   // FR4: the same for every action that needs grip or weapon reach (NEEDS), and for a door worked on purpose (BG-86)
   const near = reachOf(state, a, o);
-  const closeIn = !!near && !o.moveAfter && (!!o.way || !o.move || o.move === near.at.zone);
+  const over = !!near && o.move === a.zone && o.moveSpot?.near === near.at.zone; // BG-183: approachMove's walk to the counter is the close-in
+  const closeIn = !!near && !o.moveAfter && (!!o.way || !o.move || o.move === near.at.zone || over);
+  const behind = !o.way && !!near && o.move === near.at.zone && near.at.zone !== a.zone; // BG-183: a move into their zone is a move behind the counter (approachMove)
   if (closeIn && !o.way) o.move = null;
   // CO13/ZP2: a move slot walks slotMetres(…'move') toward the move's zone, and with no main action planned (hold) a main
   // slot runs slotMetres(…'main') more once the move slots run out: a dash (AE2), which a lame actor can't make
@@ -1417,7 +1419,7 @@ function step(ctx: Ctx, id: string): void {
     if (o.move && !walk(ctx, a, goal, o, (n) => useMoveSlot(ctx, a, mainToo && n > 0), opts)) logCode(state, 'move_dropped', { actorId: id, to: o.move });
   };
   const from = { zone: a.zone, pos: a.pos && { ...a.pos } };
-  const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!); };
+  const closer = () => { if (closeIn && !near!.ok()) closeInOn(ctx, a, o, near!, behind); };
   // BA3/BA4: the key or the bar takes the move slot; BG-54: a way op that can't be done leaves the move to happen.
   // BG-86: out of reach of the door, the move slot walks to it, and the op takes the main action if that is free
   let turned = false;
@@ -1657,10 +1659,10 @@ function atDoor(state: GameState, a: Actor, to: string | null | undefined): bool
 const reachable = (state: GameState, a: Actor, op: GearOp) => { const p = pickUpAt(state, op, a); return !p || withinGrip(state, a, p); };
 
 /** ZP3/FR4 closing in: walks at the target on the move slot, stopping once within reach; across a counter, fence or rail
- * from the actor's zone it is reached over from the actor's side of it (BG-62) */
-function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>): void {
+ * from the actor's zone it is reached over from the actor's side of it (BG-62), unless the actor goes behind it (BG-183) */
+function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<typeof reachOf>>, behind = false): void {
   const { state } = ctx;
-  const over = near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
+  const over = !behind && near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
   const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
   const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
   walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: p ? 0 : Math.max(0, near.m - 0.01), ...(near.toward ? { toward: near.toward } : {}) });
