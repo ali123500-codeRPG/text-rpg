@@ -21,7 +21,8 @@ export type ImprovisedBase = (typeof IMPROVISED_BASES)[number];
 /** BG-12: a spot inside the move's zone (the player's own zone included), one of: beside someone in view (`near` an actor
  * id) or at a way out (`near` a link's zone id); the far side `awayFrom` someone or a way out; or the `side` a compass word
  * names ("north", "south-west") */
-export type MoveSpot = { near?: string; awayFrom?: string; side?: string };
+/** lastSeen (BG-125, code-set): near someone the player cannot see now, at the point they last perceived them */
+export type MoveSpot = { near?: string; awayFrom?: string; side?: string; lastSeen?: true };
 export type Intent = {
   move: { toZone: string; after?: boolean; pace?: import('../scales').TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean } | null; // behind: BG-62, the player goes behind a counter, fence or rail; after: the action first, then the move (AE3); pace: TV2 on a road trip; spot: BG-12, where in the zone
   action: {

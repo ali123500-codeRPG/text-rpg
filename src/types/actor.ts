@@ -231,6 +231,8 @@ export type Journal = {
   /** BG-28: where the player last saw or heard each actor (any perception of it, a sound included); never forgotten by an
    * unseen move, so lastSeen still names someone heard running off */
   lastKnown?: Record<ActorId, string>;
+  /** BG-125: the point in that zone where the player last perceived each actor, when the event had one */
+  lastSpot?: Record<ActorId, { x: number; y: number }>;
   /** NS2/NS4: the player's belief about each stealthy actor (open actors are simply seen) */
   stealthSeen?: Record<ActorId, BeliefStatus>;
   /** the places the player last left, newest first, with the turn it left each (CONFIG.TRAIL_ZONES long): "go back" reads it */
