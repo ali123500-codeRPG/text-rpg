@@ -73,7 +73,7 @@ export type QuestRewardLevel = (typeof QUEST_REWARD_LEVELS.keys)[number];
 export const SCENARIO_SCALES = scale([['moment', 'Moment'], ['situation', 'Situation'], ['episode', 'Episode'], ['venture', 'Venture']]);
 export type ScenarioScale = (typeof SCENARIO_SCALES.keys)[number];
 /** CH5/SC19: how far a code-run pursuer follows the player, least first: post (never leaves its own place), ground (stays on
- * the scenario's ground), near (the ground and one place beyond it), far (anywhere, through frontiers after the player).
+ * the scenario's ground), near (the ground and up to CHASE_NEAR_M metres past its edge by the walking path), far (anywhere, through frontiers after the player).
  * Agent-run NPCs decide for themselves. A new range is a new row here and a branch in engine/chase.ts chaseZones. */
 /** grades, none to divine (D-7; CR4, CR12): how hard a task, a challenge or a lock is, and how big a gain. The Weaver's
  * challenge and gain, barriers, gains and locks use none to WEAVER_GRADE_TOP; the rows past it are task grades only */

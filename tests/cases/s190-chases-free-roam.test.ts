@@ -4,10 +4,10 @@
 // range far (code-run), and lose the player after CHASE_LOST_TURNS turns unseen. Also the SD1 ending moment after resolveTurn.
 import { describe, expect, it, vi } from 'vitest';
 import type { GameEvent, GameState, WeaverView } from '../../src/types';
-import { actor, createRng, makeVillage, place } from '../harness';
+import { actor, byDoor, createRng, makeVillage, place } from '../harness';
 import { play } from './w4-kit';
 import { checkScenarioEnd, closeScenario, frameOf, pendingEnding } from '../../src/engine/scenarioEnd';
-import { CHASE_LOST_MEMORY, chaseRange, chaseZones, checkRoam, noteCrossing, pursuers, roamStart, updateChase } from '../../src/engine/chase';
+import { CHASE_LOST_MEMORY, atChaseLine, chaseRange, chaseZones, checkRoam, noteCrossing, pursuers, roamStart, updateChase } from '../../src/engine/chase';
 import { applyStagePlan } from '../../src/scenario/apply';
 import { ScenarioDirector, validateStagePlan } from '../../src/scenario';
 import { grovePlan, VirtualClock } from '../../src/scenario/fixtures';
@@ -127,8 +127,10 @@ describe('190 chases and free roam', () => {
     expect(chaseRange(s, wim)).toBe('ground');
     expect(chaseZones(s, wim)!.sort()).toEqual(['tav_cellar', 'tav_common', 'tav_counter']);
     s.bands.find((b) => b.id === 'tavern_folk')!.chase = 'near';
-    expect(chaseZones(s, wim)).toEqual(expect.arrayContaining(['street_door', 'street_square'])); // one place beyond
-    expect(chaseZones(s, wim)).not.toContain('gate_inner');
+    expect(chaseZones(s, wim)).toEqual(expect.arrayContaining(['street_door', 'street_square', 'gate_inner'])); // within 200 m by the walk
+    CONFIG.CHASE_NEAR_M = 10; // ZR12: the street starts at the front door (0 m); the square starts 14 m past it
+    expect(chaseZones(s, wim)).toContain('street_door');
+    expect(chaseZones(s, wim)).not.toContain('street_square');
     // agent-run NPCs decide for themselves
     expect(chaseZones(s, actor(s, 'guard_1'))).toBeUndefined();
   });
@@ -142,6 +144,21 @@ describe('190 chases and free roam', () => {
     expect(o.type).toBe('hold');
     s.bands.find((b) => b.id === 'tavern_folk')!.chase = 'far';
     expect(fallbackOrder(buildActorView(s, 'patron_1'), createRng(1))).toMatchObject({ type: 'move', target: 'street_door' });
+  });
+
+  it('ZR12: a near-range pursuer turns back CHASE_NEAR_M metres past the ground, even partway along one zone', () => {
+    const s = makeVillage({ playerZone: 'street_square' });
+    s.mode = 'tactical';
+    scenario(s, ['tav_common']);
+    s.bands.find((b) => b.id === 'tavern_folk')!.chase = 'near';
+    CONFIG.CHASE_NEAR_M = 10;
+    const wim = hunts(s, 'patron_1', s.turn, 'street_door');
+    byDoor(s, 'patron_1', 'street_door', 'tav_common', 5); // 5 m out of the front door: still chasing
+    expect(atChaseLine(s, wim)).toBe(false);
+    expect(fallbackOrder(buildActorView(s, 'patron_1'), createRng(1)).source).toBe('fallback');
+    byDoor(s, 'patron_1', 'street_door', 'tav_common', 12); // 12 m out, still in the same street zone: turns back
+    expect(atChaseLine(s, wim)).toBe(true);
+    expect(fallbackOrder(buildActorView(s, 'patron_1'), createRng(1)).source).toBe('routine');
   });
 
   it('CH6: a pursuer that saw the crossing knows where it leads (code-run only at range far); one still hunting that reaches it follows', () => {
