@@ -114,3 +114,27 @@ it('FR4: a give from across the room closes in on the move slot to the player\'s
   expect(ev.some((e) => e.kind === 'give' && e.actorId === s.player.id)).toBe(true);
   expect(trader.core.inventory.some((i) => i.id === 'cup')).toBe(true);
 });
+
+it('mute buyer: someone who cannot speak points at the ware and pays in person, within both grip reaches, walking over first', async () => {
+  const { EK } = await import('../../src/library/tableIds');
+  const { SV } = await import('../../src/library/serviceIds');
+  const { canSpeak } = await import('../../src/ruleset/body');
+  const { buy } = await import('../../src/engine/trade');
+  const s = makeVillage({ without: ['slime_1', 'slime_2'] });
+  const z = (id: string) => zoneById(s, id)!;
+  z('tav_common').rect = { x: 0, y: 0, w: 8, d: 8 }; z('tav_common').edges = { n: EK.low, e: EK.wall, s: EK.wall, w: EK.wall };
+  z('tav_counter').rect = { x: 0, y: 5.5, w: 3, d: 3 }; z('tav_counter').edges = { n: EK.wall, e: EK.wall, s: EK.low, w: EK.wall };
+  const trader = s.actors.find((a) => a.id === 'trader')!;
+  trader.pos = { x: 0, y: 4.6 };
+  trader.wares = { items: [], services: [SV.drink] };
+  s.player.zone = 'tav_common'; s.player.pos = { x: 0, y: -3 };
+  s.player.core.inventory.push({ id: 'purse', itemId: IT.coin, qty: 20 });
+  expect(canSpeak(s, s.player)).toBe(true);
+  expect(buy(s, s.player, trader, `service:${SV.drink}`, 1)).toMatchObject({ ok: true }); // called across a quiet room
+  s.player.core.raceId = 'no_such_race'; // a race that does not talk: no voice
+  expect(canSpeak(s, s.player)).toBe(false);
+  expect(buy(s, s.player, trader, `service:${SV.drink}`, 1)).toMatchObject({ ok: false, reason: 'out_of_reach' });
+  const ev = play(s, { intent: intent({ action: { type: 'buy', target: 'trader', item: `service:${SV.drink}` } }) });
+  expect(s.player.zone).toBe('tav_common'); // walked to the counter, never behind it
+  expect(ev.some((e) => e.kind === 'buy' && e.actorId === s.player.id)).toBe(true);
+});

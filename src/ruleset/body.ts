@@ -50,6 +50,12 @@ export function gripReachM(state: GameState, actor: Actor): number {
   return Math.max(0, ...actorBody(state, actor).parts.filter((p) => parts.has(p.id)).map((p) => p.reachM ?? 0));
 }
 
+/** the actor can speak: its race talks (tag 'speaks') and a part with the speech role is not Destroyed */
+export function canSpeak(state: GameState, actor: Actor): boolean {
+  return !!getLibrary().races?.[actor.core.raceId ?? '']?.tags?.includes('speaks') &&
+    actorBody(state, actor).parts.some((p) => p.roles.includes(RL.speech) && poolState(partPct(actor, p.id)) !== 'destroyed');
+}
+
 /** Grip parts that can still use a hand (Healthy or Damaged). */
 export function usableGrips(state: GameState, actor: Actor): string[] {
   return actorBody(state, actor).parts
