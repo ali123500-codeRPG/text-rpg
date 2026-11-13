@@ -11,7 +11,7 @@ import { INTELLIGENCE, type NoiseKey, type VisibilityKey } from '../scales';
 import { getLibrary } from '../library';
 import { perceptionOf } from '../perception';
 import { logCode } from './effects';
-import { allActors, countsInFight, hostile, isActive } from './relations';
+import { allActors, bandById, countsInFight, hostile, isActive } from './relations';
 import { besidePlayer, fightingWith } from './engagement';
 export { truce } from './relations';
 
@@ -87,3 +87,47 @@ export function yieldBars(state: GameState, a: Actor, t: Actor): boolean {
 }
 /** the player yielded and a foe took it: the fight is lost (MB42) */
 export const yieldTaken = (state: GameState): boolean => !!state.yielding?.accepted.length;
+
+// D-239: mercy once down. The player went down in a lethal fight: every active foe hostile to the player from a lethal band
+// would finish them. A Claude-run foe of an Intelligent race that perceives the player (by any sense, as for a yield) is
+// asked instead, and answers in its next output (spare); the rest finish. Sparing covers the sparer's bandmates together
+// with it that were asked too (YD2). The player is spared only when someone spared and no one is left to finish.
+
+/** the foes that would finish the downed player: active, hostile, from a lethal band (D-54) */
+export const finishers = (state: GameState): Actor[] =>
+  state.actors.filter((x) => isActive(x) && hostile(state, x, state.player) && bandById(state, x.bandId)?.lethal !== false);
+
+/** D-239: the player just went down in a lethal fight; true while someone was asked whether to spare them */
+export function askMercy(state: GameState): boolean {
+  const pending: string[] = [], finish: string[] = [];
+  for (const a of finishers(state)) (canAccept(a) && perceivesNow(state, a, state.player, 'normal') ? pending : finish).push(a.id);
+  if (!pending.length) return false;
+  state.mercy = { turn: state.turn, pending, spared: [], finish };
+  logCode(state, 'mercy_asked', { pending, finish });
+  return true;
+}
+
+/** D-239: a foe asked answers in its next output; no answer is finish */
+export function answerMercy(state: GameState, a: Actor, spare: boolean | undefined): void {
+  const m = state.mercy;
+  if (!m || !m.pending.includes(a.id) || m.turn >= state.turn) return;
+  m.pending = m.pending.filter((id) => id !== a.id);
+  (spare ? m.spared : m.finish).push(a.id);
+  logCode(state, spare ? 'mercy_spared' : 'mercy_finish', { actorId: a.id });
+  if (!spare) return;
+  for (const id of [...m.pending]) {
+    const b = state.actors.find((x) => x.id === id);
+    if (!b || !together(state, a, b)) continue;
+    m.pending = m.pending.filter((x) => x !== id);
+    m.spared.push(id);
+    logCode(state, 'mercy_spared', { actorId: id, by: a.id });
+  }
+}
+
+/** D-239: the turn after the player went down: spared (someone spared, nobody finishes) or not; clears the ask */
+export function settleMercy(state: GameState): boolean {
+  const m = state.mercy!;
+  delete state.mercy;
+  const left = new Set(finishers(state).map((x) => x.id)); // a finisher downed meanwhile no longer finishes
+  return m.spared.length > 0 && !m.pending.length && !m.finish.some((id) => left.has(id));
+}

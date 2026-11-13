@@ -85,6 +85,8 @@ export type Quest = {
 export type Spar = { id: string; sides: string[][]; cruel?: true; start: number; last: number; out: Record<string, number> };
 /** MB40–MB43: the player's yield this scenario: foes yet to answer, those that took it (truce) and those that fought on */
 export type PlayerYield = { turn: number; pending: string[]; accepted: string[]; refused: string[]; ended?: boolean }; // ended: YD3, the fight already ended on it
+/** D-239: the player is down in a lethal fight and foes decide, in their next output, whether to finish or spare (acceptYield's shape) */
+export type PlayerMercy = { turn: number; pending: string[]; spared: string[]; finish: string[] };
 
 // In-memory working state, built from Part 4's pages on load. Never saved as one document.
 export type GameState = {
@@ -112,6 +114,7 @@ export type GameState = {
   quests: Quest[];
   spars?: Spar[]; // SP1: live spars (public: anyone who sees a sparring blow knows it is a spar)
   yielding?: PlayerYield; // MB40: cleared when the scenario ends
+  mercy?: PlayerMercy; // D-239: settled the turn after the player went down
   barriers?: Record<string, import('./core').Barrier>; // SD3–SD5: doors, gates, grates and rubble on ways, by id
   settings: Settings;
   libraryVersion: number;
@@ -182,6 +185,7 @@ export type EnginePage = {
   quests: Quest[];
   spars?: Spar[];
   yielding?: PlayerYield;
+  mercy?: PlayerMercy;
   barriers?: Record<string, import('./core').Barrier>;
   /** NPC view history (GameState.recentEvents); absent in older saves */
   recentEvents?: GameEvent[];

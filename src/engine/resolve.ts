@@ -32,7 +32,7 @@ import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -49,7 +49,7 @@ import { noteGains } from './growth';
 import { expireOffers, offersFromDefeats } from './essence';
 import { handInQuests, unpaidQuests, updateQuests } from './quests';
 import { fightEnded, turnFeats } from './feats';
-import { answerYield, perceivesNow, playerYields, yieldBars } from './yield';
+import { answerMercy, answerYield, askMercy, finishers, perceivesNow, playerYields, settleMercy, yieldBars } from './yield';
 import { minutesUntil, nextTimeOfDay, now, timeOfDay, zoneLight } from '../time';
 import { advanceAging } from '../ruleset/age';
 import { NOISE, TIME_OF_DAY, type NoiseKey } from '../scales';
@@ -1291,6 +1291,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const playerUp = isActive(state.player);
   // MB41: foes asked by the player's yield answer in this turn's output, before anyone acts
   for (const o of usableAgentOutputs(input)) answerYield(state, actorById(state, o.actorId)!, o.output.acceptYield);
+  for (const o of usableAgentOutputs(input)) answerMercy(state, actorById(state, o.actorId)!, o.output.spare); // D-239
   const active = state.actors.filter(isActive);
   const views = new Map<string, ActorView>(active.map((a) => [a.id, buildActorView(state, a.id)]));
   const fired = input.fired ?? firedOrders(state);
@@ -1424,6 +1425,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   updateQuests(state, ctx.events, defeated);
   noteZonesSeen(state);
   if (playerUp && !isActive(state.player)) playerDown(state, rng);
+  else if (state.mercy && state.mercy.turn < state.turn) (settleMercy(state) && healthLevel(state.player) !== 'dead' ? wakeUp(state, 'player_spared') : logCode(state, 'player_fell', { lethal: true })); // D-239
   updateChase(state); // CH6/CH7: pursuers follow through frontiers; a chase lost for CHASE_LOST_TURNS turns ends
   noteHappened(state, ctx.events, defeated); // BG-41: what the check-in judges a judged ending from
   checkScenarioEnd(state, ctx.events); // SC7/SC13: the scenario's endings, held while fighting, chased or talking; SC16 its ground
@@ -1451,20 +1453,26 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
 }
 
 /** D-54: the player went down this turn. The fight is lethal when an active actor hostile to the player belongs to a band
- * marked lethal (the default): the story ends on the "You fell" screen. Otherwise (a band marked not lethal, a spar, or no
- * one left to finish the job) one survival roll: Near Miss or better wakes somewhere safe at Critical (the next scenario). */
+ * marked lethal (the default): the story ends on the "You fell" screen, unless a foe is asked to spare them (D-239: settled
+ * next turn). Otherwise (a band marked not lethal, a spar, or no one left to finish the job) one survival roll: Near Miss
+ * or better wakes somewhere safe at Critical (the next scenario). */
 function playerDown(state: GameState, rng: Rng): void {
   const p = state.player;
   if (p.engagement?.fight) p.engagement.fight.down = true; // a lost fight, even if the player wakes (the Loser scars)
   if (healthLevel(p) === 'dead') return;
-  if (state.actors.some((x) => isActive(x) && hostile(state, x, p) && bandById(state, x.bandId)?.lethal !== false)) {
-    logCode(state, 'player_fell', { lethal: true });
+  if (finishers(state).length) {
+    if (!askMercy(state)) logCode(state, 'player_fell', { lethal: true });
     return;
   }
   const r = survivalRoll(rng);
   logCode(state, 'survival_roll', { d100: r.d100, tier: r.tier, survived: r.survived });
-  if (!r.survived) return;
-  p.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
+  if (r.survived) wakeUp(state);
+}
+
+/** D-54/D-239: the downed player lives: wakes somewhere safe at Critical, in the next scenario */
+function wakeUp(state: GameState, code?: string): void {
+  if (code) logCode(state, code, {});
+  state.player.core.condition.hpLostPct = CONFIG.HEALTH_TRACK.find(([l]) => l === 'critical')![1];
   state.stage.breakCause = 'knocked_out';
 }
 

@@ -463,6 +463,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       ...(a.posture === 'stealthy' ? { stealthy: true as const } : {}),
       ...(sparOf(state, a.id) ? { spar: sparView(state, a, (id) => id) } : {}),
       ...(state.yielding?.pending.includes(a.id) ? { playerYielded: true as const } : {}),
+      ...(state.mercy?.pending.includes(a.id) ? { playerAtMercy: true as const } : {}),
       ...(isSeller(a) ? { wares: wareList(state, state.player, a), offers: offerList(state, state.player, a) } : {}),
       ...(chase ? { chaseZones: chase } : {}),
       ...(atChaseLine(state, a) ? { atChaseLine: true as const } : {}),

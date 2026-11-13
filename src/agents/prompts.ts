@@ -45,7 +45,9 @@ const SPAR_RULE = (n: number) => `\n${n}. A spar is a fight every fighter agrees
    opponents as in any fight. A fighter is out once it yields or reaches self.spar.limit; a blow on someone who is out,
    or on anyone outside the spar, is a real attack and ends it. To give up a spar, or to surrender in a real fight, say so and set "yields": true: once surrendered you fight no more, at the mercy of those you fought.
    If self.playerYielded, the player has yielded to you in a real fight: set "acceptYield": true to take it (you stop
-   fighting them for the rest of the scenario, and neither of you may attack the other) or false to fight on. No answer is a refusal.`;
+   fighting them for the rest of the scenario, and neither of you may attack the other) or false to fight on. No answer is a refusal.
+   If self.playerAtMercy, the player lies down before you, beaten in a fight to the death: set "spare": true to let them
+   live (they wake later somewhere safe, badly hurt) or false to finish them. No answer finishes them.`;
 /** QT2–QT6, QT10, QT12, QT22–QT25: how a giver offers, records and ends a job (Planner, Responder, Voice) */
 const JOB_RULE = (n: number) => `\n${n}. A job is a deal in which the player does something for you. Offer one in talk when your character wants
    something done. Only once the player accepts aloud, give the agreement with a job: line is one short line of what you
@@ -98,12 +100,12 @@ export const PLANNER_SHAPE = `{"action":${NPC_ACTION},"move":{"toZone":zone_id,"
  "planUpdate":${PLAN_UPDATE},
  "memory":{"add":[string],"drop":[number]}|null,"agreement":{"with":actor_id,"text":string,"job"?:${JOB}|null}|null,
  "endAgreements":[{"id":agreement_id,"outcome":"done"|"broken"}],"questEnd"?:${QUEST_END},
- "spar"?:{"sides":[[actor_id]],"cruel"?:true}|null,"yields"?:true,"acceptYield"?:boolean,"headTo"?:zone_id|frontier_id|null,"lead"?:actor_id|null}`;
+ "spar"?:{"sides":[[actor_id]],"cruel"?:true}|null,"yields"?:true,"acceptYield"?:boolean,"spare"?:boolean,"headTo"?:zone_id|frontier_id|null,"lead"?:actor_id|null}`;
 export const RESPONDER_SHAPE = PLANNER_SHAPE.slice(0, -1) + ',\n "reveals":[secret_id]}';
 export const VOICE_SHAPE = `{"action":${NPC_ACTION},"line":string,"volume":"whisper"|"normal"|"shout","shares":[fact_id],
  "gear":${GEAR},"stance":{"toward":actor_id,"step":"friendlier"|"colder"}|null,"routine":routine_id|null,
  "agreement":{"with":"player","text":string,"job"?:${JOB}|null}|null,"questEnd"?:${QUEST_END},
- "spar"?:{"sides":[[actor_id]],"cruel"?:true}|null,"yields"?:true,"acceptYield"?:boolean,"headTo"?:zone_id|frontier_id|null,"lead"?:actor_id|null}`;
+ "spar"?:{"sides":[[actor_id]],"cruel"?:true}|null,"yields"?:true,"acceptYield"?:boolean,"spare"?:boolean,"headTo"?:zone_id|frontier_id|null,"lead"?:actor_id|null}`;
 export const NARRATOR_SHAPE = '{"text":string,"narrated":[event_id],"closing"?:string}';
 export const WEAVER_SHAPE = `{"event":{"summary":string,"challenge":grade,"gain":grade},
  "places":[{"key","name","kind","parent":placeKey|placeId|null,"layout"?:layout id from catalogs.layouts,"names"?:{layoutZoneKey:name},"looks"?:{layoutZoneKey:look}}],
