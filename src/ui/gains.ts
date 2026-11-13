@@ -14,6 +14,9 @@ import { SCENARIO_ENDING_NAMES, type AchievementNote, type GameApi, type Scenari
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const plural = (n: number, one: string, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+/** one way to write a number in the moment, counting or still, so a count never ends in a jump (XP can be fractional) */
+const num = (v: number) => String(+v.toFixed(1));
+const plus = (v: number) => `+${num(v)}`;
 
 export { anyGains } from '../engine/growth'; // one test for "the scenario gave something", shared with the gains log
 
@@ -27,7 +30,7 @@ export function gainsSummary(g: ScenarioGains): string {
     achs ? plural(achs, 'achievement') : '',
     scars ? plural(scars, 'scar') : '',
     g.essences?.length ? plural(g.essences.length, 'essence') + ' offered' : '',
-    g.xp.gained ? `+${g.xp.gained} XP` : '',
+    g.xp.gained ? `${plus(g.xp.gained)} XP` : '',
     g.xp.toLevel > g.xp.fromLevel ? `level ${g.xp.toLevel}` : '',
   ].filter(Boolean).join(' · ');
 }
@@ -79,8 +82,8 @@ function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLEleme
     h('li', { class: 'g-sec', 'data-sec': key }, h('span', { class: 'g-node', 'aria-hidden': 'true' }, '✦'), h('p', { class: 'hs-label g-label' }, label), h('div', { class: 'g-items' }, ...items));
   const secs: HTMLElement[] = [];
   if (g.skills.length) secs.push(sec('skills', 'Skills', ...g.skills.map((s) => h('div', { class: 'g-skill', 'data-from': String(s.from), 'data-to': String(s.to) },
-    h('b', { class: 'n' }, skillName(s.skill)), h('span', { class: 'num' }, String(s.to)),
-    h('span', { class: 'g-up' }, `▲ +${+(s.to - s.from).toFixed(2)}`),
+    h('b', { class: 'n' }, skillName(s.skill)), h('span', { class: 'num' }, num(s.to)),
+    h('span', { class: 'g-up' }, `▲ ${plus(s.to - s.from)}`),
     h('div', { class: 'cs-bar' }, h('b', { style: `width:${Math.min(100, s.to)}%` }))))));
   if (g.perks.length) secs.push(sec('perks', g.perks.length === 1 ? 'New perk' : 'New perks', ...g.perks.map((p) =>
     h('div', { class: 'perk-new g-perk', 'data-series': perkSeries(p.milestone) }, star(), h('div', {}, 'New perk unlocked', h('small', {}, `${skillName(p.skill)} reached ${p.milestone}`))))));
@@ -99,8 +102,8 @@ function gainsSpine(g: ScenarioGains, achCard: (a: AchievementNote) => HTMLEleme
   if (g.xp.gained || levelled) secs.push(sec('xp', 'The Thread', h('div', { class: 'g-xp' },
     // the sum: where the XP came from, row by row, above the total it adds up to
     parts.length ? h('ul', { class: 'g-xp-sum' }, parts.map((x) => h('li', { 'data-amount': String(x.amount) },
-      h('span', { class: 'k' }, KIND[x.kind]), h('span', { class: 'l' }, x.label), h('b', { class: 'a' }, `+${x.amount}`)))) : null,
-    h('p', { class: 'g-xp-row' }, parts.length ? h('span', { class: 'k' }, 'Total') : null, h('b', { class: 'g-xp-n', 'data-m': 'gained' }, `+${g.xp.gained}`), h('span', {}, ' XP')),
+      h('span', { class: 'k' }, KIND[x.kind]), h('span', { class: 'l' }, x.label), h('b', { class: 'a' }, plus(x.amount))))) : null,
+    h('p', { class: 'g-xp-row' }, parts.length ? h('span', { class: 'k' }, 'Total') : null, h('b', { class: 'g-xp-n', 'data-m': 'gained' }, plus(g.xp.gained)), h('span', {}, ' XP')),
     h('div', { class: 'g-xp-line' }, h('div', { class: 'cs-bar g-xp-bar', 'data-m': 'xp-track' }, h('b', { style: `width:${g.xp.toPct}%` })),
       h('span', { class: 'g-xp-lv', 'data-m': 'lvl' }, `Level ${g.xp.toLevel}`)))));
   if (g.levelUps.length) secs.push(sec('level', g.levelUps.length === 1 ? 'Level up' : 'Levels up', h('div', { class: 'g-level' },
@@ -145,7 +148,7 @@ function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number 
       if (key === 'skills') {
         arrive(it, t);
         const from = Number(it.dataset.from), to = Number(it.dataset.to);
-        count(it.querySelector<HTMLElement>('.num'), from, to, (n) => String(Math.round(n)), t + state);
+        count(it.querySelector<HTMLElement>('.num'), from, to, num, t + state);
         barMove(it.querySelector<HTMLElement>('.cs-bar'), it.querySelector<HTMLElement>('.cs-bar > b'), Math.min(100, from), Math.min(100, to), t + state);
         arrive(it.querySelector('.g-up'), t + state, 0);
         t += gap;
@@ -167,7 +170,7 @@ function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number 
           for (const r of rows) {
             const n = Number(r.dataset.amount);
             arrive(r, t, 6);
-            count(total, sum, sum + n, (v) => `+${Math.round(v)}`, t + state);
+            count(total, sum, sum + n, plus, t + state);
             sum += n; t += gap + state;
           }
           // the rule under the sum draws, then the total lands in its struck pose
@@ -175,7 +178,7 @@ function gainsTimeline(veil: HTMLElement, g: ScenarioGains, t0: number): number 
           impact(total, t + state);
           t += state * 2 + hold;
         } else {
-          count(total, 0, g.xp.gained, (n) => `+${Math.round(n)}`, t);
+          count(total, 0, g.xp.gained, plus, t);
           t += ms('--m-count');
         }
         barMove(it.querySelector<HTMLElement>('[data-m="xp-track"]'), it.querySelector<HTMLElement>('[data-m="xp-track"] > b'), g.xp.fromPct, g.xp.toPct, t, levelled);
