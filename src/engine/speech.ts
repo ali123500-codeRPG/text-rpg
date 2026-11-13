@@ -122,12 +122,15 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
     used.add(bandId);
     out.push(member.id);
   };
-  for (const ad of intent.addressees) {
+  // BG-122: the one the words are aimed at (the action's target) speaks for its band, wherever the player names it
+  const asked = state.actors.find((a) => a.id === intent.action?.target && live.includes(a));
+  const order = asked && intent.addressees.includes(asked.id) ? [asked.id, ...intent.addressees.filter((x) => x !== asked.id)] : intent.addressees;
+  for (const ad of order) {
     if (ad === 'everyone') {
       const heard = live.filter(voice.clear); // who hears the player's words (BG-57, BG-71, BG-88, BG-84)
       const bands = [...new Set(heard.map((a) => a.bandId))].map((b) => ({ b, m: nearest(heard.filter((a) => a.bandId === b))! }));
       bands.sort((x, y) => dist(x.m) - dist(y.m) || (x.m.id < y.m.id ? -1 : 1));
-      for (const { b, m } of bands) take(b, m);
+      for (const { b, m } of bands) take(b, b === asked?.bandId ? asked : m);
       continue;
     }
     const named = state.actors.find((a) => a.id === ad);
@@ -138,7 +141,7 @@ export function selectSpokespeople(state: GameState, intent: Intent): string[] {
     if (state.bands.some((b) => b.id === ad)) {
       const members = live.filter((a) => a.bandId === ad);
       const partner = members.find((a) => a.id === state.stage.partner && dist(a) < Infinity);
-      take(ad, partner ?? nearest(members));
+      take(ad, members.find((a) => a === asked) ?? partner ?? nearest(members));
     }
   }
   return out;

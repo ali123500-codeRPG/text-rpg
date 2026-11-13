@@ -6,7 +6,7 @@ import { CONFIG } from '../config';
 import { getLibrary } from '../library';
 import type { NoiseKey, SoundLossKey } from '../scales';
 import type { GameState, Perception, Zone, ZoneLink } from '../types';
-import { pathM, sightDistM, spotOf, type Located } from '../engine/position';
+import { pathM, sightDistM, spotOf, withinM, type Located } from '../engine/position';
 import { zoneById } from '../engine/relations';
 import { doorway, edgeFacing, sameFloor } from '../scenario/geometry';
 
@@ -74,7 +74,7 @@ export function soundDb(state: GameState, noise: NoiseKey | undefined, from: Loc
   let m = pathM(state, A, B, r.path);
   if (r.loss === 0 && A.zone !== B.zone) m = Math.min(m, sightDistM(state, A, B));
   // HB8: whispering to someone within reach, the speaker leans in to their ear
-  const near = leanIn && r.loss === 0 && m <= CONFIG.WHISPER_REACH_M;
+  const near = leanIn && r.loss === 0 && withinM(m, CONFIG.WHISPER_REACH_M);
   return base + keenDb - 20 * Math.log10(near ? CONFIG.WHISPER_LEAN_M : Math.max(m, CONFIG.NEAREST_M)) - r.loss;
 }
 

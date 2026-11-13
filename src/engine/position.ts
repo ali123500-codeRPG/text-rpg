@@ -17,6 +17,9 @@ export type Pos = { x: number; y: number };
 export type Located = { zone: string; pos?: Pos };
 
 const EPS = 0.01;
+/** BG-120: `d` metres is within `reach`: the one comparison for every reach, so someone who walked up to stop exactly
+ * at a reach (a step-up, closing in) is never left a hair outside it by rounding */
+export const withinM = (d: number, reach: number): boolean => d <= reach + EPS;
 const centre = (z: Zone): Pos | undefined => (z.rect ? { x: z.rect.x, y: z.rect.y } : undefined);
 const inside = (z: Zone, p: Pos) => !!z.rect && Math.abs(p.x - z.rect.x) <= z.rect.w / 2 + EPS && Math.abs(p.y - z.rect.y) <= z.rect.d / 2 + EPS;
 const flat = (a: Pos, b: Pos) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -298,5 +301,5 @@ export function gateAhead(state: GameState, a: Actor, goal: string): { b: Barrie
 /** FR2: `at` is within the actor's grip reach, plus `extra` metres (the receiver's own reach when handing over) */
 export function withinGrip(state: GameState, actor: Actor, at: Located, extra = 0): boolean {
   const r = gripReachM(state, actor);
-  return r > 0 && distM(state, actor, at) <= r + extra + 0.01;
+  return r > 0 && withinM(distM(state, actor, at), r + extra);
 }

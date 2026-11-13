@@ -21,7 +21,7 @@ import { answerRoll, answerSkill, toContest } from './speech';
 import { getLibrary } from '../library';
 import { now } from '../time';
 import { hearsClearly } from '../perception';
-import { sightDistM } from './position';
+import { sightDistM, withinM } from './position';
 import { CONFIG } from '../config';
 import { VOLUME_NOISE } from '../perception/noise';
 
@@ -35,7 +35,7 @@ export const freeHand = (state: GameState, a: Actor) => {
  * Dirt in the Eyes is a throw, so it reaches as far as an improvised throw, in sight (ZR1) */
 function inRange(state: GameState, a: Actor, t: Actor, perk: string): boolean {
   if (perk === PK.bluff) return hearsClearly(state, a, t, VOLUME_NOISE.normal);
-  if (perk === PK.dirt_in_the_eyes) return sightDistM(state, a, t) <= CONFIG.THROW_M.improvised;
+  if (perk === PK.dirt_in_the_eyes) return withinM(sightDistM(state, a, t), CONFIG.THROW_M.improvised);
   return false;
 }
 

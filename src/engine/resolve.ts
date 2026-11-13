@@ -16,7 +16,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { distM, gateAhead, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, type Located } from './position';
+import { distM, gateAhead, placeAll, sightDistM, spotOf, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -251,7 +251,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   // A8 Hold: a held actor's move is its try to break free; it stays in the zone either way
   const bf = a.heldBy ? breakFree(state, a, ctx.rng) : null;
   if (bf) {
-    emit(ctx, mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect] }));
+    const ev = mk(ctx, a, 'break_free', { target: String(bf.effect.data.by), effects: [bf.effect] });
+    emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
   const link = zoneById(state, a.zone)?.links.find((l) => l.to === goal.zone);
@@ -266,7 +267,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     }
     // GAP: the player crossing a frontier stays in its zone; scenario setup / stage extension places it (pipeline reads scratch).
     state.scratch = { ...(state.scratch ?? {}), frontierCrossed: goal.zone };
-    emit(ctx, mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] }));
+    const ev = mk(ctx, a, 'move', { target: goal.zone, effects: [{ kind: 'frontier_crossed', actorId: a.id, data: { frontier: goal.zone } }] });
+    emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
   // SD7: a jump down a window or ledge: straight into the zone below, with a landing roll and flat fall damage
@@ -278,7 +280,8 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
     delete a.pos;
     noteLeft(state, up.id);
     const f = landFall(state, a, drop, ctx.rng);
-    emit(ctx, mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects }));
+    const ev = mk(ctx, a, 'move', { metres: 0, fromZone: up.id, ...(was ? { fromPos: was } : {}), fall: { metres: drop, damage: f.damage, landing: f.landing }, effects: f.effects });
+    emit(ctx, withBark ? bark(ev, o) : ev);
     return 'spent';
   }
   const from = a.zone, fromPos = a.pos && { ...a.pos };
@@ -286,7 +289,7 @@ function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, 
   const gate = gateAhead(state, a, goal.zone);
   const walked = walkLeg(state, a, goal, metres, stopShort, a, !!gate);
   if (walked === null) return null;
-  if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate); // an NPC tries a shut way once
+  if (gate && walked <= 0) return gate.pass === 'shut' && a.kind !== 'player' && gate.b.tried?.includes(a.id) ? null : atBarrier(ctx, a, gate, withBark ? o : undefined); // an NPC tries a shut way once
   if (walked <= 0 && a.zone === from) return 0; // a doorway right where the walker stands is crossed in 0 m: still a move
   if (a === state.player && a.zone !== from) noteLeft(state, from);
   // a leg inside the zone (closing in, a step) names who it heads for and carries no fromZone; every leg keeps where it set off
@@ -310,12 +313,12 @@ function toGo(state: GameState, a: Actor, goal: string): { toGo?: number } {
 
 /** SD3–SD5: at the barrier: a key turns and the bar slides back on the way through (BA3, BA4), or a shut one is tried and
  * found locked, barred or blocked (the walker learns it). Either way the move is spent there. */
-function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhead>>): 'spent' {
+function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhead>>, withLine?: Order): 'spent' {
   const did = g.pass === 'opens' ? openWay(g.b, a, a.zone) : [];
   if (g.pass === 'shut') noteTried(g.b, a);
-  const way = (d: WayDid) => mk(ctx, a, 'way', { target: g.to, way: { to: g.to, barrier: g.b.id, did: d } });
-  if (did.length) for (const d of did) emit(ctx, way(d));
-  else emit(ctx, way(`found_${shutBy(g.b, a, a.zone)}` as WayDid));
+  const way = (d: WayDid, i: number) => { const ev = mk(ctx, a, 'way', { target: g.to, way: { to: g.to, barrier: g.b.id, did: d } }); return withLine && i === 0 ? bark(ev, withLine) : ev; };
+  if (did.length) did.forEach((d, i) => emit(ctx, way(d, i)));
+  else emit(ctx, way(`found_${shutBy(g.b, a, a.zone)}` as WayDid, 0));
   return 'spent';
 }
 
@@ -336,8 +339,17 @@ function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: 
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
  * (closing in to strike). Returns false when the move was dropped. */
 function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string } = {}): boolean {
+  const start = ctx.events.length;
+  const ok = walkLegs(ctx, a, goal, o, slot, opts);
+  // BG-118: words said with a move are never lost: a move that left no event to carry them (a wait at a frontier, a
+  // dropped walk, a doorway underfoot) still says them, standing where the walker is
+  if (opts.bark && o.line && !ctx.events.slice(start).some((e) => e.actorId === a.id && e.line)) emit(ctx, bark(mk(ctx, a, 'hold'), o));
+  return ok;
+}
+
+function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string }): boolean {
   const { state } = ctx;
-  const there = () => (goal.pos ? distM(state, a, goal) <= (opts.stopShort ?? 0) + 0.01 : a.zone === goal.zone);
+  const there = () => (goal.pos ? withinM(distM(state, a, goal), opts.stopShort ?? 0) : a.zone === goal.zone);
   let left = 0, fresh = false;
   for (let n = 0, legs = 0; !there() && legs < 100; legs++) {
     if (left <= 0.01) {
@@ -419,10 +431,10 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const dist = sightDistM(state, a, t);
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
   // a named skill picks the mode that uses it ("I grab him" names unarmed_grapple, not the sword in hand)
-  const bySkill = !named && o.skill ? usableModes(state, a).find((x) => modeSkill(x.mode) === o.skill && x.mode.reach >= dist) : undefined;
+  const bySkill = !named && o.skill ? usableModes(state, a).find((x) => modeSkill(x.mode) === o.skill && withinM(dist, x.mode.reach)) : undefined;
   const m = named ?? bySkill ?? defaultMode(state, a, dist);
   // target moved first: resolves only within the mode's reach (metres, with sight); else a wasted action
-  if (!m || dist > m.mode.reach) return wasted('out_of_reach');
+  if (!m || !withinM(dist, m.mode.reach)) return wasted('out_of_reach');
   const fromHiding = a.posture === 'stealthy'; // All-50 Strike and Fade
   const inAndOut = fromHiding && m.mode.tree !== 'ranged' && hasPerk(a, PK.in_and_out); // A23 In and Out: only the target sees you
   const shows = fromHiding && m.mode.tree !== 'ranged' && !inAndOut;
@@ -486,7 +498,7 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   if (!followUp && modeSkill(m.mode) === SK.unarmed_improvised && met(res.outcome) && hasPerk(a, PK.one_two)
     && isActive(t) && freeHand(state, a)) {
     const fist = usableModes(state, a).find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
-    if (fist && sightDistM(state, a, t) <= fist.mode.reach) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
+    if (fist && withinM(sightDistM(state, a, t), fist.mode.reach)) doAttack(ctx, a, { ...o, target: t.id, item: fist.itemId, mode: fist.mode.id, skill: SK.unarmed_strike, targetPart: null, aimed: false, line: null }, true);
   }
   allFiftyAfterAttack(ctx, a, t, m.mode.tree === 'ranged', m.itemId, res, fromHiding, followUp);
   parryStrike(ctx, a, t, res);
@@ -501,7 +513,7 @@ function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
   const modes = usableModes(state, t);
   const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
     : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
-  if (!back || sightDistM(state, t, a) > back.mode.reach) return; // the blow back reaches only as far as its weapon (metres)
+  if (!back || !withinM(sightDistM(state, t, a), back.mode.reach)) return; // the blow back reaches only as far as its weapon (metres)
   ctx.parryStrikes.add(t.id);
   doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: 'parry strike' }, true);
 }
@@ -559,7 +571,7 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   if (ranged && met(res.outcome) && hasPerk(a, PK.volley) && isActive(a) && readyThisEngagement(state, a, PK.volley)) {
     const mode = usableModes(state, a).find((x) => x.itemId === itemId && x.mode.tree === 'ranged');
     const foes = allActors(state).filter((x) => x !== a && isActive(x) && foe(state, x, a) && atLeast(beliefStatus(state, a, x), 'aware')
-      && sightDistM(state, a, x) <= (mode?.mode.reach ?? -1));
+      && withinM(sightDistM(state, a, x), mode?.mode.reach ?? -1));
     if (mode && foes.length) {
       useThisEngagement(a, PK.volley);
       const pick = foes[rng.int(0, foes.length - 1)];
@@ -996,7 +1008,7 @@ function attackMode(state: GameState, a: Actor, o: Order, from: Located = a) {
   const named = o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
   return { m: named ?? defaultMode(state, a, dist), dist };
 }
-const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && dist <= m.mode.reach; };
+const inReach = (state: GameState, a: Actor, o: Order, from: Located = a) => { const { m, dist } = attackMode(state, a, o, from); return !!m && withinM(dist, m.mode.reach); };
 /** FR4 (the NEEDS table): where this turn's action is done and whether the actor is near enough: a foe within the attack's
  * reach (melee), someone to hand to within both grip reaches, the doorway of a way worked, picked or tried within grip
  * reach; with none, the first item to pick up out of reach. null: nothing to close in on. */
@@ -1044,7 +1056,7 @@ function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<ty
 const rangedHere = (state: GameState, a: Actor, o: Order) => {
   const here = attackMode(state, a, o);
   const next = o.move ? shortestPath(state, a.zone, o.move)?.[0] : undefined;
-  const m = here.m && here.dist <= here.m.mode.reach ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
+  const m = here.m && withinM(here.dist, here.m.mode.reach) ? here.m : next ? attackMode(state, a, o, { zone: next }).m : here.m;
   return m?.mode.tree === 'ranged';
 };
 /** AE2: a Crippled or Destroyed part with the move role stops a dash, and so does Leg Bolt's slow (A6) */

@@ -9,7 +9,7 @@ import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } fro
 import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
-import { distM, gateAhead, spotPoint, walkLeg, type Located } from './position';
+import { distM, gateAhead, spotPoint, walkLeg, withinM, type Located } from './position';
 import { canSpeak } from '../ruleset/body';
 
 /** FR4: the one approach table: what each action needs of the actor's distance to its target, for every actor, player
@@ -71,7 +71,7 @@ export function speakingSpot(state: GameState, intent: Intent): Located {
   const stop = sp?.stopShort ?? 0;
   let left = slotMetres(state, p, 'move');
   for (let legs = 0; legs < 100 && left > 0.01; legs++) {
-    if (goal.pos ? distM(state, at, goal) <= stop + 0.01 : at.zone === goal.zone) break;
+    if (goal.pos ? withinM(distM(state, at, goal), stop) : at.zone === goal.zone) break;
     const r = walkLeg(state, at, goal, left, stop, p, !!gateAhead(state, { ...p, ...at }, goal.zone));
     if (!r) break;
     left -= r;
