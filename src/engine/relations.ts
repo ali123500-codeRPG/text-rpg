@@ -98,12 +98,18 @@ export function atLeast(status: BeliefStatus | undefined, min: BeliefStatus): bo
 /** CH7: the chase after this actor was lost and the chaser has not seen or heard it since */
 export const chaseLost = (b: Belief | undefined): boolean => b?.lostTurn !== undefined && (b.lastSeenTurn ?? -Infinity) <= b.lostTurn;
 
+/** those who count in a fight and are after `p` (who holds no beliefs): a foe, for real or in a spar, that believes in it
+ * (suspicious or higher) and has not lost its chase */
+export function foesAfter(state: GameState, p: Actor): Actor[] {
+  return allActors(state).filter((o) => { const b = o.mind?.knowledge?.[p.id]; return o !== p && countsInFight(o) && foe(state, o, p) && atLeast(b?.status, 'suspicious') && !chaseLost(b); });
+}
+
 /** Engaged = active (and not broken/surrendered), and believes (suspicious or higher) in an active actor it is hostile to
  * or sparring with (SP1). A chase it lost (CH7) does not count until it sees or hears them again. */
 export function isEngaged(state: GameState, actor: Actor): boolean {
   if (!countsInFight(actor)) return false;
   // the player has no beliefs: it is in a fight while someone who counts in one is fighting it, for real or in a spar
-  if (actor.kind === 'player') return allActors(state).some((o) => { const b = o.mind?.knowledge?.[actor.id]; return o !== actor && countsInFight(o) && foe(state, o, actor) && atLeast(b?.status, 'suspicious') && !chaseLost(b); });
+  if (actor.kind === 'player') return foesAfter(state, actor).length > 0;
   const k = actor.mind?.knowledge ?? {};
   return Object.entries(k).some(([id, b]) => {
     if (!atLeast(b.status, 'suspicious') || chaseLost(b)) return false;

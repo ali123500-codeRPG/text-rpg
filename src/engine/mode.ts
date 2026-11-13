@@ -1,6 +1,6 @@
 // Encounter modes and turn start (Architecture step 1).
 import type { GameState, Pending } from '../types';
-import { allActors, countsInFight, isActive, isEngaged, sparring } from './relations';
+import { allActors, countsInFight, foesAfter, isActive, isEngaged, sparring } from './relations';
 import { fireTurnStartTriggers } from './triggers';
 import { fightingWith } from './engagement';
 import { perceivesNow } from './yield';
@@ -26,11 +26,14 @@ export function computePending(state: GameState): Pending {
   return pending;
 }
 
-/** BF14: fight turns only when a fight concerns the player: someone fighting them knows they are there (isEngaged), or they
- * can perceive a fight going on (blows traded, YD6, or a live spar). A standoff or a fight beyond their senses keeps normal turns */
+/** BF14/AT61: fight turns only from what the player perceives: an attack on them this turn, a foe after them (isEngaged's
+ * foes) they can see or hear just being there, or a fight going on they can see or hear (blows traded, YD6, or a live spar).
+ * A foe after them beyond their senses, a standoff or a fight out of their reach keeps normal turns */
 export function fightTurns(state: GameState): boolean {
   const p = state.player;
-  if (isEngaged(state, p)) return true;
+  if (!countsInFight(p)) return false;
+  if (state.events.some((e) => e.kind === 'attack' && e.target === p.id)) return true;
+  if (foesAfter(state, p).some((o) => perceivesNow(state, p, o, 'faint'))) return true;
   return state.actors.some((a) => countsInFight(a) && allActors(state).some((b) => b !== a && (fightingWith(state, a, b) || sparring(state, a, b)))
     && perceivesNow(state, p, a, 'loud'));
 }
