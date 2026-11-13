@@ -156,7 +156,7 @@ export function knownIds(view: NpcViewBase) {
   const actors = new Set([view.self.id, ...view.beliefs.map((b) => b.about), ...view.seen.map((s) => s.id)]);
   const zones = new Set([...view.map.flatMap((z) => [z.id, ...z.links.map((l) => l.to)]), ...view.zones.map((z) => z.id), view.self.zone]);
   const own = new Set(view.self.gear.map((g) => g.id));
-  const ground = new Set(view.zones.flatMap((z) => z.groundItems.map((g) => g.id)));
+  const ground = new Set(view.zones.flatMap((z) => z.groundItems.flatMap((g) => [g.id, ...(g.container?.contents?.map((x) => x.id) ?? [])]))); // BF13: what an open container shows lies there too
   const seenGear = new Set(view.seen.flatMap((s) => s.gear.map((g) => g.id)));
   return { actors, zones, own, ground, seenGear };
 }

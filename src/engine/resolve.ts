@@ -158,6 +158,11 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
 
 function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | AttackResult, perceived = false): void {
   const { state, rng } = ctx;
+  // BG-163: an action out of reach says how far short it fell (metres), so the story never turns a step into a way off
+  if (ev.kind === 'wasted' && ev.reason === 'out_of_reach' && ev.metres === undefined) {
+    const a = actorById(state, ev.actorId), o = ctx.orders.get(ev.actorId), near = a && o ? reachOf(state, a, o) : null;
+    if (a && near) ev.metres = Math.round(Math.max(0, distM(state, a, near.at) - near.m) * 10) / 10;
+  }
   // BG-132: one order's words are said once a turn, whichever of its events carries them first
   if (ev.line && ev.bark && ctx.events.some((e) => e.actorId === ev.actorId && e.line?.text === ev.line!.text)) { delete ev.line; delete ev.bark; }
   // BF3: a whisper to someone it does not reach, even after stepping up, is said low enough for them to hear; BG-154: to
@@ -342,7 +347,7 @@ function atBarrier(ctx: Ctx, a: Actor, g: NonNullable<ReturnType<typeof gateAhea
 /** BG-111: where an order's move goes: its zone, or the spot in it (beside someone, by a way out, a side) with the walk's
  * stop-short and words. The one rule for every walk an order makes: the player's, an NPC's in turn, a spokesperson's in the
  * exchange. */
-function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: { stopShort?: number; toward?: string; spot?: string } } {
+function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: { stopShort?: number; toward?: string; spot?: string; enter?: boolean } } {
   // BG-131: a walk beside someone goes where they are when it runs: someone the walker still perceives, who moved off
   // since the order was made, takes the walk to their zone now
   const who = o.moveSpot?.near && !o.moveSpot.lastSeen ? actorById(state, o.moveSpot.near) : undefined;
@@ -351,7 +356,7 @@ function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: 
   if (o.moveSpot && !sp) logCode(state, 'move_spot_dropped', { actorId: a.id, to: zone, spot: o.moveSpot });
   return {
     goal: sp ? { zone: zone!, pos: sp.pos } : { zone: zone! },
-    opts: sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}) } : {},
+    opts: sp ? { stopShort: sp.stopShort, ...(sp.toward ? { toward: sp.toward } : {}), ...(sp.words ? { spot: sp.words } : {}), enter: true } : {},
   };
 }
 
@@ -359,7 +364,7 @@ function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: 
  * dash, runs the rest of the turn), one leg at a time, until it gets there, the slots run out, or the move is spent or
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
  * (closing in to strike). Returns false when the move was dropped. */
-function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string } = {}): boolean {
+function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string; enter?: boolean } = {}): boolean {
   const start = ctx.events.length;
   const ok = walkLegs(ctx, a, goal, o, slot, opts);
   // BG-118: words said with a move are never lost: a move that left no event to carry them (a wait at a frontier, a
@@ -368,9 +373,10 @@ function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 
   return ok;
 }
 
-function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string }): boolean {
+function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string; enter?: boolean }): boolean {
   const { state } = ctx;
-  const there = () => (goal.pos ? withinM(distM(state, a, goal), opts.stopShort ?? 0) : a.zone === goal.zone);
+  // BG-166: a move goes into the zone it names, even when its spot is already within reach from the edge of the next one
+  const there = () => (!opts.enter || a.zone === goal.zone) && (goal.pos ? withinM(distM(state, a, goal), opts.stopShort ?? 0) : a.zone === goal.zone);
   let left = 0, fresh = false;
   for (let n = 0, legs = 0; !there() && legs < 100; legs++) {
     if (left <= 0.01) {
@@ -741,16 +747,19 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   const def = inst ? itemDef(state, inst.itemId) : undefined;
   const row = def?.heal ? getLibrary().healing?.[def.heal] : undefined;
   if (!inst || !row) return false;
-  const ev = bark(mk(ctx, a, 'use_item', { itemId: inst.itemId }), o);
+  // BF13: used on someone else, it heals them by the same row, if they are within the user's grip reach (closed in on: NEEDS)
+  const t = (o.target && actorById(state, o.target)) || a;
+  if (t !== a && !withinGrip(state, a, t)) { emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, itemId: inst.itemId, reason: 'out_of_reach' }), o)); return true; }
+  const ev = bark(mk(ctx, a, 'use_item', { itemId: inst.itemId, ...(t !== a ? { target: t.id } : {}) }), o);
   if (threatHere(state, a) && !row.inFight) {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'hostile_in_zone' });
-  } else if (!wouldHeal(state, a, row.id)) {
-    logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal' });
+  } else if (!wouldHeal(state, t, row.id)) {
+    logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal', ...(t !== a ? { target: t.id } : {}) });
   } else {
-    applyHealing(state, a, row.id);
+    applyHealing(state, t, row.id);
     inst.qty = (inst.qty ?? 1) - 1;
     if (inst.qty <= 0) a.core.inventory.splice(a.core.inventory.indexOf(inst), 1);
-    ev.effects.push({ kind: 'healed', actorId: a.id, data: { source: row.id } });
+    ev.effects.push({ kind: 'healed', actorId: t.id, data: { source: row.id } });
   }
   emit(ctx, ev);
   return true;
@@ -957,7 +966,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'sleep':
       return doWait(ctx, a, o);
     case 'give': {
-      const got = giveItem(state, a, o.item, o.target, o.qty);
+      const got = giveItem(state, a, o.item, o.target, o.qty) ?? (stepUpToTake(ctx, a, o) ? giveItem(state, a, o.item, o.target, o.qty) : null);
       if (!got) { // BG-149: a wasted event always says why
         const t = o.target ? actorById(state, o.target) : undefined;
         const why = !t || t === a ? 'no_one_to_give_to' : !isActive(t) ? 'already_down' : !a.core.inventory.some((x) => x.id === o.item) ? 'no_item' : !withinGrip(state, a, t, gripReachM(state, t)) ? 'out_of_reach' : 'not_that_many';
@@ -1045,7 +1054,7 @@ function step(ctx: Ctx, id: string): void {
   if (o.way) {
     const walked = closeIn && !near!.ok();
     closer();
-    if (near!.ok()) turned = doWayOp(ctx, a, o.way, o.type === 'hold');
+    if (near?.ok()) turned = doWayOp(ctx, a, o.way, o.type === 'hold'); // BG-165: a way not out of this zone (null) is out of reach too
     else { // BG-144: the walk did not reach the way, so the op comes to nothing this turn, and the story says why
       logCode(state, 'way_op_dropped', { actorId: id, to: o.way.toZone, op: o.way.op, reason: 'out_of_reach' });
       emit(ctx, mk(ctx, a, 'wasted', { target: o.way.toZone, reason: 'out_of_reach' }));
@@ -1126,12 +1135,12 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
   const at = o.way && door(o.way.toZone);
   if (at) return grip(at);
   const need = needOf(state, a, o.type), t = o.target ? actorById(state, o.target) : undefined;
-  if (need === 'weapon' && t && t !== a && isActive(t) && !rangedHere(state, a, o)) {
+  if (need === 'weapon' && t && t !== a && healthLevel(t) !== 'dead' && !rangedHere(state, a, o)) { // BG-162: someone down can be struck (doAttack), so is closed in on
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }
   if (o.type === 'search' && t && t !== a && openToHands(a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
-  if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5): the grabber's
+  if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5) or tending (BF13): the user's
   const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
   for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p); }
@@ -1155,6 +1164,18 @@ function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<ty
   const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
   const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
   walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: p ? 0 : Math.max(0, near.m - 0.01), ...(near.toward ? { toward: near.toward } : {}) });
+}
+
+/** BF12: handing something across a way (bars, a grate, a doorway): the giver holds it out there, and the one it is for, if
+ * willing (awake, not hostile, a move slot left), steps up to the way on their side to take it, as their move this turn */
+function stepUpToTake(ctx: Ctx, a: Actor, o: Order): boolean {
+  const { state } = ctx;
+  const t = o.target ? actorById(state, o.target) : undefined;
+  if (!t || t === a || t.zone === a.zone || !isActive(t) || isAsleep(t) || hostile(state, t, a)) return false;
+  const mine = wayPoint(state, a.zone, t.zone, a), theirs = wayPoint(state, t.zone, a.zone, t);
+  if (!mine || !theirs || !withinGrip(state, a, { zone: a.zone, pos: mine }) || !slotsOf(ctx, t).move) return false;
+  walk(ctx, t, { zone: t.zone, pos: theirs }, nullOrder(t.id), (n) => (n === 0 ? useMoveSlot(ctx, t, false) : null), { stopShort: Math.max(0, gripReachM(state, t) - 0.01), toward: a.id });
+  return true;
 }
 
 /** AE1: the attack would be ranged from here, or (out of reach here) from where the move leads */

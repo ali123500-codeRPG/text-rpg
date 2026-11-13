@@ -40,6 +40,12 @@ const better = (a: Seen | null, b: Seen | null): Seen | null => (!a ? b : !b ? a
 // The event is perceived at its own zone (a move: the destination zone).
 /** NS2: how many metres a figure keeping still is made out clearly (the Low visibility level's clear metres) */
 const stillSeen = (): number => CONFIG.SIGHT_M.low![0];
+/** BG-164: the player would make out someone standing still at this spot now (awake, in sight, not in the dark): an empty
+ * spot there is seen to be empty */
+export function spotInSight(state: GameState, at: Located): boolean {
+  const p = state.player, d = isActive(p) && !isAsleep(p) ? seeingM(state, p, at) : null;
+  return d !== null && d <= stillSeen() && zoneLight(state, zoneById(state, at.zone)) !== 'dark';
+}
 /** Q17: a careful look makes out a still figure as far as a moving one is (the Normal visibility level's clear metres) */
 const lookReach = (): number => CONFIG.SIGHT_M.normal![0];
 

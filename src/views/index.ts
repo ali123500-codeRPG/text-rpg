@@ -28,7 +28,7 @@ import { activity, actorBody, bodyType, getLibrary, itemDef, npcTemplate, routin
 import { perkMoveBlock } from '../engine/perkMoves';
 import { PERK_MOVES, hasPerk, healthLevel, isDownLevel, ownPerkMoves, partStates, tierName } from '../ruleset';
 import { summonableThreadboundItems } from '../ruleset/threadboundItems';
-import { barkOnly, beliefStatus, hearsWords, isComm } from '../perception';
+import { barkOnly, beliefStatus, hearsWords, isComm, spotInSight } from '../perception';
 import { skillName } from '../library/skillNames';
 import { offeredRoutines } from '../minds/routines';
 import { coinWords, isSeller, offerList, wareList } from '../engine/trade';
@@ -347,6 +347,12 @@ function talkingWithSeen(state: GameState): { id: string; name: string }[] {
 /** people the player saw or heard earlier who are out of sight now, with the zone they were last seen or heard in, so
  * the Parser never answers "they aren't here" about someone a few steps away (playtest run 20) or someone heard running
  * off (BG-28) */
+/** BG-164: the player sees the spot where they last saw `id`, and nobody is made out there: they are gone from it, as far
+ * as the player knows (never where to) */
+function goneFromSpot(state: GameState, id: string): boolean {
+  const j = state.player.journal, zone = j?.lastKnown?.[id], pos = j?.lastSpot?.[id];
+  return !!zone && !!pos && spotInSight(state, { zone, pos });
+}
 function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['lastSeen']> {
   const p = state.player;
   return Object.entries({ ...p.journal?.clearSight, ...p.journal?.lastKnown }).flatMap(([id, zone]) => {
@@ -354,7 +360,7 @@ function lastSeen(state: GameState, seen: SeenActor[]): NonNullable<PlayerView['
     if (!a || seen.some((x) => x.id === id && x.level === 'full') || !isActive(a)) return [];
     // BG-130: their pronouns too, so words about someone out of sight never guess them from a name
     // BG-155: a seller seen before is still known to sell, so a buy from them steps up to them
-    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}) }];
+    return [{ id, name: nameFor(state, p, a) ?? a.label, zone: zoneById(state, zone)?.name ?? zone, ...(a.pronouns ? { pronouns: a.pronouns } : {}), ...(isSeller(a) ? { wares: wareList(state, p, a) } : {}), ...(goneFromSpot(state, id) ? { gone: true } : {}) }];
   });
 }
 
@@ -651,10 +657,22 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
       .map((o) => ({ name: getLibrary().essences?.[o.essence]?.name ?? o.essence, story: getLibrary().essences?.[o.essence]?.story ?? '' }))),
     // essences that appeared this turn and failed their quality roll: they show, then fade
     ...(comings.size ? { cameAndWent: cameAndWent(state, me, comings) } : {}),
+    ...((gone) => gone.length ? { notThere: gone } : {})(notThere(state, intent, seenIds)),
     ...((faded) => faded.length ? { essencesFaded: faded } : {})(state.log.filter((l) => l.turn === state.turn && l.code === 'essence_faded')
       .map((l) => String((l.detail as { essence?: string } | undefined)?.essence ?? ''))
       .map((id) => ({ name: getLibrary().essences?.[id]?.name ?? id, story: getLibrary().essences?.[id]?.story ?? '' }))),
   };
+}
+
+/** BG-164: people this turn's words, action or walk were for, who are not where the player last saw them (seen empty):
+ * by name, with where that was */
+function notThere(state: GameState, intent: Intent | null | undefined, seenIds: Set<string>): string[] {
+  const ids = new Set([intent?.action?.target, intent?.move?.spot?.near, ...(intent?.addressees ?? [])].filter((x): x is string => !!x));
+  return [...ids].flatMap((id) => {
+    const a = actorById(state, id), zone = state.player.journal?.lastKnown?.[id];
+    if (!a || seenIds.has(id) || !zone || !goneFromSpot(state, id)) return [];
+    return [`${nameFor(state, state.player, a) ?? a.label}, last seen in ${zoneById(state, zone)?.name ?? zone}`];
+  });
 }
 
 /** BF2e: one leg of a long turn as noticed: where they went (seen), or only that someone moved off (heard) */
