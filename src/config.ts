@@ -2,7 +2,6 @@ import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
 import type { EffortKey, FatigueLevel, GradeLevel, HealthLevelKey, MoraleLevel, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
-import { IT } from './library/itemIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
 // Values marked Q2 are placeholders the spec names without a value (asked in the build plan, question 2).
 // Read CONFIG at call time (tests may change a value and call resetConfig()).
@@ -561,8 +560,6 @@ const DEFAULTS = {
    * the penalty grows faster than the size, and sizes above FILCH_MAX_BULK can't be filched (a perk can open them) */
   FILCH_SIZE: [0, 5, 15, 30] as number[],
   FILCH_MAX_BULK: 2,
-  /** PI1 (placeholder): how much bulk a container holds, by item id (a container not listed holds nothing put in by hand) */
-  CONTAINER_HOLDS: { [IT.sack]: 6, [IT.chest]: 12, [IT.crate]: 12 } as Record<string, number>,
   /** FL2: the share of a purse's coin one try takes (at least 1) */
   FILCH_PURSE_SHARE: 0.25,
   /** FL5: stance steps colder when caught: the owner, and every other watcher who caught it */

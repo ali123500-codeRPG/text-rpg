@@ -1,6 +1,6 @@
 // 280 PI1–PI4 (carried gear is one item in the inventory, and things can be placed inside it): putting things into a container is free gear, like stowing: gear op stow with into, a sack one carries or an open
-// chest or crate within reach that is not someone else's to guard. What goes in must fit (CONFIG.CONTAINER_HOLDS, in
-// bulk); a stack can go in part; a container never goes inside another; worn things come off first; into a worn pack is a
+// chest or crate within reach that is not someone else's to guard. How much a container holds is parked (D-254);
+// a stack can go in part; a container never goes inside another; worn things come off first; into a worn pack is a
 // plain stow (CT7). Taking it out again is pick_up. The inventory lists what each carried container holds.
 import { expect, it } from 'vitest';
 import type { GameState } from '../../src/types';
@@ -11,7 +11,6 @@ import { actorById, zoneById } from '../../src/engine/relations';
 import { IT } from '../../src/library/itemIds';
 import { checkParserLegality } from '../../src/agents/legality';
 import { buildPlayerView } from '../../src/views';
-import { CONFIG } from '../../src/config';
 
 const village = (): GameState => {
   const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2', 'guard_1'] });
@@ -52,13 +51,12 @@ it('PI2: part of a stack goes in, and more of it joins the same stack', () => {
   expect(buildPlayerView(s).player.inventory.find((x) => x.id === 'sack')?.container?.contents?.[0].qty).toBe(6);
 });
 
-it('PI3: what goes in must fit; a container never goes in another; worn things come off first', () => {
+it('PI3: a container holds anything (size is parked); a container never goes in another; worn things come off first', () => {
   const s = village();
   s.player.core.inventory.push({ id: 'axe', itemId: IT.greataxe }, { id: 'spear', itemId: IT.spear }, { id: 'sack2', itemId: IT.sack });
-  expect(CONFIG.CONTAINER_HOLDS[IT.sack]).toBe(6);
   play(s, { intent: intent({ gear: [{ op: 'stow', item: 'axe', into: 'sack' }, { op: 'stow', item: 'spear', into: 'sack' }, { op: 'stow', item: 'knife', into: 'sack' }, { op: 'stow', item: 'sack2', into: 'sack' }] }) });
-  expect(sack(s).contents?.map((x) => x.id)).toEqual(['axe', 'spear']);
-  expect(has(s, 'knife') && has(s, 'sack2')).toBe(true);
+  expect(sack(s).contents?.map((x) => x.id)).toEqual(['axe', 'spear', 'knife']);
+  expect(has(s, 'sack2')).toBe(true);
   const armor = s.player.core.inventory.find((x) => x.equippedIn?.includes('armor'))!;
   const s2 = village();
   play(s2, { intent: intent({ gear: [{ op: 'stow', item: armor.id, into: 'sack' }] }) });

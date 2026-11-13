@@ -160,7 +160,7 @@ export function fadeSoulbound(state: GameState, a: Actor): void {
 
 /** PI1–PI4: put `inst` (held or stowed, never worn) into a container: one `a` carries (a worn pack holds what is stowed, so
  * that is a plain stow, CT7), or one standing open within grip reach that is not someone else's to guard. A container never
- * goes inside another, and what goes in must fit (CONFIG.CONTAINER_HOLDS, in bulk). `qty` puts in part of a stack. Returns the
+ * goes inside another; how much one holds is parked (D-254). `qty` puts in part of a stack. Returns the
  * instance now inside (a stack joins one of its kind) and how many, or null. */
 export function putInto(state: GameState, a: Actor, inst: ItemInstance, intoId: string, qty?: number): { id: string; qty?: number } | null {
   const c = findContainer(state, intoId);
@@ -170,9 +170,7 @@ export function putInto(state: GameState, a: Actor, inst: ItemInstance, intoId: 
   const d = itemDef(state, inst.itemId), have = inst.qty ?? 1, n = qty == null || !d.stackable ? have : Math.floor(qty);
   if (n < 1 || n > have) return null;
   const list = (c.inst.contents ??= []);
-  const used = list.reduce((t, i) => t + itemDef(state, i.itemId).bulk, 0);
   const stack = d.stackable ? list.find((x) => x.itemId === inst.itemId) : undefined;
-  if (!stack && used + d.bulk > (CONFIG.CONTAINER_HOLDS[c.inst.itemId] ?? 0)) return null;
   if (n < have) inst.qty = have - n;
   else a.core.inventory.splice(a.core.inventory.indexOf(inst), 1);
   if (stack) { stack.qty = (stack.qty ?? 1) + n; return { id: stack.id, qty: n }; }
