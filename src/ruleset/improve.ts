@@ -33,19 +33,19 @@ export function clearMarkCounts(actor: Actor): void {
   if (actor.progression) actor.progression.markCounts = {};
 }
 
-/** SP2: does `opposition` teach this skill? From MARK_WINDOW below raw skill up to MARK_WINDOW above true skill.
- * A skill not on the sheet counts as raw 0. */
-function close(actor: Actor, skill: string, opposition: number): boolean {
+/** SP2: does `opposition` teach this skill? From MARK_WINDOW below raw skill up to MARK_WINDOW above true skill; a won
+ * contest has no top (a win against a stronger side teaches). A skill not on the sheet counts as raw 0. */
+function close(actor: Actor, skill: string, opposition: number, won = false): boolean {
   const [lo, hi] = learningWindow(actor.core.skills[skill]?.raw ?? 0, trueSkill(actor, skill));
-  return opposition >= lo && opposition <= hi;
+  return opposition >= lo && (won || opposition <= hi);
 }
 /** SP2: the opposition range that teaches a skill at `raw` and `trueValue`: raw − MARK_WINDOW to max(raw, true) + MARK_WINDOW */
 export const learningWindow = (raw: number, trueValue: number): [number, number] => [raw - CONFIG.MARK_WINDOW, Math.max(raw, trueValue) + CONFIG.MARK_WINDOW];
 
 /** mark `skill` if the opposition is inside its learning window (SP2: raw − MARK_WINDOW to true + MARK_WINDOW) */
-export function markIfClose(state: GameState, actor: Actor | undefined, skill: string, opposition: number | undefined, tied = false): void {
+export function markIfClose(state: GameState, actor: Actor | undefined, skill: string, opposition: number | undefined, tied = false, won = false): void {
   if (!actor || actor.id !== state.player.id || opposition === undefined) return;
-  if (tied || close(actor, skill, opposition)) mark(actor, skill); // close calls teach: a tier gap of exactly 0 marks whatever the skills
+  if (tied || close(actor, skill, opposition, won)) mark(actor, skill); // close calls teach: a tier gap of exactly 0 marks whatever the skills
 }
 
 /** the skills that augment `skill` on a roll of this kind (SkillDef.augments), each with its share × tier. On the sheet or
@@ -78,12 +78,12 @@ export function augmentWindow(actor: Actor, skill: string): { via: string; windo
  * skill's window from the roll's sums. Low end: the rolled skill's raw + each augment's raw × share × tier. High end: the
  * rolled skill's max(raw, true) + each augment's max(raw, true) × share × tier. Every augment that added to the roll marks
  * when the opposition (the other side's level, augments included) is inside it, or on a close call (AU4). */
-function markAugments(state: GameState, actor: Actor | undefined, r: { skill: string; asked?: string; rollKind?: RollKind }, opposition: number | undefined, force = false): void {
+function markAugments(state: GameState, actor: Actor | undefined, r: { skill: string; asked?: string; rollKind?: RollKind }, opposition: number | undefined, force = false, won = false): void {
   if (!actor || actor.id !== state.player.id || opposition === undefined) return;
   const augs = augmenters(actor, r.asked ?? r.skill, r.rollKind);
   if (!augs.length) return;
   const [lo, hi] = rollWindow(actor, r.skill, augs);
-  if (force || (opposition >= lo && opposition <= hi)) for (const a of augs) mark(actor, a.id);
+  if (force || (opposition >= lo && (won || opposition <= hi))) for (const a of augs) mark(actor, a.id);
 }
 
 /** AR5: a hit on a part your worn armor covers marks the armor skill for its weight, when the
@@ -108,10 +108,12 @@ export function markUse(state: GameState, actor: Actor, skill: string, result: C
   const near = (who: Actor | undefined, side: 1 | -1) => 'gap' in result && result.gap === side && hasPerk(who, PK.every_fall_a_lesson);
   const both = (who: Actor | undefined, r: { skill: string; asked?: string; parts?: string[]; rollKind?: RollKind }, opp: number | undefined, side: 1 | -1, augOpp?: number) => {
     const force = tied || near(who, side);
-    markAugments(state, who, r, augOpp, force); // skills that augmented the roll learn at the roll's level
-    markIfClose(state, who, r.skill, opp, force);
-    if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp, force);
-    for (const p of r.parts ?? []) if (p !== r.skill) markIfClose(state, who, p, opp, force); // a combined roll: every part learns
+    // a win has no top to its window: beating a stronger side teaches. Side A wins at gap < 0, side B at gap > 0.
+    const won = 'gap' in result && (result.gap ?? 0) * side < 0;
+    markAugments(state, who, r, augOpp, force, won); // skills that augmented the roll learn at the roll's level
+    markIfClose(state, who, r.skill, opp, force, won);
+    if (r.asked && r.asked !== r.skill) markIfClose(state, who, r.asked, opp, force); // the stand-in won, not the asked skill: its window holds
+    for (const p of r.parts ?? []) if (p !== r.skill) markIfClose(state, who, p, opp, force, won); // a combined roll: every part learns
   };
   if ('target' in result) {
     for (const sk of new Set([skill, result.skill, ...(result.asked ? [result.asked] : [])])) markIfClose(state, actor, sk, result.target);

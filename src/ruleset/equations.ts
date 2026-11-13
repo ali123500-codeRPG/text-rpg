@@ -213,7 +213,7 @@ export function equations(lib: Library): EquationGroup[] {
           CONFIG.MARK_STACK_EVERY === Infinity ? 'A skill is owed one roll per engagement (CONFIG.MARK_STACK_EVERY is off).' : `Marks stack: the first mark on a skill in an engagement (or in a scenario, outside one) owes a roll, and so does every ${CONFIG.MARK_STACK_EVERY} marks after it (CONFIG.MARK_STACK_EVERY; ${CONFIG.MARK_STACK_EVERY}: marks 1, ${1 + CONFIG.MARK_STACK_EVERY}, ${1 + 2 * CONFIG.MARK_STACK_EVERY}...).`] },
       { name: 'Close calls', at: 'markUse · src/ruleset/improve.ts',
         formula: 'a contest or a defended attack whose tier gap is exactly 0 marks both sides\' skills, inside the window or not',
-        notes: [`Every Fall a Lesson (A Nobody, class level ${lib.perks[PK.every_fall_a_lesson]?.classLevel?.level}): losing a contest or a defended attack by exactly one tier step marks the owner\'s skill too, inside the window or not.`] },
+        notes: ['A won contest or defended attack has no top to its window: beating a stronger side marks the winner\'s skill.', `Every Fall a Lesson (A Nobody, class level ${lib.perks[PK.every_fall_a_lesson]?.classLevel?.level}): losing a contest or a defended attack by exactly one tier step marks the owner\'s skill too, inside the window or not.`] },
       { name: 'Opposition', at: 'markUse · src/ruleset/improve.ts',
         formula: 'check → its difficulty · contest → the other side\'s true skill in the skill it rolled · attack → each side against the other\'s true skill',
         terms: [['difficulty', GRADE_LEVELS.keys.map((k) => `${GRADE_LEVELS.name(k)} ${CONFIG.DIFFICULTY[k]}`).join(' · ')]],
