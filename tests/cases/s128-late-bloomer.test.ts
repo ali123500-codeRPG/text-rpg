@@ -24,7 +24,7 @@ describe('128 Late bloomer and class-level perks', () => {
     expect(p.core.perks).toContainEqual({ perkId: PK.quick_study, source: 'class', gainedTurn: 0 });
     expect(p.progression!.unspentPerkPoints).toBe(0);
     expect(p.label).toBe('a young stranger');
-    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.crude_clothes, ['armor']], [IT.coin, null], [IT.bandage, null]]); // 50 points: crude clothes, no weapon yet
+    expect(p.core.inventory.map((i) => [i.itemId, i.equippedIn ?? null])).toEqual([[IT.crude_clothes, ['armor']], [IT.pack, ['pack']], [IT.coin, null], [IT.bandage, null]]); // 50 points: crude clothes, no weapon yet; CT7: a worn pack
   });
 
   it('Quick Study: a marked skill below 15 gets two improvement rolls, each with its own gain', () => {

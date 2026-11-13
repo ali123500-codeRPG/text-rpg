@@ -10,7 +10,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
   | 'attack' | 'hide' | 'sneak' | 'vanish' | 'search' | 'stash' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
-  | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep' | 'pick'; // pick: BA2, a lock on the way to target
+  | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep' | 'pick' | 'open'; // pick: BA2, a lock on the way to target or on a container; open: CT3, a container
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
@@ -189,8 +189,11 @@ export type StagePlan = {
   rewards: {
     item: string | { base: string; quality: import('../scales').QualityKey; boosts: string; name: string; look: string };
     qty?: number;
-    place: { carriedBy: string } | { groundIn: string; hiddenAt?: import('./core').Tier }; // SE8/SE10: hidden on the ground, found by beating this tier
+    place: { carriedBy: string } | { groundIn: string; hiddenAt?: import('./core').Tier } | { in: string }; // SE8/SE10: hidden on the ground, found by beating this tier; in: CT2, a container of this plan by its key
   }[];
+  /** CT2: containers the plan places (a chest in a cellar, a tinker's packs): a container item, where it is, its owner,
+   * and a lock with who holds its key. What is inside is placed by rewards with place {in: key}. */
+  containers?: { key: string; item: string; place: { carriedBy: string } | { groundIn: string }; owner?: string; locked?: { grade?: import('./core').Grade; keys?: string[] } }[];
   hiddenTerms: string[];
   /** SP2: spars under way or agreed when the scenario opens (a training yard, a tournament): each side's cast keys or actor ids */
   spars?: SparMade[];

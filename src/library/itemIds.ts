@@ -14,4 +14,6 @@ export const IT = {
   half_plate: 'IT38', kite_shield: 'IT39',
   key: 'IT40', // BA3: a key; the instance names the barriers it opens (ItemInstance.opens)
   varos_loop: 'IT41', // D-218: the first Threadbound item, an earring
+  // CT1: containers
+  pack: 'IT42', sack: 'IT43', chest: 'IT44', crate: 'IT45',
 } as const;

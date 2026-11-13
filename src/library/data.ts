@@ -278,6 +278,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(([
   { id: IT.curio, kind: 'misc', name: 'curio', look: 'an odd little object', bulk: 1, value: 1 },
   { id: IT.bandage, kind: 'consumable', name: 'bandage', look: 'a roll of linen bandage', bulk: 0, value: 2, stackable: true, consumable: true, heal: HL.bandage },
   { id: IT.key, kind: 'misc', name: 'key', look: 'an iron key', bulk: 0, value: 1 }, // BA3: opens the barriers its instance names
+  // CT1: containers. A worn pack holds its wearer's stowed items (CT7); a chest or crate stands where it is put
+  { id: IT.pack, kind: 'misc', name: 'pack', look: 'a canvas pack on shoulder straps', bulk: 2, value: 4, container: { worn: true } },
+  { id: IT.sack, kind: 'misc', name: 'sack', look: 'a tied hemp sack', bulk: 1, value: 1, container: {} },
+  { id: IT.chest, kind: 'misc', name: 'chest', look: 'an iron-bound wooden chest', bulk: 3, value: 20, container: { fixed: true } },
+  { id: IT.crate, kind: 'misc', name: 'crate', look: 'a nailed wooden crate', bulk: 3, value: 2, container: { fixed: true } },
   { id: IT.coin, kind: 'misc', name: 'coin', look: 'coins', bulk: 0, value: 1, stackable: true },
 ] as ItemDef[]).map((i) => [i.id, i]));
 
