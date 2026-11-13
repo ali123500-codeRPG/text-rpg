@@ -5,7 +5,7 @@ import type { AgreementMade, CheckinAnswer, Intent, MoveSpot, NarratorOutput, Pl
 import { GOAL_KINDS, GRADES, IMPROVISED_BASES, type ImprovisedBase } from '../types';
 import { skillIdOf } from '../library/skillIds';
 import { SKILL_NAMES } from '../library/skillNames';
-import { CHASE_RANGES, COVER, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIME_OF_DAY, TRAVEL_PACES, type QualityKey, type Scale, type TravelPaceKey } from '../scales';
+import { CHASE_RANGES, COVER, LIGHT, QUALITY_LEVELS, STANCES, TACTICS, TIERS, TIME_OF_DAY, TRAVEL_PACES, type QualityKey, type Scale, type TravelPaceKey } from '../scales';
 import { qualityOf } from '../ruleset/quality';
 
 type V<T = unknown> = (v: unknown, path: string, errs: string[]) => T;
@@ -60,7 +60,7 @@ const intent = obj<Intent>({
   move: nul(obj<{ toZone: string; after?: boolean; pace?: TravelPaceKey; spot?: MoveSpot | null; jump?: boolean; behind?: boolean }>({ toZone: str, after: bool, jump: bool, behind: bool, pace: oneOf(TRAVEL_PACES.keys),
     spot: nul(obj<MoveSpot>({ near: str, awayFrom: str, side: str }, ['near', 'awayFrom', 'side'])) }, ['after', 'pace', 'spot', 'jump', 'behind'])),
   action: nul(obj<NonNullable<Intent['action']>>({
-    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'search', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick'] as const),
+    type: oneOf(['attack', 'hide', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick'] as const),
     skill: (v, p, e) => (v === null || v === undefined ? '' : skillStr(v, p, e)),
     target: nul(str),
     targetPart: nul(str),
@@ -208,7 +208,8 @@ const weaver = obj<StagePlan>({
       { base: str, quality: (q, qp, qe) => qualityOf(q) ?? (qe.push(`${qp}: expected one of ${QUALITY_LEVELS.keys.join(', ')}`), QUALITY_LEVELS.keys[0]), boosts: str, name: str, look: str })(v, p, e)),
     qty: num,
     place: (v, p, e) => (isObj(v) && typeof v.carriedBy === 'string' ? { carriedBy: v.carriedBy }
-      : isObj(v) && typeof v.groundIn === 'string' ? { groundIn: v.groundIn } : (e.push(`${p}: expected {carriedBy} or {groundIn}`), { groundIn: '' })),
+      : isObj(v) && typeof v.groundIn === 'string' ? { groundIn: v.groundIn, ...(v.hiddenAt !== undefined ? { hiddenAt: TIERS.keyOf(v.hiddenAt) ?? (e.push(`${p}.hiddenAt: expected one of ${TIERS.list()}`), 'success') } : {}) }
+      : (e.push(`${p}: expected {carriedBy} or {groundIn}`), { groundIn: '' })),
   }, ['qty'])),
   hiddenTerms: arr(str),
   weaverNote: str,

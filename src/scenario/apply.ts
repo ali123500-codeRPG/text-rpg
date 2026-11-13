@@ -386,9 +386,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
     const qty = r.qty ?? 1;
     const id = `rw${turn}_${i}_${itemId}`;
     const insts: ItemInstance[] = def.stackable ? [{ id, itemId, qty }] : Array.from({ length: qty }, (_, n) => ({ id: n ? `${id}_${n}` : id, itemId }));
-    const pl = r.place as { carriedBy?: string; groundIn?: string };
+    const pl = r.place as { carriedBy?: string; groundIn?: string; hiddenAt?: Tier };
     if (pl.carriedBy !== undefined) actorById(state, actorRef(pl.carriedBy))!.core.inventory.push(...insts);
-    else zoneById(state, zoneRef(pl.groundIn!))!.groundItems.push(...insts);
+    else zoneById(state, zoneRef(pl.groundIn!))!.groundItems.push(...insts.map((x) => (pl.hiddenAt ? { ...x, hiddenAt: { tier: pl.hiddenAt }, knownTo: [] } : x))); // SE8
   });
 
   // ---- hidden stage, note, cast notes ----

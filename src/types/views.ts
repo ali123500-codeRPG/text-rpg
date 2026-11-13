@@ -11,7 +11,7 @@ export type HealthLevel = HealthLevelKey;
 export type PartState = PartStateKey;
 
 export type OwnGearView = { id: string; itemId: string; name: string; kind: string; equippedIn: string[]; modes: { id: string; name: string }[]; classLabel?: string; weightLabel?: string; qty?: number };
-export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' };
+export type SeenGearView = { id: string; name: string; look: string; where: 'held' | 'shield' | 'armor' | 'accessory' | 'carried' }; // carried: stowed, found by a search (SE11)
 /** SD3–SD5: a barrier on a way as a viewer knows it (WayFull: the Weaver's view, everything) */
 export type WayView = { kind: string; blocked?: true; locked?: true; barred?: true; key?: true; broken?: string };
 export type WayFull = { kind: string; grade: string; lock?: string; bar?: string; blocked?: true; guarded?: true };

@@ -14,6 +14,8 @@ import { COVER, LIGHT, NERVE_LINES, SCENARIO_SCALES, VISIBILITY, type Visibility
 import { timeView, zoneLight, clockSet, now, timeOfDay, durationText } from '../time';
 import { charLevel, wornTitle } from '../engine/xp';
 import { seeingM, sideFrom, sightDistM } from '../engine/position';
+import { hiddenFrom } from '../engine/gear';
+import { revealedTo } from '../minds/state';
 import { sightLevel } from '../perception/sight';
 import { atChaseLine, chaseLost, chaseZones } from '../engine/chase';
 import { actorById, allActors, knowsName, nameFor, atLeast, bandById, heldBy, isActive, hostile, perceivedZoneIds, seesAcross, shortestPath, sparring, stance, wary, zoneById } from '../engine/relations';
@@ -75,7 +77,7 @@ export function zoneView(state: GameState, z: Zone, viewer?: Actor): ZoneView {
   return {
     id: z.id, name: z.name, look: z.look, cover: COVER.name(z.cover), light: LIGHT.name(zoneLight(state, z)),
     links: z.links.map((l) => ({ to: l.to, label: l.label, sight: seesAcross(state, l), ...(l.frontier ? { frontier: true } : {}), ...(l.drop ? { drop: true } : {}), ...way(l) })),
-    groundItems: z.groundItems.map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })),
+    groundItems: z.groundItems.filter((i) => !viewer || !hiddenFrom(i, viewer)).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })), // SE8
   };
 }
 const perceivedZones = (state: GameState, zoneId: string, viewer: Actor) => perceivedZoneIds(state, zoneId).map((id) => zoneView(state, zoneById(state, id)!, viewer));
@@ -112,13 +114,14 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
   });
 }
 
-/** Part 5 §8: held items, shield and armor by look; accessories only when visible; concealed only once revealed; stowed never */
+/** Part 5 §8: held items, shield and armor by look; accessories only when visible; concealed only once revealed; stowed
+ * only once found (SE11) */
 function seenGear(state: GameState, a: Actor, revealed: string[]): SeenGearView[] {
   const out: SeenGearView[] = [];
   for (const i of a.core.inventory) {
     const slot = i.equippedIn?.[0];
-    if (!slot) continue;
     const d = itemDef(state, i.itemId);
+    if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: d.name, look: d.look, where: 'carried' }); continue; }
     if (d.concealed && !revealed.includes(`item:${i.id}`)) continue;
     const where = slot.startsWith('grip:') ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : slot.startsWith('acc:') && d.visible ? 'accessory' : null;
     if (where) out.push({ id: i.id, name: d.name, look: d.look, where });
@@ -196,7 +199,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
-      gear: seenGear(state, a, viewer.mind?.knowledge[a.id]?.revealed ?? []),
+      gear: seenGear(state, a, revealedTo(viewer, a.id)),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
     });
   }
@@ -256,6 +259,11 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
     }
     const by = f.data.by ? callName(state, viewerId, String(f.data.by)) : '';
     if (f.kind === 'found') out.push(`${by} finds ${who} hiding`); // SE3: a search won
+    if (f.kind === 'found_items') { // SE8/SE11
+      const names = (f.data.items as string[]).map((id) => itemName(state, id) ?? 'something').join(', ');
+      out.push(f.data.on ? `${by} finds ${names} on ${who}` : `${who} finds ${names} hidden here`);
+    }
+    if (f.kind === 'disturbed') out.push(`${who} notices something here has been moved`); // SE8: a search that tied a hidden item
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
     if (f.kind === 'broke_free') out.push(`${who} breaks free of ${by}`);
     if (f.kind === 'still_held') out.push(`${who} fails to break free of ${by}`);
@@ -764,7 +772,7 @@ function modeOf(state: GameState, attacker: Actor, weaponId: string, modeId: str
 /** the other side's deciding sources: only lucky/fumble, situational and aim, the weapon used, and gear the viewer can see (no health, wounds, perks or hidden gear) */
 function shownDeciding(state: GameState, list: string[], roll: RollResult, rollerId: string, viewerId: string): string[] {
   if (rollerId === viewerId) return [...list];
-  const seen = new Set(seenGear(state, need(state, rollerId), need(state, viewerId).mind?.knowledge[rollerId]?.revealed ?? []).map((g) => g.name));
+  const seen = new Set(seenGear(state, need(state, rollerId), revealedTo(need(state, viewerId), rollerId)).map((g) => g.name));
   const type = new Map(roll.modifiers.map((m) => [m.source, m.type]));
   return list.filter((s) => s === 'lucky' || s === 'fumble' || s.startsWith('weapon: ') || type.get(s) === 'situational' || type.get(s) === 'aim' ||
     (s.startsWith('Gear (') && seen.has(s.slice(s.indexOf('): ') + 3))));

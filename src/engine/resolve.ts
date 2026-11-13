@@ -23,7 +23,7 @@ import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, 
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
-import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, stealthDetect, updateAlarms } from '../minds';
+import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
 import { battleCry, engagementAuras } from './auras';
@@ -62,7 +62,7 @@ import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, w
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
-  way: ['quiet', 'normal'], pick: ['hushed', 'low'], // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
+  way: ['quiet', 'normal'], pick: ['hushed', 'low'], stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'pick_up']);
@@ -782,11 +782,37 @@ const foundEffects = (a: Actor, won: { found: Actor }[]): Effect[] => won.map(({
  * (searchFor), or against the one person named. With nothing hidden nothing is rolled, a lost roll reads the same as an
  * empty spot, and the dice show only with a find (SE6). */
 function doSearch(ctx: Ctx, a: Actor, o: Order): void {
+  const { state, rng } = ctx;
   const ev = bark(withActivity(ctx, a, mk(ctx, a, 'search', { target: o.target ?? undefined }), o.activity), o);
-  const won = searchFor(ctx.state, a, ev, ctx.rng, o.target && actorById(ctx.state, o.target) ? { only: o.target } : {});
+  const t = o.target ? actorById(state, o.target) : undefined;
+  const won = searchFor(state, a, ev, rng, t ? { only: t.id } : {});
   if (won.length) ev.contest = won[0].r;
   ev.effects.push(...foundEffects(a, won));
+  // SE8/SE11: hidden things: on a person seen, their gear; else the ground in reach
+  const items = t ? (atLeast(beliefStatus(state, a, t), 'aware') ? { ...searchPerson(state, a, t, rng), hint: false } : { found: [], hint: false }) : searchItems(state, a, rng);
+  if (items.found.length) {
+    if (items.r) ev.roll = items.r;
+    ev.effects.push({ kind: 'found_items', actorId: t?.id ?? a.id, data: { by: a.id, items: items.found.map((i) => i.id), ...(t ? { on: true } : {}) } });
+  }
+  if (items.hint) ev.effects.push({ kind: 'disturbed', actorId: a.id, data: {} });
   emit(ctx, ev);
+}
+
+/** SE9: stashing a carried item is the main action: a stealth function roll (light, cover and the hide tag as for a
+ * hide) whose tier becomes the item's hidden-at tier; it lies where the stasher stands. Whoever sees the stash clearly
+ * knows where it is. */
+function doStash(ctx: Ctx, a: Actor, o: Order): void {
+  const { state, rng } = ctx;
+  const inst = a.core.inventory.find((i) => i.id === o.item);
+  if (!inst) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: 'no_item' }), o));
+  const z = zoneById(state, a.zone), skill = fnRoller(state, a, FN.stealth);
+  const r = ruleset.roll({ actorId: a.id, skill, ...situational(state, skill, { light: z, cover: z, add: ['hide'], actor: a }), fn: FN.stealth, rollKind: 'stealth' }, state, rng);
+  dropToGround(state, a, inst.id, a.zone);
+  inst.hiddenAt = { tier: r.tier, ...(r.beyond ? { beyond: r.beyond } : {}) };
+  inst.knownTo = [a.id];
+  const ev = bark(mk(ctx, a, 'stash', { itemId: inst.id, roll: r, tier: r.tier }), o);
+  emit(ctx, ev);
+  for (const [id, p] of Object.entries(ev.perception)) if (p.level === 'full' && p.cue === 'sight' && !inst.knownTo.includes(id)) inst.knownTo.push(id);
 }
 
 /** the barrier on the way from `a`'s zone to `to`, and that link */
@@ -871,6 +897,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doPick(ctx, a, o);
     case 'search':
       return doSearch(ctx, a, o);
+    case 'stash':
+      return doStash(ctx, a, o);
     case 'hide':
       // ST3/NS2: a hide is a stealth contest per observer (stealthDetect)
       return emit(ctx, bark(mk(ctx, a, 'hide', o.vanish ? { vanish: true } : {}), o));

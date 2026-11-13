@@ -146,7 +146,7 @@ export type OrderSource = 'player' | 'agent' | 'trigger' | 'onAlert' | 'routine'
 
 /** every order type the engine knows (trigger orders are checked against it) */
 export const ORDER_TYPES = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'alarm', 'flee', 'talk', 'persuade', 'deceive', 'barter',
-  'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'pick', 'other'] as const;
+  'intimidate', 'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'rest', 'wait', 'sleep', 'idle', 'pick', 'stash', 'other'] as const;
 /** BG-128: orders aimed at a way (a zone), never at a person: picking a lock (there is no stealing yet) */
 export const WAY_ORDERS: readonly string[] = ['pick'];
 export type Order = {

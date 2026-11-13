@@ -125,6 +125,8 @@ vi.mock('../../src/minds', () => {
     alertOrders: (_s: GameState, views: { self: { id: string } }[]) => F.alerts.filter((a) => views.some((v) => v.self.id === a.actorId)),
     updateAlarms: () => {},
     searchFor: () => [],
+    searchItems: () => ({ found: [], hint: false }),
+    searchPerson: () => ({ found: [] }),
     headArrivals: () => {},
     desiredState: () => null,
     headTo: (...a: unknown[]) => (F.headTo.push(a), true),

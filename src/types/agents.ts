@@ -9,7 +9,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
-  | 'attack' | 'hide' | 'sneak' | 'vanish' | 'search' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
+  | 'attack' | 'hide' | 'sneak' | 'vanish' | 'search' | 'stash' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
   | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep' | 'pick'; // pick: BA2, a lock on the way to target
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
@@ -187,7 +187,7 @@ export type StagePlan = {
   rewards: {
     item: string | { base: string; quality: import('../scales').QualityKey; boosts: string; name: string; look: string };
     qty?: number;
-    place: { carriedBy: string } | { groundIn: string };
+    place: { carriedBy: string } | { groundIn: string; hiddenAt?: import('./core').Tier }; // SE8/SE10: hidden on the ground, found by beating this tier
   }[];
   hiddenTerms: string[];
   /** SP2: spars under way or agreed when the scenario opens (a training yard, a tournament): each side's cast keys or actor ids */
