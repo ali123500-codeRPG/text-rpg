@@ -32,6 +32,8 @@ export type LogLine = {
   downedBy?: DownedBy; // the turn left the player down: the last blow that hurt them, as they knew it ("You fell" screen)
   wounds?: { id: string; from: PartStateKey; to: PartStateKey }[]; // M-30: the player's body parts whose state got worse this turn
   gear?: string[]; // what the turn changed in the player's gear, ready to show: "Picked up: …", "Now held: right hand · …", "Gone: …"
+  nerveBroke?: true; // MB12: the player's morale reached Broken this turn (the play screen's Nerve broken card)
+  nerveRefused?: true; // MB12: the player's attack this turn was refused because their nerve is broken
   coin?: number; // what the turn changed in the player's coin, in copper: 12 gained, -5 lost (left out of `gear`)
   ways?: string[]; // what the player did at doors, gates and other barriers this turn, ready to show: "Door to the cellar: locked"
   place?: { id: string; name: string; zone?: string }; // where the player ended the turn; name like "River path · the Riverside", zone like "cellar"

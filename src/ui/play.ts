@@ -21,7 +21,8 @@ import { perkSeries } from './perks';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
 import { timePassedRow, todBadge } from './timeOfDay';
-import { shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
+import { NERVE_PASSES, NERVE_STILL, NERVE_UNTIL, shownValues, sideSheet, statusStrip, tag, type ShownValues } from './charsheet';
+import { moraleLevel } from '../ruleset/morale';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
@@ -103,7 +104,7 @@ function apart(names: string[]): string[] {
 
 /** Ideas (D-107): built by code from PlayerView only, so nothing the character doesn't know can show. Fight and Talk list
  * everyone in view; the other groups show three. */
-export function ideas(pv: PlayerView): { group: string; items: { text: string; note?: string }[] }[] {
+export function ideas(pv: PlayerView, broken = false): { group: string; items: { text: string; note?: string }[] }[] {
   const people = pv.actors.filter((a) => a.level === 'full' && !(a.health && isDownLevel(a.health)));
   const names = apart(people.map((a) => a.name ?? a.label));
   const held = pv.player.inventory.filter((i) => i.equippedIn.some((x) => x.startsWith('grip:')) && i.kind === 'weapon');
@@ -111,7 +112,10 @@ export function ideas(pv: PlayerView): { group: string; items: { text: string; n
   const [heldN, stowedN, groundN] = [apart(held.map((i) => i.name)), apart(stowed.map((i) => i.name)), apart(pv.zone.groundItems.map((i) => i.name))];
   const the = (n: string) => (n.startsWith('the other ') ? n : `the ${n}`);
   return [
-    { group: 'Fight', items: people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health) })), all: true },
+    // MB12: with a broken nerve no attack can come, so Fight gives way to the ways out
+    broken ? { group: 'Get away · your nerve is broken', items: [{ text: 'Yield', note: 'ends the fight if they take it' },
+      ...pv.zone.links.map((l) => ({ text: `Flee ${l.label}` })), { text: 'Hide', note: 'your action' }], all: true }
+      : { group: 'Fight', items: people.map((a, i) => ({ text: `Attack ${names[i]}`, note: a.health && HEALTH_LEVELS.name(a.health) })), all: true },
     { group: 'Talk', items: people.map((_, i) => ({ text: `Talk to ${names[i]}` })), all: true },
     { group: 'Move', items: pv.zone.links.map((l) => ({ text: `Go ${l.label}`, note: l.frontier ? 'new ground' : undefined })) },
     // ST3: sneaking is free; hiding takes the action; ST13: a Vanish slips away by a link, out of sight of those who see you
@@ -205,7 +209,10 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const helpBtn = (id: 'commands' | 'ideas', label: string) => h('button', { type: 'button', onclick: () => { open = open === id ? null : id; update(); } }, label);
   const cmdBtn = helpBtn('commands', 'Commands'), ideaBtn = helpBtn('ideas', 'Ideas');
   const helpPanel = h('div', { class: 'helps', hidden: true });
-  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn), h('div', { class: 'hs-picker' }, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
+  // MB12: while the player's nerve is broken, Yield and Flee come forward and Aim steps back (no attack can come)
+  const yieldBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'yield', title: 'Give up the fight: it ends if they take it', onclick: () => pick('I yield') }, 'Yield');
+  const fleeBtn = h('button', { type: 'button', class: 'itm nerve-act', 'data-chip': 'flee', title: 'Run from the fight. Add where to', onclick: () => pick('I flee ') }, 'Flee');
+  const tools = h('div', { class: 'tools' }, h('div', { class: 'hs-picker' }, cmdBtn, ideaBtn), h('div', { class: 'hs-picker' }, yieldBtn, fleeBtn, aimBtn, st.sneak, st.hide, st.vanish, healBtn));
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, tools);
   const fell = h('div', { class: 'fell', hidden: true });
   const edge = h('div', { class: 'm-edge', 'aria-hidden': 'true' }); // M-33: the red edge when hurt badly
@@ -364,6 +371,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         h('table', { class: 'chg' }, h('tbody', {}, l.changes.map((x) => h('tr', {},
           h('td', {}, h('span', { class: 'hs-tg', style: `--tg:var(--${CHANGE_WORD[x.kind][1]})` }, CHANGE_WORD[x.kind][0])), h('td', {}, x.text)))))) : null,
       ...gear.map((g) => row('Gear', g)),
+      // MB12: an attack refused because the player's nerve is broken (no roll was made)
+      l.nerveRefused ? h('p', { class: 'rrow nerve' }, h('span', { class: 'hs-label' }, 'Nerve'), h('span', {}, 'Your attack never came: your nerve is broken.')) : null,
       // coin gained or lost this turn: "+2 silver" in gold, "−5 copper" in red, so a theft or a price never passes unseen
       l.coin ? h('p', { class: 'rrow coin' }, h('span', { class: 'hs-label' }, 'Coin'), h('b', { class: l.coin > 0 ? 'coin-up' : 'coin-down' }, (l.coin > 0 ? '+' : '−') + coinWords(Math.abs(l.coin)))) : null,
       // what you did at doors, gates and other barriers this turn: tried, opened, locked, picked
@@ -373,6 +382,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       xp ? row('XP', `+${xp}`) : null,
       ...(l.heals ?? []).map(healCard),
       ...(l.wounds ?? []).filter((w) => !working(w.to)).map(woundCard),
+      // MB12: the turn the player's nerve broke says what that stops, how it passes and what still works
+      l.nerveBroke ? h('div', { class: 'hcard ncard', role: 'status' }, h('span', { class: 'x', 'aria-hidden': 'true' }, '✖'),
+        h('div', {}, 'Nerve broken', h('p', { class: 'hl' }, `${NERVE_UNTIL} ${NERVE_PASSES()} ${NERVE_STILL}`))) : null,
       // D-226: the scenario's gains, as one line in the story; it opens the gains panel again, already settled (M-60)
       anyGains(l.scenarioGains) ? h('button', { type: 'button', class: 'perk-new g-recap', onclick: () => openGains(l, 0, false) }, h('span', { class: 'st', 'aria-hidden': 'true' }, '✦'),
         h('span', { class: 'g-recap-t' }, 'What you gained', h('small', {}, gainsSummary(l.scenarioGains))), h('span', { class: 'hs-btn-text', 'aria-hidden': 'true' }, 'Show')) : null,
@@ -569,7 +581,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       h('ul', { class: 'cmds' }, COMMANDS.map(([c, what]) => h('li', {}, h('button', { type: 'button', onclick: () => pick(c) }, h('b', {}, c.trim()), h('span', {}, what))))),
       h('p', { class: 'hs-note' }, 'Picking one fills the box; nothing is sent until you press Send.'));
     else if (open === 'ideas') helpPanel.replaceChildren(head('Ideas · from what you can see now'),
-      h('div', { class: 'idea-groups' }, (pv ? ideas(pv) : []).map((g) => h('div', {}, h('p', { class: 'hs-label' }, g.group),
+      h('div', { class: 'idea-groups' }, (pv ? ideas(pv, !!s && moraleLevel(s.player) === 'broken') : []).map((g) => h('div', {}, h('p', { class: 'hs-label' }, g.group),
         g.items.length ? h('ul', {}, g.items.map((it) => h('li', {}, h('button', { type: 'button', onclick: () => pick(asI(it.text)) }, it.text, it.note ? h('span', {}, it.note) : null))))
           : h('p', { class: 'hs-note' }, 'Nothing right now')))),
       h('p', { class: 'hs-note' }, 'Built by code from what your character can see and carries, refreshed every turn. Picking one fills the box; nothing is sent until you press Send.'));
@@ -583,6 +595,9 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     send.disabled = stopped || busy || (auto.playing() && !auto.asking());
     auto.update();
     aimBtn.disabled = stopped;
+    const broken = !!s && moraleLevel(s.player) === 'broken';
+    yieldBtn.hidden = fleeBtn.hidden = !broken; aimBtn.hidden = broken;
+    yieldBtn.disabled = fleeBtn.disabled = stopped;
     st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
     if (!input.disabled && !el.hidden && el.isConnected && (document.activeElement === document.body || document.activeElement === send)) input.focus();

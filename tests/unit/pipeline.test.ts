@@ -8,6 +8,7 @@ import { CONFIG } from '../../src/config';
 import type { Store } from '../../src/save';
 import { intentOf, plannerOut, voiceOut } from './agent-views';
 import { SK } from '../../src/library/skillIds';
+import { maxMorale } from '../../src/ruleset/morale';
 
 const H = vi.hoisted(() => ({
   engagedNext: [] as string[],
@@ -278,6 +279,16 @@ describe('errors and commands', () => {
     expect(l.coin).toBe(15 - was);
     expect(l.place).toEqual({ id: state.player.placeId, name: expect.stringMatching(/^[A-Z]/), zone: 'common room' });
     expect(l.scenario).toBe(3);
+  });
+
+  it('a narration line marks the turn the player\'s nerve broke, and only that turn (MB12 on the play screen)', async () => {
+    start();
+    H.onResolve = (s) => { s.player.core.condition.moraleLost = maxMorale(s.player); };
+    claude.push('parser', intentOf()).push('narrator', narr).push('parser', intentOf()).push('narrator', narr);
+    await game.submit('look around', { aimed: false });
+    expect(game.lines().at(-1)!.nerveBroke).toBe(true);
+    await game.submit('look around', { aimed: false });
+    expect(game.lines().at(-1)!.nerveBroke).toBeUndefined();
   });
 });
 
