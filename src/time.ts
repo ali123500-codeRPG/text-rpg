@@ -1,5 +1,5 @@
-// Game clock (T1–T8). Code owns one clock: game minutes since midnight before day 1, kept in
-// state.clocks.time. Claude never sets it; the Weaver picks the starting time of day once, at story start.
+// Game clock (T1–T8). Code owns one clock: game minutes since midnight before day 1 of the Universe calendar (HF22),
+// kept in state.clocks.time. Claude never sets it; the Weaver picks the starting time of day once, at story start.
 import { CONFIG } from './config';
 import { LIGHT, TIME_OF_DAY, type TimeOfDay } from './scales';
 import type { GameState, Light, Zone } from './types';
@@ -21,8 +21,10 @@ const from = (k: TimeOfDay): number => CONFIG.TIME_OF_DAY_FROM[k];
 
 /** has the story's clock been set (false at story start and in saves from before the clock) */
 export const clockSet = (state: GameState): boolean => state.clocks.time !== undefined;
-/** game minutes now; an unset clock reads as day 1 at the start of day */
-export const now = (state: GameState): number => state.clocks.time ?? from('morning');
+/** HF22: the day the story's world started on the Universe calendar (1 for the first world) */
+const startDay = (state: GameState): number => state.clocks.startDay ?? 1;
+/** game minutes now; an unset clock reads as the start day, at the start of day */
+export const now = (state: GameState): number => state.clocks.time ?? (startDay(state) - 1) * DAY_MINUTES + from('morning');
 export const dayOf = (t: number): number => Math.floor(t / DAY_MINUTES) + 1;
 
 export function timeOfDay(t: number): TimeOfDay {
@@ -65,9 +67,9 @@ export function noteTurnEnd(state: GameState): void {
   for (const k of Object.keys(ends)) if (Number(k) <= state.turn - CONFIG.TURN_ENDS_KEPT) delete ends[Number(k)];
 }
 
-/** T8: the Weaver's starting time of day sets the clock to its start on day 1 */
+/** T8: the Weaver's starting time of day sets the clock to its start on the story's start day */
 export function startClock(state: GameState, k: TimeOfDay): void {
-  state.clocks.time = from(k);
+  state.clocks.time = (startDay(state) - 1) * DAY_MINUTES + from(k);
 }
 
 /** what views show: the day number and time of day, never minutes (T4/T5) */
