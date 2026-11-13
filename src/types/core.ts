@@ -67,7 +67,7 @@ export type Barrier = {
   tried?: string[]; // actors who found it shut by trying it: they know it is locked or barred
   /** BG-70: standing open: sight (and sound) pass it though its link is not a sight link; anyone can shut it again */
   open?: true;
-  /** BA2: a picker's Failure leaves the lock beyond them until their Thievery (with tools) is higher than this */
+  /** BA2: a picker's Failure leaves the lock beyond them until their Lockpicking (with tools) is higher than this */
   beyond?: Record<string, number>;
   /** BA2: seconds of picking done toward opening it in a fight, by picker */
   work?: Record<string, number>;
@@ -164,6 +164,7 @@ export type GameEvent = {
   price?: number; // buy: coin paid
   for?: string; // buy: who got it, when not the buyer
   reason?: string; // buy_refused: why
+  filch?: 'taken' | 'fumbled' | 'caught'; // FL4: how a filch went (src/engine/filch.ts)
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;
   check?: import('./ruleset').CheckResult;

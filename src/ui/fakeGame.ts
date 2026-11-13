@@ -16,7 +16,9 @@ import { SK } from '../library/skillIds';
 import { IT } from '../library/itemIds';
 import { ACH } from '../library/achievementIds';
 import { achievementInfo, grantAchievement } from '../engine/xp';
-import { placeName } from '../agents/game';
+import { actionNotes, doingSnap, placeName } from '../agents/game';
+import { buildPlayerView } from '../views';
+import { DU } from '../library/tableIds';
 
 const NARRATION = [
   'Rain needles the thatch of the Crooked Kettle. The common room smells of wet wool and old ale, and the barkeep watches you over a cup she has been wiping for some time.',
@@ -53,6 +55,22 @@ function robTurn(st: GameState): Partial<LogLine> {
   if (!purse || !took) return {};
   purse.qty = (purse.qty ?? 1) - took;
   return { coin: -took };
+}
+
+// "bandage" works at a 40 s bandage 15 s a turn while someone in view spans a crossbow (20 s), to show long actions (AT11a):
+// Who's here, the action box and each turn's Actions row
+function bandageTurn(st: GameState): Partial<LogLine> {
+  const before = doingSnap(buildPlayerView(st));
+  const p = st.player, other = st.actors.find((a) => a !== p && a.zone === p.zone && before.has(a.id));
+  const step = (a: typeof p, row: string, need: number) => {
+    const done = (a.busy?.row === row ? a.busy.done : 0) + 15;
+    if (a.busy?.row === row && done >= need) { delete a.busy; return; }
+    if (!a.busy || a.busy.row === row) a.busy = { row, key: row, order: { type: 'use_item', target: null, item: null }, done, need, turn: st.turn };
+  };
+  step(p, DU.bandage, 40);
+  if (other && (other.busy || !p.busy || p.busy.done <= 15)) step(other, DU.span_crossbow, 20);
+  const actions = actionNotes(st, before, doingSnap(buildPlayerView(st)));
+  return actions.length ? { actions } : {};
 }
 
 function levelTurn(st: GameState): Partial<LogLine> {
@@ -266,12 +284,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : wasBroken && /^punch\b/i.test(text) ? { nerveRefused: true as const } : null;
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
+      const bandaged = /^bandage\b/i.test(text) ? bandageTurn(state) : null;
       // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
       const lvl = /^train\b/i.test(text) ? levelTurn(state) : null;
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
       const earned = hurt || /^spar\b/i.test(text) ? earnTurn(state, hurt ? [ACH.crippled_1] : [ACH.spar_losses_1]) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}), ...(ways ?? {}), ...(robbed ?? {}), ...(nerve ?? {}) }];
+        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}), ...(ways ?? {}), ...(robbed ?? {}), ...(nerve ?? {}), ...(bandaged ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },

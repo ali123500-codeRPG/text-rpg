@@ -64,7 +64,7 @@ const wouldCalm = (a: Actor, sourceId?: string): boolean => {
   return !!src && !src.countOnly && src.pct > 0 && moraleLost(a) > 0;
 };
 
-export function applyHealing(state: GameState, a: Actor, sourceId: string, opts: { pct?: number; quiet?: boolean } = {}): boolean {
+export function applyHealing(state: GameState, a: Actor, sourceId: string, opts: { pct?: number; quiet?: boolean; share?: number } = {}): boolean {
   const src = getLibrary().healing?.[sourceId];
   if (!src) return false;
   const c = a.core.condition;
@@ -73,14 +73,15 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
   const before = partStates(state, a);
   const lost = c.hpLostPct;
   const extra = sourceId === HL.rest ? bestReward(a, 'restPct')?.value ?? 0 : 0; // an achievement reward: + % on each rest
-  c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct + extra));
+  const share = opts.share ?? 1; // AT27: an action whose output is a share, broken off, heals by the share it ran
+  c.hpLostPct = Math.max(0, lost - (opts.pct ?? src.hpPct + extra) * share);
   const reach = PART_STATES.pos(src.reach);
   const changed: { id: string; from: string; to: string }[] = [];
   let healed = false;
   for (const p of before) {
     if (!(p.id in c.parts) || PART_STATES.pos(p.state) > reach) continue;
     const pct = c.parts[p.id];
-    c.parts[p.id] = Math.min(100, Math.max(0, pct) + (opts.pct ?? src.partPct + extra));
+    c.parts[p.id] = Math.min(100, Math.max(0, pct) + (opts.pct ?? src.partPct + extra) * share);
     healed ||= c.parts[p.id] !== pct;
   }
   for (const p of partStates(state, a)) {
@@ -88,7 +89,7 @@ export function applyHealing(state: GameState, a: Actor, sourceId: string, opts:
     if (was !== p.state) changed.push({ id: p.id, from: was, to: p.state });
   }
   creditHealing(state, a, sourceId, lost - c.hpLostPct);
-  if (src.composure) healed = calm(state, a, src.composure) > 0 || healed; // MB8: the action's morale comes from the composure table
+  if (src.composure) healed = calm(state, a, src.composure, opts.share !== undefined ? { pct: (getLibrary().composure?.[src.composure]?.pct ?? 0) * share } : {}) > 0 || healed; // MB8: the action's morale comes from the composure table
   const to = healthLevel(a);
   if (!opts.quiet || to !== level || changed.length) logCode(state, 'healed', { actorId: a.id, source: sourceId, from: level, to, parts: changed, better: c.hpLostPct < lost || healed });
   return c.hpLostPct !== lost || healed;

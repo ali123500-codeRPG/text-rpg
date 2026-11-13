@@ -8,9 +8,9 @@ import { DU, FR, HL, RL } from '../library/tableIds';
 import { payFear } from './morale';
 import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/morale';
 import { bestReward } from '../ruleset/achRewards';
-import { parryItem } from '../ruleset/gear';
+import { parryItem, rollFnSkills } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, ItemInstance, Mod, Order, Rng, TierShift, WayDid } from '../types';
 import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
 import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
 import { busyNow } from './busy';
@@ -20,7 +20,7 @@ import { slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
 import { distM, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
-import { FOCUS, HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
+import { FOCUS, HEALTH_LEVELS, PART_STATES, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
 import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
@@ -40,7 +40,8 @@ import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
-import { findContainer, openContainer, theft } from './containers';
+import { contentsOf, findContainer, guarded, openContainer, ownerOf, theft, wornPack } from './containers';
+import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
 import { falseName } from '../words';
@@ -59,13 +60,15 @@ import type { TurnInput } from './types';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
 import { met } from '../ruleset/hits';
+import { checkNear, contact, startWatch, stepS, type NearStop } from './comingNear';
+import { fightInSenses } from './mode';
 import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, wakeByEvent, wakeCalls, wakeCheck, wakeChecksNear, wake } from './sleep';
 
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
   rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
-  way: ['quiet', 'normal'], pick: ['hushed', 'low'], stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
+  way: ['quiet', 'normal'], pick: ['hushed', 'low'], filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts) stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
 const BODY_MOVING = new Set(['move', 'travel', 'attack', 'perk_move', 'break_free', 'restrain', 'pick_up']);
@@ -161,6 +164,7 @@ function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; se
       return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
     }
     case 'hide': return of(DU.hide);
+    case 'rest': return of(DU.rest); // AT8: in a fight a long action; outside one the world clock runs it (runStretch)
     case 'search': case 'observe': return of(DU.look);
     case 'give': return of(DU.hand_over);
     case 'barter': case 'buy': case 'sell': return of(DU.trade);
@@ -198,7 +202,13 @@ type Ctx = {
   exchangeEvents: GameEvent[];
   counters: Set<string>; // All-50 Counter: once per round (AT50), keyed by roundKey
   parryStrikes: Set<string>; // PA4: a parry's free strike back, once per round (AT50), keyed by roundKey
+  /** AT56: the player's rest or wait outside a fight: the world clock runs it at the end of the turn (runStretch) */
+  stretch?: Stretch;
 };
+/** AT56/AT65: a span of time the player's order covers, run by the world clock: its length, the pose it is spent in (how
+ * soon the player is ready, AT67), and the event its outcome goes on */
+type Stretch = { kind: 'rest' | 'wait'; seconds: number; pose: BodyPoseKey; ev: GameEvent; ran?: number; stop?: StretchStop };
+type StretchStop = NearStop | { why: 'fight'; by: string[] };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
   const [noise, visibility] = SENSE[kind] ?? ['quiet', 'normal'];
@@ -290,8 +300,8 @@ function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | At
   if (ev.actorId === state.player.id && isMajorAction(ev)) detectPlayer(state, ev, rng);
   else if (isMajorAction(ev) && actorById(state, ev.actorId)?.posture === 'stealthy') {
     stealthDetect(state, ev, rng); // NS2
-    // BG-64: whoever just spotted the stealthy actor perceives the very deed they spotted it by
-    for (const [id, p] of Object.entries(computePerception(ev, state, rng))) ev.perception[id] ??= p;
+    // BG-64: whoever just spotted the stealthy actor perceives the very deed they spotted it by (a filch has its own contest)
+    if (ev.kind !== 'filch') for (const [id, p] of Object.entries(computePerception(ev, state, rng))) ev.perception[id] ??= p;
   }
   if (ev.kind === 'attack' && ev.target && !ev.spar) setAttackOverrides(state, ev); // SP1: a sparring blow changes no stance
   ctx.events.push(ev);
@@ -746,15 +756,18 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   }
 }
 
-/** Rest (H5): no active hostile actor in the zone, at most once every REST_COOLDOWN_MIN game minutes (T7). */
+/** Rest (H5): at most once every REST_COOLDOWN_MIN game minutes (T7); it can always be started (AT8). Outside a fight the
+ * player's rest runs on the world clock at the end of the turn and heals by the share of it that ran (runStretch); in a
+ * fight it is a long action, done when its time is (an NPC's rest heals at once). */
 function doRest(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const key = `rest:${a.id}`;
   const last = state.clocks[key];
-  const threat = threatHere(state, a);
   const ev = bark(mk(ctx, a, 'rest'), o);
-  if (threat || (last !== undefined && now(state) - last < CONFIG.REST_COOLDOWN_MIN)) {
-    logCode(state, 'rest_blocked', { actorId: a.id, reason: threat ? 'hostile_in_zone' : 'cooldown' });
+  if (last !== undefined && now(state) - last < CONFIG.REST_COOLDOWN_MIN) {
+    logCode(state, 'rest_blocked', { actorId: a.id, reason: 'cooldown' });
+  } else if (a === state.player && state.mode !== 'tactical') {
+    ctx.stretch = { kind: 'rest', seconds: actionRow(DU.rest)?.seconds ?? 0, pose: 'lying', ev };
   } else {
     // H1/H6: resting in a place whose kind a healing row names (a clinic) uses that row, once paid for (PY8), else the rest row
     const row = restRow(state, a);
@@ -777,13 +790,14 @@ export const threatHere = (state: GameState, a: Actor): boolean =>
   allActors(state).some((x) => x !== a && isActive(x) && x.zone === a.zone && (foe(state, a, x) || foe(state, x, a)));
 
 /** T6: the player waits until a time of day (o.target; none = the next one) or sleeps (the durations table's sleep row).
- * Blocked like rest when a hostile is in the zone; otherwise the clock moves on and the scenario breaks (time skip, D-30). */
+ * Either can always be started (AT8): a wait runs on the world clock at the end of the turn and stops when the clock
+ * pauses (runStretch); in a fight the clock is already paused, so it does nothing. A time skip never ends the scenario. */
 function doWait(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   if (a !== state.player) return hold(ctx, a, o);
   const ev = bark(mk(ctx, a, o.type), o);
-  if (threatHere(state, a) || state.mode === 'tactical') {
-    logCode(state, 'wait_blocked', { actorId: a.id, reason: 'hostile_in_zone' });
+  if (state.mode === 'tactical') {
+    logCode(state, 'wait_blocked', { actorId: a.id, reason: 'fight' });
   } else {
     const t = now(state);
     const named = TIME_OF_DAY.keyOf(o.target);
@@ -800,12 +814,59 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
       if (!state.night) state.night = planNight(state, sleepMin, allActors(state).filter((x) => x !== a && isActive(x) && !isAsleep(x) && x.zone === a.zone && x.bandId === a.bandId && !!x.mind?.routine && routine(x.mind.routine.id).kind === 'follow'));
       logCode(state, 'night_started', { actorId: a.id, end: state.night.end, watches: state.night.watches });
       runNight(ctx);
-    } else passTime(state, minutesUntil(t, until));
+    } else {
+      ctx.stretch = { kind: 'wait', seconds: minutesUntil(t, until) * 60, pose: 'standing', ev }; // its time and outcome come from runStretch
+      return emit(ctx, ev);
+    }
     const minutes = now(state) - t;
     logCode(state, 'time_passed', { actorId: a.id, minutes, from: t, to: now(state) });
     ev.effects.push({ kind: 'time_passed', actorId: a.id, data: { minutes } }); // SC4/SC9: a time skip never ends the scenario
   }
   emit(ctx, ev);
+}
+
+/** AT56/AT65/AT67: the world clock runs the player's rest or wait. It steps (comingNear stepS: shorter while someone not
+ * yet accepted is in the senses), moving the clock on (natural recovery, aging) and everyone toward their routines
+ * (catchUp) each step, and stops at contact, the coming-near check, or a fight in the player's senses. A rest is deep: any
+ * stop breaks it, and it heals by the share that ran (AT27); a wait just ends. GAP (stage 3c): NPCs after the player and
+ * fights still act only on the turn's own orders, so in a stretch only walkers on their routines move. */
+function runStretch(ctx: Ctx, st: Stretch, onLeg?: (a: Actor, from: Located, metres: number, toward: string) => void): void {
+  const { state } = ctx;
+  const p = state.player;
+  const t0 = now(state);
+  const watch = startWatch(state, p, st.pose);
+  const fightStop = (): StretchStop | null => (fightInSenses(state) ? { why: 'fight', by: [] } : null);
+  let stop: StretchStop | null = contact(p, ctx.events) ?? fightStop();
+  let ran = 0;
+  for (let first = true; !stop && ran < st.seconds - T_EPS && isActive(p); first = false) {
+    const step = Math.min(stepS(state, watch), st.seconds - ran);
+    const before = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }]));
+    const from = ctx.events.length;
+    passTime(state, step / 60);
+    catchUp(state, step / 60, first, onLeg); // the turn's own walks count once
+    ran += step;
+    stop = contact(p, ctx.events.slice(from)) ?? checkNear(state, watch, before, step) ?? fightStop();
+  }
+  (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0);
+  st.ran = ran;
+  if (stop) {
+    st.stop = stop;
+    st.ev.effects.push({ kind: 'stopped', actorId: p.id, data: { why: stop.why, by: stop.by, seconds: Math.round(ran) } });
+    logCode(state, 'stretch_stopped', { actorId: p.id, kind: st.kind, why: stop.why, by: stop.by, seconds: Math.round(ran) });
+  }
+  if (st.kind === 'rest') {
+    const share = st.seconds > 0 ? Math.min(1, ran / st.seconds) : 1;
+    if (share > 0) {
+      const row = restRow(state, p);
+      applyHealing(state, p, row, share < 1 ? { share } : {});
+      if (row !== HL.rest) p.paid = p.paid?.filter((x) => x !== row);
+      state.clocks[`rest:${p.id}`] = now(state);
+      st.ev.effects.push({ kind: 'rested', actorId: p.id, data: share < 1 ? { share: Math.round(share * 100) / 100 } : {} });
+    }
+  } else if (ran > 0) {
+    logCode(state, 'time_passed', { actorId: p.id, minutes: ran / 60, from: t0, to: now(state) });
+    st.ev.effects.push({ kind: 'time_passed', actorId: p.id, data: { minutes: ran / 60 } });
+  }
 }
 
 /** NW18: what a sleeper does on its turn: nothing, asleep */
@@ -890,9 +951,7 @@ function doHealItem(ctx: Ctx, a: Actor, o: Order): boolean {
   const t = (o.target && actorById(state, o.target)) || a;
   if (t !== a && !withinGrip(state, a, t)) { emit(ctx, bark(mk(ctx, a, 'wasted', { target: t.id, itemId: inst.itemId, reason: 'out_of_reach' }), o)); return true; }
   const ev = bark(mk(ctx, a, 'use_item', { itemId: inst.itemId, ...(t !== a ? { target: t.id } : {}) }), o);
-  if (threatHere(state, a) && !row.inFight) {
-    logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'hostile_in_zone' });
-  } else if (!wouldHeal(state, t, row.id)) {
+  if (!wouldHeal(state, t, row.id)) {
     logCode(state, 'heal_blocked', { actorId: a.id, source: row.id, reason: 'nothing_to_heal', ...(t !== a ? { target: t.id } : {}) });
   } else {
     applyHealing(state, t, row.id);
@@ -1026,7 +1085,7 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = fal
   return true;
 }
 
-/** BA2: picking the lock on the way to o.target: a Lockpicking function roll (Thievery; lockpicks help) at the lock's
+/** BA2: picking the lock on the way to o.target: a Lockpicking function roll (the Lockpicking skill, Filching standing in at 0.3; lockpicks help) at the lock's
  * grade. Success opens it once the picking time is done: out of a fight that time passes at once; in a fight each turn at
  * it adds a fight turn of work (busy until it opens). Near Miss: not yet, keep going. Failure: beyond the picker until its
  * skill or tools get better. Critical Failure: the pick snaps (the lockpicks used are lost). Quiet: a whisper. */
@@ -1036,17 +1095,18 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   const c = findContainer(state, o.target);
   if (c) c.inst.grade ??= 'minor';
   const b = (c?.inst ?? barrierTo(state, a, o.target)) as Pick<Barrier, 'id' | 'grade' | 'lock' | 'beyond' | 'work'> | undefined;
-  if (c && theft(state, a, c)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'theft' }), o));
   if (!b?.lock?.locked) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: b?.lock ? 'not_locked' : 'no_lock' }), o));
   if (c ? !withinGrip(state, a, c.at) : !atDoor(state, a, o.target)) return emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, reason: 'out_of_reach' }), o)); // BG-86
   const to = o.target!;
+  // CT4: picking the lock of a container its owner guards is filching: caught or fumbled, the picking stops there
+  if (c && theft(state, a, c) && !filchStep(ctx, a, o, ownerOf(state, c), c.at, c.inst)) return;
   const way = (did: WayDid, extra: Partial<GameEvent> = {}) => bark(mk(ctx, a, 'pick', { target: to, way: { to, ...(c ? {} : { barrier: b.id }), did }, ...(c ? { itemId: to } : {}), ...extra }), o);
   const skill = fnRoller(state, a, FN.lockpicking);
   const tool = pickTool(state, a, skill).itemId ?? undefined;
-  const eff = effectiveSkill(state, a, skill, { itemId: tool }).value;
+  const eff = effectiveSkill(state, a, FN.lockpicking, { itemId: tool, fullValue: rollFnSkills(a, FN.lockpicking) }).value; // FL1: Filching stands in at its share
   if (b.beyond?.[a.id] !== undefined && eff <= b.beyond[a.id]) return emit(ctx, way('beyond'));
   const modifiers: Mod[] = CONFIG.LOCK_GRADE_MOD[b.grade] ? [{ source: 'lock', type: 'situational', value: CONFIG.LOCK_GRADE_MOD[b.grade] }] : [];
-  const r = ruleset.roll({ actorId: a.id, skill, modifiers, tierShifts: [], fn: FN.lockpicking, ...(tool ? { itemId: tool } : {}) }, state, rng);
+  const r = ruleset.roll({ actorId: a.id, skill: FN.lockpicking, modifiers, tierShifts: [], fn: FN.lockpicking, ...(tool ? { itemId: tool } : {}) }, state, rng);
   ruleset.recordUse(a, r.skill, { actorId: a.id, skill: r.skill, target: CONFIG.DIFFICULTY[b.grade] ?? CONFIG.DIFFICULTY.moderate, passed: tierAtLeast(r.tier, 'success'), modifiers }, state);
   const extra = { roll: r, tier: r.tier };
   if (r.tier === 'critical_failure') {
@@ -1072,12 +1132,69 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
 }
 
 /** CT3: opening a container within grip reach is the turn's action: it stands open and its contents show. Locked, the
- * key turns if they carry it (else they find it locked); one its owner guards is theft, which waits for Filching (CT4). */
+ * key turns if they carry it (else they find it locked). CT4: one its owner guards is opened by filching: a Filching
+ * contest against everyone who could notice (src/engine/filch.ts); caught or fumbled, it stays shut. CT5: a worn pack
+ * its wearer guards is never opened (theft): a hand goes into it by filching. */
 function doOpen(ctx: Ctx, a: Actor, o: Order): void {
   const { state } = ctx;
   const c = findContainer(state, o.target);
-  const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : openContainer(state, a, c);
+  // CT5: a pack its wearer guards is never opened, only reached into (filch)
+  if (c && withinGrip(state, a, c.at) && theft(state, a, c) && !(c.holder && wornPack(c.inst)) && !filchStep(ctx, a, o, ownerOf(state, c), c.at, c.inst)) return;
+  const why = !c ? 'no_container' : !withinGrip(state, a, c.at) ? 'out_of_reach' : openContainer(state, a, c, !(c.holder && wornPack(c.inst)));
   emit(ctx, bark(mk(ctx, a, why ? 'wasted' : 'open', { target: o.target ?? undefined, ...(c ? { itemId: c.inst.id } : {}), ...(why ? { reason: why } : {}) }), o));
+}
+
+/** CT4/FL4: a guarded container opened or picked under watch: the Filching contest, with the container's size. Caught or
+ * fumbled: the filch event says so and the try stops (false); unnoticed: it goes on (true). */
+function filchStep(ctx: Ctx, a: Actor, o: Order, owner: Actor | undefined, at: Located, inst: ItemInstance): boolean {
+  const f = filchContest(ctx.state, a, owner, at, 0, ctx.rng, recentAround(ctx));
+  if (f.outcome === 'taken') return true;
+  filchAftermath(ctx.state, a, owner, itemDef(ctx.state, inst.itemId).name, f);
+  emitFilch(ctx, a, o, owner, inst, f);
+  return false;
+}
+const recentAround = (ctx: Ctx): GameEvent[] => [...(ctx.state.recentEvents ?? []), ...ctx.state.events, ...ctx.events];
+function emitFilch(ctx: Ctx, a: Actor, o: Order, owner: Actor | undefined, inst: ItemInstance, f: Filched, qty?: number): void {
+  const ev = mk(ctx, a, 'filch', { ...(owner ? { target: owner.id } : {}), itemId: inst.id, ...(qty ? { qty } : {}), tier: f.roll.tier, roll: f.roll, filch: f.outcome });
+  ev.noise = f.noise;
+  ev.visibility = CONFIG.FILCH_VISIBILITY;
+  ev.perception = f.perception;
+  emit(ctx, bark(ev, o), undefined, true);
+}
+
+/** FL1–FL7: filching one item from someone (o.target an actor) or an owned container (o.target the container), o.item
+ * the item (an instance id, or a library id for the first of that kind; null: whatever comes to hand). Within grip
+ * reach, not held or worn, no bigger than FILCH_MAX_BULK. From someone down, yielded or not watching over it, it is just
+ * taken; otherwise the Filching contest decides (src/engine/filch.ts). */
+function doFilch(ctx: Ctx, a: Actor, o: Order): void {
+  const { state } = ctx;
+  const wasted = (reason: string) => emit(ctx, bark(mk(ctx, a, 'wasted', { target: o.target ?? undefined, ...(o.item ? { itemId: o.item } : {}), reason }), o));
+  const t = o.target ? actorById(state, o.target) : allActors(state).find((x) => x !== a && x.core.inventory.some((i) => i.id === o.item));
+  const c = t ? null : findContainer(state, o.target);
+  const holder = t ?? (c?.holder && wornPack(c.inst) ? c.holder : undefined);
+  if ((!t && !c) || t === a) return wasted('no_one_to_filch_from');
+  const at: Located = t ?? c!.at, owner = t ?? ownerOf(state, c!);
+  const list = holder ? holder.core.inventory : c!.inst.contents ?? (c!.inst.contents = []);
+  const pool = holder ? filchable(state, holder) : contentsOf(c!).filter((i) => filchSize(itemDef(state, i.itemId).bulk) !== null);
+  const want = o.item?.replace(/^goods:/, '');
+  const named = want ? list.find((i) => i.id === want) ?? list.find((i) => i.itemId === want && pool.includes(i)) ?? list.find((i) => i.itemId === want) : undefined;
+  if (want && !named) return wasted('no_item');
+  if (named && named.equippedIn?.length) return wasted('worn');
+  if (named?.soulbound) return wasted('soulbound'); // HF18: an echo's gear can't be taken
+  if (named && !pool.includes(named)) return wasted('too_big');
+  if (!pool.length) return wasted('nothing_to_filch');
+  if (!withinGrip(state, a, at)) return wasted('out_of_reach');
+  const inst = named ?? pool[ctx.rng.int(0, pool.length - 1)];
+  const watched = guarded(state, a, owner);
+  const f = watched ? filchContest(state, a, owner, at, itemDef(state, inst.itemId).bulk, ctx.rng, recentAround(ctx)) : null;
+  if (f && f.outcome !== 'taken') {
+    filchAftermath(state, a, owner, itemDef(state, inst.itemId).name, f);
+    return emitFilch(ctx, a, o, owner, inst, f);
+  }
+  const before = inst.qty;
+  const got = takeFilched(state, a, list, inst, watched ? owner?.id : undefined);
+  if (!f) return emit(ctx, bark(mk(ctx, a, 'filch', { ...(owner ? { target: owner.id } : {}), itemId: got.id, ...(got.qty ? { qty: got.qty } : {}), filch: 'taken' }), o));
+  emitFilch(ctx, a, o, owner, got, f, before !== undefined ? got.qty : undefined);
 }
 
 function doMain(ctx: Ctx, a: Actor, o: Order): void {
@@ -1095,6 +1212,8 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doRest(ctx, a, o);
     case 'pick':
       return doPick(ctx, a, o);
+    case 'filch':
+      return doFilch(ctx, a, o);
     case 'search':
       return doSearch(ctx, a, o);
     case 'stash':
@@ -1285,9 +1404,17 @@ function longAction(ctx: Ctx, a: Actor, o: Order, cost: { row: DurationDef; seco
 /** AT6/AT28: an actor turns to something else: a long action's work stays only when its row keeps it at this progress */
 function setAside(state: GameState, a: Actor): void {
   const b = a.busy!;
-  if (breakBand(b) === 'kept') b.paused = true;
+  const then = breakBand(b);
+  if (then === 'kept') b.paused = true;
   else delete a.busy;
+  if (then === 'share') shareDone(state, a, b);
   logCode(state, 'busy_set_aside', { actorId: a.id, row: b.row, done: b.done, need: b.need, kept: !!a.busy });
+}
+/** AT27/AT28: a long action broken off whose output is a share takes effect by the share done: a rest heals that share */
+function shareDone(state: GameState, a: Actor, b: NonNullable<Actor['busy']>): void {
+  if (b.row !== DU.rest || b.done <= 0) return;
+  applyHealing(state, a, restRow(state, a), { share: Math.min(1, b.done / b.need) });
+  state.clocks[`rest:${a.id}`] = now(state);
 }
 /** AT25/AT57: an attack aimed at someone at a long action breaks it by the row's focus: careful (and deep) on any attack,
  * hit or miss; steady on a hit that wounds; reflex never. What is left goes by its progress (AT6/AT28): kept or lost.
@@ -1299,6 +1426,7 @@ function breakFocus(ctx: Ctx, t: Actor, ev: GameEvent, wounded: boolean): void {
   const then = breakBand(b);
   if (then === 'kept') b.paused = true;
   else delete t.busy;
+  if (then === 'share') shareDone(ctx.state, t, b);
   ev.effects.push({ kind: 'broke_off', actorId: t.id, data: { row: b.row, done: b.done, need: b.need, then } });
   logCode(ctx.state, 'busy_broken', { actorId: t.id, row: b.row, done: b.done, need: b.need, then });
 }
@@ -1416,7 +1544,7 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }
   if (o.type === 'search' && t && t !== a && openToHands(a, t)) return grip(t, 0, t.id); // BG-152: a body, a sleeper or a yielded foe is searched hands-on
-  if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5) or tending (BF13): the user's
+  if (need === 'grip' && t && t !== a) return grip(t, o.type === 'restrain' || o.type === 'use_item' || o.type === 'filch' ? 0 : gripReachM(state, t), t.id); // handed over: both grip reaches; a grab (BF5), tending (BF13) or a filch (FL2): the user's
   const d = need === 'grip' && !t ? findContainer(state, o.target)?.at ?? door(o.target) : null; // CT3: a container, or a door
   if (d) return grip(d);
   for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op, a); if (p) return grip(p); }
@@ -1686,16 +1814,18 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence
   expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
-  passTime(state, state.mode === 'tactical' ? ctx.turnS / 60 : turnMinutes(state, playerOrder)); // T1/AT13: every turn costs its action's time (a wait adds its own)
   // BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
   // turn (a trade, a rest, a wait) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none
-  const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
-  const long = catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
-  const legEvents = !long || !isAsleep(state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
+  const legs = (long: boolean) => !long || !isAsleep(state.player) ? (m: Actor, from: Located, metres: number, toward: string) => {
     const leg = { metres: Math.round(metres * 10) / 10, ...(from.pos ? { fromPos: from.pos } : {}), ...(m.zone !== from.zone ? { fromZone: from.zone } : { heading: toward }), ...(long ? { summed: true as const } : {}) };
     emit(ctx, withActivity(ctx, m, mk(ctx, m, 'move', leg), 'walk'));
   } : undefined;
-  if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legEvents);
+  const stretch = state.mode !== 'tactical' && isActive(state.player) ? ctx.stretch : undefined;
+  if (stretch) runStretch(ctx, stretch, legs(true)); // AT56: a rest or wait runs on the world clock, step by step
+  else passTime(state, state.mode === 'tactical' ? ctx.turnS / 60 : turnMinutes(state, playerOrder)); // T1/AT13: every turn costs its action's time
+  const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
+  const long = !!stretch || catchMin > (getLibrary().durations?.[DU.action]?.seconds ?? 0) / 60;
+  if (!state.scratch?.nightStopped) catchUp(state, catchMin, true, legs(long));
   if (long) for (const e of ctx.events) if (e.kind === 'move' && e.actorId !== state.player.id && !e.line) e.summed = true; // BF2e3: their own move is in their one line too // NW12: a sleep stopped by an arrival keeps them there; NW11: the turn's time moves everyone on toward their schedule (a night already moved them)
   settleSleepers(state); // NW20: NPCs fall asleep and wake by their routines
   // NW18: still asleep and nobody hostile near any more (they left, or never woke you): the rest of the night runs on

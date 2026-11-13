@@ -142,16 +142,17 @@ function ownGear(state: GameState, a: Actor): OwnGearView[] {
 
 /** Part 5 §8: held items, shield and armor by look; accessories only when visible; concealed only once revealed; a worn
  * pack (CT7); stowed only once found (SE11), or once its pack stands open */
-function seenGear(state: GameState, a: Actor, revealed: string[]): SeenGearView[] {
+function seenGear(state: GameState, a: Actor, revealed: string[], viewerId?: string): SeenGearView[] {
   const out: SeenGearView[] = [];
   for (const i of a.core.inventory) {
     const slot = i.equippedIn?.[0];
     const d = itemDef(state, i.itemId);
-    if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: d.name, look: d.look, where: 'carried' }); continue; }
+    const mine = viewerId && i.stolenFrom === viewerId ? { stolenFromYou: true as const } : {}; // FL6: its owner knows it on sight
+    if (!slot) { if (revealed.includes(`item:${i.id}`)) out.push({ id: i.id, name: d.name, look: d.look, where: 'carried', ...mine }); continue; }
     if (d.concealed && !revealed.includes(`item:${i.id}`)) continue;
     const where = slot.startsWith('grip:') ? (d.kind === 'shield' ? 'shield' : 'held') : slot === 'armor' ? 'armor' : slot.startsWith('acc:') && d.visible ? 'accessory' : slot === 'pack' ? 'pack' : null;
     // CT5/CT7: a worn pack shows; once opened (its wearer downed or yielded), what it holds shows in it
-    if (where) out.push({ id: i.id, name: d.name, look: d.look, where, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
+    if (where) out.push({ id: i.id, name: d.name, look: d.look, where, ...mine, ...(where === 'pack' ? containerOf(state, i, a, contentsOf({ inst: i, at: a, holder: a })) : {}) });
   }
   return out;
 }
@@ -234,7 +235,7 @@ function seenActors(state: GameState, viewer: Actor, events: GameEvent[] = state
       ...(readsFace(state, viewer, a) ? { stance: stance(state, a, viewer) } : {}),
       ...(crippled.length ? { crippled } : {}), ...(destroyed.length ? { destroyed } : {}), ...tendedOf(state, a),
       ...(reads(state, viewer, a) && damaged.length ? { damaged } : {}),
-      gear: seenGear(state, a, revealedTo(viewer, a.id)),
+      gear: seenGear(state, a, revealedTo(viewer, a.id), viewer.id),
       ...(viewer === state.player && isSeller(a) ? { wares: wareList(state, viewer, a), offers: offerList(state, viewer, a) } : {}),
       ...(doingOf(a) ? { doing: doingOf(a)! } : {}),
     });

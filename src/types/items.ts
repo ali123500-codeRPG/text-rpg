@@ -99,6 +99,8 @@ export type ItemInstance = {
   contents?: ItemInstance[];
   /** CT1/CT4: the actor a container belongs to; opening or taking from it while they are up and watching is theft */
   owner?: string;
+  /** FL6: the actor it was filched from: its owner knows it on sight and won't buy it back */
+  stolenFrom?: string;
   /** CT3: a container's lid stands open: its contents can be seen and taken */
   open?: true;
   /** CT3: a locked container: a key naming it (opens) or a Lockpicking roll at its grade opens it, as a lock on a way (BA2) */

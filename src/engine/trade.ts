@@ -189,7 +189,7 @@ export function offerList(state: GameState, owner: Actor, seller: Actor): { id: 
 
 export type SellResult =
   | { ok: true; price: number; qty: number; itemInst: string }
-  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'out_of_reach' | 'refuses' | 'not_bought' | 'worn' | 'not_enough_coin' };
+  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'out_of_reach' | 'refuses' | 'not_bought' | 'worn' | 'stolen' | 'not_enough_coin' };
 
 /** SL4/SL6: sell qty (default 1; stacks only) of one of the seller's own items to a Trader. All or nothing; no roll.
  * The item joins the Trader's stock and wares; the Trader pays from its own purse. */
@@ -201,6 +201,7 @@ export function sell(state: GameState, owner: Actor, seller: Actor | undefined, 
   const each = inst ? sellPrice(state, owner, seller, inst.itemId) : null;
   if (!inst || inst.soulbound || each === null) return { ok: false, reason: 'not_bought' }; // HF18
   if (worn(inst)) return { ok: false, reason: 'worn' };
+  if (inst.stolenFrom === seller.id) return { ok: false, reason: 'stolen' }; // FL6: its owner knows it and won't buy it back
   const stackable = itemDef(state, inst.itemId).stackable;
   const qty = stackable ? Math.max(1, Math.floor(qtyIn ?? 1)) : 1;
   if (qty > (inst.qty ?? 1)) return { ok: false, reason: 'not_bought' };

@@ -243,7 +243,7 @@ export function inventoryPage(api: GameApi) {
       const heal = healItems(s, s.player).find((x) => x.itemId === it.itemId);
       if (heal) {
         const r = heal.row;
-        rows.splice(rows.length - 1, 0, { k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}${r.inFight ? ', works in a fight' : ', not in a fight'}` });
+        rows.splice(rows.length - 1, 0, { k: 'Heals', v: `${r.hpPct}% health and ${r.partPct}% to each body part${PART_STATES.pos(r.reach) >= PART_STATES.pos('crippled') ? ', mends Crippled parts' : ''}` });
         // H3 b: the player picks which healing item the quick slot beside Aim shows
         const btn = h('button', { type: 'button', class: 'hs-btn-text', style: 'min-height:0;padding:0' });
         const draw = () => {

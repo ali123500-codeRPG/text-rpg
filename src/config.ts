@@ -26,6 +26,9 @@ const DEFAULTS = {
     [SK.melee_light]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
     [SK.melee_medium]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
     [SK.melee_heavy]: [{ fn: FN.arms, k: 0.3 }, { fn: FN.unarmed, k: 0.1 }],
+    // FL1: the Sleight group's two skills stand in for each other (a lock or filching roll asks for its function)
+    [FN.lockpicking]: [{ fn: FN.filching, k: 0.3 }],
+    [FN.filching]: [{ fn: FN.lockpicking, k: 0.3 }],
   } as Record<string, { fn: SkillFunction; k: number }[]>,
   /** Pairs of skills that never stand in for each other, even when they share a function (the three defenses) */
   NO_STAND_IN: [[SK.dodge, SK.block], [SK.block, SK.parry], [SK.dodge, SK.parry]] as [string, string][],
@@ -250,6 +253,19 @@ const DEFAULTS = {
   FIGHT_TURN_MIN_S: 3,
   /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
   ARMOR_ALONE_MULT: 2,
+  // ---- the world clock (AT56, AT65 to AT68; src/engine/comingNear.ts). Placeholders from the Action Time part three page.
+  // The strike distance is HOSTILE_NEAR_M (a step and a blow), the lever the page names STRIKE_M ----
+  /** AT67: seconds to get ready to act from each body pose (getting up off the floor takes 2 to 3 s) */
+  READY_S: { lying: 3, sitting: 2, standing: 1 } as Record<import('./scales').BodyPoseKey, number>,
+  /** AT67: seconds to take in what is happening and decide; the warning time is READY_S for the pose + DECIDE_S */
+  DECIDE_S: 3,
+  /** AT67: someone closing faster than this many times their kind's walk is rushing in, wherever they are heading */
+  RUSH_SHARE: 1.5,
+  /** AT67: someone accepted stops being accepted once more than this many times their trigger distance away */
+  REARM_FACTOR: 2,
+  /** AT67: a stretch of time steps at most half the shortest time anyone perceived needs to trigger the check, within these */
+  STEP_MIN_S: 3,
+  STEP_MAX_S: 60,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
   SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'dark', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
   // NW12–NW22 sleeping (src/engine/sleep.ts). Placeholders: WAKE_GRADE, FALL_ASLEEP_MIN, SLEEP_STEP_MIN, ASLEEP_AUTO_TURNS
@@ -277,7 +293,7 @@ const DEFAULTS = {
   YEAR_DAYS: 365, // AG2: game days in a year; age = (today − birth day) ÷ YEAR_DAYS
   AGE_PLUS_NUMBER_FROM: 4, // AG7: from this many steps past the last life stage the name reads "Ancient +4" instead of "Ancient++++"
   AGE_DECLINE_FROM: 'stage_4' as import('./scales').LifeStageKey, // AG17: decline starts at the start of Old
-  AGE_DECLINE_GROUPS: [GR.melee, GR.ranged, GR.defense, GR.health, GR.stealth, GR.notice] as string[], // AG19: body skills and the senses
+  AGE_DECLINE_GROUPS: [GR.melee, GR.ranged, GR.defense, GR.health, GR.stealth, GR.sleight, GR.notice] as string[], // AG19: body skills and the senses (Sleight: FL1, fingers)
   CREATION_AGE_DEFAULT: 20, // AG15: the creation picker's default (a start may set its own, ClassDef.creation.age)
   NPC_AGE_STAGES: ['stage_2', 'stage_3'] as import('./scales').LifeStageKey[], // AG13: the stages an NPC is drawn from when its template names none
   CREATION_TAGS: 3,
@@ -473,6 +489,23 @@ const DEFAULTS = {
   /** scaling: picking keeps halving forever (150: about 4 s, 200: about 1 s, so supernatural fingers open locks at a touch);
    * a number stops the halving at that skill instead */
   PICK_FAST_CAP: null as number | null,
+  // ---- filching (FL1–FL7, TN1–TN4; src/engine/filch.ts; placeholders) ----
+  /** TN3 (open, round 3 TN3b): how visible a filch is, one row for every filch; Close is made out clearly within 6 m */
+  FILCH_VISIBILITY: 'close' as import('./scales').VisibilityKey,
+  /** TN1: the sound of a filch at Near Miss or better; each tier the roll falls below Near Miss makes it one level louder */
+  FILCH_NOISE: 'hushed' as import('./scales').NoiseKey,
+  /** TN4: added to a watcher's sight and hearing rolls by how closely they watch (their activity's attention; talking with
+   * the filcher is alert) */
+  FILCH_ATTENTION: { alert: 10, normal: 0, distracted: -10, asleep: 0 } as Record<import('./scales').AttentionKey, number>,
+  /** TN4: added to a watcher's rolls by the item's size (its bulk: 0 pocket-sized, 1 hand-sized, 2 arm-sized, 3 bigger);
+   * the penalty grows faster than the size, and sizes above FILCH_MAX_BULK can't be filched (a perk can open them) */
+  FILCH_SIZE: [0, 5, 15, 30] as number[],
+  FILCH_MAX_BULK: 2,
+  /** FL2: the share of a purse's coin one try takes (at least 1) */
+  FILCH_PURSE_SHARE: 0.25,
+  /** FL5: stance steps colder when caught: the owner, and every other watcher who caught it */
+  FILCH_CAUGHT_OWNER_STEPS: 2,
+  FILCH_CAUGHT_WITNESS_STEPS: 1,
   STOREY_HEIGHT: 3, // placeholder: metres one flight of stairs climbs, when a zone's height is inferred from 'up'/'down' exit words
   /** RD6 how far each kind of thrown weapon is aimed at a man-sized target, in metres (a throw mode's reachM; perks add
    * PerkDef.throwReach metres): a spear or javelin 17.5 (the Roman pilum's effective range, 15–20 m, Wikipedia "Pilum");
@@ -499,7 +532,7 @@ const DEFAULTS = {
   /** XP factor levels (XP_FACTORS keys) and what each multiplies by */
   XP_FACTOR_MULT: { none: 0, quarter: 0.25, half: 0.5, three_quarters: 0.75, full: 1 } as Record<string, number>,
   /** each skill group's XP factor level in the defeat-XP rating */
-  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full' } as Record<string, string>,
+  XP_GROUP_FACTOR: { [GR.melee]: 'full', [GR.ranged]: 'full', [GR.defense]: 'full', [GR.health]: 'full', [GR.notice]: 'half', [GR.stealth]: 'three_quarters', [GR.sleight]: 'three_quarters', [GR.influence]: 'quarter', [GR.speed]: 'none', [GR.will]: 'full' } as Record<string, string>,
   DEFEAT_XP_MULT: 1, // X20: ×1 for now
   /** a skill's worth in the rating (LF15): SKILL_RATING_AT_50 × (s ÷ 50)^SKILL_RATING_POWER, s = true skill × tier; no cap */
   SKILL_RATING_AT_50: 23.1,
