@@ -32,6 +32,7 @@ import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, im
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
+import { maybeOfferPop } from './essences';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
 import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
@@ -707,6 +708,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
           : h('p', { class: 'hs-note' }, 'Nothing right now')))),
       h('p', { class: 'hs-note' }, 'Built by code from what your character can see and carries, ordered by their personality, refreshed every turn. Picking one fills the box; nothing is sent until you press Send.'));
     if (stick || busy) story.scrollTop = story.scrollHeight;
+    // 2.5: a new essence offer opens its pop-up once, when no turn is running (Take it / Let it go / Decide later)
+    if (!busy && !auto.playing()) maybeOfferPop(api, s, update);
 
     const ns = api.notices();
     notices.replaceChildren(...ns.map((n) => h('div', { class: 'hs-hl ' + (n.kind === 'stop_play' || n.kind === 'save_failed' ? 'bad' : 'ask'), role: 'status' },

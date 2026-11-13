@@ -19,6 +19,9 @@ import { barMax, lineMax } from '../ruleset/fatigue';
 import { achievementInfo, grantAchievement } from '../engine/xp';
 import { actionNotes, doingSnap, placeName } from '../agents/game';
 import { buildPlayerView } from '../views';
+import { passEssence, takeEssence } from '../engine/essence';
+import { ES } from '../library/essenceIds';
+import { now } from '../time';
 import { DU, FU } from '../library/tableIds';
 import { makeFurniture } from '../engine/furniture';
 
@@ -206,6 +209,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     player.core.inventory.push({ id: 'player_sack', itemId: IT.sack, qty: 1, contents: [{ id: 'sack_dagger', itemId: IT.dagger, qty: 1 }, { id: 'sack_bandage', itemId: IT.bandage, qty: 1 },
       { id: 'sack_inner', itemId: IT.sack, qty: 1, contents: [{ id: 'inner_draught', itemId: IT.healing_draught, qty: 1 }] }] });
     // Varo's Loop worn and bound, one power awake (its first deed earned), to show a Threadbound item's sealed powers
+    // a Street Instinct essence waiting on offer, to show the offer pop-up and the Character page's Essences section
+    if (player.progression) player.progression.essenceOffers = [{ essence: ES.street_instinct, grade: 'common', points: { [SK.dodge]: 1, [SK.insight]: 1 }, turn: 2, source: 'foe', untilMin: now(state) + 240 }];
     player.core.inventory.push({ id: 'player_loop', itemId: IT.varos_loop, qty: 1, equippedIn: ['acc:0'], boundTo: player.id });
     if (player.progression) (player.progression.achievements ??= []).push({ id: 'fake_ach_loop', key: ACH.event_crit_1, turn: 2 });
     player.core.condition.hpLostPct = 10; // healed from Hurt to Bruised on turn 3
@@ -263,6 +268,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       if (busy || !state) return;
       // numbered like the game: the turn's lines carry state.turn, then the turn advances; /undo steps back one
       const t = state.turn;
+      // 2.5: /essence take N [give M] and /essence pass N run the real rules, like the game's command (no turn)
+      const ess = /^\/essence (take|pass) (\d+)(?: give (\d+))?$/i.exec(text);
+      if (ess) {
+        const err = ess[1].toLowerCase() === 'take' ? takeEssence(state, Number(ess[2]) - 1, true, ess[3] ? Number(ess[3]) - 1 : undefined) : passEssence(state, Number(ess[2]) - 1);
+        lines = [...lines, { turn: t, kind: 'command', text }, { turn: t, kind: 'command', text: err ?? (ess[1].toLowerCase() === 'take' ? 'Taken. It is part of you now.' : 'You let it go.') }];
+        emit(); return;
+      }
       if (text === '/undo') { fell = false; state.turn = Math.max(1, t - 1); lines = [...lines, { turn: state.turn, kind: 'command', text: 'Turn undone.' }]; emit(); return; }
       lines = [...lines, { turn: t, kind: text.startsWith('/') ? 'command' : 'player', text, ...(o?.aimed ? { aimed: true } : {}) }];
       busy = true;

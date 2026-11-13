@@ -19,7 +19,7 @@
   --shadow-toast: 0 6px 24px rgba(0,0,0,.18);
   --bg: #0b1330; --surface: #16214a; --text: #eef4ff; --muted: #bccbec; --faint: #adbde2; --border: #2a3b70; --rule: #34477f;
   --accent: #93c5ff; --accent-soft: #1b3160; --ok: #5cc97a; --warn: #f2b552; --warn-soft: #2e2a22; --danger: #ff6b6b; --danger-soft: #3a1c26;
-  --on-btn: #ffffff; --on-pill: #0b1020; --scenario-mark: #ffd36e; --perk-20: var(--scenario-mark); --perk-40: #c49bff; /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #203963; --deco-2: #2e6496; --deco-3: #52acd8;
+  --on-btn: #ffffff; --on-pill: #0b1020; --scenario-mark: #ffd36e; --perk-20: var(--scenario-mark); --perk-40: #c49bff; --essence: var(--perk-40); /* the two perk series: 20/60/100/140 gold, 40/80/120 violet */ --deco-1: #203963; --deco-2: #2e6496; --deco-3: #52acd8;
   --c1: #689ce2; --c2: #72ae75; --c3: #8d99a5; --c4: #e97aac; --c5: #af80dc; --c7: #e29568; --c10: #df7369; --c12: #6cadae; --c14: #b27567; --c15: #caad69;
   --c6: #c7a5e4; --c8: #f19e94; --c9: #72bed3; --c11: #6474b0; --c13: #a2ad67; --c16: #628c71; --c17: #bf6895; --c18: #9865b7; --c19: #7c7bde; --c20: #92adff; --c21: #c18a9a; --c22: #8e6f8a;
   --btn-fill: linear-gradient(120deg in oklch, oklch(.50 .135 252) 8%, oklch(.53 .14 148) 92%);
@@ -1136,3 +1136,27 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .strike .sk-chg { margin: 4px 0 0; font-size: 14px; font-weight: 700; color: var(--warn); }
 .strike .sk-slash { position: absolute; left: -10%; right: -10%; top: 46%; height: 3px; transform-origin: left center; opacity: 0;
   background: linear-gradient(90deg, transparent, var(--sk) 30%, var(--text) 50%, var(--sk) 70%, transparent); }
+
+/* essences (2.5, 2.7): the offer pop-up, the Character page section and the sheet row; violet like the gem they are */
+.ess-pop { width: min(420px, calc(100vw - 32px)); }
+.ess-tile { display: grid; gap: var(--space-2); padding: var(--space-3) var(--space-4); border: 1px solid color-mix(in oklch, var(--essence) 50%, transparent);
+  border-radius: var(--r-lg); background: color-mix(in oklch, var(--essence) 8%, var(--surface)); }
+.ess-top { display: flex; align-items: center; gap: var(--space-2); }
+.ess-top b { font-size: 17px; }
+.ess-gem { color: var(--essence); font-size: 18px; }
+.ess-grade { margin-left: auto; font-size: 12px; padding: 1px 8px; border-radius: 999px; border: 1px solid color-mix(in oklch, var(--essence) 60%, transparent); color: var(--essence); }
+.ess-stats { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ess-stat { font-weight: 700; font-variant-numeric: tabular-nums; padding: 2px 10px; border-radius: var(--r-md); background: color-mix(in oklch, var(--essence) 18%, transparent); color: var(--text); }
+.ess-story { margin: 0; color: var(--muted); font-size: 14px; font-style: italic; }
+.ess-meta { margin: 0; color: var(--faint); font-size: 13px; }
+.ess-acts { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-3); align-items: center; }
+.ess-pop .dpop-body { display: grid; gap: var(--space-3); }
+.ess-sec { margin: var(--space-6) 0; }
+.ess-head { display: flex; align-items: baseline; gap: var(--space-3); }
+.ess-head h2 { margin: 0; }
+.ess-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.ess-empty { place-items: center; min-height: 72px; border-style: dashed; background: none; color: var(--faint); }
+.ess-offers { margin-top: var(--space-4); }
+.ess-waiting { color: var(--essence); font-weight: 700; }
+.ess-pass { min-height: var(--input-h); padding: 0 16px; border-radius: var(--r-md); border: 1px solid var(--rule); background: none; color: var(--text); font: inherit; cursor: pointer; }
+.ess-pass:hover { border-color: var(--muted); }
