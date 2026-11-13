@@ -757,7 +757,11 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* M-33: the screen edge goes red once when the player reaches Wounded or worse; from Critical it keeps a steady tint */
 .m-edge { position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: 0;
   background: radial-gradient(ellipse at center, transparent 55%, color-mix(in srgb, var(--danger) 40%, transparent) 100%); }
-.playmain.crit .m-edge { opacity: .45; }
+.playmain.crit .m-edge:not(.nerve) { opacity: .45; }
+/* MW1–MW3: the nerve's edge, in the morale violet: flares once at Terrified, keeps a steady tint from Panicking (Broken too);
+   the red health edge wins where both would show */
+.m-edge.nerve { background: radial-gradient(ellipse at center, transparent 55%, color-mix(in srgb, var(--c5) 55%, transparent) 100%); }
+.playmain.nerve:not(.crit) .m-edge.nerve { opacity: .45; }
 /* M-30: a body part that became Crippled or Destroyed, the red mirror of "Patched up" */
 .hcard.wcard { border-color: color-mix(in oklch, var(--danger) 60%, transparent); background: var(--danger-soft); color: var(--text); font-weight: 700; }
 .hcard.wcard .x { color: var(--danger); }

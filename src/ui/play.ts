@@ -29,7 +29,7 @@ import { coinWords } from '../engine/trade';
 import { closePop, openPop } from './pop';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
-import { HEALTH_LEVELS, HIT_OUTCOMES, PART_STATES } from '../scales';
+import { HEALTH_LEVELS, HIT_OUTCOMES, MORALE_LEVELS, PART_STATES, type MoraleLevel } from '../scales';
 import type { AttackOutcome, PartState } from '../types';
 
 const NOTICE_KIND: Record<Notice['kind'], string> = {
@@ -209,6 +209,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   const bar = h('form', { class: 'inbar', onsubmit: (e: Event) => { e.preventDefault(); submit(); } }, h('div', { class: 'inrow' }, input, send), hint, tools);
   const fell = h('div', { class: 'fell', hidden: true });
   const edge = h('div', { class: 'm-edge', 'aria-hidden': 'true' }); // M-33: the red edge when hurt badly
+  const nerveEdge = h('div', { class: 'm-edge nerve', 'aria-hidden': 'true' }); // MW1: the violet edge as the nerve gives
   const body = h('div', { class: 'play' }, story, h('div', { class: 'sec col' }, notices, helpPanel, bar));
   // D-226 (M-39): the scenario-end gains panel, over the story while it is open; the action box below stays usable (M-13)
   let gainsVeil: HTMLElement | null = null, afterGains: (() => void) | null = null;
@@ -233,7 +234,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     for (const ch of text) { input.value += ch; await new Promise((r) => setTimeout(r, Math.min(35, 1500 / text.length))); }
     await submit(true);
   }, () => update());
-  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell, edge);
+  const el = h('main', { class: 'playmain' }, title, who, auto.el, wrap, fell, edge, nerveEdge);
   /** Who's here sits in the header line, between the place and the switches, while everyone fits there; a crowd drops it
    *  to its own row under the header. It moves only when that changes, so its beats are never restarted. */
   function placeWho() {
@@ -653,6 +654,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       if (fresh && !fallen && !readOnly) animateTurn(entries.get(fresh), shownBefore, after, shownAround, around, anyGains(fresh.scenarioGains) ? fresh : undefined);
       shownBefore = after; shownAround = around;
       el.classList.toggle('crit', HEALTH_LEVELS.pos(after.level) >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_STEADY) && !fallen);
+      el.classList.toggle('nerve', MORALE_LEVELS.pos(after.moraleKey) >= MORALE_LEVELS.pos(CONFIG.MOTION_NERVE_STEADY) && !fallen); // MW1/MW2
     }
     fresh = null;
   }
@@ -763,6 +765,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       // coin that changed hands: its amount flares in its colour and pulses once (lost coin flares red, like a wound card)
       if (r.classList.contains('coin')) { const c = r.querySelector<HTMLElement>('b'); flare(c, 'color', c?.classList.contains('coin-down') ? 'var(--danger)' : 'var(--scenario-mark)', d + fade); pulse(c, d + fade, 2); }
       if (r.classList.contains('wcard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--danger) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }
+      // MW2: the "Nerve broken" card lands like a wound card, in the morale violet
+      if (r.classList.contains('ncard')) { flare(r as HTMLElement, 'backgroundColor', 'color-mix(in srgb, var(--c5) 45%, transparent)', d + fade); pulse(r, d + fade, 1); }
     }
     if (b) sheetBeats(b, a, at, stagger);
     if (ab) aroundBeats(ab, aa, Math.min(t, end));
@@ -784,12 +788,28 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     else { arrive(badge, d, 0); pulse(badge, d + ms('--m-state'), 2); }
   }
 
+  /** MW1–MW3: the nerve's warning. Worsening into MOTION_NERVE_FROM or worse flares the violet edge once; from
+   * MOTION_NERVE_STEADY it settles to the steady tint (the class 'nerve' holds it). Breaking adds one beat on the track and
+   * on the U3 "until" words. Climbing back out of the steady tint fades it with no beat (colour carries direction, M-30).
+   * Where the red health edge shows, the violet one stays out (red wins); reduced motion leaves only the tint (M-72). */
+  function nerveBeats(from: MoraleLevel, to: MoraleLevel, d: number, red: boolean) {
+    const pos = (k: MoraleLevel) => MORALE_LEVELS.pos(k), steadyAt = pos(CONFIG.MOTION_NERVE_STEADY);
+    if (pos(to) > pos(from)) {
+      if (to === 'broken') { pulse(sheet.querySelector('[data-m="morale-track"]'), d + ms('--m-count'), 2); arrive(sheet.querySelector('[data-m="morale-until"]'), d + ms('--m-count')); }
+      if (red || pos(to) < pos(CONFIG.MOTION_NERVE_FROM)) return;
+      play(nerveEdge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: pos(to) >= steadyAt ? 0.45 : 0 }], { dur: ms('--m-scenario'), delay: d });
+    } else if (pos(from) >= steadyAt && pos(to) < steadyAt) {
+      play(nerveEdge, [{ opacity: 0.45 }, { opacity: 0 }], { dur: ms('--m-state'), delay: d, exit: true });
+    }
+  }
+
   /** M-30–M-38: the sheet's beats, each on its own element; a value animates only if it changed */
   function sheetBeats(b: ShownValues, a: ShownValues, at: (step: number) => number, stagger: number) {
     const q = (sel: string, root: ParentNode = sheet) => root.querySelector<HTMLElement>(sel);
     const num = (n: number) => String(+n.toFixed(2));
     const whole = (n: number) => String(Math.round(n)); // while counting; the final text keeps its fractions
     const sign = (n: number, f: (x: number) => string = num) => (n > 0 ? '+' : '−') + f(Math.abs(n));
+    let redEdge = false; // the red health edge flared this turn: the violet one stays out of its way (MW1)
     // health: the number counts, the bar leaves a trail, a new level word lands; Wounded or worse pulses the edge once
     if (a.hp !== b.hp || a.level !== b.level || a.hpFill !== b.hpFill) {
       const d = at(stagger);
@@ -804,6 +824,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         if (at > HEALTH_LEVELS.pos(b.level) && at >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_FROM)) {
           const steady = at >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_STEADY);
           play(edge, [{ opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: steady ? 0.45 : 0 }], { dur: ms('--m-scenario'), delay: d });
+          redEdge = true;
         }
       }
     }
@@ -843,12 +864,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
         } else { stamp(q('[data-m="gear-note"]', line ?? sheet), d, b.gear[k].note); pulse(line, d); }
       }
     }
-    // morale: like health, without the edge
+    // morale: like health, with its own violet edge (MW1–MW3)
     if (a.morale !== b.morale || a.moraleLeft !== b.moraleLeft) {
       const d = at(stagger);
       count(q('[data-m="morale-left"]'), b.moraleLeft, a.moraleLeft, (n) => String(Math.round(n)), d);
       barMove(q('[data-m="morale-track"]'), q('[data-m="morale-track"] > b'), b.moraleFill, a.moraleFill, d);
       if (a.morale !== b.morale) stamp(q('[data-m="morale-level"]'), d, b.morale);
+      nerveBeats(b.moraleKey, a.moraleKey, d, redEdge || HEALTH_LEVELS.pos(a.level) >= HEALTH_LEVELS.pos(CONFIG.MOTION_EDGE_STEADY));
     }
     // Shaken, Swayed and the yield box arrive when they first show (M-36)
     if (a.chips.length > b.chips.length || (a.yielded && !b.yielded)) {

@@ -1,5 +1,5 @@
 import type { DefenseKind, DurationId, SkillFunction, Tier } from './types';
-import type { GradeLevel, HealthLevelKey, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
+import type { GradeLevel, HealthLevelKey, MoraleLevel, NoiseKey, QualityKey, QuestRewardLevel } from './scales';
 import { FN, GR } from './library/functionIds';
 import { SK } from './library/skillIds';
 // Every tunable value. Spec "placeholder" values are config, not constants.
@@ -532,6 +532,10 @@ const DEFAULTS = {
   /** M-33: reaching this health level or worse pulses the play screen's edge red once; from MOTION_EDGE_STEADY on the edge keeps a steady tint */
   MOTION_EDGE_FROM: 'wounded' as HealthLevelKey,
   MOTION_EDGE_STEADY: 'critical' as HealthLevelKey,
+  /** MW1: the player's morale reaching this level or worse pulses the edge violet once; from MOTION_NERVE_STEADY on it keeps a
+   * steady violet tint (Broken included). Where the red health edge shows too, the red one wins (placeholders) */
+  MOTION_NERVE_FROM: 'terrified' as MoraleLevel,
+  MOTION_NERVE_STEADY: 'panicking' as MoraleLevel,
   TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder)
   /** agents that name a model and effort; the others run on their MODEL_TIERS tier, which is also the fallback when the
    * named model can't answer. Narrator on Fable 5.2 low: won 15 of 16 blind judgements against the complex tier in playtests */
