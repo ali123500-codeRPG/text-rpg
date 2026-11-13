@@ -1172,3 +1172,10 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
   background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow-toast); font-size: 12px; font-weight: 400; line-height: 1.45; color: var(--text);
   white-space: normal; text-align: left; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity var(--m-feedback) var(--m-ease); }
 .cs-tipped:hover .cs-tip, .cs-tipped:focus .cs-tip, .cs-tipped:focus-within .cs-tip { opacity: 1; visibility: visible; }
+
+/* CT1: drag and drop on the Inventory: a dragged row dims, a row or group that takes the drop lights up */
+.hs-tbl tr[draggable="true"] { cursor: grab; }
+.hs-tbl tr.dragging { opacity: .5; }
+.hs-tbl tr.drop-ok > td { background: color-mix(in srgb, var(--accent) 16%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: -1px; }
+/* CT1: Put in, one button per carried container */
+.put-in { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
