@@ -549,7 +549,9 @@ const DEFAULTS = {
     responder: { model: 'claude-opus-5-5', effort: 'low' },
     voice: { model: 'claude-opus-5-5', effort: 'low' },
     planner: { model: 'claude-opus-5-5', effort: 'low' },
-  } as Record<string, { model: string; effort: 'low' | 'medium' | 'high' }>,
+    // Sonnet 5.5 at its own effort ranked well above the quick tier (Haiku) in blind judging, and answered faster
+    parser: { model: 'claude-sonnet-5-5' },
+  } as Record<string, { model: string; effort?: 'low' | 'medium' | 'high' }>,
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,
   STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // (flavor voice V5)
     length: '2 to 4 short paragraphs' },

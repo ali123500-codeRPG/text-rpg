@@ -86,9 +86,9 @@ describe('runAgent', () => {
     await callWeaver({ catalogs: {} } as never, ctx).catch(() => {});
     expect(claude.calls[0]).toMatchObject({ model: 'claude-opus-5-5', modelTier: 'complex', effort: 'high' });
   });
-  it('narrator runs on Fable 5.2 low with the complex tier as fallback; Opus 5.5 low for NPC replies and plans; the parser names no model', () => {
+  it('narrator runs on Fable 5.2 low with the complex tier as fallback; Opus 5.5 low for NPC replies and plans; the parser on Sonnet with the quick tier as fallback', () => {
     expect(modelFor('narrator')).toEqual({ model: 'claude-fable-5-2', modelTier: 'complex', effort: 'low' });
-    expect(modelFor('parser')).toEqual({ modelTier: 'quick' });
+    expect(modelFor('parser')).toEqual({ model: 'claude-sonnet-5-5', modelTier: 'quick' });
     for (const a of ['responder', 'voice', 'planner'] as const) expect(modelFor(a)).toEqual({ model: 'claude-opus-5-5', modelTier: 'default', effort: 'low' });
   });
   it('repaired answer is accepted', async () => {
