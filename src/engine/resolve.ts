@@ -2104,7 +2104,11 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const x of allActors(state)) fadeSoulbound(state, x); // HF18
   releaseHolds(state, allActors(state));
   noteGains(state); // D-226: this turn's raises go on the scenario's gains summary
-  if (state.stage.breakCause) closeScenario(state, rng); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
+  if (state.stage.breakCause) { // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
+    closeScenario(state, rng);
+    // achievements granted at the scenario's end give their Threadbound item abilities and linked perks now, not a turn later
+    syncThreadboundItemPerks(state.player, state.turn); syncPerkLinks(state.player, state.turn);
+  }
   noteCarry(ctx); // AT20: what is left after each actor's last finished action
   // AT47/AT67: an NPC at a long action in a fight runs its coming-near check on the turn; fired, it is asked again next turn
   if (state.mode === 'tactical') for (const x of state.actors) {
