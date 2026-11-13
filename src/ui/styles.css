@@ -816,6 +816,8 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .map-tile.remembered { opacity: .62; }
 .map-tile.remembered .map-tile-box { stroke-dasharray: 5 4; }
 .map-tile.here .map-tile-box { stroke: var(--accent); stroke-width: 3; }
+.map-tile.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; } /* AT49: the walk's goal */
+.map-tile.heading .map-tile-sub { fill: var(--accent); }
 .map-tile.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 3; }
 .map-tile:hover .map-tile-box, .map-tile:focus-visible .map-tile-box { stroke: var(--scenario-mark); }
 .map-tile-name { fill: var(--text); font-size: 15px; font-weight: 800; }
@@ -825,6 +827,7 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 /* To scale (CO1): zones as rectangles in metres; each side drawn by its edge kind */
 .map-tile.plan .map-tile-box { stroke: none; }
 .map-tile.plan.here .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: none; }
+.map-tile.plan.heading .map-tile-box { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; opacity: 1; }
 .map-tile.plan.selected .map-tile-box { stroke: var(--scenario-mark); stroke-width: 2; }
 .map-tile.plan .map-tile-name { font-size: 11px; }
 .map-edge { stroke: var(--text); stroke-linecap: square; }
@@ -1076,6 +1079,17 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .rrow.acts ul { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: 0; padding: 0; list-style: none; }
 .rrow.acts li { display: inline-flex; align-items: baseline; gap: 6px; }
 .rrow.acts li b { color: var(--text); font-weight: 600; }
+/* AT49: the player's walk on its way, beside the long action, in the accent the map's "you" uses */
+.walking-now { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); padding: 4px 4px 4px 12px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: var(--r-pill); font-size: 13px; color: var(--muted); }
+.doing-slot { display: flex; flex-direction: column; gap: var(--space-2); }
+.walking-now .wk-i { color: var(--accent); font-size: 14px; line-height: 1; }
+.walking-now .dg-t b { color: var(--text); font-weight: 600; }
+.walking-now .dg-t .dg-left { color: var(--accent); font-variant-numeric: tabular-nums; }
+.walking-now .hs-note { margin: 0; flex: 1 1 auto; }
+.walking-now .dg-pick { margin-left: auto; }
+.inbar .walking-now button { min-height: 28px; }
+.inbar .walking-now button.wk-keep-walking { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.map-heading { margin: 0; font-size: 13px; color: var(--muted); } .map-heading b { color: var(--accent); }
 .rrow.acts .dg-left { color: var(--c9); font-variant-numeric: tabular-nums; }
 .rrow.acts .dg-end.done { color: var(--ok); } .rrow.acts .dg-end.broken { color: var(--warn); } .rrow.acts .dg-end.stopped { color: var(--muted); }
 /* FR5: furniture on the plan, a quiet line glyph on a disc in the floor's ink; it never outshouts people or exits */

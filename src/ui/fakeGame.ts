@@ -290,6 +290,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       const bandaged = /^bandage\b/i.test(text) ? bandageTurn(state) : null;
+      // "walk" leaves a walk to the upstairs landing still on its way, to show the move order in the action box and on the Map
+      // (AT49); "stop" ends it
+      if (/^walk\b/i.test(text)) {
+        state.player.walking = { toZone: text.split(/\s+/)[1] || 'tav_upstairs' };
+        if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id)); // a way to walk
+      }
+      if (/^stop\b/i.test(text)) delete state.player.walking;
       // "steady" leaves you Mentally steady, to show the chip beside Morale (SY1); any "fear" after it uses it up
       if (/^steady\b/i.test(text)) state.player.core.condition.mentallySteady = true;
       if (/^fear\b/i.test(text)) delete state.player.core.condition.mentallySteady;
