@@ -89,18 +89,19 @@ export function yieldBars(state: GameState, a: Actor, t: Actor): boolean {
 export const yieldTaken = (state: GameState): boolean => !!state.yielding?.accepted.length;
 
 // D-239: mercy once down. The player went down in a lethal fight: every active foe hostile to the player from a lethal band
-// would finish them. A Claude-run foe of an Intelligent race that perceives the player (by any sense, as for a yield) is
+// that perceives the player (by any sense, as for a yield) would finish them. A Claude-run foe of an Intelligent race is
 // asked instead, and answers in its next output (spare); the rest finish. Sparing covers the sparer's bandmates together
 // with it that were asked too (YD2). The player is spared only when someone spared and no one is left to finish.
 
-/** the foes that would finish the downed player: active, hostile, from a lethal band (D-54) */
+/** the foes that would finish the downed player: active, hostile, from a lethal band (D-54), and perceiving the player
+ * by any sense: one that can't sense the player can't finish them */
 export const finishers = (state: GameState): Actor[] =>
-  state.actors.filter((x) => isActive(x) && hostile(state, x, state.player) && bandById(state, x.bandId)?.lethal !== false);
+  state.actors.filter((x) => isActive(x) && hostile(state, x, state.player) && bandById(state, x.bandId)?.lethal !== false && perceivesNow(state, x, state.player, 'normal'));
 
 /** D-239: the player just went down in a lethal fight; true while someone was asked whether to spare them */
 export function askMercy(state: GameState): boolean {
   const pending: string[] = [], finish: string[] = [];
-  for (const a of finishers(state)) (canAccept(a) && perceivesNow(state, a, state.player, 'normal') ? pending : finish).push(a.id);
+  for (const a of finishers(state)) (canAccept(a) ? pending : finish).push(a.id);
   if (!pending.length) return false;
   state.mercy = { turn: state.turn, pending, spared: [], finish };
   logCode(state, 'mercy_asked', { pending, finish });
