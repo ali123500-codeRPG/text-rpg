@@ -179,20 +179,20 @@ describe('validateStagePlan', () => {
     expect(t).toHaveLength(n + 1);
     expect(t[n].item).toMatchObject({ base: IT.arming_sword, quality: 'quality_2', boosts: 'hitAdj' });
     const q = villageStagePlan();
-    q.rewards = []; // 2 + 2 + plain 1 = 5 Boon, the moderate budget
+    q.rewards = []; // 2.1 + 2.1 + plain 1.05 Boon (the sword is 21 coin: kit 20 + 1.6 m of reach, ZR7): over the moderate 5
     for (let i = 0; i < 3; i++) q.rewards.push({ item: { base: IT.arming_sword, quality: 'quality_1', boosts: 'damageAdj', name: 'a sword', look: 'plain' }, place: { carriedBy: 'guard_1' } });
-    expect(codes(fresh(), q)).toEqual(['reward_plain']);
+    expect(codes(fresh(), q)).toEqual(['reward_plain', 'reward_dropped']);
   });
   it('rewards fit the Boon budget of the gain, with no flat cap (loot V8)', () => {
     const q = villageStagePlan(); // moderate gain: 5 Boon
     q.rewards = [];
-    for (let i = 0; i < 6; i++) q.rewards.push({ item: IT.arming_sword, place: { carriedBy: 'guard_1' } }); // 20 coin = 1 Boon each
-    expect(boon(fresh(), IT.arming_sword)).toBe(1);
-    expect(boon(fresh(), { base: IT.arming_sword, quality: 'quality_2', boosts: 'hitAdj', name: 'x', look: 'y' })).toBe(3);
+    for (let i = 0; i < 6; i++) q.rewards.push({ item: IT.arming_sword, place: { carriedBy: 'guard_1' } }); // 21 coin = 1.05 Boon each
+    expect(boon(fresh(), IT.arming_sword)).toBe(1.05);
+    expect(boon(fresh(), { base: IT.arming_sword, quality: 'quality_2', boosts: 'hitAdj', name: 'x', look: 'y' })).toBeCloseTo(3.15);
     expect(boon(fresh(), IT.coin, 10)).toBe(0.5);
     const t = tidyRewards(fresh(), q);
-    expect(t.rewards).toHaveLength(5);
-    expect(t.notes.map((n) => n.code)).toEqual(['reward_dropped']);
+    expect(t.rewards).toHaveLength(4); // 4 × 1.05 fits 5 Boon, a fifth does not
+    expect(t.notes.map((n) => n.code)).toEqual(['reward_dropped', 'reward_dropped']);
     q.rewards = [{ item: IT.coin, qty: 200, place: { carriedBy: 'guard_1' } }, { item: IT.coin, qty: 100, place: { carriedBy: 'guard_1' } }];
     expect(tidyRewards(fresh(), q).rewards).toHaveLength(1); // 10 Boon is over 5, 5 fits
   });

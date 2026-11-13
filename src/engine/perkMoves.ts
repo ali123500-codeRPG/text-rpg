@@ -22,6 +22,8 @@ import { getLibrary } from '../library';
 import { now } from '../time';
 import { threadboundItemFor } from '../ruleset/threadboundItems';
 import { hearsClearly } from '../perception';
+import { sightDistM } from './position';
+import { CONFIG } from '../config';
 import { VOLUME_NOISE } from '../perception/noise';
 
 /** the actor has a working Grip arm with nothing held in it */
@@ -31,10 +33,11 @@ export const freeHand = (state: GameState, a: Actor) => {
 };
 
 /** how near the target must be, by what the move is: a lie must be heard clearly at a normal voice (the speech rule);
- * Dirt in the Eyes still the old same-zone check until ZR1 is answered */
+ * Dirt in the Eyes is a throw, so it reaches as far as an improvised throw, in sight (ZR1) */
 function inRange(state: GameState, a: Actor, t: Actor, perk: string): boolean {
   if (perk === PK.bluff) return hearsClearly(state, a, t, VOLUME_NOISE.normal);
-  return t.zone === a.zone;
+  if (perk === PK.dirt_in_the_eyes) return sightDistM(state, a, t) <= CONFIG.THROW_M.improvised;
+  return false;
 }
 
 /** the key a move's uses are counted under this engagement: per foe for a perFoe move */

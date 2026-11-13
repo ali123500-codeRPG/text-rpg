@@ -141,8 +141,8 @@ export const ALL_PARTS: PerkWriteup[] = [
   // ---- Perception ----
   // Spotter is parked (D-192): no skill carries it in SKILL_PARTS, so it is never granted
   part(TR.perception, { id: PK.spotter, ref: 'T5b', name: 'Spotter', effect: 'senses',
-    story: 'What you see, your people sense. Your band-mates beside you know something is there whenever you do.',
-    rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor outside its band.', 'A band-mate is in the owner\'s zone and is less than suspicious of that actor.'],
+    story: 'What you see, your people sense. Your band-mates who can hear your call or see your signal know something is there whenever you do.',
+    rules: { kind: 'Always on', trigger: 'The end of each turn.', conditions: ['The owner is aware of an actor outside its band.', 'A band-mate hears the owner\'s normal voice clearly or makes out its hand sign (close visibility), and is less than suspicious of that actor.'],
       effect: 'That band-mate becomes suspicious of the actor (told by the owner), with its zone as last known.', lasts: 'Until the band-mate\'s belief changes on its own.' } }),
   part(TR.perception, { id: PK.curiouser, ref: 'T5d', name: 'Curiouser and Curiouser', effect: 'senses',
     story: 'Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.',

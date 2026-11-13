@@ -16,12 +16,12 @@ describe('137 Never Surprised', () => {
     const s = makeVillage();
     const g = actor(s, 'guard_1');
     g.core.perks = [];
-    expect(hears(s, g, g.zone, 'normal')).toBe(true);
-    expect(hears(s, g, g.zone, 'faint')).toBe(true);
-    expect(hears(s, g, g.zone, 'silent')).toBe(false);
-    expect(hears(s, g, 'street_door', 'quiet')).toBe(false); // 2 links: quiet (40 dB) carries 1
+    expect(hears(s, g, { zone: g.zone }, 'normal')).toBe(true);
+    expect(hears(s, g, { zone: g.zone }, 'faint')).toBe(true);
+    expect(hears(s, g, { zone: g.zone }, 'silent')).toBe(false);
+    expect(hears(s, g, { zone: 'street_door' }, 'quiet')).toBe(false); // 2 links: quiet (40 dB) carries 1
     g.core.perks.push({ perkId: PK.keen_ear, source: 'level', gainedTurn: 0 }); // Keen Ear: 10 dB quieter
-    expect(hears(s, g, 'street_door', 'quiet')).toBe(true);
-    expect(hears(s, g, g.zone, 'silent')).toBe(false);
+    expect(hears(s, g, { zone: 'street_door' }, 'quiet')).toBe(true);
+    expect(hears(s, g, { zone: g.zone }, 'silent')).toBe(false);
   });
 });

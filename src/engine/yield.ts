@@ -7,7 +7,7 @@
 // and did not refuse it themselves; bandmates apart act as the band's faction and keep fighting. YD3: once everyone who
 // heard the yield has taken it, the fight ends (updateEngagements).
 import type { Actor, GameEvent, GameState } from '../types';
-import { INTELLIGENCE, type NoiseKey } from '../scales';
+import { INTELLIGENCE, type NoiseKey, type VisibilityKey } from '../scales';
 import { getLibrary } from '../library';
 import { perceptionOf } from '../perception';
 import { logCode } from './effects';
@@ -24,8 +24,12 @@ function canAccept(a: Actor): boolean {
 /** the observer perceives `who` right now by any sense (sight, sound, and any added later): a sound of this noise
  * from them, and the sight of them, would reach it */
 export function perceivesNow(state: GameState, observer: Actor, who: Actor, noise: NoiseKey): boolean {
-  const e = { id: 'probe', turn: state.turn, actorId: who.id, kind: 'idle', zone: who.zone, noise, visibility: 'normal', perception: {} } as unknown as GameEvent;
-  return !!perceptionOf(e, state, observer);
+  return !!probe(state, observer, who, noise, 'normal');
+}
+/** how the observer would perceive a sound of `noise` and a sight of `visibility` made by `who` where it stands now */
+export function probe(state: GameState, observer: Actor, who: Actor, noise: NoiseKey, visibility: VisibilityKey) {
+  const e = { id: 'probe', turn: state.turn, actorId: who.id, kind: 'idle', zone: who.zone, ...(who.pos ? { pos: { ...who.pos } } : {}), noise, visibility, perception: {} } as unknown as GameEvent;
+  return perceptionOf(e, state, observer);
 }
 
 /** YD7: two bandmates are together while each perceives the other just being there (in sight, or close enough to hear

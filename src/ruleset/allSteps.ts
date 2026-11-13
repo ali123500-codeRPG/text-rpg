@@ -20,6 +20,7 @@ import { treeOpen } from './access';
 import { allActors, atLeast, isActive } from '../engine/relations';
 import { beliefStatus, updateBeliefs } from '../perception';
 import { PK } from '../library/perkIds';
+import { probe } from '../engine/yield';
 
 /** the tree's skills the actor has at `step` true skill or more (a tree it is barred from: none) */
 export function skillsAt(a: Actor, treeId: string, step: number): string[] {
@@ -62,11 +63,12 @@ export function foeMods(foe: Actor | undefined, rollKind: string | undefined): M
   return [];
 }
 
-/** T5b Spotter: at turn end, the owner's band-mates in its zone become at least suspicious of every
+/** T5b Spotter: at turn end, the owner's band-mates who hear its normal voice clearly or make out its hand sign (sight at
+ * close visibility) (ZR4) become at least suspicious of every
  * actor the owner is aware of, so they know something is there. */
 export function shareSpotted(state: GameState, o: Actor): void {
   if (!hasPerk(o, PK.spotter) || !isActive(o)) return;
-  const mates = allActors(state).filter((y) => y !== o && isActive(y) && y.zone === o.zone && !!o.bandId && y.bandId === o.bandId);
+  const mates = allActors(state).filter((y) => y !== o && isActive(y) && !!o.bandId && y.bandId === o.bandId && probe(state, y, o, 'normal', 'close')?.level === 'full');
   if (!mates.length) return;
   for (const x of allActors(state)) {
     if (x === o || x.bandId === o.bandId || !isActive(x) || !atLeast(beliefStatus(state, o, x), 'aware')) continue;
