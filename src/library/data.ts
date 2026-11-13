@@ -620,6 +620,7 @@ export function prototypeLibrary(): Library {
       [CP.danger_passed]: { id: CP.danger_passed, name: 'Danger passed', pct: CONFIG.MORALE_ENGAGEMENT_END_PCT, inFight: false }, // MB9: an engagement ends
       // never applied itself: morale restored straight by a perk is counted here for achievements (calmFromPerk)
       [CP.perk]: { id: CP.perk, name: 'Perks', pct: 0, inFight: true, countOnly: true },
+      [CP.steady]: { id: CP.steady, name: 'Steadying yourself', pct: 0, inFight: true }, // SY1: the share comes from the roll's tier (CONFIG.STEADY_PCT)
     },
     // MB21–MB28: what costs morale (flat points; a negative cost restores). Amounts are placeholders.
     // PL6: personality axes, with the words and hints for each end (Levity from the personality line voice tests); PL19,
@@ -670,6 +671,7 @@ export function prototypeLibrary(): Library {
       [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
       [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
       // the Dreaded on Sight quirk: paid once per owner, in a fight or out of one
+      [FR.steady_slipped]: { id: FR.steady_slipped, name: 'Trying to steady yourself makes it worse', cost: 0, rolled: false }, // SY1: the cost comes from the roll's tier (CONFIG.STEADY_PCT)
       [FR.dreaded_sight]: { id: FR.dreaded_sight, name: 'You set eyes on someone dreaded', cost: 15, rolled: true, unengaged: true },
       // a part Crippled or worse: per part by impact for a 6-part body, scaled to the body's part count; one roll per hit pays the sum
       [FR.own_part_crippled]: { id: FR.own_part_crippled, name: 'A part of yours is Crippled', cost: 0, rolled: true, part: 'crippled',

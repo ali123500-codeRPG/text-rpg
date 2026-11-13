@@ -112,6 +112,8 @@ export const MOD_SOURCES: ModSource[] = [
   // status
   { type: 'status', roll: 'skill', source: 'Shaken', at: 'src/ruleset/pressure.ts',
     when: 'Every roll against someone whose intimidation beat you, until your engagement ends.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },
+  { type: 'status', roll: 'skill', source: 'Shaken', at: 'src/engine/steady.ts',
+    when: 'Steadying yourself (SY1): the worst Shaken you carry against anyone.', value: `−${CONFIG.SHAKEN_PER_TIER} × tiers lost by` },
   { type: 'status', roll: 'skill', source: 'Swayed', at: 'src/ruleset/pressure.ts',
     when: 'Every roll against someone whose persuasion beat you, until your engagement ends.', value: `−${CONFIG.SWAYED_PER_TIER} × tiers lost by` },
   // aim

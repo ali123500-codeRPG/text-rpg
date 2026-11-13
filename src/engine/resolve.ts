@@ -41,6 +41,7 @@ import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { contentsOf, findContainer, guarded, openContainer, ownerOf, theft, wornPack } from './containers';
+import { cantSteady, steady } from './steady';
 import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
@@ -1155,6 +1156,15 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doPick(ctx, a, o);
     case 'filch':
       return doFilch(ctx, a, o);
+    case 'steady': { // SY1: steadying yourself (engine/steady.ts); a loss goes through fear(), which applies a break
+      const why = cantSteady(state, a);
+      if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: why }), o));
+      const ev = mk(ctx, a, 'steady', {});
+      emit(ctx, bark(ev, o));
+      const r = steady(state, a, ctx.rng, (cost) => fear(ctx, a, FR.steady_slipped, { cost }));
+      Object.assign(ev, { tier: r.roll.tier, roll: r.roll, steady: { points: Math.round(r.points), ...(r.buff ? { buff: true } : {}) } });
+      return;
+    }
     case 'search':
       return doSearch(ctx, a, o);
     case 'stash':

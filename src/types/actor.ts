@@ -127,6 +127,10 @@ export type SavedCondition = {
   status: string[];
   tended?: { turn: number; by: string; itemId: string }; // BG-181: the last healing item used on it, until its next wound
   moraleLost?: number; // MB5: flat morale points lost; the level is derived from this and max morale
+  /** SY1: Mentally steady, from steadying oneself at Great Success or better: the next morale loss is halved, then it is gone */
+  mentallySteady?: true;
+  /** SY1: the turn it last steadied itself (STEADY_COOLDOWN_S of game time before the next try) */
+  steadiedTurn?: number;
 };
 
 export type Progression = {

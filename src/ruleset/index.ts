@@ -513,8 +513,8 @@ export function survivalRoll(rng: Rng): { d100: number; tier: string; survived: 
 
 /** the morale roll (MB4, MB30): the actor's Resolve (the Morale function), with wounds (health and morale, MB35),
  * the player's renown on every morale roll of a foe fighting the player (MB24) and rally on allies beside the player */
-export function moraleRoll(state: GameState, actor: Actor, rng: Rng, shift = 0): RollResult {
-  const mods = [...renownMods(state, actor, actor !== state.player && hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor))];
+export function moraleRoll(state: GameState, actor: Actor, rng: Rng, shift = 0, extra: Mod[] = []): RollResult {
+  const mods = [...renownMods(state, actor, actor !== state.player && hostile(state, actor, state.player)), ...rallyMods(state, actor, besidePlayer(state, actor)), ...extra];
   return roll({ actorId: actor.id, skill: SK.resolve, modifiers: mods, tierShifts: shift ? [{ source: 'fear', value: shift }] : [] }, state, rng);
 }
 

@@ -170,6 +170,7 @@ export type GameEvent = {
   price?: number; // buy: coin paid
   for?: string; // buy: who got it, when not the buyer
   reason?: string; // buy_refused: why
+  steady?: { points: number; buff?: true }; // SY1: morale won back (+) or lost (−) steadying oneself; buff: left Mentally steady
   filch?: 'taken' | 'fumbled' | 'caught'; // FL4: how a filch went (src/engine/filch.ts)
   attack?: import('./ruleset').AttackResult; // attacks only; code only, never copied to a view
   contest?: import('./ruleset').ContestResult;

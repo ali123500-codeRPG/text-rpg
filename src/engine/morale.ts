@@ -39,6 +39,8 @@ export function payFear(state: GameState, rng: Rng, a: Actor, id: string, o: { g
     level = tierLevel(r);
     cost *= tierCostMult(level);
   }
+  // SY1: Mentally steady halves the next morale loss, then is gone
+  if (cost > 0 && a.core.condition.mentallySteady) { cost *= CONFIG.STEADY_BUFF_MULT; delete a.core.condition.mentallySteady; }
   const from = moraleLevel(a);
   const paid = setMoraleLost(a, moraleLost(a) + cost);
   if (!paid) return undefined;

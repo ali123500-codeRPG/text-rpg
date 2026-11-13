@@ -472,6 +472,15 @@ const DEFAULTS = {
   /** scaling: picking keeps halving forever (150: about 4 s, 200: about 1 s, so supernatural fingers open locks at a touch);
    * a number stops the halving at that skill instead */
   PICK_FAST_CAP: null as number | null,
+  // ---- steadying yourself (SY1; src/engine/steady.ts; placeholders) ----
+  /** % of max morale a steady roll wins back (+) or loses (−) by tier; past Critical Success each step adds STEADY_PAST_PCT, past
+   * Critical Failure each step takes it away */
+  STEADY_PCT: { critical_failure: -10, failure: -5, near_miss: 5, success: 10, great_success: 15, critical_success: 20 } as Record<string, number>,
+  STEADY_PAST_PCT: 5,
+  /** seconds of game time before the same actor may steady itself again (5 fight turns) */
+  STEADY_COOLDOWN_S: 30,
+  /** Mentally steady (Great Success or better): the next morale loss × this */
+  STEADY_BUFF_MULT: 0.5,
   // ---- filching (FL1–FL7, TN1–TN4; src/engine/filch.ts; placeholders) ----
   /** TN3 (open, round 3 TN3b): how visible a filch is, one row for every filch; Close is made out clearly within 6 m */
   FILCH_VISIBILITY: 'close' as import('./scales').VisibilityKey,
