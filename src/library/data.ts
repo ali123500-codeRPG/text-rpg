@@ -158,7 +158,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     rules: { kind: 'passive', trigger: 'the owner gains this perk', conditions: ['a Threadbound item of Rank IV or higher is not yet in the world'], effect: 'the owner gets one such item at random, bound to them and worn', lasts: 'once' },
   },
   // D-218: the Varo's Loop's abilities, given while its owner wears it and holds the achievement its grant names.
-  // The passives widen the event roll both ways and never move its middle; the two actives fire by themselves on essence offer rolls.
+  // The passives widen the event roll both ways and never move its middle; the two actives fire by themselves on essence quality rolls.
   [PK.loose_odds]: {
     id: PK.loose_odds, name: 'Loose Odds', built: true, eventEdges: 5,
     story: 'Fate already turned on you once. Now it turns more easily, either way.',
@@ -172,7 +172,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
   [PK.call_the_toss]: {
     id: PK.call_the_toss, name: 'Call the Toss', built: true, essenceAuto: { kind: 'farther', cooldownMin: 1440 },
     story: 'When something offers you a piece of itself, the earring calls the toss for you. Whatever it gives will not be ordinary.',
-    rules: { kind: 'active', trigger: 'the owner\'s essence offer roll, by itself once the cooldown has passed', conditions: ['the owner wears the Varo\'s Loop and has earned Fortune\'s Favourite Accident', 'All or Nothing is not firing on the same roll'], effect: 'the roll uses two dice and keeps the one farther from the middle (50.5)', lasts: 'that roll', cooldown: 'Once per game day.' },
+    rules: { kind: 'active', trigger: 'the owner\'s essence quality roll, by itself once the cooldown has passed', conditions: ['the owner wears the Varo\'s Loop and has earned Fortune\'s Favourite Accident', 'All or Nothing is not firing on the same roll'], effect: 'the roll uses two dice and keeps the one farther from the middle (50.5)', lasts: 'that roll', cooldown: 'Once per game day.' },
   },
   [PK.pull_to_the_edges]: {
     id: PK.pull_to_the_edges, name: 'Pull to the Edges', built: true, eventSpread: 1.5,
@@ -182,7 +182,7 @@ const CLASS_PERKS: Record<string, PerkDef> = {
   [PK.all_or_nothing]: {
     id: PK.all_or_nothing, name: 'All or Nothing', built: true, essenceAuto: { kind: 'all_or_nothing', cooldownMin: 10080 },
     story: 'When something offers you a piece of itself, the earring stakes everything. You get the rarest it has, or nothing at all.',
-    rules: { kind: 'active', trigger: 'the owner\'s essence offer roll, by itself once the cooldown has passed', conditions: ['the owner wears the Varo\'s Loop and has earned The Joke Is on Fate'], effect: 'the roll is Critical Success on 51–100 and Critical Failure on 01–50 (a rare essence or none); it fires before Call the Toss, and only one fires per roll', lasts: 'that roll', cooldown: 'Once per 7 game days.' },
+    rules: { kind: 'active', trigger: 'the owner\'s essence quality roll, by itself once the cooldown has passed', conditions: ['the owner wears the Varo\'s Loop and has earned The Joke Is on Fate'], effect: 'the roll is Critical Success on 51–100 and Critical Failure on 01–50 (a rare essence or none); it fires before Call the Toss, and only one fires per roll', lasts: 'that roll', cooldown: 'Once per 7 game days.' },
   },
   [PK.further_still]: {
     id: PK.further_still, name: 'Further Still', built: true, tierUnlocks: [{ roll: 'event', side: 'up', steps: 1 }, { roll: 'event', side: 'down', steps: 1 }],

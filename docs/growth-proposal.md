@@ -400,3 +400,7 @@ Questions page "Skill Gain Roll Options": https://claude.ai/artifact/86PT4FAa8FP
 - **SG3 a:** each skill's own cap is in the roll (GROWTH\_CAP\_IN\_ROLL true).
 - **Flaws (Ali, with SG1–SG3):** a flawed skill's cap is 25 lower, 75 (FLAW\_CAP\_PENALTY). Tags and flaws keep no roll advantage: the flawed "2d100 keep the lower" is gone, so every state rolls one d100 and only the cap moves.
 - **SG4:** moot with C, which never makes fractions.
+
+## 12. Appearance and quality rolls
+
+- **Ali (13/11/2026):** an essence's appearance and its quality are separate rolls. The appearance roll (d100 ≤ ESSENCE\_APPEAR\_CHANCE) decides whether one appears; the quality roll reads the tier table as before, and at Near Miss or worse the essence fades. Threadbound item actives work on the quality roll only. The two placeholder levers are set so essences come about as often as before (section 2.4's odds).

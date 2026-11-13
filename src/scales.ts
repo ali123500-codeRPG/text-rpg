@@ -45,7 +45,7 @@ export const TIERS = scale([
   ['success', 'Success'], ['great_success', 'Great Success'], ['critical_success', 'Critical Success'],
 ]);
 /** band tactics (V2) */
-/** growth proposal 2.2: an essence's grade, set by its offer roll (Success common, Great Success fine, Critical Success rare,
+/** growth proposal 2.2: an essence's grade, set by its quality roll (Success common, Great Success fine, Critical Success rare,
  * one grade higher per step past it). Multipliers: CONFIG.ESSENCE_GRADE_MULT; past the last row ESSENCE_GRADE_PAST_MULT each */
 export const ESSENCE_GRADES = scale([['common', 'Common'], ['fine', 'Fine'], ['rare', 'Rare'], ['epic', 'Epic'], ['legendary', 'Legendary']]);
 export type EssenceGradeKey = (typeof ESSENCE_GRADES.keys)[number];

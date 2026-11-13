@@ -236,7 +236,7 @@ export type PerkDef = {
   eventEdges?: number;
   /** D-218: the die lands this many times as far from the middle (50.5) for the margin; the natural edges read the real die */
   eventSpread?: number;
-  /** D-218 active ability of a Threadbound item: fires by itself on the owner's next essence offer roll once its cooldown
+  /** D-218 active ability of a Threadbound item: fires by itself on the owner's next essence quality roll once its cooldown
    * (game minutes) has passed. 'farther': roll twice, keep the die farther from the middle; 'all_or_nothing': 51–100 is
    * Critical Success, 1–50 Critical Failure */
   essenceAuto?: { kind: 'farther' | 'all_or_nothing'; cooldownMin: number };

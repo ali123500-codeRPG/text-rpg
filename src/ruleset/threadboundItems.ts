@@ -80,7 +80,7 @@ export function grantThreadboundItem(a: Actor, state?: GameState): void {
   }
 }
 
-/** D-218: the active ability that fires by itself on this essence offer roll: of the owner's item abilities with essenceAuto
+/** D-218: the active ability that fires by itself on this essence quality roll: of the owner's item abilities with essenceAuto
  * whose cooldown has passed, the one with the longest cooldown (All or Nothing before Call the Toss); one per roll. It starts
  * its cooldown. Undefined when none is ready. */
 export function fireEssenceAuto(state: GameState, a: Actor): { perk: string; kind: 'farther' | 'all_or_nothing' } | undefined {

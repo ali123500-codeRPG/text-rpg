@@ -1,5 +1,6 @@
 // Essences (growth proposal section 2; EG1 a, EG2, EG3 b, EG4 a, EG9 a, EG11 b, EG15 b). A beaten notable foe, or a scenario
-// resolved at Great Success or better, may offer an essence: a package of true skill (and later a trait) the player can take
+// resolved at Great Success or better, may have an essence appear (the appearance roll); its quality roll then sets its grade,
+// or it fades. A held one is an offer: a package of true skill (and later a trait) the player can take
 // into a limited number of slots. Code rolls every offer from tables; no agent names, seeds or changes one.
 import type { Actor, EssenceDef, EssenceOffer, GameState, HeldEssence, Rng, ScenarioEnding, ScenarioFrame } from '../types';
 import { CONFIG } from '../config';
@@ -23,10 +24,15 @@ export function gradeMult(grade: EssenceGradeKey, past = 0): number {
   return (CONFIG.ESSENCE_GRADE_MULT[grade] ?? 1) * CONFIG.ESSENCE_GRADE_PAST_MULT ** past;
 }
 
-/** the offer roll (2.4): d100 + base − ESSENCE_ROLL_NEEDED on the tier table, natural edges included. Near Miss or worse: no
- * offer; Success common, Great Success fine, Critical Success rare; returns the grade and steps past the last grade.
- * `by` (the player): a ready Threadbound item ability fires by itself (D-218: Call the Toss, All or Nothing) */
-export function offerRoll(rng: Rng, base: number, by?: { state: GameState; actor: Actor }): { grade: EssenceGradeKey; past: number } | null {
+/** the appearance roll: does an essence appear at all? d100 ≤ ESSENCE_APPEAR_CHANCE for the source. Nothing (no item ability)
+ * touches it: the Threadbound item actives work on the quality roll only. */
+export const appearRoll = (rng: Rng, source: string): boolean => rng.d100() <= (CONFIG.ESSENCE_APPEAR_CHANCE[source] ?? 0);
+
+/** the quality roll (2.4), made once an essence has appeared: d100 + base − ESSENCE_ROLL_NEEDED on the tier table, natural
+ * edges included. Near Miss or worse: the essence fades; Success common, Great Success fine, Critical Success rare; returns the
+ * grade and steps past the last grade. `by` (the player): a ready Threadbound item ability fires by itself (D-218: Call the
+ * Toss, All or Nothing), on this roll only. */
+export function qualityRoll(rng: Rng, base: number, by?: { state: GameState; actor: Actor }): { grade: EssenceGradeKey; past: number } | null {
   const auto = by && fireEssenceAuto(by.state, by.actor);
   let d = rng.d100();
   if (auto?.kind === 'farther') { const d2 = rng.d100(); if (Math.abs(d2 - 50.5) > Math.abs(d - 50.5)) d = d2; }
@@ -38,6 +44,15 @@ export function offerRoll(rng: Rng, base: number, by?: { state: GameState; actor
   if (step < 0) return null;
   const last = ESSENCE_GRADES.keys.length - 1;
   return { grade: ESSENCE_GRADES.keys[Math.min(step, last)], past: Math.max(0, step - last) };
+}
+
+/** an essence appears from `row` (logged: the Narrator tells it), then its quality roll decides: held as an offer, or it fades */
+function appearAndRoll(state: GameState, rng: Rng, row: EssenceDef, base: number, source: EssenceOffer['source'], from: string,
+  skills: { skill: string; weight: number }[], measure: (skill: string) => number): void {
+  logCode(state, 'essence_appeared', { essence: row.id, source, from });
+  const roll = qualityRoll(rng, base, { state, actor: state.player });
+  if (roll) return offer(state, row, skills, roll, source, from, measure);
+  logCode(state, 'essence_faded', { essence: row.id, source, from });
 }
 
 /** EG9 a: the rows a source offers, picked by weight (the kind is fixed by the source; chance only decides if and how good) */
@@ -85,10 +100,9 @@ export function offersFromDefeats(state: GameState, defeated: Actor[], rng: Rng)
     if (!foe.mind || foe.mind.essenceRolled || !notable(state, foe)) continue;
     foe.mind.essenceRolled = true;
     const rows = rowsFor(state, foe);
-    if (!rows.length) continue;
-    const roll = offerRoll(rng, CONFIG.ESSENCE_ROLL_BASE.foe, { state, actor: state.player });
-    const row = roll && pick(rows, rng);
-    if (roll && row) offer(state, row, row.skills, roll, 'foe', foe.names.current, (sk) => (foe.core.skills[sk]?.raw ?? 0) * tierMult(sk));
+    if (!rows.length || !appearRoll(rng, 'foe')) continue;
+    const row = pick(rows, rng)!;
+    appearAndRoll(state, rng, row, CONFIG.ESSENCE_ROLL_BASE.foe, 'foe', foe.names.current, row.skills, (sk) => (foe.core.skills[sk]?.raw ?? 0) * tierMult(sk));
   }
 }
 
@@ -100,13 +114,12 @@ export function offerAtEnding(state: GameState, f: ScenarioFrame, as: ScenarioEn
   const foes = (f.beaten ?? []).map((id) => state.actors.find((a) => a.id === id)).filter((a): a is Actor => !!a);
   const rows = [...new Set(foes.flatMap((x) => rowsFor(state, x)))];
   const deed = Object.values(getLibrary().essences ?? {}).filter((r) => r.from.deed);
-  const roll = offerRoll(rng, base, { state, actor: state.player });
-  if (!roll) return;
+  if (!appearRoll(rng, f.tier)) return;
   const p = state.player;
-  if (rows.length) { const row = pick(rows, rng)!; return offer(state, row, row.skills, roll, 'ending', 'ending', (sk) => trueSkill(p, sk)); }
+  if (rows.length) { const row = pick(rows, rng)!; return appearAndRoll(state, rng, row, base, 'ending', 'ending', row.skills, (sk) => trueSkill(p, sk)); }
   const top = [...owed].sort((a, b) => b[1] - a[1])[0];
   const row = top && pick(deed, rng);
-  if (row) offer(state, row, [{ skill: top[0], weight: 1 }], roll, 'ending', 'ending', (sk) => trueSkill(p, sk));
+  if (row) appearAndRoll(state, rng, row, base, 'ending', 'ending', [{ skill: top[0], weight: 1 }], (sk) => trueSkill(p, sk));
 }
 
 /** offers past their last turn lapse; `before` (a new scenario's start) also drops every offer made on an earlier turn */

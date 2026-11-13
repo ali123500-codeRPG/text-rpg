@@ -8,7 +8,8 @@ import { ruleset, tierName } from '../../src/ruleset';
 import { tierReach } from '../../src/ruleset/achRewards';
 import { syncThreadboundItemPerks } from '../../src/ruleset/threadboundItems';
 import { applyGearOps } from '../../src/engine/gear';
-import { offerRoll } from '../../src/engine/essence';
+import { offersFromDefeats, qualityRoll } from '../../src/engine/essence';
+import { CONFIG } from '../../src/config';
 import { PERK_MOVES } from '../../src/ruleset';
 import { tidyRewards } from '../../src/scenario/validate';
 import { advanceClock } from '../../src/time';
@@ -87,25 +88,34 @@ describe('191 the Varo\'s Loop', () => {
     expect(tierName(ev(s, 30))).toBe('Failure'); // 50.5 − 20.5 × 1.5 = 19.75
   });
 
-  it('Call the Toss fires by itself on an essence offer roll and keeps the die farther from the middle, once a day', () => {
+  it('Call the Toss fires by itself on an essence quality roll and keeps the die farther from the middle, once a day', () => {
     const s = worn([ACH.event_crit_2]);
     const by = { state: s, actor: s.player };
     expect(PERK_MOVES[PK.call_the_toss]).toBeUndefined(); // not a move any more
-    expect(offerRoll(forcedRng([55, 99]), 80, by)).toEqual({ grade: 'rare', past: 0 }); // 99 is farther from 50.5 than 55
-    expect(offerRoll(forcedRng([55, 99]), 80, by)).toBeNull(); // cooling down: 55 alone is a Near Miss
+    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toEqual({ grade: 'rare', past: 0 }); // 99 is farther from 50.5 than 55
+    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toBeNull(); // cooling down: 55 alone is a Near Miss
     advanceClock(s, 1440);
-    expect(offerRoll(forcedRng([55, 99]), 80, by)).toEqual({ grade: 'rare', past: 0 });
+    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toEqual({ grade: 'rare', past: 0 });
     expect(ruleset.eventRoll(s.player, s, forcedRng([55, 99])).roll).toBe(55); // event rolls are untouched
   });
 
   it('All or Nothing fires first and lands an essence roll only on the Critical tiers; one ability per roll', () => {
     const s = worn([ACH.event_crit_2, ACH.event_crit_3]);
     const by = { state: s, actor: s.player };
-    expect(offerRoll(forcedRng([51]), 80, by)).toEqual({ grade: 'rare', past: 0 }); // All or Nothing
-    expect(offerRoll(forcedRng([55, 99]), 80, by)).toEqual({ grade: 'rare', past: 0 }); // now Call the Toss
-    expect(offerRoll(forcedRng([55, 99]), 80, by)).toBeNull(); // both cooling down
+    expect(qualityRoll(forcedRng([51]), 60, by)).toEqual({ grade: 'rare', past: 0 }); // All or Nothing
+    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toEqual({ grade: 'rare', past: 0 }); // now Call the Toss
+    expect(qualityRoll(forcedRng([55, 99]), 60, by)).toBeNull(); // both cooling down
     const t = worn([ACH.event_crit_3]);
-    expect(offerRoll(forcedRng([50]), 80, { state: t, actor: t.player })).toBeNull(); // Critical Failure: nothing
+    expect(qualityRoll(forcedRng([50]), 60, { state: t, actor: t.player })).toBeNull(); // Critical Failure: nothing
+  });
+
+  it('the actives work on the quality roll only: an essence that never appears leaves them ready', () => {
+    const s = worn([ACH.event_crit_2]);
+    const foe = s.actors.find((a) => a.id === 'slime_1')!;
+    foe.core.generation = 'unique';
+    offersFromDefeats(s, [foe], forcedRng([CONFIG.ESSENCE_APPEAR_CHANCE.foe + 1]));
+    expect(s.log.some((l) => l.code === 'essence_roll_auto')).toBe(false);
+    expect(qualityRoll(forcedRng([55, 99]), 60, { state: s, actor: s.player })).toEqual({ grade: 'rare', past: 0 }); // still ready
   });
 
   it('the Weaver does not place Threadbound items (D-220) and cannot mint one', () => {
