@@ -43,7 +43,7 @@ import { FIXED } from './prompts';
 import { formatOppositionView } from './format';
 import { QUEST_STATE_NAME, abandonQuest, dueText, isOpen, payText, pinQuest } from '../engine/quests';
 import { fileBug, isBugCode, openBugs } from '../save/bugs';
-import { checkTurn, snapTurn } from '../save/turnCheck';
+import { TURN_CHECK, checkTurn, snapTurn } from '../save/turnCheck';
 
 const INFO_COMMAND = /^\/(stats|inv|quests)\b/i; // the autopilot's sheet, gear and quest looks (BG-25)
 
@@ -149,6 +149,11 @@ export function createGame(deps: GameDeps): Game {
     for (const bg of background.values()) bg.controller.abort();
     notice({ kind: 'stop_play', text: `Claude can't be used in this view (${code}). Allow Claude for this page or sign in again, then reload.` });
   };
+  /** a throw caught so play goes on is still a bug: filed as code_error; under the strict turn checker (tests) it throws */
+  const codeError = (where: string, e: unknown) => {
+    if (state) void fileBug(store, clock.now(), { code: 'code_error', storyId: state.storyId, turn: state.turn, where, message: String((e as Error)?.message ?? e).slice(0, 500) });
+    if (TURN_CHECK.strict) throw e;
+  };
   const ctxFor = (turn: number, sink: AgentTurnLog[]): AgentCtx => ({
     client: counted, clock, turn, gate,
     log: (e) => sink.push(e),
@@ -178,6 +183,7 @@ export function createGame(deps: GameDeps): Game {
           bg.run = await callPlanner(view, { ...ctx, log: () => {}, background: true }, { signal: controller.signal, world });
         } catch (e) {
           if (e instanceof StopPlay) stop(e.code);
+          else codeError('background planner', e);
         } finally {
           bg.done = true;
         }
@@ -472,6 +478,7 @@ export function createGame(deps: GameDeps): Game {
       savedLines = upTo;
     } catch (e) {
       console.warn('story text not saved', e);
+      codeError('story text save', e);
     }
   }
 

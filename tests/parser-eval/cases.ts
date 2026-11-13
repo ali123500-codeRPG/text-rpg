@@ -34,7 +34,7 @@ export const CASES: { line: string; bug?: string; check: Check }[] = [
   { line: 'Shout for help!', bug: 'BG-71', check: (p) => need(i(p)?.volume === 'shout' && !!i(p)?.spoken, 'shouted words') },
   { line: 'Whisper to the patron: don\'t look now.', bug: 'BG-71', check: (p) => need(i(p)?.volume === 'whisper' && !!i(p)?.addressees?.includes('patron_1'), 'whispered words to patron_1') },
   { line: 'Say "*grins* Well met, friend." to the patron.', bug: 'BG-93', check: (p) => need(!!i(p)?.spoken && !/[*[\]]/.test(i(p)!.spoken!), 'spoken words with no stage direction') },
-  { line: 'Go behind the bar, and after that ask the barkeep about rooms.', bug: 'BG-134', check: (p) => need(!(i(p)?.deferred ?? []).some((d) => /trader|patron_1|the player/i.test(d)), 'deferred in the player\'s own words') },
+  { line: 'Go behind the bar, and after that ask the barkeep about rooms.', bug: 'BG-134', check: all(noClarify, (p) => need(!(i(p)?.deferred ?? []).some((d) => /trader|patron_1|the player/i.test(d)), 'deferred in the player\'s own words')) },
   { line: 'I draw my sword and attack the patron.', check: act('attack', 'patron_1') },
   { line: 'Hit the barkeep with my shield.', check: act('attack', 'trader') },
   { line: 'Charge the patron and swing at his head.', check: (p) => need(i(p)?.action?.type === 'attack' && i(p)?.action?.target === 'patron_1' && !!i(p)?.action?.targetPart, 'an aimed attack at patron_1') },
@@ -54,7 +54,7 @@ export const CASES: { line: string; bug?: string; check: Check }[] = [
   { line: 'I sit down and rest for a while.', check: act(['rest', 'wait']) },
   { line: 'Take off my gambeson.', check: (p) => need(!!i(p)?.gear?.some((g) => JSON.stringify(g).includes('player_IT12_3')), 'a gear op on the gambeson') },
   { line: 'Put my sword away.', check: (p) => need(!!i(p)?.gear?.some((g) => JSON.stringify(g).includes('player_IT2_1')), 'a gear op on the sword') },
-  { line: 'I say nothing and keep my eyes on the patron.', check: (p) => need(!i(p)?.spoken, 'no words') },
+  { line: 'I say nothing and keep my eyes on the patron.', check: all(noClarify, (p) => need(!i(p)?.spoken, 'no words')) },
   { line: 'Ask the patron, then the barkeep, if they have seen a wolf.', bug: 'BG-122', check: says() },
   { line: 'Duck out the front door before anyone notices.', check: moves(['street_door']) },
 ];

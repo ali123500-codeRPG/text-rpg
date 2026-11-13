@@ -62,6 +62,7 @@ export function wholeTurn(opts: VillageOpts & { engaged?: string[] } = {}) {
       g.claude.push('parser', i);
       await g.game.submit(line, { aimed: false });
       await g.game.settle();
+      if (g.game.state()!.turn === t) throw new Error(`wholeTurn: turn ${t} did not advance (a clarify? ${g.game.lines().at(-1)?.text ?? ''})`);
       const rec = await readTurnRecord(g.store, g.state.storyId, t);
       return { events: rec?.events ?? [], narration: g.game.lines().filter((l) => l.kind === 'narration').at(-1)?.text ?? '' };
     },
