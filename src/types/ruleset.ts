@@ -44,7 +44,7 @@ export type RollRequest = {
   /** skills that count at full value here instead of as substitutes (perks such as Threaten for Answers) */
   fullValue?: string[];
   /** a function roll: every skill with this function counts at full value and the best one rolls,
-   * e.g. 'sight' = Eyesight or Tremor, 'hearing' = Earshot or Tremor. `skill` is then only the default. */
+   * e.g. 'sight' = Eyesight, 'hearing' = Earshot (Tremor augments it). `skill` is then only the default. */
   fn?: SkillFunction;
   /** extra functions whose skills may stand in here (an attack mode's standInFns) */
   standInFns?: SkillFunction[];
