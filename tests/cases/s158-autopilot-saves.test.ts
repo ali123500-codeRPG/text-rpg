@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ScriptedClaude, makeVillage } from '../harness';
 import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
 import { memoryStore, saveTurn } from '../../src/save';
-import { autopilotTurn, readMove } from '../../src/agents/autopilot';
+import { AUTOPILOT_BRIEF, autopilotTurn, readMove } from '../../src/agents/autopilot';
 import type { GameState, TurnRecord } from '../../src/types';
 import { SK } from '../../src/library/skillIds';
 
@@ -93,6 +93,11 @@ describe('158 autopilot saves', () => {
     void g.submit('/aim /strike the guard at his left leg', { aimed: false }).catch(() => {});
     await new Promise((r) => setTimeout(r, 50));
     expect(g.lines().find((l) => l.kind === 'player')).toMatchObject({ text: 'I strike the guard at his left leg', aimed: true });
+  });
+
+  it('BG-183: the agent is told to stop asking for the same thing after two tries and find another way', () => {
+    expect(AUTOPILOT_BRIEF).toMatch(/Never ask for the same thing more than twice/);
+    expect(AUTOPILOT_BRIEF).toMatch(/try another way/);
   });
 
   it('BG-30: every move the agent is told the ways out it can see, so it never invents a door', () => {
