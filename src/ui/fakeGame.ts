@@ -235,7 +235,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     async sendHero(storyId: string) { return { id: `unique_${storyId}` }; },
     async sendBlueprint(id: string) { return { id: `item_story_fake_${id}` }; },
     async librarySends() { return []; },
-    async worlds() { return [{ worldId: 'story_fake', name: 'Aldric’s world', lastStoryId: 'story_fake', day: 3, fell: ['Aldric'] }]; },
+    async worlds() { return [{ worldId: 'story_fake', name: 'Aldric’s world', lastStoryId: 'story_fake', day: 3, past: [{ name: 'Aldric', fell: true }], threadbound: [IT.varos_loop] }]; },
+    async titleWorld() {},
     async reportBug() { return 'BG-99'; },
     async openBugs() { return [{ id: 'BG-12', code: 'player_report', storyId: 'story_fake', turn: 4, status: 'open' as const, at: Date.now(), note: 'Walking to the back of the cellar did nothing.' }]; },
     // guided mode: every other move is a question (screenshots and UI checks)
@@ -289,6 +290,13 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       const bandaged = /^bandage\b/i.test(text) ? bandageTurn(state) : null;
+      // "walk" leaves a walk to the upstairs landing still on its way, to show the move order in the action box and on the Map
+      // (AT49); "stop" ends it
+      if (/^walk\b/i.test(text)) {
+        state.player.walking = { toZone: text.split(/\s+/)[1] || 'tav_upstairs' };
+        if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id)); // a way to walk
+      }
+      if (/^stop\b/i.test(text)) delete state.player.walking;
       // "steady" leaves you Mentally steady, to show the chip beside Morale (SY1); any "fear" after it uses it up
       if (/^steady\b/i.test(text)) state.player.core.condition.mentallySteady = true;
       if (/^fear\b/i.test(text)) delete state.player.core.condition.mentallySteady;

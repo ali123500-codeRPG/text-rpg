@@ -2,13 +2,14 @@
 // exits (solid: you can see across; dashed: a door or a turn hides the far side); exits you never took end in an
 // "unexplored" stub. Tiles are laid out by a small force layout that leans on compass words in exit names, and keep
 // their spots between turns. Drag to pan, wheel or the buttons to zoom. Clicking a zone shows it in the side column.
-import type { GameApi } from '../types';
+import type { GameApi, WalkingView } from '../types';
 import { h } from './kit';
 import { verticalOf } from '../scenario/heights';
 import { EK } from '../library/tableIds';
 import { furnIcon, furnKey } from './furnitureIcons';
 import { CONFIG } from '../config';
-import { distText } from '../views';
+import { buildPlayerView, distText } from '../views';
+import { walkLeft } from './doing';
 /** CSS class of each edge kind's line on the To scale view */
 const EDGE_CLASS: Record<string, string> = { [EK.wall]: 'wall', [EK.open]: 'open', [EK.low]: 'low', [EK.window]: 'window' };
 import { worldTiles, compassOf, knownMap, type KnownMap, type MapLink, type MapPlace, type MapWay, type MapZone } from './mapData';
@@ -146,6 +147,7 @@ export function mapPage(api: GameApi) {
   const separated = new WeakSet<Map<string, Pt>>(); // layouts already pushed apart (separate)
   const views = new Map<string, { x: number; y: number; k: number }>(); // per world pan and zoom
   let cur: KnownMap | null = null, world = '';
+  let walk: WalkingView | undefined; // AT49: the zone the player's walk is still headed for
   /** the key lists the barrier marks only once the map shows one */
   const anyShut = () => !!cur?.places.some((p) => p.zones.some((z) => z.links.some((l) => l.way?.shut)));
   /** FR5: the key shows the furniture mark once the plan draws some */
@@ -399,9 +401,9 @@ export function mapPage(api: GameApi) {
   /** To scale: the zone's floor, each side drawn as its edge kind (wall solid, low dashed, window double, open faint) */
   function planTile(z: MapZone, p: Pt) {
     const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
-    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
+    const cls = ['map-tile', 'plan', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === walk?.toZone ? 'heading' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
     const m2 = Math.round(z.rect!.w * z.rect!.d);
-    const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${m2} m²${z.here ? ', you are here' : ''}` },
+    const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${m2} m²${z.here ? ', you are here' : z.id === walk?.toZone ? ', you are heading here' : ''}` },
       s('rect', { x, y, width: w, height: hh, class: 'map-tile-box' }));
     const sides: Record<string, [number, number, number, number]> = { n: [x, y, x + w, y], s: [x, y + hh, x + w, y + hh], w: [x, y, x, y + hh], e: [x + w, y, x + w, y + hh] };
     for (const [side, [x1, y1, x2, y2]] of Object.entries(sides)) {
@@ -446,8 +448,8 @@ export function mapPage(api: GameApi) {
   function tile(z: MapZone, p: Pt, sub?: string) {
     if (planned() && z.rect) return planTile(z, p);
     const w = tw(z), hh = th(z), x = p.x - w / 2, y = p.y - hh / 2;
-    const cls = ['map-tile', world === WORLD ? 'world-place' : '', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
-    const status = sub && !z.along ? sub : z.along ? `${distText(z.along.m)} of ${distText(z.along.len)}` : z.here ? 'You are here' : z.inView ? `In view${z.light ? ' · ' + z.light : ''}` : 'Remembered';
+    const cls = ['map-tile', world === WORLD ? 'world-place' : '', z.outdoor ? 'outdoor' : 'indoor', z.inView ? 'in-view' : 'remembered', z.here ? 'here' : '', z.id === walk?.toZone ? 'heading' : '', z.id === selected ? 'selected' : '', z.light === 'dark' ? 'dark' : ''].filter(Boolean).join(' ');
+    const status = sub && !z.along ? sub : z.along ? `${distText(z.along.m)} of ${distText(z.along.len)}` : z.here ? 'You are here' : z.id === walk?.toZone ? `Heading here${Number.isFinite(walk.metres) ? ' · ' + distText(walk.metres) : ''}` : z.inView ? `In view${z.light ? ' · ' + z.light : ''}` : 'Remembered';
     const g = s('g', { class: cls, 'data-zone': z.id, tabindex: 0, role: 'button', 'aria-label': `${z.name}, ${status}` },
       s('rect', { x, y, width: w, height: hh, rx: 10, class: 'map-tile-box' }),
       s('text', { x: p.x, y: y + 24, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
@@ -509,6 +511,7 @@ export function mapPage(api: GameApi) {
     const card = world === WORLD ? worldCard() : z ? h('section', { class: 'map-card' },
       h('div', { class: 'map-card-h' }, h('h2', {}, z.name), h('span', { class: `hs-tg ${z.here ? 'cap' : ''}` }, z.here ? 'You are here' : z.inView ? 'In view' : 'Remembered')),
       h('p', { class: 'hs-note' }, placeOf(z.placeId)?.name ?? ''),
+      z.id === walk?.toZone ? h('p', { class: 'map-heading', role: 'status' }, h('b', {}, 'Heading here'), ` · ${walkLeft(walk)}`) : '',
       h('p', { class: 'map-look' }, z.look || 'You have no picture of it.'),
       z.inView ? h('p', { class: 'hs-note' }, [z.outdoor ? 'Outdoors' : 'Indoors', z.light ? `${z.light} light` : '', z.cover ? `${z.cover} cover` : ''].filter(Boolean).join(' · ')) : h('p', { class: 'hs-note' }, 'Out of sight now, so light, people and things on the ground may have changed.'),
       h('p', { class: 'hs-label' }, 'Exits'),
@@ -596,6 +599,7 @@ export function mapPage(api: GameApi) {
     const st = api.state();
     if (!st) { el.replaceChildren(h('h1', {}, 'Map'), h('p', { class: 'empty' }, 'No story yet. Create your character first.')); cur = null; return; }
     cur = knownMap(st);
+    try { walk = st.player.walking ? buildPlayerView(st).player.walking : undefined; } catch { walk = undefined; }
     if (!el.contains(stage)) el.replaceChildren(
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, 'Map'), h('p', {}, 'Every zone you have stood in or seen, with the places inside places outlined; World shows every place you know and the roads between them. Only what your character knows.'))),
       h('div', { class: 'map-body' }, stage, side));

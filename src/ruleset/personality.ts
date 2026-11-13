@@ -121,17 +121,21 @@ export function personalityText(state: GameState, a: Actor, morale: string): str
   ].join(' ');
 }
 
+/** BG-183: each pick as a table id, by its id or its name (any case); unknown ones dropped */
+const ids = (table: Record<string, { id: string; name: string }>, picks: string[] = []): string[] =>
+  picks.map((x) => (table[x] ? x : Object.values(table).find((e) => e.name.toLowerCase() === x.trim().toLowerCase())?.id)).filter((x): x is string => !!x);
+
 /** PL12, PL14: points for a named Nerve line, archetypes and ranked values (from the Weaver or the creation screen), on top
  * of `base`: a line sets Nerve to ±NERVE_LINE_POINTS (steady 0); each archetype sets every trait it names to its target if
- * not already past it. Unknown names are ignored. */
+ * not already past it. A type or value may be given by id or by name; unknown ones are ignored. */
 export function personalityFrom(base: Personality, pick: { nerve?: string; types?: string[]; values?: string[] }): Personality {
   const lib = getLibrary(), out: Personality = { nerve: base.nerve, traits: { ...base.traits }, values: [...base.values] };
   if (pick.nerve && pick.nerve in NERVE_LINES) out.nerve = { cautious: -1, steady: 0, daring: 1 }[pick.nerve as NerveLine] * CONFIG.NERVE_LINE_POINTS;
-  for (const id of pick.types ?? []) for (const [k, t] of Object.entries(lib.personalityTypes?.[id]?.target ?? {})) {
+  for (const id of ids(lib.personalityTypes ?? {}, pick.types)) for (const [k, t] of Object.entries(lib.personalityTypes?.[id]?.target ?? {})) {
     const v = out.traits[k] ?? 0;
     if (t > 0 ? v < t : v > t) out.traits[k] = t;
   }
-  const values = (pick.values ?? []).filter((v) => lib.values?.[v]);
+  const values = ids(lib.values ?? {}, pick.values);
   if (values.length) out.values = values.slice(0, CONFIG.DRIVES_SHOWN);
   return out;
 }
