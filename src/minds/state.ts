@@ -141,21 +141,30 @@ export function raiseAlarm(state: GameState, a: Actor): void {
   }
 }
 
+/** it believes (suspicious or more) in someone it is wary of: leaving unaware of them is what raises the alarm */
+const knowsWary = (state: GameState, a: Actor): boolean => Object.entries(a.mind?.knowledge ?? {}).some(([id, b]) => {
+  const o = actorById(state, id);
+  return !!o && wary(state, a, o) && atLeast(b.status, 'suspicious');
+});
+
+/** BF1 (BG-114): knowing someone from a scenario's start is not noticing them: an actor that starts out knowing someone it
+ * is wary of is armed (that alarm spent) with no alarm raised, so it keeps its routine; it alarms again only after losing
+ * track of every wary actor and then noticing one */
+export function knownFromTheStart(state: GameState, actors: Actor[]): void {
+  for (const a of actors) if (a.mind && !a.mind.alarm?.armed && knowsWary(state, a)) (a.mind.alarm ??= { armed: false }).armed = true;
+}
+
 export function updateAlarms(state: GameState, events: GameEvent[]): void {
   for (const a of state.actors) {
     if (!a.mind || !isActive(a)) continue;
     const perceivedAlarm = events.some((e) => e.actorId !== a.id && ALARM_KINDS.has(e.kind) && !e.spar && !!e.perception[a.id]); // SP11: a spar raises no alarm
-    const waryKnown = Object.entries(a.mind.knowledge).filter(([id]) => {
-      const o = actorById(state, id);
-      return !!o && wary(state, a, o);
-    });
-    const leftUnaware = waryKnown.some(([, b]) => atLeast(b.status, 'suspicious'));
+    const leftUnaware = knowsWary(state, a);
     if (perceivedAlarm || (leftUnaware && !a.mind.alarm?.armed)) {
       raiseAlarm(state, a);
       continue;
     }
     const alarm = a.mind.alarm;
-    if (!alarm?.armed || state.turn - (alarm.lastAlarmTurn ?? state.turn) < CONFIG.DECAY_TURNS) continue;
+    if (!alarm?.armed || (alarm.lastAlarmTurn !== undefined && state.turn - alarm.lastAlarmTurn < CONFIG.DECAY_TURNS)) continue; // BF1: armed from the start has no alarm to wait out
     // calm: back to the saved routine with its saved anchor
     if (alarm.returnTo) {
       a.mind.routine = { ...alarm.returnTo };

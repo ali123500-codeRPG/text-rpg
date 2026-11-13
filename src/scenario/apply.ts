@@ -10,14 +10,14 @@ import { inferHeights } from './heights';
 import { placeZones } from './geometry';
 import { placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
-import { activity, getLibrary, itemDef, npcTemplate } from '../library';
+import { activity, getLibrary, itemDef, npcTemplate, routine } from '../library';
 import { spawnNpc } from '../library/spawn';
 import { personalityFrom } from '../ruleset/personality';
-import { installRoutines, desiredState, detectPlayer, headTo } from '../minds';
+import { installRoutines, desiredState, detectPlayer, headTo, knownFromTheStart } from '../minds';
 import { perceivesNow } from '../engine/yield';
 import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
-import { actorById, isActive, zoneById } from '../engine/relations';
+import { actorById, atLeast, isActive, zoneById } from '../engine/relations';
 import { startSpar } from '../engine/spar';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyRewards } from './validate';
@@ -184,6 +184,9 @@ export function roadShape(length: string | number | undefined, danger: string | 
   return { area: m * w, aspect: Math.max(1, m / w), danger: ROAD_DANGERS.has(danger) ? danger : 'quiet' };
 }
 
+/** BF1: set up hiding: stealthy now, or on a routine that keeps it stealthy (a thief prowling, someone lying low) */
+const hiding = (m: Actor): boolean => m.posture === 'stealthy' || (!!m.mind?.routine && routine(m.mind.routine.id).posture === 'stealthy');
+
 export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanContext, opts: { entry: 'open' | 'stealthy'; degrade?: PlanError[] }, rng: Rng): void {
   const turn = state.turn;
   // T8: the story's first plan sets the clock (to the start of day if it names no time)
@@ -331,6 +334,16 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       }
     }
   });
+  // BF1 (BG-114): the cast already knows everyone it can see at the opening, so the scene the Weaver set holds. Someone set
+  // up hiding (a stealthy routine) is not known: the stealth contests find them as play starts. The player is known only as
+  // awarenessOfPlayer says. Arrivals walk in and are noticed in play (SC12).
+  if (ctx.kind !== 'checkin') {
+    for (const o of castActors) for (const m of state.actors) {
+      if (m === o || !isActive(m) || !onStage.has(m.zone) || atLeast(o.mind?.knowledge[m.id]?.status, 'aware') || !perceivesNow(state, o, m, 'faint') || hiding(m)) continue;
+      updateBeliefs(state, { kind: 'opening', observerId: o.id, aboutId: m.id, status: 'aware', zone: m.zone, source: 'seen' });
+    }
+    knownFromTheStart(state, castActors);
+  }
 
   // ---- seeds ----
   const tpl = (t: OrderTemplate): OrderTemplate => ({ ...t, ...(t.actorId ? { actorId: actorRef(t.actorId) } : {}), target: t.target && !t.target.startsWith('$') ? anyRef(t.target) : t.target });

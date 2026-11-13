@@ -16,6 +16,7 @@ vi.mock('../../src/minds', () => ({
     a.mind!.routine = { id: setId, anchorTurn: turn, at: 420 };
   }),
   desiredState: vi.fn((v: { self: { zone: string } }) => ({ zone: v.self.zone, activity: 'rest' })),
+  knownFromTheStart: vi.fn(),
 }));
 vi.mock('../../src/perception', () => ({
   updateBeliefs: vi.fn((s: GameState, u: { observerId: string; aboutId: string; status: 'aware'; zone?: string }) => {
@@ -23,6 +24,7 @@ vi.mock('../../src/perception', () => ({
     a.mind!.knowledge[u.aboutId] = { status: u.status, lastKnownZone: u.zone, source: 'seen', revealed: [] };
   }),
   computePerception: vi.fn((e: { zone: string }, s: GameState) => (e.zone === s.player.zone ? { player: { level: 'full', cue: 'sight' } } : {})),
+  perceptionOf: vi.fn(() => null),
 }));
 vi.mock('../../src/views', () => ({
   buildActorView: vi.fn((s: GameState, id: string) => ({ self: { id, zone: s.actors.find((a) => a.id === id)!.zone } })),
