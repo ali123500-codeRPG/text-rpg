@@ -1,5 +1,5 @@
-// 54 Allies engage: guards opposed to bandits engage them without the player present; the turn is Tactical
-// and the guards are engaged (the pipeline gives engaged significant actors Planner calls).
+// 54 Allies engage: guards opposed to bandits engage them without the player present; the guards are engaged (the
+// pipeline gives engaged significant actors Planner calls), but with the player away the turns stay normal (BF14).
 import { TP } from '../../src/library/templateIds';
 import { expect, it } from 'vitest';
 import { actor, makeVillage } from '../harness';
@@ -16,7 +16,7 @@ it('54 Allies engage', () => {
   actor(s, 'guard_1').mind!.knowledge.bandit_1 = { status: 'aware', lastKnownZone: 'gate_inner', lastSeenTurn: 1, source: 'seen', revealed: [] };
   s.turn = 0;
   const p = computePending(s);
-  expect(p.mode).toBe('tactical');
+  expect(p.mode).toBe('explore');
   expect(p.engaged).toContain('guard_1');
   expect(actor(s, 'guard_1').mind!.control).toBe('agent');
   const ev = play(s, { agentOutputs: [plannerOut('guard_1', act('attack', 'bandit_1', { skill: SK.melee_medium }))] });
