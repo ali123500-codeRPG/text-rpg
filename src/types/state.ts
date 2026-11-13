@@ -149,6 +149,8 @@ export type StoryMeta = {
   owner?: StoryOwner;
   /** hall of fame: the character as they fell, written when a fallen story is archived */
   fame?: FameEntry;
+  /** HF25: the world this story carries on (absent: the story began a world of its own, whose id is its storyId) */
+  worldId?: string;
 };
 /** a fallen character, kept for the hall of fame (names, not ids, so it reads the same if the library changes) */
 export type FameEntry = {
@@ -242,6 +244,8 @@ export type TurnRecord = {
   eventRoll?: EventRollResult;
   log?: LogEntry[];
   aimed?: boolean;
+  /** the story's opening (scenario setup alone); a carried-on world's story opens after the world's last turn (HF26) */
+  opening?: true;
   /** save schema the record was written under (absent before v5) */
   schemaVersion?: number;
 };

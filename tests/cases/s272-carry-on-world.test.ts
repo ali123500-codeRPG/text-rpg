@@ -1,0 +1,81 @@
+// 272 Worlds a new character can carry on (HF25, HF26, HF28, HF31, HF32). A world whose character fell is free: the creation
+// screen lists it, and a new character picked into it carries on its last save. The fallen character stays there, dead,
+// under their own id, so people remember them and not the newcomer. The world's date jumps to the Universe date.
+import { describe, expect, it } from 'vitest';
+import { ScriptedClaude, makeVillage } from '../harness';
+import { createGame, VirtualClock, type ScenarioDirector } from '../../src/agents';
+import { carryOn, loadStory, memoryStore, pastCharacterId, reachDay, readTurnRecord, saveTurn, storySaved } from '../../src/save';
+import { createPlayer, recommendedBuild } from '../../src/library/spawn';
+import { CL } from '../../src/library/classIds';
+import { healthLevel } from '../../src/ruleset';
+import { ageYears } from '../../src/ruleset/age';
+import { dayOf, now } from '../../src/time';
+import { getLibrary } from '../../src/library';
+import { SK } from '../../src/library/skillIds';
+import type { GameState, TurnRecord } from '../../src/types';
+
+const rec = (s: GameState): TurnRecord => ({ storyId: s.storyId, turn: s.turn, libraryVersion: s.libraryVersion, rngBefore: 0, playerInput: '', agentLog: [], events: [], factsAdded: [] });
+const tick = () => new Promise((r) => setTimeout(r, 0));
+const build = { name: 'Wren', age: 30, skills: { [SK.melee_medium]: 50, [SK.parry]: 40, [SK.dodge]: 30, [SK.endurance]: 50, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.riposte]: 20 }, tagged: [SK.melee_medium, SK.parry, SK.endurance] };
+// the opening: the new character steps into the first zone of the place they start at
+const arrive: ScenarioDirector = {
+  startStory: async (s) => { const z = s.places.find((p) => p.id === s.player.placeId)!.zones[0]; s.player.zone = z.id; return []; },
+  afterResolve: async () => [], afterSave: () => {},
+};
+
+function fallenWorld(): GameState {
+  const s: GameState = JSON.parse(JSON.stringify(makeVillage()).replaceAll('"storyId":"test"', '"storyId":"story_a"'));
+  s.meta = { ...s.meta, storyId: 'story_a', createdAt: '2026-11-10T10:00:00Z' };
+  s.turn = 12;
+  s.clocks.time = 9 * 24 * 60 + 600; // day 10
+  s.player.core.condition.hpLostPct = 100;
+  const npc = s.actors.find((a) => a.mind)!;
+  npc.mind!.knowledge.player = { about: 'player', status: 'seen', stance: 'hostile' } as never; // they hated the one who fell
+  return s;
+}
+
+describe('272 carrying a world on', () => {
+  it('lists a fallen world; a new character there meets its people as a stranger, on the Universe date', async () => {
+    const clock = new VirtualClock(), store = memoryStore();
+    const g = createGame({ client: new ScriptedClaude(clock), clock, store, director: arrive });
+    const old = fallenWorld();
+    await saveTurn(store, old, rec(old));
+    expect(await g.worlds()).toEqual([]); // someone still lives there
+    await g.resume();
+    await g.reset();
+    await reachDay(store, 40); // other worlds went further
+    const [w] = await g.worlds();
+    expect(w).toMatchObject({ worldId: 'story_a', lastStoryId: 'story_a', day: 10, fell: [old.player.names.current], name: `${old.player.names.current}’s world` });
+
+    await g.newStory(build, { worldId: w.worldId });
+    for (let i = 0; i < 20 && !(await storySaved(store, g.state()!.storyId)); i++) await tick();
+    const s = (await loadStory(store, g.state()!.storyId, getLibrary())).state; // the carried-on save loads and passes every check
+    const pastId = pastCharacterId('story_a'), past = s.actors.find((a) => a.id === pastId)!;
+    expect(s.player.names.current).toBe('Wren');
+    expect(s.meta.worldId).toBe('story_a');
+    expect(s.turn).toBe(13); // the world's turns run on
+    expect((await readTurnRecord(store, s.storyId, 13))?.opening).toBe(true); // replay reads it as the story's opening
+    expect(past.names.current).toBe(old.player.names.current);
+    expect(past.kind).toBe('npc');
+    expect(healthLevel(past)).toBe('dead'); // HF27: the original perished there
+    const npc = s.actors.find((a) => a.mind?.knowledge[pastId])!;
+    expect(npc.mind!.knowledge.player).toBeUndefined(); // the grudge stays with the one who fell
+    expect(s.places.map((p) => p.id)).toEqual(old.places.map((p) => p.id));
+    expect(dayOf(now(s))).toBe(40); // HF32: the world jumps to the Universe date
+    expect(Math.round(ageYears(s, s.player)!)).toBe(30);
+    expect(await g.worlds()).toEqual([]); // one character lives in a world at a time
+    expect((await loadStory(store, 'story_a', getLibrary())).state.player.names.current).toBe(old.player.names.current); // the old story is untouched
+  });
+
+  it('HF28: a Threadbound newcomer gets an item not already in that world', () => {
+    const b = { ...recommendedBuild(CL.threadbounded), tagged: [] as string[] };
+    b.tagged = Object.keys(b.skills).slice(0, 3);
+    const first = createPlayer(b, 'story_b').core.inventory.find((i) => i.boundTo)!;
+    const world = fallenWorld();
+    world.player.core.inventory.push({ ...first, boundTo: 'player' });
+    const fresh = createPlayer(b, 'story_b', { world }).core.inventory.find((i) => i.boundTo);
+    expect(fresh?.itemId).not.toBe(first.itemId); // another one, or none while the library has no other
+    const s = carryOn(world, { ...world, storyId: 'story_b', player: createPlayer(b, 'story_b', { world }), actors: [], bands: [], hidden: { ...world.hidden, plans: {} } });
+    expect(s.actors.find((a) => a.id === pastCharacterId('story_a'))!.core.inventory.find((i) => i.itemId === first.itemId)?.boundTo).toBe(pastCharacterId('story_a'));
+  });
+});

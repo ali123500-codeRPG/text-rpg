@@ -275,7 +275,7 @@ export type WeaverView = {
   stakes: string;
   ways: string; // BA8: how the tier leans the ways in and out (locks, bars, guards), never a limit
   /** wake (D-54): the player was knocked out and survived; the plan's first zone is where they wake, somewhere safe */
-  target: { kind: 'scenario' | 'frontier' | 'checkin'; placeId: string; /** NW6 */ placeName: string; label?: string; frontierKey?: string; wake?: true;
+  target: { kind: 'scenario' | 'frontier' | 'checkin'; placeId: string; /** NW6 */ placeName: string; label?: string; frontierKey?: string; wake?: true; /** HF26: a new character arrives in a world with a past */ arrive?: true;
     /** NW3: the ground past this frontier is built ahead for someone else heading there; the player is not crossing */
     ahead?: true;
     /** SC8: why this check-in was asked, and the running scenario it is about */

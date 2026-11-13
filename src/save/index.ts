@@ -6,6 +6,7 @@ import { PAGE_LIMIT, byteLength, fromPages, hashPage, stableStringify, toPages, 
 import { checkInvariants, checkShape, migrate, newReport, reconcile, repairReferences, type CheckReport } from './checks';
 export { memoryStore, artifactDbStore, type MemoryStore, type DB } from './store';
 export { universeDay, reachDay } from './universe';
+export { carryOn, pastCharacterId } from './world';
 export { MIGRATIONS } from './checks';
 export { hashPage, stableStringify, toPages, fromPages } from './pages';
 
@@ -296,10 +297,37 @@ export async function listStories(store: Store): Promise<StoryMeta[]> {
   return metas.filter((m): m is StoryMeta => !!m && !m.archivedAt).sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.storyId.localeCompare(a.storyId));
 }
 
+const allMetas = async (store: Store) => (await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)))).filter((m): m is StoryMeta => !!m);
+export const worldOf = (m: StoryMeta): string => m.worldId ?? m.storyId;
+
+/** HF31: a world a new character can carry on: its newest story is archived and its character fell there (no one lives
+ * in it). name: after the first character who fell there; day: the day the last one fell; fell: everyone who fell there, first first. */
+export type FreeWorld = { worldId: string; name: string; lastStoryId: string; day: number; fell: string[] };
+async function freeWorlds(store: Store, owner: StoryOwner): Promise<(FreeWorld & { at: string })[]> {
+  const byWorld = new Map<string, StoryMeta[]>();
+  for (const m of await allMetas(store)) if ((m.owner ?? 'player') === owner) byWorld.set(worldOf(m), [...(byWorld.get(worldOf(m)) ?? []), m]);
+  const free: (FreeWorld & { at: string })[] = [];
+  for (const [worldId, ms] of byWorld) {
+    if (ms.some((m) => !m.archivedAt)) continue; // someone lives there
+    const fallen = ms.flatMap((m) => (m.fame ? [m.fame] : [])).sort((a, b) => a.fellAt.localeCompare(b.fellAt));
+    const last = ms.reduce((a, b) => (b.archivedAt! > a.archivedAt! ? b : a));
+    if (!last.fame) continue;
+    free.push({ worldId, name: `${fallen[0].name}’s world`, lastStoryId: last.storyId, day: last.fame.day, fell: fallen.map((f) => f.name), at: last.archivedAt! });
+  }
+  return free;
+}
+/** the creation screen's list, newest fall first; a world a character is already arriving in is left out */
+export async function listWorlds(store: Store, owner: StoryOwner = 'player'): Promise<FreeWorld[]> {
+  const arriving = (await store.get<PendingStart>(pendingPath(owner)))?.worldId;
+  return (await freeWorlds(store, owner)).filter((w) => w.worldId !== arriving).sort((a, b) => b.at.localeCompare(a.at)).map(({ at: _a, ...w }) => w);
+}
+/** the free world `worldId`, the one a pending start is arriving in included */
+export const freeWorld = async (store: Store, worldId: string, owner: StoryOwner = 'player'): Promise<FreeWorld | undefined> =>
+  (await freeWorlds(store, owner)).find((w) => w.worldId === worldId);
+
 /** Hall of fame: every archived story whose character fell, with its owner, newest fall first. */
 export async function listFallen(store: Store): Promise<(FameEntry & { owner: StoryOwner; storyId: string })[]> {
-  const metas = await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)));
-  return metas.flatMap((m) => (m?.fame ? [{ ...m.fame, owner: m.owner ?? 'player', storyId: m.storyId }] : []))
+  return (await allMetas(store)).flatMap((m) => (m.fame ? [{ ...m.fame, owner: m.owner ?? 'player', storyId: m.storyId }] : []))
     .sort((a, b) => b.fellAt.localeCompare(a.fellAt));
 }
 
@@ -317,7 +345,7 @@ export async function archiveStory(store: Store, storyId: string, at: string, fa
 // ---------- a story still starting ----------
 /** Closing the game during turn 0 lost the new story, because nothing is saved until the opening
  * scenario is planned and narrated. The build is written first; resume finds it and starts the opening again. */
-export type PendingStart = { storyId: string; build: CreationBuild; at: string; owner?: StoryOwner };
+export type PendingStart = { storyId: string; build: CreationBuild; at: string; owner?: StoryOwner; worldId?: string };
 const PENDING_START = 'pending/start';
 /** one pending start per owner: the player's, and the autopilot agent's own save */
 const pendingPath = (owner: StoryOwner = 'player') => (owner === 'agent' ? 'pending/agent' : PENDING_START);
