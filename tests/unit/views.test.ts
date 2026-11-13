@@ -119,14 +119,14 @@ describe('NPC views', () => {
 });
 
 describe('NarrationView and the packet', () => {
-  it('an observe aimed at a zone names the zone, never "someone"; an unseen actor target is left out (run 15)', () => {
+  it('an observe aimed at a zone names the zone, never "someone"; an unseen actor target is "someone", never named (run 15, BG-127)', () => {
     const s = makeVillage();
     run(s, ev({ actorId: 'player', kind: 'observe', zone: s.player.zone, target: s.player.zone }));
     const zoneName = s.zones.find((z) => z.id === s.player.zone)!.name;
     expect(buildNarrationView(s, s.events, null).events[0].target).toBe(zoneName);
     const hidden = s.actors.find((a) => a.id !== 'player' && a.zone !== s.player.zone)!;
     run(s, ev({ actorId: 'player', kind: 'observe', zone: s.player.zone, target: hidden.id }));
-    expect(buildNarrationView(s, s.events, null).events.at(-1)!.target).toBeUndefined();
+    expect(buildNarrationView(s, s.events, null).events.at(-1)!.target).toBe('someone');
   });
   it('partial events carry no actor, only the link label and cue', () => {
     const s = makeVillage({ playerZone: 'street_door' });

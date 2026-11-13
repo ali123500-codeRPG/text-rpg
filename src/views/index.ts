@@ -566,7 +566,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
     const item = e.itemId && instanceItem(state, e.itemId) === IT.coin && e.qty ? coinWords(e.qty) : name && e.qty && e.qty > 1 ? `${e.qty} ${name}` : name; // PY9: coin in coin words
     const forWhom = full && e.for ? eventTarget(state, me, e.for, new Set([...seenIds, e.for])) : undefined;
     // a fully seen attack shows both sides; any other target only if the player sees it (run 15)
-    const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds) : undefined;
+    // BG-125: the player's own action at someone they cannot see is still at someone, never at themselves
+    const target = full && e.target ? eventTarget(state, me, e.target, e.kind === 'attack' ? new Set([...seenIds, e.target]) : seenIds)
+      ?? (e.actorId === me && actorById(state, e.target) ? 'someone' : undefined) : undefined;
     out.push({
       id: e.id, kind: e.kind, level: per.level, cue: per.cue,
       ...(full ? { actor: callName(state, me, e.actorId) } : {}),

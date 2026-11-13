@@ -8,6 +8,7 @@ import { LIFE_STAGES, ROAD_DANGERS, ROAD_LENGTHS, TIME_OF_DAY } from '../scales'
 import { SIDES } from '../types';
 import { inferHeights } from './heights';
 import { placeZones } from './geometry';
+import { ZK } from '../library/tableIds';
 import { placeAll, startAtDoor } from '../engine/position';
 import { clockSet, now, startClock } from '../time';
 import { activity, getLibrary, itemDef, npcTemplate, routine } from '../library';
@@ -431,6 +432,13 @@ export function ensurePlace(state: GameState, placeId: string): Place {
   return place;
 }
 
+/** BG-126: the fallback's empty ground is open ground with a kind, a size and a rectangle like any built zone (ZR8) */
+function bareZone(id: string, placeId: string, name: string): Zone {
+  const k = getLibrary().zoneKinds![ZK.field];
+  return { id, placeId, kind: ZK.field, name, look: '', links: [], cover: 'none', light: 'bright', ...(k.outdoor ? { outdoor: true as const } : {}),
+    area: CONFIG.ZONE_SIZE_M2[k.size], edges: Object.fromEntries(SIDES.map((sd) => [sd, k.edge])), groundItems: [] };
+}
+
 export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: string, errors: PlanError[]): void {
   const place = ensurePlace(state, ctx.placeId);
   const startZone = state.player.zone;
@@ -439,19 +447,21 @@ export function applyFallbackStage(state: GameState, ctx: PlanContext, reason: s
     const link = state.zones.flatMap((z) => z.links).find((l) => l.frontier && l.to === ctx.frontierKey);
     const taken = new Set([...state.places.flatMap((p) => p.zones.map((z) => z.id)), ...stageFrontiers(state)]);
     taken.delete(ctx.frontierKey);
-    const zone: Zone = { id: freshId(ctx.frontierKey, taken), placeId: ctx.placeId, name: link?.label ?? ctx.frontierKey, look: '', links: [], cover: 'none', light: 'bright', groundItems: [] };
+    const zone = bareZone(freshId(ctx.frontierKey, taken), ctx.placeId, link?.label ?? ctx.frontierKey);
     place?.zones.push(zone);
     putOnStage(state, zone);
     enterFrontier(state, ctx.frontierKey, zone, !ctx.ahead);
+    placeZones(state, [zone]);
     if (state.stage.scenario?.ground && ctx.kind === 'extension') state.stage.scenario.ground.push(zone.id); // CH1
   } else {
     if (place?.zones.length) for (const z of place.zones) putOnStage(state, z);
     else if (place) {
       // GAP: a scenario start at a place with no saved zones and no frontier gets one empty zone named after the place.
       const taken = new Set(state.places.flatMap((p) => p.zones.map((z) => z.id)));
-      const zone: Zone = { id: freshId(`${place.id}_area`, taken), placeId: place.id, name: place.names.current, look: '', links: [], cover: 'none', light: 'bright', groundItems: [] };
+      const zone = bareZone(freshId(`${place.id}_area`, taken), place.id, place.names.current);
       place.zones.push(zone);
       putOnStage(state, zone);
+      placeZones(state, [zone]);
     }
     if (place?.zones[0] && !state.stage.zoneIds.includes(state.player.zone)) moveTo(state, state.player, place.zones[0].id);
   }
