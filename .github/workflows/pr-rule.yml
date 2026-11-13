@@ -1,0 +1,12 @@
+name: PR rule
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+jobs:
+  pr-rule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/pr-rule.mjs
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}

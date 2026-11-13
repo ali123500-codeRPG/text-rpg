@@ -6,6 +6,8 @@ export type Script = { agent: AgentName; actorId?: string; response: ClaudeRespo
 export class ScriptedClaude implements ClaudeClient {
   calls: ClaudeRequest[] = [];
   private scripts: Script[] = [];
+  /** answers for calls nothing was queued for (wholeTurn sets a narrator that narrates every event); without one the call fails */
+  defaults: Partial<Record<AgentName, (req: ClaudeRequest) => ClaudeResponse>> = {};
   constructor(private clock?: Clock) {}
   /** queue one answer; matched first-in-first-out by agent (and actorId when given) */
   push(agent: AgentName, value: unknown, opts: { actorId?: string; delayMs?: number } = {}): this {
@@ -22,7 +24,7 @@ export class ScriptedClaude implements ClaudeClient {
   async call(req: ClaudeRequest): Promise<ClaudeResponse> {
     this.calls.push(req);
     const i = this.scripts.findIndex((s) => s.agent === req.agent && (s.actorId === undefined || s.actorId === req.actorId));
-    if (i < 0) return { ok: false, error: 'upstream_error', message: `no scripted answer for ${req.agent} ${req.actorId ?? ''}` };
+    if (i < 0) return this.defaults[req.agent]?.(req) ?? { ok: false, error: 'upstream_error', message: `no scripted answer for ${req.agent} ${req.actorId ?? ''}` };
     const s = this.scripts.splice(i, 1)[0];
     if (s.delayMs && this.clock) await this.clock.sleep(s.delayMs, req.signal);
     if (req.signal?.aborted) return { ok: false, error: 'cancelled' };
