@@ -93,6 +93,8 @@ vi.mock('../../src/perception', async () => {
     }
   },
   applyBeliefDecay: () => {},
+  // everyone in the event's zone perceives it fully (the coming-near check, AT67)
+  perceptionOf: (ev: GameEvent, _s: GameState, o: Actor) => (o.zone === ev.zone ? { level: 'full', cue: 'sight' } : null),
   hears: (state: GameState, o: Actor, at: string | { zone: string }, noise: string) => o.zone === (typeof at === 'string' ? at : at.zone) && noise !== 'silent',
   noteSightings: () => {},
   // the old rule: NPCs read their knowledge; the player sees everyone
@@ -506,7 +508,7 @@ describe('gear and combat', () => {
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'patron_1' } }) }), createRng(1));
     expect(p.mind!.overrides?.player).toBe('hostile');
   });
-  it('rest heals once per cooldown, never beside an opposed actor', () => {
+  it('rest heals once per cooldown', () => {
     s.player.core.condition.hpLostPct = 50;
     resolveTurn(s, input({ intent: intent({ action: { type: 'rest' } }) }), createRng(1));
     expect(s.player.core.condition.hpLostPct).toBeCloseTo(25, 0); // H12: plus a little natural recovery

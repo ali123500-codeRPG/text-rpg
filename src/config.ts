@@ -250,6 +250,19 @@ const DEFAULTS = {
   FIGHT_TURN_MIN_S: 3,
   /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
   ARMOR_ALONE_MULT: 2,
+  // ---- the world clock (AT56, AT65 to AT68; src/engine/comingNear.ts). Placeholders from the Action Time part three page.
+  // The strike distance is HOSTILE_NEAR_M (a step and a blow), the lever the page names STRIKE_M ----
+  /** AT67: seconds to get ready to act from each body pose (getting up off the floor takes 2 to 3 s) */
+  READY_S: { lying: 3, sitting: 2, standing: 1 } as Record<import('./scales').BodyPoseKey, number>,
+  /** AT67: seconds to take in what is happening and decide; the warning time is READY_S for the pose + DECIDE_S */
+  DECIDE_S: 3,
+  /** AT67: someone closing faster than this many times their kind's walk is rushing in, wherever they are heading */
+  RUSH_SHARE: 1.5,
+  /** AT67: someone accepted stops being accepted once more than this many times their trigger distance away */
+  REARM_FACTOR: 2,
+  /** AT67: a stretch of time steps at most half the shortest time anyone perceived needs to trigger the check, within these */
+  STEP_MIN_S: 3,
+  STEP_MAX_S: 60,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
   SKY_LIGHT: { dawn: 'dim', morning: 'bright', afternoon: 'bright', dusk: 'dim', evening: 'dark', night: 'dark' } as Record<string, string>, // T3a: outdoor light by time of day (LIGHT keys)
   // NW12–NW22 sleeping (src/engine/sleep.ts). Placeholders: WAKE_GRADE, FALL_ASLEEP_MIN, SLEEP_STEP_MIN, ASLEEP_AUTO_TURNS

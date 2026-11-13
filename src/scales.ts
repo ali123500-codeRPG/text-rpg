@@ -125,6 +125,9 @@ export const HEALTH_LEVELS = scale([['unhurt', 'Unhurt'], ['bruised', 'Bruised']
 export type HealthLevelKey = (typeof HEALTH_LEVELS.keys)[number];
 /** the player's posture (ST5: not named like the Sneaking skill) */
 export const POSTURES = scale([['open', 'Open'], ['stealthy', 'Stealthy']]);
+/** AT67: how someone is lying, sitting or standing, for how long they take to get ready (CONFIG.READY_S) */
+export const BODY_POSES = scale([['lying', 'Lying'], ['sitting', 'Sitting'], ['standing', 'Standing']]);
+export type BodyPoseKey = (typeof BODY_POSES.keys)[number];
 /** how loud an event is, quietest first; each level's decibels are CONFIG.NOISE_DB, its real reference the library's noiseLevels row,
  * and how well it is heard comes from perception/noise.ts (hearingOf) */
 export const NOISE = scale([['silent', 'Silent'], ['faint', 'Faint'], ['hushed', 'Hushed'], ['quiet', 'Quiet'], ['murmur', 'Murmur'], ['normal', 'Normal'], ['raised', 'Raised'], ['loud', 'Loud'], ['blaring', 'Blaring'], ['deafening', 'Deafening']]);

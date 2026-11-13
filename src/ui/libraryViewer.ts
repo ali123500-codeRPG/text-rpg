@@ -384,7 +384,7 @@ function restores(d: HealingDef): string {
 }
 function healing(): HTMLElement[] {
   return [h('div', { class: 'lv-grid' }, Object.values(lib.healing ?? {}).map((d) => card('healing', d.id, d, d.name,
-    [d.countOnly ? chip('tally only') : null, d.composure ? chip('morale') : null, d.inFight ? chip('in a fight') : null],
+    [d.countOnly ? chip('tally only') : null, d.composure ? chip('morale') : null],
     row('Restores', restores(d)),
     d.composure ? row('Morale from', link('composure', d.composure, lib.composure?.[d.composure]?.name ?? d.composure), ' (composure row)') : null,
     ...fields(d as unknown as Entry, ['id', 'name', 'hpPct', 'partPct', 'composure', 'hourly', 'countOnly']))))];
@@ -980,7 +980,7 @@ const FACETS: Record<string, Facets> = {
   composure: (d: ComposureDef) => [['In fight', d.inFight ? 'yes' : 'no'], ['Kind', d.countOnly ? 'tally only' : d.hourly ? 'hourly' : 'one-off']],
   fears: (f: FearDef) => [['Roll', f.rolled ? 'rolled' : 'flat'], ['Cost', f.partCost || f.partCostOf ? 'by part' : f.perTier ? 'per tier' : f.cost < 0 ? 'restores' : 'flat cost'], ['Part', f.part && PART_STATES.name(f.part)]],
   gearClasses: (g: { use?: string }) => [['Use', g.use]],
-  healing: (d: HealingDef) => [['Reach', d.reach], ['In fight', d.inFight ? 'yes' : 'no'], ['Restores', d.hourly ? 'health hourly' : undefined],
+  healing: (d: HealingDef) => [['Reach', d.reach], ['Restores', d.hourly ? 'health hourly' : undefined],
     ...(['hpPct', 'partPct', 'composure'] as const).filter((k) => d[k]).map((k): [string, string] => ['Restores', { hpPct: 'health', partPct: 'body parts', composure: 'morale' }[k]])],
   races: (r: { intelligence?: string }) => [['Intelligence', r.intelligence && INTELLIGENCE.name(r.intelligence as 'intelligent')]],
   classes: (c: ClassDef) => [['Tier', CLASS_TIERS.name(c.tier)], ['Kind', c.fallback ? 'default class' : c.creation ? 'starting class' : 'unlocked in play']],
