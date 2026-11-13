@@ -209,7 +209,7 @@ export type NarrationEvent = {
   activityLook?: string; // presence events
   packet?: CombatPacket; // attacks
   spar?: true; // SP11: a sparring blow, not a real attack
-  pressed?: { how: string; took?: string }; // OQ-29: an NPC's speech roll at the player, in words
+  pressed?: { how?: string; took?: string }; // OQ-29: an NPC's speech roll at the player, in words
   overheard?: string; // LI5a Overheard: a lie told to someone else that the player saw through, in words
   item?: string; // public item name
   price?: string; // buy: coin paid, in coin words

@@ -292,9 +292,11 @@ export function applySpeech(speaker: Actor, listener: Actor, type: string, conte
 
 /** OQ-29: an NPC's speech roll at the player, in words for the Narrator: how it strikes the player (from the speaker's
  * tier), and how the player takes it. A lie the player did not see through gets no hint. */
-export function pressedWords(e: GameEvent, listener?: Actor): { how: string; took?: string } | undefined {
+export function pressedWords(e: GameEvent, listener?: Actor): { how?: string; took?: string } | undefined {
   const p = e.push, c = e.contest;
   if (!p || !c) return undefined;
+  // BG-137: a lie reads like the truth: no word on how convincing it was, only the tell when the player saw through it
+  if (p.type === 'deceive') return p.tell ? { took: tellFor(listener) } : undefined;
   const took = p.status === 'shaken' ? 'it shakes you' : p.status === 'swayed' ? 'you find yourself swayed'
     : p.tell ? tellFor(listener) : p.type === 'deceive' ? undefined : p.landed ? 'the haggling goes their way' : 'you hold firm';
   return { how: impressionWords(p.type, c.a.tier), ...(took ? { took } : {}) };
