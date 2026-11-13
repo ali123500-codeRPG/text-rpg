@@ -1,4 +1,4 @@
-// 278 Following someone (BG-190): a walk with spot near someone and follow set keeps after them. Reaching them does not
+// 279 Following someone (BG-190): a walk with spot near someone and follow set keeps after them. Reaching them does not
 // end it; it carries on by itself (AT49) toward where they are now while the player can see or hear them, a sneak with no
 // move sneaks along it, and when the player loses them it ends and the PlayerView says why, once.
 import { describe, expect, it } from 'vitest';
@@ -11,7 +11,7 @@ const quiet = () => makeVillage({ playerZone: 'tav_common', without: ['slime_1',
 const follow = (s: GameState) => intent({ move: { toZone: s.actors.find((a) => a.id === 'patron_1')!.zone, spot: { near: 'patron_1', follow: true } } });
 const patron = (s: GameState) => s.actors.find((a) => a.id === 'patron_1')!;
 
-describe('278 following someone', () => {
+describe('279 following someone', () => {
   it('a follow reaches them and carries on; when they move on, the next turn with no order goes after them', () => {
     const s = quiet();
     place(s, 'patron_1', 'tav_common');
