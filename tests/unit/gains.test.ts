@@ -20,6 +20,9 @@ describe('scenario-end gains panel (M-39)', () => {
       xp: { gained: 180, fromLevel: 3, fromPct: 60, toLevel: 4, toPct: 30 }, levelUps: [{ classId: 'CL1', level: 4 }] };
     expect(gainsSummary(g)).toBe('2 skills up · All-50: Melee · 1 achievement · 1 scar · +180 XP · level 4');
   });
+  it('writes fractional XP to one decimal, the same way the count does', () => {
+    expect(gainsSummary({ ...none, xp: { ...none.xp, gained: 247.83333 } })).toBe('+247.8 XP');
+  });
   it('names essences on offer', () => {
     expect(gainsSummary({ ...none, essences: [{ name: 'Gel Patience', grade: 'fine' }] })).toBe('1 essence offered');
   });
