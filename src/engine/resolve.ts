@@ -26,7 +26,7 @@ import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, handsOn, openToHands, staying, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
 import { afterAttack, bluffed, coverFor, expireMarks, slowed } from './perkMarks';
-import { battleCry, engagementAuras } from './auras';
+import { battleCry, engagementAuras, sightDread } from './auras';
 import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
@@ -230,7 +230,7 @@ function afterEvent(ctx: Ctx, ev: GameEvent): void {
  * morale check did. `seen` = who perceived the event, for the bandmates a break frightens (MB23). */
 function fear(ctx: Ctx, a: Actor, id: string, o: { gap?: number; mult?: number; shift?: number; overwhelm?: boolean; cost?: number } = {}, seen: Record<string, unknown> = {}): void {
   const { state } = ctx;
-  if (getLibrary().fears?.[id]?.rolled && !isEngaged(state, a)) return; // the player too (MB11): isEngaged reads who is fighting them
+  { const f = getLibrary().fears?.[id]; if (f?.rolled && !f.unengaged && !isEngaged(state, a)) return; } // the player too (MB11): isEngaged reads who is fighting them
   const r = payFear(state, ctx.rng, a, id, o);
   if (!r) return;
   // SP5: in a spar with no real foe, a surrender or a break just yields the spar
@@ -1313,6 +1313,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   const ctx: Ctx = {
     state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(), parryStrikes: new Set(),
   };
+  // Dreaded on Sight: whoever first sees the owner pays its fear and turns colder, before anyone acts
+  for (const c of sightDread(state, (a, id) => fear(ctx, a, id))) logCode(state, 'dreaded_on_sight', { actorId: c.target.id, by: c.owner.id, perk: c.perk });
   // NT14/I4: engagement auras check each newly qualifying target before anyone acts
   for (const c of engagementAuras(state, rng, (a, id, gap, overwhelm) => fear(ctx, a, id, { gap, ...(overwhelm ? { overwhelm } : {}) }))) {
     emit(ctx, mk(ctx, c.owner, 'aura', { target: c.target.id, effects: [{ kind: c.took ? 'aura_took' : 'aura_resisted', actorId: c.target.id, data: { by: c.owner.id, perk: c.aura.perk, ...(c.overwhelmed ? { overwhelmed: true } : {}) } }] }), c.contest);

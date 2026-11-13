@@ -433,7 +433,7 @@ function fears(): HTMLElement[] {
     row('Cost', cost(f)),
     perBody(f).length ? row('One part, by body', h('ul', { class: 'lv-names' }, perBody(f).map((t) => h('li', {}, t)))) : null,
     f.part ? row('When', `one of your parts reaches ${PART_STATES.name(f.part)}`) : null,
-    row('Rolled', f.rolled ? 'yes: a morale roll sets how much of the cost you take' : 'no: the cost applies as it stands'),
+    row('Rolled', f.rolled ? `yes: a morale roll sets how much of the cost you take${f.unengaged ? '; paid in a fight or out of one' : '; only while in a fight'}` : 'no: the cost applies as it stands'),
     ...fields(f as unknown as Entry, ['id', 'name', 'cost', 'perTier', 'part', 'partCost', 'refParts', 'partCostOf', 'rolled']))))];
 }
 

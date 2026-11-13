@@ -8,6 +8,9 @@ import { withinGrip } from './position';
 import { reachesOver } from '../scenario/geometry';
 import { getLibrary } from '../library';
 
+/** the actor's active perks and quirks that work on sight (PerkDef.onSight) */
+export const onSightPerks = (a: Actor) => a.core.perks.filter((p) => !p.dormant).map((p) => getLibrary().perks?.[p.perkId]).filter((d): d is NonNullable<typeof d> => !!d?.onSight);
+
 export function allActors(state: GameState): Actor[] {
   return [state.player, ...state.actors];
 }
@@ -41,7 +44,11 @@ export function stance(state: GameState, a: Actor, b: Actor): Stance {
   if (a.bandId === b.bandId) return 'friendly';
   const s = bandById(state, a.bandId)?.relations[b.bandId] ?? 'neutral';
   // an achievement's first-sight reward: a hunted kind meets b wary until b attacks it (the attack sets a hostile override)
-  return s === 'hostile' && firstSightOf(b, a) ? 'opposed' : s;
+  if (s === 'hostile' && firstSightOf(b, a)) return 'opposed';
+  // Dreaded on Sight: once a has seen b, its band's stance reads colder (the player holds no stances)
+  if (a.kind === 'player' || s === 'yielded') return s;
+  const colder = onSightPerks(b).reduce((n, d) => n + (a.sightChecks?.includes(`${d.id}:${b.id}`) ? d.onSight!.colder : 0), 0);
+  return colder ? STANCES.at(Math.max(0, STANCES.pos(s) - colder)) : s;
 }
 /** friendly or warmer (friendly, friend, loyal) */
 export const warm = (s: Stance): boolean => s !== 'yielded' && STANCES.pos(s) >= STANCES.pos('friendly');

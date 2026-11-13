@@ -45,6 +45,7 @@ export type Actor = {
   /** OQ-29: penalties from speech contests this actor lost, by speaker (positive numbers); cleared when its engagement ends */
   pressure?: Record<ActorId, { shaken?: number; swayed?: number }>;
   hunches?: { scenario: number; ids: string[] }; // LI5b Gut Feeling: watchers that set off the owner's hunch this scenario (scenarioStartTurn)
+  sightChecks?: string[]; // the on-sight quirks (perk:owner) this actor has met: once per owner, for good
   auraChecks?: string[]; // NT14/I4: the auras (perk:owner) this actor has already checked against this engagement
   /** NT3: speech tries this engagement, by listener and speech kind */
   speechTries?: Record<ActorId, Record<string, number>>;

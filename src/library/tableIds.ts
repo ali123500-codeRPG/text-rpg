@@ -7,7 +7,7 @@ export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', 
 /** composure sources: what restores morale, a table of its own so morale tunes apart from health (an action like rest names a row in each) */
 export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5' } as const;
 /** fears: what costs (or restores) morale (MB21–MB28) */
-export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', foe_downed: 'FR6', dread_presence: 'FR7', battle_cry: 'FR8', rallied: 'FR9', own_part_crippled: 'FR10', own_part_destroyed: 'FR11' } as const;
+export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', foe_downed: 'FR6', dread_presence: 'FR7', battle_cry: 'FR8', rallied: 'FR9', own_part_crippled: 'FR10', own_part_destroyed: 'FR11', dreaded_sight: 'FR12' } as const;
 /** PL6: personality axes; PL19: values; PL10: named personality types */
 export const PA = { honesty: 'PA1', pride: 'PA2', temper: 'PA3', sociability: 'PA4', discipline: 'PA5', curiosity: 'PA6' } as const;
 export const VL = { duty: 'VL1', wealth: 'VL2', family: 'VL3', faith: 'VL4', power: 'VL5', freedom: 'VL6', safety: 'VL7', pleasure: 'VL8', knowledge: 'VL9', kindness: 'VL10',

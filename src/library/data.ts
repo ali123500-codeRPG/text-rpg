@@ -147,6 +147,13 @@ const CLASS_PERKS: Record<string, PerkDef> = {
     story: 'You were never meant for one path, so no road is closed to you.',
     rules: { kind: 'passive', trigger: 'any check of whether the owner can use a skill tree or skill', conditions: [], effect: 'the access rules (Must, Either of, Blocked by) do not apply: every tree and skill is open, and its skills can be used, marked and raised', lasts: 'always' },
   },
+  // a quirk no race, class or template has yet: the mechanism for a being that everyone fears or hates at first sight
+  [PK.dreaded_on_sight]: {
+    id: PK.dreaded_on_sight, name: 'Dreaded on Sight', built: true, quirk: true, onSight: { colder: 1, fear: FR.dreaded_sight },
+    story: 'Something about you is wrong, and everyone feels it the moment they see you. Strangers stiffen, hands drift to weapons, and nobody is glad you came.',
+    rules: { kind: 'Always on (quirk)', trigger: 'Anyone outside the owner\'s band sees the owner for the first time.', conditions: ['Once per person, for good.', 'The owner\'s bandmates are never affected.'],
+      effect: 'They pay the fear "You set eyes on someone dreaded" (15 morale, scaled by their morale roll), in a fight or out of one. From then on their stance toward the owner reads one step colder than their band\'s (neutral becomes unfriendly, opposed becomes hostile), until play gives them a stance of their own toward the owner. The player holds no stances, so a player who sees the owner only pays the fear.', lasts: 'The colder stance lasts until that person\'s own stance toward the owner is set.' },
+  },
   [PK.quick_study]: {
     id: PK.quick_study, name: 'Quick Study', built: true, classLevel: { classId: CL.late_bloomer, level: 1 }, improveRolls: { below: 15, rolls: 2 },
     story: 'You came to this late, and it shows in how fast you learn. A skill you have barely touched improves twice as readily.',
@@ -605,6 +612,8 @@ export function prototypeLibrary(): Library {
       [FR.dread_presence]: { id: FR.dread_presence, name: 'An aura of dread gets to you', cost: 10, rolled: false, perTier: true }, // MB37: each failed aura check costs its own morale
       [FR.battle_cry]: { id: FR.battle_cry, name: 'A battle cry shakes you', cost: 10, rolled: false, perTier: true }, // I9: as Dread Presence
       [FR.rallied]: { id: FR.rallied, name: 'An ally\'s battle cry rallies you', cost: -10, rolled: false }, // I9 b: 10 morale back
+      // the Dreaded on Sight quirk: paid once per owner, in a fight or out of one
+      [FR.dreaded_sight]: { id: FR.dreaded_sight, name: 'You set eyes on someone dreaded', cost: 15, rolled: true, unengaged: true },
       // a part Crippled or worse: per part by impact for a 6-part body, scaled to the body's part count; one roll per hit pays the sum
       [FR.own_part_crippled]: { id: FR.own_part_crippled, name: 'A part of yours is Crippled', cost: 0, rolled: true, part: 'crippled',
         partCost: { non_essential: 5, normal: 15, essential: 30 }, refParts: 6 },

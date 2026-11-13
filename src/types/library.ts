@@ -216,6 +216,9 @@ export type PerkDef = {
   built?: boolean;
   /** a quirk: a perk that is negative in nature */
   quirk?: boolean;
+  /** dreaded on sight (src/engine/auras.ts sightDread): whoever sees the owner for the first time pays fear row `fear`, and from
+   * then on its stance toward the owner reads `colder` steps colder until play gives it a stance of its own */
+  onSight?: { colder: number; fear: string };
   /** an All-XXX part (src/library/allPerks.ts): `skill` is the tree skill it belongs to; none = the tree's passive */
   allStep?: { treeId: string; step: 50 | 100 | 150; skill?: string };
   /** true skill added to every skill with this function (Hunter's Eye: +10 to the sight function) */
@@ -294,7 +297,7 @@ export type ComposureDef = {
 /** part: a PART_STATES key; the fear fires when one of the actor's body parts reaches that state or worse from a better one.
  * partCost: its cost per part by the part's impact, for a body of refParts parts; a body with more parts pays less per part
  * (cost × refParts ÷ the body's part count). One roll per hit pays the sum for every part the hit took there. */
-export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; health?: { from: HealthLevelKey; to: HealthLevelKey }; part?: PartStateKey;
+export type FearDef = { id: string; name: string; cost: number; rolled: boolean; perTier?: boolean; /** paid outside a fight too (a rolled fear otherwise needs one) */ unengaged?: true; health?: { from: HealthLevelKey; to: HealthLevelKey }; part?: PartStateKey;
   partCost?: Record<ImpactId, number>; refParts?: number;
   /** reads another part fear's partCost and refParts by reference, × mult, so editing that row changes this one too */
   partCostOf?: { fear: string; mult: number } };
