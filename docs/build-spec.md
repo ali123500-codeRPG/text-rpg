@@ -2257,7 +2257,7 @@ The save has two layers. The library holds blueprints shared by every story. A s
 
 - **Story isolation.** Every story-scoped read and write takes the story id. Each story lives under its own storage namespace. No function reads across stories. Views are built only from the loaded story.
 - **Lookup order.** An id resolves in the story's blueprints first, then in the library.
-- **Reference, don't copy.** A story stores library ids, never copies of entries, so library edits reach it at once. The one exception is a unique NPC's rolled values (section 4).
+- **Reference, don't copy.** A story stores library ids, never copies of entries, so library edits reach it at once. The one exception is a rolled NPC's values (section 4).
 
 ### 3. Raw and derived fields
 
@@ -2309,12 +2309,13 @@ Putting a level into an unlocked class makes it current, and the old current cla
 
 **NPC generation.** All generation runs in code. A template gives a body type and class, a minimum for each skill, a level, bonus points, three focus picks, a personality, a loadout and a control setting. Two kinds of NPC:
 
-- **Unique** (a bandit): rolled once at spawn, then its values are saved and frozen.
+- **Rolled** (a bandit): each NPC made from it rolls its own person once at spawn, then its values are saved and frozen. Called "unique" until HF15 (Ali, 13/11/2026).
 - **Copy** (a wolf, a slime): saves only the template id and live state, and follows the latest template.
+- **Unique** (HF15, not built yet): one specific character, a whole saved sheet spawned exactly as saved, at most once per world. Hall of fame heroes become uniques ("Heroes into NPCs" page, HF1–HF34).
 
 A template may carry a loadout: a list of library item ids given to every NPC made from it (Part 5 §8) \[Proposed\].&#32;
 
-**Unique generation** (code, seeded), modelled on Iliad Quest's NPC rolls:
+**Rolled generation** (code, seeded), modelled on Iliad Quest's NPC rolls:
 
 1. Every skill starts at the template's minimum; a skill with no minimum is raw 0. Minimums give each NPC its basic function, so a lopsided NPC is fine.
 2. Points = level × POINTS\_PER\_LEVEL + bonusPoints (POINTS\_PER\_LEVEL 10, a balance lever in CONFIG; Ali, 08/11/2026). The level is fixed per template for now; level rules come later. bonusPoints lets a well-trained template (a guard) outskill a higher-level one (a bandit).
@@ -2632,7 +2633,7 @@ type Core = {
   raceId?: LibraryRef;               // absent for actors with no race
   bodyTypeId: LibraryRef;        // body plan; set by the race when there is one
   templateId?: LibraryRef;           // NPCs: the template it came from
-  generation?: 'unique' | 'copy';    // unique: values below are frozen; copy: skills read from the template
+  generation?: 'rolled' | 'copy';    // rolled: values below are frozen; copy: skills read from the template
   skills: Record<LibraryRef, SkillEntry>;
   classes: ClassEntry[];
   perks: OwnedPerk[];                // stored perks only; race and class perks are derived
@@ -2706,7 +2707,7 @@ type NpcTemplate = {                 // library entry or story blueprint (kind '
   bodyTypeId: LibraryRef;
   raceId?: LibraryRef;
   classId?: LibraryRef;              // its class tree, e.g. 'slime'
-  generation: 'unique' | 'copy';
+  generation: 'rolled' | 'copy';
   minimums: Record<LibraryRef, number>;   // skill -> starting raw; absent = 0
   level: number;                     // fixed per template for now
   bonusPoints: number;               // added to level x POINTS_PER_LEVEL; uniques only

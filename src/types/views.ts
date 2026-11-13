@@ -178,7 +178,7 @@ export type ActorView = {
   firedTriggers: { triggerId: string; turn: number }[]; // "already happened"
   band: { id: string; name: string; goals: string; temperament: string; tactics: Tactics; relations: Record<string, Stance> };
   personality: string; // PL1, PL9: Nerve with the mood, archetype and its "but" traits, drives and tensions (CHARACTER only; never the Voice)
-  title?: string; // a unique NPC's title, given with its name in CHARACTER only
+  title?: string; // a rolled NPC's title, given with its name in CHARACTER only
   map: MapZone[]; // stage geometry
   zones: ZoneView[]; // zones it perceives
   seen: SeenActor[]; // actors it currently perceives

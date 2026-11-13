@@ -378,7 +378,7 @@ const DEFAULTS = {
   ESSENCE_GRADE_MULT: { common: 1, fine: 1.5, rare: 2.5, epic: 4, legendary: 6 } as Record<string, number>,
   /** each grade past the last row multiplies the last row's multiplier by this */
   ESSENCE_GRADE_PAST_MULT: 1.5,
-  /** a beaten foe is notable (may offer) when its power is at least this share of the player's, or its template is notable or unique */
+  /** a beaten foe is notable (may offer) when its power is at least this share of the player's, or its template is notable or rolled */
   ESSENCE_NOTABLE_SHARE: 0.75,
   /** an essence's appearance roll: one appears when d100 ≤ this % (by source: foe, or the ending's tier). Placeholders, set
    * with ESSENCE_ROLL_NEEDED so essences come about as often as when one roll did both (about 31% from a notable foe or a

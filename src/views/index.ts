@@ -45,9 +45,9 @@ import { moraleLevel, moraleShows } from '../ruleset/morale';
 import { HEALTH_LEVELS, MORALE_LEVELS, PART_STATES } from '../scales';
 
 const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
-/** a unique NPC's title from its template, given with its name in CHARACTER only */
-const uniqueTitle = (state: GameState, a: Actor): string | undefined =>
-  a.core.generation === 'unique' && a.core.templateId ? npcTemplate(state, a.core.templateId).title : undefined;
+/** a rolled NPC's title from its template, given with its name in CHARACTER only */
+const rolledTitle = (state: GameState, a: Actor): string | undefined =>
+  a.core.generation === 'rolled' && a.core.templateId ? npcTemplate(state, a.core.templateId).title : undefined;
 /** MB40: the player's yield this scenario, in the player's names for each foe */
 function yieldView(state: GameState): YieldView | undefined {
   const y = state.yielding;
@@ -475,7 +475,7 @@ function baseView(state: GameState, actorId: string): BaseView {
     beliefs, perceived, told, said,
     ...(m.earlier?.lines.length ? { earlier: [...m.earlier.lines] } : {}),
     personality: personalityText(state, a, moraleWord(a)),
-    ...(uniqueTitle(state, a) ? { title: uniqueTitle(state, a) } : {}),
+    ...(rolledTitle(state, a) ? { title: rolledTitle(state, a) } : {}),
     band: band
       ? { id: band.id, name: band.name, goals: band.goals, temperament: band.temperament, tactics: band.tactics, relations: { ...band.relations } }
       : { id: a.bandId, name: '', goals: '', temperament: '', tactics: 'simple', relations: {} },

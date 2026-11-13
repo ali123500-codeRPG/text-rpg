@@ -91,10 +91,10 @@ function offer(state: GameState, row: EssenceDef, skills: { skill: string; weigh
   logCode(state, 'essence_offered', { essence: row.id, grade: roll.grade, source, from });
 }
 
-/** 2.3: a beaten foe is notable when its power is at least ESSENCE_NOTABLE_SHARE of the player's, or its template is notable or unique */
+/** 2.3: a beaten foe is notable when its power is at least ESSENCE_NOTABLE_SHARE of the player's, or its template is notable or rolled */
 export function notable(state: GameState, foe: Actor): boolean {
   const id = foe.core.templateId, t = id ? (() => { try { return npcTemplate(state, id); } catch { return undefined; } })() : undefined;
-  return !!t?.notable || foe.core.generation === 'unique' || power(state, foe) >= CONFIG.ESSENCE_NOTABLE_SHARE * power(state, state.player);
+  return !!t?.notable || foe.core.generation === 'rolled' || power(state, foe) >= CONFIG.ESSENCE_NOTABLE_SHARE * power(state, state.player);
 }
 
 /** 2.3: each foe the player beat this turn (payDefeats) rolls once, ever, for an essence of its race or body type, if notable.
@@ -194,7 +194,7 @@ export function essenceText(e: HeldEssence, skillName: (id: string) => string): 
 export const essenceValue = (e: { points: Record<string, number> }): number =>
   Math.round(Object.values(e.points).reduce((n, v) => n + v, 0) * CONFIG.ITEM_VALUE.skillPoint * CONFIG.ESSENCE_VALUE_MULT);
 
-/** ES3 a: who can take an essence in: someone with a progression record (the player, unique NPCs), with a free slot */
+/** ES3 a: who can take an essence in: someone with a progression record (the player, rolled NPCs), with a free slot */
 const hasRoom = (a: Actor): boolean => !!a.progression && (a.progression.essences?.length ?? 0) < essenceSlots(a);
 
 /** ES1 a/ES2 a: an offer leaves the player and goes straight to `to`: into their slots, or (a seller with no room) their stock */
@@ -222,7 +222,7 @@ export function giveEssence(state: GameState, offerIndex: number, to: Actor | un
   return null;
 }
 
-/** ES6 a: sell an offer to a seller (who may hold it to sell on) or to a unique NPC with room, at the buying price for its value
+/** ES6 a: sell an offer to a seller (who may hold it to sell on) or to a rolled NPC with room, at the buying price for its value
  * (one equation with items: trade.ts buyingPrice, haggling included). Returns the price, or an error. */
 export function sellEssence(state: GameState, offerIndex: number, buyer: Actor | undefined): { price: number } | { error: string } {
   const p = state.player, o = p.progression?.essenceOffers?.[offerIndex];
