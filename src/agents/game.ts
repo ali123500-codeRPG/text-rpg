@@ -89,6 +89,8 @@ const HELP_TEXT =
   '/help, /strike <who> [at <body part>] (a blow with what you hold), /shoot <who> [at <body part>], /throw <what> at <who> [at <body part>], /aim (put it in front of an attack that names a body part, e.g. /aim /strike the guard at his left leg: a harder roll that, if it hits, lands on that part; aiming never picks a person), /title [number or off] (wear an achievement as your title), /essence (essences on offer and held: take, pass, remove), /yield [words] (give up the fight you are in), /stuck [what is wrong] (the scenario can go nowhere: the story finds a way forward, and a bug is filed). The story saves every turn.';
 
 /** NW18: a turn played while the player sleeps */
+/** NB5: what the game says when an attack is ordered with a broken nerve; the order is turned away and no time passes */
+export const NERVE_REFUSED = "Your nerve is broken: you can't bring yourself to attack. Nothing happened and no time passed. You can still move, flee, sneak, hide, vanish, yield, talk or use a bandage.";
 export const ASLEEP_TEXT = '(asleep)';
 export const DOWN_TEXT = '(down)'; // D-239: the turn the foes decide whether to spare the downed player
 const ASLEEP_INTENT = { move: null, gear: null, spoken: null, addressees: null, deferred: [], clarify: null, action: null };
@@ -346,6 +348,12 @@ export function createGame(deps: GameDeps): Game {
     if (unclear) {
       lines.push({ turn: s.turn, kind: 'clarify', text: `Who do you speak to: ${orList(unclear.map((id) => seenName(pv, id)))}?` });
       lastLog = [...turnLog]; // BG-143: every clarify keeps the turn's log, so the Parser output that led here can be seen
+      return;
+    }
+    // NB5: with a broken nerve an attack is turned away before the turn: nothing happens and no time passes
+    if (intent.action?.type === 'attack' && moraleLevel(s.player) === 'broken') {
+      lines.push({ turn: s.turn, kind: 'clarify', text: NERVE_REFUSED });
+      lastLog = [...turnLog];
       return;
     }
     const rngBefore = s.rngState;

@@ -680,17 +680,20 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     }
     if (!busy) { delete waiting.dataset.since; waiting.replaceChildren(); }
     waiting.hidden = !busy;
-    // SD1: the ending moment starts as soon as the engine knows how the scenario ended, while the next scenario is still being
-    // made: the rule draws across with the ending's name. The closing line and the opening come with the turn's prose.
+    // SD1: the ending moment starts as soon as the engine knows the scenario ended, while the next scenario is still being
+    // made: the rule draws across, without the outcome. The closing line and the opening come with the turn's prose.
     const ending = busy ? api.scenarioEnding?.() ?? null : null;
     const key = ending ? `${ending.as}|${ending.name}` : '';
     if (key !== endKey) {
       endKey = key;
       if (!ending) endNow.replaceChildren();
       else {
-        const r = endRule(ending, '');
+        // how it ended (Resolved, Lost…) is the gains moment's reveal, so while the turn runs the rule names no outcome;
+        // the turn's own break (or the pop-up) names it when the turn lands
+        const r = h('p', { class: 'pbreak end-wait' }, h('b', {}, 'The scenario draws to a close'));
         endNow.replaceChildren(r);
-        endDrawn = drawBreak(r, 0) > 0;
+        drawBreak(r, 0);
+        endDrawn = false;
       }
     }
 

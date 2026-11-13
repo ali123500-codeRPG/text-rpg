@@ -266,11 +266,69 @@ export function insideOf(s: GameState, box: ItemInstance, path = ''): Inside[] {
 }
 const carriedBoxes = (s: GameState) => s.player.core.inventory.filter((i) => safe(() => itemDef(s, i.itemId).container) && !wornPack(i));
 const allInside = (s: GameState) => carriedBoxes(s).flatMap((b) => insideOf(s, b));
+/** CT1: the carried containers (by name, each name once) a loose item can be put in; none for something already inside one,
+ * and none for a container, which never goes into another */
+export function putInto(s: GameState, it: ItemInstance, inside = false): string[] {
+  if (inside || safe(() => itemDef(s, it.itemId).container)) return [];
+  return [...new Set(carriedBoxes(s).map((b) => (safe(() => itemDef(s, b.itemId).name) ?? 'container').toLowerCase()))];
+}
+/** CT1: what dropping a dragged item on a row or group of the Inventory means, as the order it drafts on Play: onto a
+ * carried container (its row, its "In your …" group, or anything already inside it) puts it in; an item inside a container
+ * dropped anywhere else in the pack takes it out. Null: no order (the same container, or not a place to drop). */
+export function dropOrder(s: GameState, itemId: string, onto: { row?: string; group?: string }): string | null {
+  const nameOf = (i: ItemInstance) => (safe(() => itemDef(s, i.itemId).name) ?? i.itemId).toLowerCase();
+  const inside = allInside(s), from = inside.find((x) => x.it.id === itemId);
+  const it = from?.it ?? s.player.core.inventory.find((i) => i.id === itemId);
+  if (!it) return null;
+  const boxes = carriedBoxes(s);
+  const box = boxes.find((b) => b.id === onto.row || `in:${b.id}` === onto.group)
+    ?? inside.find((x) => x.it.id === onto.row)?.box;
+  if (box) {
+    if (from) return null; // already in a container: moving it to another is two orders, so take it out first
+    return putInto(s, it).length && !safe(() => itemDef(s, it.itemId).container) ? `I put the ${nameOf(it)} in my ${nameOf(box)}` : null;
+  }
+  return from ? `I take the ${nameOf(it)} out of my ${nameOf(from.box)}` : null;
+}
+
+/** CT1: drag and drop on the Inventory table; a drop drafts the order on Play, as the Put in and Take out buttons do */
+function dragToBoxes(api: GameApi, el: HTMLElement): void {
+  let dragId: string | null = null;
+  const spot = (e: Event) => {
+    const t = (e.target as Element | null)?.closest?.('tr[data-row], tr[data-group]') as HTMLElement | null;
+    return t ? { tr: t, onto: { row: t.dataset.row, group: t.dataset.group } } : null;
+  };
+  const clear = () => el.querySelectorAll('.drop-ok, .dragging').forEach((x) => x.classList.remove('drop-ok', 'dragging'));
+  el.addEventListener('dragstart', (e) => {
+    const tr = (e.target as Element).closest?.('tr[data-row]') as HTMLElement | null;
+    if (!tr?.draggable) return;
+    dragId = tr.dataset.row ?? null;
+    e.dataTransfer?.setData('text/plain', dragId ?? '');
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    tr.classList.add('dragging');
+  });
+  el.addEventListener('dragend', () => { dragId = null; clear(); });
+  el.addEventListener('dragover', (e) => {
+    const s = api.state(), at = spot(e);
+    el.querySelectorAll('.drop-ok').forEach((x) => x !== at?.tr && x.classList.remove('drop-ok'));
+    if (!s || !dragId || !at || !dropOrder(s, dragId, at.onto)) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    at.tr.classList.add('drop-ok');
+  });
+  el.addEventListener('drop', (e) => {
+    const s = api.state(), at = spot(e), id = dragId;
+    clear(); dragId = null;
+    const order = s && id && at ? dropOrder(s, id, at.onto) : null;
+    if (!order) return;
+    e.preventDefault();
+    playDraft.text = order; closePanel(); location.hash = 'play';
+  });
+}
 const holdsText = (b: ItemInstance) => (b.contents?.length ? `Holds ${plural(b.contents.length, 'item')}` : 'Empty');
 
 export function inventoryPage(api: GameApi) {
-  return listPage(api, {
-    title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
+  const page = listPage(api, {
+    title: 'Inventory', intro: 'What you carry. Same as /inv. Equipped gear is above, the rest of your pack below. Click an item for its stats; drag one onto a sack to put it in, or out of a sack to take it out.', noun: ['item', 'items'], panelTitle: 'Item', empty: 'Nothing in your pack. Your equipped gear is listed above.',
     focus: () => { const id = invFocus.id; invFocus.id = null; return id; },
     lead: (s) => equipment(api, s),
     detail: (s, id) => {
@@ -284,6 +342,14 @@ export function inventoryPage(api: GameApi) {
         rows.splice(rows.length - 1, 0, { k: 'Inside', v: `Your ${boxName.toLowerCase()}` },
           { k: 'Take out', v: h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'take-out', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
             onclick: () => { playDraft.text = `I take the ${name.toLowerCase()} out of my ${boxName.toLowerCase()}`; closePanel(); location.hash = 'play'; } }, 'Take it out') });
+      }
+      // CT1: something loose in the pack, while a container is carried: Put in drafts the order on Play (a stow into it)
+      const boxes = putInto(s, it, !!inside);
+      if (boxes.length) {
+        const name = (safe(() => itemDef(s, it.itemId).name) ?? it.itemId).toLowerCase();
+        rows.splice(rows.length - 1, 0, { k: 'Put in', v: h('span', { class: 'put-in' }, boxes.map((box) =>
+          h('button', { type: 'button', class: 'hs-btn-text', 'data-chip': 'put-in', style: 'min-height:0;padding:0', title: 'Puts the order in the box on Play. Nothing is sent until Send',
+            onclick: () => { playDraft.text = `I put the ${name} in my ${box}`; closePanel(); location.hash = 'play'; } }, `Put it in your ${box}`))) });
       }
       const heal = healItems(s, s.player).find((x) => x.itemId === it.itemId);
       if (heal) {
@@ -313,7 +379,7 @@ export function inventoryPage(api: GameApi) {
         const pools = it.pools ? Object.entries(it.pools).map(([k, v]) => `${k} ${v}%`).join(', ') : 'Whole';
         const need = d ? requirement(d) : null;
         const needs = need ? `Needs ${needText(need)}` : '';
-        g.rows.push({ id: it.id, sortKey: n, cells: { name: d?.name ?? it.itemId, needs, qty: String(it.qty ?? 1), cond: d?.container ? holdsText(it) : pools },
+        g.rows.push({ id: it.id, sortKey: n, drag: !d?.container, cells: { name: d?.name ?? it.itemId, needs, qty: String(it.qty ?? 1), cond: d?.container ? holdsText(it) : pools },
           ...(need ? { tones: { needs: shortBy(p, d!) > 0 ? 'bad' as const : 'muted' as const } } : {}) });
         groups.set(id, g);
       });
@@ -321,7 +387,7 @@ export function inventoryPage(api: GameApi) {
       const boxes = carriedBoxes(s).filter((b) => b.contents?.length).map((b, k) => {
         const name = safe(() => itemDef(s, b.itemId).name) ?? 'container';
         return { id: `in:${b.id}`, title: `In your ${name.toLowerCase()}`, color: 'c4', order: k, how: `What your ${name.toLowerCase()} holds. Click one to take it out.`,
-          rows: insideOf(s, b).map((x, n) => ({ id: x.it.id, sortKey: n, cells: { name: x.path, needs: '', qty: String(x.it.qty ?? 1),
+          rows: insideOf(s, b).map((x, n) => ({ id: x.it.id, sortKey: n, drag: true, cells: { name: x.path, needs: '', qty: String(x.it.qty ?? 1),
             cond: safe(() => itemDef(s, x.it.itemId).container) ? holdsText(x.it) : x.it.pools ? Object.entries(x.it.pools).map(([k2, v]) => `${k2} ${v}%`).join(', ') : 'Whole' } })) };
       });
       const inBoxes = boxes.map((g) => {
@@ -338,6 +404,8 @@ export function inventoryPage(api: GameApi) {
     },
     line: coinLine, noTiles: true,
   });
+  dragToBoxes(api, page.el);
+  return page;
 }
 
 /** a quest to open on arrival (the Play screen's quest line) */

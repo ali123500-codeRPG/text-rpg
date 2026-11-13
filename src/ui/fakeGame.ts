@@ -17,7 +17,7 @@ import { IT } from '../library/itemIds';
 import { ACH } from '../library/achievementIds';
 import { barMax, lineMax } from '../ruleset/fatigue';
 import { achievementInfo, grantAchievement } from '../engine/xp';
-import { actionNotes, doingSnap, placeName } from '../agents/game';
+import { actionNotes, doingSnap, NERVE_REFUSED, placeName } from '../agents/game';
 import { buildPlayerView } from '../views';
 import { passEssence, takeEssence } from '../engine/essence';
 import { ES } from '../library/essenceIds';
@@ -280,6 +280,8 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
       busy = true;
       if (/^end\b/i.test(text)) ending = { as: 'resolved', name: 'resolved' }; // the ending's rule draws while the turn runs (SD1)
       emit();
+      // NB5: with a broken nerve a punch is turned away before the turn, as the game does (no time passes)
+      if (/^(i )?punch\b/i.test(text) && moraleLevel(state.player) === 'broken') { lines = [...lines, { turn: t, kind: 'clarify', text: NERVE_REFUSED }]; busy = false; emit(); return; }
       // "punch the man": the game asks back which man, naming the guard and the field, to show the tappable names (no turn)
       if (/^(i )?punch the man\b/i.test(text)) { lines = [...lines, { turn: t, kind: 'clarify', text: 'Which man do you mean to punch: the village guard by the door, or do you mean the slime?' }]; busy = false; emit(); return; }
       await new Promise((r) => setTimeout(r, 600));
@@ -315,7 +317,7 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         setMoraleLost(p, /^fear/i.test(text) ? (Math.min(100, next) / 100) * max : (p.core.condition.moraleLost ?? 0) - max / 4);
       }
       // the turn "fear" breaks the nerve shows the Nerve broken card; "punch" while Broken is refused (MB12)
-      const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : wasBroken && /^punch\b/i.test(text) ? { nerveRefused: true as const } : null;
+      const nerve = !wasBroken && moraleLevel(state.player) === 'broken' ? { nerveBroke: true as const } : null;
       // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
       const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       const bandaged = /^bandage\b/i.test(text) ? bandageTurn(state) : null;

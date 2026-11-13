@@ -73,7 +73,7 @@ export type Col = { key: string; title: string; right?: boolean };
 /** an order another page drafts for the Play box (Take out on the Inventory): Play puts it in the box once and clears it; nothing is sent */
 export const playDraft: { text: string | null } = { text: null };
 
-export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted'> };
+export type TRow = { id: string; cells: Record<string, string>; sortKey?: number; tones?: Record<string, 'bad' | 'muted'>; drag?: boolean /* the row can be dragged (the Inventory's put in / take out) */ };
 export type TGroup = { id: string; title: string; color?: string; rows: TRow[]; combined: Record<string, string>; combinedTones?: Record<string, 'bad' | 'muted'> };
 
 /** natural-number title order: "Slime 2" before "Slime 10" */
@@ -103,7 +103,7 @@ export function groupedTable(opts: {
     const toggle = () => { open.has(g.id) ? open.delete(g.id) : open.add(g.id); opts.redraw(); };
     if (single) { body.append(dataRow(rows[0], cols, opts.onField, null, g)); continue; }
     const isOpen = open.has(g.id);
-    body.append(h('tr', { class: 'grp', id: 'grp-' + g.id, onclick: (e: Event) => { if (!(e.target as HTMLElement).closest('.fld')) toggle(); } },
+    body.append(h('tr', { class: 'grp', id: 'grp-' + g.id, 'data-group': g.id, onclick: (e: Event) => { if (!(e.target as HTMLElement).closest('.fld')) toggle(); } },
       cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
         i === 0 ? [h('span', { class: 'hs-chev' }, isOpen ? '⌄' : '›'), g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null, g.title,
           h('button', { class: 'hs-chip', type: 'button', title: isOpen ? 'Fold the rows' : `Open the ${rows.length} rows`, onclick: (e: Event) => { e.stopPropagation(); toggle(); } }, `↻${rows.length}`)]
@@ -114,7 +114,7 @@ export function groupedTable(opts: {
 }
 
 function dataRow(r: TRow, cols: Col[], onField: (row: TRow, key: string) => void, n: number | null, g: TGroup): HTMLElement {
-  return h('tr', {}, cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
+  return h('tr', { 'data-row': r.id, draggable: r.drag || undefined }, cols.map((c, i) => h('td', { class: c.right ? 'r' : '' },
     i === 0 && n !== null ? h('span', { class: 'sn' }, `${n}.`) : null,
     i === 0 && n === null && g.color ? h('i', { class: 'hs-sq', style: `background:var(--${g.color})` }) : null,
     h('span', { class: 'fld' + (r.tones?.[c.key] ? ' tone-' + r.tones[c.key] : ''), onclick: () => onField(r, c.key) }, r.cells[c.key] ?? '–'))));

@@ -30,7 +30,7 @@
   /* motion (Motion Rules Review M-50): every duration and easing on the play screen comes from these */
   --m-feedback: 120ms; --m-state: 200ms; --m-beat: 220ms; --m-sentence: 180ms; --m-reveal-cap: 1500ms; --m-stagger: 350ms;
   --m-results-cap: 3500ms; --m-count: 600ms; --m-trail: 700ms; --m-scenario: 650ms; --m-fall: 1400ms; --m-honor: 900ms;
-  --m-hold: 80ms; --m-strike: 1600ms; --m-shake: 280ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */
+  --m-hold: 80ms; --m-strike: 1600ms; --m-shake: 280ms; --m-ghost-hold: 250ms; --m-gain-gap: 300ms; --m-gains-pace: 2; /* the gains moment runs at this multiple of every duration */ --m-gains-min: 10000ms; /* and lasts at least this long, unless skipped */
   --m-ease: cubic-bezier(0.16, 1, 0.3, 1); --m-ease-exit: cubic-bezier(0.4, 0, 1, 1);
   color-scheme: dark;
 }
@@ -1004,13 +1004,17 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .itip dt { color: var(--faint); white-space: nowrap; }
 .itip dd { margin: 0; color: var(--text); }
 
-/* D-226 (M-39): the scenario-end gains panel. It covers the story column only, so the action box stays below it; the
-   night shows faintly through. A gold thread (XP is the Thread) runs down a spine of knots, one per kind of gain. */
+/* D-226 (M-39): the scenario-end gains moment, a pop-up over the whole screen (the grand moment: nothing else shows
+   while it plays); the night shows faintly through. A gold thread (XP is the Thread) runs down a spine of knots, one per
+   kind of gain. Continue, Enter or Esc closes it. */
 .play > .story { grid-area: 1 / 1; } .play > .sec { grid-area: 2 / 1; }
-.gains-veil { grid-area: 1 / 1; z-index: 5; position: relative; min-height: 0; overflow-y: auto; scrollbar-color: var(--rule) transparent;
-  background: var(--bg); border-top: 1px solid var(--rule); font: 14px/1.4 var(--font-round); }
-.gains { display: grid; gap: var(--space-6); padding: var(--space-6) var(--space-6) var(--space-8) 0; }
-.gains .g-rule { margin: 0; font-size: 15px; }
+.gains-veil { position: fixed; inset: 0; z-index: 80; overflow-y: auto; scrollbar-color: var(--rule) transparent; overscroll-behavior: contain;
+  background: radial-gradient(ellipse at 50% 18%, color-mix(in srgb, var(--scenario-mark) 10%, transparent), transparent 60%),
+    color-mix(in srgb, var(--bg) 94%, transparent); backdrop-filter: blur(4px); font: 15px/1.45 var(--font-round); }
+.gains { display: grid; gap: var(--space-8); width: min(1080px, 100%); margin: 0 auto; padding: clamp(32px, 7vh, 88px) var(--space-6) var(--space-8); }
+.gains .g-rule { margin: 0; font-size: clamp(22px, 1.6vw + 12px, 34px); letter-spacing: .08em; }
+.gains .g-title { text-align: center; font-size: clamp(34px, 2vw + 18px, 52px); }
+.gains .g-foot { justify-self: center; }
 .g-closing { margin: calc(-1 * var(--space-3)) 0 0; font: italic 400 var(--story-size)/1.6 var(--font-story); color: var(--muted); text-align: center; text-wrap: balance; }
 .gains-veil[data-end="lost"] { --g-thread: var(--danger); }
 .g-title { margin: 0; font: 400 clamp(26px, 1.2vw + 14px, 34px)/1.15 var(--font-story); letter-spacing: -.01em; color: var(--text); text-wrap: balance; }
@@ -1160,3 +1164,18 @@ main.map-page { height: var(--vh); box-sizing: border-box; grid-template-rows: a
 .ess-waiting { color: var(--essence); font-weight: 700; }
 .ess-pass { min-height: var(--input-h); padding: 0 16px; border-radius: var(--r-md); border: 1px solid var(--rule); background: none; color: var(--text); font: inherit; cursor: pointer; }
 .ess-pass:hover { border-color: var(--muted); }
+
+/* NB2: a sheet level word with its cost as a tip (hover or focus), not a line of its own */
+.cs-row:has(.cs-tipped) { position: relative; }
+.cs-tipped { cursor: help; text-decoration: underline dotted color-mix(in oklch, currentColor 60%, transparent); text-underline-offset: 3px; outline-offset: 2px; }
+.cs-tip { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 30; padding: 6px 10px; border-radius: var(--r-md);
+  background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow-toast); font-size: 12px; font-weight: 400; line-height: 1.45; color: var(--text);
+  white-space: normal; text-align: left; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity var(--m-feedback) var(--m-ease); }
+.cs-tipped:hover .cs-tip, .cs-tipped:focus .cs-tip, .cs-tipped:focus-within .cs-tip { opacity: 1; visibility: visible; }
+
+/* CT1: drag and drop on the Inventory: a dragged row dims, a row or group that takes the drop lights up */
+.hs-tbl tr[draggable="true"] { cursor: grab; }
+.hs-tbl tr.dragging { opacity: .5; }
+.hs-tbl tr.drop-ok > td { background: color-mix(in srgb, var(--accent) 16%, transparent); outline: 1px solid color-mix(in srgb, var(--accent) 60%, transparent); outline-offset: -1px; }
+/* CT1: Put in, one button per carried container */
+.put-in { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
