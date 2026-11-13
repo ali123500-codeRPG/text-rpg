@@ -2,7 +2,7 @@
 // action box shows the player's own with a Keep going chip; each turn's results list the long actions the player saw, as
 // going on, done, broken off or set aside. Times are game seconds and minutes only (never rounds, AT35). The meter is drawn
 // once from done ÷ (done + left) and does not move by itself (M-01: it is game time, not a wait).
-import type { ActionNote, DoingView, WalkingView } from '../types';
+import type { ActionNote, DoingView, FollowingView, WalkingView } from '../types';
 import { distText } from '../views';
 import { h } from './kit';
 
@@ -54,6 +54,40 @@ export function walkingNow(w: WalkingView | undefined, pick: (text: string) => v
     h('div', { class: 'hs-picker dg-pick' },
       chip('keep-walking', 'Keep walking', `I keep walking to ${w.to}`, 'Fills the box to carry on walking. Nothing is sent until Send'),
       chip('stop-walking', 'Stop here', 'I stop and wait here', 'Fills the box to stop where you are. Nothing is sent until Send')));
+}
+
+const LOST_WORDS: Record<NonNullable<FollowingView['lost']>, string> = {
+  down: 'they went down in', slipped_away: 'they slipped out of sight in', out_of_sight: 'they went on out of sight from',
+};
+
+/** BG-190: the following line as plain text, as it reads on screen */
+export function followingText(f: FollowingView, w?: WalkingView): string {
+  if (f.lost) return `Lost ${f.name} · ${LOST_WORDS[f.lost]} ${f.zone ?? 'here'}`;
+  return `Following ${f.name} · ${w ? `in ${w.to} · ${walkLeft(w)}` : 'close behind'}`;
+}
+/** BG-190: the chips under the following line, and what each fills the box with */
+export function followingChips(f: FollowingView): { key: string; label: string; text: string }[] {
+  return f.lost ? [{ key: 'look-for', label: 'Look for them', text: `I look around for ${f.name}` }]
+    : [{ key: 'keep-following', label: 'Keep following', text: `I keep following ${f.name}` }, { key: 'stop-walking', label: 'Stop here', text: 'I stop and wait here' }];
+}
+
+/** BG-190: whom the player is following, in place of the walk line: "Following Bren · in the Upstairs landing · 24 m · 17 s
+ * to go", with Keep following and Stop here; or, the turn they are lost, what happened and where ("Lost Bren · they slipped
+ * out of sight in the Common room"), with Look for them. The chips only fill the box. */
+export function followingNow(f: FollowingView | undefined, w: WalkingView | undefined, pick: (text: string) => void, disabled: boolean): HTMLElement | null {
+  if (!f) return null;
+  const chip = (key: string, label: string, text: string, title: string) =>
+    h('button', { type: 'button', class: 'itm wk-' + key, 'data-chip': key, disabled, title, onclick: () => pick(text) }, label);
+  if (f.lost) return h('div', { class: 'walking-now following lost', role: 'status', 'data-who': f.who, 'data-lost': f.lost },
+    h('span', { class: 'wk-i', 'aria-hidden': 'true' }, '✕'),
+    h('span', { class: 'dg-t' }, 'Lost ', h('b', {}, f.name), ` · ${LOST_WORDS[f.lost]} `, h('b', {}, f.zone ?? 'here')),
+    h('span', { class: 'hs-note' }, 'The follow is over.'),
+    h('div', { class: 'hs-picker dg-pick' }, followingChips(f).map((c) => chip(c.key, c.label, c.text, 'Fills the box. Nothing is sent until Send'))));
+  return h('div', { class: 'walking-now following', role: 'status', 'data-who': f.who, ...(w ? { 'data-to': w.toZone } : {}) },
+    h('span', { class: 'wk-i', 'aria-hidden': 'true' }, '➜'),
+    h('span', { class: 'dg-t' }, 'Following ', h('b', {}, f.name), ...(w ? [' · in ', h('b', {}, w.to), ' · ', h('b', { class: 'dg-left' }, walkLeft(w))] : [' · ', h('b', { class: 'dg-left' }, 'close behind')])),
+    h('span', { class: 'hs-note' }, 'Keeps after them each turn while you can see or hear them; any other order stops it.'),
+    h('div', { class: 'hs-picker dg-pick' }, followingChips(f).map((c) => chip(c.key, c.label, c.text, 'Fills the box. Nothing is sent until Send'))));
 }
 
 const STATE_WORD: Record<ActionNote['state'], string> = { going: '', done: 'done', broken: 'broken off', stopped: 'set aside' };

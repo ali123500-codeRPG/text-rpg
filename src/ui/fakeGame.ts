@@ -306,7 +306,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         state.player.walking = { toZone: text.split(/\s+/)[1] || 'tav_upstairs' };
         if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id)); // a way to walk
       }
-      if (/^stop\b/i.test(text)) delete state.player.walking;
+      if (/^stop\b/i.test(text)) { delete state.player.walking; delete state.player.followLost; }
+      // "follow" has you following Bren up to the landing (BG-190); "lose" loses him there, slipped out of sight
+      if (/^follow\b/i.test(text)) {
+        delete state.player.followLost;
+        state.player.walking = { toZone: 'tav_upstairs', spot: { near: 'guard_1', follow: true } };
+        if (!state.stage.zoneIds.length) state.stage.zoneIds = state.places.flatMap((x) => x.zones.map((z) => z.id));
+      }
+      if (/^lose\b/i.test(text)) { delete state.player.walking; state.player.followLost = { who: 'guard_1', why: 'slipped_away', zone: 'tav_upstairs' }; }
       // "tire" adds sleep debt (a fatigue level's worth) and spends half the breath line; "breathe" fills the line again, to
       // show the stamina bar (FT20)
       if (/^tire\b/i.test(text)) { const f = state.player.core.condition.fatigue ?? { debt: 0, line: 0 }; state.player.core.condition.fatigue = { debt: Math.min(barMax(state.player), f.debt + barMax(state.player) * 0.16), line: f.line + lineMax(state.player) / 2 }; }
