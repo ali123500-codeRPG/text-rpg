@@ -2,7 +2,8 @@
 // action box shows the player's own with a Keep going chip; each turn's results list the long actions the player saw, as
 // going on, done, broken off or set aside. Times are game seconds and minutes only (never rounds, AT35). The meter is drawn
 // once from done ÷ (done + left) and does not move by itself (M-01: it is game time, not a wait).
-import type { ActionNote, DoingView } from '../types';
+import type { ActionNote, DoingView, WalkingView } from '../types';
+import { distText } from '../views';
 import { h } from './kit';
 
 /** whole game seconds in words: "40 s", "2 min", "1 min 30 s" */
@@ -34,6 +35,25 @@ export function doingNow(d: DoingView | undefined, pick: (text: string) => void,
     h('span', { class: 'dg-t' }, h('b', {}, d.what), ` · ${secsText(d.done)} done · `, h('b', { class: 'dg-left' }, `${secsText(d.left)} to go`)),
     h('span', { class: 'hs-note' }, 'Keep at it to carry on; anything else sets it aside.'),
     h('div', { class: 'hs-picker dg-pick' }, h('button', { type: 'button', class: 'itm dg-go', 'data-chip': 'keep-going', disabled, title: 'Fills the box to carry on with it. Nothing is sent until Send', onclick: () => pick(`I keep going: ${lower(d.what)}`) }, 'Keep going')));
+}
+
+/** what is left of a walk: "14 m · 10 s to go"; a goal with no open way to it (a shut door found on the way) has no distance */
+export const walkLeft = (w: WalkingView): string =>
+  Number.isFinite(w.metres) && Number.isFinite(w.seconds) ? `${distText(w.metres)} · ${secsText(w.seconds)} to go` : 'no open way there';
+
+/** AT49: the player's walk still on its way, with what is left; it carries on by itself while the player only talks, so the
+ * chips are a shortcut to keep going in words or to stop (a wait is an action, and any action ends the walk) */
+export function walkingNow(w: WalkingView | undefined, pick: (text: string) => void, disabled: boolean): HTMLElement | null {
+  if (!w) return null;
+  const chip = (key: string, label: string, text: string, title: string) =>
+    h('button', { type: 'button', class: 'itm wk-' + key, 'data-chip': key, disabled, title, onclick: () => pick(text) }, label);
+  return h('div', { class: 'walking-now', role: 'status', 'data-to': w.toZone },
+    h('span', { class: 'wk-i', 'aria-hidden': 'true' }, '➜'),
+    h('span', { class: 'dg-t' }, 'Walking to ', h('b', {}, w.to), ' · ', h('b', { class: 'dg-left' }, walkLeft(w))),
+    h('span', { class: 'hs-note' }, 'Carries on next turn while you only talk; any other order stops it.'),
+    h('div', { class: 'hs-picker dg-pick' },
+      chip('keep-walking', 'Keep walking', `I keep walking to ${w.to}`, 'Fills the box to carry on walking. Nothing is sent until Send'),
+      chip('stop-walking', 'Stop here', 'I stop and wait here', 'Fills the box to stop where you are. Nothing is sent until Send')));
 }
 
 const STATE_WORD: Record<ActionNote['state'], string> = { going: '', done: 'done', broken: 'broken off', stopped: 'set aside' };

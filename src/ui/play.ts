@@ -28,7 +28,7 @@ import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
 import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
-import { actionsRow, doingChip, doingNow } from './doing';
+import { actionsRow, doingChip, doingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
 import { anyGains, gainsPanel, gainsSummary, honor, playGains } from './gains';
 import { working } from '../ruleset/body';
@@ -609,8 +609,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const broken = !!s && moraleLevel(s.player) === 'broken';
     yieldBtn.hidden = fleeBtn.hidden = !broken; aimBtn.hidden = broken;
     yieldBtn.disabled = fleeBtn.disabled = stopped;
-    // AT11a: the player's own long action; a redraw that changes nothing keeps the element (M-74)
-    if (!frozen) { const dn = doingNow(pv?.player.doing, pick, stopped); const html = dn?.outerHTML ?? ''; if (html !== doingHtml) { doingSlot.replaceChildren(...(dn ? [dn] : [])); doingHtml = html; } }
+    // AT11a: the player's own long action, and AT49 its walk on the way; a redraw that changes nothing keeps the element (M-74)
+    if (!frozen) { const dn = [doingNow(pv?.player.doing, pick, stopped), walkingNow(pv?.player.walking, pick, stopped)].filter((x): x is HTMLElement => !!x); const html = dn.map((x) => x.outerHTML).join(''); if (html !== doingHtml) { doingSlot.replaceChildren(...dn); doingHtml = html; } }
     st.set(stealthy, stopped);
     // OQ-24 (decided): the action box keeps focus; it comes back after a turn re-enables it
     if (!input.disabled && !el.hidden && el.isConnected && (document.activeElement === document.body || document.activeElement === send)) input.focus();
