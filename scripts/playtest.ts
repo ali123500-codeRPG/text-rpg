@@ -163,6 +163,7 @@ async function main() {
     for (const [k, v] of Object.entries(saved.docs)) store.docs.set(k, v);
     if (!(await game.resume())) throw new Error(`could not resume the story saved in ${RESUME}`);
     firstTurn = saved.step + 1;
+    writeFileSync(join(OUT, 'resumed-from.json'), JSON.stringify({ dir: RESUME, step: saved.step })); // the replay set starts a resumed run here
     console.log(`resumed ${RESUME} after turn ${saved.step}`);
   } else await game.newStory({ ...recommendedBuild(arg('class', CL.swordsman)), name: 'Arden', ...(pers ? { personality: pers } : {}) });
   const storyId = game.state()?.storyId;
