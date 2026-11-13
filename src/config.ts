@@ -532,8 +532,12 @@ const DEFAULTS = {
   MOTION_EDGE_FROM: 'wounded' as HealthLevelKey,
   MOTION_EDGE_STEADY: 'critical' as HealthLevelKey,
   TRAIL_ZONES: 3, // the player's last places left, shown to the parser so "go back" has somewhere to mean (placeholder)
-  WEAVER_MODEL: 'claude-opus-5-5',
-  WEAVER_EFFORT: 'high' as 'low' | 'medium' | 'high',
+  /** agents that name a model and effort; the others run on their MODEL_TIERS tier, which is also the fallback when the
+   * named model can't answer. Narrator on Fable 5.2 low: won 15 of 16 blind judgements against the complex tier in playtests */
+  AGENT_MODELS: {
+    weaver: { model: 'claude-opus-5-5', effort: 'high' },
+    narrator: { model: 'claude-fable-5-2', effort: 'low' },
+  } as Record<string, { model: string; effort: 'low' | 'medium' | 'high' }>,
   MODEL_TIERS: { parser: 'quick', planner: 'default', responder: 'default', voice: 'default', narrator: 'complex', weaver: 'complex', autopilot: 'default' } as Record<string, 'quick' | 'default' | 'complex'>,
   STYLE: { tone: 'grounded dark fantasy with an edge: vivid and punchy, a touch of anime drama in the big moments, never over the top', // (flavor voice V5)
     length: '2 to 4 short paragraphs' },

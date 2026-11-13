@@ -84,9 +84,7 @@ export type RunResult<T> = {
 };
 
 export function modelFor(agent: AgentName): Pick<ClaudeRequest, 'modelTier' | 'model' | 'effort'> {
-  const modelTier = CONFIG.MODEL_TIERS[agent];
-  if (agent === 'weaver') return { model: CONFIG.WEAVER_MODEL, modelTier, effort: CONFIG.WEAVER_EFFORT };
-  return { modelTier };
+  return { modelTier: CONFIG.MODEL_TIERS[agent], ...CONFIG.AGENT_MODELS[agent] };
 }
 
 const repairNote = (note: string) =>
