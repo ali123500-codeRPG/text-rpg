@@ -986,5 +986,6 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (sec) sec.textContent = `${n} s`;
     if (slow) slow.hidden = n < SLOW_AFTER_S;
   }, 1000);
-  return { el, update, focus: () => input.focus() };
+  // BG-191: coming back to Play (the page was off the screen, so the story lost its place) opens at the latest lines
+  return { el, update, focus: () => { story.scrollTop = story.scrollHeight; input.focus(); } };
 }
