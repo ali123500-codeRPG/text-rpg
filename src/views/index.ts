@@ -55,7 +55,7 @@ const moraleWord = (a: Actor): string => MORALE_LEVELS.name(moraleLevel(a));
 const fatigueWord = (a: Actor): string => FATIGUE_LEVELS.name(fatigueLevel(a));
 const r1 = (x: number) => Math.round(x * 10) / 10;
 /** FT20: the player's stamina bar as points left, to a tenth */
-const staminaOf = (a: Actor): StaminaView => ({ level: fatigueWord(a), left: r1(barMax(a) - fatigueOf(a).debt), max: r1(barMax(a)), lineLeft: r1(lineMax(a) - lineUsed(a)), lineMax: r1(lineMax(a)), ...(isSpent(a) ? { spent: true as const } : {}) });
+export const staminaOf = (a: Actor): StaminaView => ({ level: fatigueWord(a), left: r1(barMax(a) - fatigueOf(a).debt), max: r1(barMax(a)), lineLeft: r1(lineMax(a) - lineUsed(a)), lineMax: r1(lineMax(a)), ...(isSpent(a) ? { spent: true as const } : {}) });
 /** a rolled NPC's title from its template, given with its name in CHARACTER only */
 const rolledTitle = (state: GameState, a: Actor): string | undefined =>
   a.core.generation === 'rolled' && a.core.templateId ? npcTemplate(state, a.core.templateId).title : undefined;
