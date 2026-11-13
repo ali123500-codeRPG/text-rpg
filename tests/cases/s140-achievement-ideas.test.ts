@@ -102,7 +102,7 @@ describe('140 achievement ideas', () => {
     const s = makeVillage();
     s.clocks = { ...s.clocks };
     const q = (id: string, giver: string, more: Partial<Quest> = {}): Quest => {
-      const x: Quest = { id, state: 'ready', text: 'a job', giver, dealId: `d_${id}`, goal: { kind: 'other' }, progress: 0, level: 'i' as Quest['level'], startTurn: 0, pay: { coin: 5 }, ...more };
+      const x: Quest = { id, state: 'ready', text: 'a job', giver, dealId: `d_${id}`, goal: { kind: 'other' }, progress: 0, level: 'i' as Quest['level'], startTurn: 0, pay: { coin: 5 }, giverSaw: true, ...more };
       s.quests.push(x);
       return x;
     };

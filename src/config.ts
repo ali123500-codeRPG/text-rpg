@@ -325,6 +325,8 @@ const DEFAULTS = {
   /** FR1 b (placeholder): a calm start (talk, trade, a quest goal reached) starts a scenario only once free roam has lasted this
    * many turns; danger (an attack, a hostile spotting the player), road encounters and unbuilt frontiers never wait */
   ROAM_MIN_TURNS: 5,
+  /** BF4 (placeholder): turns an NPC that led someone somewhere (head_to with lead) waits there for them before going back to its routine */
+  LEAD_WAIT_TURNS: 2,
   /** D-226 (LF3): while a scenario runs, the player's achievements and All-XXX steps wait for the scenario's end and are
    * granted there together (one gains summary for the ending moment); in free roam they come at once. false: at once always */
   GROWTH_AT_SCENARIO_END: true,

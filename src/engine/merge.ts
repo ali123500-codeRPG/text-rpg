@@ -130,9 +130,11 @@ function npcMove(state: GameState, o: AcceptedAgentOutput): Partial<Order> {
   return { move: mv.toZone, ...(mv.after ? { moveAfter: true } : {}), ...(mv.spot ? { moveSpot: mv.spot } : {}) };
 }
 
-export function agentLine(o: AcceptedAgentOutput): Order['line'] {
-  if (o.agent === 'voice') return o.output.line ? { text: o.output.line, volume: o.output.volume } : null;
-  return o.output.dialogue ? { text: o.output.dialogue.line, volume: o.output.dialogue.volume } : null;
+/** BG-132: a dialogue call's line (Responder, Voice) answers the player, so it is for them whatever action carries it */
+export function agentLine(o: AcceptedAgentOutput, playerId?: string): Order['line'] {
+  const to = o.agent !== 'planner' && playerId ? { to: playerId } : {};
+  if (o.agent === 'voice') return o.output.line ? { text: o.output.line, volume: o.output.volume, ...to } : null;
+  return o.output.dialogue ? { text: o.output.dialogue.line, volume: o.output.dialogue.volume, ...to } : null;
 }
 
 /** the agent outputs that count this turn: dialogue calls for spokespeople, the Responder for beat speakers (BG-50), Planner for
@@ -157,7 +159,7 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
   const agent = new Map<string, Order>();
   for (const o of usableAgentOutputs(input)) {
     if (!views.has(o.actorId) || agent.has(o.actorId)) continue;
-    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o), ...npcMove(state, o) });
+    const order = npcActionToOrder(o.actorId, o.output.action, { gear: o.output.gear, line: agentLine(o, state.player.id), ...npcMove(state, o) });
     // BG-34: a follower out of a fight walks after the player beside the action its agent gave
     const follow = !order.move && !MOVE_ACTIONS.includes(order.type) && !isEngaged(state, state.actors.find((x) => x.id === o.actorId)!) ? followMove(views.get(o.actorId)!) : null;
     agent.set(o.actorId, follow ? { ...order, move: follow } : order);

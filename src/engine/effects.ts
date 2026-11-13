@@ -135,6 +135,6 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
     const switched = !!routineId && switchRoutine(state, a, routineId, 'agent');
     if (switched && spokes.has(a.id)) calmBandmatesSwitch(state, a.id, routineId!, ctx.heardExchange);
     // NW2: after any switch, so the walk goes back to the routine it just picked
-    if (o.output.headTo) headTo(state, a, o.output.headTo);
+    if (o.output.headTo) headTo(state, a, o.output.headTo, 'agent', o.output.lead ?? undefined);
   }
 }

@@ -2,8 +2,8 @@
 import type { Actor, Belief, BeliefStatus, CheckResult, ContestResult, AttackResult, Cue, GameEvent, GameState, Perception, Rng } from '../types';
 import { SPEECH_ACTIONS } from '../types';
 import { CONFIG } from '../config';
-import { AWARENESS } from '../scales';
-import { hearingOf } from './noise';
+import { AWARENESS, NOISE, type NoiseKey } from '../scales';
+import { hearingOf, VOLUME_NOISE } from './noise';
 import type { Located } from '../engine/position';
 import { sightLevel } from './sight';
 import { seeingM } from '../engine/position';
@@ -56,6 +56,13 @@ export function hearsClearly(state: GameState, from: Located, listener: Actor, n
   return !isAsleep(listener) && soundReach(state, listener, from, noise, noise === 'hushed') === 'full';
 }
 
+/** BF3: a whisper to someone it does not reach is said low instead: the quietest sound from a whisper up to normal
+ * speech that the listener hears clearly from where it is said (normal speech when none does) */
+export function carryingNoise(state: GameState, from: Located, listener: Actor): NoiseKey {
+  for (let i = NOISE.pos(VOLUME_NOISE.whisper); i <= NOISE.pos(VOLUME_NOISE.normal); i++) if (hearsClearly(state, from, listener, NOISE.keys[i])) return NOISE.keys[i];
+  return VOLUME_NOISE.normal;
+}
+
 /** C1 Never Surprised: the owner can hear a sound of this noise made there (a person or a point), stealth aside */
 export function hears(state: GameState, observer: Actor, at: Located, noise: GameEvent['noise']): boolean {
   return !isAsleep(observer) && soundCarries(state, observer, at, noise);
@@ -90,8 +97,8 @@ export function perceptionOf(event: GameEvent, state: GameState, observer: Actor
     if (d !== null && d <= lookReach()) sight = { level: 'full', cue: 'sight' };
   }
   // HB8: a whisper said to this observer (its target or one it was addressed to) is said leaning in
-  const toMe = event.target === observer.id || !!event.speech?.addressees.includes(observer.id);
-  const words = event.kind === 'speak' || (SPEECH_ACTIONS as readonly string[]).includes(event.kind) || !!event.speech;
+  const toMe = event.target === observer.id || !!event.speech?.addressees.includes(observer.id) || event.line?.to === observer.id;
+  const words = event.kind === 'speak' || (SPEECH_ACTIONS as readonly string[]).includes(event.kind) || !!event.speech || !!event.line;
   const nl = soundReach(state, observer, at, event.noise, event.noise === 'hushed' && toMe && words);
   const sound: Seen | null = nl ? { level: nl, cue: 'sound' } : null;
   let best = better(sight, sound);

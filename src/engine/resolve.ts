@@ -21,7 +21,7 @@ import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { HEALTH_LEVELS, PART_STATES, TIERS } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
 import { VOLUME_NOISE } from '../perception/noise';
-import { applyBeliefDecay, beliefStatus, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
+import { applyBeliefDecay, beliefStatus, carryingNoise, computePerception, hears, hearsWords, lookAround, noteSightings, noticeCue, stealthEnd, stealthStart, updateBeliefs } from '../perception';
 import { buildActorView } from '../views';
 import { alertOrders, brokenOrder, desiredState, detectPlayer, fallbackOrder, headArrivals, resolveAmbush, searchFor, searchItems, searchPerson, stealthDetect, updateAlarms } from '../minds';
 import { noteFighting, updateEngagements, usableThisEngagement, useThisEngagement } from './engagement';
@@ -157,6 +157,14 @@ function initiativeOrder(state: GameState, ids: string[], orders: Map<string, Or
 
 function emit(ctx: Ctx, ev: GameEvent, result?: CheckResult | ContestResult | AttackResult, perceived = false): void {
   const { state, rng } = ctx;
+  // BG-132: one order's words are said once a turn, whichever of its events carries them first
+  if (ev.line && ev.bark && ctx.events.some((e) => e.actorId === ev.actorId && e.line?.text === ev.line!.text)) { delete ev.line; delete ev.bark; }
+  // BF3: a whisper to someone it does not reach, even after stepping up, is said low enough for them to hear
+  const to = ev.line?.volume === 'whisper' ? actorById(state, ev.line.to ?? (ev.kind === 'speak' ? ev.target ?? '' : '')) : undefined;
+  if (to && to.id !== ev.actorId) {
+    const n = carryingNoise(state, ev, to);
+    if (NOISE.pos(n) > NOISE.pos(ev.noise)) { ev.noise = n; logCode(state, 'whisper_raised', { actorId: ev.actorId, to: to.id, noise: n }); }
+  }
   wakeByEvent(state, ev); // NW18: a blow or a loud noise wakes sleepers first, so they hear what woke them
   if (!perceived) ev.perception = computePerception(ev, state, rng);
   noteSightings(ev, state);
@@ -237,7 +245,7 @@ function hold(ctx: Ctx, a: Actor, o: Order): void {
 function bark(ev: GameEvent, o: Order): GameEvent {
   if (!o.line) return ev;
   const voice = VOLUME_NOISE[o.line.volume];
-  return { ...ev, line: { text: o.line.text, volume: o.line.volume }, bark: true, noise: NOISE.pos(voice) > NOISE.pos(ev.noise) ? voice : ev.noise };
+  return { ...ev, line: { text: o.line.text, volume: o.line.volume, ...(o.line.to ? { to: o.line.to } : {}) }, bark: true, noise: NOISE.pos(voice) > NOISE.pos(ev.noise) ? voice : ev.noise };
 }
 
 /** ZP2: one leg of a move toward `goal` (a zone, or a point to stop `stopShort` short of): up to the next doorway, or
