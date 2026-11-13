@@ -1,0 +1,50 @@
+// AT11a: long actions on the play screen. Who's here shows what each person in full view is at and how long is left; the
+// action box shows the player's own with a Keep going chip; each turn's results list the long actions the player saw, as
+// going on, done, broken off or set aside. Times are game seconds and minutes only (never rounds, AT35). The meter is drawn
+// once from done ÷ (done + left) and does not move by itself (M-01: it is game time, not a wait).
+import type { ActionNote, DoingView } from '../types';
+import { h } from './kit';
+
+/** whole game seconds in words: "40 s", "2 min", "1 min 30 s" */
+export const secsText = (n: number): string => {
+  const t = Math.max(0, Math.round(n));
+  if (t < 60) return `${t} s`;
+  const m = Math.floor(t / 60), r = t % 60;
+  return r ? `${m} min ${r} s` : `${m} min`;
+};
+
+/** the share of the action done, 0 to 1 */
+export const doneShare = (d: { done: number; left: number }): number => (d.done + d.left > 0 ? Math.min(1, Math.max(0, d.done / (d.done + d.left))) : 1);
+
+/** a thin meter of the share done (scaleX on the fill, so it never animates layout) */
+export const doingMeter = (d: { done: number; left: number }, done = false): HTMLElement =>
+  h('span', { class: 'dg-m' + (done ? ' done' : ''), 'aria-hidden': 'true' }, h('i', { style: `transform:scaleX(${done ? 1 : doneShare(d).toFixed(3)})` }));
+
+const lower = (what: string) => what.charAt(0).toLowerCase() + what.slice(1);
+
+/** Who's here: "span a crossbow · 6 s left" with the meter */
+export const doingChip = (d: DoingView): HTMLElement =>
+  h('span', { class: 'st doing', 'data-doing': d.what, title: `${d.what}: ${secsText(d.done)} done, ${secsText(d.left)} to go` }, doingMeter(d), `${lower(d.what)} · ${secsText(d.left)} left`);
+
+/** the action box: the player's own long action, and a chip that fills the box to carry it on (nothing is sent until Send) */
+export function doingNow(d: DoingView | undefined, pick: (text: string) => void, disabled: boolean): HTMLElement | null {
+  if (!d) return null;
+  return h('div', { class: 'doing-now', role: 'status' },
+    doingMeter(d),
+    h('span', { class: 'dg-t' }, h('b', {}, d.what), ` · ${secsText(d.done)} done · `, h('b', { class: 'dg-left' }, `${secsText(d.left)} to go`)),
+    h('span', { class: 'hs-note' }, 'Keep at it to carry on; anything else sets it aside.'),
+    h('div', { class: 'hs-picker dg-pick' }, h('button', { type: 'button', class: 'itm dg-go', 'data-chip': 'keep-going', disabled, title: 'Fills the box to carry on with it. Nothing is sent until Send', onclick: () => pick(`I keep going: ${lower(d.what)}`) }, 'Keep going')));
+}
+
+const STATE_WORD: Record<ActionNote['state'], string> = { going: '', done: 'done', broken: 'broken off', stopped: 'set aside' };
+
+/** a turn's results: one row of the long actions seen, "You: Bandage · 20 s to go", "Hild: Span a crossbow ✓ done" */
+export function actionsRow(notes: ActionNote[]): HTMLElement | null {
+  if (!notes.length) return null;
+  return h('div', { class: 'rrow acts' }, h('span', { class: 'hs-label' }, 'Actions'),
+    h('ul', {}, notes.map((n) => h('li', { 'data-state': n.state },
+      doingMeter(n, n.state === 'done'),
+      h('span', {}, h('b', {}, n.who), `: ${n.what}`),
+      n.state === 'going' ? h('span', { class: 'dg-left' }, `${secsText(n.left)} to go`)
+        : h('span', { class: 'dg-end ' + n.state }, n.state === 'done' ? '✓ ' : '', STATE_WORD[n.state])))));
+}
