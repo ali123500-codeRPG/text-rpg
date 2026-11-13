@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { actorBody, itemDef } from '../library';
 import { IT } from '../library/itemIds';
 import { partStates } from '../ruleset';
-import { working } from '../ruleset/body';
+import { healthLevel, working } from '../ruleset/body';
 import { actorById, isActive, stance, zoneById } from './relations';
 import { inContainer, packUp, wearIfNone, wornPack } from './containers';
 import { withinGrip, type Located, type Pos } from './position';
@@ -77,11 +77,13 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
       }
       case 'wear_acc': {
         if (!inst || inst.equippedIn?.length || itemDef(state, inst.itemId).slot !== 'accessory') break;
-        // TB6: a Threadbound item is the player's alone: no one else can wear it
-        if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id))) break;
+        // TB6: a Threadbound item is the player's alone: no one else can wear it. WP2: its bond dies with its owner, so the
+        // player may take a dead owner's for themselves
+        const ownerGone = !!inst.boundTo && healthLevel(actorById(state, inst.boundTo) ?? actor) === 'dead';
+        if (itemDef(state, inst.itemId).threadbound && (actor !== state.player || (inst.boundTo && inst.boundTo !== actor.id && !ownerGone))) break;
         const slot = freeAccSlot(actor);
         if (slot) { inst.equippedIn = [slot]; ok = true; }
-        if (ok && itemDef(state, inst.itemId).threadbound) inst.boundTo ??= actor.id; // D-218: binds to the player on first wear
+        if (ok && itemDef(state, inst.itemId).threadbound && (!inst.boundTo || ownerGone)) inst.boundTo = actor.id; // D-218: binds to the player on first wear
         break;
       }
       case 'remove_acc':

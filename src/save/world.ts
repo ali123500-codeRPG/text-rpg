@@ -1,6 +1,9 @@
 // Worlds (HF25, HF26, HF31, HF32): the Universe holds worlds and a world holds stories, one after another. A story is one
 // character's life in a world. Carrying a world on copies its last save into a new story with a new character.
-import type { GameState } from '../types';
+import type { GameState, Head } from '../types';
+import { getLibrary } from '../library';
+import { fromPages, toPages } from './pages';
+import { newReport, repairReferences } from './checks';
 import { CONFIG } from '../config';
 import { itemHolders } from '../ruleset/threadboundItems';
 
@@ -21,8 +24,10 @@ export const pastCharacterId = (storyId: string) => `hero_${storyId.replace(/^st
  * dead (HF27: the original perished there), under their own id, so everything people knew of them stays theirs and
  * nothing of it passes to the newcomer. The story's own state (stage, plans, quests, fights) starts fresh, and the turn
  * count runs on from the world's. The world's clock is left as it was: the caller moves it to the Universe date (HF32).
+ * WP1 b: a last character reset while standing (`fell` false) left the world for good, with everything they carried;
+ * what pointed at them is dropped as for anyone gone (the load's reference repair).
  */
-export function carryOn(world: GameState, fresh: GameState): GameState {
+export function carryOn(world: GameState, fresh: GameState, fell = true): GameState {
   const pastId = pastCharacterId(world.storyId), player = world.player;
   const map = new Map([[player.id, pastId], [player.bandId, `${pastId}_band`], [world.storyId, fresh.storyId]]);
   // field by field: the state's own field names (player) are not ids
@@ -45,7 +50,7 @@ export function carryOn(world: GameState, fresh: GameState): GameState {
     ...fresh,
     turn: world.turn + 1,
     pending: { ...fresh.pending, turn: world.turn + 1 },
-    actors: [...w.actors, past],
+    actors: fell ? [...w.actors, past] : w.actors,
     bands: [...fresh.bands, ...w.bands],
     hidden: { ...w.hidden, plans: {}, stage: fresh.hidden.stage }, // plans and the stage brief were the last story's
     places: w.places, facts: w.facts, clocks: w.clocks, flags: w.flags, blueprints: w.blueprints,
@@ -56,5 +61,8 @@ export function carryOn(world: GameState, fresh: GameState): GameState {
   const p = s.player;
   const taken = new Set(itemHolders(s).filter((l) => l !== p.core.inventory).flat().map((i) => i.id));
   for (const i of p.core.inventory) if (taken.has(i.id)) i.id = `${i.id}_${fresh.storyId}`;
-  return s;
+  if (fell) return s;
+  const pages = toPages(s);
+  repairReferences(pages, getLibrary(), newReport());
+  return fromPages(s.meta, { libraryVersion: s.libraryVersion } as Head, pages);
 }

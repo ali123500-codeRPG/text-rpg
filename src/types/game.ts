@@ -125,6 +125,8 @@ export interface GameApi {
   hallOfFame(): Promise<FallenCharacter[]>; // archived stories whose character fell, newest first
   /** HF31: the player's free worlds (no one lives in them), newest fall first */
   worlds(): Promise<import('../save').FreeWorld[]>;
+  /** WP5: title a world (an empty name goes back to the default) */
+  titleWorld(worldId: string, name: string): Promise<void>;
   /** files the player's own bug report (code player_report) with the story, turn and last lines; resolves to its BG id */
   reportBug(note: string): Promise<string | null>;
   /** the open bugs, newest first */

@@ -300,22 +300,28 @@ export async function listStories(store: Store): Promise<StoryMeta[]> {
 const allMetas = async (store: Store) => (await Promise.all((await store.list('stories')).map((p) => store.get<StoryMeta>(p)))).filter((m): m is StoryMeta => !!m);
 export const worldOf = (m: StoryMeta): string => m.worldId ?? m.storyId;
 
-/** HF31: a world a new character can carry on: its newest story is archived and its character fell there (no one lives
- * in it). name: after the first character who fell there; day: the day the last one fell; fell: everyone who fell there, first first. */
-export type FreeWorld = { worldId: string; name: string; lastStoryId: string; day: number; fell: string[] };
+/** HF31: a world a new character can carry on: every story in it is archived, so no one lives there (WP1 b: a character
+ * reset while standing left it for good). name: the title given in the game (WP5), else after its first character;
+ * day: the day the last one's story ended; past: everyone who lived there, first first; threadbound: Threadbound items
+ * lying in it (WP2 b). */
+export type FreeWorld = { worldId: string; name: string; lastStoryId: string; day: number; past: { name: string; fell: boolean }[]; threadbound: string[] };
+const worldTitle = (worldId: string) => `worlds/${worldId}`;
 async function freeWorlds(store: Store, owner: StoryOwner): Promise<(FreeWorld & { at: string })[]> {
   const byWorld = new Map<string, StoryMeta[]>();
   for (const m of await allMetas(store)) if ((m.owner ?? 'player') === owner) byWorld.set(worldOf(m), [...(byWorld.get(worldOf(m)) ?? []), m]);
   const free: (FreeWorld & { at: string })[] = [];
   for (const [worldId, ms] of byWorld) {
-    if (ms.some((m) => !m.archivedAt)) continue; // someone lives there
-    const fallen = ms.flatMap((m) => (m.fame ? [m.fame] : [])).sort((a, b) => a.fellAt.localeCompare(b.fellAt));
-    const last = ms.reduce((a, b) => (b.archivedAt! > a.archivedAt! ? b : a));
-    if (!last.fame) continue;
-    free.push({ worldId, name: `${fallen[0].name}’s world`, lastStoryId: last.storyId, day: last.fame.day, fell: fallen.map((f) => f.name), at: last.archivedAt! });
+    if (ms.some((m) => !m.archivedAt || !m.end)) continue; // someone lives there (or an old save that kept no ending)
+    ms.sort((a, b) => a.archivedAt!.localeCompare(b.archivedAt!));
+    const last = ms.at(-1)!, title = await store.get<{ name: string }>(worldTitle(worldId));
+    free.push({ worldId, name: title?.name || `${ms[0].end!.name}’s world`, lastStoryId: last.storyId, day: last.end!.day,
+      past: ms.map((m) => ({ name: m.end!.name, fell: !!m.fame })), threadbound: last.end!.threadbound, at: last.archivedAt! });
   }
   return free;
 }
+/** WP5: a world's title, given in the game; an empty one goes back to the default */
+export const titleWorld = (store: Store, worldId: string, name: string) =>
+  guard(() => (name.trim() ? store.set(worldTitle(worldId), { name: name.trim().slice(0, 60) }) : store.delete(worldTitle(worldId))));
 /** the creation screen's list, newest fall first; a world a character is already arriving in is left out */
 export async function listWorlds(store: Store, owner: StoryOwner = 'player'): Promise<FreeWorld[]> {
   const arriving = (await store.get<PendingStart>(pendingPath(owner)))?.worldId;
@@ -333,9 +339,9 @@ export async function listFallen(store: Store): Promise<(FameEntry & { owner: St
 
 /** A confirmed reset (D-73: the GM can reset the save): the story is archived, not deleted. Its meta is
  * marked, so listStories (and so resume) skips it, and a story still starting is dropped too. */
-export async function archiveStory(store: Store, storyId: string, at: string, fame?: FameEntry): Promise<void> {
+export async function archiveStory(store: Store, storyId: string, at: string, fame?: FameEntry, end?: StoryMeta['end']): Promise<void> {
   const meta = await guard(() => store.get<StoryMeta>(story(storyId)));
-  if (meta) await guard(() => store.set(story(storyId), { ...meta, archivedAt: at, ...(fame ? { fame } : {}) }));
+  if (meta) await guard(() => store.set(story(storyId), { ...meta, archivedAt: at, ...(fame ? { fame } : {}), ...(end ? { end } : {}) }));
   for (const owner of ['player', 'agent'] as const) {
     const pending = await guard(() => store.get<PendingStart>(pendingPath(owner))).catch(() => null);
     if (pending?.storyId === storyId) await guard(() => store.delete(pendingPath(owner)));

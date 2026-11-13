@@ -299,7 +299,9 @@ export type WeaverView = {
   bands: { id: string; name: string; goals: string; relations: Record<string, Stance>; chase?: string }[];
   player: { level: number; pronouns?: Pronouns; currentClass: { id: string; name: string } | null; health: HealthLevel;
     /** NW6: where the player stands (place and area) */
-    standsIn: { place: string; placeName: string; area: string } };
+    standsIn: { place: string; placeName: string; area: string };
+    /** WP2: the Threadbound items bound to the player (hidden side) */
+    threadbound?: string[] };
   previousNote: string;
   /** SC6: how the last few scenarios went, oldest first (question, scale, tier, ending, who fell, what the player gained) */
   lastScenarios: { question: string; scale: string; tier: TierName; ending: string; note: string; turns: number; fallen: string[]; gained: string[]; inner?: true }[];
