@@ -37,6 +37,7 @@ import { pressedWords, tellFor, tookWords } from '../engine/speech';
 import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
+import { mentions } from '../words';
 import { modeName } from '../ruleset/gear';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
@@ -668,7 +669,9 @@ export function buildNarrationView(state: GameState, events: GameEvent[], intent
 /** BG-164: people this turn's words, action or walk were for, who are not where the player last saw them (seen empty):
  * by name, with where that was */
 function notThere(state: GameState, intent: Intent | null | undefined, seenIds: Set<string>): string[] {
-  const ids = new Set([intent?.action?.target, intent?.move?.spot?.near, ...(intent?.addressees ?? [])].filter((x): x is string => !!x));
+  const named = (id: string) => { const a = actorById(state, id), n = a && (nameFor(state, state.player, a) ?? a.label); return !!n && (intent?.deferred ?? []).some((d) => mentions(d, n)); };
+  // BG-171: someone the player meant to go to, put off by the Parser (deferred, by the name they know), counts too
+  const ids = new Set([intent?.action?.target, intent?.move?.spot?.near, ...(intent?.addressees ?? []), ...Object.keys(state.player.journal?.lastKnown ?? {}).filter(named)].filter((x): x is string => !!x));
   return [...ids].flatMap((id) => {
     const a = actorById(state, id), zone = state.player.journal?.lastKnown?.[id];
     if (!a || seenIds.has(id) || !zone || !goneFromSpot(state, id)) return [];

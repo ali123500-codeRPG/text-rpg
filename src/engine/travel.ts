@@ -88,8 +88,9 @@ export function travel(state: GameState, a: Actor, goal: Located, o: Order, rng:
     let left = speed * minutes, walked = 0;
     for (let n = 0; n < 100 && left > 0.01 && !there(); n++) {
       const before = spotOf(state, a).pos;
+      const zone = a.zone;
       const w = walkLeg(state, a, goal, left, 0);
-      if (!w) break;
+      if (w === null || (!w && a.zone === zone)) break; // BG-170: a 0 m doorway crossing goes on
       if (before) last = before;
       left -= w; walked += w;
     }
