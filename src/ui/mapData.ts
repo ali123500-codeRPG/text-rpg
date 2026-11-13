@@ -1,6 +1,7 @@
 // The Map page's data: only what the character knows. Zones it stood in or saw across a sight link (journal.zonesSeen),
 // what it sees now (PlayerView), its trail, and the places the Journal lists. Never the hidden store: light, cover,
 // people and things on the ground show only for zones in view now; a remembered zone keeps its name, look and exits.
+import { furnitureIn, furniturePos } from '../engine/furniture';
 import { compassOf as geoCompass } from '../scenario/geometry';
 import type { GameState } from '../types';
 import { buildPlayerView } from '../views';
@@ -23,6 +24,8 @@ export type MapZone = {
   /** the zone's rectangle in metres and its sides' edge kinds, when code has placed it (drawn by the To scale view) */
   rect?: import('../types').Rect; edges?: import('../types').Zone['edges'];
   light?: string; cover?: string; links: MapLink[]; people: MapPerson[]; items: string[];
+  /** FR5: the furniture standing there, each at its point in the frame of rect; kind is a furniture kind id (FU), for its icon */
+  furniture?: { id: string; name: string; kind: string; x: number; y: number }[];
   /** where you stand, in the frame of rect (Actor.pos), when you are here and code has placed you */
   you?: { x: number; y: number };
   /** TV7: on a road, how far along it you are: metres from its west (or south) end, of its whole length */
@@ -31,6 +34,11 @@ export type MapZone = {
 export type MapPlace = { id: string; name: string; kind: string; parentId: string | null; depth: number; zones: MapZone[]; facts: string[] };
 export type KnownMap = { placeId: string; zoneId: string; places: MapPlace[] };
 
+/** FR5: a zone's furniture with its points, for the map's icons */
+function furnitureOn(s: GameState, zoneId: string): Pick<MapZone, 'furniture'> {
+  const out = furnitureIn(s, zoneId).flatMap((f) => { const p = furniturePos(s, zoneId, f); return p ? [{ id: f.id, name: f.name, kind: f.kind, x: p.x, y: p.y }] : []; });
+  return out.length ? { furniture: out } : {};
+}
 const safe = <T>(f: () => T): T | undefined => { try { return f(); } catch { return undefined; } };
 
 /** TV7: a point on a road, measured along the road's long side from its west end (or south end, for a north-south road) */
@@ -64,7 +72,7 @@ export function knownMap(s: GameState): KnownMap {
       return { to: l.to, label: l.label, sight: seesAcross(s, l), frontier: !!l.frontier && !to, known: known.has(l.to), ...(otherPlace ? { otherPlace } : {}), ...(way ? { way } : {}) };
     });
     const you = id === p.zone && p.pos && z.rect ? { x: p.pos.x, y: p.pos.y } : undefined;
-    const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), ...(z.rect ? { rect: z.rect, edges: z.edges } : {}), links,
+    const mz: MapZone = { id, placeId: z.placeId, name: z.name, look: z.look, outdoor: !!z.outdoor, here: id === p.zone, inView: !!v, height: heightOf(z), ...(z.rect ? { rect: z.rect, edges: z.edges, ...furnitureOn(s, id) } : {}), links,
       ...(you ? { you } : {}), ...(you && z.kind === ZK.road ? { along: alongRoad(z.rect!, you) } : {}),
       people: people.get(id) ?? [], items: v ? v.groundItems.map((i) => i.name) : [], ...(v ? { light: v.light, cover: v.cover } : {}) };
     if (!byPlace.has(z.placeId)) byPlace.set(z.placeId, []);

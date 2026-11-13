@@ -5,9 +5,9 @@ export const RL = { sense: 'RL1', grip: 'RL2', move: 'RL3', fly: 'RL4', strike: 
 /** healing sources (health); HL5 is retired (natural composure moved to the composure table, CP) */
 export const HL = { rest: 'HL1', clinic: 'HL2', bandage: 'HL3', passive: 'HL4', perk: 'HL6', draught: 'HL7' } as const;
 /** composure sources: what restores morale, a table of its own so morale tunes apart from health (an action like rest names a row in each) */
-export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5' } as const;
+export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: 'CP4', perk: 'CP5', steady: 'CP6' } as const;
 /** fears: what costs (or restores) morale (MB21–MB28) */
-export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', foe_downed: 'FR6', dread_presence: 'FR7', battle_cry: 'FR8', rallied: 'FR9', own_part_crippled: 'FR10', own_part_destroyed: 'FR11', dreaded_sight: 'FR12' } as const;
+export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', foe_downed: 'FR6', dread_presence: 'FR7', battle_cry: 'FR8', rallied: 'FR9', own_part_crippled: 'FR10', own_part_destroyed: 'FR11', dreaded_sight: 'FR12', steady_slipped: 'FR13' } as const;
 /** PL6: personality axes; PL19: values; PL10: named personality types */
 export const PA = { honesty: 'PA1', pride: 'PA2', temper: 'PA3', sociability: 'PA4', discipline: 'PA5', curiosity: 'PA6', levity: 'PA7' } as const;
 export const VL = { duty: 'VL1', wealth: 'VL2', family: 'VL3', faith: 'VL4', power: 'VL5', freedom: 'VL6', safety: 'VL7', pleasure: 'VL8', knowledge: 'VL9', kindness: 'VL10',
@@ -32,6 +32,12 @@ export const LY = { tavern: 'LY1', cottage: 'LY2', shop: 'LY3', smithy: 'LY4', g
 export const EK = { wall: 'EK1', open: 'EK2', low: 'EK3', window: 'EK4' } as const;
 /** SD3–SD5 barrier kinds: what stands on a way (door, gate, grate, hatch, rubble); a new kind is a new row */
 export const BK = { door: 'BK1', gate: 'BK2', grate: 'BK3', hatch: 'BK4', rubble: 'BK5' } as const;
+/** FR1 furniture kinds: what a named piece of furniture is (its map icon follows the kind); a new kind is a new row */
+export const FU = {
+  counter: 'FU1', hearth: 'FU2', table: 'FU3', bench: 'FU4', bed: 'FU5', barrels: 'FU6', shelves: 'FU7', crates: 'FU8', sacks: 'FU9',
+  anvil: 'FU10', forge: 'FU11', rack: 'FU12', brazier: 'FU13', woodpile: 'FU14', water_barrel: 'FU15', stool: 'FU16', chair: 'FU17',
+  cupboard: 'FU18', well: 'FU19', cart: 'FU20', fence: 'FU21', rail: 'FU22', altar: 'FU23', other: 'FU24',
+} as const;
 export const ZK = { room: 'ZK1', corridor: 'ZK2', stairs: 'ZK3', cellar: 'ZK4', street: 'ZK5', square: 'ZK6', gate: 'ZK7', yard: 'ZK8', field: 'ZK9', woods: 'ZK10', road: 'ZK11' } as const;
 export const AM = {
   chop: 'AM1', club: 'AM2', cut: 'AM3', grapple: 'AM4', punch: 'AM5', shoot: 'AM6', slam: 'AM7', slash: 'AM8', stab: 'AM9', strike: 'AM10',

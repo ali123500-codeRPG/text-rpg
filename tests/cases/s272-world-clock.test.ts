@@ -6,7 +6,8 @@ import { describe, expect, it } from 'vitest';
 import { makeVillage, place } from '../harness';
 import { intent, play } from './w4-kit';
 import { headTo } from '../../src/minds';
-import { now } from '../../src/time';
+import { now, startClock } from '../../src/time';
+import { isActive } from '../../src/engine/relations';
 import { CONFIG } from '../../src/config';
 import { mechanicsLines } from '../../src/agents/game';
 import { checkNear, contact, startWatch, stepS, warnS } from '../../src/engine/comingNear';
@@ -84,6 +85,45 @@ describe('272 the world clock', () => {
     expect(s.player.busy).toBeUndefined();
     expect(s.log.some((l) => l.code === 'busy_broken')).toBe(true);
     expect(s.log.some((l) => l.code === 'healed' && (l.detail as { source: string }).source === HL.rest)).toBe(true);
+  });
+});
+
+describe('272 NPCs on code in a stretch (stage 3c)', () => {
+  const hunted = () => {
+    const s = makeVillage({ playerZone: 'tav_common', without: ['slime_1', 'slime_2'] });
+    const g = s.actors.find((a) => a.id === 'guard_1')!;
+    place(s, 'guard_1', 'street_square'); // out of the player's senses
+    g.mind!.overrides = { player: 'hostile' };
+    g.mind!.knowledge.player = { status: 'hunting', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
+    return { s, g };
+  };
+  it('AT63/AT66: a foe hunting the player closes in on code during a rest, and the coming-near check stops it', () => {
+    const { s, g } = hunted();
+    play(s, { intent: rest });
+    expect(g.zone).toBe('tav_common');
+    expect(stopped(s)).toMatchObject({ kind: 'rest', by: ['guard_1'] });
+    expect(stopped(s)!.seconds).toBeLessThan(60 * 60);
+  });
+  it('AT63: asleep, the player gets no warning: the night stops when the foe comes in', () => {
+    const { s, g } = hunted();
+    startClock(s, 'night');
+    play(s, { intent: intent({ action: { type: 'sleep' } }) });
+    expect(g.zone).toBe('tav_common');
+    expect(s.log.find((l) => l.code === 'sleep_stopped')?.detail).toMatchObject({ by: ['guard_1'] });
+  });
+  it('AT55: a fight out of the player\'s senses runs on code, a blow a round, and does not stop the rest', () => {
+    const s = makeVillage({ playerZone: 'tav_cellar', without: ['slime_1', 'slime_2'] });
+    const g = s.actors.find((a) => a.id === 'guard_1')!, tr = s.actors.find((a) => a.id === 'trader')!;
+    place(s, 'trader', 'field_mid');
+    place(s, 'guard_1', 'field_mid');
+    g.pos = { x: tr.pos!.x + 1, y: tr.pos!.y };
+    g.mind!.overrides = { [tr.id]: 'hostile' };
+    g.mind!.knowledge[tr.id] = { status: 'engaged', lastKnownZone: tr.zone, lastSeenTurn: s.turn, source: 'seen', revealed: [] };
+    const t = now(s);
+    play(s, { intent: rest });
+    expect(isActive(tr)).toBe(false);
+    expect(stopped(s)).toBeUndefined();
+    expect(now(s) - t).toBeCloseTo(60, 6);
   });
 });
 

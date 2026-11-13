@@ -19,7 +19,7 @@ export function illegalClarify(illegal: string[], view: PlayerView): string | nu
   const who = names.length ? ` I can see ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]}.` : '';
   if (first.startsWith('action.target_dead')) return `That one is already dead. Who do you mean?${who}`;
   if (first.startsWith('action.target') || first.startsWith('addressee')) return `Who do you mean?${who}`;
-  if (first.startsWith('move.spot')) return `Where in ${view.zone.name} do you want to go? You can go to someone, to a way out (${view.zone.links.map((l) => l.label).join(', ') || 'none'}), away from one, or to one side, such as the north side.`;
+  if (first.startsWith('move.spot')) return `Where in ${view.zone.name} do you want to go? You can go to someone, to a way out (${view.zone.links.map((l) => l.label).join(', ') || 'none'})${view.zone.furniture?.length ? `, to something there (${view.zone.furniture.map((f) => f.name).join(', ')})` : ''}, away from one, or to one side, such as the north side.`;
   if (first.startsWith('action.ware')) { const ws = view.actors.find((x) => x.id === first.split(' ')[1])?.wares ?? []; return `Which do you want to buy${ws.length ? `: ${ws.map((w) => w.name).join(', ').replace(/, ([^,]*)$/, ' or $1')}` : ''}?`; }
   if (first.startsWith('action.item')) return 'Which item do you mean?';
   if (first.startsWith('move.toZone')) return `Where do you want to go? From here you can reach ${view.zone.links.map((l) => l.label).join(', ') || 'nowhere new'}.`;
@@ -68,7 +68,7 @@ export function checkParserLegality(intent: Intent, view: PlayerView, bandIds: s
     if (spot.awayFrom === out.move.toZone && cameIn && there?.links.some((l) => l.to === cameIn)) out.move.spot = { awayFrom: cameIn };
     // BG-125: someone out of sight now is gone to where the player last perceived them
     const lastSeen = (id: string) => !actors.has(id) && !!view.lastSeen?.some((l) => l.id === id);
-    const ref = (id: string) => actors.has(id) || lastSeen(id) || !!there?.links.some((l) => l.to === id);
+    const ref = (id: string) => actors.has(id) || lastSeen(id) || !!there?.links.some((l) => l.to === id) || !!there?.furniture?.some((f) => f.id === id); // FR1: a piece of furniture there
     const sp = out.move.spot!;
     if (sp.near && lastSeen(sp.near)) out.move.spot = { ...sp, lastSeen: true };
     const keys = (['near', 'awayFrom', 'side'] as const).filter((k) => sp[k]);

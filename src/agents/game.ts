@@ -330,6 +330,12 @@ export function createGame(deps: GameDeps): Game {
       lastLog = [...turnLog]; // the GM view (and playtests) can see why the Parser asked
       return;
     }
+    // OA4: looking at one's own sheet or what one carries, and nothing else, never costs a turn: it answers as /stats or /inv
+    const pi = parsed.intent as Intent;
+    if (pi.look && !pi.action && !pi.move && !pi.gear?.length && !pi.spoken && !pi.perkMove && !pi.way) {
+      lastLog = [...turnLog];
+      return command(`/${pi.look}`, { aimed: false });
+    }
     const intent = engine.fillSpeech(s, parsed.intent, text);
     if (yieldNext) intent.yields = true;
     // OQ-27 (c): ask who is meant, from code: no Claude call, no turn spent

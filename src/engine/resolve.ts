@@ -16,7 +16,7 @@ import { actionRow, actionSeconds, reactSeconds } from '../ruleset/actionTime';
 import { busyNow } from './busy';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
-import { slotMetres } from './speed';
+import { moveSpeed, slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
 import { distM, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
@@ -41,6 +41,7 @@ import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { contentsOf, findContainer, guarded, openContainer, ownerOf, theft, wornPack } from './containers';
+import { cantSteady, steady } from './steady';
 import { filchAftermath, filchContest, filchSize, filchable, takeFilched, type Filched } from './filch';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
@@ -67,7 +68,7 @@ import { applyNightPhase, hostilesNear, nextChange, planNight, settleSleepers, w
 // GAP: the spec sets no noise/visibility for engine-made events outside activities. Placeholders, not ruleset numbers.
 const SENSE: Record<string, [GameEvent['noise'], GameEvent['visibility']]> = {
   travel: ['quiet', 'normal'], attack: ['normal', 'high'], wasted: ['normal', 'high'], move: ['quiet', 'normal'], hold: ['silent', 'low'], speak: ['normal', 'normal'], call_help: ['loud', 'normal'], battle_cry: ['loud', 'high'], alarm: ['deafening', 'high'],
-  rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
+  rest: ['silent', 'low'], item_dropped: ['quiet', 'normal'], set_down: ['quiet', 'normal'], pick_up: ['quiet', 'normal'],
   way: ['quiet', 'normal'], pick: ['hushed', 'low'], filch: ['hushed', 'close'], // a filch's own contest sets both (src/engine/filch.ts) stash: ['hushed', 'low'], // SE9: tucking something away // SD3–SD5: a key turned, a bar slid, a door tried; BA2: picking is a whisper
 };
 /** AN2: event kinds that move the body, so worn armor makes them louder (CONFIG.ARMOR_NOISE_STEPS) */
@@ -124,7 +125,7 @@ type Paid = { paid: 'move' | 'main'; seconds: number; pool?: 'move' | 'main' | '
  * ground locks movement too */
 function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[]): void {
   for (const op of ops) {
-    const id = op.op === 'draw' ? DU.draw : op.op === 'stow' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
+    const id = op.op === 'draw' ? DU.draw : op.op === 'stow' || op.op === 'set_down' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
     const row = id ? actionRow(id) : undefined;
     if (!row) continue;
     const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row));
@@ -825,12 +826,51 @@ function doWait(ctx: Ctx, a: Actor, o: Order): void {
   emit(ctx, ev);
 }
 
+/** AT55/AT63/AT66: in a stretch of time, NPCs after someone (engaged or hunting: catchUp leaves them alone) follow their
+ * fallback orders on code, with no Planner calls. Seeing whom they are after tells them where they are; a move or a search
+ * walks toward that zone at a run (a dash, as a turn with no action); an attack walks up to the target and, in reach,
+ * strikes as in a turn (doAttack, one blow a round). A foe in reach of the player strikes no blow here: the stretch stops
+ * (contact) and the next turn is a fight. Returns who reached the player and whether a fight between NPCs is on. */
+function huntOnCode(ctx: Ctx, seconds: number, onLeg?: OnLeg): { reached: string[]; fighting: boolean } {
+  const { state, rng } = ctx;
+  const p = state.player;
+  const reached: string[] = [];
+  let fighting = false;
+  for (const x of [...state.actors].sort((a, b) => a.id.localeCompare(b.id))) {
+    if (!x.mind || !isActive(x) || isAsleep(x) || x.heldBy || x.mind.moraleState || busyNow(x) || !isEngaged(state, x)) continue;
+    for (const [id, b] of Object.entries(x.mind.knowledge)) {
+      const t = actorById(state, id);
+      if (t && isActive(t) && atLeast(b.status, 'suspicious') && perceivesNow(state, x, t, 'faint')) {
+        updateBeliefs(state, { kind: 'opening', observerId: x.id, aboutId: id, status: atLeast(b.status, 'aware') ? b.status : 'aware', zone: t.zone });
+      }
+    }
+    const o = fallbackOrder(buildActorView(state, x.id), rng);
+    const t = o.target ? actorById(state, o.target) : undefined;
+    const walk = (goal: Located, short = 0) => {
+      const from: Located = { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) };
+      const m = walkLeg(state, x, goal, moveSpeed(state, x).run * seconds, short, x);
+      if (m === null || (m <= 0 && x.zone === from.zone)) return;
+      if (onLeg) onLeg(x, from, m, goal.zone);
+      else if (x.zone !== from.zone) logCode(state, 'caught_up', { actorId: x.id, from: from.zone, to: x.zone }); // a silent jump (BF2)
+    };
+    if (o.type === 'attack' && t) {
+      if (!inReach(state, x, o)) walk(t, CONFIG.HOSTILE_NEAR_M / 2);
+      if (!inReach(state, x, o)) continue;
+      if (t === p) { reached.push(x.id); continue; }
+      fighting = true;
+      doAttack(ctx, x, o);
+    } else if (o.type === 'move' && o.target) walk({ zone: o.target });
+  }
+  return { reached, fighting };
+}
+
 /** AT56/AT65/AT67: the world clock runs the player's rest or wait. It steps (comingNear stepS: shorter while someone not
  * yet accepted is in the senses), moving the clock on (natural recovery, aging) and everyone toward their routines
  * (catchUp) each step, and stops at contact, the coming-near check, or a fight in the player's senses. A rest is deep: any
- * stop breaks it, and it heals by the share that ran (AT27); a wait just ends. GAP (stage 3c): NPCs after the player and
- * fights still act only on the turn's own orders, so in a stretch only walkers on their routines move. */
-function runStretch(ctx: Ctx, st: Stretch, onLeg?: (a: Actor, from: Located, metres: number, toward: string) => void): void {
+ * stop breaks it, and it heals by the share that ran (AT27); a wait just ends. NPCs after someone act on code each step
+ * (huntOnCode), and while a fight between them is on the steps are one round. */
+type OnLeg = (a: Actor, from: Located, metres: number, toward: string) => void;
+function runStretch(ctx: Ctx, st: Stretch, onLeg?: OnLeg): void {
   const { state } = ctx;
   const p = state.player;
   const t0 = now(state);
@@ -838,14 +878,18 @@ function runStretch(ctx: Ctx, st: Stretch, onLeg?: (a: Actor, from: Located, met
   const fightStop = (): StretchStop | null => (fightInSenses(state) ? { why: 'fight', by: [] } : null);
   let stop: StretchStop | null = contact(p, ctx.events) ?? fightStop();
   let ran = 0;
+  let fighting = false;
   for (let first = true; !stop && ran < st.seconds - T_EPS && isActive(p); first = false) {
-    const step = Math.min(stepS(state, watch), st.seconds - ran);
+    const step = Math.min(stepS(state, watch), fighting ? CONFIG.ROUND_S : Infinity, st.seconds - ran);
     const before = new Map<string, Located>(allActors(state).map((x) => [x.id, { zone: x.zone, ...(x.pos ? { pos: { ...x.pos } } : {}) }]));
     const from = ctx.events.length;
     passTime(state, step / 60);
     catchUp(state, step / 60, first, onLeg); // the turn's own walks count once
+    if (first) state.scratch!.agentRun = []; // AT63: an agent's order covers the first step; then everyone runs on code
+    const hunt = huntOnCode(ctx, step, onLeg);
+    fighting = hunt.fighting;
     ran += step;
-    stop = contact(p, ctx.events.slice(from)) ?? checkNear(state, watch, before, step) ?? fightStop();
+    stop = contact(p, ctx.events.slice(from)) ?? (hunt.reached.length ? { why: 'contact', by: hunt.reached } : null) ?? checkNear(state, watch, before, step) ?? fightStop();
   }
   (state.scratch ??= {}).caughtUp = ((state.scratch.caughtUp as number | undefined) ?? 0) + (now(state) - t0);
   st.ran = ran;
@@ -898,6 +942,7 @@ function runNight(ctx: Ctx): number {
     const slept = isAsleep(p);
     passTime(state, step);
     catchUp(state, step, false);
+    huntOnCode(ctx, step * 60); // AT63: foes after the player close in on code; the arrival check below stops the night
     if (slept) {
       n.slept += step;
       for (const due = Math.floor(n.slept / CONFIG.REST_COOLDOWN_MIN); n.heals < due; n.heals++) applyHealing(state, p, restRow(state, p));
@@ -1214,6 +1259,15 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
       return doPick(ctx, a, o);
     case 'filch':
       return doFilch(ctx, a, o);
+    case 'steady': { // SY1: steadying yourself (engine/steady.ts); a loss goes through fear(), which applies a break
+      const why = cantSteady(state, a);
+      if (why) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: why }), o));
+      const ev = mk(ctx, a, 'steady', {});
+      emit(ctx, bark(ev, o));
+      const r = steady(state, a, ctx.rng, (cost) => fear(ctx, a, FR.steady_slipped, { cost }));
+      Object.assign(ev, { tier: r.roll.tier, roll: r.roll, steady: { points: Math.round(r.points), ...(r.buff ? { buff: true } : {}) } });
+      return;
+    }
     case 'search':
       return doSearch(ctx, a, o);
     case 'stash':
@@ -1291,6 +1345,7 @@ function step(ctx: Ctx, id: string): void {
   useGearTime(ctx, a, gearNow.filter((op) => !g.invalid.includes(op)));
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   for (const id of g.summoned) emit(ctx, mk(ctx, a, 'summon', { itemId: id })); // TB6
+  for (const d of g.setDown) emit(ctx, mk(ctx, a, 'set_down', { itemId: d.itemId, ...(d.qty ? { qty: d.qty } : {}) })); // OA4
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
   // TV1: a move along a road with nothing else going on is a trip, walked in one turn
   const trip = tripGoal(state, a, o);

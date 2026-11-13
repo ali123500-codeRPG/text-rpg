@@ -10,7 +10,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 /** every action the Parser can give (schema and completeness tests read this list) */
 export const PARSER_ACTIONS = ['attack', 'hide', 'sneak', 'vanish', 'search', 'stash', 'talk', 'persuade', 'deceive', 'barter', 'intimidate',
-  'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'restrain', 'filch'] as const; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
+  'use_item', 'equip', 'give', 'buy', 'sell', 'observe', 'interact', 'other', 'rest', 'wait', 'sleep', 'pick', 'open', 'restrain', 'filch', 'steady'] as const; // filch: FL1, take what someone carries or owns unseen; restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
 export type ParserActionType = (typeof PARSER_ACTIONS)[number];
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
@@ -52,12 +52,13 @@ export type Intent = {
   deferred: string[];
   clarify: string | null;
   yields?: boolean; // SP5: the player gives up the spar they are in ("I yield")
+  look?: 'stats' | 'inv'; // OA4: the player only looks at their own sheet or what they carry: no turn passes
 };
 
 // ---- Agent Planner / Responder / Voice ----
 /** every action an NPC order can give (schema and completeness tests read this list) */
 export const NPC_ACTIONS = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee',
-  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'open', 'filch', 'other'] as const; // open: BG-173, a container (CT3); filch: FL7
+  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'open', 'filch', 'steady', 'other'] as const; // open: BG-173, a container (CT3); filch: FL7
 export type NpcActionType = (typeof NPC_ACTIONS)[number];
 export type NpcAction = {
   type: NpcActionType;
@@ -149,6 +150,8 @@ export type StagePlan = {
     key: string; name: string; kind: string; parent: string;
     /** CO17 a prebuilt layout id: code adds its zones as `${key}.${zoneKey}`; names/looks rename them by the layout's zone keys */
     layout?: string; names?: Record<string, string>; looks?: Record<string, string>;
+    /** FR2: a layout zone's furniture, by the layout's zone key: the whole list, replacing the layout's */
+    furniture?: Record<string, import('./library').PlanFurniture[]>;
   }[];
   zones: {
     key: string; place: string; kind: string; name: string; look: string;
@@ -160,6 +163,7 @@ export type StagePlan = {
     length?: string | number; // TV3 a road's length: a ROAD_LENGTHS word, or km
     danger?: string; // TV4 a road's danger: a ROAD_DANGERS word
     fromLayout?: true; // added by code from a place's layout (not counted against the zone cap)
+    furniture?: import('./library').PlanFurniture[]; // FR2: the whole list; the kind's defaults when left out
     links: { to: string; label: string; sight: boolean; drop?: boolean; barrier?: PlanBarrier }[];
   }[];
   frontiers: { key: string; label: string }[];

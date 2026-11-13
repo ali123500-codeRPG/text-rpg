@@ -50,11 +50,11 @@ function draw(state: GameState, actor: Actor, inst: ItemInstance): boolean {
   return true;
 }
 
-export type GearResult = { picked: { itemId: string; from?: string }[]; summoned: string[]; invalid: GearOp[] };
+export type GearResult = { picked: { itemId: string; from?: string }[]; summoned: string[]; setDown: { itemId: string; qty?: number }[]; invalid: GearOp[] };
 
 /** free gear ops at the actor's initiative, before its action. Invalid ops are skipped and reported. */
 export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | null | undefined): GearResult {
-  const res: GearResult = { picked: [], summoned: [], invalid: [] };
+  const res: GearResult = { picked: [], summoned: [], setDown: [], invalid: [] };
   for (const op of ops ?? []) {
     const inst = actor.core.inventory.find((i) => i.id === op.item);
     let ok = false;
@@ -94,6 +94,22 @@ export function applyGearOps(state: GameState, actor: Actor, ops: GearOp[] | nul
         ok = summon(state, actor, op.item);
         if (ok) res.summoned.push(op.item);
         break;
+      case 'set_down': { // OA4: setting something down where one stands is free, like stowing; worn things come off first
+        if (!inst || (inst.equippedIn?.length && !inst.equippedIn.every((s) => s.startsWith('grip:')))) break;
+        const n = Math.floor(op.qty ?? inst.qty ?? 1), have = inst.qty ?? 1;
+        if (n < 1 || n > have) break;
+        if (n < have) {
+          inst.qty = have - n;
+          const part: ItemInstance = { id: `${inst.id}_down_${state.turn}`, itemId: inst.itemId, qty: n };
+          actor.core.inventory.push(part);
+          ok = dropToGround(state, actor, part.id, actor.zone);
+          if (ok) res.setDown.push({ itemId: part.id, qty: n });
+        } else {
+          ok = dropToGround(state, actor, inst.id, actor.zone);
+          if (ok) res.setDown.push({ itemId: inst.id, ...(inst.qty ? { qty: inst.qty } : {}) });
+        }
+        break;
+      }
       case 'pick_up': {
         // FR2: within grip reach of where it lies (BG-85), on a downed actor or on the ground; CT3: in an open container
         const at = pickUpAt(state, op, actor);
