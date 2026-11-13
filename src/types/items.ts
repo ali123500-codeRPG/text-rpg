@@ -87,6 +87,9 @@ export type ItemInstance = {
   pools?: Record<string, number>; // % left: 'shield', or a covered part id
   opens?: string[]; // BA3: a key: the barriers (GameState.barriers ids) it locks and unlocks
   boundTo?: string; // D-218: a Threadbound item's owner (actor id)
+  /** HF18: an echo's gear: only its owner (boundTo) can use it; it can't be taken, looted, sold, given or dropped, it is
+   * no Threadbound item's one of a kind (HF19), and it fades when its owner dies */
+  soulbound?: true;
   usedAt?: Record<string, number>; // D-218: game minute each active ability last fired, by perk id
   at?: { x: number; y: number }; // FR2: where it lies on the ground (a point in its zone); absent while carried
   hiddenAt?: import('./core').TierRoll; // SE8/SE9: lying hidden: a search must beat this outcome tier to find it (a tie gives a hint)

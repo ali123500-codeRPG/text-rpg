@@ -110,6 +110,7 @@ function npcBornDay(state: GameState | null, t: NpcTemplate, id: string, stage?:
 
 export function spawnNpc(state: GameState | null, templateId: string, opts: SpawnOpts, rng?: Rng): Actor {
   const t = npcTemplate(state, templateId);
+  if (t.generation === 'unique') return spawnUnique(state, t, opts);
   if (t.generation === 'rolled' && !rng) throw new Error(`rolled template ${t.id} needs the seeded rng`);
   const skills = t.generation === 'rolled'
     ? rollUniqueSkills(t, rng!)
@@ -149,6 +150,50 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
       knowledge: {},
       knows: [],
     },
+  };
+}
+
+/** HF15, HF18–HF21: a unique NPC, exactly as its sheet was saved, at full health. Its own name, pronouns, personality and
+ * age stand (the Weaver's label and band are used). Its gear is soulbound to it (items made in its own story are library
+ * items, from its sheet's itemDefs). It keeps its achievements, scars, title and essences; an echo never learns (D-243). */
+function spawnUnique(state: GameState | null, t: NpcTemplate, opts: SpawnOpts): Actor {
+  const u = t.unique;
+  if (!u) throw new Error(`unique template ${t.id} has no sheet`);
+  const ct = bodyType(state, race(t.raceId).bodyTypeId);
+  const skills = structuredClone(u.skills);
+  return {
+    id: opts.id,
+    storyId: opts.storyId ?? state?.storyId ?? 'story',
+    kind: 'npc',
+    names: { current: u.name, past: [] },
+    label: opts.label ?? t.label,
+    ...(u.pronouns ? { pronouns: u.pronouns } : {}),
+    ...(u.appearance ? { appearance: u.appearance } : {}),
+    placeId: opts.placeId,
+    zone: opts.zone,
+    bandId: opts.bandId,
+    core: {
+      bodyTypeId: ct.id,
+      raceId: t.raceId,
+      templateId: t.id,
+      generation: 'unique',
+      origin: u.origin,
+      skills,
+      classes: structuredClone(u.classes),
+      perks: structuredClone(u.perks),
+      condition: { hpLostPct: 0, parts: fullParts(state, ct.id), status: [] },
+      inventory: u.gear.map((g, n) => ({ ...structuredClone(g), id: `${opts.id}_${g.itemId}_${n + 1}`, boundTo: opts.id, soulbound: true as const })),
+      standingDefense: u.standingDefense,
+      personality: structuredClone(u.personality),
+      ...(u.ageDays !== undefined && state ? { bornDay: now(state) / DAY_MINUTES - u.ageDays } : {}),
+    },
+    progression: {
+      startingTotal: Object.values(skills).filter((e) => e.state !== 'tagged').reduce((n, e) => n + e.raw, 0),
+      potential: { base: CONFIG.POTENTIAL, adjustments: [] }, xp: 0, unspentPerkPoints: 0, marks: [],
+      achievements: structuredClone(u.achievements), ...(u.title ? { title: u.title } : {}),
+      ...(u.essences ? { essences: structuredClone(u.essences) } : {}),
+    },
+    mind: { control: t.control, knowledge: {}, knows: [] },
   };
 }
 

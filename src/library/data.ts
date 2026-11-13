@@ -6,6 +6,7 @@ import { BT, RC } from './raceIds';
 import { TR } from './treeIds';
 import { CONFIG } from '../config';
 import { LAYOUTS } from './layouts';
+import { UNIQUES } from './uniques';
 import type { ArmorWeightKey, LifeStageKey } from '../scales';
 import { CLASS_TIERS, LIFE_STAGES, NOISE, VISIBILITY, ZONE_SIZES, ROAD_LENGTHS, ROAD_DANGERS } from '../scales';
 import { openAirReachM } from '../perception/noise';
@@ -796,8 +797,8 @@ export function prototypeLibrary(): Library {
       glaring: 'A fire, a torch or a lit window at night, sun flashing on steel: made out at 200 m, seen 2 km off',
     } as Record<string, string>)[k] }])),
     layouts: LAYOUTS,
-    items: ITEMS,
-    templates: TEMPLATES,
+    items: { ...ITEMS, ...Object.fromEntries(Object.values(UNIQUES).flatMap((t) => t.unique?.itemDefs ?? []).map((d) => [d.id, d])) },
+    templates: { ...TEMPLATES, ...UNIQUES }, // HF34 a: Hall of fame heroes are unique templates in their own file
     activities: ACTIVITIES,
     routines: ROUTINES,
     routineSets: ROUTINE_SETS,

@@ -34,7 +34,7 @@ export const threadboundItemFor = (a: Actor, perk: string): ItemInstance | undef
   ownThreadboundItems(a).find((i) => libItem(i.itemId)!.threadbound!.grants.some((g) => g.perk === perk));
 
 /** a Threadbound item is one of a kind: true when one is already carried by anyone or lies on any ground */
-export const inWorld = (state: GameState, itemId: string): boolean => holders(state).some((l) => l.some((i) => i.itemId === itemId));
+export const inWorld = (state: GameState, itemId: string): boolean => holders(state).some((l) => l.some((i) => i.itemId === itemId && !i.soulbound)); // HF19: an echo's soulbound copy is not the one
 
 /** every place an item instance can be: each actor's inventory and each zone's ground, in every place */
 function holders(state: GameState): ItemInstance[][] {

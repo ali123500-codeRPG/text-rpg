@@ -15,11 +15,13 @@ import { requirement } from './requirements';
 import { augmentsOf, perkAugments, tierMult } from './gear';
 import { SK } from '../library/skillIds';
 import { PK } from '../library/perkIds';
+import { isEcho } from '../library/echo';
 
 function mark(actor: Actor, skill: string): void {
   const pr = actor.progression;
   // a skill not on the sheet learns from use too: it counts as raw 0 and joins the sheet with its first gain
   if (!pr || !getLibrary().skills[skill] || !skillOpen(actor, skill)) return; // a closed tree can't be raised (TA4)
+  if (isEcho(actor)) return; // D-243: an echo never learns
   // SM1: marks stack. The first mark this engagement owes a roll, and every MARK_STACK_EVERY-th mark after it owes another
   const counts = (pr.markCounts ??= {});
   const n = (counts[skill] = (counts[skill] ?? 0) + 1);

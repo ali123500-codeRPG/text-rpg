@@ -84,7 +84,9 @@ export type Core = {
   raceId?: LibraryRef;
   bodyTypeId: LibraryRef;
   templateId?: LibraryRef;
-  generation?: 'rolled' | 'copy';
+  generation?: 'rolled' | 'copy' | 'unique';
+  /** HF21: where a unique came from; an echo (a fallen hero from the Hall of fame) keeps its sheet and never learns (D-243) */
+  origin?: 'echo';
   skills: Record<LibraryRef, SkillEntry>;
   classes: ClassEntry[];
   perks: OwnedPerk[];
@@ -213,7 +215,10 @@ export type NpcTemplate = {
   id: LibraryRef;
   raceId: LibraryRef; // BR5: the body type comes from the race
   classId?: LibraryRef;
-  generation: 'rolled' | 'copy';
+  /** HF15: copy (identical, follows the template live), rolled (each NPC rolls its own person once), unique (one saved
+   * character: `unique` holds its sheet, spawned exactly as saved, at most once per world) */
+  generation: 'rolled' | 'copy' | 'unique';
+  unique?: UniqueSheet;
   minimums: Record<LibraryRef, number>;
   level: number;
   bonusPoints: number;
@@ -237,6 +242,30 @@ export type NpcTemplate = {
   ageStages?: import('../scales').LifeStageKey[];
   /** growth proposal 2.3: a leader or other notable NPC: beating it may offer an essence whatever its power */
   notable?: true;
+};
+
+/** HF3, HF15: a unique NPC's whole sheet as it was saved (an echo: the hero at death). Its gear is soulbound copies (HF18);
+ * items made in its own story travel with it in itemDefs, under ids of their own. */
+export type UniqueSheet = {
+  origin: 'echo';
+  name: string;
+  pronouns?: Pronouns;
+  appearance?: string;
+  classes: ClassEntry[];
+  skills: Record<LibraryRef, SkillEntry>;
+  perks: OwnedPerk[];
+  personality: Personality;
+  standingDefense: DefenseKind;
+  /** HF20: its age in days when it was saved (an echo stays the age it died at); left out = ageless */
+  ageDays?: number;
+  gear: ItemInstance[];
+  itemDefs?: import('./items').ItemDef[];
+  /** HF21: achievements and scars it had (progression.achievements); title: the one it wore */
+  achievements: NonNullable<Progression['achievements']>;
+  title?: string;
+  essences?: HeldEssence[];
+  /** HF2: hidden from the player: who it was and how it fell, for the Weaver and the Narrator */
+  past: string;
 };
 
 export type Journal = {

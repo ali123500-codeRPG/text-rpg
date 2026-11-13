@@ -289,8 +289,9 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
       state.actors.push(a);
     }
     a.bandId = bandRef(c.band);
-    a.appearance = c.appearance;
-    if (c.pronouns) a.pronouns = c.pronouns;
+    const unique = a.core.generation === 'unique'; // HF15: a unique's looks and pronouns are its own
+    if (!unique || !a.appearance) a.appearance = c.appearance;
+    if (c.pronouns && (!unique || !a.pronouns)) a.pronouns = c.pronouns;
     if (c.knownOnSight) a.knownOnSight = true;
     a.mind!.knows = (c.knows ?? []).map((f) => ({ id: f.id, text: f.text }));
     if (c.wares) stockWares(state, a, c.wares, turn);

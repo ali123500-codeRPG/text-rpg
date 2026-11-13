@@ -39,7 +39,7 @@ import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from '
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
-import { applyGearOps, dropToGround, equipArmor, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
+import { applyGearOps, dropToGround, equipArmor, fadeSoulbound, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
 import { findContainer, openContainer, theft } from './containers';
 import { buy, sell } from './trade';
 import { applyAgentEffects, learnNames, logCode, loseNerve } from './effects';
@@ -980,7 +980,7 @@ function doSearch(ctx: Ctx, a: Actor, o: Order): void {
 function doStash(ctx: Ctx, a: Actor, o: Order): void {
   const { state, rng } = ctx;
   const inst = a.core.inventory.find((i) => i.id === o.item);
-  if (!inst) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: 'no_item' }), o));
+  if (!inst || inst.soulbound) return emit(ctx, bark(mk(ctx, a, 'wasted', { reason: 'no_item' }), o)); // HF18: soulbound gear can't be put down
   const z = zoneById(state, a.zone), skill = fnRoller(state, a, FN.stealth);
   const r = ruleset.roll({ actorId: a.id, skill, ...situational(state, skill, { light: z, cover: z, add: ['hide'], actor: a }), fn: FN.stealth, rollKind: 'stealth' }, state, rng);
   dropToGround(state, a, inst.id, a.zone);
@@ -1724,6 +1724,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const x of allActors(state)) { if (x !== state.player || !growthWaits(state)) grantAllSteps(state, x); // D-226: the player's wait for the scenario's end
     syncPerkLinks(x, state.turn); syncThreadboundItemPerks(x, state.turn); } grantThreadboundItem(state.player, state); // All-50 parts and mastery achievements; linked perks; D-218 Threadbound perks
   for (const x of allActors(state)) shareSpotted(state, x); // All-50 Spotter
+  for (const x of allActors(state)) fadeSoulbound(state, x); // HF18
   releaseHolds(state, allActors(state));
   noteGains(state); // D-226: this turn's raises go on the scenario's gains summary
   if (state.stage.breakCause) closeScenario(state, rng); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
