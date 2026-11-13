@@ -194,6 +194,9 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
     };
     if (player.progression) { player.progression.marks = [SK.dodge, SK.eyesight]; player.progression.unspentPerkPoints = 1; }
     fakeBarriers(state);
+    // where people stand in the common room (Actor.pos), so the to-scale Map shows each at their own point
+    const common = state.places.flatMap((x) => x.zones).find((z) => z.id === 'tav_common')?.rect;
+    if (common) { player.pos = { x: common.x - common.w / 4, y: common.y - common.d / 4 }; guard.pos = { x: common.x + common.w / 3, y: common.y + common.d / 5 }; }
     player.core.inventory.push({ id: 'player_draught', itemId: IT.healing_draught, qty: 2 }, { id: 'player_draught_2', itemId: IT.healing_draught, qty: 1 }, { id: 'player_bandage', itemId: IT.bandage, qty: 2 },
       { id: 'player_shield', itemId: IT.round_shield, qty: 1, equippedIn: ['grip:left_arm'], pools: { shield: 70 } }); // the shield the story says you raise
     // Varo's Loop worn and bound, one power awake (its first deed earned), to show a Threadbound item's sealed powers

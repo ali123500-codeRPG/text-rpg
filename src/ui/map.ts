@@ -417,9 +417,15 @@ export function mapPage(api: GameApi) {
       const mid = Math.abs(fx - p.x) < 16 && Math.abs(fy - p.y) < 16; // a piece in the middle steps below the name and people
       g.append(furnIcon(f.kind, cap(f.name), fx, mid ? p.y + (z.people.length ? 30 : 20) : fy));
     }
-    g.append(s('text', { x: p.x, y: p.y - (z.people.length ? 6 : 0) + 4, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
+    // people in full sight stand at their own points; the rest (heard, glimpsed, last seen) sit in a row under the name
+    const placed = z.people.filter((who) => who.at), row = z.people.filter((who) => !who.at);
+    g.append(s('text', { x: p.x, y: p.y - (row.length ? 6 : 0) + 4, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
       s('title', {}, `${z.name}: about ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²)`));
-    z.people.slice(0, 6).forEach((who, i, all) => g.append(s('circle', { cx: p.x + (i - (all.length - 1) / 2) * 12, cy: p.y + 12, r: 4.5, class: `map-dot-who${who.now ? '' : ' last'}` }, s('title', {}, who.name))));
+    row.slice(0, 6).forEach((who, i, all) => g.append(s('circle', { cx: p.x + (i - (all.length - 1) / 2) * 12, cy: p.y + 12, r: 4.5, class: `map-dot-who${who.now ? '' : ' last'}` }, s('title', {}, who.now ? `${who.name}: somewhere in here` : `${who.name} (last seen)`))));
+    for (const who of placed) {
+      const pad = 5, clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
+      g.append(s('circle', { cx: clamp(who.at!.x * PX_PER_M, x + pad, x + w - pad), cy: clamp(-who.at!.y * PX_PER_M, y + pad, y + hh - pad), r: 5.5, class: 'map-dot-who at', 'data-who': who.id }, s('title', {}, who.name)));
+    }
     // to scale you stand at your own point (Actor.pos), on a road too (TV7); with no position yet, at the corner
     if (z.here && z.you) youAt = { x: z.you.x * PX_PER_M, y: -z.you.y * PX_PER_M, title: z.along ? alongText(z.along) : 'You are here' };
     else if (z.here) g.append(pin(x + w - 2, y + 2));
