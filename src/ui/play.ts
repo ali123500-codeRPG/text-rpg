@@ -16,7 +16,7 @@ import { actorBody, getLibrary } from '../library';
 import type { TierRoll } from '../types';
 import { fellFacts, fellLine } from './fell';
 import { autopilotBar } from './autopilot';
-import { h, dragScroll } from './kit';
+import { h, dragScroll, playDraft } from './kit';
 import { perkSeries } from './perks';
 import { stealthBadge, stealthButtons } from './stealth';
 import { dayOf, now, timeOfDay, timeView } from '../time';
@@ -587,6 +587,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
   }
 
   function update() {
+    if (playDraft.text) { input.value = playDraft.text; playDraft.text = null; suggestion = ''; setTimeout(() => input.focus()); } // a draft from another page (Inventory's Take out)
     const s = api.state();
     // M-06: while a turn runs, the header, Who's here and the sheet keep showing what they showed before it
     const frozen = api.busy() && title.childElementCount > 0;
