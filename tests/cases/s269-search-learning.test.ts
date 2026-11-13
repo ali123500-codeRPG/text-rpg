@@ -27,6 +27,8 @@ const hideHere = (s: GameState, over: object) => {
 };
 const search = (target: string | null = null) => ({ intent: intent({ action: { type: 'search', target } }) });
 
+const searchWim = () => turnIntent({ action: { ...turnIntent().action!, type: 'search', target: 'patron_1' } });
+
 afterEach(() => vi.restoreAllMocks());
 
 describe('269 search learning and secrets', () => {
@@ -70,11 +72,11 @@ describe('269 search learning and secrets', () => {
     s.hidden.secrets.push({ id: 'sec_ring', holderId: 'patron_1', fact: 'Old Wim wears the missing ring under his glove', leakTerms: ['ring'],
       revealWhen: { type: 'check_passed', skill: SK.eyesight, minTier: 'great_success', againstActorId: 'patron_1' } });
     rigRolls('success'); // short of Great Success: nothing
-    let out = await g.turn(turnIntent({ action: { type: 'search', skill: null, target: 'patron_1', targetPart: null, item: null, mode: null, approach: 'quietly', stance: 'normal' } }));
+    let out = await g.turn(searchWim());
     expect(g.game.state()!.player.journal!.secretsKnown).not.toContain('sec_ring');
     vi.restoreAllMocks();
     rigRolls('great_success');
-    out = await g.turn(turnIntent({ action: { type: 'search', skill: null, target: 'patron_1', targetPart: null, item: null, mode: null, approach: 'quietly', stance: 'normal' } }));
+    out = await g.turn(searchWim());
     expect(g.game.state()!.player.journal!.secretsKnown).toContain('sec_ring');
     const ev = out.events.find((e) => e.kind === 'search')!;
     expect(ev.effects).toContainEqual({ kind: 'found_secret', actorId: 'patron_1', data: { by: 'player', secrets: ['sec_ring'] } });
