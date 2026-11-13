@@ -113,6 +113,7 @@ export type SavedCondition = {
   parts: Record<string, number>; // body-part id -> pool % left (100 = full), state derived
   destroyed?: string[]; // reserved
   status: string[];
+  tended?: { turn: number; by: string; itemId: string }; // BG-181: the last healing item used on it, until its next wound
   moraleLost?: number; // MB5: flat morale points lost; the level is derived from this and max morale
 };
 
@@ -185,6 +186,8 @@ export type Mind = {
   /** BF4: on head_to, who it leads there; at the end it waits for them (since: the turn it got there) */
   leading?: { id: string; since?: number };
   stay?: { zone: string; until: number }; // BF11: a place its own agent moved it to holds until this turn
+  lastWasted?: { turn: number; action: string; reason: string }; // BG-181: its last try that came to nothing, until it does that kind of thing
+  errandUntil?: number; // BG-180: it told someone it was doing something; it gets Planner calls through this turn
   routines?: string[];
   routineSetId?: LibraryRef;
   slots?: Record<string, string | string[]>;

@@ -80,6 +80,9 @@ export function loseNerve(state: GameState, a: Actor, r: 'broken' | 'surrendered
   for (const x of allActors(state)) if (x !== a && hostile(state, a, x)) a.mind!.overrides = { ...(a.mind!.overrides ?? {}), [x.id]: 'yielded' };
 }
 
+/** actions that are only words or waiting: an answer made of them sets no errand going (BG-180) */
+const WORDS_ONLY = new Set(['hold', 'talk', 'persuade', 'deceive', 'intimidate', 'barter']);
+
 export function stepStance(state: GameState, a: Actor, other: Actor, step: 'friendlier' | 'colder'): void {
   if (!a.mind) return;
   const cur = stance(state, a, other);
@@ -153,5 +156,9 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
     if (goal) headTo(state, a, goal, 'agent', o.output.lead ?? undefined);
     // BF11: a place its own agent moved it to holds AGENT_STAY_TURNS, until its agent decides again
     if (a.mind) { if (!goal && step && step === a.zone) a.mind.stay = { zone: step, until: state.turn + CONFIG.AGENT_STAY_TURNS }; else delete a.mind.stay; }
+    // BG-180: an answer with a deed under way (a walk to fetch, an open, a lead) keeps it thinking for ERRAND_TURNS; its own hold ends that
+    const deed = !WORDS_ONLY.has(o.output.action.type) || !!step || !!goal;
+    if (a.mind && o.agent !== 'planner' && deed) a.mind.errandUntil = state.turn + CONFIG.ERRAND_TURNS;
+    else if (a.mind && o.agent === 'planner' && !deed) delete a.mind.errandUntil;
   }
 }
