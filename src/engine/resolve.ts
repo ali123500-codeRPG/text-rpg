@@ -31,7 +31,7 @@ import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds } from './held';
-import { armThreadboundItem, countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { NEEDS, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
@@ -972,7 +972,6 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
   if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
-  if (getLibrary().perks[pm.perk]?.eventArm) return emit(ctx, mk(ctx, a, 'perk_move', { effects: armThreadboundItem(ctx.state, a, pm.perk) }));
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
 }

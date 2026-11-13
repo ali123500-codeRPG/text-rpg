@@ -13,6 +13,7 @@ import { logCode } from './effects';
 import { isEngaged } from './relations';
 import { threatHere } from './resolve';
 import { dealRolls } from './growth';
+import { fireEssenceAuto } from '../ruleset/threadboundItems';
 
 /** EG2: how many essences the player can hold: ESSENCE_SLOTS_BASE + one per ESSENCE_SLOT_EVERY character levels, no top */
 export const essenceSlots = (a: Actor): number => CONFIG.ESSENCE_SLOTS_BASE + Math.floor(charLevel(a) / CONFIG.ESSENCE_SLOT_EVERY);
@@ -23,10 +24,16 @@ export function gradeMult(grade: EssenceGradeKey, past = 0): number {
 }
 
 /** the offer roll (2.4): d100 + base − ESSENCE_ROLL_NEEDED on the tier table, natural edges included. Near Miss or worse: no
- * offer; Success common, Great Success fine, Critical Success rare; returns the grade and steps past the last grade */
-export function offerRoll(rng: Rng, base: number): { grade: EssenceGradeKey; past: number } | null {
-  const d = rng.d100();
-  const level = Math.max(0, Math.min(TIERS.keys.length - 1, band(d + base - CONFIG.ESSENCE_ROLL_NEEDED) + naturalEdge(d)));
+ * offer; Success common, Great Success fine, Critical Success rare; returns the grade and steps past the last grade.
+ * `by` (the player): a ready Threadbound item ability fires by itself (D-218: Call the Toss, All or Nothing) */
+export function offerRoll(rng: Rng, base: number, by?: { state: GameState; actor: Actor }): { grade: EssenceGradeKey; past: number } | null {
+  const auto = by && fireEssenceAuto(by.state, by.actor);
+  let d = rng.d100();
+  if (auto?.kind === 'farther') { const d2 = rng.d100(); if (Math.abs(d2 - 50.5) > Math.abs(d - 50.5)) d = d2; }
+  if (auto) logCode(by!.state, 'essence_roll_auto', { perk: auto.perk, roll: d });
+  const top = TIERS.keys.length - 1;
+  const at = auto?.kind === 'all_or_nothing' ? (d >= 51 ? top : 0) : band(d + base - CONFIG.ESSENCE_ROLL_NEEDED);
+  const level = Math.max(0, Math.min(top, at + naturalEdge(d)));
   const step = level - TIERS.pos('success');
   if (step < 0) return null;
   const last = ESSENCE_GRADES.keys.length - 1;
@@ -79,7 +86,7 @@ export function offersFromDefeats(state: GameState, defeated: Actor[], rng: Rng)
     foe.mind.essenceRolled = true;
     const rows = rowsFor(state, foe);
     if (!rows.length) continue;
-    const roll = offerRoll(rng, CONFIG.ESSENCE_ROLL_BASE.foe);
+    const roll = offerRoll(rng, CONFIG.ESSENCE_ROLL_BASE.foe, { state, actor: state.player });
     const row = roll && pick(rows, rng);
     if (roll && row) offer(state, row, row.skills, roll, 'foe', foe.names.current, (sk) => (foe.core.skills[sk]?.raw ?? 0) * tierMult(sk));
   }
@@ -93,7 +100,7 @@ export function offerAtEnding(state: GameState, f: ScenarioFrame, as: ScenarioEn
   const foes = (f.beaten ?? []).map((id) => state.actors.find((a) => a.id === id)).filter((a): a is Actor => !!a);
   const rows = [...new Set(foes.flatMap((x) => rowsFor(state, x)))];
   const deed = Object.values(getLibrary().essences ?? {}).filter((r) => r.from.deed);
-  const roll = offerRoll(rng, base);
+  const roll = offerRoll(rng, base, { state, actor: state.player });
   if (!roll) return;
   const p = state.player;
   if (rows.length) { const row = pick(rows, rng)!; return offer(state, row, row.skills, roll, 'ending', 'ending', (sk) => trueSkill(p, sk)); }
