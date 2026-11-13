@@ -67,7 +67,7 @@ describe('221 search', () => {
     ev = play(s, search()).find((e) => e.kind === 'search')!;
     expect(seen(s) ?? 'unaware').toBe('unaware');
     expect(ev.contest).toBeUndefined();
-    expect(ev.effects).toEqual([]);
+    expect(ev.effects.map((f) => f.kind)).toEqual(['found_nothing']); // BG-142: reads the same as an empty spot
   });
 
   it('SE6: nothing hidden in reach, nothing rolled', () => {

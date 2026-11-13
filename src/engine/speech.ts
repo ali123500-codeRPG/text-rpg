@@ -228,7 +228,10 @@ export const TELL = 'something about it does not sit right';
 /** LI2a Plain as Day: a lie the listener saw through, said plainly */
 export const PLAIN = 'it is a lie';
 /** what a listener that saw through a lie is told: the hint, or plainly with Plain as Day */
-export const tellFor = (listener: Actor | undefined): string => hasPerk(listener, PK.plain_as_day) ? PLAIN : TELL;
+/** BF8: a lie seen through by CONFIG.LIE_PLAIN_GAP tiers or more, or by any win with Plain as Day, is plainly a lie; a narrower
+ * win (and, for the player, a tie: BF10) gives the hint. With no gap given: the hint, or plainly with Plain as Day. */
+export const tellFor = (listener: Actor | undefined, gap?: number): string =>
+  gap === undefined ? (hasPerk(listener, PK.plain_as_day) ? PLAIN : TELL) : gap >= CONFIG.LIE_PLAIN_GAP || (gap >= 1 && hasPerk(listener, PK.plain_as_day)) ? PLAIN : TELL;
 
 /** a listener's answering roll (answerSkill), against the speaker; All-50 Easy Speaker answers one outcome better;
  * Takes One to Know One (LI1a) answers a lie with the better of Insight and Lying */
@@ -275,13 +278,14 @@ export function overhearLie(state: GameState, ev: GameEvent, answered: string[],
 /** OQ-29: what a speech contest leaves, whoever spoke (the speaker is side a). A lost intimidation leaves the listener
  * Shaken toward the speaker, a lost persuasion Swayed, by CONFIG.SHAKEN_PER_TIER / SWAYED_PER_TIER × the tier gap; the
  * bigger penalty stands. Barter with a Trader sets prices (PY6). A listener that beats a lie sees through it. */
-export function applySpeech(speaker: Actor, listener: Actor, type: string, contest: ContestResult): { status?: 'shaken' | 'swayed'; tell?: true } {
+export function applySpeech(speaker: Actor, listener: Actor, type: string, contest: ContestResult): { status?: 'shaken' | 'swayed'; tell?: true; doubt?: true } {
   if (type === 'barter') {
     if (isSeller(listener)) applyHaggle(speaker, listener, contest);
     else if (isSeller(speaker)) applyHaggle(listener, speaker, { a: contest.b, b: contest.a, gap: -contest.gap, winner: contest.winner === 'a' ? 'b' : contest.winner === 'b' ? 'a' : 'tie' });
     return {};
   }
-  if (type === 'deceive') return contest.winner === 'b' ? { tell: true } : {};
+  // BF10: a lie the player ties with leaves a doubt (the hint), short of seeing through it
+  if (type === 'deceive') return contest.winner === 'b' ? { tell: true } : contest.winner === 'tie' && listener.kind === 'player' ? { doubt: true } : {};
   const status = type === 'intimidate' ? 'shaken' : type === 'persuade' ? 'swayed' : undefined;
   if (!status || contest.winner !== 'a') return {};
   const value = -contest.gap * (status === 'shaken' ? CONFIG.SHAKEN_PER_TIER : CONFIG.SWAYED_PER_TIER);
@@ -292,9 +296,11 @@ export function applySpeech(speaker: Actor, listener: Actor, type: string, conte
 
 /** OQ-29: an NPC's speech roll at the player, in words for the Narrator: how it strikes the player (from the speaker's
  * tier), and how the player takes it. A lie the player did not see through gets no hint. */
-export function pressedWords(e: GameEvent, listener?: Actor): { how: string; took?: string } | undefined {
+export function pressedWords(e: GameEvent, listener?: Actor): { how?: string; took?: string } | undefined {
   const p = e.push, c = e.contest;
   if (!p || !c) return undefined;
+  // BG-137: a lie reads like the truth: no word on how convincing it was, only the tell when the player saw through it
+  if (p.type === 'deceive') return p.tell || p.doubt ? { took: tellFor(listener, c.gap) } : undefined;
   const took = p.status === 'shaken' ? 'it shakes you' : p.status === 'swayed' ? 'you find yourself swayed'
     : p.tell ? tellFor(listener) : p.type === 'deceive' ? undefined : p.landed ? 'the haggling goes their way' : 'you hold firm';
   return { how: impressionWords(p.type, c.a.tier), ...(took ? { took } : {}) };

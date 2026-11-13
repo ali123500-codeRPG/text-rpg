@@ -343,7 +343,7 @@ export function createGame(deps: GameDeps): Game {
       const world = worldIds(s);
       // NT7: a listener that saw through a lie hears the impression with a tell (plainly with Plain as Day, LI2a)
       // BG-84: a listener who heard only the voice (no contest) is told so, not given the words
-      const inputFor = (id: string): DialogueInput => (!exchange!.perSpokesperson[id] ? [{ spoken: engine.MUFFLED, impression: null }] : exchange!.perSpokesperson[id].tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.tellFor(s.actors.find((x) => x.id === id))}` }] : input);
+      const inputFor = (id: string): DialogueInput => (!exchange!.perSpokesperson[id] ? [{ spoken: engine.MUFFLED, impression: null }] : exchange!.perSpokesperson[id].tell ? [{ ...input[0], impression: `${input[0].impression ?? 'none'}, but ${engine.tellFor(s.actors.find((x) => x.id === id), exchange!.perSpokesperson[id].contest.gap)}` }] : input);
       agentOutputs.push(...(await Promise.all(spokespeople.map((id) => dialogueCall(s, id, inputFor(id), exchange!, agenda.get(id)!, ctx, world)))));
     }
     // BG-50: a beat that has an agent-run NPC speak to the player gets its words from that NPC's Responder (COMMITTED: the beat)

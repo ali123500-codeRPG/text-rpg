@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import { SPEECH_ACTIONS } from '../types';
 import { VOLUME_NOISE } from '../perception/noise';
 import { hearsClearly } from '../perception';
-import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder } from '../minds';
+import { alertOrders, brokenOrder, fallbackOrder, followMove, routineOrder, staying } from '../minds';
 import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './relations';
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
@@ -182,7 +182,8 @@ export function mergeOrders(state: GameState, input: TurnInput, views: Map<strin
     if (out.has(id)) continue;
     const v = views.get(id)!;
     const a = state.actors.find((x) => x.id === id)!;
-    out.set(id, isEngaged(state, a) ? fallbackOrder(v, rng) : routineOrder(v));
+    // BF11: one staying where its own agent took it holds there instead of walking its routine
+    out.set(id, isEngaged(state, a) ? fallbackOrder(v, rng) : staying(state, a) ? { actorId: id, type: 'hold', target: null, skill: null, intent: 'stays put', source: 'routine' } : routineOrder(v));
   }
   return out;
 }

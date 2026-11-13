@@ -28,5 +28,5 @@ it('49 Deed instead of a reply', () => {
   expect(ev.filter((e) => e.actorId === 'trader' && e.kind === 'speak')).toEqual([]);
   const deed = ev.findIndex((e) => e.actorId === 'trader');
   expect(ev[deed]).toMatchObject({ kind: 'attack', target: 'player', bark: true });
-  expect(ev.slice(deed + 1).some((e) => e.actorId !== 'trader')).toBe(false); // lowest initiative: last
+  expect(ev.slice(deed + 1).some((e) => e.actorId !== 'trader' && e.kind !== 'move')).toBe(false); // lowest initiative: last (BF2: only end-of-turn catch-up walks follow)
 });

@@ -165,7 +165,7 @@ export type GameEvent = {
   speech?: { skill: string; impression?: string; addressees: string[] }; // dialogue-turn speech
   /** OQ-29: an NPC's speech roll at the player: the speech type, whether it landed, the penalty it left, a lie the player saw
    * through, and whether the speaker saw how it was taken */
-  push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; seen?: true };
+  push?: { type: string; listener: string; landed: boolean; status?: 'shaken' | 'swayed'; tell?: true; doubt?: true; seen?: true };
   /** LI5a Overheard: owners of Overheard who heard this lie told to someone else and saw through it */
   overheard?: string[];
   /** NM3: listeners whose answer beat this line's lie (the player's deceive at its spokespeople) */

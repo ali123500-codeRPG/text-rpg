@@ -206,9 +206,12 @@ export async function callNarrator(view: NarrationView, ctx: AgentCtx, leak: Lea
     const leaks = leakScan(v.closing ? `${v.closing}\n${v.text}` : v.text, viewText, leak);
     const facts = factCheck(v, view);
     if (!leaks.length && !facts.length) return { kind: 'ok', value: v };
-    // the note never repeats a leaked word: that would hand hidden text to the Narrator
+    // the note never repeats a leaked word: that would hand hidden text to the Narrator. BG-138: a hidden term can be an
+    // everyday word the Narrator used innocently ("lift" the lid), so the note asks for new wording, not just the view
+    const terms = leaks.some((x) => x.startsWith('term:'));
     const note = [
-      leaks.length ? 'the text named someone or something that is not in NARRATION_VIEW; use only what NARRATION_VIEW holds' : '',
+      leaks.length && !terms ? 'the text named someone or something that is not in NARRATION_VIEW; use only what NARRATION_VIEW holds' : '',
+      terms ? 'a word in the text may not be used here: write it again in different words, taking names and nouns only from NARRATION_VIEW' : '',
       facts.length ? `"narrated" problems: ${facts.join(', ')}` : '',
     ].filter(Boolean).join('; ');
     return { kind: 'retry', errors: [...(leaks.length ? ['narrator_leak', ...leaks] : []), ...facts], note };
