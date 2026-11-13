@@ -1667,6 +1667,8 @@ Soak run (TQ2 b): a seeded random player plays whole turns through createGame wi
 
 Replay set (TQ3 a): every playtest run's real agent answers replayed through today's code in CI (tests/replay). A run's fixture is its earliest backup the log covers and every later step's player input with the Parser, Planner, Responder and Voice answers it got (scripts/replay-set.mjs, run on each new playtest folder and committed with the next PR). Each call gets the logged answer for its agent, actor and turn; an answer today's rules refuse becomes a clarify or a fallback, as in the game. A throw or a broken world rule fails. Weaver answers are not in the step log yet, so new ground in a replay is fallback ground.
 
+Parser test set (TQ4, nightly only): about 40 player lines, many from past Parser bugs, parsed by today's Parser prompt on the real model against the test village (tests/parser-eval, PARSER_EVAL=1, through the signed-in `claude` CLI that playtests use, scripts/claude-cli.ts). It runs as a daily scheduled Claude task, not in GitHub CI, so it needs no API key there; a line that misses twice in a row fails and becomes a BG-n bug. A new Parser bug adds its line.
+
 ### Case tests
 
 One hundred and three tests: the original eight, updated, eight for the rev. 2 changes, ten for Explore mode, twenty for scenario setup, fourteen for the actor-control review, one for scenario-plan bands, thirteen for the routines review, ten for the hit roll, fourteen for gear and five for fallback behavior. Each runs against logged agent outputs, so it is repeatable.
