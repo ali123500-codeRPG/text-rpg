@@ -322,9 +322,17 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       e.preventDefault(); story.scrollBy({ top: (e.key === 'PageUp' ? -0.9 : 0.9) * story.clientHeight });
     }
   });
+  // the suggestion is taken by Tab, by Use it, or by clicking (or tapping) the empty box; it lands selected, so typing over
+  // it starts afresh and an arrow key keeps it
+  const takeSuggestion = () => {
+    if (!suggestion || input.value) return;
+    input.value = suggestion; suggestion = ''; update();
+    input.focus(); input.select();
+  };
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab' && !e.shiftKey && suggestion && !input.value) { e.preventDefault(); input.value = suggestion; suggestion = ''; update(); }
+    if (e.key === 'Tab' && !e.shiftKey && suggestion && !input.value) { e.preventDefault(); takeSuggestion(); }
   });
+  input.addEventListener('click', takeSuggestion);
   input.addEventListener('input', () => { if (suggestion) update(); });
 
   let offered: LogLine | null = null;
@@ -596,7 +604,13 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     const offering = !!suggestion && !input.value;
     input.placeholder = offering ? suggestion : PLACEHOLDER;
     input.classList.toggle('suggest', offering);
-    hint.textContent = offering ? 'From last turn · Tab to use, Esc to clear' : '';
+    const hintNow = offering ? 'offer' : '';
+    if (hint.dataset.now !== hintNow) {
+      hint.dataset.now = hintNow;
+      hint.replaceChildren(...(offering ? ['From last turn · click it or Tab to use, Esc to clear ',
+        h('button', { type: 'button', class: 'hs-btn-text in-use', 'data-chip': 'use-suggestion', onclick: takeSuggestion }, 'Use it'),
+        h('button', { type: 'button', class: 'hs-btn-text in-clear', 'data-chip': 'clear-suggestion', onclick: () => { suggestion = ''; update(); input.focus(); } }, 'Clear')] : []));
+    }
 
     const stick = story.scrollHeight - story.scrollTop - story.clientHeight < 40;
     renderStory(lines, s);

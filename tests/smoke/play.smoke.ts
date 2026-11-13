@@ -54,6 +54,19 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('the suggestion from last turn is taken by clicking the box, or by Use it', async () => {
+    await turn('look around then search the shelf', 1);
+    const box = page.locator('.inbar .hs-input');
+    await expect.poll(() => box.getAttribute('placeholder')).toBe('search the shelf');
+    await box.click();
+    expect(await box.inputValue()).toBe('search the shelf');
+    await box.fill('');
+    await turn('look around then open the door', 2);
+    await page.getByRole('button', { name: 'Use it' }).click();
+    expect(await box.inputValue()).toBe('open the door');
+    expect(errors).toEqual([]);
+  });
+
   it('reports a bug: it is filed with a BG number and listed', async () => {
     await nav('Bugs');
     await page.getByPlaceholder(/What went wrong/).fill('smoke test report');
