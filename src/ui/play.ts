@@ -26,7 +26,7 @@ import { moraleLevel } from '../ruleset/morale';
 import { cantSteady } from '../engine/steady';
 import { skillName } from './creation';
 import { healCard, healIcon, partName, quickHeal, woundCard } from './healing';
-import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
+import { applyMotion, arrive, bar as barMove, count, delta, finishAll, flare, impact, later, motionOn, moving, ms, play, pulse, sentences, setMotion, shake, slam, stamp } from './motion';
 import { coinWords } from '../engine/trade';
 import { actionsRow, doingChip, doingNow, followingNow, walkingNow } from './doing';
 import { closePop, openPop } from './pop';
@@ -416,6 +416,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
 
   // ---- the story list: one cached entry per line, so redraws never rebuild it or close an opened fold
   const entries = new WeakMap<LogLine, HTMLElement>();
+  const lineOf = new WeakMap<HTMLElement, LogLine>(); // a turn's element back to its line (the strike card reads it)
   let snap: Record<string, string> | null = null, snapLine: LogLine | null | undefined;
   let changedParts = new Set<string>(); // parts whose state the last turn changed: the body figure opens once
   // motion: the values the screen showed after the last turn landed, and a narration line that just arrived live
@@ -535,6 +536,7 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     // the list is the live region: inner status roles would announce the same words twice
     e.querySelectorAll('[role="status"]').forEach((x) => x.removeAttribute('role'));
     entries.set(l, e);
+    lineOf.set(e, l);
     return e;
   }
 
@@ -862,6 +864,36 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
     if (!input.disabled) input.focus();
   }
 
+  /** the strike card: when the player's own blow lands, a card rises over the story
+   * with the outcome, the weapon and where it struck, and what the player saw it change ("The slime is Wounded"). Tiers by
+   * outcome (game-feel GF-01): a graze only arrives; a full hit draws the slash; a heavy or crushing hit adds the
+   * hit-stop on the word and a short shake of the card (never the story text, never the input). One fixed life,
+   * --m-strike, whatever the turn held (M-03); any skip (M-12) ends it at once with the card gone, the state a skip leaves
+   * (M-73). It repeats the results row, so it is hidden from screen readers (the row carries the words, M-34). */
+  function strikeCard(c: NonNullable<LogLine['check']>, d: number) {
+    const o = outcomeOf(c.result), k = c.strike;
+    if (!o || !struck(o) || !k || !motionOn()) return;
+    const beat = OUTCOME_BEAT[o], where = c.result.split(', ').slice(1).join(', ');
+    const target = k.target.replace(/^(a|an)\s+/i, 'the ');
+    const card = h('div', { class: `strike t${beat}`, 'aria-hidden': 'true', 'data-o': o },
+      beat >= 2 ? h('span', { class: 'sk-slash' }) : null,
+      h('p', { class: 'sk-out' }, cap(outcomeText(o))),
+      h('p', { class: 'sk-where' }, [k.weapon ? `Your ${k.weapon.toLowerCase()}` : 'Your blow', `${target}${where ? `’s ${where}` : ''}`].join(' · ')),
+      k.changes.length ? h('p', { class: 'sk-chg' }, k.changes.map(cap).join(' · ')) : null);
+    later(() => {
+      body.querySelectorAll('.strike').forEach((x) => x.remove());
+      body.append(card);
+      const life = ms('--m-strike'), enter = ms('--m-state') / life, leave = 1 - ms('--m-feedback') * 2 / life;
+      play(card, [{ opacity: 0, transform: 'translateY(10px) scale(.96)' }, { opacity: 1, transform: 'none', offset: enter, easing: 'linear' }, { opacity: 1, transform: 'none', offset: leave, easing: 'cubic-bezier(0.4, 0, 1, 1)' }, { opacity: 0, transform: 'translateY(-6px)' }],
+        { dur: life, done: () => card.remove() });
+      const slash = card.querySelector('.sk-slash');
+      if (slash) play(slash, [{ transform: 'rotate(-14deg) scaleX(0)', opacity: 1 }, { transform: 'rotate(-14deg) scaleX(1)', opacity: 1, offset: 0.35 }, { transform: 'rotate(-14deg) scaleX(1)', opacity: 0 }], { dur: ms('--m-trail'), delay: ms('--m-feedback') });
+      const word = card.querySelector('.sk-out');
+      if (beat >= 3) { impact(word, ms('--m-feedback')); shake([card], beat >= 4 ? 1 : 0.6, ms('--m-feedback') + ms('--m-hold')); }
+      else if (beat === 2) pulse(word, ms('--m-feedback'), 2);
+    }, d);
+  }
+
   /** the turn after its opening: the prose, its results, the sheet and the gold cards, from t */
   function turnRest(e: HTMLElement, b: ShownValues | null, a: ShownValues, ab: Around | null, aa: Around, t: number) {
     // M-10/M-11: the prose, sentence by sentence (opacity only: a sentence is inline text), then what was said and the time row
@@ -883,6 +915,8 @@ export function playScreen(api: GameApi, nav: (page: string) => void): PlayUi {
       arrive(r, d);
       // M-20: the outcome word's beat, by severity
       const w = r.querySelector('.res b'), o = Number(w?.getAttribute('data-o') ?? 0);
+      // the player's own blow that landed: the strike card over the story, at this row's beat
+      if (r.classList.contains('check') && !r.classList.contains('in')) { const c = lineOf.get(e)?.check; if (c?.strike) strikeCard(c, d + fade); }
       if (w && o === 1) play(w, [{ opacity: 0 }, { opacity: 1 }], { dur: ms('--m-beat'), delay: d + fade });
       else if (w && o === 4 && r.classList.contains('in')) {
         // a crushing hit on the player (game-feel T3): the word holds its struck pose, then the story and the sheet

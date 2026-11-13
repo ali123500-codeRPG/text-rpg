@@ -1159,6 +1159,7 @@ export function lineExtras(s: GameState, events: GameEvent[], nv: NarrationView,
         kind: 'attack', skill: a.attack.skill, ...tierPart(a.attack),
         ...(a.defense && a.defenseType ? { against: { what: `${views.callName(s, 'player', a.targetId)}’s ${a.defenseType}`, ...tierPart(a.defense) } } : {}),
         result: `${pk?.outcome ?? words(a.outcome)}${loc ? `, ${loc}` : ''}`,
+        strike: { target: pk?.target ?? views.callName(s, 'player', a.targetId), weapon: pk?.weapon ?? null, changes: pk?.changes ?? [] },
       };
     } else if (e.contest && (e.contest.a.actorId === 'player' || e.contest.b.actorId === 'player')) {
       const c = e.contest;
