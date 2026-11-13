@@ -752,7 +752,7 @@ const STAKES: Record<Tier, string> = {
   near_miss: 'A fair event tilted slightly against the player: gain a step below the challenge',
   success: 'A normal event, gain matched to challenge',
   great_success: 'Good fortune: a windfall or a chance worth taking, with little challenge',
-  critical_success: 'The best of luck: the biggest gain, with at most a major challenge',
+  critical_success: 'The best of luck: the biggest gain, found inside a challenge as hard as a Critical Failure brings. The opportunity in the danger sets it apart, not a milder danger',
 };
 
 const placeName = (state: GameState, id: string) => state.places.find((p) => p.id === id)?.names.current ?? id;

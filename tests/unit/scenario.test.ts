@@ -59,7 +59,8 @@ describe('gradesFitTier', () => {
     expect(gradesFitTier('great_success', 'extreme', 'major')).toBe(false); // ER1: the top tiers are good fortune
     expect(gradesFitTier('great_success', 'none', 'major')).toBe(true);
     expect(gradesFitTier('great_success', 'major', 'moderate')).toBe(false);
-    expect(gradesFitTier('critical_success', 'extreme', 'extreme')).toBe(false);
+    expect(gradesFitTier('critical_success', 'extreme', 'extreme')).toBe(true); // D-247: as dangerous as Critical Failure
+    expect(gradesFitTier('critical_success', 'none', 'extreme')).toBe(false);
     expect(gradesFitTier('critical_success', 'major', 'extreme')).toBe(true);
     for (const [t, g] of Object.entries(FITTING_GRADES)) expect(gradesFitTier(t as Tier, g.challenge, g.gain)).toBe(true);
   });

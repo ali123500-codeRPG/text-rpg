@@ -24,14 +24,16 @@ type Fit = { challenge: [Grade, Grade]; gain: [Grade, Grade]; gainVsChallenge?: 
  * and for the middle tiers how far the gain sits from the challenge. The Weaver prompt reads this too. The tier sets the
  * balance of gain against challenge, worst to best (ER1, ER2): trouble with little gain; a fair event tilted slightly
  * bad (Near Miss: gain a step below the challenge); a matched one; good fortune (Great Success: major gain, little
- * challenge); the best of it (Critical Success: extreme gain, at most a major challenge). */
+ * challenge); the best of it (Critical Success: extreme gain inside the same challenge as Critical Failure, so the opportunity sets
+ * it apart, not a milder danger). */
+const CRITICAL_CHALLENGE: [Grade, Grade] = ['major', 'extreme'];
 export const GRADES_FIT: Record<Tier, Fit> = {
-  critical_failure: { challenge: ['major', 'extreme'], gain: ['none', 'minor'] },
+  critical_failure: { challenge: CRITICAL_CHALLENGE, gain: ['none', 'minor'] },
   failure: { challenge: ['moderate', 'extreme'], gain: ['none', 'minor'] },
   near_miss: { challenge: ['minor', 'major'], gain: ['none', 'moderate'], gainVsChallenge: [-1, -1] },
   success: { challenge: ['minor', 'major'], gain: ['none', 'extreme'], gainVsChallenge: [-1, 1] },
   great_success: { challenge: ['none', 'moderate'], gain: ['major', 'major'] },
-  critical_success: { challenge: ['none', 'major'], gain: ['extreme', 'extreme'] },
+  critical_success: { challenge: CRITICAL_CHALLENGE, gain: ['extreme', 'extreme'] },
 };
 const within = (x: number, [lo, hi]: [Grade, Grade]) => x >= g(lo) && x <= g(hi);
 export function gradesFitTier(tier: Tier, challenge: Grade, gain: Grade): boolean {

@@ -13,7 +13,7 @@ export const FITTING_GRADES: Record<Tier, { challenge: Grade; gain: Grade }> = {
   near_miss: { challenge: 'moderate', gain: 'minor' },
   success: { challenge: 'moderate', gain: 'moderate' },
   great_success: { challenge: 'minor', gain: 'major' },
-  critical_success: { challenge: 'moderate', gain: 'extreme' },
+  critical_success: { challenge: 'major', gain: 'extreme' },
 };
 
 /** Story start: Brookmere's tavern, the street and gate, the slime field, a frontier into the woods. */
