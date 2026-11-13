@@ -10,7 +10,7 @@ export type AgentName = 'parser' | 'planner' | 'responder' | 'voice' | 'narrator
 export type Volume = 'whisper' | 'normal' | 'shout';
 export type ParserActionType =
   | 'attack' | 'hide' | 'sneak' | 'vanish' | 'search' | 'stash' | 'talk' | 'persuade' | 'deceive' | 'barter' | 'intimidate'
-  | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep' | 'pick' | 'open'; // pick: BA2, a lock on the way to target or on a container; open: CT3, a container
+  | 'use_item' | 'equip' | 'give' | 'buy' | 'sell' | 'observe' | 'interact' | 'other' | 'rest' | 'wait' | 'sleep' | 'pick' | 'open' | 'restrain'; // restrain: BF5, hold someone back unhurt; pick: BA2, a lock on the way to target or on a container; open: CT3, a container
 export const SPEECH_ACTIONS = ['talk', 'persuade', 'deceive', 'barter', 'intimidate'] as const;
 
 // ---- Agent Parser ----
