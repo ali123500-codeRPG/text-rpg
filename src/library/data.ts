@@ -107,8 +107,9 @@ export const SKILLS: Record<string, SkillDef> = Object.fromEntries([
   { ...sk(SK.blade_dance, TR.sword_dancer, [], [RL.grip]), groups: [GR.melee, GR.defense], augments: [{ skill: SK.dodge }] }, // Riposte's mirror: adds its full value to every Dodge roll
   // Merchant's advanced barter: augments Barter, adding its effective value to every roll that asks for Barter
   { ...sk(SK.shrewd_dealing, TR.merchant, [], [RL.speech]), groups: [GR.influence], augments: [{ skill: SK.barter }] },
-  // slime class skills are tier 0; F1: tremor is both a sight and a hearing function
-  sk(SK.tremor, TR.slime_senses, [FN.sight, FN.hearing], [RL.sense], 'sound', 'tier_0'),
+  // slime class skills are tier 0; tremor is no sense function of its own: it adds its full value to every hearing roll
+  // (every hearing roll asks for Earshot, SENSE_SKILL)
+  { ...sk(SK.tremor, TR.slime_senses, [], [RL.sense], 'sound', 'tier_0'), groups: [GR.notice], augments: [{ skill: SK.earshot }] },
   // FL1: the Sleight group (functionNames.ts): Lockpicking opens locks (BA2), Filching takes what others carry (src/engine/filch.ts);
   // each stands in for the other (CONFIG.SUBSTITUTES)
   sk(SK.lockpicking, TR.tools, [FN.lockpicking], [RL.grip]),

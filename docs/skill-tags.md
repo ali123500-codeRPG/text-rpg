@@ -28,8 +28,8 @@ function in its group; adding a function or group is one row there.
 | Defense | armor | light_armor, medium_armor, heavy_armor (tree "Armor – Conventional", AR1–AR3) |
 | Health | health | endurance (tree "Fortitude") |
 | Will | morale | resolve (tree "Fortitude"; the morale roll) |
-| Notice | sight | sight, tremor |
-| Notice | hearing | hearing, tremor |
+| Notice | sight | sight |
+| Notice | hearing | hearing (tremor augments it) |
 | Stealth | stealth | sneaking, combat_stealth, vanishing |
 | Stealth | lockpicking | thievery (BA2; the group is a placeholder) |
 | Influence | influence | persuasion, intimidation, barter |

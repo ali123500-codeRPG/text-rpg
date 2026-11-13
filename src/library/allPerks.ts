@@ -146,7 +146,7 @@ export const ALL_PARTS: PerkWriteup[] = [
       effect: 'That band-mate becomes suspicious of the actor (told by the owner), with its zone as last known.', lasts: 'Until the band-mate\'s belief changes on its own.' } }),
   part(TR.perception, { id: PK.curiouser, ref: 'T5d', name: 'Curiouser and Curiouser', effect: 'senses',
     story: 'Once you notice something, you notice everything. A good sight or hearing roll counts one outcome better.',
-    rules: { kind: 'Always on', trigger: 'The owner makes a sight or hearing roll (any skill with that function, Tremor included).', conditions: ['The roll ends in Success or better.'],
+    rules: { kind: 'Always on', trigger: 'The owner makes a sight or hearing roll (any skill with that function; Tremor adds to every hearing roll).', conditions: ['The roll ends in Success or better.'],
       effect: 'Tier shift +1 on that roll. In a contest it wins more close calls: a tie becomes a win, a loss a tie.', lasts: 'That roll.' } }),
   part(TR.perception, { id: PK.one_sense, ref: 'T5-150', name: 'Every Sense One', effect: 'senses',
     story: 'Your senses have run together. What you see, you hear, and what you hear, you see: a voice in the dark has a face, and a figure across the yard has a voice.',

@@ -197,7 +197,7 @@ export function takeEssence(state: GameState, offerIndex: number, atRest: boolea
   pr.essenceOffers!.splice(offerIndex, 1);
   if (!pr.essenceOffers!.length) delete pr.essenceOffers;
   const { source: _s, untilMin: _u, ...e } = o;
-  (pr.essences ??= []).push({ ...e, turn: state.turn } as HeldEssence);
+  hold(p, { ...e, turn: state.turn } as HeldEssence);
   logCode(state, 'essence_taken', { essence: o.essence, grade: o.grade });
   tally(state, 'essences_taken');
   if (pr.essences!.length >= essenceSlots(p)) tally(state, 'essence_room', { to: charLevel(p) });
@@ -224,6 +224,12 @@ export function essenceText(e: HeldEssence, skillName: (id: string) => string): 
 export const essenceValue = (e: { points: Record<string, number> }): number =>
   Math.round(Object.values(e.points).reduce((n, v) => n + v, 0) * CONFIG.ITEM_VALUE.skillPoint * CONFIG.ESSENCE_VALUE_MULT);
 
+/** a held essence opens its skills (skillBlock) and puts any missing ones on the sheet at raw 0, so its points count */
+function hold(a: Actor, e: HeldEssence): void {
+  (a.progression!.essences ??= []).push(e);
+  for (const id of Object.keys(e.points)) a.core.skills[id] ??= { raw: 0, state: 'normal' };
+}
+
 /** ES3 a: who can take an essence in: someone with a progression record (the player, rolled NPCs), with a free slot */
 const hasRoom = (a: Actor): boolean => !!a.progression && (a.progression.essences?.length ?? 0) < essenceSlots(a);
 
@@ -234,7 +240,7 @@ function handOver(state: GameState, offerIndex: number, to: Actor, how: 'given' 
   if (!pr.essenceOffers!.length) delete pr.essenceOffers;
   const { source: _s, untilMin: _u, ...e } = o;
   const held = { ...e, turn: state.turn } as HeldEssence;
-  if (hasRoom(to)) (to.progression!.essences ??= []).push(held);
+  if (hasRoom(to)) hold(to, held);
   else (to.essenceStock ??= []).push(held);
   const name = getLibrary().essences?.[o.essence]?.name ?? o.essence;
   applyMemoryOps(state, to, { add: [how === 'given' ? `${state.player.names.current} gave me an essence, ${name}.` : `I bought an essence, ${name}, from ${state.player.names.current} for ${price} coin.`], drop: [] });
