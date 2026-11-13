@@ -42,8 +42,16 @@ function fightTurn(st: GameState): Partial<LogLine> {
     check: { kind: 'attack', skill: SK.melee_medium, tier: 'great_success', against: { what: 'slime’s dodge', tier: 'failure' }, result: 'heavy hit, body' },
     incomingChecks: [{ kind: 'attack', skill: SK.melee_light, tier: 'critical_success', against: { what: 'your block', tier: 'near_miss' }, result: 'crushing hit, right arm', by: 'the slime' }],
     changes: [{ kind: 'combat', text: 'Slime → you · crushing hit, right arm' }, { kind: 'combat', text: 'You → slime · heavy hit, body' }, { kind: 'condition', text: 'Your right arm is crippled' }],
-    wounds: [{ id: 'right_arm', from: 'healthy', to: 'crippled' }], gains: { [SK.block]: 2 },
+    wounds: [{ id: 'right_arm', from: 'healthy', to: 'crippled' }], gains: { [SK.block]: 2 }, coin: 15,
   };
+}
+
+function robTurn(st: GameState): Partial<LogLine> {
+  const purse = st.player.core.inventory.find((i) => i.itemId === IT.coin);
+  const took = Math.min(purse?.qty ?? 0, 12);
+  if (!purse || !took) return {};
+  purse.qty = (purse.qty ?? 1) - took;
+  return { coin: -took };
 }
 
 function levelTurn(st: GameState): Partial<LogLine> {
@@ -244,12 +252,14 @@ export function createFakeGame(opts: { autoStart?: boolean; fell?: boolean; noti
         if (road.rect) state.player.pos = { x: road.rect.x - road.rect.w * 0.1, y: road.rect.y };
         (state.player.journal?.zonesSeen ?? []).push(road.id);
       }
+      // "rob" has a pickpocket lift coin from the purse, to show the Coin row and the sheet's coin losing it
+      const robbed = /^rob\b/i.test(text) ? robTurn(state) : null;
       // "train" levels the current class up, to show the level-up beat and the rail's perk-point badge landing with it
       const lvl = /^train\b/i.test(text) ? levelTurn(state) : null;
       // the attack earns an achievement; "spar" loses a spar and earns a scar, to show both gold cards and their pop-ups
       const earned = hurt || /^spar\b/i.test(text) ? earnTurn(state, hurt ? [ACH.crippled_1] : [ACH.spar_losses_1]) : null;
       lines = [...lines, { turn: t, kind: 'narration', text: `(Canned narration ${++n}.) The grass hisses as the slime gathers itself again.`, mechanics: [`Turn ${t}: d100 ${40 + n} → Success`],
-        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}), ...(ways ?? {}) }];
+        place: placeOf(state), scenario: state.stage.scenarioNumber, ...(drop ? { downedBy: { by: 'the slime', weapon: 'acid lash', part: 'left leg', outcome: 'crushing hit' } } : {}), ...(hurt ?? {}), ...(lvl ?? {}), ...(earned ?? {}), ...(ended ?? {}), ...(ways ?? {}), ...(robbed ?? {}) }];
       busy = false; emit();
     },
     async reset() { state = null; lines = []; fell = false; emit(); },
