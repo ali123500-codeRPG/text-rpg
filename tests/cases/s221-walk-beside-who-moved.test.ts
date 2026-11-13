@@ -10,7 +10,7 @@ it('BG-131: an NPC walking over to the player follows them into the zone they ju
   const g = place(s, 'guard_1', 'gate_inner');
   g.mind!.control = 'agent';
   const out = plannerOut(g.id, act('talk', s.player.id), { move: { toZone: 'street_door' }, dialogue: { line: "I'm right behind you.", volume: 'normal' } });
-  play(s, { intent: intent({ move: { toZone: 'gate_inner' }, action: null }), agentOutputs: [out] });
+  play(s, { intent: { ...intent({ move: { toZone: 'gate_inner' } }), action: null }, agentOutputs: [out] });
   expect(s.player.zone).toBe('gate_inner');
   expect(g.zone).toBe('gate_inner');
   expect(s.log.some((l) => l.code === 'move_spot_dropped' && l.detail?.actorId === g.id)).toBe(false);
