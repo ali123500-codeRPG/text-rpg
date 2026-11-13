@@ -57,7 +57,7 @@ export type Intent = {
 // ---- Agent Planner / Responder / Voice ----
 /** every action an NPC order can give (schema and completeness tests read this list) */
 export const NPC_ACTIONS = ['attack', 'move', 'search', 'hide', 'sneak', 'vanish', 'hold', 'call_help', 'flee',
-  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'other'] as const;
+  'talk', 'persuade', 'deceive', 'intimidate', 'barter', 'use_item', 'equip', 'give', 'pick', 'open', 'other'] as const; // open: BG-173, a container (CT3)
 export type NpcActionType = (typeof NPC_ACTIONS)[number];
 export type NpcAction = {
   type: NpcActionType;
