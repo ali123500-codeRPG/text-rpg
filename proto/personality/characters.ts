@@ -47,7 +47,7 @@ export const CHARACTERS: Character[] = [
     bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
     nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
     axes: { honesty: 20, pride: -20, temper: -20, sociability: -50, discipline: 70, curiosity: -40 },
-    drives: ['duty', 'courtesy'], scenes: { dir: 'lilia', only: ['l1_strange_baby', 'l2_drink', 'l3_gossip'] },
+    drives: ['propriety', 'duty', 'order'], scenes: { dir: 'lilia', only: ['l1_strange_baby', 'l2_drink', 'l3_gossip'] },
     signatures: [
       'Served as a palace guard until an assassin\'s poisoned blade lamed her leg; now keeps house with the same soldier\'s discipline.',
       'Finds the baby of the house uncanny: he never cries and watches grown-ups too knowingly. She keeps her distance, and says so only with care.',
@@ -59,7 +59,7 @@ export const CHARACTERS: Character[] = [
     bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
     nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
     axes: { honesty: 40, pride: -50, temper: -40, sociability: -40, discipline: 50, curiosity: 0 },
-    drives: ['family', 'gratitude'], scenes: { dir: 'lilia', only: ['l4_dismissed', 'l5_saved', 'l6_sneer'] },
+    drives: ['humility', 'gratitude', 'propriety', 'family'], scenes: { dir: 'lilia', only: ['l4_dismissed', 'l5_saved', 'l6_sneer'] },
     signatures: [
       'Carrying her master\'s child: she will not blame him or beg, and would rather leave quietly than break the household.',
       'Whoever saves her and her child earns her lifelong devotion; she repays it with service.',
@@ -70,7 +70,7 @@ export const CHARACTERS: Character[] = [
     bandGoals: 'keep the knight\'s household running', temperament: 'a household servant', tactics: 'competent',
     nerve: 0, resolve: 40, ageStage: 'adult', skills: [{ name: 'sword', value: 50, fight: true, attack: true }],
     axes: { honesty: 40, pride: -50, temper: -40, sociability: -50, discipline: 70, curiosity: -40 },
-    drives: ['duty', 'gratitude', 'family', 'courtesy'], scenes: { dir: 'lilia' },
+    drives: ['propriety', 'humility', 'gratitude', 'duty', 'family', 'order'], scenes: { dir: 'lilia' },
     signatures: [
       'Served as a palace guard until an assassin\'s poisoned blade lamed her leg; now keeps house with the same soldier\'s discipline.',
       'Finds the baby of the house uncanny: he never cries and watches grown-ups too knowingly. She keeps her distance, and says so only with care.',

@@ -57,17 +57,18 @@ export const VALUES: Record<string, string> = {
   glory: 'wants great deeds and to be remembered for them',
   adventure: 'seeks out new places, thrills and challenges',
   reputation: 'cares what others think of them, guards their good name',
-  humility: 'doesn\'t put themself forward, gives others the credit',
+  humility: 'accepts their lot, asks for nothing, gives others the credit',
   nature: 'loves the wild, animals and growing things',
   justice: 'wants wrongs put right and the guilty punished',
   tolerance: 'accepts people who are different, hates prejudice',
   loyalty: 'stands by their friends and their own',
   courtesy: 'minds their manners, avoids giving offence',
   order: 'likes rules, routine and things in their place',
-  gratitude: 'repays kindness, in kind or better',
+  propriety: 'keeps to what is proper for their place, and keeps private matters private',
+  gratitude: 'repays kindness in kind or better, and offers to at once',
   desire: 'drawn to attractive people; notices them, flirts and chases romance',
 };
-export const DRIVES_SHOWN = 2;
+export const DRIVES_SHOWN = 3;
 
 /** Nerve: line from the nerve axis (lean 20), tier from raw Resolve; one hint per line */
 export const NERVE_LEAN = 20;
