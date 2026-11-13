@@ -2,7 +2,7 @@
 import type { Actor, AgreementMade, GameEvent, GameState, Trigger } from '../types';
 import { STANCES } from '../scales';
 import { CONFIG } from '../config';
-import { calmBandmatesSwitch, headTo, switchRoutine } from '../minds';
+import { calmBandmatesSwitch, headTo, letSearch, switchRoutine } from '../minds';
 import { actorById, allActors, countsInFight, hostile, isActive, isEngaged, knowsName, nameBook, stance } from './relations';
 import { usableAgentOutputs } from './merge';
 import { revealToPlayer } from './secrets';
@@ -125,6 +125,7 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
       if (sparOf(state, a.id) || !countsInFight(a) || !isEngaged(state, a)) yieldSpar(state, a);
       else { loseNerve(state, a, 'surrendered'); logCode(state, 'npc_yielded', { actorId: a.id }); }
     }
+    letSearch(state, a, o.output.letsSearch); // BF16
     if (o.output.questEnd) agentQuestEnd(state, a, o.output.questEnd, ctx.heardSpeech(a.id, state.player.id), ctx.heardNow(state.player.id, a.id));
     let routineId: string | null = null;
     if (o.agent === 'voice') {

@@ -396,7 +396,7 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   },
   [TP.guard]: {
     id: TP.guard, raceId: RC.human, classId: CL.guard, generation: 'copy', // its class floors (the Guard unlock) raise its minimums
-    minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.parry]: 30, [SK.dodge]: 20, [SK.eyesight]: 30, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements
+    minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.parry]: 30, [SK.dodge]: 20, [SK.eyesight]: 40, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements; BF17: Eyesight 40, a search's skill, above a thief's
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
     focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.parry }, { treeId: TR.perception, skill: SK.eyesight }],

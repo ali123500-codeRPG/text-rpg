@@ -278,6 +278,15 @@ function knowsStep(state: GameState, viewer: Actor, e: GameEvent): boolean {
   return knowsName(state, viewer, a);
 }
 
+/** BF18: things that belong to `a` (the Weaver's owner) and are not on them: what it knows is missing, never where it is */
+function missingOf(state: GameState, a: Actor): { missing?: { id: string; name: string }[] } {
+  const all = (xs: ItemInstance[]): ItemInstance[] => xs.flatMap((i) => [i, ...all(i.contents ?? [])]);
+  const mine = new Set(all(a.core.inventory));
+  const gone = all([...allActors(state).flatMap((x) => x.core.inventory), ...state.zones.flatMap((z) => z.groundItems)])
+    .filter((i) => i.owner === a.id && !mine.has(i) && !itemDef(state, i.itemId).container);
+  return gone.length ? { missing: gone.map((i) => ({ id: i.id, name: itemName(state, i.id) ?? itemDef(state, i.itemId).name })) } : {};
+}
+
 function eventView(state: GameState, viewer: Actor, e: GameEvent): EventView {
   const p = e.perception[viewer.id];
   const full = p.level === 'full';
@@ -315,7 +324,11 @@ function visibleChanges(state: GameState, effects: Effect[], viewerId: string): 
       const names = (f.data.items as string[]).map((id) => itemName(state, id) ?? 'something').join(', ');
       out.push(f.data.on ? `${by} finds ${names} on ${who}, left there for now` : `${who} finds ${names} hidden here, left there for now`); // BG-178: found is not taken
     }
-    if (f.kind === 'found_nothing') out.push(!f.data.on ? `${by} finds nothing here` : f.data.held ? `${by} finds nothing on ${who}` : `${by} sees nothing on ${who}; going through their things needs a hold on them`); // BG-142
+    if (f.kind === 'found_nothing') out.push(!f.data.on ? `${by} finds nothing here` : f.data.held ? `${by} finds nothing on ${who}` : `${by} sees nothing on ${who}; going through their things needs a hold on them or their leave`); // BG-142, BF16
+    if (f.kind === 'shown_items') { // BF16: turning out their own pockets
+      const names = (f.data.items as string[]).map((id) => itemName(state, id) ?? 'something');
+      out.push(`${who} turn${own ? '' : 's'} out ${own ? 'your' : 'their'} pockets: ${names.length ? names.join(', ') : 'nothing'}${f.data.palmFailed ? `, and ${own ? 'your' : 'their'} try to keep one thing back is seen` : ''}`);
+    }
     if (f.kind === 'found_secret') out.push(`${by} catches something ${who} would rather keep hidden`); // SE17: the secret itself shows once known
     if (f.kind === 'disturbed') out.push(`${who} notices something here has been moved`); // SE8: a search that tied a hidden item
     if (f.kind === 'held') out.push(`${who} is held by ${by}`); // A8 Hold
@@ -495,7 +508,7 @@ function baseView(state: GameState, actorId: string): BaseView {
       id: a.id, label: a.label, name: a.names.current, kind: 'npc', ...(ageText(state, a) ? { age: ageText(state, a)! } : {}), // AG16
       zone: a.zone, placeId: a.placeId, bandId: a.bandId,
       health: healthLevel(a), parts: partStates(state, a).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, a), morale: moraleWord(a), ...steadyOf(a), fatigue: fatigueWord(a),
-      ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
+      ...(m.lastWasted ? { lastWasted: { ...m.lastWasted } } : {}), ...missingOf(state, a), ...(m.meanwhile && m.meanwhile.turn >= state.turn - 1 ? { meanwhile: { minutes: Math.round(m.meanwhile.seconds / 60) } } : {}), active: isActive(a), broken: m.moraleState === 'broken', surrendered: m.moraleState === 'surrendered',
       control: m.control, standingDefense: a.core.standingDefense, ...(heldBy(state, a) ? { heldBy: heldBy(state, a)!.id } : {}),
       gear: ownGear(state, a), attackSkill,
       ...(m.routine ? { routine: { id: m.routine.id, anchorTurn: m.routine.anchorTurn, elapsed: Math.max(0, now(state) - (m.routine.at ?? now(state))), dayPart: timeOfDay(now(state)) } } : {}),

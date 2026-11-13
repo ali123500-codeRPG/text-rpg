@@ -53,6 +53,7 @@ export type Actor = {
   };
   /** AT49: the player's walk not yet at its goal, carried on by the next turns until another move or action is ordered */
   walking?: NonNullable<import('./agents').Intent['move']>;
+  letsSearch?: { by: string; until: number }; // BF16: lets `by` search it hands-on, until that turn
   heldBy?: string; // A8 Hold: the actor holding this one; it can't leave the zone or use two-handed modes (src/engine/held.ts)
   /** PY2: a seller's wares: library item ids it sells from its own stock, and service ids */
   wares?: { items: string[]; services: string[] };

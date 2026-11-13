@@ -97,7 +97,8 @@ export type ItemInstance = {
   hiderSkill?: number; // SE25 a: the stasher's true stealth skill when it was stashed: a search learns against it
   /** CT1: a container's contents (a worn pack has none of its own: its wearer's stowed items are in it) */
   contents?: ItemInstance[];
-  /** CT1/CT4: the actor a container belongs to; opening or taking from it while they are up and watching is theft */
+  /** CT1/CT4: the actor a container belongs to; opening or taking from it while they are up and watching is theft. BF18: any
+   * item the Weaver gives an owner: away from them, it is on their list of missing things (views self.missing) */
   owner?: string;
   /** FL6: the actor it was filched from: its owner knows it on sight and won't buy it back */
   stolenFrom?: string;
