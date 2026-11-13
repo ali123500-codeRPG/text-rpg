@@ -96,6 +96,8 @@ export type SparMade = { sides: string[][]; cruel?: boolean };
 /** the NPC's one move beside its action, as the player's: toZone is where it heads (it walks toward it; with hold it runs
  * on, a dash); after: act first, then move */
 export type NpcMove = { toZone: string; after?: boolean };
+/** UG5: goals met or failed (by their number in the view) and goals added */
+export type GoalOps = { met: number[]; failed: number[]; add: { text: string; about?: string[] }[] };
 export type PlannerOutput = {
   action: NpcAction;
   move?: NpcMove | null;
@@ -113,6 +115,8 @@ export type PlannerOutput = {
   spare?: boolean; // D-239: spares (true) or finishes the downed player (self.playerAtMercy); no answer finishes
   headTo?: string | null; // NW2: where it is going, further than one move: a zone or frontier id; code walks it there
   lead?: string | null; // BF4: who it takes along on that walk; it waits there for them
+  goals?: GoalOps | null; // UG5: a goal holder's goals met, failed or added
+  steps?: import('./hidden').GoalStep[] | null; // UG16: a goal holder's next steps, in order (replaces its queue)
 };
 export type ResponderOutput = PlannerOutput & { reveals: string[] };
 export type VoiceOutput = {
@@ -186,6 +190,8 @@ export type StagePlan = {
     awarenessOfBands?: { band: string; awareness: 'unaware' | 'suspicious' | 'aware' }[];
     overrides?: { actor: string; stance: Stance }[];
     motive: string;
+    /** UG3/UG4: a goal holder's goals (a unique's, its unfinished business first for an echo); about: ids or keys it names */
+    goals?: { text: string; about?: string[] }[];
     /** PY2: what a Trader-class seller sells: goods stocked into its inventory, and service ids */
     wares?: { items: { item: string; qty?: number }[]; services: string[] };
     /** PL12: a new actor's Nerve line, up to two named types (PY…) and values (VL…), set on top of its template's points */

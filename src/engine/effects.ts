@@ -14,6 +14,7 @@ import { seesClearlyNow } from '../views';
 import { hearsWords } from '../perception';
 import { falseName, nameSaid } from '../words';
 import { sparOf, startSpar, yieldSpar } from './spar';
+import { applyGoals } from './goals';
 
 const TRIGGER_TYPES = ['player_seen_in_zone', 'turn_reached', 'actor_down', 'alarm_heard'];
 
@@ -160,5 +161,7 @@ export function applyAgentEffects(state: GameState, input: TurnInput, ctx: Effec
     const deed = !WORDS_ONLY.has(o.output.action.type) || !!step || !!goal;
     if (a.mind && o.agent !== 'planner' && deed) a.mind.errandUntil = state.turn + CONFIG.ERRAND_TURNS;
     else if (a.mind && o.agent === 'planner' && !deed) delete a.mind.errandUntil;
+    // UG5/UG16: a goal holder's goals and next steps, last, so its queue's first step wins over this output's routine or walk
+    if (o.agent !== 'voice') applyGoals(state, a, o.output.goals, o.output.steps);
   }
 }

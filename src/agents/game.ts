@@ -179,7 +179,8 @@ export function createGame(deps: GameDeps): Game {
     if (!s || rateLimited || stopped) return;
     const world = worldIds(s);
     const ctx = ctxFor(s.turn, []);
-    for (const actorId of plannerActors(s).slice(0, CONFIG.MAX_PLANNER_CALLS)) {
+    const fights = plannerActors(s);
+    for (const actorId of [...fights.slice(0, CONFIG.MAX_PLANNER_CALLS), ...goalThinkers(s, new Set(fights)).slice(0, CONFIG.UNIQUE_THINKS_PER_TURN)]) {
       const controller = new AbortController();
       const view = views.buildOppositionView(s, actorId); // from saved state, before submit
       const bg: Background = { actorId, controller, view, startedAt: clock.now(), done: false, collected: false, promise: Promise.resolve() };
@@ -896,6 +897,18 @@ export function plannerActors(s: GameState): string[] {
     .map((id) => s.actors.find((a) => a.id === id))
     .filter((a): a is Actor => !!a && (a.mind?.control === 'agent' || errand(a)) && a.mind?.moraleState !== 'broken' && !a.asleep && !busyNow(a)) // NW20: a sleeper is not asked; AT47: nor one at a long action
     .sort((a, b) => +!!s.mercy?.pending.includes(b.id) - +!!s.mercy?.pending.includes(a.id) || (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .map((a) => a.id);
+}
+
+/** UG7/UG8/UG9: goal holders due to think (their queue ran out or a step failed, they noticed what a goal names, or they
+ * were just cast), not already getting a Planner call, awake, active and not broken; nearest the player first, anywhere */
+export function goalThinkers(s: GameState, taken: Set<string>): string[] {
+  const dist = zoneDistances(s, s.player.zone);
+  return Object.entries(s.hidden.drives ?? {})
+    .filter(([id, d]) => d.think && !taken.has(id))
+    .map(([id]) => s.actors.find((a) => a.id === id))
+    .filter((a): a is Actor => !!a && isActive(a) && !a.asleep && a.mind?.moraleState !== 'broken')
+    .sort((a, b) => (dist.get(a.zone) ?? Infinity) - (dist.get(b.zone) ?? Infinity) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .map((a) => a.id);
 }
 

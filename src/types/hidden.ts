@@ -1,10 +1,13 @@
 // Part 2, Hidden state persistence; routines from Game state model.
 import type { Grade, Tier } from './core';
 import type { Order } from './ruleset';
-import type { AttentionKey, NoiseKey, ScenarioScale, VisibilityKey } from '../scales';
+import type { AttentionKey, NoiseKey, ScenarioScale, TimeOfDay, VisibilityKey } from '../scales';
+import type { RoutineRun } from './actor';
 
 export type HiddenStore = {
   plans: Record<string, Plan>; // actorId -> plan
+  /** UG1/UG2: goal holders (uniques) by actor id: their goals and queued steps; only they think by goals */
+  drives?: Record<string, Drive>;
   memory: Record<string, MemoryEntry[]>; // actorId -> memory list (PM1, at most CONFIG.MEMORY_ENTRIES)
   /** PM3/PM4: deals between two actors (the player or NPCs), kept until done or broken */
   agreements?: Agreement[];
@@ -91,6 +94,17 @@ export type MemoryEntry = { turn: number; text: string };
 export type Agreement = { id: string; parties: [string, string]; text: string; madeTurn: number; madeBy: string };
 
 export type Plan = { goal: string; steps: string[]; triggers: Trigger[]; createdTurn: number };
+
+/** UG2: a standing aim; about: the ids it names (people, places, zones, items): perceiving one wakes a think (UG7 moment 3).
+ * standing (UG3 d): written on the template, dropped only when met */
+export type Goal = { text: string; about?: string[]; standing?: true; turn: number };
+/** UG17: when a routine or wait step ends: a time of day, or someone's arrival where it is */
+export type StepEnd = { at?: TimeOfDay; arrival?: string };
+/** UG11: one step code runs with no call: go to a zone or frontier (maybe leading someone), run a routine, or wait here */
+export type GoalStep = { go?: string; lead?: string; routine?: string; wait?: true; until?: StepEnd };
+/** UG5/UG16: a goal holder's goals, its queue (the first step is under way, ending by endsAt at the latest), the routine it
+ * goes back to when the queue runs out (back), why it should think next (think), and the named things it perceives now */
+export type Drive = { goals: Goal[]; steps: GoalStep[]; endsAt?: number; back?: RoutineRun; think?: string; noticed?: string[] };
 
 export type TriggerWhen =
   | { type: 'player_seen_in_zone'; zone: string }

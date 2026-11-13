@@ -124,6 +124,7 @@ export function hasAgenda(state: GameState, actorId: string): boolean {
     state.hidden.secrets.some((s) => s.holderId === actorId) ||
     !!state.hidden.plans[actorId] ||
     !!state.hidden.memory[actorId]?.length ||
+    !!state.hidden.drives?.[actorId]?.goals.length || // UG1: a goal holder is voiced by the Responder
     !!state.hidden.agreements?.some((g) => g.parties.includes(actorId))
   );
 }

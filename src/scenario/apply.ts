@@ -20,6 +20,7 @@ import { updateBeliefs, computePerception } from '../perception';
 import { buildActorView } from '../views';
 import { actorById, atLeast, isActive, zoneById } from '../engine/relations';
 import { startSpar } from '../engine/spar';
+import { seedGoals } from '../engine/goals';
 import type { PlanContext, PlanError } from './index';
 import { stageFrontiers, tidyContainers, tidyRewards } from './validate';
 import { wornPack } from '../engine/containers';
@@ -441,6 +442,12 @@ export function applyStagePlan(state: GameState, plan: StagePlan, ctx: PlanConte
   }
   state.hidden.castNotes ??= {};
   plan.cast.forEach((c, i) => (state.hidden.castNotes![castActors[i].id] = { motive: c.motive, ...(c.routineGap ? { routineGap: c.routineGap } : {}) }));
+  // UG3: goal holders: the template's standing goal, then the Weaver's goals, their keys read as ids
+  const aboutRef = (r: string) => castMap.get(r) ?? placeMap.get(r) ?? zoneMap.get(r) ?? r;
+  plan.cast.forEach((c, i) => {
+    const a = castActors[i], standing = a.core.templateId ? npcTemplate(state, a.core.templateId).standingGoal : undefined;
+    if (c.goals?.length || standing) seedGoals(state, a, (c.goals ?? []).map((g) => ({ text: g.text, ...(g.about?.length ? { about: g.about.map(aboutRef) } : {}) })), standing);
+  });
 
   if (degraded.size) {
     const actors = plan.cast.filter((c) => degraded.has(c.key)).map((c) => castMap.get(c.key)!);

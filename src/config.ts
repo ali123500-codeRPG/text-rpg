@@ -588,6 +588,10 @@ const DEFAULTS = {
   DECAY_AWARE_S: 120,
   DECAY_SUSPICIOUS_S: 900,
   MAX_PLANNER_CALLS: 3, // Q2 (D-18)
+  UNIQUE_THINKS_PER_TURN: 1, // UG8: goal holders' thinks per turn, after fight calls, nearest the player first (placeholder)
+  GOALS_HELD: 3, // UG5: goals one actor holds at most (placeholder)
+  STEPS_QUEUED: 3, // UG16: steps a think may queue (placeholder)
+  STEP_MAX_DAYS: 3, // UG17: a step with no end given stops after this many days (placeholder)
   /** Claude calls the viewer runs at once (unconfirmed, the spec's "a couple"); background calls keep one free for the turn's own (Q4) */
   CALL_SLOTS: 2,
   MAX_SPOKESPEOPLE: 2, // Q2
