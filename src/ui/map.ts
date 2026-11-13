@@ -6,6 +6,7 @@ import type { GameApi } from '../types';
 import { h } from './kit';
 import { verticalOf } from '../scenario/heights';
 import { EK } from '../library/tableIds';
+import { furnIcon, furnKey } from './furnitureIcons';
 import { CONFIG } from '../config';
 import { distText } from '../views';
 /** CSS class of each edge kind's line on the To scale view */
@@ -22,6 +23,7 @@ const s = (tag: string, attrs: Record<string, string | number> = {}, ...kids: (N
 
 /** To scale: screen pixels per metre before zoom */
 const PX_PER_M = 12;
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 const TILE_H = 58, TILE_H_PEOPLE = 84, LINK_LEN = 300, STUB = 90;
 /** below this stage width, fitting a place never shrinks tiles past NARROW_MIN_K */
 const NARROW_W = 640, NARROW_MIN_K = 0.75;
@@ -146,6 +148,8 @@ export function mapPage(api: GameApi) {
   let cur: KnownMap | null = null, world = '';
   /** the key lists the barrier marks only once the map shows one */
   const anyShut = () => !!cur?.places.some((p) => p.zones.some((z) => z.links.some((l) => l.way?.shut)));
+  /** FR5: the key shows the furniture mark once the plan draws some */
+  const anyFurniture = () => planned() && !!cur?.places.some((p) => p.zones.some((z) => z.furniture?.length));
   const floors = new Map<string, number>(); // per world: the height shown
   // To scale (CO1): each zone as its own rectangle in metres, sides drawn by edge kind, in place of the exit tiles
   let plan = false;
@@ -404,6 +408,13 @@ export function mapPage(api: GameApi) {
       const kind = (z.edges as Record<string, string> | undefined)?.[side] ?? (z.outdoor ? EK.open : EK.wall);
       g.append(s('line', { x1, y1, x2, y2, class: `map-edge ${EDGE_CLASS[kind] ?? 'wall'}` }));
     }
+    // FR5: the furniture at its own points, under the zone's name and people; hover names it
+    for (const f of z.furniture ?? []) {
+      const pad = 11, clamp = (v: number, lo: number, hi: number) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
+      const fx = clamp(f.x * PX_PER_M, x + pad, x + w - pad), fy = clamp(-f.y * PX_PER_M, y + pad, y + hh - pad); // the disc stays inside its walls
+      const mid = Math.abs(fx - p.x) < 16 && Math.abs(fy - p.y) < 16; // a piece in the middle steps below the name and people
+      g.append(furnIcon(f.kind, cap(f.name), fx, mid ? p.y + (z.people.length ? 30 : 20) : fy));
+    }
     g.append(s('text', { x: p.x, y: p.y - (z.people.length ? 6 : 0) + 4, 'text-anchor': 'middle', class: 'map-tile-name' }, z.name),
       s('title', {}, `${z.name}: about ${Math.round(z.rect!.w)} × ${Math.round(z.rect!.d)} m (${m2} m²)`));
     z.people.slice(0, 6).forEach((who, i, all) => g.append(s('circle', { cx: p.x + (i - (all.length - 1) / 2) * 12, cy: p.y + 12, r: 4.5, class: `map-dot-who${who.now ? '' : ' last'}` }, s('title', {}, who.name))));
@@ -507,6 +518,7 @@ export function mapPage(api: GameApi) {
           l.way ? h('span', { class: `map-exit-way${l.way.shut ? ` ${l.way.shut}` : ''}${l.way.key ? ' key' : ''}` }, ` · ${wayWords(l.way)}`) : ''),
         l.known ? h('button', { type: 'button', class: 'map-go', title: 'Show this zone', 'aria-label': `Show ${zoneName(l.to) ?? 'this zone'}`, onclick: () => goTo(l.to) }, '›') : ''))),
       z.people.length ? h('div', {}, h('p', { class: 'hs-label' }, 'People'), h('p', {}, ...z.people.map((p) => h('span', { class: 'hs-tg' + (p.now ? '' : ' faded') }, p.now ? p.name : `${p.name} (last seen)`)))) : '',
+      z.furniture?.length ? h('div', {}, h('p', { class: 'hs-label' }, 'Furniture'), h('p', {}, ...z.furniture.map((f) => h('span', { class: 'hs-tg' }, cap(f.name))))) : '',
       z.items.length ? h('div', {}, h('p', { class: 'hs-label' }, 'On the ground'), h('p', {}, ...z.items.map((x) => h('span', { class: 'hs-tg' }, x)))) : '')
       : h('section', { class: 'map-card' }, h('p', { class: 'hs-note' }, 'Click a zone on the map to see what you know about it.'));
     const count = (p: MapPlace) => cur!.places.filter((q) => inside(q.id, p.id)).reduce((n, q) => n + q.zones.length, 0);
@@ -523,6 +535,7 @@ export function mapPage(api: GameApi) {
         h('li', {}, h('i', { class: 'k-line stub' }), 'Exit you have not taken'), h('li', {}, h('i', { class: 'k-area' }), 'A place inside this one'), h('li', {}, h('i', { class: 'k-line away' }), 'Road to another map'), h('li', {}, h('i', { class: 'k-stair' }, '▲'), 'Stairs up or down: click to change floor'),
         ...(planned() ? [h('li', {}, h('i', { class: 'k-edge wall' }), 'Wall'), h('li', {}, h('i', { class: 'k-edge low' }), 'Counter or fence'), h('li', {}, h('i', { class: 'k-edge window' }), 'Window'), h('li', {}, h('i', { class: 'k-edge open' }), 'Open side')] : []),
         ...(anyShut() ? [h('li', {}, wayKey('locked'), 'Locked'), h('li', {}, wayKey('locked key'), 'Locked, you hold its key'), h('li', {}, wayKey('barred'), 'Barred'), h('li', {}, wayKey('blocked'), 'Blocked')] : []),
+        ...(anyFurniture() ? [h('li', {}, furnKey(), 'Furniture: point at one for its name')] : []),
         h('li', {}, h('i', { class: 'k-who' }), 'Someone there now'), h('li', {}, h('i', { class: 'k-who last' }), 'Last seen there')));
     side.replaceChildren(card, facts, placeList, legend);
   }
