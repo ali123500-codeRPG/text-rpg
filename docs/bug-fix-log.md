@@ -12,7 +12,7 @@ words it, or, where the log only names a PR, that PR's title.
 
 **What was done:** Coming back to Play now always opens the story at the latest lines. A browser test plays a few turns in a short window, goes to Bugs and back, and checks the story is at the bottom.
 
-**Fixed by:** [PR #PRNUM](https://github.com/ali123500-codeRPG/text-rpg/pull/PRNUM)
+**Fixed by:** [PR #689](https://github.com/ali123500-codeRPG/text-rpg/pull/689)
 
 ## BG-189
 
