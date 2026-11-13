@@ -315,7 +315,7 @@ describe('dialogue', () => {
     expect(ev2.filter((e) => e.kind === 'speak').map((e) => e.actorId)).toEqual(['player']);
     const atk = ev2.find((e) => e.actorId === 'trader')!;
     expect(atk).toMatchObject({ kind: 'attack', bark: true, line: { text: 'die' } });
-    expect(ev2.indexOf(atk)).toBe(ev2.length - 1); // initiative 10: last
+    expect(ev2.slice(ev2.indexOf(atk)).every((e) => e.actorId === 'trader')).toBe(true); // initiative 10: last (its next blow follows)
   });
   it('words beside an attack are a bark', () => {
     place(s, 'patron_1', 'tav_common');
@@ -433,8 +433,10 @@ describe('gear and combat', () => {
     expect(ev.filter((e) => e.actorId === 'player').map((e) => e.kind)).toEqual(['equip']);
     expect(s.player.core.inventory.find((i) => i.id === `player_${IT.gambeson}_3`)!.equippedIn).toBeUndefined();
   });
-  it('second defense counts as outnumbered; morale breaks an engaged NPC reaching Injured', () => {
+  it('a second defense in a round counts as outnumbered; morale breaks an engaged NPC reaching Injured', () => {
     place(s, 'guard_1', 'tav_common');
+    beside(s, 'guard_1'); // both blows land in the same round (AT50): no walk before either
+    beside(s, 'patron_1', 'guard_1');
     engage('guard_1');
     actor(s, 'patron_1').mind!.knowledge.guard_1 = { status: 'aware', source: 'seen', revealed: [] };
     actor(s, 'patron_1').mind!.overrides = { guard_1: 'hostile' };
@@ -443,7 +445,7 @@ describe('gear and combat', () => {
     F.morale = 'broken';
     actor(s, 'guard_1').core.condition.moraleLost = 90; // near Broken: Injured's fear (25 × 1.5) breaks it
     resolveTurn(s, input({ intent: intent({ action: { type: 'attack', target: 'guard_1' } }), agentOutputs: [planner('patron_1', npcAction('attack', 'guard_1'))] }), createRng(1));
-    expect(F.attacks.map((a) => a.context?.defensesThisTurn)).toEqual([0, 1]);
+    expect(F.attacks.map((a) => a.context?.defensesThisTurn)).toEqual([0, 1]); // AT50: two blows in the same round; the break stops the repeats
     expect(actor(s, 'guard_1').mind!.moraleState).toBe('broken');
     expect(actor(s, 'guard_1').mind!.overrides?.player).toBe('yielded'); // Q4: broken shares the yielded stance
     expect(s.player.progression!.xpLog?.some((x) => x.source === 'defeat:guard_1')).toBe(true); // a break is a defeat: it pays

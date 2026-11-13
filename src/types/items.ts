@@ -5,6 +5,8 @@ import type { ArmorWeightKey, EquipLevelKey } from '../scales';
 
 export type ItemDef = {
   id: LibraryRef;
+  /** AT11: a ranged weapon's shot (an Action times row, DU), and the spanning it needs before each shot (a crossbow) */
+  shotTime?: string; spanTime?: string;
   kind: 'weapon' | 'armor' | 'shield' | 'accessory' | 'tool' | 'consumable' | 'misc';
   name: string;
   look: string; // public text

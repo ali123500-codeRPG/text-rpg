@@ -98,7 +98,7 @@ describe('153 Parry', () => {
     expect(strikesAt(true, IT.dagger)).toBe(CONFIG.PARRY_STRIKE_GAP);
   });
 
-  it('a strike back is a free melee attack with the parrying weapon, once per turn', () => {
+  it('a strike back is a free melee attack with the parrying weapon, once per round (AT50)', () => {
     const s = setup();
     const p = npc(s, 'patron_1');
     hold(p, [IT.arming_sword]);
@@ -114,7 +114,8 @@ describe('153 Parry', () => {
     });
     play(s, { intent: intent({ action: { type: 'attack', target: 'patron_1', item: 'player_h0' } }) });
     expect(calls[1]).toEqual({ by: 'patron_1', at: 'player', weapon: 'patron_1_h0' });
-    expect(calls.filter((c, i) => i > 0 && calls[i - 1].by === 'player' && c.by === 'patron_1' && calls[i - 1].at === 'patron_1').length).toBeLessThanOrEqual(1);
+    // AT78/AT50: the player's two blows fall in two rounds, so each parry may strike back once
+    expect(calls.filter((c, i) => i > 0 && calls[i - 1].by === 'player' && c.by === 'patron_1' && calls[i - 1].at === 'patron_1').length).toBeLessThanOrEqual(2);
   });
 
   it('Riposte adds its full value to Parry rolls, and Blade Dance to Dodge rolls', () => {

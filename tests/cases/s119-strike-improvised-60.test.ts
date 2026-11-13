@@ -66,12 +66,13 @@ describe('119 One-Two', () => {
   it('an improvised hit with the other hand empty is followed by a free punch at the same foe', () => {
     const calls = run(true, 'full_hit');
     expect(calls[0]).toBe('bottle');
-    expect(calls.length).toBe(2);
     expect(calls[1]).not.toBe('bottle');
+    expect(calls).toEqual([calls[0], calls[1], calls[0], calls[1]]); // AT78: two 3 s blows fill the 6 s turn, each with its punch
   });
   it('no punch on a miss, without the perk, or with the other hand full', () => {
-    expect(run(true, 'missed').length).toBe(1);
-    expect(run(false, 'full_hit').length).toBe(1);
-    expect(run(true, 'full_hit', false).length).toBe(1);
+    // AT78: two bottle blows a turn, and no punch after either
+    expect(run(true, 'missed')).toEqual(['bottle', 'bottle']);
+    expect(run(false, 'full_hit')).toEqual(['bottle', 'bottle']);
+    expect(run(true, 'full_hit', false)).toEqual(['bottle', 'bottle']);
   });
 });

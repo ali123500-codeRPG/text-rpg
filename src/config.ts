@@ -233,8 +233,9 @@ const DEFAULTS = {
   /** AT35/AT74: the round, one exchange of blows: the one lever for short durations (perk marks, per-round limits). A code
    * ID only: the game never names it, it shows seconds */
   ROUND_S: 3,
-  /** AE12/AT13: the most a fight turn lasts, in seconds */
+  /** AE12/AT13: the most a fight turn lasts, in seconds, and the least (a turn lasts as long as the player's order) */
   FIGHT_TURN_S: 6,
+  FIGHT_TURN_MIN_S: 3,
   /** AT12 (placeholder): heavy armour put on or taken off alone takes this many times as long as with help */
   ARMOR_ALONE_MULT: 2,
   TIME_OF_DAY_FROM: { dawn: 5 * 60, morning: 7 * 60, afternoon: 12 * 60, dusk: 18 * 60, evening: 20 * 60, night: 23 * 60 } as Record<string, number>, // minute of the day each starts (placeholders)
@@ -403,13 +404,9 @@ const DEFAULTS = {
    * player before it turns back (placeholder: about a village street or two; a game number, not a real-world reference) */
   CHASE_NEAR_M: 200,
   IMPROVISED_HIT_ADJ: -10,
-  /** CO13 action slots each actor gets a turn: a movement spends a move slot first, then a main slot (two moves = a dash) */
-  MOVE_SLOTS: 1,
-  RANGED_MOVE_SLOTS: 1, // ZP3: move slots a ranged attack (shot or throw) costs besides the main action; a perk could lower it
   /** RD7 worn armor's slowing by weight: flat m/s off the body type's speeds, then a share off what is left (an armor item's
    * own `speed` overrides). Placeholders: no study gives speed loss directly; heavy is about a fifth, as asked */
   ARMOR_SPEED: { light: { flat: 0, pct: 0 }, medium: { flat: 0.1, pct: 0.05 }, heavy: { flat: 0.2, pct: 0.15 } } as Record<string, { flat: number; pct: number }>,
-  MAIN_SLOTS: 1,
   /** CO14 the range unit: one pace in metres, the one lever every range and move scales by (about one stride) */
   PACE_M: 1,
   /** CO16 floor area in m² of each zone size (ZONE_SIZES); placeholders */

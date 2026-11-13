@@ -10,8 +10,9 @@ import { healthFear, moraleLevel, partFearCost, partFears } from '../ruleset/mor
 import { bestReward } from '../ruleset/achRewards';
 import { parryItem } from '../ruleset/gear';
 import { FN } from '../library/functionIds';
-import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
-import { barrierOn, noteTried, openWay, passage, shutBy, wayOp } from './barriers';
+import type { Actor, ActorView, AttackResult, Barrier, CheckResult, ContestResult, Effect, DurationDef, GameEvent, GameState, GearOp, Mod, Order, Rng, TierShift, WayDid } from '../types';
+import { barrierOn, noteTried, openWay, passage, shutBy, wayOp, type WayOp } from './barriers';
+import { actionRow, actionSeconds } from '../ruleset/actionTime';
 import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { slotMetres } from './speed';
@@ -32,7 +33,7 @@ import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds, restrain } from './held';
 import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
-import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
+import { actorById, allActors, atLeast, foe, isActive, isAsleep, isEngaged, hostile, knowsShut, reachesAcross, shortestPath, sparBetween, stance, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
 import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
@@ -75,23 +76,101 @@ export function isMajorAction(_event: GameEvent): boolean {
   return true;
 }
 
-type Slots = { move: number; main: number };
-/** CO13: the action slots an actor gets each turn; perks or body types that add slots read here */
-export const actionSlots = (_a: Actor): Slots => ({ move: CONFIG.MOVE_SLOTS, main: CONFIG.MAIN_SLOTS });
+/** AT19/AT20: an actor's move and main time left this turn, in seconds (two pools side by side), what of each carried in from
+ * its last turn, and the seconds it has walked */
+type Slots = { move: number; main: number; carried: { move: number; main: number }; walkedS: number; arrived?: boolean };
+const T_EPS = 1e-6;
+/** AT50: the round (ROUND_S) the action resolving now falls in, for once-a-round limits; keyed per actor */
+const roundKey = (ctx: Ctx, id: string): string => `${id}@${Math.max(0, Math.ceil(ctx.at / CONFIG.ROUND_S - T_EPS) - 1)}`;
+/** AT13/AT20: each pool holds the turn's seconds plus what carried from the actor's last turn */
 const slotsOf = (ctx: Ctx, a: Actor): Slots => {
   let s = ctx.slots.get(a.id);
-  if (!s) ctx.slots.set(a.id, (s = actionSlots(a)));
+  if (!s) {
+    const c = a.carry && a.carry.turn === ctx.state.turn - 1 ? a.carry : undefined;
+    s = { move: ctx.turnS + (c?.move ?? 0), main: ctx.turnS + (c?.main ?? 0), carried: { move: c?.move ?? 0, main: c?.main ?? 0 }, walkedS: 0 };
+    ctx.slots.set(a.id, s);
+  }
   return s;
 };
-/** spends a main slot; false when none is left */
-const useMain = (ctx: Ctx, a: Actor): boolean => { const s = slotsOf(ctx, a); if (s.main <= 0) return false; s.main--; return true; };
-/** CO13: a movement spends a move slot first and a main slot when no move slot is left; null when neither is */
-const useMoveSlot = (ctx: Ctx, a: Actor, mainToo: boolean): 'move' | 'main' | null => {
+/** AT11/AT19: an action takes its seconds of main time, and the same of move time when it locks movement (unless the lock
+ * was taken already). An action with no row, or longer than what is left, takes all that is left, as the one main action
+ * did. False when no main time is left */
+const useMain = (ctx: Ctx, a: Actor, cost?: { row?: DurationDef; seconds?: number; lockPaid?: boolean }): boolean => {
   const s = slotsOf(ctx, a);
-  if (s.move > 0) { s.move--; return 'move'; }
-  if (mainToo && s.main > 0) { s.main--; return 'main'; }
+  if (s.main <= T_EPS) return false;
+  const seconds = cost?.seconds ?? (cost?.row ? actionSeconds(cost.row) : undefined);
+  const take = seconds === undefined ? s.main : Math.min(s.main, seconds);
+  s.main -= take;
+  if (cost?.row?.locksMove && !cost.lockPaid) s.move = Math.max(0, s.move - take);
+  ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + take);
+  if (seconds !== undefined && seconds <= take + T_EPS) ctx.finished.add(a.id); else ctx.finished.delete(a.id);
+  return true;
+};
+/** ZP2/AT19: a movement takes the move time left (a dash: the main time, once the move time is gone, when no main action
+ * is planned); walkLegs gives back the seconds it doesn't walk. Null when neither is left */
+const useMoveSlot = (ctx: Ctx, a: Actor, mainToo: boolean): Paid | null => {
+  const s = slotsOf(ctx, a);
+  if (s.move > T_EPS) { const seconds = s.move; s.move = 0; return { paid: 'move', seconds }; }
+  if (mainToo && s.main > T_EPS) { const seconds = s.main; s.main = 0; return { paid: 'main', seconds }; }
   return null;
 };
+/** how a walk is paid: walked or run (a dash), its seconds, and the pool unwalked seconds go back to (none: a main action walked) */
+type Paid = { paid: 'move' | 'main'; seconds: number; pool?: 'move' | 'main' | 'none' };
+/** AT11: seconds of the gear ops the actor carried out (draw, stow, swap, picking up), from its main time; a pick-up from the
+ * ground locks movement too */
+function useGearTime(ctx: Ctx, a: Actor, ops: GearOp[]): void {
+  for (const op of ops) {
+    const id = op.op === 'draw' ? DU.draw : op.op === 'stow' ? DU.stow : op.op === 'swap' ? DU.swap : op.op === 'pick_up' ? (op.from ? DU.pick_up_reach : DU.pick_up_ground) : undefined;
+    const row = id ? actionRow(id) : undefined;
+    if (!row) continue;
+    const s = slotsOf(ctx, a), take = Math.min(s.main, actionSeconds(row));
+    s.main -= take;
+    if (row.locksMove) s.move = Math.max(0, s.move - take);
+    ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + take);
+  }
+}
+/** AT11/AT19: a way op (a door, a bar, a key) takes its row's seconds from move time and main time; when the move time is
+ * short and `mainToo` (nothing else planned) it takes main time only. False when neither has room */
+function useWayTime(ctx: Ctx, a: Actor, op: WayOp, mainToo: boolean): boolean {
+  const row = actionRow(op === 'lock' || op === 'unlock' ? DU.key : op === 'bar' || op === 'unbar' ? DU.bar : DU.door)!;
+  const s = slotsOf(ctx, a), secs = actionSeconds(row);
+  if (s.move + T_EPS < secs && !(mainToo && s.main + T_EPS >= secs)) return false;
+  s.move = Math.max(0, s.move - secs);
+  s.main = Math.max(0, s.main - secs);
+  ctx.clock.set(a.id, (ctx.clock.get(a.id) ?? 0) + secs);
+  return true;
+}
+/** AT11: the Action times row an order's action uses, and its seconds (a crossbow's shot includes its spanning until
+ * spanning is an action of its own); undefined when the order names no row (it takes the turn's main time) */
+function orderCost(state: GameState, a: Actor, o: Order): { row: DurationDef; seconds: number } | undefined {
+  const of = (id: string | undefined, extra = 0) => { const row = id ? actionRow(id) : undefined; return row ? { row, seconds: actionSeconds(row) + extra } : undefined; };
+  const inv = (ref: string | null | undefined) => (ref ? a.core.inventory.find((i) => i.id === ref || i.itemId === ref) : undefined);
+  switch (o.type) {
+    case 'attack': {
+      const m = attackMode(state, a, o).m;
+      if (!m || m.mode.tree !== 'ranged') return of(DU.blow);
+      if (m.mode.thrown) return of(DU.throw);
+      const it = inv(m.itemId), def = it ? itemDef(state, it.itemId) : undefined;
+      const span = def?.spanTime ? actionRow(def.spanTime) : undefined;
+      return of(def?.shotTime ?? DU.bow_light, span ? actionSeconds(span) : 0);
+    }
+    case 'use_item': {
+      const it = inv(o.item), heal = it ? itemDef(state, it.itemId).heal : undefined;
+      return of(heal === HL.bandage ? DU.bandage : heal === HL.draught ? DU.drink : undefined);
+    }
+    case 'hide': return of(DU.hide);
+    case 'search': case 'observe': return of(DU.look);
+    case 'give': return of(DU.hand_over);
+    case 'barter': case 'buy': case 'sell': return of(DU.trade);
+    case 'equip': {
+      const w = o.item ? itemDef(state, inv(o.item)?.itemId ?? o.item).armor?.weight : undefined;
+      return of(w === 'heavy' ? DU.armor_heavy_on : w === 'medium' ? DU.armor_medium_on : w === 'light' ? DU.armor_light_on : undefined);
+    }
+    default:
+      if (isSpeech(o.type) && o.line) { const row = actionRow(DU.talk)!; return { row, seconds: actionSeconds(row) * o.line.text.trim().split(/\s+/).length }; }
+      return undefined;
+  }
+}
 
 type Ctx = {
   state: GameState;
@@ -100,13 +179,23 @@ type Ctx = {
   events: GameEvent[];
   orders: Map<string, Order>;
   acted: Set<string>;
-  /** CO13: action slots left this turn, per actor (actionSlots fills them on first use) */
+  /** AT13: this turn's own seconds in each pool */
+  turnS: number;
+  /** AT19: move and main time left this turn, per actor (slotsOf fills them on first use) */
   slots: Map<string, Slots>;
+  /** AT48: seconds into the turn each actor's main actions have reached; `at` is when the action resolving now finishes */
+  clock: Map<string, number>;
+  at: number;
+  /** AT20: actors whose last action finished whole (their leftover carries); AT78: actors whose repeating order stopped */
+  finished: Set<string>;
+  stopped: Set<string>;
+  /** speakers whose main action was their words in the exchange: their turn in order still runs gear, defence and move */
+  spoke: Set<string>;
   surprised: Set<string>;
   defenses: Map<string, number>;
   exchangeEvents: GameEvent[];
-  counters: Set<string>; // All-50 Counter: once per turn
-  parryStrikes: Set<string>; // PA4: a parry's free strike back, once per turn
+  counters: Set<string>; // All-50 Counter: once per round (AT50), keyed by roundKey
+  parryStrikes: Set<string>; // PA4: a parry's free strike back, once per round (AT50), keyed by roundKey
 };
 
 function mk(ctx: Ctx, a: Actor, kind: string, extra: Partial<GameEvent> = {}): GameEvent {
@@ -364,7 +453,7 @@ function moveGoal(state: GameState, a: Actor, o: Order): { goal: Located; opts: 
  * dash, runs the rest of the turn), one leg at a time, until it gets there, the slots run out, or the move is spent or
  * dropped. `slot` pays for each new slot (null: none left); with `stopShort`, the walk ends that far from the goal's point
  * (closing in to strike). Returns false when the move was dropped. */
-function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string; enter?: boolean } = {}): boolean {
+function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => Paid | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string; enter?: boolean } = {}): boolean {
   const start = ctx.events.length;
   const ok = walkLegs(ctx, a, goal, o, slot, opts);
   // BG-118: words said with a move are never lost: a move that left no event to carry them (a wait at a frontier, a
@@ -373,17 +462,32 @@ function walk(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 
   return ok;
 }
 
-function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => 'move' | 'main' | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string; enter?: boolean }): boolean {
+function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number) => Paid | null, opts: { bark?: boolean; stopShort?: number; toward?: string; spot?: string; enter?: boolean }): boolean {
   const { state } = ctx;
   // BG-166: a move goes into the zone it names, even when its spot is already within reach from the edge of the next one
   const there = () => (!opts.enter || a.zone === goal.zone) && (goal.pos ? withinM(distM(state, a, goal), opts.stopShort ?? 0) : a.zone === goal.zone);
-  let left = 0, fresh = false;
+  // AT19: the seconds not walked go back to the pool they came from; seconds walked count toward when the actor's next action finishes
+  let paid: Paid | null = null, perS = 0;
+  const giveBack = (metres: number) => {
+    if (!paid || perS <= 0) return;
+    const s = slotsOf(ctx, a), back = Math.max(0, Math.min(paid.seconds, metres / perS));
+    if (paid.pool !== 'none') s[paid.pool ?? paid.paid] += back;
+    s.walkedS += paid.seconds - back;
+    if (there()) s.arrived = true;
+  };
+  let left = 0;
+  try { return walkOn(); } finally { giveBack(left); }
+  function walkOn(): boolean {
+  let fresh = false;
   for (let n = 0, legs = 0; !there() && legs < 100; legs++) {
     if (left <= 0.01) {
-      const paid = slot(n++);
+      if (paid) giveBack(left);
+      left = 0;
+      paid = slot(n++);
       if (!paid) return true;
-      if (paid === 'main' && lame(state, a)) { logCode(state, 'dash_blocked', { actorId: a.id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' }); return true; }
-      left = slotMetres(state, a, paid);
+      if (paid.paid === 'main' && lame(state, a)) { logCode(state, 'dash_blocked', { actorId: a.id, reason: slowed(state, a) ? 'slowed' : 'crippled_leg' }); return true; }
+      perS = slotMetres(state, a, paid.paid, 1);
+      left = perS * paid.seconds;
       fresh = true;
     }
     const zone = a.zone;
@@ -397,6 +501,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
     fresh = false;
   }
   return true;
+  }
 }
 
 function dropped(ctx: Ctx, a: Actor, o: Order): void {
@@ -495,10 +600,10 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
   const opening = openingShifts(ctx, a, t, m.mode.tree);
   const res = ruleset.attack(
     { attackerId: a.id, targetId: t.id, weaponId: m.itemId, modeId: m.mode.id, targetPart: o.targetPart ?? null, aimed: !!o.aimed,
-      context: { defenderUnaware: surprised, defensesThisTurn: ctx.defenses.get(t.id) ?? 0, ...opening } },
+      context: { defenderUnaware: surprised, defensesThisTurn: ctx.defenses.get(roundKey(ctx, t.id)) ?? 0, ...opening } },
     state, rng,
   );
-  if (res.defense) ctx.defenses.set(t.id, (ctx.defenses.get(t.id) ?? 0) + 1);
+  if (res.defense) ctx.defenses.set(roundKey(ctx, t.id), (ctx.defenses.get(roundKey(ctx, t.id)) ?? 0) + 1);
   ev.effects = [...ev.effects, ...ruleset.applyEffects(res, state)];
   afterAttack(state, a, t, res, m.mode.tree === 'ranged', modeSkill(m.mode)); // perk marks (A2, A5, A10, B15)
   const hold = applyHold(a, t, res, modeSkill(m.mode)); // A8 Hold
@@ -537,13 +642,13 @@ function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false): void {
  * parrying weapon (a fist after a barehanded parry), once per turn. A free attack can earn one too: once per turn ends the chain. */
 function parryStrike(ctx: Ctx, a: Actor, t: Actor, res: AttackResult): void {
   const { state } = ctx;
-  if (!res.strikeBack || !isActive(t) || !isActive(a) || ctx.parryStrikes.has(t.id)) return;
+  if (!res.strikeBack || !isActive(t) || !isActive(a) || ctx.parryStrikes.has(roundKey(ctx, t.id))) return;
   const weapon = parryItem(state, t);
   const modes = usableModes(state, t);
   const back = weapon ? modes.find((x) => x.itemId === weapon.id && x.mode.tree === 'melee' && x.mode.reach >= 0)
     : modes.find((x) => modeSkill(x.mode) === SK.unarmed_strike && x.mode.reach >= 0);
   if (!back || !withinM(sightDistM(state, t, a), back.mode.reach)) return; // the blow back reaches only as far as its weapon (metres)
-  ctx.parryStrikes.add(t.id);
+  ctx.parryStrikes.add(roundKey(ctx, t.id));
   doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id, intent: 'parry strike' }, true);
 }
 
@@ -589,10 +694,10 @@ function allFiftyAfterAttack(ctx: Ctx, a: Actor, t: Actor, ranged: boolean, item
   if (followUp) return;
   // T1c Counter: a melee attack on the owner that ends in Critical Failure or worse earns a free melee attack back, once per turn
   if (!ranged && tierLevel(res.attack) <= TIERS.pos('critical_failure') && hasPerk(t, PK.counter) && isActive(t) && isActive(a)
-    && !ctx.counters.has(t.id)) {
+    && !ctx.counters.has(roundKey(ctx, t.id))) {
     const back = defaultMode(state, t, sightDistM(state, t, a));
     if (back && back.mode.tree !== 'ranged') {
-      ctx.counters.add(t.id);
+      ctx.counters.add(roundKey(ctx, t.id));
       doAttack(ctx, t, { ...nullOrder(t.id), type: 'attack', target: a.id, item: back.itemId, mode: back.mode.id }, true);
     }
   }
@@ -734,11 +839,18 @@ function runNight(ctx: Ctx): number {
   return minutes;
 }
 
-/** T1: a fight turn (FIGHT_TURN_S), else the Action times row naming the order type, else the default action row (DU) */
+/** T1: a fight turn (turnSeconds), else the Action times row naming the order type, else the default action row (DU) */
 function turnMinutes(state: GameState, o: Order): number {
   const rows = getLibrary().durations ?? {};
-  if (state.mode === 'tactical') return CONFIG.FIGHT_TURN_S / 60;
-  return ((Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows[DU.action])?.seconds ?? 0) / 60;
+  if (state.mode === 'tactical') return turnSeconds(state, o) / 60;
+  const base = (Object.values(rows).find((d) => d.orders?.includes(o.type)) ?? rows[DU.action])?.seconds ?? 0;
+  return Math.max(base, orderCost(state, state.player, o)?.seconds ?? 0) / 60; // AT13: never shorter than the order's own action
+}
+/** AT13/AT78: a fight turn lasts FIGHT_TURN_S, or as long as the player's order when that is one shorter action with no walk
+ * (never under FIGHT_TURN_MIN_S); an attack repeats to fill it */
+function turnSeconds(state: GameState, o: Order): number {
+  const c = o.type === 'attack' || o.type === 'hold' || o.move ? undefined : orderCost(state, state.player, o);
+  return c ? Math.min(CONFIG.FIGHT_TURN_S, Math.max(CONFIG.FIGHT_TURN_MIN_S, c.seconds)) : CONFIG.FIGHT_TURN_S;
 }
 
 /** H2/H3: using a carried item that names a healing source applies that row and uses one up; works in a fight only
@@ -865,12 +977,12 @@ function doWayOp(ctx: Ctx, a: Actor, w: NonNullable<Order['way']>, mainToo = fal
   const dry = b && { ...b, ...(b.lock ? { lock: { ...b.lock } } : {}), ...(b.bar ? { bar: { ...b.bar } } : {}) };
   const dryWhy = !b || !dry ? 'no_barrier' : wayOp(dry, a, a.zone, w.op);
   // BG-70: opening a way shut to them is trying it: the move slot goes on it and they learn why it won't open
-  if (dryWhy === 'shut' && b && useMoveSlot(ctx, a, mainToo)) {
+  if (dryWhy === 'shut' && b && useWayTime(ctx, a, w.op, mainToo)) {
     noteTried(b, a);
     emit(ctx, mk(ctx, a, 'way', { target: w.toZone, way: { to: w.toZone, barrier: b.id, did: `found_${shutBy(b, a, a.zone)}` as WayDid } }));
     return true;
   }
-  const why = dryWhy ?? (!useMoveSlot(ctx, a, mainToo) ? 'no_move' : wayOp(b!, a, a.zone, w.op));
+  const why = dryWhy ?? (!useWayTime(ctx, a, w.op, mainToo) ? 'no_move' : wayOp(b!, a, a.zone, w.op));
   if (why || !b) {
     logCode(state, 'way_op_dropped', { actorId: a.id, to: w.toZone, op: w.op, reason: why });
     emit(ctx, mk(ctx, a, 'wasted', { target: w.toZone, reason: WAY_DROP_WORDS[why ?? ''] ?? why ?? 'nothing_to_work' })); // BG-144: told, not silent
@@ -913,7 +1025,7 @@ function doPick(ctx: Ctx, a: Actor, o: Order): void {
   }
   const need = pickSeconds(eff);
   if (state.mode === 'tactical') {
-    const work = ((b.work ??= {})[a.id] = (b.work[a.id] ?? 0) + CONFIG.FIGHT_TURN_S);
+    const work = ((b.work ??= {})[a.id] = (b.work[a.id] ?? 0) + ctx.turnS);
     if (work < need || !tierAtLeast(r.tier, 'success')) return emit(ctx, way(tierAtLeast(r.tier, 'success') ? 'picking' : 'not_yet', extra));
   } else {
     const extraMin = need / 60 - turnMinutes(state, o);
@@ -941,7 +1053,7 @@ function doMain(ctx: Ctx, a: Actor, o: Order): void {
     case 'flee':
       // a move as the main action walks one slot's worth toward the zone
       if (!o.target || o.target === a.zone) return hold(ctx, a, o);
-      if (!walk(ctx, a, { zone: o.target }, o, (n) => (n === 0 ? 'move' : null), { bark: true })) return dropped(ctx, a, o);
+      if (!walk(ctx, a, { zone: o.target }, o, (n) => (n === 0 ? { paid: 'move', seconds: ctx.turnS, pool: 'none' } : null), { bark: true })) return dropped(ctx, a, o);
       return;
     case 'attack':
       return doAttack(ctx, a, o);
@@ -1021,20 +1133,24 @@ function step(ctx: Ctx, id: string): void {
   if (o.defense) a.core.standingDefense = o.defense;
   // FR2: a pick-up out of grip reach waits for the walk over to it (closeIn); the rest are free, before the action
   const later = (o.gear ?? []).filter((op) => op.op === 'pick_up' && !reachable(state, a, op));
-  const g = applyGearOps(state, a, (o.gear ?? []).filter((op) => !later.includes(op)));
+  const gearNow = (o.gear ?? []).filter((op) => !later.includes(op));
+  const g = applyGearOps(state, a, gearNow);
+  useGearTime(ctx, a, gearNow.filter((op) => !g.invalid.includes(op)));
   for (const p of g.picked) emit(ctx, mk(ctx, a, 'pick_up', { itemId: p.itemId, target: p.from }));
   for (const id of g.summoned) emit(ctx, mk(ctx, a, 'summon', { itemId: id })); // TB6
   if (g.invalid.length) logCode(state, 'invalid_gear', { actorId: id, ops: g.invalid });
   // TV1: a move along a road with nothing else going on is a trip, walked in one turn
   const trip = tripGoal(state, a, o);
   if (trip) return doTravel(ctx, a, o, trip);
-  // AE1/ZP3: a ranged attack costs the main action and a move slot (CONFIG.RANGED_MOVE_SLOTS). One that reaches from here
-  // takes its move slot first, and the move goes only on what is left; one that doesn't is dropped and the move stands
+  // AE1/ZP3/AT19: a shot or a throw that locks movement takes its seconds of move time too. One that reaches from here takes
+  // that move time first, and the move goes only on what is left; one that doesn't is dropped and the move stands
+  const cost = orderCost(state, a, o);
+  let lockPaid = false;
   if (o.type === 'attack' && rangedHere(state, a, o)) {
     if (inReach(state, a, o)) {
       const s = slotsOf(ctx, a);
-      s.move = Math.max(0, s.move - CONFIG.RANGED_MOVE_SLOTS);
-      if (o.move && s.move <= 0) { logCode(state, 'move_dropped', { actorId: id, to: o.move, reason: 'ranged_attack' }); o.move = null; }
+      if (cost?.row.locksMove) { s.move = Math.max(0, s.move - cost.seconds); lockPaid = true; }
+      if (o.move && s.move <= T_EPS) { logCode(state, 'move_dropped', { actorId: id, to: o.move, reason: 'ranged_attack' }); o.move = null; }
     } else if (o.move) { logCode(state, 'order_dropped', { actorId: id, type: o.type, target: o.target, reason: 'ranged_after_move' }); o.type = 'hold'; o.target = null; }
   }
   // ZP3 closing in: a melee attack on someone out of reach, with no other move planned before the blow, walks at them on
@@ -1058,10 +1174,10 @@ function step(ctx: Ctx, id: string): void {
   let turned = false;
   if (o.way) {
     const walked = closeIn && !near!.ok();
-    const was = a.pos && { zone: a.zone, pos: { ...a.pos } };
+    const was = a.pos && { zone: a.zone, pos: { ...a.pos } }, moveLeft = slotsOf(ctx, a).move;
     closer();
-    // BG-172: a step up to the way (a step at most) is part of working it, so the op still has the move slot
-    if (walked && was && near?.ok() && distM(state, a, was) <= CONFIG.ENTER_M) slotsOf(ctx, a).move++;
+    // BG-172: a step up to the way (a step at most) is part of working it, so the op still has the move time
+    if (walked && was && near?.ok() && distM(state, a, was) <= CONFIG.ENTER_M) slotsOf(ctx, a).move = moveLeft;
     if (near?.ok()) turned = doWayOp(ctx, a, o.way, o.type === 'hold'); // BG-165: a way not out of this zone (null) is out of reach too
     else { // BG-144: the walk did not reach the way, so the op comes to nothing this turn, and the story says why
       logCode(state, 'way_op_dropped', { actorId: id, to: o.way.toZone, op: o.way.op, reason: 'out_of_reach' });
@@ -1079,8 +1195,67 @@ function step(ctx: Ctx, id: string): void {
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
   // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting)
   const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > 0.01);
-  if (useMain(ctx, a) && !(o.type === 'hold' && moved && !o.line)) doMain(ctx, a, o);
+  // AT48: the main action finishes after the walk that led to it and the gear ops before it
+  const pools = slotsOf(ctx, a);
+  if (!o.moveAfter) ctx.clock.set(id, Math.max(ctx.clock.get(id) ?? 0, pools.walkedS));
+  ctx.at = (ctx.clock.get(id) ?? 0) + Math.min(cost?.seconds ?? pools.main, pools.main);
+  if (!ctx.spoke.has(id) && useMain(ctx, a, cost && { ...cost, lockPaid }) && !(o.type === 'hold' && moved && !o.line)) doMain(ctx, a, o);
   if (o.moveAfter && !turned) move(false); // AE3: act, then move
+}
+
+/** main time an actor can still spend this turn: what is left in the pool, and no further than the turn's end (a walk
+ * before the action pushes its clock on) */
+function mainLeft(ctx: Ctx, a: Actor): number {
+  const s = slotsOf(ctx, a);
+  return Math.max(0, Math.min(s.main, ctx.turnS + s.carried.main - (ctx.clock.get(a.id) ?? 0)));
+}
+
+/** AT78/AT48: an attack order repeats while the actor has main time for another one, each next blow or shot resolving in
+ * the order it finishes (the initiative order breaks ties). Before each, the attacker follows its target on the move time
+ * left. It stops once the target is down, yielded to, out of reach after following, or the attack came to nothing. */
+function repeatAttacks(ctx: Ctx, ordered: string[]): void {
+  const { state } = ctx;
+  for (let guard = 0; guard < 200; guard++) {
+    let next: { a: Actor; o: Order; cost: { row: DurationDef; seconds: number }; at: number } | undefined;
+    for (const id of ordered) {
+      const a = actorById(state, id), o = ctx.orders.get(id);
+      if (!a || !o || o.type !== 'attack' || !ctx.acted.has(id) || ctx.stopped.has(id) || !isActive(a)) continue;
+      const cost = orderCost(state, a, o);
+      if (!cost || cost.seconds <= T_EPS || mainLeft(ctx, a) + T_EPS < cost.seconds) continue;
+      const at = (ctx.clock.get(id) ?? 0) + cost.seconds;
+      if (!next || at < next.at - T_EPS) next = { a, o, cost, at };
+    }
+    if (!next) return;
+    const { a, o, cost, at } = next;
+    const t = o.target ? actorById(state, o.target) : undefined;
+    if (!t || !isActive(t) || yieldBars(state, a, t) || stance(state, t, a) === 'yielded') { ctx.stopped.add(a.id); continue; } // broken or surrendered mid-turn: the next blow is the attacker's own call
+    const near = reachOf(state, a, o);
+    if (near && !near.ok()) closeInOn(ctx, a, o, near);
+    if (near && !near.ok()) { ctx.stopped.add(a.id); continue; }
+    ctx.at = at;
+    useMain(ctx, a, cost);
+    const from = ctx.events.length;
+    doAttack(ctx, a, { ...o, move: null, line: null, gear: [] });
+    if (ctx.events.slice(from).some((e) => e.actorId === a.id && e.kind === 'wasted')) ctx.stopped.add(a.id);
+  }
+}
+
+/** AT20: each pool keeps, for the next turn only, what was left after the actor's last finished action, less any time it
+ * carried in and left unused; a hold, a wait and a turn where nothing finished carry nothing. In a fight only. */
+function noteCarry(ctx: Ctx): void {
+  const { state } = ctx;
+  for (const [id, s] of ctx.slots) {
+    const a = actorById(state, id), o = ctx.orders.get(id);
+    if (!a) continue;
+    delete a.carry;
+    if (state.mode !== 'tactical' || !o || ['hold', 'idle', 'wait', 'sleep', 'rest'].includes(o.type)) continue;
+    const keep = (pool: 'main' | 'move', done: boolean) => {
+      const left = pool === 'main' ? mainLeft(ctx, a) : s.move, used = ctx.turnS + s.carried[pool] - left;
+      return done ? Math.max(0, left - Math.max(0, s.carried[pool] - used)) : 0;
+    };
+    const carry = { main: keep('main', ctx.finished.has(id)), move: keep('move', !!s.arrived), turn: state.turn };
+    if (carry.main > T_EPS || carry.move > T_EPS) a.carry = carry;
+  }
 }
 
 /** TV1–TV8: the trip: one travel event where it ends; an encounter breaks the scenario (the next one starts there, with the
@@ -1113,7 +1288,7 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
 function doBattleCry(ctx: Ctx, a: Actor): void {
   const { state, rng } = ctx;
   countPerkMove(state, a, PK.battle_cry, null);
-  useMain(ctx, a);
+  useMain(ctx, a, { row: actionRow(DU.battle_cry) });
   const ev = mk(ctx, a, 'battle_cry');
   ev.perception = computePerception(ev, state, rng);
   emit(ctx, ev, undefined, true);
@@ -1181,7 +1356,7 @@ function stepUpToTake(ctx: Ctx, a: Actor, o: Order): boolean {
   const t = o.target ? actorById(state, o.target) : undefined;
   if (!t || t === a || t.zone === a.zone || !isActive(t) || isAsleep(t) || hostile(state, t, a)) return false;
   const mine = wayPoint(state, a.zone, t.zone, a), theirs = wayPoint(state, t.zone, a.zone, t);
-  if (!mine || !theirs || !withinGrip(state, a, { zone: a.zone, pos: mine }) || !slotsOf(ctx, t).move) return false;
+  if (!mine || !theirs || !withinGrip(state, a, { zone: a.zone, pos: mine }) || slotsOf(ctx, t).move <= T_EPS) return false;
   walk(ctx, t, { zone: t.zone, pos: theirs }, nullOrder(t.id), (n) => (n === 0 ? useMoveSlot(ctx, t, false) : null), { stopShort: Math.max(0, gripReachM(state, t) - 0.01), toward: a.id });
   return true;
 }
@@ -1313,6 +1488,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   for (const id of [...orders.keys()].sort((x, y) => (x === state.player.id ? -1 : y === state.player.id ? 1 : 0))) setPosture(state, actorById(state, id)!, orders.get(id)!);
   const ctx: Ctx = {
     state, rng, input, events: [], orders, acted: new Set(), slots: new Map(), surprised: new Set(), defenses: new Map(), exchangeEvents: [], counters: new Set(), parryStrikes: new Set(),
+    turnS: state.mode === 'tactical' ? turnSeconds(state, playerOrder) : CONFIG.FIGHT_TURN_S, clock: new Map(), at: 0, finished: new Set(), stopped: new Set(), spoke: new Set(),
   };
   // Dreaded on Sight: whoever first sees the owner pays its fear and turns colder, before anyone acts
   for (const c of sightDread(state, (a, id) => fear(ctx, a, id))) logCode(state, 'dreaded_on_sight', { actorId: c.target.id, by: c.owner.id, perk: c.perk });
@@ -1353,7 +1529,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
     // OQ-29: what the player's speech leaves on each listener (Shaken, Swayed; PY6 haggled prices with a seller)
     if (isSpeech(playerOrder.type)) for (const [sp, r] of Object.entries(ex.perSpokesperson)) { const s = actorById(state, sp); if (s && applySpeech(state.player, s, playerOrder.type, r.contest).status === 'shaken') fear(ctx, s, FR.lost_intimidation, { gap: r.contest.gap }); }
     if (input.quickWord) playerOrder.line = null; // A15/OA1: the line was said; the action follows in turn order
-    else useMain(ctx, state.player);
+    else { useMain(ctx, state.player, orderCost(state, state.player, playerOrder)); ctx.spoke.add(state.player.id); }
     const spokes = new Set(input.spokespeople);
     for (const id of ordered) {
       const o = orders.get(id);
@@ -1366,7 +1542,8 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
         o.line = null;
       } else {
         // the reply is the main action; the actor still takes its turn in order for gear, defense and its move (Q2)
-        useMain(ctx, a);
+        useMain(ctx, a, orderCost(state, a, o));
+        ctx.spoke.add(id);
         // move, then talk: the move comes first and the line is said from where it ends
         if (o.move && !o.moveAfter) {
           const { goal, opts } = moveGoal(state, a, o); // BG-111: stepping up to whisper ends beside the player, as everywhere
@@ -1382,6 +1559,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   // NW12: the player's wait or sleep goes last, so everyone has acted on this turn's orders before the clock moves on
   const skipsTime = (id: string) => id === state.player.id && ['wait', 'sleep'].includes(orders.get(id)?.type ?? '');
   for (const id of ordered) if (!ctx.acted.has(id) && !skipsTime(id)) step(ctx, id);
+  repeatAttacks(ctx, ordered); // AT78/AT48: attacks repeat while the turn's time lasts, in the order they finish
   for (const id of ordered) if (!ctx.acted.has(id) && skipsTime(id)) step(ctx, id);
 
   noteFighting(state, ctx.events); // YD6: blows engage, closing in hunts, quiet turns drop both
@@ -1407,7 +1585,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   offersFromDefeats(state, defeated, rng); // growth proposal 2.3: a notable foe beaten may offer an essence
   expireOffers(state);
   updatePacing(state, ctx.events, learnedBefore);
-  passTime(state, turnMinutes(state, playerOrder)); // T1: every turn costs its action's time (a wait adds its own)
+  passTime(state, state.mode === 'tactical' ? ctx.turnS / 60 : turnMinutes(state, playerOrder)); // T1/AT13: every turn costs its action's time (a wait adds its own)
   // BF2a-d: each catch-up leg is a move event, perceived by the normal rules (nobody near: still silent). BF2e: on a longer
   // turn (a trade, a rest, a wait) the legs are summed up for the Narrator (cameAndWent); asleep, the player notices none
   const catchMin = now(state) - clockStart - ((state.scratch?.caughtUp as number | undefined) ?? 0);
@@ -1448,6 +1626,7 @@ export function resolveTurn(state: GameState, input: TurnInput, rng: Rng): GameE
   releaseHolds(state, allActors(state));
   noteGains(state); // D-226: this turn's raises go on the scenario's gains summary
   if (state.stage.breakCause) closeScenario(state, rng); // SC6: record the scenario; SC4: an inner scenario's end resumes the bigger one
+  noteCarry(ctx); // AT20: what is left after each actor's last finished action
   noteTurnEnd(state); // AT15: timers count game time from turn stamps
   state.events.push(...ctx.events);
   return ctx.events;

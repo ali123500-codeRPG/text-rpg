@@ -18,10 +18,9 @@ export function moveSpeed(state: GameState, a: Actor): { walk: number; run: numb
   return { walk: at(base.walk), run: at(base.run) };
 }
 
-/** CO13/ZP2: the metres one slot of movement covers in a fight turn (the Fight turn duration). A move slot walks; a main
+/** CO13/ZP2/AT19: the metres `seconds` of movement cover (default: a whole fight turn). A move slot walks; a main
  * slot spent moving (a dash: the move costs both actions) runs the rest of the turn (run − walk). */
-export function slotMetres(state: GameState, a: Actor, paid: 'move' | 'main'): number {
-  const seconds = CONFIG.FIGHT_TURN_S;
+export function slotMetres(state: GameState, a: Actor, paid: 'move' | 'main', seconds: number = CONFIG.FIGHT_TURN_S): number {
   const s = moveSpeed(state, a);
   return (paid === 'move' ? s.walk : s.run - s.walk) * seconds;
 }

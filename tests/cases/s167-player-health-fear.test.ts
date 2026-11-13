@@ -54,11 +54,12 @@ it('167b a hit that cripples a part rolls the part fear, once per hit; Destroyed
     s.actors.find((a) => a.id === 'patron_1')!.mind!.overrides = { player: 'hostile' };
     for (const k of Object.keys(s.player.core.condition.parts)) if (k !== 'head' && k !== 'neck') s.player.core.condition.parts[k] = 1;
     const before = partStates(s, s.player);
-    resolveTurn(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }), aimed: false, agentOutputs: [plannerOut('patron_1', act('attack', 'player'))], spokespeople: [] }, createRng(seed));
+    const ev = resolveTurn(s, { intent: intent({ action: { type: 'attack', target: 'patron_1' } }), aimed: false, agentOutputs: [plannerOut('patron_1', act('attack', 'player'))], spokespeople: [] }, createRng(seed));
+    const hits = ev.filter((e) => e.kind === 'attack' && e.actorId === 'patron_1' && e.target === 'player').length; // AT78: two blows a turn
     if (!partFears(before, partStates(s, s.player)).length || !isActive(s.player)) continue;
     checked++;
     const mine = s.log.filter((l) => l.code === 'morale' && (l.detail as { actorId: string }).actorId === 'player' && (l.detail as { fear: string }).fear === FR.own_part_crippled);
-    expect(mine.length).toBeLessThanOrEqual(1); // once per hit, however many parts
+    expect(mine.length).toBeLessThanOrEqual(hits); // once per hit, however many parts
     paid += mine.length;
   }
   expect(checked).toBe(5);

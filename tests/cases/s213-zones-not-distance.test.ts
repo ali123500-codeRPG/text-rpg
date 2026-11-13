@@ -75,8 +75,8 @@ describe('213 zones are not distances', () => {
       vi.restoreAllMocks();
       return calls.length;
     };
-    expect(run(0.5)).toBe(2);
-    expect(run(1)).toBe(1);
+    expect(run(0.5)).toBe(4); // AT78: two blows, each with its punch
+    expect(run(1)).toBe(2);
   });
 
   it('a parry strikes back only as far as the parrying weapon reaches: a dagger does not reach a spearman 2 m off', () => {
@@ -99,7 +99,7 @@ describe('213 zones are not distances', () => {
       return calls.slice(0, 2);
     };
     expect(run(0.8)).toEqual(['player', 'patron_1']);
-    expect(run(2)).toEqual(['player']);
+    expect(run(2)).toEqual(['player', 'player']); // no strike back between the spear's two blows (AT78)
   });
 
   it('Bluff needs the foe to hear the lie clearly at a normal voice, not to share a zone', () => {
