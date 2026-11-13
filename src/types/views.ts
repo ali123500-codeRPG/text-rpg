@@ -110,6 +110,8 @@ export type PlayerView = {
     doing?: DoingView; // AT2/AT11a: the long action the player is at (the same order again carries it on)
     walking?: WalkingView; // AT49: a walk still on its way: a turn with no move and no action carries it on
     following?: FollowingView; // BG-190
+    /** how far each weapon in hand reaches at its longest, in metres (Who's here hover: in reach or not) */
+    reaches?: { name: string; metres: number }[];
     perkMoves?: { id: string; name: string; does: string; action?: true; inRange?: string[] }[]; // AE8: owned perk moves (the Parser's perkMove.perk is the id); does: what it looks like; action: it is the turn's main action; inRange: seen people near enough to aim it at
     health: HealthLevel; parts: { id: string; state: PartState }[];
     tended?: string; // BG-181: what its wounds were last treated with, until its next wound

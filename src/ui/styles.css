@@ -677,6 +677,9 @@ details.raw summary { cursor: pointer; color: var(--accent); font-weight: 700; }
 /* who's here: one row that keeps its height, empty or full */
 .who { display: flex; align-items: center; gap: var(--space-2) var(--space-4); flex-wrap: nowrap; overflow: hidden; min-width: 0; height: var(--control-h); }
 .who .pp { flex: none; }
+.who .pp:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.who-tip { position: fixed; z-index: 60; padding: 4px 10px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--text); font-size: 13px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
 /* input: the box takes the column's width, the tools sit in one row under it */
 .inbar { display: grid; gap: var(--space-2); }
 .inrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-2); }

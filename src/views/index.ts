@@ -44,7 +44,7 @@ import { PK } from '../library/perkIds';
 import { readsHealthOf } from '../ruleset/achRewards';
 import { IT } from '../library/itemIds';
 import { mentions } from '../words';
-import { modeName } from '../ruleset/gear';
+import { modeName, usableModes } from '../ruleset/gear';
 import { met, outcomeText } from '../ruleset/hits';
 import { itemValue } from '../ruleset/value';
 import { moraleLevel, moraleShows } from '../ruleset/morale';
@@ -425,6 +425,18 @@ function walkingOf(state: GameState, p: Actor): { walking?: WalkingView } {
   if (m === null || walk <= 0) return {};
   return { walking: { toZone: w.toZone, to: zoneById(state, w.toZone)?.name ?? w.toZone, metres: Math.round(m), seconds: Math.round(m / walk) } };
 }
+/** each weapon in the player's hands at its longest reach, longest first (natural attacks and fists left out) */
+function reachesOf(state: GameState, p: Actor): { reaches?: { name: string; metres: number }[] } {
+  const best = new Map<string, number>(); // by name, so two daggers read once
+  for (const m of usableModes(state, p)) {
+    const inst = p.core.inventory.find((i) => i.id === m.itemId);
+    if (!inst) continue; // natural attacks
+    const name = itemDef(state, inst.itemId).name.toLowerCase();
+    best.set(name, Math.max(best.get(name) ?? 0, m.mode.reach));
+  }
+  const out = [...best].map(([name, metres]) => ({ name, metres: Math.round(metres * 10) / 10 })).sort((a, b) => b.metres - a.metres);
+  return out.length ? { reaches: out } : {};
+}
 /** BG-190: whom the player is following, or lost this turn and why */
 function followingOf(state: GameState, p: Actor): { following?: FollowingView } {
   const l = p.followLost, near = p.walking?.spot?.follow ? p.walking.spot.near : undefined;
@@ -445,6 +457,7 @@ export function buildPlayerView(state: GameState): PlayerView {
       ...(doingOf(p) ? { doing: doingOf(p)! } : {}),
       ...walkingOf(state, p),
       ...followingOf(state, p),
+      ...reachesOf(state, p),
       ...(summonableThreadboundItems(state, p).length ? { summonable: summonableThreadboundItems(state, p).map((i) => ({ id: i.id, name: itemDef(state, i.itemId).name })) } : {}),
       ...(ownPerkMoves(p).length ? { perkMoves: ownPerkMoves(p).map((id) => ({ id, name: getLibrary().perks[id]?.name ?? id, does: PERK_MOVES[id].does, ...(PERK_MOVES[id].free ? {} : { action: true as const }), ...(PERK_MOVES[id].untargeted ? {} : { inRange: actors.filter((x) => perkMoveBlock(state, p, id, x.id) !== 'no_target').map((x) => x.id) }) })) } : {}),
       health: healthLevel(p), parts: partStates(state, p).map((x) => ({ id: x.id, state: x.state })), ...tendedOf(state, p), morale: moraleWord(p), ...steadyOf(p), stamina: staminaOf(p),
