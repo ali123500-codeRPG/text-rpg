@@ -10,6 +10,7 @@ import { actorById, isEngaged, reachesAcross, seesAcross, zoneById } from './rel
 import type { AcceptedAgentOutput, TurnInput } from './types';
 import { slotMetres } from './speed';
 import { distM, gateAhead, spotPoint, walkLeg, type Located } from './position';
+import { canSpeak } from '../ruleset/body';
 
 /** FR4: the one approach table: what each action needs of the actor's distance to its target, for every actor, player
  * or NPC. voice: the target hears it clearly (words, an order called out: BG-74, BG-78); approachMove plans the step up
@@ -17,6 +18,10 @@ import { distM, gateAhead, spotPoint, walkLeg, type Located } from './position';
  * both sides' when handing over: FR2); weapon: within the attack's reach (ZP3). Grip and weapon needs close in on the
  * move slot when the action comes (resolve.ts closeIn), so a target that moved meanwhile is still walked at. */
 export type Need = 'voice' | 'grip' | 'weapon';
+/** the need of an action by this actor: a buy or sell from someone who cannot speak is pointed at and paid in person (grip) */
+export function needOf(state: GameState, actor: Actor, type: string): Need | undefined {
+  return TRADE_KINDS.includes(type) && !canSpeak(state, actor) ? 'grip' : NEEDS[type];
+}
 export const NEEDS: Record<string, Need> = {
   ...Object.fromEntries(SPEECH_ACTIONS.map((t) => [t, 'voice' as const])), buy: 'voice', sell: 'voice',
   give: 'grip', pick: 'grip', interact: 'grip', attack: 'weapon',
@@ -29,7 +34,7 @@ export const NEEDS: Record<string, Need> = {
  * - a move through a doorway to another room while acting (following someone in) stands (BG-77). */
 export function approachMove(state: GameState, actor: Actor, act: { type: string; target: string | null; volume?: Volume; way?: boolean }, given: Intent['move']): Intent['move'] {
   let m = given;
-  const need = NEEDS[act.type];
+  const need = needOf(state, actor, act.type);
   if (!need || !act.target) return m;
   const t = actorById(state, act.target), here = actor.zone;
   if (!t || t.id === actor.id || need === 'weapon') return m; // a foe is closed in on when the blow comes (resolve.ts closeIn)

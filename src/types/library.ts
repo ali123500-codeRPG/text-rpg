@@ -236,9 +236,10 @@ export type PerkDef = {
   eventEdges?: number;
   /** D-218: the die lands this many times as far from the middle (50.5) for the margin; the natural edges read the real die */
   eventSpread?: number;
-  /** D-218 active ability (a free perk move): arms the owner's next event roll. 'farther': roll twice, keep the die
-   * farther from the middle; 'all_or_nothing': 51–100 is Critical Success, 1–50 Critical Failure. cooldownMin: game minutes */
-  eventArm?: { kind: 'farther' | 'all_or_nothing'; cooldownMin: number };
+  /** D-218 active ability of a Threadbound item: fires by itself on the owner's next essence offer roll once its cooldown
+   * (game minutes) has passed. 'farther': roll twice, keep the die farther from the middle; 'all_or_nothing': 51–100 is
+   * Critical Success, 1–50 Critical Failure */
+  essenceAuto?: { kind: 'farther' | 'all_or_nothing'; cooldownMin: number };
   /** TB7: owning it gives a random Threadbound item not yet in the world, of at least this Rank (TB11), bound to the
    * owner and worn (once) */
   grantsThreadboundItem?: { minRank: import('../scales').ThreadboundRankKey };

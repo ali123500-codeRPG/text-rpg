@@ -31,10 +31,10 @@ import { grantAllSteps, shareSpotted } from '../ruleset/allSteps';
 import { syncPerkLinks } from '../ruleset/perkLinks';
 import { grantThreadboundItem, syncThreadboundItemPerks } from '../ruleset/threadboundItems';
 import { applyHold, breakFree, releaseHolds } from './held';
-import { armThreadboundItem, countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
+import { countPerkMove, freeHand, perkMoveBlock, resolvePerkMove } from './perkMoves';
 import { actorById, allActors, atLeast, bandById, foe, isActive, isAsleep, isEngaged, hostile, reachesAcross, shortestPath, sparBetween, wayPath, zoneById } from './relations';
 import { checkOut, endSparsOf, heldBack, sparOf, updateSpars, yieldSpar } from './spar';
-import { NEEDS, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
+import { needOf, fromIntent, mergeOrders, usableAgentOutputs } from './merge';
 import { fireMidTurnTrigger, firedOrders } from './triggers';
 import { checkSecrets } from './secrets';
 import { applyGearOps, dropToGround, equipArmor, giveItem, gripReachM, improvise, pickUpAt, withinGrip } from './gear';
@@ -972,7 +972,6 @@ function doPerkMove(ctx: Ctx, a: Actor, pm: NonNullable<Order['perkMove']>): voi
   const why = perkMoveBlock(ctx.state, a, pm.perk, pm.target);
   if (why) return logCode(ctx.state, 'perk_move_dropped', { actorId: a.id, perk: pm.perk, reason: why });
   if (pm.perk === PK.battle_cry) return doBattleCry(ctx, a);
-  if (getLibrary().perks[pm.perk]?.eventArm) return emit(ctx, mk(ctx, a, 'perk_move', { effects: armThreadboundItem(ctx.state, a, pm.perk) }));
   const r = resolvePerkMove(ctx.state, a, pm.perk, pm.target!, ctx.rng);
   emit(ctx, mk(ctx, a, 'perk_move', { target: pm.target ?? undefined, effects: r.effects, ...(r.result ? { contest: r.result } : {}) }), r.result);
 }
@@ -1010,12 +1009,12 @@ function reachOf(state: GameState, a: Actor, o: Order): { at: Located; m: number
   const grip = (at: Located, extra = 0, toward?: string) => ({ at, m: gripReachM(state, a) + extra, ...(toward ? { toward } : {}), ok: () => withinGrip(state, a, at, extra) });
   const at = o.way && door(o.way.toZone);
   if (at) return grip(at);
-  const need = NEEDS[o.type], t = o.target ? actorById(state, o.target) : undefined;
+  const need = needOf(state, a, o.type), t = o.target ? actorById(state, o.target) : undefined;
   if (need === 'weapon' && t && t !== a && isActive(t) && !rangedHere(state, a, o)) {
     const m = attackMode(state, a, o).m ?? defaultMode(state, a, 0);
     if (m) return { at: t, m: m.mode.reach, toward: t.id, ok: () => inReach(state, a, o) };
   }
-  if (need === 'grip' && o.type === 'give' && t && t !== a) return grip(t, gripReachM(state, t), t.id);
+  if (need === 'grip' && t && t !== a) return grip(t, gripReachM(state, t), t.id); // handed over: both grip reaches
   const d = need === 'grip' && !t ? door(o.target) : null;
   if (d) return grip(d);
   for (const op of o.gear ?? []) if (op.op === 'pick_up' && !reachable(state, a, op)) { const p = pickUpAt(state, op); if (p) return grip(p); }

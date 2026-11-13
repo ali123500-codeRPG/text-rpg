@@ -13,6 +13,8 @@ import { IT } from '../library/itemIds';
 import { tally } from './xp';
 import { itemValue as benefitValue } from '../ruleset/value';
 import { hearsClearly } from '../perception';
+import { canSpeak, gripReachM } from '../ruleset/body';
+import { withinGrip } from './position';
 
 const GOODS = 'goods:';
 const SERVICE = 'service:';
@@ -92,19 +94,23 @@ function payCoin(from: Actor, to: Actor, n: number): void {
 
 export type BuyResult =
   | { ok: true; price: number; qty: number; itemInst?: string; service?: string; to: Actor }
-  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' };
+  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'out_of_reach' | 'refuses' | 'not_offered' | 'out_of_stock' | 'not_enough_coin' };
 
 /** RD2, BG-57: a called order carries as far as a voice at CONFIG.ORDER_NOISE is heard clearly where `b` stands (hearingOf,
  * real metres and walls). Farther trades (messengers, letters) stay parked (D-194). */
 export const hearsOrder = (state: GameState, a: Actor, b: Actor): boolean => hearsClearly(state, a, b, CONFIG.ORDER_NOISE);
+/** an order reaches `b`: called out (hearsOrder), or, from someone who cannot speak, pointed at and paid in person: `b`
+ * within both their grip reaches: a mute buyer points at the ware and hands over the coin */
+export const orderReaches = (state: GameState, a: Actor, b: Actor): boolean =>
+  canSpeak(state, a) ? hearsOrder(state, a, b) : withinGrip(state, a, b, gripReachM(state, b));
 
 /** PY5/PY7: buy qty (default 1) of a ware from seller, for `to` (default the buyer). All or nothing; no roll.
  * RD2: an order is called out, so the seller must hear it clearly (hearsOrder); `to` must be in clear call of the buyer or the seller. */
 export function buy(state: GameState, buyer: Actor, seller: Actor | undefined, wareId: string | null | undefined, qtyIn: number | null | undefined, to: Actor = buyer): BuyResult {
   if (!seller || seller === buyer || !isActive(seller)) return { ok: false, reason: 'not_here' };
-  if (!hearsOrder(state, buyer, seller)) return { ok: false, reason: 'out_of_earshot' }; // BG-78: there, but the order is not heard clearly
+  if (!orderReaches(state, buyer, seller)) return { ok: false, reason: canSpeak(state, buyer) ? 'out_of_earshot' : 'out_of_reach' }; // BG-78: there, but the order is not heard clearly
   if (!isActive(to)) return { ok: false, reason: 'not_here' };
-  if (to !== buyer && !hearsOrder(state, buyer, to) && !hearsOrder(state, seller, to)) return { ok: false, reason: 'out_of_earshot' };
+  if (to !== buyer && !orderReaches(state, buyer, to) && !hearsOrder(state, seller, to)) return { ok: false, reason: 'out_of_earshot' };
   if (wary(state, seller, buyer)) return { ok: false, reason: 'refuses' };
   const each = wareId ? warePrice(state, buyer, seller, wareId) : null;
   if (each === null) return { ok: false, reason: 'not_offered' };
@@ -174,13 +180,13 @@ export function offerList(state: GameState, owner: Actor, seller: Actor): { id: 
 
 export type SellResult =
   | { ok: true; price: number; qty: number; itemInst: string }
-  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'refuses' | 'not_bought' | 'worn' | 'not_enough_coin' };
+  | { ok: false; reason: 'not_here' | 'out_of_earshot' | 'out_of_reach' | 'refuses' | 'not_bought' | 'worn' | 'not_enough_coin' };
 
 /** SL4/SL6: sell qty (default 1; stacks only) of one of the seller's own items to a Trader. All or nothing; no roll.
  * The item joins the Trader's stock and wares; the Trader pays from its own purse. */
 export function sell(state: GameState, owner: Actor, seller: Actor | undefined, instId: string | null | undefined, qtyIn: number | null | undefined): SellResult {
   if (!seller || seller === owner || !isActive(seller)) return { ok: false, reason: 'not_here' };
-  if (!hearsOrder(state, owner, seller)) return { ok: false, reason: 'out_of_earshot' };
+  if (!orderReaches(state, owner, seller)) return { ok: false, reason: canSpeak(state, owner) ? 'out_of_earshot' : 'out_of_reach' };
   if (wary(state, seller, owner)) return { ok: false, reason: 'refuses' };
   const inst = owner.core.inventory.find((i) => i.id === instId);
   const each = inst ? sellPrice(state, owner, seller, inst.itemId) : null;
