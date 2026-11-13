@@ -9,20 +9,25 @@ import { healthLevel } from '../../src/ruleset';
 import { buildActorView } from '../../src/views';
 import { plannerActors } from '../../src/agents/game';
 import { ACH } from '../../src/library/achievementIds';
+import { finishers } from '../../src/engine/yield';
 
 const codes = (s: GameState) => s.log.map((l) => l.code);
 const earned = (s: GameState) => (s.player.progression!.achievements ?? []).filter((a) => !a.replacedBy).map((a) => a.key!);
 
 /** the guard (stronger than the player) fights the player to the death until the player goes down */
-const downed = (control: 'agent' | 'code' = 'agent') => {
-  const s = makeVillage({ playerZone: 'gate_inner', without: ['slime_1', 'slime_2'] }); // hostile and lethal anywhere, slimes would finish the player (D-54)
+const downed = (control: 'agent' | 'code' = 'agent', lethal = true) => {
+  const s = makeVillage({ playerZone: 'tav_common' }); // indoors: the lethal slimes out in the field can't sense the player
   const g = actor(s, 'guard_1');
+  g.zone = 'tav_common';
+  g.placeId = 'tavern';
+  delete g.pos;
+  s.bands.find((b) => b.id === g.bandId)!.lethal = lethal;
   g.mind!.control = control;
   g.mind!.overrides = { player: 'hostile' };
-  g.mind!.knowledge.player = { status: 'engaged', lastKnownZone: 'gate_inner', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
+  g.mind!.knowledge.player = { status: 'engaged', lastKnownZone: 'tav_common', lastSeenTurn: s.turn, source: 'seen', revealed: [] };
   s.player.core.condition.hpLostPct = 60; // a turn or two of fighting first, so the fight is on record
-  for (let i = 0; i < 40 && healthLevel(s.player) !== 'incapacitated'; i++) play(s, { intent: intent({}), agentOutputs: [plannerOut('guard_1', act('attack', 'player'))] }, 101 + i);
-  expect(healthLevel(s.player)).toBe('incapacitated');
+  for (let i = 0; i < 40 && !codes(s).some((c) => ['mercy_asked', 'player_fell', 'survival_roll'].includes(c)); i++) play(s, { intent: intent({}), agentOutputs: [plannerOut('guard_1', act('attack', 'player'))] }, 101 + i);
+  if (lethal) expect(healthLevel(s.player)).toBe('incapacitated');
   return s;
 };
 const answer = (spare?: boolean) => ({ intent: intent({}), agentOutputs: [plannerOut('guard_1', act('hold'), spare === undefined ? {} : { spare })] });
@@ -60,5 +65,12 @@ describe('267 mercy once down', () => {
     const s = downed('code');
     expect(codes(s)).toContain('player_fell');
     expect(s.mercy).toBeUndefined();
+  });
+
+  it('a lethal foe that cannot sense the downed player does not finish them: the survival roll decides', () => {
+    const s = downed('agent', false); // the guard's band is not lethal; the slimes out in the field are, but can't sense the player
+    expect(finishers(s)).toEqual([]);
+    expect(codes(s)).toContain('survival_roll');
+    expect(codes(s)).not.toContain('player_fell');
   });
 });
