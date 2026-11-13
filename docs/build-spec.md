@@ -3252,8 +3252,8 @@ The game files a bug at `bugs/BG-n` (status open) for every bug code it logs: an
 | BF2a-d | Ali's answers on catch-up moves (BG-119). | Catch-up legs on an action's turn are move events, perceived by the normal rules; caught_up logged. | Built in PR #604 |
 | BF8, BF10 | Ali's answers on lie hints. | A lie seen through by LIE_PLAIN_GAP (2) tiers or more is plainly a lie, a one-tier win gives the hint, Plain as Day makes any win plain; a lie the player ties with leaves the hint (doubt). | Built in PR #604 |
 | BF9, BF11 | Ali's answers on followers and agent-chosen places. | Followers together with the player travel with it; a place an NPC's agent moved it to holds AGENT_STAY_TURNS (3). | Built in PR #604 |
-| BG-145 | Run 97, turn 9: "I pay the barkeep four copper for Wen's bread and stew" gave a buy with no ware, so the barkeep refused and the coins sat on the counter. | A buy naming no ware is the seller's only ware, or the player is asked which (never a refused buy); the Parser maps a ware named by what it holds. | Fixed in PR #n |
-| BG-146 | Run 100, turns 4 and 7: Marta's Weaver beat had her speak to the player, but she was code-run, so no Responder wrote her words and the speak carried no line. | Every owner of a speech beat at the player gets a Responder call for its words, code-run too. | Fixed in PR #n |
+| BG-145 | Run 97, turn 9: "I pay the barkeep four copper for Wen's bread and stew" gave a buy with no ware, so the barkeep refused and the coins sat on the counter. | A buy naming no ware is the seller's only ware, or the player is asked which (never a refused buy); the Parser maps a ware named by what it holds. | Fixed in PR #607 |
+| BG-146 | Run 100, turns 4 and 7: Marta's Weaver beat had her speak to the player, but she was code-run, so no Responder wrote her words and the speak carried no line. | Every owner of a speech beat at the player gets a Responder call for its words, code-run too. | Fixed in PR #607 |
 
 ## Check on release
 
