@@ -276,6 +276,8 @@ describe('dialogue', () => {
     expect(selectSpokespeople(s, talk)).toEqual(['patron_1']);
     expect(unclearAddressee(s, talk, ['patron_1', 'trader'])).toEqual(['patron_1', 'trader']);
     expect(unclearAddressee(s, talk, ['patron_1'])).toBeNull(); // only one seen
+    // BG-143: words aimed at one of them (the action's target) are clear
+    expect(unclearAddressee(s, intent({ action: { type: 'talk', target: 'trader' }, addressees: ['tavern_folk'], spoken: 'hi' }), ['patron_1', 'trader'])).toBeNull();
     s.stage.partner = 'trader';
     expect(selectSpokespeople(s, talk)).toEqual(['trader']);
     expect(unclearAddressee(s, talk, ['patron_1', 'trader'])).toBeNull();
