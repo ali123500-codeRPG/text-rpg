@@ -20,7 +20,7 @@ import { CONFIG } from '../config';
 import { activity, actorBody, getLibrary, itemDef, routine } from '../library';
 import { moveSpeed, slotMetres } from './speed';
 import { travel, travelSpeed, tripGoal } from './travel';
-import { distM, distOrNull, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
+import { M_EPS, distM, distOrNull, gateAhead, placeAll, sightDistM, spotOnTheWay, spotPoint, walkLeg, wayLeftM, wayPoint, withinM, type Located } from './position';
 import { applyHealing, healFromPerk, passiveHealing, wouldHeal } from './heal';
 import { FOCUS, HEALTH_LEVELS, PART_STATES, TIERS, type BodyPoseKey } from '../scales';
 import { defaultMode, effectiveSkill, gradeMod, trueSkill, pickSeconds, pickTool, hasPerk, meltAwayHere, healthLevel, isDownLevel, tierLevel, improveMarked, clearMarkCounts, markEndurance, modeSkill, partStates, ruleset, landFall, situational, fnRoller, survivalRoll, tierAtLeast, usableModes } from '../ruleset';
@@ -390,7 +390,7 @@ function bark(ev: GameEvent, o: Order): GameEvent {
  * within the goal's zone straight at its point (position.ts walkLeg). Returns the metres walked (0: none), 'spent' when
  * the move is used up where the actor stands (held: its try to break free; a frontier), or null when it is dropped
  * (frontier for an NPC, no path). */
-function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, metres: number, fresh: boolean, stopShort = 0, toward?: string, spot?: string): number | 'spent' | null {
+function doMove(ctx: Ctx, a: Actor, goal: Located, o: Order, withBark: boolean, metres: number, stopShort = 0, toward?: string, spot?: string): number | 'spent' | null {
   const { state } = ctx;
   if (goal.zone === a.zone && !goal.pos) return 0;
   // A8 Hold: a held actor's move is its try to break free; it stays in the zone either way
@@ -523,7 +523,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
   function walkOn(): boolean {
   let fresh = false;
   for (let n = 0, legs = 0; !there() && legs < 100; legs++) {
-    if (left <= 0.01) {
+    if (left <= M_EPS) {
       if (paid) giveBack(left);
       left = 0;
       paid = slot(n++);
@@ -535,7 +535,7 @@ function walkLegs(ctx: Ctx, a: Actor, goal: Located, o: Order, slot: (n: number)
       fresh = true;
     }
     const zone = a.zone;
-    const r = doMove(ctx, a, goal, o, !!opts.bark && legs === 0, left, fresh, opts.stopShort ?? 0, opts.toward, opts.spot);
+    const r = doMove(ctx, a, goal, o, !!opts.bark && legs === 0, left, opts.stopShort ?? 0, opts.toward, opts.spot);
     if (r === null) return false;
     if (r === 'spent') return true;
     if (r === 0 && a.zone !== zone) continue; // BG-170: a 0 m doorway crossing walked nothing, so the walk goes on with what is left
@@ -594,7 +594,6 @@ function doSpeak(ctx: Ctx, a: Actor, o: Order): void {
   if (type === 'deceive') overhearLie(state, ev, ev.push ? [ev.push.listener] : [], ctx.rng, ev.contest?.a); // LI5a
 }
 
-/** followUp: this is One-Two's free punch (B16), which can't trigger One-Two again */
 /** followUp: a free attack another perk gave (One-Two's punch, a parry's strike back); flurry: Flurry's own free strike */
 function doAttack(ctx: Ctx, a: Actor, o: Order, followUp = false, flurry = false): void {
   const { state, rng } = ctx;
@@ -853,7 +852,7 @@ function walkStep(ctx: Ctx, o: Order, seconds: number): 'there' | 'blocked' | nu
   const from = ctx.events.length;
   const ok = walk(ctx, p, goal, o, (n) => (n === 0 ? { paid: 'move', seconds, pool: 'none' } : null), opts);
   if (foundShut(ctx.events.slice(from), p)) return 'blocked';
-  const moved = p.zone !== was.zone || (!!p.pos && !!was.pos && distM(state, p, { zone: p.zone, pos: was.pos }) > 0.01);
+  const moved = p.zone !== was.zone || (!!p.pos && !!was.pos && distM(state, p, { zone: p.zone, pos: was.pos }) > M_EPS);
   return walkThere(state, p, o) ? 'there' : !ok || !moved ? 'blocked' : null;
 }
 /** BG-190: a walk with spot near someone and follow set is a follow. Reaching them does not end it: it carries on next
@@ -1531,7 +1530,7 @@ function step(ctx: Ctx, id: string): void {
   }
   if (o.perkMove) doPerkMove(ctx, a, o.perkMove);
   // BG-16: a move with nothing else to do is just the move: no "holds" after it (narrated as standing and waiting)
-  const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > 0.01);
+  const moved = a.zone !== from.zone || (!!a.pos && !!from.pos && distM(state, a, { zone: a.zone, pos: from.pos }) > M_EPS);
   // AT48: the main action finishes after the walk that led to it and the gear ops before it
   const pools = slotsOf(ctx, a);
   if (!o.moveAfter) ctx.clock.set(id, Math.max(ctx.clock.get(id) ?? 0, pools.walkedS));
@@ -1707,7 +1706,7 @@ function doTravel(ctx: Ctx, a: Actor, o: Order, t: NonNullable<ReturnType<typeof
   if (trip.encounter) {
     state.stage.encounter = { eventRoll: trip.encounter.eventRoll, noticed: trip.encounter.noticed, zone: a.zone, at: trip.encounter.at };
     state.stage.breakCause = 'encounter';
-  } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0, true);
+  } else if (t.frontier && trip.stop === 'arrived') doMove(ctx, a, { zone: t.frontier }, o, false, 0);
 }
 
 /** AE5/AE8: a perk move; a free one resolves beside the main action, just before it */
@@ -1733,13 +1732,13 @@ function doBattleCry(ctx: Ctx, a: Actor): void {
   }
 }
 
-/** the attack mode the actor would use from where it stands, or from `from` (as doAttack picks it), and the metres to the target */
 /** the attack mode the order names by mode and item, if one in use matches */
 const namedMode = (state: GameState, a: Actor, o: Order) =>
   o.mode || o.item ? usableModes(state, a).find((m) => (!o.mode || m.mode.id === o.mode) && (!o.item || m.itemId === o.item)) : undefined;
 /** BG-186: the order names a weapon of the actor's that isn't in hand (sheathed, carried, or gone) */
 const notInHand = (state: GameState, a: Actor, o: Order) =>
   !!o.item && o.item !== 'unarmed' && !o.item.startsWith('natural:') && !usableModes(state, a).some((m) => m.itemId === o.item);
+/** the attack mode the actor would use from where it stands, or from `from` (as doAttack picks it), and the metres to the target */
 function attackMode(state: GameState, a: Actor, o: Order, from: Located = a) {
   const t = o.target ? actorById(state, o.target) : undefined;
   const dist = t ? sightDistM(state, from, t) : Infinity;
@@ -1787,7 +1786,7 @@ function closeInOn(ctx: Ctx, a: Actor, o: Order, near: NonNullable<ReturnType<ty
   const over = !behind && near.at.zone !== a.zone && reachesAcross(state, a.zone, near.at.zone);
   const p = over ? wayPoint(state, a.zone, near.at.zone, a) : null;
   const goal: Located = p ? { zone: a.zone, pos: p } : near.at;
-  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: p ? 0 : Math.max(0, near.m - 0.01), ...(near.toward ? { toward: near.toward } : {}) });
+  walk(ctx, a, goal, o, (n) => (n === 0 ? useMoveSlot(ctx, a, false) : null), { stopShort: p ? 0 : Math.max(0, near.m - M_EPS), ...(near.toward ? { toward: near.toward } : {}) });
 }
 
 /** BF12: handing something across a way (bars, a grate, a doorway): the giver holds it out there, and the one it is for, if
@@ -1798,7 +1797,7 @@ function stepUpToTake(ctx: Ctx, a: Actor, o: Order): boolean {
   if (!t || t === a || t.zone === a.zone || !isActive(t) || isAsleep(t) || hostile(state, t, a)) return false;
   const mine = wayPoint(state, a.zone, t.zone, a), theirs = wayPoint(state, t.zone, a.zone, t);
   if (!mine || !theirs || !withinGrip(state, a, { zone: a.zone, pos: mine }) || slotsOf(ctx, t).move <= T_EPS) return false;
-  walk(ctx, t, { zone: t.zone, pos: theirs }, nullOrder(t.id), (n) => (n === 0 ? useMoveSlot(ctx, t, false) : null), { stopShort: Math.max(0, gripReachM(state, t) - 0.01), toward: a.id });
+  walk(ctx, t, { zone: t.zone, pos: theirs }, nullOrder(t.id), (n) => (n === 0 ? useMoveSlot(ctx, t, false) : null), { stopShort: Math.max(0, gripReachM(state, t) - M_EPS), toward: a.id });
   return true;
 }
 
@@ -1869,7 +1868,7 @@ export function catchUp(state: GameState, minutes: number, deductWalked = true, 
     if (!d || d.zone === a.zone) continue;
     let left = travelSpeed(state, a, CONFIG.CATCH_UP_PACE) * minutes * 60 - (walked[a.id] ?? 0);
     const start = a.zone;
-    for (let i = 0; i < 100 && left > 0.01 && a.zone !== d.zone; i++) {
+    for (let i = 0; i < 100 && left > M_EPS && a.zone !== d.zone; i++) {
       const gate = gateAhead(state, a, d.zone);
       const unseen = !!gate && state.player.zone !== a.zone && state.player.zone !== gate.to;
       if (gate && (gate.pass !== 'opens' || !unseen)) break; // a way that is not simply open, or opened in view

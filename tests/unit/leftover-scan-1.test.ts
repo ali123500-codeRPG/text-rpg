@@ -8,12 +8,19 @@ import { band, ruleset, toContest } from '../../src/ruleset';
 import { IT } from '../../src/library/itemIds';
 import { SK } from '../../src/library/skillIds';
 import { makeVillage, place, forcedRng } from '../harness';
+import { M_EPS } from '../../src/engine/position';
+import { MILESTONES } from '../../src/ruleset/perks';
+import { perkSeries } from '../../src/ui/perks';
 import { cap } from '../../src/words';
 import { journalOf } from '../../src/engine/trail';
 import type { Actor, RollResult } from '../../src/types';
 
 // files the leftover scan has covered (add each round's files)
-const SCANNED = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
+const ROUND_1 = ['src/ui/play.ts', 'src/ruleset/index.ts', 'src/scenario/apply.ts', 'src/minds/state.ts', 'src/engine/heal.ts'];
+const ROUND_2 = ['src/engine/resolve.ts', 'src/agents/prompts.ts', 'src/engine/merge.ts', 'src/ui/perks.ts'];
+const SCANNED = [...ROUND_1, ...ROUND_2];
+// files whose GAP notes are settled into the spec (round 1: CS2)
+const GAPS_SETTLED = ROUND_1;
 // names the spec mentions only to say they are gone
 const GONE_ON_PURPOSE = ['LINK_PACES'];
 const roll = (tier: RollResult['tier'], beyond?: number) => ({ tier, ...(beyond ? { beyond } : {}) }) as RollResult;
@@ -52,8 +59,19 @@ describe('leftover scan round 1', () => {
     expect(blow({ heavy: -7, crushing: -8 })).toMatchObject({ gap: -6, outcome: 'full_hit' });
   });
 
-  it('CS2: scanned files keep no GAP notes (each was settled into the spec)', () => {
-    expect(SCANNED.filter((f) => /\bGAP:/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
+  it('CS2: settled files keep no GAP notes (each was settled into the spec)', () => {
+    expect(GAPS_SETTLED.filter((f) => /\bGAP:/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
+  });
+
+  it('round 2: walk distances use the one metres tolerance (M_EPS), not a 0.01 of their own', () => {
+    expect(M_EPS).toBe(0.01);
+    expect(['src/engine/resolve.ts', 'src/engine/merge.ts'].filter((f) => /\b0\.01\b/.test(readFileSync(f, 'utf8') as string))).toEqual([]);
+  });
+
+  it('round 2: the perk series key lists its milestones from MILESTONES', () => {
+    expect(MILESTONES.filter((m) => perkSeries(m) === '20')).toEqual([20, 60, 100, 140]);
+    expect(MILESTONES.filter((m) => perkSeries(m) === '40')).toEqual([40, 80, 120]);
+    expect(readFileSync('src/ui/perks.ts', 'utf8') as string).not.toMatch(/'\s*20, 60, 100, 140'|'\s*40, 80, 120'/);
   });
 
   it('cap capitalises the first letter only', () => {
