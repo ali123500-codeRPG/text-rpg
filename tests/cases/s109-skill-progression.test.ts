@@ -37,14 +37,14 @@ describe('109 skill progression', () => {
     p.core.skills[SK.eyesight] = { raw: 38, state: 'tagged' };
     p.core.skills[SK.earshot] = { raw: 30, state: 'normal' };
     p.progression!.marks = [SK.eyesight, SK.earshot];
-    // sight: 50 + (125 − 38) − 90 = 47, Great Success: +4; hearing: 10 + (100 − 30 − burden) − 90 is below 0: nothing
+    // sight: 50 + (125 − 38) − 90 = 47, Great Success: +3; hearing: 10 + (100 − 30 − burden) − 90 is below 0: nothing
     const gains = improveMarked(s, forcedRng([50, 10]));
-    expect(gains).toEqual([{ skill: SK.eyesight, from: 38, to: 42, milestone: 40 }]);
-    expect(p.core.skills[SK.eyesight].raw).toBe(42);
+    expect(gains).toEqual([{ skill: SK.eyesight, from: 38, to: 41, milestone: 40 }]);
+    expect(p.core.skills[SK.eyesight].raw).toBe(41);
     expect(p.core.skills[SK.earshot].raw).toBe(30);
     expect(p.progression!.marks).toEqual([]);
     const lines = mechanicsLines(s, []);
-    expect(lines).toContain('Eyesight 38 → 42');
+    expect(lines).toContain('Eyesight 38 → 41');
     expect(lines).toContain('New perk unlocked: Eyesight 40');
     expect(lines.some((l) => l.startsWith('Earshot'))).toBe(false);
   });
