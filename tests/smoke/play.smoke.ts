@@ -63,6 +63,15 @@ describe('play page smoke (TQ7)', () => {
     expect(errors).toEqual([]);
   });
 
+  it('opens the Inventory with its Coin line and no summary boxes', async () => {
+    await nav('Inventory');
+    await page.getByText(/^Coin: /).waitFor();
+    expect(await page.locator('.hs-readout.vis').count()).toBe(0); // the group-count boxes are gone from this page only
+    await nav('Quests');
+    await page.locator('h1', { hasText: 'Quests' }).waitFor();
+    expect(errors).toEqual([]);
+  });
+
   it('switches to the agent’s own story and back to the player’s', async () => {
     await turn('look around', 1);
     await page.getByRole('button', { name: 'Watch an agent play' }).click();

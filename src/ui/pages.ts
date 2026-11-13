@@ -1,4 +1,4 @@
-// Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group),
+// Character (/stats) uses the character sheet (charsheet.ts). Inventory (/inv) and Quests (/quests) share one page shape. Visibility tiles on top (one per group; the Inventory has none),
 // figures that can't be filtered in a text line under them, then the grouped table.
 import { PART_STATES } from '../scales';
 import type { GameApi, GameState, Quest } from '../types';
@@ -37,6 +37,7 @@ type Spec = {
   focus?: () => string | null; // a row to open on arrival (consumed once)
   top?: (redraw: () => void) => HTMLElement; // above the title: the page's sub-tabs
   lead?: (s: GameState) => HTMLElement; // under the title, above the tiles: the Inventory's equipment panel
+  noTiles?: true; // no visibility tiles: the table alone (the Inventory, where the boxes only repeated the group counts)
 };
 
 export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: () => void } {
@@ -71,13 +72,13 @@ export function listPage(api: GameApi, spec: Spec): { el: HTMLElement; update: (
     const count = shown.reduce((a, g) => a + g.rows.length, 0);
     const hint = picked.length
       ? [h('span', {}, `${plural(count, spec.noun[0], spec.noun[1])} shown · `), h('button', { class: 'hs-btn-text', type: 'button', style: 'min-height:0', onclick: () => { for (const k of Object.keys(picks)) delete picks[k]; update(); } }, 'Clear')]
-      : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
+      : spec.noTiles ? 'Click a heading to open its rows.' : 'Click a box: once for Shown, twice for Left out, three times to clear. Click a heading to open its rows.';
     el.replaceChildren(
       ...(spec.top ? [spec.top(update)] : []),
       h('div', { class: 'head' }, h('div', {}, h('h1', {}, spec.title), h('p', {}, spec.intro))),
       spec.lead?.(s) ?? '',
       h('div', { class: 'sec' },
-        all.length ? visTiles(spec.tiles?.(s) ?? all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
+        all.length && !spec.noTiles ? visTiles(spec.tiles?.(s) ?? all.map((g) => ({ id: g.id, label: g.title, value: g.value, unit: g.unit, sub: g.sub, how: g.how })), picks, update, onOpen, how) : null,
         h('p', { class: 'subline' }, spec.line(s)), how),
       h('div', { class: 'sec' }, h('div', { class: 'head' }, h('h2', { class: 'hs-section' }, spec.title), all.length ? h('p', { class: 'hs-note' }, hint) : null),
         groupedTable({ cols: spec.cols, groups: shown, open, sort, onField, redraw: update, emptyText: picked.length ? `No ${spec.noun[1]} match these boxes. Pick other boxes or Clear.` : spec.empty })));
@@ -279,7 +280,7 @@ export function inventoryPage(api: GameApi) {
           ...(ns.length === 1 && ts.length === 1 && ts[0] ? { combinedTones: { needs: ts[0] } } : {}) };
       }).sort((a, b) => (a.id === 'other' ? 1 : 0) - (b.id === 'other' ? 1 : 0) || natural(a.title, b.title));
     },
-    line: coinLine,
+    line: coinLine, noTiles: true,
   });
 }
 
