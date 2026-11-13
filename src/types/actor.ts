@@ -265,6 +265,9 @@ export type NpcTemplate = {
   ageStages?: import('../scales').LifeStageKey[];
   /** growth proposal 2.3: a leader or other notable NPC: beating it may offer an essence whatever its power */
   notable?: true;
+  /** EN3 b: a hand-set essence list that replaces the worked-out one (templateEssences). An echo carries only its own
+   * essence (a row with from.echo); other templates leave it out. */
+  essences?: LibraryRef[];
 };
 
 /** HF3, HF15: a unique NPC's whole sheet as it was saved (an echo: the hero at death). Its gear is soulbound copies (HF18);

@@ -22,6 +22,7 @@ describe('76 Gap ladder', () => {
     const s = makeVillage();
     const g = place(s, 'guard_1', 'tav_common');
     g.core.skills[SK.parry] = { raw: 30, state: 'normal' };
+    g.core.standingDefense = 'parry'; // the guard carries a shield too; this case is about parry
     // guard parries with its sword: 60 + 0.5×30 − 63.5 = 11.5 → Success; location roll 5 = head
     const r = ruleset.attack({ attackerId: 'player', targetId: 'guard_1', weaponId: sword, targetPart: null, aimed: false }, s, forcedRng([50, 60, 5]));
     expect(r.defenseType).toBe('parry');

@@ -2,9 +2,10 @@
 // resolved at Great Success or better, may have an essence appear (the appearance roll); its quality roll then sets its grade,
 // or it fades. A held one is an offer: a package of true skill (and later a trait) the player can take
 // into a limited number of slots. Code rolls every offer from tables; no agent names, seeds or changes one.
-import type { Actor, EssenceDef, EssenceOffer, GameState, HeldEssence, Rng, ScenarioEnding, ScenarioFrame } from '../types';
+import type { Actor, EssenceDef, EssenceOffer, GameState, HeldEssence, NpcTemplate, Rng, ScenarioEnding, ScenarioFrame, SkillEntry } from '../types';
 import { CONFIG } from '../config';
-import { getLibrary, npcTemplate } from '../library';
+import { getLibrary, hasTemplate, npcTemplate, race } from '../library';
+import { templateSkills } from '../library/spawn';
 import { ESSENCE_GRADES, TIERS, type EssenceGradeKey } from '../scales';
 import { band, naturalEdge } from '../ruleset';
 import { trueSkill } from '../ruleset/perks';
@@ -70,9 +71,35 @@ function pick(rows: EssenceDef[], rng: Rng): EssenceDef | undefined {
   for (const r of rows) { x -= r.weight; if (x < 0) return r; }
   return rows[rows.length - 1];
 }
+/** EN1 a: how well a sheet fits an essence row: its weighted average in the row's skills ÷ its best skill (`skill` gives raw × tier) */
+export function essenceFit(row: EssenceDef, skill: (id: string) => number, best: number): number {
+  const w = row.skills.reduce((n, s) => n + s.weight, 0);
+  return w && best > 0 ? row.skills.reduce((n, s) => n + skill(s.skill) * s.weight, 0) / w / best : 0;
+}
+
+/** EN1, EN2: the essence rows a sheet of this race carries: rows of its race or body type, or naming neither (EN2 a), whose fit
+ * reaches ESSENCE_FIT_SHARE. Deed rows (scenario endings) and echo rows (one echo's own) are never worked out onto a list. */
+export function fittingEssences(raceId: string | undefined, skills: Record<string, SkillEntry>): { row: EssenceDef; fit: number }[] {
+  if (!raceId) return [];
+  const body = race(raceId).bodyTypeId, v = (id: string) => (skills[id]?.raw ?? 0) * tierMult(id);
+  const best = Math.max(0, ...Object.keys(skills).map(v));
+  return Object.values(getLibrary().essences ?? {})
+    .filter((r) => !r.from.deed && !r.from.echo && (!r.from.race || r.from.race === raceId) && (!r.from.bodyType || r.from.bodyType === body))
+    .map((row) => ({ row, fit: essenceFit(row, v, best) })).filter((x) => x.fit >= CONFIG.ESSENCE_FIT_SHARE);
+}
+
+/** EN3: a template's essence list: its hand-set list (EN3 b: an echo carries only its own essence, none until it is written), else worked out from its race and the
+ * sheet its copies spawn with. `fit` is left out on a hand-set row. The library viewer shows it. */
+export function templateEssences(t: NpcTemplate): { row: EssenceDef; fit?: number }[] {
+  const lib = getLibrary().essences ?? {};
+  if (t.essences || t.unique) return (t.essences ?? []).map((id) => ({ row: lib[id] })).filter((x) => x.row); // an echo: only its own
+  return fittingEssences(t.raceId, templateSkills(t));
+}
+
+/** EN4: the rows a foe offers: its template's list, or with no template the same rule on its own sheet */
 const rowsFor = (state: GameState, who: Actor): EssenceDef[] => {
-  const race = who.core.raceId, body = who.core.bodyTypeId;
-  return Object.values(getLibrary().essences ?? {}).filter((r) => (r.from.race && r.from.race === race) || (r.from.bodyType && r.from.bodyType === body));
+  const id = who.core.templateId;
+  return (id && hasTemplate(state, id) ? templateEssences(npcTemplate(state, id)) : fittingEssences(who.core.raceId, who.core.skills)).map((x) => x.row);
 };
 
 /** 2.2: points = max(1, round(ESSENCE_SHARE × source skill × grade multiplier)), split over the row's skills by weight.
@@ -100,7 +127,7 @@ export function notable(state: GameState, foe: Actor): boolean {
   return !!t?.notable || foe.core.generation === 'rolled' || foe.core.generation === 'unique' || power(state, foe) >= CONFIG.ESSENCE_NOTABLE_SHARE * power(state, state.player);
 }
 
-/** 2.3: each foe the player beat this turn (payDefeats) rolls once, ever, for an essence of its race or body type, if notable.
+/** 2.3: each foe the player beat this turn (payDefeats) rolls once, ever, for an essence on its list (EN4), if notable.
  * The foes go on the running scenario's list (its ending's table). */
 export function offersFromDefeats(state: GameState, defeated: Actor[], rng: Rng): void {
   for (const foe of defeated) {

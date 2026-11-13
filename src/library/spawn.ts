@@ -98,6 +98,9 @@ export function rollUniqueSkills(t: NpcTemplate, rng: Rng): Record<string, Skill
 
 /** Copy NPC: minimums plus level points spent with the template's fixed seed (alike for every copy). Unique: rolled once, frozen. */
 /** the perks a member of this race is born with: its innate perks and innate quirks */
+/** a copy's (or a rolled template's fixed-seed) skills: what copies spawn and rebuild with, and what its essence list reads */
+export const templateSkills = (t: NpcTemplate): Record<string, SkillEntry> => t.unique ? t.unique.skills : rollUniqueSkills(t, createRng(templateSeed(t.id)));
+
 export function racePerks(raceId: string | undefined, turn = 0): OwnedPerk[] {
   const r = raceId ? getLibrary().races?.[raceId] : undefined;
   return [...(r?.innatePerks ?? []), ...(r?.innateQuirks ?? [])].map((perkId) => ({ perkId, source: 'race', gainedTurn: turn }));
@@ -116,7 +119,7 @@ export function spawnNpc(state: GameState | null, templateId: string, opts: Spaw
   const skills = t.generation === 'rolled'
     ? rollUniqueSkills(t, rng!)
     // Q3: copies get their level points too, spent the same way but with a fixed seed, so every copy is alike
-    : rollUniqueSkills(t, createRng(templateSeed(t.id)));
+    : templateSkills(t);
   const ct = bodyType(state, race(t.raceId).bodyTypeId); // BR5: the body type comes from the race
   return {
     id: opts.id,
@@ -364,7 +367,7 @@ export function refreshCopies(state: GameState): void {
     if (a.kind !== 'npc' || a.core.generation !== 'copy' || !a.core.templateId) continue;
     if (!hasTemplate(state, a.core.templateId)) continue;
     const t = npcTemplate(state, a.core.templateId);
-    a.core.skills = rollUniqueSkills(t, createRng(templateSeed(t.id)));
+    a.core.skills = templateSkills(t);
     for (const perkId of t.perks ?? []) if (!a.core.perks.some((p) => p.perkId === perkId)) a.core.perks.push({ perkId, source: 'template', gainedTurn: state.turn });
   }
   // AG2: a save from before ages gets them on load, as a new spawn would; a birth day once set is never re-rolled (AG13)

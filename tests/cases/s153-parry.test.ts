@@ -129,13 +129,13 @@ describe('153 Parry', () => {
     expect(effectiveSkill(s, s.player, SK.dodge).value).toBeCloseTo(dodge + 15);
   });
 
-  it('the default defense: the highest usable of block, parry and dodge; the village guard parries', () => {
+  it('the default defense: the highest usable of block, parry and dodge; the village guard blocks with its shield', () => {
     const s = setup();
     s.player.core.skills[SK.block] = { raw: 60, state: 'normal' };
     s.player.core.skills[SK.parry] = { raw: 40, state: 'normal' };
     expect(defaultStandingDefense(s, s.player)).toBe('parry'); // no shield, so Block can't be chosen
     hold(s.player, [IT.arming_sword, IT.round_shield]);
     expect(defaultStandingDefense(s, s.player)).toBe('block');
-    expect(npc(makeVillage(), 'guard_1').core.standingDefense).toBe('parry');
+    expect(npc(makeVillage(), 'guard_1').core.standingDefense).toBe('block');
   });
 });

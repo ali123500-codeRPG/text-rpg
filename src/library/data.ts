@@ -396,11 +396,11 @@ export const TEMPLATES: Record<string, NpcTemplate> = {
   },
   [TP.guard]: {
     id: TP.guard, raceId: RC.human, classId: CL.guard, generation: 'copy', // its class floors (the Guard unlock) raise its minimums
-    minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.parry]: 30, [SK.dodge]: 20, [SK.eyesight]: 40, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements; BF17: Eyesight 40, a search's skill, above a thief's
+    minimums: { [SK.melee_medium]: 50, [SK.medium_armor]: 50, [SK.block]: 30, [SK.dodge]: 20, [SK.eyesight]: 40, [SK.earshot]: 30, [SK.intimidation]: 30, [SK.persuasion]: 20 }, // AR9/EQ5: meets its loadout's requirements; BF17: Eyesight 40, a search's skill, above a thief's
     // Anyone with fighting experience is at least level 4; any patrolling template has Keen Ear
     level: 4, bonusPoints: 10, perks: [PK.keen_ear],
-    focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.parry }, { treeId: TR.perception, skill: SK.eyesight }],
-    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk], control: 'agent', label: 'a village guard', chase: 'ground', // CH5: guards keep to the scenario's ground
+    focus: [{ treeId: TR.melee, skill: SK.melee_medium }, { treeId: TR.defense, skill: SK.block }, { treeId: TR.perception, skill: SK.eyesight }],
+    resolve: 50, personality: pers(0, { [PA.discipline]: 40 }, [VL.duty]), loadout: [IT.arming_sword, IT.mail_hauberk, IT.round_shield], control: 'agent', label: 'a village guard', chase: 'ground', // a gate warden's shield: Block, not Parry; CH5: guards keep to the scenario's ground
   },
   [TP.trader]: {
     id: TP.trader, raceId: RC.human, classId: CL.trader, generation: 'copy',
@@ -590,12 +590,17 @@ export function prototypeLibrary(): Library {
     // growth proposal 2.2: essences. Placeholder rows for the engine; the content round (one table per race and body type,
     // with traits) belongs to the lore and loot threads (D-228). EG11 b: the story may name the thread; never numbers.
     essences: {
-      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.endurance, weight: 2 }, { skill: SK.tremor, weight: 1 }],
+      [ES.gel_patience]: { id: ES.gel_patience, name: 'Gel Patience', from: { race: RC.slime }, weight: 1, skills: [{ skill: SK.unarmed_natural, weight: 2 }, { skill: SK.tremor, weight: 1 }], // EN5: slimes have no Endurance
         story: 'Something slow and unhurried settles low in your gut, a strand of the slime\'s patience tied into your own. Pain arrives later than it used to.' },
       [ES.gate_habit]: { id: ES.gate_habit, name: 'Gate-Warden\'s Habit', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.block, weight: 2 }, { skill: SK.earshot, weight: 1 }],
         story: 'You catch yourself turning a shoulder toward the door before you decide to, as if someone else\'s long watches were knotted into yours.' },
       [ES.street_instinct]: { id: ES.street_instinct, name: 'Street Instinct', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.dodge, weight: 2 }, { skill: SK.insight, weight: 1 }],
         story: 'A crowd reads differently now. You feel the reaching hand before it moves, the way they must have felt it.' },
+      // EN6: placeholder rows so the barkeep and the tavern patron each carry one; stories are placeholders for the lore thread
+      [ES.haggler_ear]: { id: ES.haggler_ear, name: 'Haggler\'s Ear', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.barter, weight: 2 }, { skill: SK.earshot, weight: 1 }],
+        story: 'Prices start to sound like opening moves. You hear the give in a seller\'s voice before they know it is there.' },
+      [ES.tavern_brawler]: { id: ES.tavern_brawler, name: 'Tavern Brawler', from: { race: RC.human }, weight: 1, skills: [{ skill: SK.unarmed_strike, weight: 2 }, { skill: SK.persuasion, weight: 1 }],
+        story: 'Your fists feel easier at your sides, and so do your words. Half a fight is talking your way into it, or out.' },
       [ES.hard_won_habit]: { id: ES.hard_won_habit, name: 'Hard-Won Habit', from: { deed: true }, weight: 1, skills: [],
         story: 'What you did again and again here has pulled tight and held. Something in you will remember it.' },
     },

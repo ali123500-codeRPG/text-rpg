@@ -12,6 +12,7 @@ import { getLibrary, itemDef, setLibrary } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
 import { echoSheet, isEcho, uniqueInWorld, uniqueTemplate } from '../../src/library/echo';
 import { RC } from '../../src/library/raceIds';
+import { SK } from '../../src/library/skillIds';
 import { IT } from '../../src/library/itemIds';
 import { dropToGround, fadeSoulbound, giveItem } from '../../src/engine/gear';
 import { offerList } from '../../src/engine/trade';
@@ -23,7 +24,7 @@ import { villageStagePlan } from '../../src/scenario/fixtures';
 import { ageYears } from '../../src/ruleset/age';
 import { CONFIG } from '../../src/config';
 
-const ECHO = 'TP_echo_test';
+const ECHO = 'TP_echo_test', ECHO_ESSENCE = 'ES_echo_test';
 const dice = (...d: number[]): Rng => { let i = 0; return { state: 1, next: () => 0, int: (lo) => lo, d100: () => d[Math.min(i++, d.length - 1)] }; };
 
 /** the village's player falls and is sent: a Threadbound item worn, a hurt shield, an achievement and a scar */
@@ -35,8 +36,10 @@ function sendHero(s: GameState): void {
   const shield = p.core.inventory.find((i) => itemDef(s, i.itemId).shield);
   if (shield) shield.pools = { shield: 20 };
   p.progression!.achievements = [{ id: 'a1', key: Object.keys(lib.achievements ?? {})[0], turn: 3 }];
-  const t = uniqueTemplate(ECHO, RC.human, 'a grim swordsman', echoSheet(s, p, ECHO, 'Aldric, a level 3 Swordsman; fell to a slime in the east field on day 2.'));
-  setLibrary({ ...lib, templates: { ...lib.templates, [ECHO]: t } });
+  const t = { ...uniqueTemplate(ECHO, RC.human, 'a grim swordsman', echoSheet(s, p, ECHO, 'Aldric, a level 3 Swordsman; fell to a slime in the east field on day 2.')), essences: [ECHO_ESSENCE] };
+  // EN3 b: an echo carries only its own essence
+  const own = { id: ECHO_ESSENCE, name: 'Aldric\'s Last Stand', from: { echo: true as const }, weight: 1, skills: [{ skill: SK.melee_medium, weight: 1 }], story: 'test' };
+  setLibrary({ ...lib, templates: { ...lib.templates, [ECHO]: t }, essences: { ...lib.essences, [ECHO_ESSENCE]: own } });
 }
 const spawnEcho = (s: GameState) => {
   const e = spawnNpc(s, ECHO, { id: 'echo_1', zone: s.player.zone, placeId: s.player.placeId, bandId: 'tavern_folk', label: 'a grim swordsman', name: 'Not Aldric' });
@@ -127,7 +130,7 @@ describe('272 echo uniques', () => {
     sendHero(s);
     const e = spawnEcho(s);
     offersFromDefeats(s, [e], dice(1)); // no appearance roll: the one die is the quality roll
-    expect(s.player.progression!.essenceOffers).toEqual([expect.objectContaining({ grade: 'common', from: e.names.current })]);
+    expect(s.player.progression!.essenceOffers).toEqual([expect.objectContaining({ essence: ECHO_ESSENCE, grade: 'common', from: e.names.current })]);
   });
 
   it('HF34 a: "Send to NPC template" saves the fallen hero\'s echo sheet to the send list; once in the library, the card says so', async () => {
