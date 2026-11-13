@@ -830,6 +830,15 @@ export function createGame(deps: GameDeps): Game {
       fallbackBanner: !!(state?.stage.fallback || state?.stage.routineFallback),
       backups,
     }),
+    async agentHistory(actorId) {
+      const s = state;
+      if (!s) return [];
+      const turns = Array.from({ length: CONFIG.TURN_RECORDS_KEPT }, (_, i) => s.turn - i).filter((t) => t > 0);
+      // this turn's calls from memory (a saved record trims big inputs), older turns from their records
+      const logs = await Promise.all(turns.map((t) => (t === s.turn && lastLog.length ? Promise.resolve(lastLog)
+        : save.readTurnRecord(store, s.storyId, t).then((r) => r?.agentLog ?? [], () => []))));
+      return logs.flatMap((l) => l.filter((x) => x.actorId === actorId).reverse()).slice(0, CONFIG.GM_AGENT_CALLS_SHOWN);
+    },
     /** BG-123: the GM view's Restore: the save checks the backup, writes a new head on it and keeps the current head as the
      * safety bookmark; play goes on from the restored turn, as after /undo */
     async restoreBackup(turn) {

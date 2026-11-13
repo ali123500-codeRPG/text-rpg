@@ -372,6 +372,8 @@ const DEFAULTS = {
   // PY9: coin is one unit in the game; narration names it in these coins, largest first
   COIN_NAMES: [['gold', 100], ['silver', 10], ['copper', 1]] as [string, number][],
   TURN_RECORDS_KEPT: 20, // N, Q2
+  /** the GM view's pop-up for one person: how many of their last agent calls it shows (kept turn records only) */
+  GM_AGENT_CALLS_SHOWN: 5,
   BACKUP_EVERY: 10, // Q2
   BACKUPS_KEPT: 3, // Q2
   TURN_ENDS_KEPT: 500, // AT15/AT43: turn end times kept for timers (more than the longest timer needs at the shortest turn)

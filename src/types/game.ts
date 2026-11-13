@@ -148,6 +148,8 @@ export interface GameApi {
   /** SC15: the GM view's End scenario button: the running scenario ends after the next turn */
   endScenario(): void;
   gm(): GmSnapshot;
+  /** GM view: the last CONFIG.GM_AGENT_CALLS_SHOWN agent calls made for one actor, newest first, from this turn and the kept turn records */
+  agentHistory(actorId: string): Promise<AgentTurnLog[]>;
   calls(): number; // Claude calls made in this session (page load), counted by code
   /** Claude calls in flight now, oldest first: which agent and since when (Date.now ms) */
   working(): { agent: import('./agents').AgentName; since: number }[];
