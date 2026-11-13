@@ -1,14 +1,17 @@
-// Nerve and personality (PL1–PL19): Nerve line and tier, trait words, named types, rewards that add points, the agent's
-// CHARACTER line, and the Weaver's pick.
+// Nerve and personality (PL1–PL19): Nerve line and tier, trait words, the archetype, "but" traits, tensions, rewards that
+// add points, the agent's CHARACTER line (rows checked against the voice-tested prototype), and the Weaver's pick.
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../../src/config';
 import { getLibrary, npcTemplate } from '../../src/library';
 import { spawnNpc } from '../../src/library/spawn';
-import { PA, PY, VL } from '../../src/library/tableIds';
+import { PA, PY, TN, VL } from '../../src/library/tableIds';
 import { TP } from '../../src/library/templateIds';
 import { ACH } from '../../src/library/achievementIds';
 import { SK } from '../../src/library/skillIds';
-import { nerveLine, nerveTier, personalityFrom, personalityOf, personalityText, personalityTypes, traitWords } from '../../src/ruleset/personality';
+import { archetypeOf, butsOf, nerveLine, nerveTier, personalityFrom, personalityOf, personalityText, tensionsOf, traitWords } from '../../src/ruleset/personality';
+import { bornDayFor } from '../../src/ruleset/age';
+import { buildOppositionView } from '../../src/views';
+import { makeVillage } from '../harness';
 import { formatDialogueView, formatOppositionView } from '../../src/agents/format';
 import type { Actor } from '../../src/types';
 import { actorView } from './agent-views';
@@ -39,15 +42,25 @@ describe('personality', () => {
     expect(traitWords({ nerve: 0, traits: { [PA.pride]: 75, [PA.honesty]: -45, [PA.sociability]: 25, [PA.curiosity]: 19 }, values: [] }))
       .toEqual(['very proud', 'deceitful', 'a bit talkative']);
   });
-  it('named types are read from the points, Resolve included, at most PERSONALITY_TYPES_SHOWN', () => {
-    const a = withResolve(npc(TP.guard), 50);
-    a.core.personality = { nerve: 0, traits: { [PA.discipline]: 60, [PA.temper]: -30 }, values: [] };
-    expect(personalityTypes(a).map((t) => t.id)).toEqual([PY.mature]);
-    withResolve(a, 30);
-    expect(personalityTypes(a)).toEqual([]); // Mature needs Resolve 40
-    a.core.personality = { nerve: 0, traits: { [PA.pride]: 90, [PA.temper]: 80, [PA.honesty]: -50, [PA.sociability]: 50, [PA.curiosity]: 50 }, values: [] };
-    expect(personalityTypes(a).length).toBe(CONFIG.PERSONALITY_TYPES_SHOWN);
-    expect(personalityTypes(a)[0].id).toBe(PY.prideful); // 50 past its bar beats Bully's 30
+  it('the archetype is the nearest type, drives counted twice; "but" traits are the ones it does not explain', () => {
+    // Corin (the Mera voice tests): Mature at heart, but humble and earnest
+    const corin = { nerve: -10, traits: { [PA.honesty]: 50, [PA.pride]: -40, [PA.temper]: -40, [PA.discipline]: 70, [PA.levity]: -40 }, values: [VL.loyalty, VL.duty, VL.family] };
+    expect(archetypeOf(corin).id).toBe(PY.mature);
+    expect(butsOf(corin, archetypeOf(corin))).toEqual([{ axis: PA.pride, v: -40 }, { axis: PA.levity, v: -40 }]);
+    // no lean at all is Ordinary, the first row (ties go to the earlier row)
+    expect(archetypeOf({ nerve: 0, traits: {}, values: [] }).id).toBe(PY.ordinary);
+  });
+  it('tensions read Nerve, Resolve, the best skills, age and drives, in table order', () => {
+    const s = makeVillage(), a = s.player;
+    a.core.classes = []; a.core.perks = [];
+    a.core.personality = { nerve: -40, traits: { [PA.discipline]: 60 }, values: [] };
+    a.core.skills = { [SK.melee_medium]: { raw: 50, state: 'normal' } };
+    a.core.bornDay = bornDayFor(s, 30);
+    expect(tensionsOf(s, a).map((t) => t.id)).toEqual([TN.wary_dangerous]);
+    a.core.bornDay = bornDayFor(s, 8); // a disciplined child
+    expect(tensionsOf(s, a).map((t) => t.id)).toEqual([TN.old_head, TN.wary_dangerous]);
+    a.core.skills = { [SK.resolve]: { raw: 90, state: 'normal' } }; // Resolve is never the craft
+    expect(tensionsOf(s, a).map((t) => t.id)).toEqual([TN.old_head]);
   });
   it('perks, the current class and achievements add points while held (PL15, PL16)', () => {
     const a = npc(TP.guard);
@@ -65,19 +78,41 @@ describe('personality', () => {
     } finally { lib.perks[perk].personality = before; }
   });
   it('the agent reads it in CHARACTER; the Voice never does', () => {
-    const guard = npc(TP.guard);
-    expect(personalityText(guard, 'Tense')).toBe('Nerve: Steady (Tense right now). Disciplined. Values: duty.');
+    const s = makeVillage(), guard = npc(TP.guard);
+    expect(personalityText(s, guard, 'Tense')).toBe('Nerve: Steady (neither seeks nor flees danger; Tense right now). Mature at heart (thinks before acting, keeps a cool head, owns their mistakes). Drives: duty (does what is expected of them, sees obligations through).');
     const v = actorView();
     expect(formatOppositionView(v)).toContain(`"personality":"${v.personality}"`);
     expect(formatOppositionView(v).split(v.personality).length).toBe(2); // once, in CHARACTER only
     expect(formatDialogueView({ ...v, knows: [], dialogue: [] })).not.toContain(v.personality);
   });
+  it('the voice-tested line: Aldo (the Rudeus voice tests) reads exactly as the prototype built it', () => {
+    const s = makeVillage(), a = s.player;
+    a.core.classes = []; a.core.perks = [];
+    a.core.personality = { nerve: -40, traits: { [PA.honesty]: -30, [PA.pride]: -20, [PA.temper]: -40, [PA.sociability]: -20, [PA.discipline]: 60, [PA.curiosity]: 70, [PA.levity]: -20 }, values: [VL.knowledge, VL.loyalty] };
+    a.core.skills = { [SK.resolve]: { raw: 20, state: 'normal' }, [SK.melee_medium]: { raw: 50, state: 'normal' } };
+    a.core.bornDay = bornDayFor(s, 7);
+    expect(personalityText(s, a, 'Calm')).toBe('Nerve: Timid (keeps out of danger when they can; Calm right now). Mature at heart (thinks before acting, keeps a cool head, owns their mistakes), but very curious (wants to know how things work, asks and pokes) and a bit deceitful (bends the truth when it suits them). Drives: knowledge first (studies, practises and seeks out learning), then loyalty (stands by their friends and their own). Tensions: old head on young shoulders (talks and plans like a grown-up, though still a child); wary but dangerous (avoids danger, yet hits hard when pushed).');
+  });
+  it('a unique NPC gets its template\'s signatures after Nerve and its title with its name; a copy gets neither', () => {
+    const s = makeVillage(), t = getLibrary().templates[TP.guard], g = s.actors.find((x) => x.id === 'guard_1')!;
+    t.title = 'the Gatekeeper'; t.signatures = ['Never leaves the gate unwatched.'];
+    try {
+      expect(personalityText(s, g, 'Calm')).not.toContain('Never leaves');
+      expect(buildOppositionView(s, g.id).title).toBeUndefined();
+      g.core.generation = 'unique';
+      expect(personalityText(s, g, 'Calm')).toMatch(/^Nerve: [^.]+\. Never leaves the gate unwatched\. Mature at heart/);
+      const v = buildOppositionView(s, g.id);
+      expect(formatOppositionView(v)).toContain(`"name":"${v.self.name}, the Gatekeeper"`);
+      expect(formatDialogueView({ ...v, knows: [], dialogue: [] })).not.toContain('Gatekeeper'); // the Voice is player-side
+    } finally { delete t.title; delete t.signatures; }
+  });
   it('the Weaver may name a line, types and values on top of the template (PL12)', () => {
     const t = npcTemplate(null, TP.guard);
     const p = personalityFrom(t.personality, { nerve: 'daring', types: [PY.childish, 'nonsense'], values: [VL.family, 'VL999'] });
     expect(p.nerve).toBe(CONFIG.NERVE_LINE_POINTS);
-    expect(p.traits[PA.discipline]).toBe(-40); // Childish caps Discipline at −40
-    expect(p.traits[PA.temper]).toBe(20);
+    expect(p.traits[PA.discipline]).toBe(-70); // Childish's target
+    expect(p.traits[PA.temper]).toBe(30);
+    expect(personalityFrom({ nerve: 0, traits: { [PA.temper]: 50 }, values: [] }, { types: [PY.childish] }).traits[PA.temper]).toBe(50); // already past it
     expect(p.values).toEqual([VL.family]);
     expect(t.personality.traits[PA.discipline]).toBe(40); // the template is untouched
   });

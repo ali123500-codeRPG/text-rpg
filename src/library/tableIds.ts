@@ -9,11 +9,13 @@ export const CP = { rest: 'CP1', clinic: 'CP2', natural: 'CP3', danger_passed: '
 /** fears: what costs (or restores) morale (MB21–MB28) */
 export const FR = { own_level: 'FR1', own_critical: 'FR2', bandmate_down: 'FR3', bandmate_broken: 'FR4', lost_intimidation: 'FR5', foe_downed: 'FR6', dread_presence: 'FR7', battle_cry: 'FR8', rallied: 'FR9', own_part_crippled: 'FR10', own_part_destroyed: 'FR11', dreaded_sight: 'FR12' } as const;
 /** PL6: personality axes; PL19: values; PL10: named personality types */
-export const PA = { honesty: 'PA1', pride: 'PA2', temper: 'PA3', sociability: 'PA4', discipline: 'PA5', curiosity: 'PA6' } as const;
+export const PA = { honesty: 'PA1', pride: 'PA2', temper: 'PA3', sociability: 'PA4', discipline: 'PA5', curiosity: 'PA6', levity: 'PA7' } as const;
 export const VL = { duty: 'VL1', wealth: 'VL2', family: 'VL3', faith: 'VL4', power: 'VL5', freedom: 'VL6', safety: 'VL7', pleasure: 'VL8', knowledge: 'VL9', kindness: 'VL10',
   glory: 'VL11', adventure: 'VL12', reputation: 'VL13', humility: 'VL14', nature: 'VL15', justice: 'VL16', tolerance: 'VL17',
-  loyalty: 'VL18', courtesy: 'VL19', order: 'VL20' } as const;
-export const PY = { prideful: 'PY1', mature: 'PY2', childish: 'PY3', honourable: 'PY4', schemer: 'PY5', bully: 'PY6', busybody: 'PY7' } as const;
+  loyalty: 'VL18', courtesy: 'VL19', order: 'VL20', propriety: 'VL21', gratitude: 'VL22', desire: 'VL23' } as const;
+export const PY = { prideful: 'PY1', mature: 'PY2', childish: 'PY3', honourable: 'PY4', schemer: 'PY5', bully: 'PY6', busybody: 'PY7', ordinary: 'PY8', loner: 'PY9', free_spirit: 'PY10' } as const;
+/** tensions: two parts of a character that pull against each other (personality line) */
+export const TN = { unshakeable_scatterbrained: 'TN1', bold_unbacked: 'TN2', old_head: 'TN3', wary_dangerous: 'TN4', home_temptation: 'TN5', talent_undisciplined: 'TN6', crooked_means: 'TN7' } as const;
 /** linked perks: a set of perks that together grant one more perk, or merge into one (src/library/perkLinks.ts) */
 export const LK = { crushing_presence: 'LK1' } as const;
 export const DU = { fight_turn: 'DU1', action: 'DU2', trade: 'DU3', rest: 'DU4', sleep: 'DU5' } as const;

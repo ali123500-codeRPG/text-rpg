@@ -193,8 +193,20 @@ const DEFAULTS = {
   PERSONALITY_LEAN: 20,
   /** PL9: the word before a trait, from its distance from 0: [from, word] (below the first, the trait is left out) */
   TRAIT_WORDS: [[20, 'a bit '], [40, ''], [70, 'very ']] as [number, string][],
-  /** PL10: at most this many named types are given to the agent, strongest first */
-  PERSONALITY_TYPES_SHOWN: 2,
+  /** archetype gap: the six axes and Nerve count 1 each, the drive fit counts this many times */
+  ARCHETYPE_VALUE_WEIGHT: 2,
+  /** drive fit for a type with no values (Ordinary): the same as a type none of whose values they hold */
+  ARCHETYPE_NO_VALUES_GAP: 100,
+  /** how much a held value counts toward a type's drive fit by its rank (first 1, second 0.8...); past the list, the last */
+  DRIVE_RANK_WEIGHT: [1, 0.8, 0.6, 0.4, 0.3, 0.2],
+  /** a "but" (a trait the archetype doesn't explain) needs this many points, this gap from the archetype's target, at most BUTS_SHOWN */
+  BUT_MIN: 20,
+  BUT_GAP: 40,
+  BUTS_SHOWN: 3,
+  /** the strongest values the agent is given as drives, and how many the Weaver and the player may pick */
+  DRIVES_SHOWN: 3,
+  /** tensions given to the agent, in table order */
+  TENSIONS_SHOWN: 2,
   /** PL12: the Nerve points a named line sets (− for cautious, + for daring) */
   NERVE_LINE_POINTS: 40,
   /** AP2: personality points one achievement step is worth; rows write steps (+1, −1), so this one number scales them all */

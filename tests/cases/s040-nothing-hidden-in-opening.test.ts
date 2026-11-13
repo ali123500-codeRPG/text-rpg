@@ -22,6 +22,7 @@ it('40 Nothing hidden in the opening', () => {
   const v = buildNarrationView(s, events, null);
   expect(v.events.map((e) => [e.id, e.level, e.activityLook])).toEqual([['arr', 'full', undefined], ['p1', 'full', 'nursing a drink'], ['p2', 'full', 'tending the counter']]);
   const text = JSON.stringify(v);
-  for (const w of ['Great Success', 'major', 'extreme', 'moderate', 'SUMMARY', 'smugglers', 'NOTE', 'fence', 'suspicious', 'aware', 'tier', 'grade', 'attention', 'distracted'])
+  expect(text).not.toMatch(/\bextreme\b/); // the grade as a word: the Ordinary archetype's hint says "nothing to extremes"
+  for (const w of ['Great Success', 'major', 'moderate', 'SUMMARY', 'smugglers', 'NOTE', 'fence', 'suspicious', 'aware', 'tier', 'grade', 'attention', 'distracted'])
     expect(text).not.toContain(w);
 });
